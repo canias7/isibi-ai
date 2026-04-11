@@ -18,10 +18,15 @@ def _safe_ident(name: str) -> str:
 
 
 _last_retention_cleanup: datetime | None = None
+# Urgent-email poller runs every 5 minutes so we're not hammering
+# every user's mailbox on every 60-second scheduler tick. Tracked
+# here so we don't have to persist it.
+_last_urgent_email_poll: datetime | None = None
 
 
 async def run_scheduler():
     """Background scheduler that runs every 60 seconds."""
+    global _last_urgent_email_poll
     while True:
         try:
             await asyncio.sleep(60)
@@ -34,6 +39,20 @@ async def run_scheduler():
             await _run_scheduled_commands()
             await _run_ghost_scheduled_tasks()
             await _cleanup_old_data()
+
+            # Urgent-email poller — runs every 5 minutes. Walks every
+            # user with a connected mailbox and pushes a notification
+            # if anything urgent arrived since the last poll. Isolated
+            # here so a polling error never breaks the rest of the
+            # scheduler loop.
+            try:
+                now = datetime.now(timezone.utc)
+                if _last_urgent_email_poll is None or (now - _last_urgent_email_poll) >= timedelta(minutes=5):
+                    _last_urgent_email_poll = now
+                    from worker.push_email_poller import poll_urgent_emails_for_all_users
+                    await poll_urgent_emails_for_all_users()
+            except Exception as poll_err:
+                logger.warning(f"Urgent-email poller failed: {poll_err}")
         except asyncio.CancelledError:
             logger.info("Scheduler cancelled, shutting down")
             break
@@ -277,6 +296,23 @@ async def _send_daily_digest_reports():
                         report.updated_at = now
                         sent_count += 1
                         logger.info(f"Scheduled report sent: '{report.name}' → {report.recipient_email}")
+                        # Also push a digest notification to the owner's
+                        # devices so they get pinged even if the app was
+                        # closed when the scheduled report fired. Best
+                        # effort — we never block the mail send on push.
+                        try:
+                            from routes.ghost_push import send_push_to_user
+                            if 'owner' in locals() and owner and owner.id:
+                                await send_push_to_user(
+                                    owner.id,
+                                    db,
+                                    title=f"{report.name} is ready",
+                                    body=f"Your scheduled digest was delivered to {report.recipient_email}.",
+                                    kind="digest",
+                                    data={"reportId": str(report.id)},
+                                )
+                        except Exception:
+                            logger.exception("Digest push fan-out failed (non-fatal)")
                     else:
                         logger.warning(f"Scheduled report send failed: '{report.name}' → {report.recipient_email}")
                 except Exception as e:

@@ -14,7 +14,7 @@ import ScheduledScreen from '../screens/ScheduledScreen';
 import SubscriptionScreen from '../screens/SubscriptionScreen';
 import { getChatSessions, saveChatSessions, ChatSession } from '../lib/storage';
 import { ensureDefaultWorkspace, onWorkspaceChange } from '../lib/workspaces';
-import { addNotificationResponseListener } from '../lib/notifications';
+import { addNotificationResponseListener, registerForPushNotifications, unregisterFromPushNotifications } from '../lib/notifications';
 import { useInactivityTimeout } from '../lib/useInactivityTimeout';
 import { clearToken, logout as apiLogout } from '../lib/api';
 
@@ -27,6 +27,11 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
   // the drawer's "Log out" button and the inactivity timeout use this
   // so token clearing can never be skipped.
   const handleFullLogout = useCallback(async () => {
+    // Unregister the device token BEFORE clearing the auth token so
+    // the backend still authorizes the call. Swallow errors — if
+    // unregister fails, the next push that targets this device will
+    // just get DeviceNotRegistered and the server deactivates the row.
+    try { await unregisterFromPushNotifications(); } catch {}
     try { await apiLogout(); } catch {}
     onLogout();
   }, [onLogout]);
@@ -52,6 +57,11 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
     (async () => {
       await ensureDefaultWorkspace();
       await loadSessions();
+      // Register for push notifications on every launch. The helper
+      // is idempotent — if the token hasn't changed it's a cheap no-op
+      // on the backend. Runs AFTER ensureDefaultWorkspace so the auth
+      // header + workspace id are both ready.
+      try { await registerForPushNotifications(); } catch {}
     })();
   }, []);
 

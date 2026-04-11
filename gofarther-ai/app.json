@@ -20,10 +20,14 @@
         "NSCalendarsUsageDescription": "GoFarther AI needs calendar access to create and view events.",
         "NSCameraUsageDescription": "GoFarther AI uses the camera for document scanning.",
         "NSLocationWhenInUseUsageDescription": "GoFarther AI needs location for directions and nearby search.",
-        "ITSAppUsesNonExemptEncryption": true
+        "ITSAppUsesNonExemptEncryption": true,
+        "UIBackgroundModes": ["remote-notification", "fetch"]
       },
       "bundleIdentifier": "com.gofarther.ai",
-      "buildNumber": "25"
+      "buildNumber": "26",
+      "entitlements": {
+        "aps-environment": "production"
+      }
     },
     "android": {
       "permissions": [

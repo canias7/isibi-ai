@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { logout, getMe, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage, setup2FA, verify2FA, disable2FA, getSessions, revokeSession, revokeAllSessions, SessionInfo, exportMyData, startOAuth } from '../lib/api';
+import { logout, getMe, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage, setup2FA, verify2FA, disable2FA, getSessions, revokeSession, revokeAllSessions, SessionInfo, exportMyData, startOAuth, getNotificationPrefs, updateNotificationPrefs, sendTestPush, type NotificationPrefs } from '../lib/api';
 import * as WebBrowser from 'expo-web-browser';
 import { isBiometricAvailable, getBiometricType } from '../lib/biometrics';
 import { registerForPushNotifications } from '../lib/notifications';
@@ -64,6 +64,22 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [pushToken, setPushToken] = useState<string | null>(null);
+  const [pushPrefs, setPushPrefs] = useState<NotificationPrefs | null>(null);
+  const [showNotifSettings, setShowNotifSettings] = useState(false);
+
+  /** Patch notification prefs on the server, update local state on
+   *  success. Called from each toggle inside the expanded section. */
+  const patchPrefs = async (patch: Partial<NotificationPrefs>) => {
+    // Optimistic update so the toggle feels instant
+    setPushPrefs(prev => prev ? { ...prev, ...patch } : prev);
+    try {
+      const updated = await updateNotificationPrefs(patch);
+      setPushPrefs(updated);
+    } catch {
+      // Revert on error — just re-fetch to be safe
+      try { setPushPrefs(await getNotificationPrefs()); } catch {}
+    }
+  };
   const { mode: themeMode, toggle: toggleTheme, colors: tc } = useTheme();
   const [usageData, setUsageData] = useState<{ total_messages: number; total_tokens: number; credits_remaining: number; plan: string } | null>(null);
   const [usagePeriod, setUsagePeriod] = useState('7d');
@@ -104,6 +120,7 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
     getBiometricType().then(setBioType);
     getBiometricEnabled().then(setBiometricOn);
     registerForPushNotifications().then(setPushToken).catch(() => {});
+    getNotificationPrefs().then(setPushPrefs).catch(() => {});
   }, [loadWorkspaceData]);
 
   // Re-fetch the per-workspace bits when the user switches workspace so
@@ -887,11 +904,71 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
             </>
           )}
           <View style={s.rowDivider} />
-          <Row label="Notifications" value={pushToken ? 'On' : 'Off'} onPress={async () => {
-            const t = await registerForPushNotifications();
-            setPushToken(t);
-            Alert.alert('Notifications', t ? 'Push notifications enabled' : 'Could not enable. Check Settings.');
-          }} />
+          {/* Notifications — tap to expand into per-type toggles */}
+          <TouchableOpacity style={s.row} onPress={() => setShowNotifSettings(v => !v)} activeOpacity={0.6}>
+            <Text style={[s.rowLabel, { color: tc.text }]}>Notifications</Text>
+            <Text style={[s.rowValue, { color: pushToken && pushPrefs?.enabled ? '#22c55e' : tc.textMid }]}>
+              {!pushToken ? 'Off' : pushPrefs?.enabled === false ? 'Muted' : 'On'}
+            </Text>
+          </TouchableOpacity>
+          {showNotifSettings && (
+            <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+              {!pushToken && (
+                <TouchableOpacity
+                  style={{ backgroundColor: C.primary, borderRadius: 10, paddingVertical: 10, alignItems: 'center', marginBottom: 10 }}
+                  onPress={async () => {
+                    const t = await registerForPushNotifications();
+                    setPushToken(t);
+                    if (!t) Alert.alert('Notifications', 'Could not enable. Check iOS Settings → GoFarther AI → Notifications.');
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Enable Push Notifications</Text>
+                </TouchableOpacity>
+              )}
+              {pushToken && pushPrefs && (
+                <>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 }}>
+                    <Text style={{ fontSize: 14, color: tc.text }}>Master switch</Text>
+                    <Switch value={pushPrefs.enabled} onValueChange={v => patchPrefs({ enabled: v })} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={pushPrefs.enabled ? C.primary : '#f4f4f4'} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, opacity: pushPrefs.enabled ? 1 : 0.4 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, color: tc.text }}>Urgent emails</Text>
+                      <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>From saved contacts or flagged as important</Text>
+                    </View>
+                    <Switch value={pushPrefs.urgent_email} onValueChange={v => patchPrefs({ urgent_email: v })} disabled={!pushPrefs.enabled} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={pushPrefs.urgent_email ? C.primary : '#f4f4f4'} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, opacity: pushPrefs.enabled ? 1 : 0.4 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, color: tc.text }}>Plan completed</Text>
+                      <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>When a background task finishes</Text>
+                    </View>
+                    <Switch value={pushPrefs.plan_done} onValueChange={v => patchPrefs({ plan_done: v })} disabled={!pushPrefs.enabled} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={pushPrefs.plan_done ? C.primary : '#f4f4f4'} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, opacity: pushPrefs.enabled ? 1 : 0.4 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, color: tc.text }}>Daily digest</Text>
+                      <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>Morning summary from scheduled tasks</Text>
+                    </View>
+                    <Switch value={pushPrefs.digest} onValueChange={v => patchPrefs({ digest: v })} disabled={!pushPrefs.enabled} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={pushPrefs.digest ? C.primary : '#f4f4f4'} />
+                  </View>
+                  <TouchableOpacity
+                    style={{ marginTop: 10, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: tc.border, alignItems: 'center' }}
+                    onPress={async () => {
+                      try {
+                        const r = await sendTestPush();
+                        Alert.alert('Test notification', r.sent > 0 ? `Sent to ${r.sent} device${r.sent > 1 ? 's' : ''}. Check your lock screen.` : (r as any).skipped ? `Skipped (${(r as any).skipped})` : 'No active devices.');
+                      } catch (e: any) {
+                        Alert.alert('Test failed', e.message || 'Unknown error');
+                      }
+                    }}
+                  >
+                    <Text style={{ color: tc.text, fontWeight: '600', fontSize: 13 }}>Send test notification</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          )}
           <View style={s.rowDivider} />
           <Row label="AI Model" value="Claude Sonnet" />
           <Row label="Image Generation" value="DALL-E 3" />

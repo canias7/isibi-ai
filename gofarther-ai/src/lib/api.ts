@@ -469,6 +469,61 @@ export async function connectorAction(appId: string, action: string, params: Rec
   });
 }
 
+// ─── Push Notifications ────────────────────────────────────────────────
+
+const PUSH = '/ghost/push';
+
+export interface NotificationPrefs {
+  enabled: boolean;
+  plan_done: boolean;
+  urgent_email: boolean;
+  digest: boolean;
+  quiet_start_min: number | null;
+  quiet_end_min: number | null;
+  timezone_name: string;
+}
+
+/** Register a fresh Expo push token with the backend so it can fan
+ *  out notifications to this device. Called on app launch after
+ *  expo-notifications returns a token, and again whenever the token
+ *  rotates (Expo handles rotation for us). */
+export async function registerDevicePushToken(
+  deviceToken: string,
+  meta: { platform?: string; device_name?: string; app_version?: string } = {},
+): Promise<{ status: string }> {
+  return apiFetch(`${PUSH}/register-device`, {
+    method: 'POST',
+    body: JSON.stringify({ device_token: deviceToken, ...meta }),
+  });
+}
+
+/** Tell the backend to stop sending push notifications to this
+ *  device. Called on logout so the next user who signs in on this
+ *  phone doesn't get the previous account's notifications. */
+export async function unregisterDevicePushToken(deviceToken: string): Promise<{ status: string }> {
+  return apiFetch(`${PUSH}/unregister-device`, {
+    method: 'POST',
+    body: JSON.stringify({ device_token: deviceToken }),
+  });
+}
+
+export async function getNotificationPrefs(): Promise<NotificationPrefs> {
+  return apiFetch(`${PUSH}/prefs`);
+}
+
+export async function updateNotificationPrefs(patch: Partial<NotificationPrefs>): Promise<NotificationPrefs> {
+  return apiFetch(`${PUSH}/prefs`, {
+    method: 'POST',
+    body: JSON.stringify(patch),
+  });
+}
+
+/** Ask the backend to send a test push to every device this user has
+ *  registered. Used by the Settings screen's "Test notification" button. */
+export async function sendTestPush(): Promise<{ sent: number; failed: number; tokens_tried: number }> {
+  return apiFetch(`${PUSH}/test`, { method: 'POST' });
+}
+
 // ─── Two-Factor Authentication ────────────────────────────────────────
 
 export async function setup2FA(): Promise<{ secret: string; qr_url: string }> {
