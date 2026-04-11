@@ -688,14 +688,35 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           // Mail messages from any mail connector (gmail, outlook_mail, neo,
           // titan, imap, yahoo, zoho, fastmail, etc.). All adapters return
           // {messages: [{id, subject, from, received, snippet, unread}]}.
-          if (data.messages && Array.isArray(data.messages)) formatted += '\n\n' + data.messages.map((m: any) => {
-            const unread = m.unread ? '● ' : '○ ';
-            const from = (m.from_name || m.from || '').toString().slice(0, 40);
-            const subj = (m.subject || '(no subject)').toString().slice(0, 70);
-            const snip = m.snippet ? `\n   ${m.snippet.toString().slice(0, 120).replace(/\s+/g, ' ')}` : '';
-            const when = m.received ? ` · ${new Date(m.received).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : '';
-            return `${unread}**${from}**${when}\n   ${subj}${snip}`;
-          }).join('\n\n');
+          if (data.messages && Array.isArray(data.messages)) {
+            // Parse RFC 2822 "Name" <addr@domain> into just the display
+            // name, falling back to the addr part when there's no name.
+            const cleanFrom = (raw: any): string => {
+              const s = (raw || '').toString().trim();
+              // Strip outer quotes + angle brackets
+              const nameAddr = s.match(/^\s*"?([^"<]*?)"?\s*<\s*([^>]+)\s*>\s*$/);
+              if (nameAddr) {
+                const name = (nameAddr[1] || '').trim().replace(/^"|"$/g, '');
+                const addr = (nameAddr[2] || '').trim();
+                return name || addr;
+              }
+              return s;
+            };
+            // Escape markdown-significant characters so things like
+            // "**Microsoft account team" don't get eaten by the renderer.
+            const escapeMd = (raw: any): string =>
+              (raw || '').toString()
+                .replace(/[\*_`\[\]<>]/g, (c: string) => '\\' + c)
+                .replace(/\s+/g, ' ');
+            formatted += '\n\n' + data.messages.map((m: any) => {
+              const unread = m.unread ? '● ' : '○ ';
+              const from = escapeMd(cleanFrom(m.from_name || m.from)).slice(0, 40);
+              const subj = escapeMd(m.subject || '(no subject)').slice(0, 70);
+              const snip = m.snippet ? `\n   ${escapeMd(m.snippet).slice(0, 120)}` : '';
+              const when = m.received ? ` · ${new Date(m.received).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : '';
+              return `${unread}**${from}**${when}\n   ${subj}${snip}`;
+            }).join('\n\n');
+          }
           if (data.deals) formatted += '\n\n' + data.deals.map((d: any) => `**${d.dealname || d.title || d.name || 'Deal'}** ${d.amount ? `· $${d.amount}` : ''} ${d.dealstage || d.stage || ''}`).join('\n');
           if (data.leads) formatted += '\n\n' + data.leads.map((l: any) => `**${l.Name || l.name || 'Lead'}** ${l.Email ? `· ${l.Email}` : ''} ${l.Status || ''}`).join('\n');
           if (data.tasks) formatted += '\n\n' + data.tasks.map((t: any) => `${t.completed ? '✅' : '⬜'} **${t.content || t.name || 'Task'}** ${t.due || t.due_on || ''}`).join('\n');
