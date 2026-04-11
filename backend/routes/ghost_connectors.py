@@ -700,7 +700,7 @@ APP_REGISTRY: dict[str, dict] = {
             {"key": "username", "label": "Email Address (e.g. you@yourdomain.com)"},
             {"key": "app_password", "label": "Password", "secure": True},
         ],
-        "setup": "Enter your Neo email address and password. Server settings (imap.neo.space / smtp.neo.space) are configured automatically. If Neo rejects the password, generate an app-specific password in your Neo account settings.",
+        "setup": "Enter your Neo email address and password. Neo Business Email runs on Titan's infrastructure (imap.titan.email / smtp.titan.email) — GoFarther handles the server settings automatically. If Neo rejects the password, sign in to app.neo.space and generate an app password under Settings → Security.",
         "setup_url": "https://app.neo.space/mail/",
         "actions": [
             "list_inbox", "search_emails", "read_email", "reply_to_email",
@@ -1684,7 +1684,9 @@ async def _probe_imap_login(creds: dict, imap_host_override: str | None = None, 
 # the connection. Mirrors the presets defined by _make_imap_preset so the
 # connect-time probe can pre-fill the host the same way the adapter does.
 _MAIL_PRESET_HOSTS: dict[str, tuple[str, int]] = {
-    "neo_mail":       ("imap.neo.space",      993),
+    # Neo and Titan share the same backend — the neo.space domain does
+    # not run IMAP. Both tiles probe against imap.titan.email.
+    "neo_mail":       ("imap.titan.email",    993),
     "titan_mail":     ("imap.titan.email",    993),
     "yahoo_mail":     ("imap.mail.yahoo.com", 993),
     "icloud_mail":    ("imap.mail.me.com",    993),
@@ -5635,7 +5637,9 @@ _MAIL_AUTODETECT_PRESETS: dict[str, dict] = {
     "fastmail.com":  {"imap_host": "imap.fastmail.com", "imap_port": 993, "smtp_host": "smtp.fastmail.com", "smtp_port": 587},
     "zoho.com":      {"imap_host": "imap.zoho.com",     "imap_port": 993, "smtp_host": "smtp.zoho.com",     "smtp_port": 587},
     "protonmail.com":{"imap_host": "127.0.0.1",         "imap_port": 1143, "smtp_host": "127.0.0.1",        "smtp_port": 1025},  # Bridge
-    "neo.space":     {"imap_host": "imap.neo.space",    "imap_port": 993, "smtp_host": "smtp.neo.space",    "smtp_port": 465},
+    # neo.space accounts land on Titan's actual servers — Neo Business
+    # Email is a rebrand of Titan, not a separate infrastructure.
+    "neo.space":     {"imap_host": "imap.titan.email",  "imap_port": 993, "smtp_host": "smtp.titan.email",  "smtp_port": 587},
     "titan.email":   {"imap_host": "imap.titan.email",  "imap_port": 993, "smtp_host": "smtp.titan.email",  "smtp_port": 587},
 }
 
@@ -6773,12 +6777,21 @@ async def _imap_mail_adapter(action: str, params: dict, creds: dict) -> dict:
 # follow the same one-liner pattern.
 
 async def _neo_mail_adapter(action: str, params: dict, creds: dict) -> dict:
-    """Neo Business Email (neo.space) — IMAP/SMTP preset."""
+    """Neo Business Email — IMAP/SMTP preset.
+
+    Important: Neo and Titan share the SAME backend. The 'neo.space'
+    domain doesn't actually run IMAP/SMTP servers — customer mail for
+    Neo accounts is hosted on imap.titan.email / smtp.titan.email. So
+    the Neo tile just points at the Titan hosts under the hood; the
+    two adapters are functionally identical and the tile is kept
+    separate only for discoverability (users who signed up through a
+    Neo-branded reseller know to look for "Neo" instead of "Titan").
+    """
     enriched = dict(creds)
-    enriched.setdefault("imap_host", "imap.neo.space")
+    enriched.setdefault("imap_host", "imap.titan.email")
     enriched.setdefault("imap_port", 993)
-    enriched.setdefault("smtp_host", "smtp.neo.space")
-    enriched.setdefault("smtp_port", 465)
+    enriched.setdefault("smtp_host", "smtp.titan.email")
+    enriched.setdefault("smtp_port", 587)
     return await _imap_mail_adapter(action, params, enriched)
 
 
