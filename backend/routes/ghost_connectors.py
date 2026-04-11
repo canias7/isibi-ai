@@ -1589,27 +1589,10 @@ for _app_id, _name, _setup, _setup_url in _MAIL_PRESETS:
         "action_hints": dict(_MAIL_PRESET_HINTS),
     }
 
-# Flip OAuth-capable mail presets to the generic "mail_oauth" flow *only*
-# when the provider's client ID + secret are configured on the server.
-# This way, adding YAHOO_CLIENT_ID / YAHOO_CLIENT_SECRET on Render
-# automatically turns yahoo_mail (and aol_mail) into a "Connect with
-# Yahoo" OAuth tile without any further code changes. Until the env vars
-# are set, the entries stay as password-based IMAP presets.
-for _provider_key, _cfg in MAIL_OAUTH_PROVIDERS.items():
-    if not _mail_oauth_configured(_provider_key):
-        continue
-    for _app_id in _cfg.get("app_ids", []):
-        if _app_id not in APP_REGISTRY:
-            continue
-        APP_REGISTRY[_app_id]["oauth_flow"] = "mail_oauth"
-        APP_REGISTRY[_app_id]["auth_fields"] = [
-            {"key": "access_token", "label": f"{_cfg['display']} OAuth Access Token", "secure": True},
-        ]
-        APP_REGISTRY[_app_id]["setup"] = (
-            f"Tap 'Connect with {_cfg['display']}' to sign in. "
-            f"GoFarther never sees your password — the token comes straight "
-            f"from {_cfg['display']} and is stored encrypted."
-        )
+# NOTE: the "flip OAuth-capable mail presets to mail_oauth flow when
+# env vars are configured" loop moved to right after
+# MAIL_OAUTH_PROVIDERS is defined further down the file, because
+# Python import ordering forbids referencing MAIL_OAUTH_PROVIDERS here.
 
 # ── Category order for display ───────────────────────────────────────────
 
@@ -1858,6 +1841,29 @@ def _mail_oauth_provider_for_app(app_id: str) -> Optional[str]:
 def _mail_oauth_configured(provider_key: str) -> bool:
     cid, secret = _mail_oauth_client(provider_key)
     return bool(cid and secret)
+
+
+# Flip OAuth-capable mail presets to the generic "mail_oauth" flow *only*
+# when the provider's client ID + secret are configured on the server.
+# Runs AFTER both APP_REGISTRY and MAIL_OAUTH_PROVIDERS are defined —
+# positioning matters because Python evaluates module-level code in
+# order. Until the env vars are set, the mail preset entries stay as
+# password-based IMAP tiles.
+for _provider_key, _cfg in MAIL_OAUTH_PROVIDERS.items():
+    if not _mail_oauth_configured(_provider_key):
+        continue
+    for _app_id in _cfg.get("app_ids", []):
+        if _app_id not in APP_REGISTRY:
+            continue
+        APP_REGISTRY[_app_id]["oauth_flow"] = "mail_oauth"
+        APP_REGISTRY[_app_id]["auth_fields"] = [
+            {"key": "access_token", "label": f"{_cfg['display']} OAuth Access Token", "secure": True},
+        ]
+        APP_REGISTRY[_app_id]["setup"] = (
+            f"Tap 'Connect with {_cfg['display']}' to sign in. "
+            f"GoFarther never sees your password — the token comes straight "
+            f"from {_cfg['display']} and is stored encrypted."
+        )
 
 
 def _ms_auth_url() -> str:
