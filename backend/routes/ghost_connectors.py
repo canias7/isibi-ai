@@ -694,17 +694,73 @@ APP_REGISTRY: dict[str, dict] = {
             "download_attachment": "message_id=<id>|attachment_id=<id>",
         },
     },
+    "neo_mail": {
+        "name": "Neo Business Email", "category": "Email", "icon": "mail",
+        "auth_fields": [
+            {"key": "username", "label": "Email Address (e.g. you@yourdomain.com)"},
+            {"key": "app_password", "label": "Password", "secure": True},
+        ],
+        "setup": "Enter your Neo email address and password. Server settings (imap.neo.space / smtp.neo.space) are configured automatically. If Neo rejects the password, generate an app-specific password in your Neo account settings.",
+        "actions": [
+            "list_inbox", "search_emails", "read_email", "reply_to_email",
+            "send_email", "mark_read", "mark_unread", "archive", "delete",
+            "move_to_folder", "list_folders", "download_attachment",
+        ],
+        "action_hints": {
+            "list_inbox": "folder=<folder name, defaults to INBOX>|limit=<1-50, default 20>",
+            "search_emails": "query=<text>|from=<email>|subject=<text>|unread=<true/false>|limit=<1-50>",
+            "read_email": "message_id=<uid>|folder=<folder name, defaults to INBOX>",
+            "reply_to_email": "message_id=<uid>|body=<html>|folder=<folder name>",
+            "send_email": "to=<email(s)>|subject=<subject>|body=<html>|cc=<optional>|bcc=<optional>",
+            "mark_read": "message_id=<uid>|folder=<folder name>",
+            "mark_unread": "message_id=<uid>|folder=<folder name>",
+            "archive": "message_id=<uid>|folder=<source folder>",
+            "delete": "message_id=<uid>|folder=<folder name>",
+            "move_to_folder": "message_id=<uid>|folder=<source>|to=<destination folder>",
+            "list_folders": "no params",
+            "download_attachment": "message_id=<uid>|folder=<folder>|attachment_index=<0-based index from read_email>",
+        },
+    },
+    "titan_mail": {
+        "name": "Titan Email", "category": "Email", "icon": "mail",
+        "auth_fields": [
+            {"key": "username", "label": "Email Address (e.g. you@yourdomain.com)"},
+            {"key": "app_password", "label": "Password", "secure": True},
+        ],
+        "setup": "Enter your Titan email address and password. Server settings (imap.titan.email / smtp.titan.email) are configured automatically. If Titan rejects the password, generate an app-specific password in your Titan account settings.",
+        "actions": [
+            "list_inbox", "search_emails", "read_email", "reply_to_email",
+            "send_email", "mark_read", "mark_unread", "archive", "delete",
+            "move_to_folder", "list_folders", "download_attachment",
+        ],
+        "action_hints": {
+            "list_inbox": "folder=<folder name, defaults to INBOX>|limit=<1-50, default 20>",
+            "search_emails": "query=<text>|from=<email>|subject=<text>|unread=<true/false>|limit=<1-50>",
+            "read_email": "message_id=<uid>|folder=<folder name, defaults to INBOX>",
+            "reply_to_email": "message_id=<uid>|body=<html>|folder=<folder name>",
+            "send_email": "to=<email(s)>|subject=<subject>|body=<html>|cc=<optional>|bcc=<optional>",
+            "mark_read": "message_id=<uid>|folder=<folder name>",
+            "mark_unread": "message_id=<uid>|folder=<folder name>",
+            "archive": "message_id=<uid>|folder=<source folder>",
+            "delete": "message_id=<uid>|folder=<folder name>",
+            "move_to_folder": "message_id=<uid>|folder=<source>|to=<destination folder>",
+            "list_folders": "no params",
+            "download_attachment": "message_id=<uid>|folder=<folder>|attachment_index=<0-based index from read_email>",
+        },
+    },
     "imap_mail": {
         "name": "Email (IMAP)", "category": "Email", "icon": "mail",
         "auth_fields": [
-            {"key": "imap_host", "label": "IMAP Server (e.g. imap.gmail.com)"},
-            {"key": "imap_port", "label": "IMAP Port (usually 993)"},
-            {"key": "smtp_host", "label": "SMTP Server (e.g. smtp.gmail.com)"},
-            {"key": "smtp_port", "label": "SMTP Port (usually 587)"},
             {"key": "username", "label": "Email Address"},
             {"key": "app_password", "label": "App Password", "secure": True},
+            # Optional overrides — only needed when autodetection fails. The
+            # frontend can render these as an "Advanced" expandable section.
+            {"key": "imap_host", "label": "IMAP Server (optional — autodetected from your email)"},
+            {"key": "imap_port", "label": "IMAP Port (optional, default 993)"},
+            {"key": "smtp_host", "label": "SMTP Server (optional — autodetected)"},
+            {"key": "smtp_port", "label": "SMTP Port (optional, default 587)"},
         ],
-        "setup": "Use this for Yahoo, FastMail, iCloud, ProtonMail Bridge, or any custom domain. Most providers require an 'app password' instead of your regular password — check your provider's docs (e.g. Google: myaccount.google.com/apppasswords, Yahoo: login.yahoo.com/account/security).",
+        "setup": "Enter your email address and password. GoFarther auto-detects the IMAP and SMTP servers for most providers (Gmail, Yahoo, iCloud, Titan, Neo, FastMail, Zoho, and thousands more) using the same autoconfig database Thunderbird uses. Only fill the server fields if auto-detection fails. Most providers require an 'app password' instead of your regular password.",
         "actions": [
             "list_inbox", "search_emails", "read_email", "reply_to_email",
             "send_email", "mark_read", "mark_unread", "archive", "delete",
@@ -2391,6 +2447,29 @@ async def convert_file_endpoint(
         media_type=out_mime,
         headers={"Content-Disposition": f'attachment; filename="{out_filename}"'},
     )
+
+
+@router.get("/email/autodetect")
+async def email_autodetect(email: str, authorization: str = Header(...)):
+    """Given an email address, return the detected IMAP + SMTP servers.
+    Used by the Settings screen to pre-fill the "Advanced" section when a
+    user is setting up a custom IMAP account, so they can see and override
+    the guessed hosts before saving."""
+    _verify_auth(authorization)
+    if not email or "@" not in email:
+        raise HTTPException(400, "A full email address is required")
+    result = await _autodetect_mail_servers(email)
+    if not result:
+        return {"detected": False, "email": email}
+    return {
+        "detected": True,
+        "email": email,
+        "imap_host": result.get("imap_host"),
+        "imap_port": result.get("imap_port"),
+        "smtp_host": result.get("smtp_host"),
+        "smtp_port": result.get("smtp_port"),
+        "guessed": result.get("_guessed", False),
+    }
 
 
 @router.get("/convert/supported")
@@ -4834,6 +4913,140 @@ def _parse_mail_list(value: Any) -> list[str]:
     return [s.strip() for s in str(value).split(",") if s.strip()]
 
 
+# ── Autodetect IMAP/SMTP servers from an email address ─────────────────
+#
+# Users shouldn't have to google "what's Yahoo's IMAP port". Given an email
+# address, we try to infer the incoming (IMAP) and outgoing (SMTP) servers
+# using the same sources Thunderbird and Apple Mail use:
+#
+#   1. Mozilla ISPDB  (https://autoconfig.thunderbird.net/v1.1/<domain>)
+#      — Thunderbird's public autoconfig database, covers thousands of
+#        providers including Gmail, Yahoo, iCloud, Neo, Titan, GoDaddy,
+#        FastMail, Zoho, ProtonMail, and most business hosts.
+#   2. Provider-hosted autoconfig XML (autoconfig.<domain>/mail/config-v1.1.xml
+#      and the .well-known variant) — Mozilla spec, many domains self-host it.
+#   3. Common heuristics — imap.<domain>:993, smtp.<domain>:587, then
+#      mail.<domain>:993/587 as last resort.
+#
+# Cached in-process for the lifetime of the worker so repeated connects
+# don't re-hit the network.
+
+_MAIL_AUTODETECT_CACHE: dict[str, dict] = {}
+
+# Known preset hosts for providers that don't publish autoconfig. Cheap
+# short-circuit before we touch the network.
+_MAIL_AUTODETECT_PRESETS: dict[str, dict] = {
+    "gmail.com":     {"imap_host": "imap.gmail.com",    "imap_port": 993, "smtp_host": "smtp.gmail.com",    "smtp_port": 587},
+    "googlemail.com":{"imap_host": "imap.gmail.com",    "imap_port": 993, "smtp_host": "smtp.gmail.com",    "smtp_port": 587},
+    "yahoo.com":     {"imap_host": "imap.mail.yahoo.com","imap_port": 993, "smtp_host": "smtp.mail.yahoo.com","smtp_port": 587},
+    "ymail.com":     {"imap_host": "imap.mail.yahoo.com","imap_port": 993, "smtp_host": "smtp.mail.yahoo.com","smtp_port": 587},
+    "icloud.com":    {"imap_host": "imap.mail.me.com",  "imap_port": 993, "smtp_host": "smtp.mail.me.com",  "smtp_port": 587},
+    "me.com":        {"imap_host": "imap.mail.me.com",  "imap_port": 993, "smtp_host": "smtp.mail.me.com",  "smtp_port": 587},
+    "mac.com":       {"imap_host": "imap.mail.me.com",  "imap_port": 993, "smtp_host": "smtp.mail.me.com",  "smtp_port": 587},
+    "outlook.com":   {"imap_host": "outlook.office365.com","imap_port": 993, "smtp_host": "smtp.office365.com","smtp_port": 587},
+    "hotmail.com":   {"imap_host": "outlook.office365.com","imap_port": 993, "smtp_host": "smtp.office365.com","smtp_port": 587},
+    "live.com":      {"imap_host": "outlook.office365.com","imap_port": 993, "smtp_host": "smtp.office365.com","smtp_port": 587},
+    "fastmail.com":  {"imap_host": "imap.fastmail.com", "imap_port": 993, "smtp_host": "smtp.fastmail.com", "smtp_port": 587},
+    "zoho.com":      {"imap_host": "imap.zoho.com",     "imap_port": 993, "smtp_host": "smtp.zoho.com",     "smtp_port": 587},
+    "protonmail.com":{"imap_host": "127.0.0.1",         "imap_port": 1143, "smtp_host": "127.0.0.1",        "smtp_port": 1025},  # Bridge
+    "neo.space":     {"imap_host": "imap.neo.space",    "imap_port": 993, "smtp_host": "smtp.neo.space",    "smtp_port": 465},
+    "titan.email":   {"imap_host": "imap.titan.email",  "imap_port": 993, "smtp_host": "smtp.titan.email",  "smtp_port": 587},
+}
+
+
+def _parse_autoconfig_xml(xml_text: str) -> dict | None:
+    """Parse a Mozilla autoconfig XML response and return the first
+    IMAP + SMTP pair found. Returns None if the XML is malformed or has
+    no matching servers."""
+    try:
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(xml_text)
+    except Exception:
+        return None
+
+    incoming_host = incoming_port = outgoing_host = outgoing_port = None
+
+    # Autoconfig uses either emailProvider/incomingServer[@type="imap"] or
+    # clientConfig/emailProvider/incomingServer — just walk and match.
+    for server in root.iter("incomingServer"):
+        if (server.get("type") or "").lower() == "imap":
+            h = server.findtext("hostname")
+            p = server.findtext("port")
+            if h and not incoming_host:
+                incoming_host = h
+                try: incoming_port = int(p) if p else 993
+                except Exception: incoming_port = 993
+            break
+    for server in root.iter("outgoingServer"):
+        if (server.get("type") or "").lower() == "smtp":
+            h = server.findtext("hostname")
+            p = server.findtext("port")
+            if h and not outgoing_host:
+                outgoing_host = h
+                try: outgoing_port = int(p) if p else 587
+                except Exception: outgoing_port = 587
+            break
+
+    if incoming_host and outgoing_host:
+        return {
+            "imap_host": incoming_host,
+            "imap_port": incoming_port or 993,
+            "smtp_host": outgoing_host,
+            "smtp_port": outgoing_port or 587,
+        }
+    return None
+
+
+async def _autodetect_mail_servers(email_address: str) -> dict | None:
+    """Look up IMAP + SMTP settings for an email address.
+
+    Returns {imap_host, imap_port, smtp_host, smtp_port} on success or
+    None if nothing worked (caller falls back to whatever heuristic it
+    prefers). Results are cached per-domain.
+    """
+    if not email_address or "@" not in email_address:
+        return None
+    domain = email_address.rsplit("@", 1)[-1].strip().lower()
+    if not domain:
+        return None
+
+    if domain in _MAIL_AUTODETECT_CACHE:
+        return _MAIL_AUTODETECT_CACHE[domain]
+    if domain in _MAIL_AUTODETECT_PRESETS:
+        _MAIL_AUTODETECT_CACHE[domain] = _MAIL_AUTODETECT_PRESETS[domain]
+        return _MAIL_AUTODETECT_PRESETS[domain]
+
+    async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
+        # 1. Mozilla ISPDB — the most complete source by far
+        urls_to_try = [
+            f"https://autoconfig.thunderbird.net/v1.1/{domain}",
+            f"https://autoconfig.{domain}/mail/config-v1.1.xml?emailaddress={email_address}",
+            f"https://{domain}/.well-known/autoconfig/mail/config-v1.1.xml?emailaddress={email_address}",
+        ]
+        for url in urls_to_try:
+            try:
+                r = await client.get(url)
+                if r.status_code == 200 and r.text.strip().startswith("<"):
+                    parsed = _parse_autoconfig_xml(r.text)
+                    if parsed:
+                        _MAIL_AUTODETECT_CACHE[domain] = parsed
+                        return parsed
+            except Exception:
+                continue
+
+    # 2. Heuristic fallback — guess from the domain itself. This works for
+    #    a lot of custom domains that follow the imap.<domain> convention.
+    guessed = {
+        "imap_host": f"imap.{domain}",
+        "imap_port": 993,
+        "smtp_host": f"smtp.{domain}",
+        "smtp_port": 587,
+        "_guessed": True,
+    }
+    _MAIL_AUTODETECT_CACHE[domain] = guessed
+    return guessed
+
+
 async def _outlook_mail_adapter(action: str, params: dict, creds: dict) -> dict:
     """Microsoft Outlook Mail adapter via Microsoft Graph.
 
@@ -5417,14 +5630,31 @@ async def _imap_mail_adapter(action: str, params: dict, creds: dict) -> dict:
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
 
-    imap_host = creds.get("imap_host")
-    imap_port = int(creds.get("imap_port") or 993)
-    smtp_host = creds.get("smtp_host")
-    smtp_port = int(creds.get("smtp_port") or 587)
     username = creds.get("username") or creds.get("email")
     password = creds.get("app_password") or creds.get("password")
-    if not (imap_host and smtp_host and username and password):
-        return {"error": "IMAP mailbox is not fully configured. Set imap_host, smtp_host, username, and app_password in Settings → My Apps."}
+    if not (username and password):
+        return {"error": "IMAP mailbox needs at least a username (email) and app password."}
+
+    imap_host = creds.get("imap_host")
+    smtp_host = creds.get("smtp_host")
+    imap_port = int(creds.get("imap_port") or 0) or None
+    smtp_port = int(creds.get("smtp_port") or 0) or None
+
+    # If the caller didn't pin hosts, auto-detect them from the email
+    # domain using Mozilla ISPDB / autoconfig / heuristics.
+    if not (imap_host and smtp_host):
+        detected = await _autodetect_mail_servers(username)
+        if detected:
+            imap_host = imap_host or detected.get("imap_host")
+            smtp_host = smtp_host or detected.get("smtp_host")
+            imap_port = imap_port or detected.get("imap_port")
+            smtp_port = smtp_port or detected.get("smtp_port")
+
+    imap_port = imap_port or 993
+    smtp_port = smtp_port or 587
+
+    if not (imap_host and smtp_host):
+        return {"error": f"Could not detect mail servers for {username}. Open Settings → My Apps → Email (IMAP) → Advanced and enter imap_host and smtp_host manually."}
 
     def _decode(val: str | bytes | None) -> str:
         if val is None:
@@ -5778,6 +6008,32 @@ async def _imap_mail_adapter(action: str, params: dict, creds: dict) -> dict:
     return {"error": f"Unknown IMAP action: {action}"}
 
 
+# ── Preset IMAP wrappers (Neo, Titan, etc.) ─────────────────────────────
+#
+# These are just the generic IMAP adapter with the host/port pre-filled so
+# the user only has to provide their email + password. New presets should
+# follow the same one-liner pattern.
+
+async def _neo_mail_adapter(action: str, params: dict, creds: dict) -> dict:
+    """Neo Business Email (neo.space) — IMAP/SMTP preset."""
+    enriched = dict(creds)
+    enriched.setdefault("imap_host", "imap.neo.space")
+    enriched.setdefault("imap_port", 993)
+    enriched.setdefault("smtp_host", "smtp.neo.space")
+    enriched.setdefault("smtp_port", 465)
+    return await _imap_mail_adapter(action, params, enriched)
+
+
+async def _titan_mail_adapter(action: str, params: dict, creds: dict) -> dict:
+    """Titan Email (titan.email) — IMAP/SMTP preset."""
+    enriched = dict(creds)
+    enriched.setdefault("imap_host", "imap.titan.email")
+    enriched.setdefault("imap_port", 993)
+    enriched.setdefault("smtp_host", "smtp.titan.email")
+    enriched.setdefault("smtp_port", 587)
+    return await _imap_mail_adapter(action, params, enriched)
+
+
 # ── Adapter map ──────────────────────────────────────────────────────────
 
 ADAPTERS: dict[str, Any] = {
@@ -5806,6 +6062,8 @@ ADAPTERS: dict[str, Any] = {
     # Email (mailbox access)
     "outlook_mail": _outlook_mail_adapter,
     "gmail": _gmail_adapter,
+    "neo_mail": _neo_mail_adapter,
+    "titan_mail": _titan_mail_adapter,
     "imap_mail": _imap_mail_adapter,
     # Automation
     "zapier": _webhook_adapter,
