@@ -27,7 +27,6 @@
         ]
       },
       "bundleIdentifier": "com.gofarther.ai",
-      "buildNumber": "30",
       "entitlements": {
         "aps-environment": "production"
       }
