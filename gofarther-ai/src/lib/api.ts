@@ -169,6 +169,17 @@ async function apiFetch(path: string, opts: RequestInit = {}) {
   const token = await getToken();
   const headers: any = { 'Content-Type': 'application/json', ...opts.headers };
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  // Attach the active workspace id so connector lookups land in the
+  // right workspace. Lazy-require workspaces.ts to avoid circular
+  // imports with storage.ts. On pre-workspace installs this is a noop.
+  try {
+    const { getActiveWorkspaceIdSync, getActiveWorkspaceId } = require('./workspaces');
+    let wsId: string | null = getActiveWorkspaceIdSync?.() ?? null;
+    if (!wsId && typeof getActiveWorkspaceId === 'function') {
+      wsId = await getActiveWorkspaceId();
+    }
+    if (wsId) headers['X-Workspace-Id'] = wsId;
+  } catch {}
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 60000);

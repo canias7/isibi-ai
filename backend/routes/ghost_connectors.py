@@ -58,9 +58,82 @@ class GhostConnectorCred(Base):
     __tablename__ = "ghost_connector_creds"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    # Workspace scoping (Phase 2). Rows added before this column existed
+    # get backfilled to "personal" on startup — same default id the
+    # client uses when it auto-creates its first workspace. Never nullable
+    # at the application level; the DB column is nullable so the idempotent
+    # ALTER TABLE can run without blowing up old rows.
+    workspace_id = Column(String(100), nullable=True, index=True, default="personal")
     app_id = Column(String(100), nullable=False, index=True)
     encrypted_creds = Column(Text, nullable=False)
     connected_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+# Default workspace id used when:
+#  - a legacy row pre-dates the workspace_id column
+#  - a request comes in without an X-Workspace-Id header (old clients)
+#  - the client just auto-created its first workspace (client default is
+#    also "personal", so the two line up without a translation step)
+DEFAULT_WORKSPACE_ID = "personal"
+
+
+def _normalize_workspace_id(value: Any) -> str:
+    """Coerce a workspace_id (from header, query param, or step param)
+    to a safe short string. Empty/None falls back to DEFAULT."""
+    if not value:
+        return DEFAULT_WORKSPACE_ID
+    s = str(value).strip()
+    if not s:
+        return DEFAULT_WORKSPACE_ID
+    # Keep it short and ASCII-safe so it can't be used to poison SQL or
+    # break the index. Client-generated ids are already alphanumeric +
+    # underscore, this just hardens the boundary.
+    return "".join(c for c in s if c.isalnum() or c in ("_", "-"))[:100] or DEFAULT_WORKSPACE_ID
+
+
+_workspace_column_checked = False
+
+
+async def _ensure_workspace_column(db: AsyncSession) -> None:
+    """Idempotently add the workspace_id column to ghost_connector_creds
+    on the very first request after deploy. Safer than a separate alembic
+    migration because the Render image rebuilds won't re-run alembic
+    automatically, and we want existing users to never hit a 500 when
+    their rows are missing the column.
+
+    Runs once per process via an in-memory flag. The ALTER TABLE uses
+    IF NOT EXISTS so concurrent workers don't race."""
+    global _workspace_column_checked
+    if _workspace_column_checked:
+        return
+    try:
+        from sqlalchemy import text as _sql_text
+        await db.execute(_sql_text(
+            "ALTER TABLE ghost_connector_creds "
+            "ADD COLUMN IF NOT EXISTS workspace_id VARCHAR(100) "
+            "DEFAULT 'personal'"
+        ))
+        # Backfill any nullable rows from before the column existed
+        await db.execute(_sql_text(
+            "UPDATE ghost_connector_creds "
+            "SET workspace_id = 'personal' "
+            "WHERE workspace_id IS NULL"
+        ))
+        # Non-unique index since (user_id, workspace_id, app_id) is the
+        # actual uniqueness we care about but we lookup by each pair.
+        await db.execute(_sql_text(
+            "CREATE INDEX IF NOT EXISTS ix_ghost_connector_creds_user_ws "
+            "ON ghost_connector_creds (user_id, workspace_id)"
+        ))
+        await db.commit()
+        _workspace_column_checked = True
+        logger.info("ghost_connector_creds: workspace_id column ensured")
+    except Exception as e:
+        logger.warning(f"ghost_connector_creds: ensure workspace column failed: {e}")
+        # Mark as checked anyway — we don't want every request to keep
+        # retrying a failing DDL. If the column doesn't exist and queries
+        # fail, they'll fall back to the user-only path below.
+        _workspace_column_checked = True
 
 
 def _encrypt_creds(creds: dict) -> str:
@@ -85,12 +158,18 @@ def _decrypt_creds(ciphertext: str) -> dict:
         return {}
 
 
-async def _get_creds(user_id, app_id: str, db: AsyncSession) -> dict | None:
-    """Load and decrypt credentials from DB."""
+async def _get_creds(user_id, app_id: str, db: AsyncSession, workspace_id: str | None = None) -> dict | None:
+    """Load and decrypt credentials from DB for a specific user +
+    workspace. If workspace_id is None, falls back to DEFAULT_WORKSPACE_ID
+    so legacy callers that haven't been updated keep working."""
+    ws = _normalize_workspace_id(workspace_id)
+    await _ensure_workspace_column(db)
     result = await db.execute(
-        select(GhostConnectorCred).where(
-            and_(GhostConnectorCred.user_id == user_id, GhostConnectorCred.app_id == app_id)
-        )
+        select(GhostConnectorCred).where(and_(
+            GhostConnectorCred.user_id == user_id,
+            GhostConnectorCred.app_id == app_id,
+            GhostConnectorCred.workspace_id == ws,
+        ))
     )
     row = result.scalar_one_or_none()
     if not row:
@@ -98,13 +177,19 @@ async def _get_creds(user_id, app_id: str, db: AsyncSession) -> dict | None:
     return _decrypt_creds(row.encrypted_creds)
 
 
-async def _set_creds(user_id, app_id: str, creds: dict, db: AsyncSession):
-    """Encrypt and upsert credentials in DB."""
+async def _set_creds(user_id, app_id: str, creds: dict, db: AsyncSession, workspace_id: str | None = None):
+    """Encrypt and upsert credentials in DB. The unique key is the
+    (user_id, workspace_id, app_id) triple — each workspace can have
+    its own Gmail/Outlook/etc. without stepping on the others."""
+    ws = _normalize_workspace_id(workspace_id)
+    await _ensure_workspace_column(db)
     encrypted = _encrypt_creds(creds)
     result = await db.execute(
-        select(GhostConnectorCred).where(
-            and_(GhostConnectorCred.user_id == user_id, GhostConnectorCred.app_id == app_id)
-        )
+        select(GhostConnectorCred).where(and_(
+            GhostConnectorCred.user_id == user_id,
+            GhostConnectorCred.app_id == app_id,
+            GhostConnectorCred.workspace_id == ws,
+        ))
     )
     row = result.scalar_one_or_none()
     if row:
@@ -112,18 +197,22 @@ async def _set_creds(user_id, app_id: str, creds: dict, db: AsyncSession):
         row.connected_at = datetime.now(timezone.utc)
     else:
         db.add(GhostConnectorCred(
-            user_id=user_id, app_id=app_id,
+            user_id=user_id, app_id=app_id, workspace_id=ws,
             encrypted_creds=encrypted,
         ))
     await db.flush()
 
 
-async def _del_creds(user_id, app_id: str, db: AsyncSession):
-    """Delete credentials from DB."""
+async def _del_creds(user_id, app_id: str, db: AsyncSession, workspace_id: str | None = None):
+    """Delete credentials for a specific user + workspace + app."""
+    ws = _normalize_workspace_id(workspace_id)
+    await _ensure_workspace_column(db)
     result = await db.execute(
-        select(GhostConnectorCred).where(
-            and_(GhostConnectorCred.user_id == user_id, GhostConnectorCred.app_id == app_id)
-        )
+        select(GhostConnectorCred).where(and_(
+            GhostConnectorCred.user_id == user_id,
+            GhostConnectorCred.app_id == app_id,
+            GhostConnectorCred.workspace_id == ws,
+        ))
     )
     row = result.scalar_one_or_none()
     if row:
@@ -131,12 +220,34 @@ async def _del_creds(user_id, app_id: str, db: AsyncSession):
         await db.flush()
 
 
-async def _get_connected_app_ids(user_id, db: AsyncSession) -> set[str]:
-    """Get all connected app IDs for a user."""
+async def _get_connected_app_ids(user_id, db: AsyncSession, workspace_id: str | None = None) -> set[str]:
+    """Get all connected app IDs for a user in a specific workspace."""
+    ws = _normalize_workspace_id(workspace_id)
+    await _ensure_workspace_column(db)
     result = await db.execute(
-        select(GhostConnectorCred.app_id).where(GhostConnectorCred.user_id == user_id)
+        select(GhostConnectorCred.app_id).where(and_(
+            GhostConnectorCred.user_id == user_id,
+            GhostConnectorCred.workspace_id == ws,
+        ))
     )
     return {row[0] for row in result.all()}
+
+
+def _workspace_from_request(headers: dict | str | None, query: str | None = None) -> str:
+    """Extract the workspace id from the X-Workspace-Id header or
+    ?workspace_id= query param. Falls back to DEFAULT for legacy
+    clients. Accepts either a raw header value (string) or a dict-like
+    object — FastAPI gives us individual headers as strings via the
+    Header(...) dependency, so we mostly pass the value directly."""
+    if isinstance(headers, str):
+        return _normalize_workspace_id(headers)
+    if headers and hasattr(headers, "get"):
+        v = headers.get("x-workspace-id") or headers.get("X-Workspace-Id")
+        if v:
+            return _normalize_workspace_id(v)
+    if query:
+        return _normalize_workspace_id(query)
+    return DEFAULT_WORKSPACE_ID
 
 
 # ── App Registry ─────────────────────────────────────────────────────────────
@@ -1622,11 +1733,18 @@ class ActionRequest(BaseModel):
 # ── Endpoints ────────────────────────────────────────────────────────────
 
 @router.get("")
-async def list_connectors(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    """List all available apps with connection status per user."""
+async def list_connectors(
+    authorization: str = Header(...),
+    x_workspace_id: Optional[str] = Header(default=None, alias="X-Workspace-Id"),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all available apps with connection status for the active
+    workspace. Clients pass the current workspace via X-Workspace-Id;
+    legacy clients that don't send the header fall back to DEFAULT."""
     payload = _verify_auth(authorization)
     user_id = payload.get("sub")
-    connected_ids = await _get_connected_app_ids(user_id, db)
+    workspace_id = _normalize_workspace_id(x_workspace_id)
+    connected_ids = await _get_connected_app_ids(user_id, db, workspace_id)
 
     result = []
     for app_id, info in APP_REGISTRY.items():
@@ -1708,8 +1826,16 @@ _MAIL_PRESET_HOSTS: dict[str, tuple[str, int]] = {
 
 
 @router.post("/{app_id}/connect")
-async def connect_app(app_id: str, body: ConnectRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    """Save credentials for an app (encrypted at rest).
+async def connect_app(
+    app_id: str,
+    body: ConnectRequest,
+    authorization: str = Header(...),
+    x_workspace_id: Optional[str] = Header(default=None, alias="X-Workspace-Id"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Save credentials for an app (encrypted at rest) in the active
+    workspace. Different workspaces can have different credentials for
+    the same app_id — e.g. a personal Gmail and a work Outlook.
 
     For mail connectors that use password-based auth, this also runs a
     real IMAP login probe against the provider so we never mark a
@@ -1717,6 +1843,7 @@ async def connect_app(app_id: str, body: ConnectRequest, authorization: str = He
     """
     payload = _verify_auth(authorization)
     user_id = payload.get("sub")
+    workspace_id = _normalize_workspace_id(x_workspace_id)
 
     if app_id not in APP_REGISTRY:
         raise HTTPException(404, f"Unknown app: {app_id}")
@@ -1746,23 +1873,30 @@ async def connect_app(app_id: str, body: ConnectRequest, authorization: str = He
                 f"Could not log in to {probe_host or 'your mail server'} as {body.credentials.get('username', '')}. {err}. Double-check the password — most providers require an 'app password' if you have 2FA enabled.",
             )
 
-    await _set_creds(user_id, app_id, body.credentials, db)
+    await _set_creds(user_id, app_id, body.credentials, db, workspace_id)
     # Audit log
     from routes.ghost_auth import _audit_log
-    await _audit_log(db, payload.get("email", ""), "connector_connected", f"Connected app: {app_id}")
+    await _audit_log(db, payload.get("email", ""), "connector_connected", f"Connected app: {app_id} (workspace: {workspace_id})")
     await db.commit()
-    return {"status": "connected", "app": app_id}
+    return {"status": "connected", "app": app_id, "workspace_id": workspace_id}
 
 
 @router.delete("/{app_id}/disconnect")
-async def disconnect_app(app_id: str, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    """Remove credentials for an app."""
+async def disconnect_app(
+    app_id: str,
+    authorization: str = Header(...),
+    x_workspace_id: Optional[str] = Header(default=None, alias="X-Workspace-Id"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove credentials for an app in the active workspace. Other
+    workspaces that have the same app connected are untouched."""
     payload = _verify_auth(authorization)
     user_id = payload.get("sub")
-    await _del_creds(user_id, app_id, db)
+    workspace_id = _normalize_workspace_id(x_workspace_id)
+    await _del_creds(user_id, app_id, db, workspace_id)
     # Audit log
     from routes.ghost_auth import _audit_log
-    await _audit_log(db, payload.get("email", ""), "connector_disconnected", f"Disconnected app: {app_id}")
+    await _audit_log(db, payload.get("email", ""), "connector_disconnected", f"Disconnected app: {app_id} (workspace: {workspace_id})")
     await db.commit()
     return {"status": "disconnected", "app": app_id}
 
@@ -1975,11 +2109,17 @@ def _prune_old_oauth_states() -> None:
 
 
 @router.post("/{app_id}/oauth/start")
-async def oauth_start(app_id: str, authorization: str = Header(...)):
-    """Begin OAuth flow for Microsoft apps. Returns an authorize URL the
-    client should open in the system browser."""
+async def oauth_start(
+    app_id: str,
+    authorization: str = Header(...),
+    x_workspace_id: Optional[str] = Header(default=None, alias="X-Workspace-Id"),
+):
+    """Begin OAuth flow for an app. Returns an authorize URL the client
+    opens in the system browser. The active workspace is stashed in the
+    state so the callback knows which workspace to save the creds in."""
     payload = _verify_auth(authorization)
     user_id = payload.get("sub")
+    workspace_id = _normalize_workspace_id(x_workspace_id)
 
     if app_id not in APP_REGISTRY:
         raise HTTPException(404, f"Unknown app: {app_id}")
@@ -1997,6 +2137,7 @@ async def oauth_start(app_id: str, authorization: str = Header(...)):
     _oauth_states[state] = {
         "user_id": str(user_id),
         "app_id": app_id,
+        "workspace_id": workspace_id,
         "ts": datetime.now(timezone.utc).timestamp(),
     }
 
@@ -2110,6 +2251,7 @@ async def oauth_microsoft_callback(
 
     user_id = session["user_id"]
     app_id = session["app_id"]
+    workspace_id = _normalize_workspace_id(session.get("workspace_id"))
 
     client_id = _ms_client_id()
     client_secret = _ms_client_secret()
@@ -2154,7 +2296,7 @@ async def oauth_microsoft_callback(
         "token_type": tokens.get("token_type", "Bearer"),
     }
 
-    await _set_creds(user_id, app_id, creds, db)
+    await _set_creds(user_id, app_id, creds, db, workspace_id)
     await db.commit()
     logger.info(f"Microsoft OAuth success: user={user_id} app={app_id}")
     app_name = APP_REGISTRY.get(app_id, {}).get("name", app_id)
@@ -2198,6 +2340,7 @@ async def oauth_google_callback(
 
     user_id = session["user_id"]
     app_id = session["app_id"]
+    workspace_id = _normalize_workspace_id(session.get("workspace_id"))
 
     client_id = _google_client_id()
     client_secret = _google_client_secret()
@@ -2240,7 +2383,7 @@ async def oauth_google_callback(
         "token_type": tokens.get("token_type", "Bearer"),
     }
 
-    await _set_creds(user_id, app_id, creds, db)
+    await _set_creds(user_id, app_id, creds, db, workspace_id)
     await db.commit()
     logger.info(f"Google OAuth success: user={user_id} app={app_id}")
     app_name = APP_REGISTRY.get(app_id, {}).get("name", app_id)
@@ -2251,7 +2394,7 @@ async def oauth_google_callback(
     )
 
 
-async def _refresh_google_token(user_id, app_id: str, creds: dict, db: AsyncSession) -> dict:
+async def _refresh_google_token(user_id, app_id: str, creds: dict, db: AsyncSession, workspace_id: str | None = None) -> dict:
     """Refresh a Google access token if it's expired or about to be."""
     expires_at = float(creds.get("expires_at") or 0)
     now = datetime.now(timezone.utc).timestamp()
@@ -2294,7 +2437,7 @@ async def _refresh_google_token(user_id, app_id: str, creds: dict, db: AsyncSess
         new_creds["refresh_token"] = tokens["refresh_token"]
     new_creds["expires_at"] = now + int(tokens.get("expires_in") or 3600) - 60
 
-    await _set_creds(user_id, app_id, new_creds, db)
+    await _set_creds(user_id, app_id, new_creds, db, workspace_id)
     await db.commit()
     return new_creds
 
@@ -2339,6 +2482,7 @@ async def oauth_mail_generic_callback(
 
     user_id = session["user_id"]
     app_id = session["app_id"]
+    workspace_id = _normalize_workspace_id(session.get("workspace_id"))
 
     client_id, client_secret = _mail_oauth_client(provider)
     redirect_uri = _mail_oauth_redirect_uri(provider)
@@ -2391,7 +2535,7 @@ async def oauth_mail_generic_callback(
         "oauth_provider": provider,
     }
 
-    await _set_creds(user_id, app_id, creds, db)
+    await _set_creds(user_id, app_id, creds, db, workspace_id)
     await db.commit()
     logger.info(f"{provider} mail OAuth success: user={user_id} app={app_id}")
     app_name = APP_REGISTRY.get(app_id, {}).get("name", app_id)
@@ -2402,7 +2546,7 @@ async def oauth_mail_generic_callback(
     )
 
 
-async def _refresh_mail_oauth_token(user_id, app_id: str, creds: dict, db: AsyncSession) -> dict:
+async def _refresh_mail_oauth_token(user_id, app_id: str, creds: dict, db: AsyncSession, workspace_id: str | None = None) -> dict:
     """Refresh a mail OAuth access token if it's expired or close to it.
     Works for any provider in MAIL_OAUTH_PROVIDERS."""
     expires_at = float(creds.get("expires_at") or 0)
@@ -2449,12 +2593,12 @@ async def _refresh_mail_oauth_token(user_id, app_id: str, creds: dict, db: Async
         new_creds["refresh_token"] = tokens["refresh_token"]
     new_creds["expires_at"] = now + int(tokens.get("expires_in") or 3600) - 60
 
-    await _set_creds(user_id, app_id, new_creds, db)
+    await _set_creds(user_id, app_id, new_creds, db, workspace_id)
     await db.commit()
     return new_creds
 
 
-async def _refresh_microsoft_token(user_id, app_id: str, creds: dict, db: AsyncSession) -> dict:
+async def _refresh_microsoft_token(user_id, app_id: str, creds: dict, db: AsyncSession, workspace_id: str | None = None) -> dict:
     """If the Microsoft access token is expired or close to it, use the
     refresh token to get a new one and persist it. Returns updated creds."""
     expires_at = float(creds.get("expires_at") or 0)
@@ -2498,32 +2642,41 @@ async def _refresh_microsoft_token(user_id, app_id: str, creds: dict, db: AsyncS
         new_creds["refresh_token"] = tokens["refresh_token"]
     new_creds["expires_at"] = now + int(tokens.get("expires_in") or 3600) - 60
 
-    await _set_creds(user_id, app_id, new_creds, db)
+    await _set_creds(user_id, app_id, new_creds, db, workspace_id)
     await db.commit()
     return new_creds
 
 
 @router.post("/{app_id}/action")
-async def execute_action(app_id: str, body: ActionRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    """Execute an action on a connected app."""
+async def execute_action(
+    app_id: str,
+    body: ActionRequest,
+    authorization: str = Header(...),
+    x_workspace_id: Optional[str] = Header(default=None, alias="X-Workspace-Id"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Execute an action on a connected app in the active workspace."""
     payload = _verify_auth(authorization)
     user_id = payload.get("sub")
+    workspace_id = _normalize_workspace_id(x_workspace_id)
 
     if app_id not in APP_REGISTRY:
         raise HTTPException(404, f"Unknown app: {app_id}")
 
-    creds = await _get_creds(user_id, app_id, db)
+    creds = await _get_creds(user_id, app_id, db, workspace_id)
     if not creds:
-        raise HTTPException(400, f"{APP_REGISTRY[app_id]['name']} is not connected. Go to Settings → Connect Apps to set it up.")
+        raise HTTPException(400, f"{APP_REGISTRY[app_id]['name']} is not connected in this workspace. Go to Settings → Connect Apps to set it up.")
 
-    # Refresh OAuth tokens if they're close to expiring
+    # Refresh OAuth tokens if they're close to expiring. The refresh
+    # helpers need the same workspace_id so the refreshed token is
+    # written back to the correct row.
     _flow = APP_REGISTRY[app_id].get("oauth_flow")
     if _flow == "microsoft":
-        creds = await _refresh_microsoft_token(user_id, app_id, creds, db)
+        creds = await _refresh_microsoft_token(user_id, app_id, creds, db, workspace_id)
     elif _flow == "google":
-        creds = await _refresh_google_token(user_id, app_id, creds, db)
+        creds = await _refresh_google_token(user_id, app_id, creds, db, workspace_id)
     elif _flow == "mail_oauth":
-        creds = await _refresh_mail_oauth_token(user_id, app_id, creds, db)
+        creds = await _refresh_mail_oauth_token(user_id, app_id, creds, db, workspace_id)
 
     if body.action not in APP_REGISTRY[app_id]["actions"]:
         raise HTTPException(400, f"Action '{body.action}' not available for {APP_REGISTRY[app_id]['name']}")
@@ -2588,14 +2741,14 @@ _MAIL_CONNECTOR_PREFERENCE = (
 )
 
 
-async def _migrate_legacy_smtp_to_imap_mail(user_id, smtp_settings: dict, db: AsyncSession) -> bool:
+async def _migrate_legacy_smtp_to_imap_mail(user_id, smtp_settings: dict, db: AsyncSession, workspace_id: str | None = None) -> bool:
     """One-shot migration from GhostUser.smtp_* columns to an imap_mail
     connector entry. Idempotent — if the user already has imap_mail
-    connected, this is a no-op. Returns True if a new connector row was
-    created."""
+    connected in this workspace, this is a no-op. Returns True if a new
+    connector row was created."""
     if not smtp_settings:
         return False
-    existing = await _get_creds(user_id, "imap_mail", db)
+    existing = await _get_creds(user_id, "imap_mail", db, workspace_id)
     if existing:
         return False
     username = smtp_settings.get("smtp_user") or smtp_settings.get("smtp_from")
@@ -2614,21 +2767,21 @@ async def _migrate_legacy_smtp_to_imap_mail(user_id, smtp_settings: dict, db: As
         # username domain when needed. For outbound-only legacy users that
         # never touch IMAP, the blank is harmless.
     }
-    await _set_creds(user_id, "imap_mail", new_creds, db)
+    await _set_creds(user_id, "imap_mail", new_creds, db, workspace_id)
     await db.commit()
-    logger.info(f"Migrated legacy SMTP → imap_mail connector: user={user_id}")
+    logger.info(f"Migrated legacy SMTP → imap_mail connector: user={user_id} workspace={_normalize_workspace_id(workspace_id)}")
     return True
 
 
-async def _refresh_mail_creds(user_id, app_id: str, creds: dict, db: AsyncSession) -> dict:
+async def _refresh_mail_creds(user_id, app_id: str, creds: dict, db: AsyncSession, workspace_id: str | None = None) -> dict:
     """Run the right token-refresh helper for a given mail connector."""
     flow = APP_REGISTRY.get(app_id, {}).get("oauth_flow")
     if flow == "microsoft":
-        return await _refresh_microsoft_token(user_id, app_id, creds, db)
+        return await _refresh_microsoft_token(user_id, app_id, creds, db, workspace_id)
     if flow == "google":
-        return await _refresh_google_token(user_id, app_id, creds, db)
+        return await _refresh_google_token(user_id, app_id, creds, db, workspace_id)
     if flow == "mail_oauth":
-        return await _refresh_mail_oauth_token(user_id, app_id, creds, db)
+        return await _refresh_mail_oauth_token(user_id, app_id, creds, db, workspace_id)
     return creds
 
 
@@ -2643,6 +2796,7 @@ async def send_email_for_user(
     cc=None,
     bcc=None,
     attachments: list | None = None,
+    workspace_id: str | None = None,
 ) -> dict:
     """Unified "send an email as this user" helper. Returns
     {sent: bool, via: str, error?: str, ...}.
@@ -2670,27 +2824,31 @@ async def send_email_for_user(
         base_params["attachments"] = attachments
 
     # Auto-migrate: if the user has legacy GhostUser.smtp_* columns and
-    # does NOT yet have an imap_mail connector, copy the settings over so
-    # their first outbound email works without them having to reconnect.
+    # does NOT yet have an imap_mail connector in this workspace, copy
+    # the settings over so their first outbound email works without
+    # them having to reconnect. Only migrates into the default workspace
+    # so a user with multiple workspaces doesn't get the same legacy
+    # creds auto-populated in every one.
     try:
         from routes.ghost_auth import get_user_smtp
         legacy = await get_user_smtp(user_email, db)
         if legacy.get("smtp_host"):
-            await _migrate_legacy_smtp_to_imap_mail(user_id, legacy, db)
+            await _migrate_legacy_smtp_to_imap_mail(user_id, legacy, db, workspace_id)
     except Exception:
         logger.exception("Legacy SMTP migration check failed (ignored)")
 
     # Try each connected mail connector in preference order. First success
     # wins; any errors from individual connectors are logged and we move on
-    # to the next connected one.
+    # to the next connected one. All queries are scoped to the active
+    # workspace so a personal-workspace Gmail never sends from work.
     tried: list[str] = []
     last_error: str | None = None
     for app_id in _MAIL_CONNECTOR_PREFERENCE:
-        creds = await _get_creds(user_id, app_id, db)
+        creds = await _get_creds(user_id, app_id, db, workspace_id)
         if not creds:
             continue
         tried.append(app_id)
-        creds = await _refresh_mail_creds(user_id, app_id, creds, db)
+        creds = await _refresh_mail_creds(user_id, app_id, creds, db, workspace_id)
         adapter = ADAPTERS.get(app_id)
         if not adapter:
             continue
@@ -2993,16 +3151,23 @@ async def _fetch_excel_pdf_bytes(workbook_ref: str, creds: dict) -> tuple[bytes 
 
 
 @router.post("/run_plan")
-async def run_plan(body: PlanRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+async def run_plan(
+    body: PlanRequest,
+    authorization: str = Header(...),
+    x_workspace_id: Optional[str] = Header(default=None, alias="X-Workspace-Id"),
+    db: AsyncSession = Depends(get_db),
+):
     """Execute a multi-step plan. Each step can be a connector action, a
     server-internal helper (excel_pdf), or an email send. Steps reference
-    earlier outputs via "$stepId.field" strings.
+    earlier outputs via "$stepId.field" strings. All credential lookups
+    are scoped to the active workspace.
 
     Returns {status, steps: [{id, type, ok, result/error}]}.
     """
     payload = _verify_auth(authorization)
     user_id = payload.get("sub")
     user_email = payload.get("email") or ""
+    workspace_id = _normalize_workspace_id(x_workspace_id)
 
     if not body.steps:
         raise HTTPException(400, "Plan has no steps")
@@ -3022,16 +3187,16 @@ async def run_plan(body: PlanRequest, authorization: str = Header(...), db: Asyn
                     raise ValueError("connector step requires app and action")
                 if step.app not in APP_REGISTRY:
                     raise ValueError(f"Unknown app: {step.app}")
-                creds = await _get_creds(user_id, step.app, db)
+                creds = await _get_creds(user_id, step.app, db, workspace_id)
                 if not creds:
-                    raise ValueError(f"{APP_REGISTRY[step.app]['name']} is not connected")
+                    raise ValueError(f"{APP_REGISTRY[step.app]['name']} is not connected in this workspace")
                 step_flow = APP_REGISTRY[step.app].get("oauth_flow")
                 if step_flow == "microsoft":
-                    creds = await _refresh_microsoft_token(user_id, step.app, creds, db)
+                    creds = await _refresh_microsoft_token(user_id, step.app, creds, db, workspace_id)
                 elif step_flow == "google":
-                    creds = await _refresh_google_token(user_id, step.app, creds, db)
+                    creds = await _refresh_google_token(user_id, step.app, creds, db, workspace_id)
                 elif step_flow == "mail_oauth":
-                    creds = await _refresh_mail_oauth_token(user_id, step.app, creds, db)
+                    creds = await _refresh_mail_oauth_token(user_id, step.app, creds, db, workspace_id)
                 if step.action not in APP_REGISTRY[step.app]["actions"]:
                     raise ValueError(f"Action '{step.action}' not available for {step.app}")
                 adapter = ADAPTERS.get(step.app)
@@ -3043,10 +3208,10 @@ async def run_plan(body: PlanRequest, authorization: str = Header(...), db: Asyn
 
             elif step.type == "excel_pdf":
                 workbook_ref = resolved_params.get("workbook") or resolved_params.get("workbook_id") or resolved_params.get("filename") or ""
-                creds = await _get_creds(user_id, "excel_online", db)
+                creds = await _get_creds(user_id, "excel_online", db, workspace_id)
                 if not creds:
-                    raise ValueError("Excel Online is not connected")
-                creds = await _refresh_microsoft_token(user_id, "excel_online", creds, db)
+                    raise ValueError("Excel Online is not connected in this workspace")
+                creds = await _refresh_microsoft_token(user_id, "excel_online", creds, db, workspace_id)
                 pdf_bytes, err = await _fetch_excel_pdf_bytes(workbook_ref, creds)
                 if err:
                     raise ValueError(err)
@@ -3170,6 +3335,7 @@ async def run_plan(body: PlanRequest, authorization: str = Header(...), db: Asyn
                     cc=cc,
                     bcc=bcc,
                     attachments=attachments or None,
+                    workspace_id=workspace_id,
                 )
                 if not result.get("sent"):
                     raise ValueError(result.get("error") or "Email could not be sent")

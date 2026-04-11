@@ -149,9 +149,14 @@ class SendEmailRequest(BaseModel):
     attachment_name: Optional[str] = None
 
 @router.post("/send-email")
-async def send_email(req: SendEmailRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    """Send an email through the user's connected mail app (Gmail, Outlook,
-    Neo, Titan, or IMAP). Routes through the unified send_email_for_user
+async def send_email(
+    req: SendEmailRequest,
+    authorization: str = Header(...),
+    x_workspace_id: Optional[str] = Header(default=None, alias="X-Workspace-Id"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Send an email through the user's connected mail app in the
+    active workspace. Routes through the unified send_email_for_user
     helper so behavior matches chat, agents, scheduled tasks, and plans."""
     payload_data = _verify_auth(authorization)
     user_email = payload_data.get("email", "")
@@ -165,6 +170,7 @@ async def send_email(req: SendEmailRequest, authorization: str = Header(...), db
         to=req.to,
         subject=req.subject,
         html=req.body,
+        workspace_id=x_workspace_id,
     )
     if not result.get("sent"):
         raise HTTPException(400, result.get("error") or "Failed to send email")
@@ -186,9 +192,14 @@ class BulkEmailRequest(BaseModel):
     recipients: list[BulkEmailRecipient]  # max 50
 
 @router.post("/send-email-bulk")
-async def send_email_bulk(req: BulkEmailRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    """Send email to multiple recipients through the user's connected mail
-    app (Gmail / Outlook / Neo / Titan / IMAP). Rate-limited at 100ms between
+async def send_email_bulk(
+    req: BulkEmailRequest,
+    authorization: str = Header(...),
+    x_workspace_id: Optional[str] = Header(default=None, alias="X-Workspace-Id"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Send email to multiple recipients through the user's connected
+    mail app in the active workspace. Rate-limited at 100ms between
     sends to avoid provider throttling."""
     payload_data = _verify_auth(authorization)
     user_email = payload_data.get("email", "")
@@ -211,6 +222,7 @@ async def send_email_bulk(req: BulkEmailRequest, authorization: str = Header(...
                 to=r.to,
                 subject=r.subject,
                 html=r.body,
+                workspace_id=x_workspace_id,
             )
             if result.get("sent"):
                 results.append({"to": r.to, "status": "sent", "via": result.get("via")})

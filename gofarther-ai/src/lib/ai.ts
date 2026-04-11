@@ -48,12 +48,26 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeout = TIM
   throw new Error('Request failed');
 }
 
-/** Get auth headers */
+/** Get auth headers. Automatically attaches the current workspace id as
+ *  X-Workspace-Id so every backend call is scoped to the right workspace.
+ *  The workspace id is read from the in-memory cache set by
+ *  workspaces.ts; null on pre-workspace installs means the backend
+ *  falls back to the default workspace. */
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await getToken();
+  let wsId: string | null = null;
+  try {
+    // Lazy-require to avoid circular import with storage.ts → workspaces.ts
+    const { getActiveWorkspaceIdSync, getActiveWorkspaceId } = require('./workspaces');
+    wsId = getActiveWorkspaceIdSync?.() ?? null;
+    if (!wsId && typeof getActiveWorkspaceId === 'function') {
+      wsId = await getActiveWorkspaceId();
+    }
+  } catch {}
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(wsId ? { 'X-Workspace-Id': wsId } : {}),
   };
 }
 

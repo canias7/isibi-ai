@@ -24,14 +24,16 @@ const DEVICE_KEYS = new Set<string>([
 ]);
 
 // Keys that are user-scoped but NOT workspace-scoped — they stay
-// shared across every workspace the user owns. Billing, connected
-// apps, nickname, and the workspace list itself all live here.
-// Everything else gets workspace-prefixed too.
+// shared across every workspace the user owns. Billing, nickname,
+// and the workspace list itself all live here. Everything else gets
+// workspace-prefixed too, INCLUDING connected_apps as of Phase 2:
+// the backend now stores connector creds under (user, workspace, app)
+// so the cached list of "which apps are connected" must match the
+// workspace that's active.
 const USER_ONLY_KEYS = new Set<string>([
   'active_workspace_id',
   'workspace_list',
   'ws_migrated_v1',
-  'connected_apps',      // Connected apps are shared across workspaces in Phase 1
   'user_nickname',
   'active_user_id',
 ]);

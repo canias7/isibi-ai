@@ -69,14 +69,23 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
   const [usagePeriod, setUsagePeriod] = useState('7d');
   const [showUsage, setShowUsage] = useState(false);
 
-  // Reload the workspace-scoped settings (custom instructions, memory,
-  // preferences, contacts). The user/account/billing/connectors bits
-  // are loaded once on mount — those are shared across workspaces.
+  // Reload the workspace-scoped settings. As of Phase 2, connected
+  // apps are ALSO workspace-scoped on the backend (credentials live
+  // under a (user_id, workspace_id, app_id) key), so switching
+  // workspaces must re-fetch the connector list too — otherwise the
+  // user would see their "Personal" Gmail highlighted as "Connected"
+  // in their "Work" workspace where it isn't actually authenticated.
   const loadWorkspaceData = useCallback(() => {
     getCustomInstructions().then(setCustomInstructions);
     getMemory().then(setMemory);
     getLearnedPreferences().then(setLearnedPrefs);
     getSavedContacts().then(setContacts);
+    getConnectors().then((data: any) => {
+      setAllApps(data.connectors || []);
+      const connected = (data.connectors || []).filter((a: any) => a.connected);
+      setConnectedCount(connected.length);
+      saveConnectedApps(connected.map((a: any) => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions, action_hints: a.action_hints || {} })));
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {

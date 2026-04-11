@@ -9,9 +9,20 @@ const TOOLS_V2 = 'https://isibi-backend.onrender.com/api/ghost/tools/v2';
 
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await getToken();
+  // Include the active workspace id so send-email and any other
+  // tools_v2 endpoint lands in the right workspace's connected apps.
+  let wsId: string | null = null;
+  try {
+    const { getActiveWorkspaceIdSync, getActiveWorkspaceId } = require('./workspaces');
+    wsId = getActiveWorkspaceIdSync?.() ?? null;
+    if (!wsId && typeof getActiveWorkspaceId === 'function') {
+      wsId = await getActiveWorkspaceId();
+    }
+  } catch {}
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(wsId ? { 'X-Workspace-Id': wsId } : {}),
   };
 }
 
