@@ -862,8 +862,30 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
             lines.push(`  ${icon}  ${label}${s.error ? `\n      ${s.error}` : ''}`);
           }
           updateAndPersist(aiMsgIdStream, { content: (finalText ? finalText + '\n\n' : '') + lines.join('\n') });
+          // Fire a local iOS notification when the plan finishes so the
+          // user gets a ping even if they backgrounded the app while the
+          // plan was running (common on slow Excel reads or email sends).
+          // Builds a short summary by picking the most user-relevant step.
+          try {
+            const stepsArr = result.steps || [];
+            const emailStep = stepsArr.find((x: any) => x.type === 'email' && x.ok);
+            const pdfStep = stepsArr.find((x: any) => x.type === 'excel_pdf' && x.ok);
+            const convertStep = stepsArr.find((x: any) => x.type === 'convert_file' && x.ok);
+            let title = allOk ? 'Done!' : 'Something went wrong';
+            let body = '';
+            if (allOk && emailStep) body = `Sent email to ${emailStep.result?.to || 'recipient'}${emailStep.result?.attachment_count ? ` with ${emailStep.result.attachment_count} attachment${emailStep.result.attachment_count > 1 ? 's' : ''}` : ''}`;
+            else if (allOk && pdfStep) body = `Exported ${pdfStep.result?.filename || 'workbook'} as PDF`;
+            else if (allOk && convertStep) body = `Converted file to ${convertStep.result?.to || 'new format'}`;
+            else if (allOk) body = `Completed ${stepsArr.length} step${stepsArr.length > 1 ? 's' : ''}`;
+            else {
+              const firstFail = stepsArr.find((x: any) => !x.ok);
+              body = firstFail?.error || 'Check the chat for details';
+            }
+            scheduleLocalNotification(title, body, 1, { sessionId: currentSessionId.current || '' });
+          } catch {}
         }).catch(e => {
           updateAndPersist(aiMsgIdStream, { content: `${finalText || ''}\n\n⚠️ ${e.message || 'Something went wrong'}` });
+          try { scheduleLocalNotification('Something went wrong', e?.message || 'Plan failed', 1, { sessionId: currentSessionId.current || '' }); } catch {}
         });
         return;
       }
