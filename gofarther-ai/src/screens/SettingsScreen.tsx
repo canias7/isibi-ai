@@ -977,6 +977,13 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
                     </View>
                     <Switch value={pushPrefs.urgent_email} onValueChange={v => patchPrefs({ urgent_email: v })} disabled={!pushPrefs.enabled} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={pushPrefs.urgent_email ? C.primary : '#f4f4f4'} />
                   </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, opacity: pushPrefs.enabled && pushPrefs.urgent_email ? 1 : 0.4 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, color: tc.text }}>Every incoming email</Text>
+                      <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>Firehose — push for every new message (not just urgent). A busy inbox can destroy your lock screen — use carefully.</Text>
+                    </View>
+                    <Switch value={pushPrefs.notify_all_incoming} onValueChange={v => patchPrefs({ notify_all_incoming: v })} disabled={!pushPrefs.enabled || !pushPrefs.urgent_email} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={pushPrefs.notify_all_incoming ? C.primary : '#f4f4f4'} />
+                  </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, opacity: pushPrefs.enabled ? 1 : 0.4 }}>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 14, color: tc.text }}>Plan completed</Text>

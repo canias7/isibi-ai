@@ -271,7 +271,14 @@ async def poll_urgent_emails_for_all_users(cap_messages_per_user: int = 10) -> i
                 try:
                     # Respect preferences
                     prefs = await get_user_prefs(user_id, db)
-                    if not prefs.get("enabled", True) or not prefs.get("urgent_email", True):
+                    if not prefs.get("enabled", True):
+                        continue
+                    # Either the urgent filter or the firehose must be
+                    # on for us to poll — if both are off, skip this
+                    # user entirely.
+                    urgent_on = bool(prefs.get("urgent_email", True))
+                    firehose_on = bool(prefs.get("notify_all_incoming", False))
+                    if not (urgent_on or firehose_on):
                         continue
 
                     # Pre-load saved contact addresses for this user
@@ -315,27 +322,49 @@ async def poll_urgent_emails_for_all_users(cap_messages_per_user: int = 10) -> i
                             if not new_msgs:
                                 continue
 
-                            # Check each new message for urgency. Push
-                            # the first urgent one we find so we don't
-                            # spam (users on a busy inbox would get
-                            # destroyed otherwise).
+                            # Check each new message. Two modes:
+                            #   - Urgent mode (default): push only if
+                            #     the message qualifies as urgent, one
+                            #     push per poll to avoid flooding.
+                            #   - Firehose mode (opt-in): push for
+                            #     every new message. Still capped at
+                            #     one push per poll to prevent a poll
+                            #     that catches up 50 emails from nuking
+                            #     the user — but the next poll 5 min
+                            #     later will catch the next one.
                             for msg in new_msgs:
+                                from_display = msg.get("from_name") or msg.get("from") or "someone"
+                                subject = msg.get("subject") or "(no subject)"
                                 urgent, reason = _is_urgent(msg, saved_emails)
-                                if urgent:
-                                    from_display = msg.get("from_name") or msg.get("from") or "someone"
-                                    subject = msg.get("subject") or "(no subject)"
+                                should_push = False
+                                title = ""
+                                body = ""
+                                kind = ""
+                                urgent_flag = False
+                                if urgent and urgent_on:
+                                    should_push = True
+                                    title = f"Urgent email from {from_display[:60]}"
+                                    body = f"{subject[:180]} — {reason}"
+                                    kind = "urgent_email"
+                                    urgent_flag = True  # bypass quiet hours
+                                elif firehose_on:
+                                    should_push = True
+                                    title = f"New email from {from_display[:60]}"
+                                    body = subject[:180]
+                                    kind = "all_incoming_email"
+                                if should_push:
                                     push_result = await send_push_to_user(
                                         user_id,
                                         db,
-                                        title=f"Urgent email from {from_display[:60]}",
-                                        body=f"{subject[:180]} — {reason}",
-                                        kind="urgent_email",
+                                        title=title,
+                                        body=body,
+                                        kind=kind,
                                         data={
                                             "workspace_id": workspace_id,
                                             "app_id": app_id,
                                             "message_id": str(msg.get("id") or ""),
                                         },
-                                        urgent=True,  # bypass quiet hours for truly urgent
+                                        urgent=urgent_flag,
                                     )
                                     if push_result.get("sent", 0) > 0:
                                         pushes_fired += 1

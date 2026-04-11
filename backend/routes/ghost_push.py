@@ -104,6 +104,12 @@ class GhostNotificationPref(Base):
     # relationship contact (my boss/my mom/etc), subject has urgency
     # keywords, or the provider flagged it as important.
     urgent_email = Column(Boolean, nullable=False, default=True)
+    # Firehose mode — push for EVERY incoming email, not just urgent
+    # ones. Opt-in because a busy inbox would destroy the user.
+    # When True the poller pushes a notification for every message
+    # that's newer than its last-seen cursor (bypassing the urgency
+    # filter in _is_urgent).
+    notify_all_incoming = Column(Boolean, nullable=False, default=False)
     # Push me a morning digest from the scheduled tasks worker.
     digest = Column(Boolean, nullable=False, default=True)
     # Don't push between these hours (stored as minutes-from-midnight
@@ -161,6 +167,13 @@ async def _ensure_schema(db: AsyncSession) -> None:
                 updated_at TIMESTAMPTZ DEFAULT NOW()
             )
         """))
+        # Idempotent ALTER for the firehose toggle (added after the
+        # initial schema shipped). Lets existing users get the new
+        # field without dropping data.
+        await db.execute(sql_text(
+            "ALTER TABLE ghost_notification_prefs "
+            "ADD COLUMN IF NOT EXISTS notify_all_incoming BOOLEAN NOT NULL DEFAULT FALSE"
+        ))
         await db.commit()
         _schema_checked = True
         logger.info("ghost_push: tables ensured")
@@ -184,6 +197,7 @@ DEFAULT_PREFS = {
     "enabled": True,
     "plan_done": True,
     "urgent_email": True,
+    "notify_all_incoming": False,  # firehose mode — opt-in
     "digest": True,
     "quiet_start_min": None,
     "quiet_end_min": None,
@@ -204,6 +218,7 @@ async def get_user_prefs(user_id, db: AsyncSession) -> dict:
             "enabled": row.enabled,
             "plan_done": row.plan_done,
             "urgent_email": row.urgent_email,
+            "notify_all_incoming": getattr(row, "notify_all_incoming", False),
             "digest": row.digest,
             "quiet_start_min": row.quiet_start_min,
             "quiet_end_min": row.quiet_end_min,
@@ -244,6 +259,12 @@ def _kind_allowed(prefs: dict, kind: str) -> bool:
         return bool(prefs.get("plan_done", True))
     if kind == "urgent_email":
         return bool(prefs.get("urgent_email", True))
+    if kind == "all_incoming_email":
+        # Firehose mode — gated by its own toggle AND by the
+        # urgent_email master (we don't want firehose fighting with
+        # urgent when urgent is off). If the user turned off
+        # urgent_email entirely, firehose is also off.
+        return bool(prefs.get("notify_all_incoming", False)) and bool(prefs.get("urgent_email", True))
     if kind == "digest":
         return bool(prefs.get("digest", True))
     # Unknown kinds default to allowed so new notification types don't
@@ -437,6 +458,7 @@ class PrefsRequest(BaseModel):
     enabled: Optional[bool] = None
     plan_done: Optional[bool] = None
     urgent_email: Optional[bool] = None
+    notify_all_incoming: Optional[bool] = None
     digest: Optional[bool] = None
     quiet_start_min: Optional[int] = None
     quiet_end_min: Optional[int] = None
@@ -476,6 +498,7 @@ async def update_prefs(
             enabled=DEFAULT_PREFS["enabled"],
             plan_done=DEFAULT_PREFS["plan_done"],
             urgent_email=DEFAULT_PREFS["urgent_email"],
+            notify_all_incoming=DEFAULT_PREFS["notify_all_incoming"],
             digest=DEFAULT_PREFS["digest"],
             quiet_start_min=DEFAULT_PREFS["quiet_start_min"],
             quiet_end_min=DEFAULT_PREFS["quiet_end_min"],
@@ -483,7 +506,7 @@ async def update_prefs(
             updated_at=now,
         )
         db.add(row)
-    for field in ("enabled", "plan_done", "urgent_email", "digest", "quiet_start_min", "quiet_end_min", "timezone_name"):
+    for field in ("enabled", "plan_done", "urgent_email", "notify_all_incoming", "digest", "quiet_start_min", "quiet_end_min", "timezone_name"):
         v = getattr(body, field, None)
         if v is not None:
             setattr(row, field, v)

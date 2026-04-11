@@ -477,6 +477,8 @@ export interface NotificationPrefs {
   enabled: boolean;
   plan_done: boolean;
   urgent_email: boolean;
+  /** Firehose mode — push for EVERY incoming email, not just urgent. */
+  notify_all_incoming: boolean;
   digest: boolean;
   quiet_start_min: number | null;
   quiet_end_min: number | null;
