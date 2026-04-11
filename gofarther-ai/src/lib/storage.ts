@@ -23,6 +23,19 @@ const DEVICE_KEYS = new Set<string>([
   'storage_migrated_v2',
 ]);
 
+// Keys that are user-scoped but NOT workspace-scoped — they stay
+// shared across every workspace the user owns. Billing, connected
+// apps, nickname, and the workspace list itself all live here.
+// Everything else gets workspace-prefixed too.
+const USER_ONLY_KEYS = new Set<string>([
+  'active_workspace_id',
+  'workspace_list',
+  'ws_migrated_v1',
+  'connected_apps',      // Connected apps are shared across workspaces in Phase 1
+  'user_nickname',
+  'active_user_id',
+]);
+
 // Known user-scoped keys — used for the one-time legacy migration below.
 // New keys added to this file don't need to be added here, they get
 // scoped automatically via save/load. This list is purely for migrating
@@ -60,21 +73,58 @@ async function getActiveUserId(): Promise<string | null> {
 }
 
 /**
- * Apply a `u_<userId>_` prefix to a storage key so different accounts on
- * the same device get independent namespaces. Device-wide keys pass
- * through unchanged.
+ * Apply a `u_<userId>_w_<workspaceId>_` prefix to a storage key so
+ * different accounts — and different workspaces within the same
+ * account — get independent namespaces.
+ *
+ * Scoping levels:
+ *  - DEVICE_KEYS               → unchanged (theme, language, active_user_id)
+ *  - USER_ONLY_KEYS            → u_<userId>_<key>            (shared across workspaces)
+ *  - everything else           → u_<userId>_w_<ws>_<key>     (per-workspace)
  *
  * If no user is active (pre-login or mid-logout), returns null. Callers
  * then fail closed — reads return the fallback, writes become no-ops.
- * This guarantees that a newly signed-up account can NEVER accidentally
- * see a previous account's data via a stray unscoped key.
  */
 async function scopedKey(key: string): Promise<string | null> {
   if (DEVICE_KEYS.has(key)) return key;
+  // Keys that are already fully prefixed (u_..._w_..._foo) pass through
   if (key.startsWith('u_')) return key;
   const uid = await getActiveUserId();
   if (!uid) return null;
-  return `u_${uid}_${key}`;
+  // User-only keys (shared across workspaces) get the user prefix only
+  if (USER_ONLY_KEYS.has(key)) return `u_${uid}_${key}`;
+  // Everything else gets user + workspace. Workspace id is loaded
+  // lazily from AsyncStorage the first time and cached thereafter.
+  const ws = await _getActiveWorkspaceIdLazy(uid);
+  if (!ws) {
+    // No workspace yet (pre-ensureDefaultWorkspace) — fall back to
+    // user-only scope so first-launch reads still work and the
+    // migration helper in workspaces.ts can find the legacy keys.
+    return `u_${uid}_${key}`;
+  }
+  return `u_${uid}_w_${ws}_${key}`;
+}
+
+// Lazy workspace-id cache keyed by user so switching accounts doesn't
+// leak the previous account's workspace into the new one.
+let _wsCache: { userId: string; workspaceId: string | null } | null = null;
+
+async function _getActiveWorkspaceIdLazy(userId: string): Promise<string | null> {
+  if (_wsCache && _wsCache.userId === userId) return _wsCache.workspaceId;
+  try {
+    const raw = await AsyncStorage.getItem(`u_${userId}_active_workspace_id`);
+    _wsCache = { userId, workspaceId: raw };
+    return raw;
+  } catch {
+    _wsCache = { userId, workspaceId: null };
+    return null;
+  }
+}
+
+/** Clear the in-memory workspace cache. Called by workspaces.ts after
+ *  setActiveWorkspaceId so subsequent save/load hit the new workspace. */
+export function invalidateWorkspaceCache() {
+  _wsCache = null;
 }
 
 export async function save(key: string, data: any) {
@@ -110,6 +160,10 @@ export async function remove(key: string) {
  */
 export async function setActiveUserId(userId: string | null) {
   _activeUserId = userId;
+  // Invalidate the workspace cache so the newly-active account doesn't
+  // accidentally inherit the previous account's workspace id when it
+  // reads its first storage key.
+  _wsCache = null;
   try {
     if (userId) {
       await AsyncStorage.setItem('active_user_id', userId);

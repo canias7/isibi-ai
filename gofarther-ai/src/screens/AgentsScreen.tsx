@@ -11,6 +11,7 @@ import { ChatMsg, genId } from '../lib/types';
 import { useChat } from '../lib/useChat';
 import { getAgents, saveAgents, Agent } from '../lib/storage';
 import { buildUserContextPrompt } from '../lib/promptContext';
+import { onWorkspaceChange } from '../lib/workspaces';
 
 const COLORS = ['#ec4899', '#8b5cf6', '#6366f1', '#3b82f6', '#22c55e', '#eab308', '#ef4444', '#f97316', '#14b8a6', '#06b6d4'];
 
@@ -59,6 +60,16 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     if (a.length > 0 && !selectedAgent) setSelectedAgent(a[0]);
   }, []);
   useEffect(() => { load(); }, []);
+  // Re-fetch agents whenever the active workspace changes so the list
+  // reflects the new workspace's agents, not the one we were viewing
+  // when the user switched.
+  useEffect(() => {
+    const off = onWorkspaceChange(() => {
+      setSelectedAgent(null);
+      load();
+    });
+    return off;
+  }, [load]);
 
   const openCreate = () => { setEditId(null); setName(''); setRole(''); setInstructions(''); setColor('#ec4899'); setShowEdit(true); };
   const openEditAgent = () => {

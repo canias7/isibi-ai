@@ -58,6 +58,13 @@ export default function ScheduledScreen({ onBack }: { onBack: () => void }) {
     if (a.length > 0) setAgentId(a[0].id);
   }, []);
   useEffect(() => { load(); }, []);
+  // Reload tasks when the active workspace changes so the list shows
+  // tasks belonging to the new workspace instead of the old one.
+  useEffect(() => {
+    const { onWorkspaceChange } = require('../lib/workspaces');
+    const off = onWorkspaceChange(() => { load(); });
+    return off;
+  }, [load]);
 
   const openCreate = () => {
     setEditId(null); setCommand(''); setLabel('');

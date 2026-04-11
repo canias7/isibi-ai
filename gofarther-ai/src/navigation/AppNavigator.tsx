@@ -13,6 +13,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import ScheduledScreen from '../screens/ScheduledScreen';
 import SubscriptionScreen from '../screens/SubscriptionScreen';
 import { getChatSessions, saveChatSessions, ChatSession } from '../lib/storage';
+import { ensureDefaultWorkspace, onWorkspaceChange } from '../lib/workspaces';
 import { addNotificationResponseListener } from '../lib/notifications';
 import { useInactivityTimeout } from '../lib/useInactivityTimeout';
 import { clearToken, logout as apiLogout } from '../lib/api';
@@ -43,7 +44,31 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
     setSessions(s);
   }, []);
 
-  useEffect(() => { loadSessions(); }, []);
+  // Ensure the user has at least one workspace before loading their
+  // sessions. On a fresh install after the workspaces feature ships,
+  // this silently creates "Personal" and migrates all pre-workspace
+  // keys into it. Idempotent on every subsequent launch.
+  useEffect(() => {
+    (async () => {
+      await ensureDefaultWorkspace();
+      await loadSessions();
+    })();
+  }, []);
+
+  // Reload everything when the user switches workspace: pull that
+  // workspace's chat sessions, reset the active session to null so the
+  // chat screen shows a clean "New chat" state, and bump chatKey to
+  // force the ChatScreen to re-mount (so useChat re-hydrates with
+  // the new workspace's local storage).
+  useEffect(() => {
+    const off = onWorkspaceChange(async () => {
+      await loadSessions();
+      setActiveSessionId(null);
+      setChatKey(k => k + 1);
+      navigationRef.current?.navigate('Chat');
+    });
+    return off;
+  }, [loadSessions]);
 
   // Deep link: when user taps a notification with sessionId, open that chat
   useEffect(() => {

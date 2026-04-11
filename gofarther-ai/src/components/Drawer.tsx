@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ChatSession, deleteChatSession, renameChatSession, pinChatSession, searchAllChats } from '../lib/storage';
 import { useTheme } from '../lib/ThemeContext';
+import WorkspaceSwitcher from './WorkspaceSwitcher';
 
 const DRAWER_W = 300;
 
@@ -179,9 +180,9 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
       </TouchableWithoutFeedback>
 
       <Animated.View style={[s.panel, { transform: [{ translateX }], paddingTop: insets.top + 12, backgroundColor: tc.bg2, borderRightColor: tc.border }]}>
-        {/* Header — fixed at top */}
+        {/* Header — workspace switcher + search/new-chat buttons */}
         <View style={s.header}>
-          <Text style={[s.brand, { color: tc.text }]}>GoFarther AI</Text>
+          <WorkspaceSwitcher />
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity onPress={() => setShowSearch(!showSearch)} style={s.headerBtn} activeOpacity={0.7} accessibilityLabel="Search chats" accessibilityRole="button">
               <Ionicons name="search-outline" size={18} color={tc.textMid} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking, Switch, TextInput, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
@@ -69,14 +69,21 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
   const [usagePeriod, setUsagePeriod] = useState('7d');
   const [showUsage, setShowUsage] = useState(false);
 
-  useEffect(() => {
-    getMe().then((u: any) => { setUser(u); setIs2FAEnabled(u?.is_2fa_enabled || false); }).catch(() => {}).finally(() => setLoadingUser(false));
-    getUsage('7d').then(setUsageData).catch(() => {});
+  // Reload the workspace-scoped settings (custom instructions, memory,
+  // preferences, contacts). The user/account/billing/connectors bits
+  // are loaded once on mount — those are shared across workspaces.
+  const loadWorkspaceData = useCallback(() => {
     getCustomInstructions().then(setCustomInstructions);
     getMemory().then(setMemory);
     getLearnedPreferences().then(setLearnedPrefs);
-    getLanguage().then(setLanguage);
     getSavedContacts().then(setContacts);
+  }, []);
+
+  useEffect(() => {
+    getMe().then((u: any) => { setUser(u); setIs2FAEnabled(u?.is_2fa_enabled || false); }).catch(() => {}).finally(() => setLoadingUser(false));
+    getUsage('7d').then(setUsageData).catch(() => {});
+    loadWorkspaceData();
+    getLanguage().then(setLanguage);
     getConnectors().then((data: any) => {
       setAllApps(data.connectors || []);
       setAppCategories(data.categories || []);
@@ -88,7 +95,15 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
     getBiometricType().then(setBioType);
     getBiometricEnabled().then(setBiometricOn);
     registerForPushNotifications().then(setPushToken).catch(() => {});
-  }, []);
+  }, [loadWorkspaceData]);
+
+  // Re-fetch the per-workspace bits when the user switches workspace so
+  // "my boss" / memory / preferences reflect the new workspace.
+  useEffect(() => {
+    const { onWorkspaceChange } = require('../lib/workspaces');
+    const off = onWorkspaceChange(() => { loadWorkspaceData(); });
+    return off;
+  }, [loadWorkspaceData]);
 
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure?', [
