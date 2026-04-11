@@ -5278,7 +5278,8 @@ async def _autodetect_mail_servers(email_address: str) -> dict | None:
         return None
 
     if domain in _MAIL_AUTODETECT_CACHE:
-        return _MAIL_AUTODETECT_CACHE[domain]
+        cached = _MAIL_AUTODETECT_CACHE[domain]
+        return cached  # may be a dict or None (negative cache)
     if domain in _MAIL_AUTODETECT_PRESETS:
         _MAIL_AUTODETECT_CACHE[domain] = _MAIL_AUTODETECT_PRESETS[domain]
         return _MAIL_AUTODETECT_PRESETS[domain]
@@ -5301,17 +5302,42 @@ async def _autodetect_mail_servers(email_address: str) -> dict | None:
             except Exception:
                 continue
 
-    # 2. Heuristic fallback — guess from the domain itself. This works for
-    #    a lot of custom domains that follow the imap.<domain> convention.
-    guessed = {
-        "imap_host": f"imap.{domain}",
-        "imap_port": 993,
-        "smtp_host": f"smtp.{domain}",
-        "smtp_port": 587,
-        "_guessed": True,
-    }
-    _MAIL_AUTODETECT_CACHE[domain] = guessed
-    return guessed
+    # 2. Heuristic fallback — guess from the domain itself. A lot of
+    #    custom domains follow the imap.<domain> convention, but plenty
+    #    don't, and returning a host that doesn't exist just makes the
+    #    connection fail with "Name or service not known". Validate the
+    #    guess via DNS before returning it.
+    import socket
+    async def _resolves(host: str) -> bool:
+        try:
+            loop = asyncio.get_running_loop()
+            await loop.getaddrinfo(host, None)
+            return True
+        except Exception:
+            return False
+
+    guesses_to_try = [
+        ("imap", "smtp", 993, 587),
+        ("mail", "mail", 993, 587),  # some hosts use mail.<domain> for both
+    ]
+    for imap_prefix, smtp_prefix, ip, sp in guesses_to_try:
+        ih = f"{imap_prefix}.{domain}"
+        sh = f"{smtp_prefix}.{domain}"
+        if await _resolves(ih) and await _resolves(sh):
+            guessed = {
+                "imap_host": ih,
+                "imap_port": ip,
+                "smtp_host": sh,
+                "smtp_port": sp,
+                "_guessed": True,
+            }
+            _MAIL_AUTODETECT_CACHE[domain] = guessed
+            return guessed
+
+    # Nothing resolved — caller will surface a clean "couldn't autodetect"
+    # error asking the user to enter the host manually in Settings.
+    _MAIL_AUTODETECT_CACHE[domain] = None  # negative cache
+    return None
 
 
 async def _outlook_mail_adapter(action: str, params: dict, creds: dict) -> dict:
@@ -5921,7 +5947,8 @@ async def _imap_mail_adapter(action: str, params: dict, creds: dict) -> dict:
     smtp_port = smtp_port or 587
 
     if not (imap_host and smtp_host):
-        return {"error": f"Could not detect mail servers for {username}. Open Settings → My Apps → Email (IMAP) → Advanced and enter imap_host and smtp_host manually."}
+        domain = username.rsplit("@", 1)[-1] if "@" in username else username
+        return {"error": f"We couldn't autodetect the email servers for {domain}. Go to Settings → Connect Apps → Email (IMAP) and enter the IMAP and SMTP hosts manually (your email provider's docs usually call them 'imap.yourdomain.com' and 'smtp.yourdomain.com' or similar)."}
 
     def _decode(val: str | bytes | None) -> str:
         if val is None:
@@ -6270,7 +6297,19 @@ async def _imap_mail_adapter(action: str, params: dict, creds: dict) -> dict:
 
     except Exception as e:
         logger.exception("IMAP mail action failed")
-        return {"error": f"IMAP error: {e}"}
+        msg = str(e)
+        # DNS resolution failure — the host we were given doesn't exist.
+        # Surface a clear error with the host that failed so the user knows
+        # what to fix.
+        if "[Errno -2]" in msg or "Name or service not known" in msg or "nodename nor servname" in msg or "getaddrinfo" in msg.lower():
+            return {"error": f"Could not connect to {imap_host}:{imap_port} — hostname not found. Go to Settings → Connect Apps → Email (IMAP) and double-check the IMAP Server field, or ask your email provider for the correct IMAP hostname."}
+        # Auth failure — clearly tell the user the password is wrong
+        if "authentication" in msg.lower() or "login failed" in msg.lower() or "AUTHENTICATIONFAILED" in msg:
+            return {"error": f"IMAP login failed for {username}. Most providers require an 'app password' instead of your regular password — check your email provider's security settings and generate one."}
+        # Connection refused / timed out
+        if "refused" in msg.lower() or "timed out" in msg.lower() or "timeout" in msg.lower():
+            return {"error": f"Could not reach {imap_host}:{imap_port} ({msg}). Check that your provider allows IMAP access and the port is correct (usually 993)."}
+        return {"error": f"IMAP error: {msg}"}
 
     return {"error": f"Unknown IMAP action: {action}"}
 
