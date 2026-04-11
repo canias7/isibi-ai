@@ -501,12 +501,33 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
                         oracle_cx_service: '#C74634', oracle_hcm: '#C74634', oracle_epm: '#C74634',
                         oracle_scm: '#C74634', oracle_apex: '#C74634', oracle_analytics: '#C74634',
                         oracle_commerce: '#C74634',
+                        // Email (mailbox access)
+                        outlook_mail: '#0078D4', gmail: '#EA4335', neo_mail: '#6C5CE7',
+                        titan_mail: '#1A1A2E', imap_mail: '#6B7280',
                       } as Record<string, string>)[app.id]) || '#999', alignItems: 'center', justifyContent: 'center' }}>
                         <Ionicons name={(app.icon || 'cube') as any} size={16} color="#fff" />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={[s.rowLabel, { color: tc.text, fontSize: 14 }]}>{app.name}</Text>
-                        <Text style={{ fontSize: 11, color: tc.textMid }}>{app.category}</Text>
+                        {/* Show a meaningful per-connector subtitle instead
+                            of just repeating the category. Falls back to
+                            the category when the connector doesn't have a
+                            more specific tagline. Hidden entirely when the
+                            user has filtered to a specific category — the
+                            category pill already shows the group and
+                            repeating it on every row is noise. */}
+                        {(() => {
+                          const subtitles: Record<string, string> = {
+                            outlook_mail: 'Office 365 & Outlook.com',
+                            gmail: 'Google Workspace & personal',
+                            neo_mail: 'Neo Business Email · IMAP preset',
+                            titan_mail: 'Titan Email · IMAP preset',
+                            imap_mail: 'Any provider · auto-detected',
+                          };
+                          const sub = subtitles[app.id] || (selectedCategory === 'All' ? app.category : '');
+                          if (!sub) return null;
+                          return <Text style={{ fontSize: 11, color: tc.textMid }}>{sub}</Text>;
+                        })()}
                       </View>
                     </View>
                     {app.connected ? (
