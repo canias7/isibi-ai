@@ -1586,6 +1586,28 @@ for _app_id, _name, _setup, _setup_url, _adapter in _MAIL_PRESETS:
         "action_hints": dict(_MAIL_PRESET_HINTS),
     }
 
+# Flip OAuth-capable mail presets to the generic "mail_oauth" flow *only*
+# when the provider's client ID + secret are configured on the server.
+# This way, adding YAHOO_CLIENT_ID / YAHOO_CLIENT_SECRET on Render
+# automatically turns yahoo_mail (and aol_mail) into a "Connect with
+# Yahoo" OAuth tile without any further code changes. Until the env vars
+# are set, the entries stay as password-based IMAP presets.
+for _provider_key, _cfg in MAIL_OAUTH_PROVIDERS.items():
+    if not _mail_oauth_configured(_provider_key):
+        continue
+    for _app_id in _cfg.get("app_ids", []):
+        if _app_id not in APP_REGISTRY:
+            continue
+        APP_REGISTRY[_app_id]["oauth_flow"] = "mail_oauth"
+        APP_REGISTRY[_app_id]["auth_fields"] = [
+            {"key": "access_token", "label": f"{_cfg['display']} OAuth Access Token", "secure": True},
+        ]
+        APP_REGISTRY[_app_id]["setup"] = (
+            f"Tap 'Connect with {_cfg['display']}' to sign in. "
+            f"GoFarther never sees your password — the token comes straight "
+            f"from {_cfg['display']} and is stored encrypted."
+        )
+
 # ── Category order for display ───────────────────────────────────────────
 
 CATEGORY_ORDER = [
@@ -1728,6 +1750,113 @@ _GOOGLE_SCOPES = {
 }
 
 
+# ── Generic mail OAuth (Yahoo, AOL, Zoho, Fastmail, Mail.ru, Yandex) ────
+#
+# All of these are IMAP-based providers that ALSO expose OAuth 2.0 for
+# third-party developers. We use OAuth to obtain an access_token, then
+# authenticate to IMAP + SMTP via XOAUTH2 instead of a password. The user
+# never enters credentials into GoFarther — they sign in on the provider's
+# own page, exactly like Gmail / Outlook.
+#
+# Each provider is declared in MAIL_OAUTH_PROVIDERS with its auth/token
+# URLs, scopes, env var names, which connector app_ids it powers, and the
+# pinned IMAP/SMTP hosts to use. The oauth_start / callback / refresh
+# code is fully generic — adding another OAuth-capable provider is just
+# one more dict entry.
+#
+# Yahoo and AOL share the same OAuth backend (both owned by Yahoo), so a
+# single dev-app registration covers both.
+
+MAIL_OAUTH_PROVIDERS: dict[str, dict] = {
+    "yahoo": {
+        "auth_url":  "https://api.login.yahoo.com/oauth2/request_auth",
+        "token_url": "https://api.login.yahoo.com/oauth2/get_token",
+        "scopes":    "mail-w",  # Yahoo: mail-w grants full mailbox access
+        "client_id_env":     "YAHOO_CLIENT_ID",
+        "client_secret_env": "YAHOO_CLIENT_SECRET",
+        "app_ids":   ["yahoo_mail", "aol_mail"],
+        "imap_host": "imap.mail.yahoo.com", "imap_port": 993,
+        "smtp_host": "smtp.mail.yahoo.com", "smtp_port": 587,
+        "display":   "Yahoo",
+    },
+    "zoho": {
+        "auth_url":  "https://accounts.zoho.com/oauth/v2/auth",
+        "token_url": "https://accounts.zoho.com/oauth/v2/token",
+        "scopes":    "ZohoMail.messages.ALL ZohoMail.folders.ALL ZohoMail.accounts.READ",
+        "client_id_env":     "ZOHO_CLIENT_ID",
+        "client_secret_env": "ZOHO_CLIENT_SECRET",
+        "app_ids":   ["zoho_mail"],
+        "imap_host": "imap.zoho.com", "imap_port": 993,
+        "smtp_host": "smtp.zoho.com", "smtp_port": 587,
+        "display":   "Zoho",
+    },
+    "fastmail": {
+        "auth_url":  "https://api.fastmail.com/oauth/authorize",
+        "token_url": "https://api.fastmail.com/oauth/refresh",
+        "scopes":    "urn:ietf:params:jmap:mail urn:ietf:params:jmap:submission",
+        "client_id_env":     "FASTMAIL_CLIENT_ID",
+        "client_secret_env": "FASTMAIL_CLIENT_SECRET",
+        "app_ids":   ["fastmail_mail"],
+        "imap_host": "imap.fastmail.com", "imap_port": 993,
+        "smtp_host": "smtp.fastmail.com", "smtp_port": 587,
+        "display":   "Fastmail",
+    },
+    "mailru": {
+        "auth_url":  "https://oauth.mail.ru/login",
+        "token_url": "https://oauth.mail.ru/token",
+        "scopes":    "userinfo",
+        "client_id_env":     "MAILRU_CLIENT_ID",
+        "client_secret_env": "MAILRU_CLIENT_SECRET",
+        "app_ids":   ["mailru_mail"],
+        "imap_host": "imap.mail.ru", "imap_port": 993,
+        "smtp_host": "smtp.mail.ru", "smtp_port": 587,
+        "display":   "Mail.ru",
+    },
+    "yandex": {
+        "auth_url":  "https://oauth.yandex.com/authorize",
+        "token_url": "https://oauth.yandex.com/token",
+        "scopes":    "mail:imap_full mail:smtp",
+        "client_id_env":     "YANDEX_CLIENT_ID",
+        "client_secret_env": "YANDEX_CLIENT_SECRET",
+        "app_ids":   ["yandex_mail"],
+        "imap_host": "imap.yandex.com", "imap_port": 993,
+        "smtp_host": "smtp.yandex.com", "smtp_port": 587,
+        "display":   "Yandex",
+    },
+}
+
+
+def _mail_oauth_client(provider_key: str) -> tuple[str, str]:
+    """Return (client_id, client_secret) for a mail OAuth provider from
+    env vars. Empty strings if not configured — caller should check."""
+    cfg = MAIL_OAUTH_PROVIDERS.get(provider_key) or {}
+    return (
+        os.getenv(cfg.get("client_id_env") or "", ""),
+        os.getenv(cfg.get("client_secret_env") or "", ""),
+    )
+
+
+def _mail_oauth_redirect_uri(provider_key: str) -> str:
+    """Per-provider redirect URI. Each provider needs its own callback
+    path so the client can register it in their dev console separately.
+    Override via <PROVIDER>_REDIRECT_URI env var if needed."""
+    env_name = f"{provider_key.upper()}_REDIRECT_URI"
+    return os.getenv(env_name) or f"https://isibi-backend.onrender.com/api/ghost/connectors/oauth/{provider_key}/callback"
+
+
+def _mail_oauth_provider_for_app(app_id: str) -> Optional[str]:
+    """Reverse-lookup: which OAuth provider key powers this app_id?"""
+    for provider_key, cfg in MAIL_OAUTH_PROVIDERS.items():
+        if app_id in cfg.get("app_ids", []):
+            return provider_key
+    return None
+
+
+def _mail_oauth_configured(provider_key: str) -> bool:
+    cid, secret = _mail_oauth_client(provider_key)
+    return bool(cid and secret)
+
+
 def _ms_auth_url() -> str:
     return f"https://login.microsoftonline.com/{_ms_tenant()}/oauth2/v2.0/authorize"
 
@@ -1768,7 +1897,10 @@ async def oauth_start(app_id: str, authorization: str = Header(...)):
 
     info = APP_REGISTRY[app_id]
     flow = info.get("oauth_flow")
-    if flow not in ("microsoft", "google"):
+    # Mail OAuth providers (yahoo/zoho/fastmail/mailru/yandex) all share
+    # one generic handler driven by the MAIL_OAUTH_PROVIDERS config table.
+    mail_provider = _mail_oauth_provider_for_app(app_id) if flow == "mail_oauth" else None
+    if flow not in ("microsoft", "google", "mail_oauth"):
         raise HTTPException(400, f"{info['name']} does not use an OAuth flow we handle")
 
     _prune_old_oauth_states()
@@ -1803,27 +1935,55 @@ async def oauth_start(app_id: str, authorization: str = Header(...)):
         authorize_url = f"{_ms_auth_url()}?{urlencode(params)}"
         return {"authorize_url": authorize_url, "state": state}
 
-    # Google
-    client_id = _google_client_id()
-    redirect_uri = _google_redirect_uri()
+    if flow == "google":
+        client_id = _google_client_id()
+        redirect_uri = _google_redirect_uri()
+        if not client_id:
+            raise HTTPException(
+                500,
+                "Google OAuth is not configured on the server. "
+                "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+            )
+        scope = _GOOGLE_SCOPES.get(app_id, "openid email")
+        params = {
+            "client_id": client_id,
+            "response_type": "code",
+            "redirect_uri": redirect_uri,
+            "scope": scope,
+            "state": state,
+            "access_type": "offline",       # gets us a refresh_token
+            "prompt": "consent",            # forces the refresh_token on every connect
+            "include_granted_scopes": "true",
+        }
+        authorize_url = f"{_GOOGLE_AUTH_URL}?{urlencode(params)}"
+        return {"authorize_url": authorize_url, "state": state}
+
+    # Generic mail OAuth (yahoo / zoho / fastmail / mailru / yandex)
+    if not mail_provider:
+        raise HTTPException(400, f"{info['name']} is not wired to a known mail OAuth provider")
+    cfg = MAIL_OAUTH_PROVIDERS[mail_provider]
+    client_id, _secret = _mail_oauth_client(mail_provider)
     if not client_id:
         raise HTTPException(
             500,
-            "Google OAuth is not configured on the server. "
-            "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+            f"{cfg['display']} OAuth is not configured on the server. "
+            f"Set {cfg['client_id_env']} and {cfg['client_secret_env']} in Render env vars.",
         )
-    scope = _GOOGLE_SCOPES.get(app_id, "openid email")
     params = {
         "client_id": client_id,
         "response_type": "code",
-        "redirect_uri": redirect_uri,
-        "scope": scope,
+        "redirect_uri": _mail_oauth_redirect_uri(mail_provider),
+        "scope": cfg["scopes"],
         "state": state,
-        "access_type": "offline",       # gets us a refresh_token
-        "prompt": "consent",            # forces the refresh_token on every connect
-        "include_granted_scopes": "true",
     }
-    authorize_url = f"{_GOOGLE_AUTH_URL}?{urlencode(params)}"
+    # Zoho wants offline access explicitly to return a refresh token
+    if mail_provider == "zoho":
+        params["access_type"] = "offline"
+        params["prompt"] = "consent"
+    # Yandex uses force_confirm instead of prompt=consent
+    if mail_provider == "yandex":
+        params["force_confirm"] = "yes"
+    authorize_url = f"{cfg['auth_url']}?{urlencode(params)}"
     return {"authorize_url": authorize_url, "state": state}
 
 
@@ -2050,6 +2210,161 @@ async def _refresh_google_token(user_id, app_id: str, creds: dict, db: AsyncSess
     return new_creds
 
 
+@router.get("/oauth/{provider}/callback")
+async def oauth_mail_generic_callback(
+    provider: str,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Generic OAuth callback for all mail providers in MAIL_OAUTH_PROVIDERS
+    (yahoo, zoho, fastmail, mailru, yandex). Exchanges the code for an
+    access_token + refresh_token and stores it the same way the Microsoft
+    and Google callbacks do."""
+    from fastapi.responses import HTMLResponse
+
+    def _html(title: str, body: str, ok: bool = True) -> HTMLResponse:
+        color = "#16a34a" if ok else "#dc2626"
+        return HTMLResponse(
+            f"""<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title></head><body style="font-family:-apple-system,system-ui,sans-serif;text-align:center;padding:40px 20px;background:#fafafa"><div style="max-width:420px;margin:0 auto;background:#fff;border-radius:16px;padding:32px 24px;box-shadow:0 2px 12px rgba(0,0,0,.06)"><div style="font-size:48px;margin-bottom:12px">{'✅' if ok else '⚠️'}</div><h1 style="color:{color};font-size:22px;margin:0 0 12px">{title}</h1><p style="color:#555;font-size:15px;line-height:1.5;margin:0 0 20px">{body}</p><p style="color:#999;font-size:13px;margin:0">You can close this window and return to the app.</p></div></body></html>"""
+        )
+
+    if provider not in MAIL_OAUTH_PROVIDERS:
+        return _html("Unknown Provider", f"No mail OAuth provider named '{provider}'.", ok=False)
+    cfg = MAIL_OAUTH_PROVIDERS[provider]
+
+    if error:
+        return _html("Connection Failed", error, ok=False)
+    if not code or not state:
+        return _html("Connection Failed", "Missing authorization code or state.", ok=False)
+
+    _prune_old_oauth_states()
+    session = _oauth_states.pop(state, None)
+    if not session:
+        return _html(
+            "Connection Failed",
+            "This link has expired or was already used. Please try connecting again from the app.",
+            ok=False,
+        )
+
+    user_id = session["user_id"]
+    app_id = session["app_id"]
+
+    client_id, client_secret = _mail_oauth_client(provider)
+    redirect_uri = _mail_oauth_redirect_uri(provider)
+    if not client_id or not client_secret:
+        return _html("Server Misconfigured", f"{cfg['display']} OAuth env vars are not set.", ok=False)
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                cfg["token_url"],
+                data={
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "code": code,
+                    "redirect_uri": redirect_uri,
+                    "grant_type": "authorization_code",
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            if r.status_code != 200:
+                logger.error(f"{provider} token exchange failed: {r.status_code} {r.text}")
+                return _html("Token Exchange Failed", r.text[:200], ok=False)
+            tokens = r.json()
+    except Exception as e:
+        logger.exception(f"{provider} token exchange errored")
+        return _html("Token Exchange Error", str(e), ok=False)
+
+    access_token = tokens.get("access_token")
+    refresh_token = tokens.get("refresh_token")
+    expires_in = int(tokens.get("expires_in") or 3600)
+    if not access_token:
+        return _html("Invalid Response", f"{cfg['display']} did not return an access token.", ok=False)
+
+    expires_at = datetime.now(timezone.utc).timestamp() + expires_in - 60
+    creds = {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_at": expires_at,
+        "token_type": tokens.get("token_type", "Bearer"),
+        # Pin the IMAP/SMTP hosts so the adapter doesn't need to autodetect
+        "imap_host": cfg["imap_host"],
+        "imap_port": cfg["imap_port"],
+        "smtp_host": cfg["smtp_host"],
+        "smtp_port": cfg["smtp_port"],
+        # XOAUTH2 uses the email address as the "user" — we store it here
+        # for convenience but it gets filled in on first use if missing.
+        # Yahoo / Mail.ru / Yandex expose the address on a userinfo endpoint;
+        # Zoho / Fastmail put it in the token response.
+        "username": tokens.get("email") or tokens.get("mail") or "",
+        "oauth_provider": provider,
+    }
+
+    await _set_creds(user_id, app_id, creds, db)
+    await db.commit()
+    logger.info(f"{provider} mail OAuth success: user={user_id} app={app_id}")
+    app_name = APP_REGISTRY.get(app_id, {}).get("name", app_id)
+    return _html(
+        "Connected!",
+        f"{app_name} is now linked to your GoFarther account.",
+        ok=True,
+    )
+
+
+async def _refresh_mail_oauth_token(user_id, app_id: str, creds: dict, db: AsyncSession) -> dict:
+    """Refresh a mail OAuth access token if it's expired or close to it.
+    Works for any provider in MAIL_OAUTH_PROVIDERS."""
+    expires_at = float(creds.get("expires_at") or 0)
+    now = datetime.now(timezone.utc).timestamp()
+    if expires_at > now + 30:
+        return creds
+
+    refresh_token = creds.get("refresh_token")
+    if not refresh_token:
+        return creds
+
+    provider = creds.get("oauth_provider") or _mail_oauth_provider_for_app(app_id)
+    if not provider or provider not in MAIL_OAUTH_PROVIDERS:
+        return creds
+    cfg = MAIL_OAUTH_PROVIDERS[provider]
+
+    client_id, client_secret = _mail_oauth_client(provider)
+    if not client_id or not client_secret:
+        return creds
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                cfg["token_url"],
+                data={
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "grant_type": "refresh_token",
+                    "refresh_token": refresh_token,
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            if r.status_code != 200:
+                logger.warning(f"{provider} token refresh failed: {r.status_code} {r.text}")
+                return creds
+            tokens = r.json()
+    except Exception:
+        logger.exception(f"{provider} token refresh errored")
+        return creds
+
+    new_creds = dict(creds)
+    new_creds["access_token"] = tokens.get("access_token", creds.get("access_token"))
+    if tokens.get("refresh_token"):
+        new_creds["refresh_token"] = tokens["refresh_token"]
+    new_creds["expires_at"] = now + int(tokens.get("expires_in") or 3600) - 60
+
+    await _set_creds(user_id, app_id, new_creds, db)
+    await db.commit()
+    return new_creds
+
+
 async def _refresh_microsoft_token(user_id, app_id: str, creds: dict, db: AsyncSession) -> dict:
     """If the Microsoft access token is expired or close to it, use the
     refresh token to get a new one and persist it. Returns updated creds."""
@@ -2113,10 +2428,13 @@ async def execute_action(app_id: str, body: ActionRequest, authorization: str = 
         raise HTTPException(400, f"{APP_REGISTRY[app_id]['name']} is not connected. Go to Settings → Connect Apps to set it up.")
 
     # Refresh OAuth tokens if they're close to expiring
-    if APP_REGISTRY[app_id].get("oauth_flow") == "microsoft":
+    _flow = APP_REGISTRY[app_id].get("oauth_flow")
+    if _flow == "microsoft":
         creds = await _refresh_microsoft_token(user_id, app_id, creds, db)
-    elif APP_REGISTRY[app_id].get("oauth_flow") == "google":
+    elif _flow == "google":
         creds = await _refresh_google_token(user_id, app_id, creds, db)
+    elif _flow == "mail_oauth":
+        creds = await _refresh_mail_oauth_token(user_id, app_id, creds, db)
 
     if body.action not in APP_REGISTRY[app_id]["actions"]:
         raise HTTPException(400, f"Action '{body.action}' not available for {APP_REGISTRY[app_id]['name']}")
@@ -2220,6 +2538,8 @@ async def _refresh_mail_creds(user_id, app_id: str, creds: dict, db: AsyncSessio
         return await _refresh_microsoft_token(user_id, app_id, creds, db)
     if flow == "google":
         return await _refresh_google_token(user_id, app_id, creds, db)
+    if flow == "mail_oauth":
+        return await _refresh_mail_oauth_token(user_id, app_id, creds, db)
     return creds
 
 
@@ -2538,10 +2858,13 @@ async def run_plan(body: PlanRequest, authorization: str = Header(...), db: Asyn
                 creds = await _get_creds(user_id, step.app, db)
                 if not creds:
                     raise ValueError(f"{APP_REGISTRY[step.app]['name']} is not connected")
-                if APP_REGISTRY[step.app].get("oauth_flow") == "microsoft":
+                step_flow = APP_REGISTRY[step.app].get("oauth_flow")
+                if step_flow == "microsoft":
                     creds = await _refresh_microsoft_token(user_id, step.app, creds, db)
-                elif APP_REGISTRY[step.app].get("oauth_flow") == "google":
+                elif step_flow == "google":
                     creds = await _refresh_google_token(user_id, step.app, creds, db)
+                elif step_flow == "mail_oauth":
+                    creds = await _refresh_mail_oauth_token(user_id, step.app, creds, db)
                 if step.action not in APP_REGISTRY[step.app]["actions"]:
                     raise ValueError(f"Action '{step.action}' not available for {step.app}")
                 adapter = ADAPTERS.get(step.app)
@@ -5934,8 +6257,12 @@ async def _imap_mail_adapter(action: str, params: dict, creds: dict) -> dict:
 
     username = creds.get("username") or creds.get("email")
     password = creds.get("app_password") or creds.get("password")
-    if not (username and password):
-        return {"error": "IMAP mailbox needs at least a username (email) and app password."}
+    access_token = creds.get("access_token")
+    # XOAUTH2 flow: if we have an OAuth access token (from Yahoo / Zoho /
+    # Fastmail / Mail.ru / Yandex), use it instead of asking for a password.
+    # The user never touches an app password in that case.
+    if not (username and (password or access_token)):
+        return {"error": "IMAP mailbox needs at least a username (email) and either an app password or an OAuth access token."}
 
     imap_host = creds.get("imap_host")
     smtp_host = creds.get("smtp_host")
@@ -5980,9 +6307,19 @@ async def _imap_mail_adapter(action: str, params: dict, creds: dict) -> dict:
         except Exception:
             return str(val)
 
+    def _xoauth2_string(user: str, token: str) -> bytes:
+        """Build an XOAUTH2 authentication string per RFC 7628.
+        Format: user=<email>\\x01auth=Bearer <token>\\x01\\x01"""
+        return f"user={user}\x01auth=Bearer {token}\x01\x01".encode("ascii")
+
     def _connect_imap() -> "imaplib.IMAP4_SSL":
         c = imaplib.IMAP4_SSL(imap_host, imap_port)
-        c.login(username, password)
+        if access_token:
+            # XOAUTH2 login — no password involved
+            auth_blob = _xoauth2_string(username, access_token)
+            c.authenticate("XOAUTH2", lambda _: auth_blob)
+        else:
+            c.login(username, password)
         return c
 
     def _list_inbox_sync(folder: str, limit: int) -> list[dict]:
@@ -6127,7 +6464,22 @@ async def _imap_mail_adapter(action: str, params: dict, creds: dict) -> dict:
                 s.ehlo()
             except Exception:
                 pass
-            s.login(username, password)
+            if access_token:
+                # SMTP XOAUTH2: base64-encode the same auth blob we use
+                # for IMAP and send it via AUTH XOAUTH2.
+                import base64 as _b64
+                auth_blob = _xoauth2_string(username, access_token)
+                encoded = _b64.b64encode(auth_blob).decode("ascii")
+                code, resp = s.docmd("AUTH", f"XOAUTH2 {encoded}")
+                if code != 235:
+                    # Some servers return 334 with a challenge that we just
+                    # acknowledge with an empty line.
+                    if code == 334:
+                        code, resp = s.docmd("")
+                    if code != 235:
+                        raise smtplib.SMTPAuthenticationError(code, resp)
+            else:
+                s.login(username, password)
             s.sendmail(username, recipients, msg.as_string())
 
     import asyncio as _aio

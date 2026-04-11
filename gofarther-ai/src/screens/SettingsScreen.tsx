@@ -580,7 +580,7 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
                             <Text style={[s.saveBtnText, { color: '#ef4444' }]}>Disconnect</Text>
                           </TouchableOpacity>
                         </>
-                      ) : app.oauth_flow === 'microsoft' ? (
+                      ) : app.oauth_flow ? (
                         <>
                           <View style={s.smtpInstructions}>
                             <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>{app.setup}</Text>
@@ -603,16 +603,18 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
                                   const connected = fresh.filter((a: any) => a.connected);
                                   saveConnectedApps(connected.map((a: any) => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions, action_hints: a.action_hints || {} })));
                                   setExpandedApp(null);
-                                  Alert.alert('Connected', `${app.name} is now connected! Try saying "list my Excel files" in chat.`);
+                                  Alert.alert('Connected', `${app.name} is now connected!`);
                                 } else {
-                                  Alert.alert('Not Connected', 'It looks like you didn\u2019t finish the Microsoft sign-in. Try again when ready.');
+                                  Alert.alert('Not Connected', `It looks like you didn\u2019t finish the ${app.name} sign-in. Try again when ready.`);
                                 }
                               } catch (e: any) {
                                 Alert.alert('Connection Failed', e.message || 'Could not start OAuth');
                               } finally { setConnectingApp(null); }
                             }}
                           >
-                            <Text style={[s.saveBtnText, { color: '#fff' }]}>{connectingApp === app.id ? 'Connecting...' : 'Connect with Microsoft'}</Text>
+                            <Text style={[s.saveBtnText, { color: '#fff' }]}>
+                              {connectingApp === app.id ? 'Connecting...' : `Connect with ${app.name.replace(/\s+\(Bridge\)|\s+Mail$|\s+Email$/, '').trim() || app.name}`}
+                            </Text>
                           </TouchableOpacity>
                         </>
                       ) : (
