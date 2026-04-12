@@ -10,6 +10,16 @@ Conceptual model:
     background events that wake the agent up, run it through Claude with
     the event payload, and push the agent's response to the user.
 
+How triggers get configured (auto-extraction):
+  The user does NOT pick triggers from a menu. They just write what they
+  want in plain English in the agent's system prompt:
+    "Tell me when I get an email from cris@acme.com"
+    "Watch for invoices in my inbox"
+    "Every weekday at 9am give me a summary"
+  On every upsert we run a small Claude call that parses the prompt and
+  emits a structured triggers list, which we save on the row. The
+  trigger poller then fires on those triggers in the background.
+
 Trigger types in v1:
   1. email_from        — fires on a new email from a specific sender
   2. email_keyword     — fires on a new email whose subject contains a
@@ -41,6 +51,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, Any
@@ -142,6 +154,117 @@ def _normalize_workspace(value: Optional[str]) -> str:
     return s or "personal"
 
 
+# ── Trigger extraction (LLM) ───────────────────────────────────────────
+
+
+# Cheap regex fallback so an empty ANTHROPIC_API_KEY or a Claude outage
+# doesn't kill the feature entirely. Catches the most common email-from
+# pattern explicitly; everything else falls back to "no triggers, agent
+# only responds in chat".
+_EMAIL_RE = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")
+
+
+def _regex_extract_triggers(instructions: str) -> list[dict]:
+    out: list[dict] = []
+    if not instructions:
+        return out
+    text_lower = instructions.lower()
+    # email_from: any literal address mentioned in a "from"-ish context
+    if any(kw in text_lower for kw in ("email from", "emails from", "messages from", "writes me", "writes to me", "writes")):
+        for addr in _EMAIL_RE.findall(instructions):
+            out.append({"kind": "email_from", "from_email": addr.lower()})
+    return out
+
+
+async def _extract_triggers_from_prompt(name: str, instructions: str, default_tz: str = "UTC") -> list[dict]:
+    """Parse the agent's freeform system prompt and return a structured
+    triggers list. Returns [] if nothing actionable is found."""
+    if not instructions or len(instructions.strip()) < 5:
+        return []
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return _regex_extract_triggers(instructions)
+
+    try:
+        from anthropic import AsyncAnthropic
+        client = AsyncAnthropic(api_key=api_key)
+        sys_prompt = (
+            "You extract proactive trigger configurations from a user's natural-language "
+            "instructions for a personal assistant agent. Return ONLY a JSON array of "
+            "trigger objects (no markdown, no commentary). Each trigger is one of:\n"
+            '  {"kind": "email_from", "from_email": "<lowercase email address>"}\n'
+            '  {"kind": "email_keyword", "subject_keyword": "<single word or short phrase>"}\n'
+            '  {"kind": "schedule", "time_min": <minutes 0-1439>, "days_of_week": "<7-char Y/- mask Mon-Sun>", "timezone_name": "<IANA tz>"}\n\n'
+            "Rules:\n"
+            "- If the user says 'every weekday' use 'YYYYY--'. 'Every day' = 'YYYYYYY'. 'Mon/Wed/Fri' = 'Y-Y-Y--'.\n"
+            "- For times like '9am' use time_min=540, '9:30am' = 570, '6pm' = 1080.\n"
+            f"- If timezone isn't mentioned, use \"{default_tz}\".\n"
+            "- If the user mentions watching emails from a person without an email address (e.g. 'my boss'), DO NOT emit an email_from trigger — return [] for that part since we don't know the address.\n"
+            "- Multiple triggers per agent are fine. Return [] if nothing is actionable."
+        )
+        user_msg = (
+            f'Agent name: "{name}"\n\n'
+            f"System prompt:\n{instructions}\n\n"
+            "Return the triggers JSON array now."
+        )
+        msg = await client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=600,
+            system=sys_prompt,
+            messages=[{"role": "user", "content": user_msg}],
+        )
+        text = "".join(b.text for b in msg.content if hasattr(b, "text")).strip()
+        # Strip ```json fences if Claude added them anyway
+        if text.startswith("```"):
+            text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.MULTILINE).strip()
+        # Find the first '[' to be defensive against any preamble
+        start = text.find("[")
+        end = text.rfind("]")
+        if start == -1 or end == -1 or end < start:
+            return _regex_extract_triggers(instructions)
+        parsed = json.loads(text[start : end + 1])
+        if not isinstance(parsed, list):
+            return _regex_extract_triggers(instructions)
+        # Light validation — drop anything that doesn't match our schema
+        clean: list[dict] = []
+        for t in parsed:
+            if not isinstance(t, dict):
+                continue
+            kind = t.get("kind")
+            if kind == "email_from" and t.get("from_email"):
+                clean.append({"kind": "email_from", "from_email": str(t["from_email"]).lower().strip()})
+            elif kind == "email_keyword" and t.get("subject_keyword"):
+                clean.append({"kind": "email_keyword", "subject_keyword": str(t["subject_keyword"]).strip()})
+            elif kind == "schedule" and isinstance(t.get("time_min"), (int, float)):
+                clean.append({
+                    "kind": "schedule",
+                    "time_min": int(t["time_min"]),
+                    "days_of_week": str(t.get("days_of_week") or "YYYYYYY")[:7].ljust(7, "-"),
+                    "timezone_name": str(t.get("timezone_name") or default_tz),
+                })
+        return clean
+    except Exception as e:
+        logger.warning(f"ghost_agents: trigger extraction failed: {e}")
+        return _regex_extract_triggers(instructions)
+
+
+async def _user_default_timezone(db: AsyncSession, user_id) -> str:
+    """Best-effort: pull the user's timezone from their notification
+    preferences row. Falls back to UTC if not set."""
+    try:
+        from routes.ghost_push import GhostNotificationPref
+        result = await db.execute(
+            select(GhostNotificationPref).where(GhostNotificationPref.user_id == user_id)
+        )
+        row = result.scalar_one_or_none()
+        if row and row.timezone_name:
+            return row.timezone_name
+    except Exception:
+        pass
+    return "UTC"
+
+
 # ── Schemas ────────────────────────────────────────────────────────────
 
 
@@ -224,7 +347,17 @@ async def upsert_agent(
     if not body.client_id or not body.name:
         raise HTTPException(status_code=400, detail="client_id and name are required")
 
-    triggers_json = [t.model_dump(exclude_none=True) for t in (body.triggers or [])]
+    # Extract triggers automatically from the system prompt. The client
+    # is allowed to send explicit triggers too (advanced users / future
+    # UIs); if it does, we use those AS-IS and skip extraction. Otherwise
+    # we run the LLM extractor on `instructions`.
+    if body.triggers is not None and len(body.triggers) > 0:
+        triggers_json = [t.model_dump(exclude_none=True) for t in body.triggers]
+    else:
+        default_tz = await _user_default_timezone(db, user_id)
+        triggers_json = await _extract_triggers_from_prompt(
+            body.name, body.instructions or "", default_tz=default_tz,
+        )
 
     # Try to find existing row by client_id (idempotent upsert)
     result = await db.execute(

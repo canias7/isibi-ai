@@ -278,23 +278,44 @@ export async function saveAgents(agents: Agent[]) {
 }
 
 /** Push every local agent to the backend. Used by saveAgents() above
- *  and by the one-time migration on first sync. */
+ *  and by the one-time migration on first sync. The backend
+ *  auto-extracts triggers from the system prompt — we deliberately
+ *  send `triggers: []` so the extraction always runs on the freshest
+ *  prompt instead of re-using whatever the client cached. The server's
+ *  response includes the extracted triggers, which we write back into
+ *  the local agent record so the UI can display them as "Detected
+ *  triggers". */
 async function syncAgentsToBackend(agents: Agent[]): Promise<void> {
   try {
     const { upsertServerAgent } = await import('./api');
+    let mutated = false;
     for (const a of agents) {
       try {
-        await upsertServerAgent({
+        const resp = await upsertServerAgent({
           client_id: a.id,
           name: a.name,
           role: a.role,
           instructions: a.instructions,
-          triggers: a.triggers || [],
+          triggers: [],   // empty = let backend extract from prompt
           enabled: a.isActive,
         });
+        const extracted = (resp?.triggers || []) as AgentTrigger[];
+        const before = JSON.stringify(a.triggers || []);
+        const after = JSON.stringify(extracted);
+        if (before !== after) {
+          a.triggers = extracted;
+          mutated = true;
+        }
       } catch (e) {
         console.warn('[agents] upsert failed for', a.id, e);
       }
+    }
+    if (mutated) {
+      // Persist the freshly-extracted triggers locally so the next
+      // open of the edit screen renders them without another network
+      // round-trip. We use save() directly (not saveAgents) to avoid
+      // re-triggering this sync recursively.
+      await save('agents', agents);
     }
   } catch (e) {
     // api module failed to import — offline or auth missing
