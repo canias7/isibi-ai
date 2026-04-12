@@ -545,6 +545,43 @@ async def sync_saved_contacts(
             "label": c.label, "name": c.name, "email": c.email, "phone": c.phone,
         })
     await db.commit()
+
+    # ── Re-extract triggers for every agent in this workspace ──────────
+    # This closes the race condition where the user created an agent
+    # with "my boss" before contacts were synced. Now that we have the
+    # contacts, re-run the extraction so labels resolve to emails.
+    try:
+        contacts = await _load_saved_contacts(db, user_id, workspace_id)
+        default_tz = await _user_default_timezone(db, user_id)
+        agents_result = await db.execute(
+            select(GhostAgent).where(
+                GhostAgent.user_id == user_id,
+                GhostAgent.workspace_id == workspace_id,
+            )
+        )
+        agents = agents_result.scalars().all()
+        re_extracted = 0
+        for agent in agents:
+            if not agent.instructions:
+                continue
+            new_triggers = await _extract_triggers_from_prompt(
+                agent.name, agent.instructions,
+                default_tz=default_tz,
+                saved_contacts=contacts,
+            )
+            old_json = json.dumps(agent.triggers or [], sort_keys=True)
+            new_json = json.dumps(new_triggers, sort_keys=True)
+            if old_json != new_json:
+                agent.triggers = new_triggers
+                agent.updated_at = datetime.now(timezone.utc)
+                re_extracted += 1
+        if re_extracted:
+            await db.commit()
+            logger.info(f"ghost_agents: re-extracted triggers for {re_extracted} agent(s) "
+                        f"after contacts sync for user={user_id}")
+    except Exception as e:
+        logger.warning(f"ghost_agents: trigger re-extraction failed: {e}")
+
     return {"ok": True, "count": len(body.contacts)}
 
 
