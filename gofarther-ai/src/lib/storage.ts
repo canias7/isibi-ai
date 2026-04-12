@@ -687,6 +687,28 @@ export async function getSavedContacts(): Promise<SavedContact[]> {
 
 export async function saveSavedContacts(contacts: SavedContact[]) {
   await save('saved_contacts', contacts);
+  // Fire-and-forget mirror to the backend so the agent extractor can
+  // resolve "my boss" → an actual email address. Failures are logged
+  // and don't block the UI.
+  syncSavedContactsToBackend(contacts).catch(err => {
+    console.warn('[contacts] backend sync failed', err);
+  });
+}
+
+async function syncSavedContactsToBackend(contacts: SavedContact[]): Promise<void> {
+  try {
+    const { syncSavedContactsToServer } = await import('./api');
+    await syncSavedContactsToServer(
+      contacts.map(c => ({
+        label: c.label,
+        name: c.name,
+        email: c.email,
+        phone: c.phone,
+      })),
+    );
+  } catch {
+    // offline / not signed in — try again next save
+  }
 }
 
 // ── Email templates ───────────────────────────────────────────────────

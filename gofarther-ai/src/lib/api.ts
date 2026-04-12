@@ -619,6 +619,18 @@ export async function deleteServerAgent(clientId: string): Promise<{ ok: boolean
   return apiFetch(`${AGENTS}/${encodeURIComponent(clientId)}`, { method: 'DELETE' });
 }
 
+/** Mirror the user's saved-contacts list (their relationship table —
+ *  "my boss", "my mom", etc) to the backend so the agent trigger
+ *  extractor can resolve labels to email addresses. */
+export async function syncSavedContactsToServer(
+  contacts: { label: string; name?: string; email?: string; phone?: string }[],
+): Promise<{ ok: boolean; count: number }> {
+  return apiFetch(`${AGENTS}/contacts/sync`, {
+    method: 'POST',
+    body: JSON.stringify({ contacts }),
+  });
+}
+
 // ─── Two-Factor Authentication ────────────────────────────────────────
 
 export async function setup2FA(): Promise<{ secret: string; qr_url: string }> {

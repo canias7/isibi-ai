@@ -97,6 +97,22 @@ class GhostAgent(Base):
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 
+class GhostSavedContact(Base):
+    """A user's "my boss"/"my mom" relationship table. Synced from the
+    mobile client so the agent extractor can resolve labels like
+    "my boss" → the actual email address. One row per
+    (user_id, workspace_id, label)."""
+    __tablename__ = "ghost_saved_contacts"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    workspace_id = Column(String(100), nullable=False, default="personal")
+    label = Column(String(120), nullable=False)   # "my boss"
+    name = Column(String(200), nullable=True)     # "John Smith"
+    email = Column(String(200), nullable=True)
+    phone = Column(String(60), nullable=True)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
 # ── Idempotent schema ensure ───────────────────────────────────────────
 
 _schema_checked = False
@@ -130,9 +146,26 @@ async def ensure_agents_schema(db: AsyncSession) -> None:
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_ghost_agents_client "
             "ON ghost_agents (user_id, workspace_id, client_id)"
         ))
+        # Saved contacts (relationships table)
+        await db.execute(sql_text("""
+            CREATE TABLE IF NOT EXISTS ghost_saved_contacts (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                user_id UUID NOT NULL,
+                workspace_id VARCHAR(100) NOT NULL DEFAULT 'personal',
+                label VARCHAR(120) NOT NULL,
+                name VARCHAR(200),
+                email VARCHAR(200),
+                phone VARCHAR(60),
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """))
+        await db.execute(sql_text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_ghost_saved_contacts "
+            "ON ghost_saved_contacts (user_id, workspace_id, label)"
+        ))
         await db.commit()
         _schema_checked = True
-        logger.info("ghost_agents: table ensured")
+        logger.info("ghost_agents: tables ensured")
     except Exception as e:
         logger.warning(f"ghost_agents: schema ensure failed: {e}")
         _schema_checked = True
@@ -176,11 +209,40 @@ def _regex_extract_triggers(instructions: str) -> list[dict]:
     return out
 
 
-async def _extract_triggers_from_prompt(name: str, instructions: str, default_tz: str = "UTC") -> list[dict]:
+async def _extract_triggers_from_prompt(
+    name: str,
+    instructions: str,
+    default_tz: str = "UTC",
+    saved_contacts: list[dict] | None = None,
+) -> list[dict]:
     """Parse the agent's freeform system prompt and return a structured
-    triggers list. Returns [] if nothing actionable is found."""
+    triggers list. Returns [] if nothing actionable is found.
+
+    saved_contacts is a list of {label, name, email} dicts the user has
+    stored under their relationships ("my boss", "my mom"). They get
+    injected into the system prompt so Claude can resolve "my boss" to
+    the actual email address."""
     if not instructions or len(instructions.strip()) < 5:
         return []
+
+    # Build contact resolution lines for the LLM
+    contacts_section = ""
+    if saved_contacts:
+        contact_lines = []
+        for c in saved_contacts:
+            label = (c.get("label") or "").strip()
+            email = (c.get("email") or "").strip()
+            name_part = (c.get("name") or "").strip()
+            if label and email:
+                if name_part:
+                    contact_lines.append(f'  - "{label}" ({name_part}) → {email}')
+                else:
+                    contact_lines.append(f'  - "{label}" → {email}')
+        if contact_lines:
+            contacts_section = (
+                "\n\nUser's saved contacts (resolve label references like 'my boss' "
+                "to the matching email when emitting triggers):\n" + "\n".join(contact_lines)
+            )
 
     api_key = os.getenv("ANTHROPIC_API_KEY", "")
     if not api_key:
@@ -200,8 +262,9 @@ async def _extract_triggers_from_prompt(name: str, instructions: str, default_tz
             "- If the user says 'every weekday' use 'YYYYY--'. 'Every day' = 'YYYYYYY'. 'Mon/Wed/Fri' = 'Y-Y-Y--'.\n"
             "- For times like '9am' use time_min=540, '9:30am' = 570, '6pm' = 1080.\n"
             f"- If timezone isn't mentioned, use \"{default_tz}\".\n"
-            "- If the user mentions watching emails from a person without an email address (e.g. 'my boss'), DO NOT emit an email_from trigger — return [] for that part since we don't know the address.\n"
+            "- If the user mentions watching emails from a person identified by a label (e.g. 'my boss', 'my mom'), look up the saved contact list and emit an email_from trigger using the matching contact's email. If the label is NOT in the saved contacts and no concrete email is provided, do NOT emit a trigger for that — skip it.\n"
             "- Multiple triggers per agent are fine. Return [] if nothing is actionable."
+            + contacts_section
         )
         user_msg = (
             f'Agent name: "{name}"\n\n'
@@ -247,6 +310,22 @@ async def _extract_triggers_from_prompt(name: str, instructions: str, default_tz
     except Exception as e:
         logger.warning(f"ghost_agents: trigger extraction failed: {e}")
         return _regex_extract_triggers(instructions)
+
+
+async def _load_saved_contacts(db: AsyncSession, user_id, workspace_id: str) -> list[dict]:
+    """Return [{label, name, email}, …] for use as resolution context
+    when extracting triggers from the agent prompt."""
+    try:
+        res = await db.execute(sql_text(
+            "SELECT label, name, email, phone FROM ghost_saved_contacts "
+            "WHERE user_id = :uid AND workspace_id = :ws"
+        ), {"uid": str(user_id), "ws": workspace_id})
+        out = []
+        for row in res.all():
+            out.append({"label": row[0], "name": row[1], "email": row[2], "phone": row[3]})
+        return out
+    except Exception:
+        return []
 
 
 async def _user_default_timezone(db: AsyncSession, user_id) -> str:
@@ -355,8 +434,11 @@ async def upsert_agent(
         triggers_json = [t.model_dump(exclude_none=True) for t in body.triggers]
     else:
         default_tz = await _user_default_timezone(db, user_id)
+        contacts = await _load_saved_contacts(db, user_id, workspace_id)
         triggers_json = await _extract_triggers_from_prompt(
-            body.name, body.instructions or "", default_tz=default_tz,
+            body.name, body.instructions or "",
+            default_tz=default_tz,
+            saved_contacts=contacts,
         )
 
     # Try to find existing row by client_id (idempotent upsert)
@@ -413,3 +495,68 @@ async def delete_agent(
     ), {"uid": str(user_id), "ws": workspace_id, "cid": client_id})
     await db.commit()
     return {"ok": True}
+
+
+# ── Saved contacts sync ────────────────────────────────────────────────
+
+
+class SavedContactBody(BaseModel):
+    label: str
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class SavedContactsBulkBody(BaseModel):
+    contacts: list[SavedContactBody]
+
+
+@router.post("/contacts/sync")
+async def sync_saved_contacts(
+    body: SavedContactsBulkBody,
+    authorization: str = Header(...),
+    x_workspace_id: Optional[str] = Header(default=None, alias="X-Workspace-Id"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Replace all saved contacts for the user+workspace with the
+    incoming list. The mobile client owns the source of truth — this
+    endpoint just mirrors it server-side so the agent extractor (and
+    later, the trigger poller for relationship-based detection) can
+    resolve labels like 'my boss' to actual email addresses."""
+    payload = _verify_auth(authorization)
+    user_id = payload.get("sub")
+    workspace_id = _normalize_workspace(x_workspace_id)
+    await ensure_agents_schema(db)
+
+    # Wipe + re-insert. Cheap because contact lists are tiny (<50 entries).
+    await db.execute(sql_text(
+        "DELETE FROM ghost_saved_contacts WHERE user_id = :uid AND workspace_id = :ws"
+    ), {"uid": str(user_id), "ws": workspace_id})
+    for c in body.contacts:
+        if not c.label:
+            continue
+        await db.execute(sql_text("""
+            INSERT INTO ghost_saved_contacts (user_id, workspace_id, label, name, email, phone, updated_at)
+            VALUES (:uid, :ws, :label, :name, :email, :phone, NOW())
+            ON CONFLICT (user_id, workspace_id, label) DO UPDATE
+              SET name = :name, email = :email, phone = :phone, updated_at = NOW()
+        """), {
+            "uid": str(user_id), "ws": workspace_id,
+            "label": c.label, "name": c.name, "email": c.email, "phone": c.phone,
+        })
+    await db.commit()
+    return {"ok": True, "count": len(body.contacts)}
+
+
+@router.get("/contacts")
+async def list_saved_contacts(
+    authorization: str = Header(...),
+    x_workspace_id: Optional[str] = Header(default=None, alias="X-Workspace-Id"),
+    db: AsyncSession = Depends(get_db),
+):
+    payload = _verify_auth(authorization)
+    user_id = payload.get("sub")
+    workspace_id = _normalize_workspace(x_workspace_id)
+    await ensure_agents_schema(db)
+    contacts = await _load_saved_contacts(db, user_id, workspace_id)
+    return {"contacts": contacts}

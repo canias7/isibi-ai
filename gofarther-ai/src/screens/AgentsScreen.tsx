@@ -9,7 +9,7 @@ import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { ChatMsg, genId } from '../lib/types';
 import { useChat } from '../lib/useChat';
-import { getAgents, saveAgents, deleteAgent as deleteAgentBoth, Agent, AgentTrigger } from '../lib/storage';
+import { getAgents, saveAgents, deleteAgent as deleteAgentBoth, Agent, AgentTrigger, getSavedContacts, saveSavedContacts } from '../lib/storage';
 import { buildUserContextPrompt } from '../lib/promptContext';
 import { onWorkspaceChange } from '../lib/workspaces';
 
@@ -69,10 +69,14 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     const a = await getAgents();
     setAgents(a);
     if (a.length > 0 && !selectedAgent) setSelectedAgent(a[0]);
-    // First-load sync: push local agents up so the backend trigger
-    // poller has them. saveAgents() handles new edits going forward;
-    // this catches the legacy local-only state on first launch after
-    // the proactive-agents update.
+    // First-load sync: push local saved contacts up first (so the
+    // agent trigger extractor can resolve "my boss" to an email),
+    // then push agents up. Order matters: agents save triggers
+    // extraction, which reads contacts from the backend.
+    try {
+      const contacts = await getSavedContacts();
+      if (contacts.length > 0) await saveSavedContacts(contacts);
+    } catch {}
     if (a.length > 0) {
       try { await saveAgents(a); } catch {}
     }
