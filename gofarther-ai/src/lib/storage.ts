@@ -230,6 +230,27 @@ export async function clearLocalUserData() {
 }
 
 // Agent storage
+//
+// Agents are now BOTH stored locally (so the chat UI works offline /
+// before the first sync) AND synced to the backend (so the proactive
+// trigger poller can see them). The local copy is the source of truth
+// for chat metadata; the backend copy is the source of truth for
+// trigger configuration. saveAgents() pushes every modified agent up
+// in the background — failures are logged but don't block the UI.
+
+/** A trigger that wakes a proactive agent up from the backend poller.
+ *  The shape varies by `kind` — only the fields relevant to that kind
+ *  need to be set. */
+export interface AgentTrigger {
+  kind: 'email_from' | 'email_keyword' | 'schedule';
+  from_email?: string;
+  subject_keyword?: string;
+  app_id?: string;
+  time_min?: number;
+  days_of_week?: string;
+  timezone_name?: string;
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -238,6 +259,7 @@ export interface Agent {
   instructions: string;
   isActive: boolean;
   color: string;
+  triggers?: AgentTrigger[];
 }
 
 export async function getAgents(): Promise<Agent[]> {
@@ -246,6 +268,49 @@ export async function getAgents(): Promise<Agent[]> {
 
 export async function saveAgents(agents: Agent[]) {
   await save('agents', agents);
+  // Fire-and-forget sync to the backend so the trigger poller has
+  // visibility into newly-saved agents (and their triggers). We don't
+  // await this — UI shouldn't be blocked on a network round-trip just
+  // to save an agent locally.
+  syncAgentsToBackend(agents).catch(err => {
+    console.warn('[agents] backend sync failed', err);
+  });
+}
+
+/** Push every local agent to the backend. Used by saveAgents() above
+ *  and by the one-time migration on first sync. */
+async function syncAgentsToBackend(agents: Agent[]): Promise<void> {
+  try {
+    const { upsertServerAgent } = await import('./api');
+    for (const a of agents) {
+      try {
+        await upsertServerAgent({
+          client_id: a.id,
+          name: a.name,
+          role: a.role,
+          instructions: a.instructions,
+          triggers: a.triggers || [],
+          enabled: a.isActive,
+        });
+      } catch (e) {
+        console.warn('[agents] upsert failed for', a.id, e);
+      }
+    }
+  } catch (e) {
+    // api module failed to import — offline or auth missing
+  }
+}
+
+/** Delete an agent both locally and on the backend. The local delete
+ *  must come first so the UI updates immediately. */
+export async function deleteAgent(agentId: string): Promise<void> {
+  const agents = await getAgents();
+  const next = agents.filter(a => a.id !== agentId);
+  await save('agents', next);
+  try {
+    const { deleteServerAgent } = await import('./api');
+    await deleteServerAgent(agentId).catch(() => {});
+  } catch {}
 }
 
 // Chat history

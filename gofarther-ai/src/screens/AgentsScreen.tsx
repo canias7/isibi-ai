@@ -9,11 +9,22 @@ import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { ChatMsg, genId } from '../lib/types';
 import { useChat } from '../lib/useChat';
-import { getAgents, saveAgents, Agent } from '../lib/storage';
+import { getAgents, saveAgents, deleteAgent as deleteAgentBoth, Agent, AgentTrigger } from '../lib/storage';
 import { buildUserContextPrompt } from '../lib/promptContext';
 import { onWorkspaceChange } from '../lib/workspaces';
 
 const DEFAULT_AGENT_COLOR = '#1a1a1a';
+
+const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const DEFAULT_DAYS = 'YYYYY--';
+
+function minutesToLabel(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = ((h + 11) % 12) + 1;
+  return `${h12}:${m.toString().padStart(2, '0')} ${period}`;
+}
 
 export default function AgentsScreen({ onBack }: { onBack: () => void }) {
   const { colors: tc } = useTheme();
@@ -25,6 +36,8 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [instructions, setInstructions] = useState('');
+  const [triggers, setTriggers] = useState<AgentTrigger[]>([]);
+  const [showAddTrigger, setShowAddTrigger] = useState(false);
 
   const [input, setInput] = useState('');
   const flatList = useRef<FlatList>(null);
@@ -57,6 +70,13 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     const a = await getAgents();
     setAgents(a);
     if (a.length > 0 && !selectedAgent) setSelectedAgent(a[0]);
+    // First-load sync: push local agents up so the backend trigger
+    // poller has them. saveAgents() handles new edits going forward;
+    // this catches the legacy local-only state on first launch after
+    // the proactive-agents update.
+    if (a.length > 0) {
+      try { await saveAgents(a); } catch {}
+    }
   }, []);
   useEffect(() => { load(); }, []);
   // Re-fetch agents whenever the active workspace changes so the list
@@ -70,21 +90,26 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     return off;
   }, [load]);
 
-  const openCreate = () => { setEditId(null); setName(''); setRole(''); setInstructions(''); setShowEdit(true); };
+  const openCreate = () => {
+    setEditId(null); setName(''); setRole(''); setInstructions('');
+    setTriggers([]); setShowEdit(true);
+  };
   const openEditAgent = () => {
     if (!selectedAgent) return;
     setEditId(selectedAgent.id); setName(selectedAgent.name); setRole(selectedAgent.role);
-    setInstructions(selectedAgent.instructions); setShowEdit(true);
+    setInstructions(selectedAgent.instructions);
+    setTriggers(selectedAgent.triggers || []);
+    setShowEdit(true);
   };
 
   const saveAgent = async () => {
     if (!name.trim()) { Alert.alert('Error', 'Name is required'); return; }
     let updated = [...agents];
     if (editId) {
-      updated = updated.map(a => a.id === editId ? { ...a, name: name.trim(), role: role.trim(), instructions: instructions.trim() } : a);
+      updated = updated.map(a => a.id === editId ? { ...a, name: name.trim(), role: role.trim(), instructions: instructions.trim(), triggers } : a);
       if (selectedAgent?.id === editId) setSelectedAgent(updated.find(a => a.id === editId) || null);
     } else {
-      const newAgent: Agent = { id: genId(), name: name.trim(), emoji: name.trim()[0]?.toUpperCase() || 'A', role: role.trim(), instructions: instructions.trim(), isActive: true, color: DEFAULT_AGENT_COLOR };
+      const newAgent: Agent = { id: genId(), name: name.trim(), emoji: name.trim()[0]?.toUpperCase() || 'A', role: role.trim(), instructions: instructions.trim(), isActive: true, color: DEFAULT_AGENT_COLOR, triggers };
       updated.push(newAgent);
       setSelectedAgent(newAgent);
     }
@@ -93,13 +118,54 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     setShowEdit(false);
   };
 
+  const addTrigger = (kind: AgentTrigger['kind']) => {
+    let next: AgentTrigger;
+    if (kind === 'email_from') {
+      next = { kind: 'email_from', from_email: '' };
+    } else if (kind === 'email_keyword') {
+      next = { kind: 'email_keyword', subject_keyword: '' };
+    } else {
+      // Schedule — default to 9:00 AM weekdays in user's local timezone
+      let tz = 'UTC';
+      try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch {}
+      next = { kind: 'schedule', time_min: 540, days_of_week: DEFAULT_DAYS, timezone_name: tz };
+    }
+    setTriggers([...triggers, next]);
+    setShowAddTrigger(false);
+  };
+
+  const updateTrigger = (idx: number, patch: Partial<AgentTrigger>) => {
+    setTriggers(triggers.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
+  };
+
+  const removeTrigger = (idx: number) => {
+    setTriggers(triggers.filter((_, i) => i !== idx));
+  };
+
+  const toggleScheduleDay = (idx: number, dayIdx: number) => {
+    const t = triggers[idx];
+    if (t.kind !== 'schedule') return;
+    const dow = (t.days_of_week || DEFAULT_DAYS).split('');
+    while (dow.length < 7) dow.push('-');
+    dow[dayIdx] = dow[dayIdx] === 'Y' ? '-' : 'Y';
+    updateTrigger(idx, { days_of_week: dow.join('') });
+  };
+
+  const bumpScheduleTime = (idx: number, deltaMin: number) => {
+    const t = triggers[idx];
+    if (t.kind !== 'schedule') return;
+    const next = ((t.time_min ?? 540) + deltaMin + 24 * 60) % (24 * 60);
+    updateTrigger(idx, { time_min: next });
+  };
+
   const removeAgent = () => {
     if (!editId) return;
     Alert.alert('Delete Agent', 'Are you sure?', [
       { text: 'Cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
+        await deleteAgentBoth(editId);
         const u = agents.filter(a => a.id !== editId);
-        await saveAgents(u); setAgents(u);
+        setAgents(u);
         setSelectedAgent(u.length > 0 ? u[0] : null);
         setShowEdit(false);
       }},
@@ -130,6 +196,95 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
           <TextInput style={[s.input, { backgroundColor: tc.card, borderColor: tc.border, color: tc.text }]} value={role} onChangeText={setRole} placeholder="e.g. Handle email tasks" placeholderTextColor={tc.textDim} />
           <Text style={[s.label, { color: tc.textDim }]}>System Prompt</Text>
           <TextInput style={[s.input, { height: 140, backgroundColor: tc.card, borderColor: tc.border, color: tc.text }]} value={instructions} onChangeText={setInstructions} placeholder="Tell the agent what to do..." placeholderTextColor={tc.textDim} multiline textAlignVertical="top" />
+
+          <Text style={[s.label, { color: tc.textDim }]}>Triggers</Text>
+          <Text style={[s.helperText, { color: tc.textDim }]}>
+            Wake this agent up automatically. When a trigger fires, the agent runs and pings you with a notification.
+          </Text>
+          {triggers.length === 0 && (
+            <Text style={[s.helperText, { color: tc.textDim, marginTop: 4, fontStyle: 'italic' }]}>
+              No triggers yet — this agent only responds in chat.
+            </Text>
+          )}
+          {triggers.map((trig, idx) => (
+            <View key={idx} style={[s.triggerCard, { backgroundColor: tc.card, borderColor: tc.border }]}>
+              <View style={s.triggerHeader}>
+                <Text style={[s.triggerTitle, { color: tc.text }]}>
+                  {trig.kind === 'email_from' ? 'Email from sender' : trig.kind === 'email_keyword' ? 'Email subject contains' : 'Scheduled time'}
+                </Text>
+                <TouchableOpacity onPress={() => removeTrigger(idx)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Ionicons name="close-circle" size={20} color="#999" />
+                </TouchableOpacity>
+              </View>
+              {trig.kind === 'email_from' && (
+                <TextInput
+                  style={[s.input, { backgroundColor: tc.bg, borderColor: tc.border, color: tc.text, marginTop: 8 }]}
+                  value={trig.from_email || ''}
+                  onChangeText={txt => updateTrigger(idx, { from_email: txt })}
+                  placeholder="boss@acme.com"
+                  placeholderTextColor={tc.textDim}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+              )}
+              {trig.kind === 'email_keyword' && (
+                <TextInput
+                  style={[s.input, { backgroundColor: tc.bg, borderColor: tc.border, color: tc.text, marginTop: 8 }]}
+                  value={trig.subject_keyword || ''}
+                  onChangeText={txt => updateTrigger(idx, { subject_keyword: txt })}
+                  placeholder="invoice, urgent, meeting…"
+                  placeholderTextColor={tc.textDim}
+                  autoCapitalize="none"
+                />
+              )}
+              {trig.kind === 'schedule' && (
+                <View style={{ marginTop: 8 }}>
+                  <View style={s.timeRow}>
+                    <TouchableOpacity onPress={() => bumpScheduleTime(idx, -30)} style={s.timeBtn}>
+                      <Text style={s.timeBtnText}>−30m</Text>
+                    </TouchableOpacity>
+                    <Text style={[s.timeDisplay, { color: tc.text }]}>{minutesToLabel(trig.time_min ?? 540)}</Text>
+                    <TouchableOpacity onPress={() => bumpScheduleTime(idx, 30)} style={s.timeBtn}>
+                      <Text style={s.timeBtnText}>+30m</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={s.daysRow}>
+                    {DAY_LABELS.map((d, di) => {
+                      const dow = (trig.days_of_week || DEFAULT_DAYS).padEnd(7, '-');
+                      const on = dow[di] === 'Y';
+                      return (
+                        <TouchableOpacity key={di} style={[s.dayChip, on && s.dayChipOn]} onPress={() => toggleScheduleDay(idx, di)}>
+                          <Text style={[s.dayChipText, on && s.dayChipTextOn]}>{d}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+            </View>
+          ))}
+
+          <TouchableOpacity style={s.addTriggerBtn} onPress={() => setShowAddTrigger(!showAddTrigger)}>
+            <Ionicons name="add-circle-outline" size={18} color={C.primary} />
+            <Text style={s.addTriggerText}>Add a trigger</Text>
+          </TouchableOpacity>
+          {showAddTrigger && (
+            <View style={s.addTriggerMenu}>
+              <TouchableOpacity style={[s.triggerOption, { borderBottomColor: tc.border }]} onPress={() => addTrigger('email_from')}>
+                <Text style={[s.triggerOptionTitle, { color: tc.text }]}>Email from a specific sender</Text>
+                <Text style={[s.triggerOptionDesc, { color: tc.textDim }]}>Fires when an email arrives from a sender you specify (e.g. your boss)</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.triggerOption, { borderBottomColor: tc.border }]} onPress={() => addTrigger('email_keyword')}>
+                <Text style={[s.triggerOptionTitle, { color: tc.text }]}>Email subject contains keyword</Text>
+                <Text style={[s.triggerOptionDesc, { color: tc.textDim }]}>Fires when an email subject contains a word (e.g. "invoice")</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.triggerOption} onPress={() => addTrigger('schedule')}>
+                <Text style={[s.triggerOptionTitle, { color: tc.text }]}>On a schedule</Text>
+                <Text style={[s.triggerOptionDesc, { color: tc.textDim }]}>Fires at a specific time of day on chosen weekdays</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {editId && <TouchableOpacity style={s.delBtn} onPress={removeAgent}><Text style={s.delText}>Delete Agent</Text></TouchableOpacity>}
         </ScrollView>
       </SafeAreaView>
@@ -324,4 +479,25 @@ const s = StyleSheet.create({
   colorSel: { borderColor: '#1a1a1a', borderWidth: 3 },
   delBtn: { marginTop: 32, padding: 16, borderRadius: 12, backgroundColor: '#fef2f2', alignItems: 'center' },
   delText: { color: C.red, fontSize: 15, fontWeight: '600' },
+
+  // Triggers
+  helperText: { fontSize: 12, lineHeight: 17, marginBottom: 6 },
+  triggerCard: { borderRadius: 12, borderWidth: 1, padding: 12, marginTop: 10 },
+  triggerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  triggerTitle: { fontSize: 13, fontWeight: '600' },
+  timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+  timeBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: '#f0f0f0' },
+  timeBtnText: { fontSize: 13, fontWeight: '600', color: '#1a1a1a' },
+  timeDisplay: { fontSize: 18, fontWeight: '700' },
+  daysRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, gap: 4 },
+  dayChip: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: '#f0f0f0', alignItems: 'center' },
+  dayChipOn: { backgroundColor: C.primary },
+  dayChipText: { fontSize: 12, fontWeight: '600', color: '#666' },
+  dayChipTextOn: { color: '#fff' },
+  addTriggerBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, paddingVertical: 10 },
+  addTriggerText: { fontSize: 14, fontWeight: '600', color: C.primary },
+  addTriggerMenu: { marginTop: 4, borderRadius: 12, borderWidth: 1, borderColor: '#e8e8e8', overflow: 'hidden' },
+  triggerOption: { padding: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  triggerOptionTitle: { fontSize: 14, fontWeight: '600' },
+  triggerOptionDesc: { fontSize: 12, marginTop: 2, lineHeight: 16 },
 });

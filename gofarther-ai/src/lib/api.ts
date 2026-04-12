@@ -572,6 +572,53 @@ export async function runDigestNow(): Promise<{ headline: string; body_html: str
   return apiFetch(`${DIGEST}/run-now`, { method: 'POST' });
 }
 
+// ─── Proactive Agents ─────────────────────────────────────────────────
+
+const AGENTS = '/ghost/agents';
+
+/** A trigger that wakes a proactive agent up. The shape varies by
+ *  `kind` — only the fields relevant to that kind need to be set. */
+export interface ServerAgentTrigger {
+  kind: 'email_from' | 'email_keyword' | 'schedule';
+  // email_from
+  from_email?: string;
+  // email_keyword
+  subject_keyword?: string;
+  // email_*
+  app_id?: string;
+  // schedule
+  time_min?: number;        // minutes from midnight, e.g. 540 = 09:00
+  days_of_week?: string;    // 7-char "YYYYY--" mask, Mon=index 0
+  timezone_name?: string;   // IANA tz, e.g. "America/New_York"
+}
+
+export interface ServerAgent {
+  id?: string;              // server uuid (only present after a sync)
+  client_id: string;        // local agent id (stable across syncs)
+  workspace_id?: string;
+  name: string;
+  role?: string;
+  instructions?: string;
+  triggers?: ServerAgentTrigger[];
+  enabled?: boolean;
+}
+
+export async function listServerAgents(): Promise<ServerAgent[]> {
+  const data = await apiFetch(`${AGENTS}`);
+  return data.agents || [];
+}
+
+export async function upsertServerAgent(agent: ServerAgent): Promise<ServerAgent> {
+  return apiFetch(`${AGENTS}`, {
+    method: 'POST',
+    body: JSON.stringify(agent),
+  });
+}
+
+export async function deleteServerAgent(clientId: string): Promise<{ ok: boolean }> {
+  return apiFetch(`${AGENTS}/${encodeURIComponent(clientId)}`, { method: 'DELETE' });
+}
+
 // ─── Two-Factor Authentication ────────────────────────────────────────
 
 export async function setup2FA(): Promise<{ secret: string; qr_url: string }> {

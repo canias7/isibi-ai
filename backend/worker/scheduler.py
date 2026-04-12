@@ -51,6 +51,15 @@ async def run_scheduler():
                     _last_urgent_email_poll = now
                     from worker.push_email_poller import poll_urgent_emails_for_all_users
                     await poll_urgent_emails_for_all_users()
+                    # Proactive agents — same 5-minute cadence so we
+                    # share the spirit of the urgent-email poller.
+                    # Each agent does its own mailbox poll (could be
+                    # optimized later to reuse the same call).
+                    try:
+                        from worker.agent_trigger_poller import poll_email_triggers_for_all_users
+                        await poll_email_triggers_for_all_users()
+                    except Exception as agent_err:
+                        logger.warning(f"Agent email triggers failed: {agent_err}")
             except Exception as poll_err:
                 logger.warning(f"Urgent-email poller failed: {poll_err}")
 
@@ -64,6 +73,15 @@ async def run_scheduler():
                 await tick_digests()
             except Exception as digest_err:
                 logger.warning(f"Digest tick failed: {digest_err}")
+
+            # Proactive-agent schedule triggers — minute-precision,
+            # internally dedupes via 23h window. Cheap when no agents
+            # are scheduled for "now".
+            try:
+                from worker.agent_trigger_poller import tick_schedule_triggers
+                await tick_schedule_triggers()
+            except Exception as agent_sched_err:
+                logger.warning(f"Agent schedule tick failed: {agent_sched_err}")
         except asyncio.CancelledError:
             logger.info("Scheduler cancelled, shutting down")
             break
