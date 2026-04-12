@@ -114,7 +114,14 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
       try { setPushPrefs(await getNotificationPrefs()); } catch {}
     }
   };
-  const { mode: themeMode, toggle: toggleTheme, colors: tc } = useTheme();
+  const theme = useTheme();
+  const themeMode = theme?.mode ?? 'light';
+  const toggleTheme = theme?.toggle ?? (() => {});
+  const tc = theme?.colors ?? {
+    bg: '#ffffff', bg2: '#f5f5f5', card: '#f2f2f2', border: '#ebebeb',
+    text: '#1a1a1a', textMid: '#666666', textDim: '#999999',
+    inputBg: '#f7f7f8', surface: '#f8f8f8', bubbleAI: '#f7f7f8', bubbleBorder: 'transparent',
+  };
   const [usageData, setUsageData] = useState<{ total_messages: number; total_tokens: number; credits_remaining: number; plan: string } | null>(null);
   const [usagePeriod, setUsagePeriod] = useState('7d');
   const [showUsage, setShowUsage] = useState(false);
@@ -1265,7 +1272,8 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
 }
 
 function Row({ label, value, chevron, onPress, last }: { label: string; value?: string; chevron?: boolean; onPress?: () => void; last?: boolean }) {
-  const { colors: rtc } = useTheme();
+  const rtheme = useTheme();
+  const rtc = rtheme?.colors ?? { text: '#1a1a1a', textMid: '#666', textDim: '#999' };
   const Wrap = onPress ? TouchableOpacity : View;
   return (
     <>
