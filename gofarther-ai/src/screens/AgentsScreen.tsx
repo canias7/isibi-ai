@@ -13,7 +13,7 @@ import { getAgents, saveAgents, Agent } from '../lib/storage';
 import { buildUserContextPrompt } from '../lib/promptContext';
 import { onWorkspaceChange } from '../lib/workspaces';
 
-const COLORS = ['#ec4899', '#8b5cf6', '#6366f1', '#3b82f6', '#22c55e', '#eab308', '#ef4444', '#f97316', '#14b8a6', '#06b6d4'];
+const DEFAULT_AGENT_COLOR = '#1a1a1a';
 
 export default function AgentsScreen({ onBack }: { onBack: () => void }) {
   const { colors: tc } = useTheme();
@@ -25,7 +25,6 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [instructions, setInstructions] = useState('');
-  const [color, setColor] = useState('#ec4899');
 
   const [input, setInput] = useState('');
   const flatList = useRef<FlatList>(null);
@@ -71,21 +70,21 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     return off;
   }, [load]);
 
-  const openCreate = () => { setEditId(null); setName(''); setRole(''); setInstructions(''); setColor('#ec4899'); setShowEdit(true); };
+  const openCreate = () => { setEditId(null); setName(''); setRole(''); setInstructions(''); setShowEdit(true); };
   const openEditAgent = () => {
     if (!selectedAgent) return;
     setEditId(selectedAgent.id); setName(selectedAgent.name); setRole(selectedAgent.role);
-    setInstructions(selectedAgent.instructions); setColor(selectedAgent.color); setShowEdit(true);
+    setInstructions(selectedAgent.instructions); setShowEdit(true);
   };
 
   const saveAgent = async () => {
     if (!name.trim()) { Alert.alert('Error', 'Name is required'); return; }
     let updated = [...agents];
     if (editId) {
-      updated = updated.map(a => a.id === editId ? { ...a, name: name.trim(), role: role.trim(), instructions: instructions.trim(), emoji: name.trim()[0]?.toUpperCase() || 'A', color } : a);
+      updated = updated.map(a => a.id === editId ? { ...a, name: name.trim(), role: role.trim(), instructions: instructions.trim() } : a);
       if (selectedAgent?.id === editId) setSelectedAgent(updated.find(a => a.id === editId) || null);
     } else {
-      const newAgent: Agent = { id: genId(), name: name.trim(), emoji: name.trim()[0]?.toUpperCase() || 'A', role: role.trim(), instructions: instructions.trim(), isActive: true, color };
+      const newAgent: Agent = { id: genId(), name: name.trim(), emoji: name.trim()[0]?.toUpperCase() || 'A', role: role.trim(), instructions: instructions.trim(), isActive: true, color: DEFAULT_AGENT_COLOR };
       updated.push(newAgent);
       setSelectedAgent(newAgent);
     }
@@ -131,10 +130,6 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
           <TextInput style={[s.input, { backgroundColor: tc.card, borderColor: tc.border, color: tc.text }]} value={role} onChangeText={setRole} placeholder="e.g. Handle email tasks" placeholderTextColor={tc.textDim} />
           <Text style={[s.label, { color: tc.textDim }]}>System Prompt</Text>
           <TextInput style={[s.input, { height: 140, backgroundColor: tc.card, borderColor: tc.border, color: tc.text }]} value={instructions} onChangeText={setInstructions} placeholder="Tell the agent what to do..." placeholderTextColor={tc.textDim} multiline textAlignVertical="top" />
-          <Text style={s.label}>Color</Text>
-          <View style={s.colorRow}>{COLORS.map(c => (
-            <TouchableOpacity key={c} style={[s.colorOpt, { backgroundColor: c }, c === color && s.colorSel]} onPress={() => setColor(c)} />
-          ))}</View>
           {editId && <TouchableOpacity style={s.delBtn} onPress={removeAgent}><Text style={s.delText}>Delete Agent</Text></TouchableOpacity>}
         </ScrollView>
       </SafeAreaView>
@@ -152,10 +147,7 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
           </TouchableOpacity>
           <TouchableOpacity style={[s.dropdownBtn, { backgroundColor: tc.card }]} onPress={() => setShowDropdown(!showDropdown)} activeOpacity={0.7}>
             {selectedAgent ? (
-              <>
-                <View style={[s.dropDot, { backgroundColor: selectedAgent.color }]} />
-                <Text style={[s.dropBtnName, { color: tc.text }]}>{selectedAgent.name}</Text>
-              </>
+              <Text style={[s.dropBtnName, { color: tc.text }]}>{selectedAgent.name}</Text>
             ) : (
               <Text style={[s.dropBtnName, { color: tc.textMid }]}>Select Agent</Text>
             )}
@@ -181,7 +173,6 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
             ) : (
               agents.map(a => (
                 <TouchableOpacity key={a.id} style={[s.dropItem, selectedAgent?.id === a.id && s.dropItemActive]} onPress={() => { setSelectedAgent(a); setShowDropdown(false); }} activeOpacity={0.6}>
-                  <View style={[s.dropItemDot, { backgroundColor: a.color }]} />
                   <View style={{ flex: 1 }}>
                     <Text style={[s.dropItemName, { color: tc.text }]}>{a.name}</Text>
                     <Text style={[s.dropItemRole, { color: tc.textDim }]}>{a.role || 'No role'}</Text>
@@ -201,9 +192,6 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
           </View>
         ) : messages.length === 0 ? (
           <View style={s.empty}>
-            <View style={[s.emptyAvatar, { backgroundColor: selectedAgent.color + '15' }]}>
-              <Text style={[s.emptyAvatarText, { color: selectedAgent.color }]}>{selectedAgent.name[0]?.toUpperCase()}</Text>
-            </View>
             <Text style={s.emptyTitle}>Send {selectedAgent.name} to work</Text>
             <Text style={s.emptySub}>{selectedAgent.role || 'Tell this agent what to do'}</Text>
           </View>
@@ -217,11 +205,6 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
               <View style={[s.msgRow, item.role === 'user' && s.msgRowUser]}>
-                {item.role === 'assistant' && (
-                  <View style={[s.msgAvatar, { backgroundColor: selectedAgent.color + '15' }]}>
-                    <Text style={[s.msgAvatarLetter, { color: selectedAgent.color }]}>{selectedAgent.name[0]}</Text>
-                  </View>
-                )}
                 <View style={{ maxWidth: '80%' }}>
                   <View style={[s.bubble, item.role === 'user' ? s.bubbleUser : item.role === 'system' ? s.bubbleSystem : s.bubbleAI]}>
                     <Text style={[s.msgText, item.role === 'user' && { color: '#fff' }]} selectable>{item.content}</Text>

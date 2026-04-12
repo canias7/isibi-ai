@@ -19,7 +19,6 @@ import {
   updateWorkspace,
   deleteWorkspace,
   onWorkspaceChange,
-  getWorkspaceColorPalette,
 } from '../lib/workspaces';
 
 export default function WorkspaceSwitcher() {
@@ -29,8 +28,6 @@ export default function WorkspaceSwitcher() {
   const [showPicker, setShowPicker] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newColor, setNewColor] = useState(getWorkspaceColorPalette()[0]);
-  const [newEmoji, setNewEmoji] = useState('🏠');
 
   const reload = useCallback(async () => {
     const list = await getWorkspaces();
@@ -57,7 +54,7 @@ export default function WorkspaceSwitcher() {
 
   const handleCreate = async () => {
     if (!newName.trim()) return Alert.alert('Name required', 'Give your workspace a short name.');
-    const ws = await createWorkspace(newName, { color: newColor, emoji: newEmoji });
+    const ws = await createWorkspace(newName);
     if (ws) {
       await setActiveWorkspaceId(ws.id);
       await reload();
@@ -129,10 +126,7 @@ export default function WorkspaceSwitcher() {
   return (
     <>
       <TouchableOpacity style={s.switcher} activeOpacity={0.7} onPress={() => setShowPicker(true)} accessibilityLabel="Switch workspace" accessibilityRole="button">
-        <View style={[s.chip, { backgroundColor: active.color }]}>
-          <Text style={s.chipEmoji}>{active.emoji || active.name[0]?.toUpperCase() || '·'}</Text>
-        </View>
-        <View style={{ flex: 1, marginLeft: 10 }}>
+        <View style={{ flex: 1 }}>
           <Text style={[s.brand, { color: tc.text }]} numberOfLines={1}>{active.name}</Text>
           <Text style={[s.subtitle, { color: tc.textMid }]}>Workspace · tap to switch</Text>
         </View>
@@ -154,9 +148,6 @@ export default function WorkspaceSwitcher() {
                   onLongPress={() => handleLongPress(ws)}
                   delayLongPress={400}
                 >
-                  <View style={[s.chip, { backgroundColor: ws.color }]}>
-                    <Text style={s.chipEmoji}>{ws.emoji || ws.name[0]?.toUpperCase() || '·'}</Text>
-                  </View>
                   <Text style={[s.wsName, { color: tc.text }]} numberOfLines={1}>{ws.name}</Text>
                   {ws.id === activeId && <Ionicons name="checkmark" size={18} color="#22c55e" />}
                 </TouchableOpacity>
@@ -176,10 +167,7 @@ export default function WorkspaceSwitcher() {
           <TouchableOpacity activeOpacity={1} style={[s.modalCard, { backgroundColor: tc.bg }]} onPress={() => {}}>
             <Text style={[s.modalTitle, { color: tc.text }]}>New workspace</Text>
             <Text style={[s.modalHint, { color: tc.textMid }]}>Everything inside — chats, contacts, memory, templates, agents — will start fresh.</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 }}>
-              <View style={[s.chip, { backgroundColor: newColor }]}>
-                <Text style={s.chipEmoji}>{newEmoji || newName[0]?.toUpperCase() || '·'}</Text>
-              </View>
+            <View style={{ marginTop: 16 }}>
               <TextInput
                 style={[s.input, { color: tc.text, borderColor: tc.border }]}
                 value={newName}
@@ -189,30 +177,6 @@ export default function WorkspaceSwitcher() {
                 autoFocus
                 maxLength={30}
               />
-            </View>
-            {/* Color picker */}
-            <Text style={[s.fieldLabel, { color: tc.textMid }]}>Color</Text>
-            <View style={s.colorRow}>
-              {getWorkspaceColorPalette().map(c => (
-                <TouchableOpacity
-                  key={c}
-                  style={[s.colorDot, { backgroundColor: c }, newColor === c && s.colorDotActive]}
-                  onPress={() => setNewColor(c)}
-                />
-              ))}
-            </View>
-            {/* Emoji picker — a small fixed set of common workspace icons */}
-            <Text style={[s.fieldLabel, { color: tc.textMid }]}>Icon</Text>
-            <View style={s.emojiRow}>
-              {['🏠', '💼', '🎯', '🚀', '📊', '💡', '🛠️', '📚', '🎨', '⚡'].map(e => (
-                <TouchableOpacity
-                  key={e}
-                  style={[s.emojiBtn, newEmoji === e && { backgroundColor: 'rgba(99,102,241,0.12)' }]}
-                  onPress={() => setNewEmoji(e)}
-                >
-                  <Text style={s.emojiText}>{e}</Text>
-                </TouchableOpacity>
-              ))}
             </View>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 18 }}>
               <TouchableOpacity style={[s.btnSecondary, { borderColor: tc.border }]} onPress={() => setShowCreate(false)}>
@@ -233,28 +197,19 @@ const s = StyleSheet.create({
   switcher: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 8 },
   brand: { fontSize: 17, fontWeight: '800' },
   subtitle: { fontSize: 11, marginTop: 1 },
-  chip: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  chipEmoji: { fontSize: 16 },
 
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   modalCard: { width: '100%', maxWidth: 380, borderRadius: 18, padding: 18 },
   modalTitle: { fontSize: 18, fontWeight: '700' },
   modalHint: { fontSize: 12, marginTop: 4 },
 
-  wsRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 10, borderRadius: 12 },
+  wsRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 12 },
   wsName: { fontSize: 15, fontWeight: '600', flex: 1 },
 
   createBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, marginTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#e5e7eb' },
   createBtnText: { color: '#6366f1', fontWeight: '600', fontSize: 14 },
 
-  input: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
-  fieldLabel: { fontSize: 11, fontWeight: '600', marginTop: 14, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  colorRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  colorDot: { width: 28, height: 28, borderRadius: 14 },
-  colorDotActive: { borderWidth: 3, borderColor: '#fff', transform: [{ scale: 1.1 }] },
-  emojiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  emojiBtn: { padding: 6, borderRadius: 8 },
-  emojiText: { fontSize: 22 },
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
 
   btnSecondary: { flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1, alignItems: 'center' },
   btnSecondaryText: { fontSize: 14, fontWeight: '600' },
