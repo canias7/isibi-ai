@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking, Switch, TextInput, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking, Switch, TextInput, ActivityIndicator, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
@@ -773,14 +773,19 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
           <TouchableOpacity style={s.row} onPress={async () => {
             if (is2FAEnabled) {
               // Disable flow — ask for code
-              Alert.prompt('Disable 2FA', 'Enter your authenticator code to disable 2FA:', async (code) => {
-                if (!code || code.length !== 6) return;
-                try {
-                  await disable2FA(code);
-                  setIs2FAEnabled(false);
-                  Alert.alert('Done', '2FA has been disabled');
-                } catch (e: any) { Alert.alert('Error', e.message || 'Invalid code'); }
-              }, 'plain-text', '', 'number-pad');
+              // Alert.prompt can crash on iPad — use a safe fallback
+              if (Platform.OS === 'ios' && Alert.prompt) {
+                Alert.prompt('Disable 2FA', 'Enter your authenticator code to disable 2FA:', async (code) => {
+                  if (!code || code.length !== 6) return;
+                  try {
+                    await disable2FA(code);
+                    setIs2FAEnabled(false);
+                    Alert.alert('Done', '2FA has been disabled');
+                  } catch (e: any) { Alert.alert('Error', e.message || 'Invalid code'); }
+                }, 'plain-text', '', 'number-pad');
+              } else {
+                Alert.alert('Disable 2FA', 'To disable 2FA, please use the authenticator code entry in the 2FA setup screen.');
+              }
             } else {
               // Enable flow — setup
               setSetting2FA(true);
@@ -832,7 +837,7 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
         </View>
 
         {/* 2FA Setup Modal */}
-        <Modal visible={show2FASetup} animationType="slide" presentationStyle="pageSheet">
+        <Modal visible={show2FASetup} animationType="slide" presentationStyle="formSheet">
           <SafeAreaView style={{ flex: 1, backgroundColor: tc.surface }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
               <TouchableOpacity onPress={() => { setShow2FASetup(false); setTotpCode(''); }}><Text style={{ fontSize: 16, color: C.primary }}>Cancel</Text></TouchableOpacity>
@@ -876,7 +881,7 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
         </Modal>
 
         {/* Sessions Modal */}
-        <Modal visible={showSessions} animationType="slide" presentationStyle="pageSheet">
+        <Modal visible={showSessions} animationType="slide" presentationStyle="formSheet">
           <SafeAreaView style={{ flex: 1, backgroundColor: tc.surface }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
               <TouchableOpacity onPress={() => setShowSessions(false)}><Text style={{ fontSize: 16, color: C.primary }}>Done</Text></TouchableOpacity>
