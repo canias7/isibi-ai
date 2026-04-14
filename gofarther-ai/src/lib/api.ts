@@ -471,7 +471,7 @@ export async function connectorAction(appId: string, action: string, params: Rec
 
 // ─── Push Notifications ────────────────────────────────────────────────
 
-const PUSH = '/ghost/push';
+const PUSH = '/push';
 
 export interface NotificationPrefs {
   enabled: boolean;
@@ -528,7 +528,7 @@ export async function sendTestPush(): Promise<{ sent: number; failed: number; to
 
 // ─── Morning Digest ────────────────────────────────────────────────────
 
-const DIGEST = '/ghost/digest';
+const DIGEST = '/digest';
 
 export interface DigestConfig {
   id?: string;
@@ -574,7 +574,7 @@ export async function runDigestNow(): Promise<{ headline: string; body_html: str
 
 // ─── Proactive Agents ─────────────────────────────────────────────────
 
-const AGENTS = '/ghost/agents';
+const AGENTS = '/agents';
 
 /** A trigger that wakes a proactive agent up. The shape varies by
  *  `kind` — only the fields relevant to that kind need to be set. */
