@@ -17,7 +17,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, TextInput, KeyboardAvoidingView, Platform,
+  View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, TextInput, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Speech from 'expo-speech';
@@ -50,7 +50,10 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   const { colors: tc } = useTheme();
   const [input, setInput] = useState('');
   const [response, setResponse] = useState('');
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
   const [showInput, setShowInput] = useState(false);
+  const addLog = (msg: string) => setDebugLog(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()}: ${msg}`]);
   const [systemPrompt, setSystemPrompt] = useState('');
   // Continuous mode: once the user has started a conversation we keep
   // auto-listening after each AI reply. Toggled off when the user taps
@@ -87,7 +90,9 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
     (async () => {
       try {
         // Ask for mic permission upfront
+        addLog('Requesting mic permission...');
         const permStatus = await AudioModule.requestRecordingPermissionsAsync();
+        addLog(`Permission: ${permStatus.granted ? 'GRANTED' : 'DENIED'}`);
         if (!permStatus.granted) {
           setResponse('Microphone permission is required for voice mode.');
           return;
@@ -106,10 +111,12 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
         }
         // Permission granted + audio mode set → mark ready.
         // Auto-start after a brief delay for audio session to settle.
+        addLog('Audio mode set. Ready.');
         permissionReady.current = true;
         setTimeout(() => {
+          addLog('Auto-starting recording...');
           setContinuous(true);
-          try { startRecording(); } catch {}
+          try { startRecording(); } catch (e: any) { addLog(`Auto-start failed: ${e?.message}`); }
         }, 500);
       } catch (e: any) {
         setResponse('Audio setup failed: ' + (e?.message || ''));
@@ -205,15 +212,19 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   const startRecording = async () => {
     try {
       tapHaptic();
+      addLog('startRecording called');
       if (autoStopRef.current) { clearTimeout(autoStopRef.current); autoStopRef.current = null; }
+      addLog(`recorder.isRecording before: ${recorder.isRecording}`);
       await recorder.record();
+      addLog(`recorder.isRecording after: ${recorder.isRecording}`);
       setStatus('listening');
       setResponse('Listening... tap when done');
-      // Auto-stop after 10s so it always sends even if user forgets to tap
       autoStopRef.current = setTimeout(() => {
+        addLog(`Auto-stop timer fired. isRecording: ${recorder.isRecording}`);
         if (recorder.isRecording) stopRecording();
       }, 10000);
     } catch (e: any) {
+      addLog(`startRecording ERROR: ${e?.message}`);
       errorHaptic();
       setResponse('Could not start recording: ' + (e.message || ''));
       setStatus('idle');
@@ -221,34 +232,39 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   };
 
   const stopRecording = async (cancel = false) => {
+    addLog(`stopRecording called. cancel=${cancel}, isRecording=${recorder.isRecording}`);
     if (autoStopRef.current) { clearTimeout(autoStopRef.current); autoStopRef.current = null; }
-    if (!recorder.isRecording) return;
+    if (!recorder.isRecording) { addLog('Not recording — skipping stop'); return; }
     try {
       await recorder.stop();
+      addLog(`Stopped. uri=${recorder.uri ? 'YES' : 'NO'}`);
       if (cancel) { setStatus('idle'); return; }
       const uri = recorder.uri;
-      if (!uri) { setStatus('idle'); return; }
+      if (!uri) { addLog('No URI after stop'); setStatus('idle'); return; }
       setStatus('thinking');
       setResponse('Transcribing...');
+      addLog('Reading file as base64...');
       const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      addLog(`Base64 length: ${base64.length}`);
       const result = await transcribeAudio(base64);
+      addLog(`Transcribe result: ${JSON.stringify(result).slice(0, 100)}`);
       const text = (result.text || result.transcript || '').trim();
       if (!text) {
         errorHaptic();
+        addLog('Empty transcription');
         setResponse('I didn\'t catch that. Tap to try again.');
         setStatus('idle');
         return;
       }
       selectionHaptic();
+      addLog(`Transcribed: "${text}"`);
       setInput(text);
       setResponse('');
-      // Fire the full chat pipeline so plans, connectors, and actions
-      // all work. The assistant reply will show up in `messages` and
-      // our effect below will TTS it.
       await chatSend(text);
     } catch (e: any) {
+      addLog(`stopRecording ERROR: ${e?.message}`);
       errorHaptic();
-      setResponse('Transcription failed: ' + (e.message || ''));
+      setResponse('Error: ' + (e.message || 'unknown'));
       setStatus('idle');
     }
   };
@@ -375,13 +391,23 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
         <TouchableOpacity onPress={hangUp} style={s.closeBtn} activeOpacity={0.7} accessibilityLabel="End voice session">
           <Ionicons name="close" size={20} color="#1a1a1a" />
         </TouchableOpacity>
-        <View style={s.voiceBadge}>
+        <TouchableOpacity style={s.voiceBadge} onLongPress={() => setShowDebug(!showDebug)} delayLongPress={800}>
           <View style={[s.voiceDot, { backgroundColor: voice.color1 }]} />
           <Text style={s.voiceBadgeText}>{voice.name}</Text>
           {continuous && <View style={s.liveDot} />}
-        </View>
+        </TouchableOpacity>
         <View style={{ width: 40 }} />
       </View>
+
+      {/* Debug panel — long-press voice name to toggle */}
+      {showDebug && (
+        <ScrollView style={{ maxHeight: 200, backgroundColor: '#111', borderRadius: 12, marginHorizontal: 16, marginBottom: 8, padding: 10 }}>
+          {debugLog.map((line, i) => (
+            <Text key={i} style={{ fontSize: 10, color: '#0f0', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', lineHeight: 14 }}>{line}</Text>
+          ))}
+          {debugLog.length === 0 && <Text style={{ fontSize: 10, color: '#666' }}>No logs yet. Interact with voice mode...</Text>}
+        </ScrollView>
+      )}
 
       {/* Center */}
       <View style={s.center}>
