@@ -268,13 +268,13 @@ export async function getAgents(): Promise<Agent[]> {
 
 export async function saveAgents(agents: Agent[]) {
   await save('agents', agents);
-  // Fire-and-forget sync to the backend so the trigger poller has
-  // visibility into newly-saved agents (and their triggers). We don't
-  // await this — UI shouldn't be blocked on a network round-trip just
-  // to save an agent locally.
-  syncAgentsToBackend(agents).catch(err => {
+  // Sync to backend — await so triggers get extracted and written back
+  // before the caller re-reads. Takes ~3-5s due to Claude extraction.
+  try {
+    await syncAgentsToBackend(agents);
+  } catch (err) {
     console.warn('[agents] backend sync failed', err);
-  });
+  }
 }
 
 /** Push every local agent to the backend. Used by saveAgents() above

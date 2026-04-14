@@ -117,21 +117,17 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
       savedId = newAgent.id;
     }
     setAgents(updated);
-    // saveAgents() runs the backend extraction in the background and
-    // writes the detected triggers back into AsyncStorage. Re-read
-    // shortly after so the user sees the detected triggers without
-    // closing and reopening the screen.
-    await saveAgents(updated);
-    setTimeout(async () => {
-      const fresh = await getAgents();
-      setAgents(fresh);
-      const me = fresh.find(a => a.id === savedId);
-      if (me) {
-        setTriggers(me.triggers || []);
-        if (selectedAgent?.id === savedId) setSelectedAgent(me);
-      }
-    }, 1500);
     setShowEdit(false);
+    // saveAgents now awaits the backend extraction (~3-5s). After it
+    // returns, triggers are in AsyncStorage. Re-read to show them.
+    await saveAgents(updated);
+    const fresh = await getAgents();
+    setAgents(fresh);
+    const me = fresh.find(a => a.id === savedId);
+    if (me) {
+      setTriggers(me.triggers || []);
+      if (selectedAgent?.id === savedId) setSelectedAgent(me);
+    }
   };
 
 
