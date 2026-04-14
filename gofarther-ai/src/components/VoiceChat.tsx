@@ -21,10 +21,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Speech from 'expo-speech';
-import { useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } from 'expo-audio';
+import { useAudioRecorder, createAudioPlayer, AudioModule, RecordingPresets, setAudioModeAsync } from 'expo-audio';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
-import { transcribeAudio } from '../lib/ai';
+import { transcribeAudio, textToSpeech } from '../lib/ai';
 import { useChat } from '../lib/useChat';
 import { buildUserContextPrompt } from '../lib/promptContext';
 import { getConnectedApps } from '../lib/storage';
@@ -309,30 +309,49 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
     setResponse(toSpeak);
     setStatus('speaking');
     Speech.stop();
-    // Switch audio mode to playback-only so TTS comes out of the
-    // main speaker (not the earpiece). Recording mode routes audio
-    // to the earpiece on iOS which makes TTS inaudible.
+    // Switch audio mode to playback so TTS comes out of main speaker
     if (Platform.OS === 'ios') {
       setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true } as any).catch(() => {});
     }
     addLog(`Speaking: "${toSpeak.slice(0, 60)}..."`);
-    Speech.speak(toSpeak, {
-      rate: 0.98,
-      pitch: 1.0,
-      onDone: () => {
-        addLog('Speech done');
-        setStatus('idle');
-        if (continuousRef.current) {
-          setTimeout(() => {
-            if (continuousRef.current && !recorder.isRecording) {
-              startRecording();
-            }
-          }, 300);
-        }
-      },
-      onError: (e) => { addLog(`Speech error: ${e}`); setStatus('idle'); },
-      onStopped: () => { addLog('Speech stopped'); setStatus('idle'); },
-    });
+
+    // Use OpenAI TTS for natural voice, fall back to expo-speech if it fails
+    (async () => {
+      try {
+        const { audio_base64 } = await textToSpeech(toSpeak, voice.ttsVoice || 'nova');
+        const tempFile = FileSystem.cacheDirectory + `tts_${Date.now()}.mp3`;
+        await FileSystem.writeAsStringAsync(tempFile, audio_base64, { encoding: FileSystem.EncodingType.Base64 });
+        addLog('TTS audio received, playing...');
+
+        const player = createAudioPlayer(tempFile);
+        player.play();
+
+        // Estimate playback time from text length (~150 words/min, ~5 chars/word)
+        const estimatedMs = Math.max(2000, (toSpeak.length / 5) * (60000 / 150));
+        setTimeout(() => {
+          addLog('TTS playback done (estimated)');
+          try { player.remove(); } catch {}
+          setStatus('idle');
+          if (continuousRef.current) {
+            setTimeout(() => {
+              if (continuousRef.current && !recorder.isRecording) startRecording();
+            }, 300);
+          }
+        }, estimatedMs);
+      } catch (e: any) {
+        addLog(`OpenAI TTS failed: ${e?.message}, falling back to expo-speech`);
+        // Fallback to expo-speech
+        Speech.speak(toSpeak, {
+          rate: 0.98, pitch: 1.0,
+          onDone: () => {
+            setStatus('idle');
+            if (continuousRef.current) setTimeout(() => { if (!recorder.isRecording) startRecording(); }, 300);
+          },
+          onError: () => setStatus('idle'),
+          onStopped: () => setStatus('idle'),
+        });
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, loading]);
 

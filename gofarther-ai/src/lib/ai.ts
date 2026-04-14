@@ -474,6 +474,17 @@ export async function transcribeAudio(audioBase64: string): Promise<any> {
   return res.json();
 }
 
+/** Convert text to speech using OpenAI TTS. Returns base64-encoded mp3. */
+export async function textToSpeech(text: string, voice: string = 'nova'): Promise<{ audio_base64: string; format: string }> {
+  const headers = await authHeaders();
+  const res = await fetchWithTimeout(`${TOOLS_V2}/tts`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ text, voice }),
+  }, 30000);
+  if (!res.ok) throw new Error('TTS failed');
+  return res.json();
+}
+
 // ─── TOOLS V3 API ────────────────────────────────────────────────────────
 
 const TOOLS_V3 = 'https://isibi-backend.onrender.com/api/ghost/tools/v3';

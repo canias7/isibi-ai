@@ -566,6 +566,47 @@ async def transcribe_audio(req: TranscribeRequest, authorization: str = Header(.
     return {"text": res.json().get("text", "")}
 
 
+class TTSRequest(BaseModel):
+    text: str
+    voice: Optional[str] = "nova"  # alloy, echo, fable, onyx, nova, shimmer
+
+
+@router.post("/tts")
+async def text_to_speech(req: TTSRequest, authorization: str = Header(...)):
+    """Convert text to natural speech using OpenAI TTS API.
+    Returns base64-encoded mp3 audio."""
+    _verify_auth(authorization)
+    openai_key = os.getenv("OPENAI_API_KEY", "")
+    if not openai_key:
+        raise HTTPException(500, "OpenAI key not configured")
+
+    text = (req.text or "").strip()[:4000]
+    if not text:
+        raise HTTPException(400, "text is required")
+
+    voice = req.voice if req.voice in ("alloy", "echo", "fable", "onyx", "nova", "shimmer") else "nova"
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        res = await client.post(
+            "https://api.openai.com/v1/audio/speech",
+            headers={
+                "Authorization": f"Bearer {openai_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "tts-1",
+                "input": text,
+                "voice": voice,
+                "response_format": "mp3",
+            },
+        )
+        if res.status_code != 200:
+            raise HTTPException(400, f"TTS failed: {res.text[:200]}")
+
+    audio_b64 = base64.b64encode(res.content).decode("utf-8")
+    return {"audio_base64": audio_b64, "format": "mp3"}
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # RESEARCH
 # ═══════════════════════════════════════════════════════════════════════════

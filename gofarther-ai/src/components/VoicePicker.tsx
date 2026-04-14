@@ -16,17 +16,17 @@ export interface VoiceOption {
   description: string;
   color1: string;
   color2: string;
+  /** OpenAI TTS voice: alloy, echo, fable, onyx, nova, shimmer */
+  ttsVoice: string;
 }
 
 export const VOICES: VoiceOption[] = [
-  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', description: 'Warm and confident', color1: '#3b82f6', color2: '#1d4ed8' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', description: 'Soft and friendly', color1: '#ec4899', color2: '#db2777' },
-  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', description: 'Articulate and smooth', color1: '#8b5cf6', color2: '#6d28d9' },
-  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte', description: 'Bright and expressive', color1: '#06b6d4', color2: '#0891b2' },
-  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', description: 'Calm and clear', color1: '#22c55e', color2: '#16a34a' },
-  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', description: 'Deep and authoritative', color1: '#f59e0b', color2: '#d97706' },
-  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum', description: 'Energetic and lively', color1: '#ef4444', color2: '#dc2626' },
-  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', description: 'Gentle and nurturing', color1: '#14b8a6', color2: '#0d9488' },
+  { id: 'nova', name: 'Nova', description: 'Warm and friendly', color1: '#ec4899', color2: '#db2777', ttsVoice: 'nova' },
+  { id: 'alloy', name: 'Alloy', description: 'Balanced and clear', color1: '#3b82f6', color2: '#1d4ed8', ttsVoice: 'alloy' },
+  { id: 'echo', name: 'Echo', description: 'Smooth and deep', color1: '#8b5cf6', color2: '#6d28d9', ttsVoice: 'echo' },
+  { id: 'onyx', name: 'Onyx', description: 'Deep and authoritative', color1: '#1a1a1a', color2: '#333333', ttsVoice: 'onyx' },
+  { id: 'fable', name: 'Fable', description: 'Expressive and lively', color1: '#f59e0b', color2: '#d97706', ttsVoice: 'fable' },
+  { id: 'shimmer', name: 'Shimmer', description: 'Bright and cheerful', color1: '#06b6d4', color2: '#0891b2', ttsVoice: 'shimmer' },
 ];
 
 interface Props {
