@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Speech from 'expo-speech';
-import { useAudioRecorder, useAudioRecorderState, AudioModule, RecordingPresets, setAudioModeAsync } from 'expo-audio';
+import { useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } from 'expo-audio';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { transcribeAudio } from '../lib/ai';
@@ -60,50 +60,9 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   useEffect(() => { continuousRef.current = continuous; }, [continuous]);
 
   const insets = useSafeAreaInsets();
-  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
-  const recorderState = useAudioRecorderState(recorder, 300);
-
-  // ── Auto-stop: silence detection with timer fallback ────────────────
-  // expo-audio metering may not work on all iOS devices. We use a dual
-  // strategy: if metering data is available, use it for smart silence
-  // detection. If not, fall back to a fixed timer so the recording
-  // always gets sent eventually.
-  const SILENCE_THRESHOLD = -50;
-  const SILENCE_DURATION = 2000;
-  const MIN_RECORD_TIME = 1500;
-  const MAX_RECORD_TIME = 15000; // hard cap — send after 15s no matter what
-  const silenceStartRef = useRef<number | null>(null);
-  const recordStartRef = useRef<number | null>(null);
-  const hasSpokenRef = useRef(false);
-  const meteringWorksRef = useRef(false);
-  const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Metering-based silence detection
-  useEffect(() => {
-    if (status !== 'listening' || !recorder.isRecording) {
-      silenceStartRef.current = null;
-      hasSpokenRef.current = false;
-      return;
-    }
-    const metering = recorderState?.metering;
-    if (metering === undefined || metering === null) return;
-
-    meteringWorksRef.current = true;
-
-    if (recordStartRef.current && Date.now() - recordStartRef.current < MIN_RECORD_TIME) return;
-
-    if (metering >= SILENCE_THRESHOLD) {
-      hasSpokenRef.current = true;
-      silenceStartRef.current = null;
-    } else if (hasSpokenRef.current) {
-      if (!silenceStartRef.current) {
-        silenceStartRef.current = Date.now();
-      } else if (Date.now() - silenceStartRef.current >= SILENCE_DURATION) {
-        silenceStartRef.current = null;
-        stopRecording();
-      }
-    }
-  }, [recorderState?.metering, status]);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const permissionReady = useRef(false);
 
   // Drive the main chat pipeline so every action the text chat can do
   // (plans, connectors, saved_contact sidecars, templates, memory)
@@ -145,12 +104,13 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
             } as any);
           } catch {}
         }
-        // Permission granted + audio mode set → auto-start listening.
-        // Small delay to let the audio session fully settle.
+        // Permission granted + audio mode set → mark ready.
+        // Auto-start after a brief delay for audio session to settle.
+        permissionReady.current = true;
         setTimeout(() => {
           setContinuous(true);
-          startRecording();
-        }, 400);
+          try { startRecording(); } catch {}
+        }, 500);
       } catch (e: any) {
         setResponse('Audio setup failed: ' + (e?.message || ''));
       }
@@ -245,31 +205,14 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   const startRecording = async () => {
     try {
       tapHaptic();
-      recordStartRef.current = Date.now();
-      hasSpokenRef.current = false;
-      silenceStartRef.current = null;
-      meteringWorksRef.current = false;
-      // Clear any previous fallback timer
-      if (autoStopTimerRef.current) { clearTimeout(autoStopTimerRef.current); autoStopTimerRef.current = null; }
-      recorder.record();
+      if (autoStopRef.current) { clearTimeout(autoStopRef.current); autoStopRef.current = null; }
+      await recorder.record();
       setStatus('listening');
-      setResponse('Listening...');
-      // Fallback timer: if metering never kicks in (iOS native issue),
-      // auto-stop after MAX_RECORD_TIME so the audio gets sent.
-      // Also set a shorter "speech check" at 3s — if no metering data
-      // has arrived by then, switch to a fixed 8s recording window.
-      autoStopTimerRef.current = setTimeout(() => {
-        if (!meteringWorksRef.current && recorder.isRecording) {
-          // Metering isn't working — use fixed 8s window from now
-          autoStopTimerRef.current = setTimeout(() => {
-            if (recorder.isRecording) stopRecording();
-          }, 5000);
-        }
-      }, 3000);
-      // Hard cap regardless
-      setTimeout(() => {
+      setResponse('Listening... tap when done');
+      // Auto-stop after 10s so it always sends even if user forgets to tap
+      autoStopRef.current = setTimeout(() => {
         if (recorder.isRecording) stopRecording();
-      }, MAX_RECORD_TIME);
+      }, 10000);
     } catch (e: any) {
       errorHaptic();
       setResponse('Could not start recording: ' + (e.message || ''));
@@ -278,8 +221,8 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   };
 
   const stopRecording = async (cancel = false) => {
+    if (autoStopRef.current) { clearTimeout(autoStopRef.current); autoStopRef.current = null; }
     if (!recorder.isRecording) return;
-    if (autoStopTimerRef.current) { clearTimeout(autoStopTimerRef.current); autoStopTimerRef.current = null; }
     try {
       await recorder.stop();
       if (cancel) { setStatus('idle'); return; }
@@ -418,7 +361,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   // ── Hang up / end session ──────────────────────────────────────────
   const hangUp = () => {
     Speech.stop();
-    if (autoStopTimerRef.current) { clearTimeout(autoStopTimerRef.current); autoStopTimerRef.current = null; }
+    if (autoStopRef.current) { clearTimeout(autoStopRef.current); autoStopRef.current = null; }
     try { if (recorder.isRecording) recorder.stop(); } catch {}
     setContinuous(false);
     setStatus('idle');
