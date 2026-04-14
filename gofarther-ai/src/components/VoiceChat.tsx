@@ -21,7 +21,7 @@ import { tapHaptic, errorHaptic, selectionHaptic } from '../lib/haptics';
 import { VoiceOption } from './VoicePicker';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
-import { LinearGradient } from 'expo-linear-gradient';
+// No native gradient dependency — use a pure-View layered approach
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const ORB_SIZE = SW * 0.38;
@@ -464,14 +464,13 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
             }]} />
           )}
 
-          {/* Orb body */}
-          <View style={[vs.orb, { overflow: 'hidden' }]}>
-            <LinearGradient
-              colors={[voice.color1, voice.color2 || voice.color1]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
+          {/* Orb body — layered colors to simulate gradient */}
+          <View style={[vs.orb, { backgroundColor: voice.color2 || voice.color1 }]}>
+            <View style={[StyleSheet.absoluteFill, {
+              borderRadius: ORB_SIZE / 2,
+              backgroundColor: voice.color1,
+              opacity: 0.7,
+            }]} />
             <Ionicons
               name={status === 'speaking' ? 'volume-high' : 'mic'}
               size={ORB_SIZE * 0.26}
