@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Speech from 'expo-speech';
-import { useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } from 'expo-audio';
+import { useAudioRecorder, useAudioRecorderState, AudioModule, RecordingPresets, setAudioModeAsync } from 'expo-audio';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { transcribeAudio } from '../lib/ai';
@@ -60,7 +60,36 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   useEffect(() => { continuousRef.current = continuous; }, [continuous]);
 
   const insets = useSafeAreaInsets();
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
+  const recorderState = useAudioRecorderState(recorder, 300);
+
+  // ── Silence detection: auto-stop after 1.5s of quiet ──────────────
+  const SILENCE_THRESHOLD = -38; // dB — adjust if too sensitive / not sensitive enough
+  const SILENCE_DURATION = 1500; // ms of sustained silence before auto-send
+  const silenceStartRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (status !== 'listening' || !recorder.isRecording) {
+      silenceStartRef.current = null;
+      return;
+    }
+    const metering = recorderState?.metering;
+    if (metering === undefined || metering === null) return;
+
+    if (metering < SILENCE_THRESHOLD) {
+      // Audio is quiet
+      if (!silenceStartRef.current) {
+        silenceStartRef.current = Date.now();
+      } else if (Date.now() - silenceStartRef.current >= SILENCE_DURATION) {
+        // Sustained silence → auto-send
+        silenceStartRef.current = null;
+        stopRecording();
+      }
+    } else {
+      // Audio detected — reset silence timer
+      silenceStartRef.current = null;
+    }
+  }, [recorderState?.metering, status]);
 
   // Drive the main chat pipeline so every action the text chat can do
   // (plans, connectors, saved_contact sidecars, templates, memory)
@@ -108,6 +137,13 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
     })();
 
     startBreathing();
+    // Auto-start listening so the user can just talk immediately —
+    // no need to tap the orb first. Short delay to let audio mode
+    // settle after mount.
+    setTimeout(() => {
+      setContinuous(true);
+      startRecording();
+    }, 600);
     return () => {
       pulseAnim.current?.stop();
       Speech.stop();
@@ -198,7 +234,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
       tapHaptic();
       recorder.record();
       setStatus('listening');
-      setResponse('Listening...');
+      setResponse('Listening...\nSpeak naturally — I\'ll send when you pause.');
     } catch (e: any) {
       errorHaptic();
       setResponse('Could not start recording: ' + (e.message || ''));
@@ -383,10 +419,10 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
         </TouchableOpacity>
 
         <Text style={s.statusText}>
-          {status === 'listening' ? 'Listening… tap to send' :
+          {status === 'listening' ? 'Listening…' :
             status === 'thinking' ? 'Thinking…' :
             status === 'speaking' ? 'Tap to interrupt' :
-            continuous ? 'Ready — tap to talk' : 'Tap to start'}
+            'Conversation mode · tap x to hang up'}
         </Text>
       </View>
 
