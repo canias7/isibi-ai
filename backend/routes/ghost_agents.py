@@ -370,6 +370,9 @@ class AgentBody(BaseModel):
     instructions: Optional[str] = None
     triggers: Optional[list[AgentTriggerBody]] = None
     enabled: Optional[bool] = True
+    # Inline contacts — if provided, saves them before extraction so
+    # the extractor can resolve labels like "my boss" in one round-trip.
+    saved_contacts: Optional[list[dict]] = None
 
 
 def _row_to_dict(row: GhostAgent) -> dict:
@@ -430,6 +433,29 @@ async def upsert_agent(
     # is allowed to send explicit triggers too (advanced users / future
     # UIs); if it does, we use those AS-IS and skip extraction. Otherwise
     # we run the LLM extractor on `instructions`.
+    # If contacts were passed inline, save them first
+    if body.saved_contacts:
+        try:
+            await db.execute(sql_text(
+                "DELETE FROM ghost_saved_contacts WHERE user_id = :uid AND workspace_id = :ws"
+            ), {"uid": str(user_id), "ws": workspace_id})
+            for c in body.saved_contacts:
+                label = (c.get("label") or "").strip()
+                if not label:
+                    continue
+                await db.execute(sql_text(
+                    "INSERT INTO ghost_saved_contacts (user_id, workspace_id, label, name, email, phone, updated_at) "
+                    "VALUES (:uid, :ws, :label, :name, :email, :phone, NOW()) "
+                    "ON CONFLICT (user_id, workspace_id, label) DO UPDATE "
+                    "SET name = :name, email = :email, phone = :phone, updated_at = NOW()"
+                ), {
+                    "uid": str(user_id), "ws": workspace_id,
+                    "label": label, "name": c.get("name"), "email": c.get("email"), "phone": c.get("phone"),
+                })
+            await db.commit()
+        except Exception as contacts_err:
+            logger.warning(f"ghost_agents: inline contacts save failed: {contacts_err}")
+
     extraction_debug = {}
     if body.triggers is not None and len(body.triggers) > 0:
         triggers_json = [t.model_dump(exclude_none=True) for t in body.triggers]

@@ -291,6 +291,18 @@ async function syncAgentsToBackend(agents: Agent[]): Promise<void> {
     let mutated = false;
     for (const a of agents) {
       try {
+        // Load contacts and pass them inline so the backend can
+        // resolve labels like "my boss" in one round-trip
+        let inlineContacts: any[] | undefined;
+        try {
+          const { getSavedContacts: loadContacts } = await import('./storage');
+          const local = await loadContacts();
+          if (local.length > 0) {
+            inlineContacts = local.map(c => ({
+              label: c.label, name: c.name, email: c.email, phone: c.phone,
+            }));
+          }
+        } catch {}
         const resp = await upsertServerAgent({
           client_id: a.id,
           name: a.name,
@@ -298,7 +310,8 @@ async function syncAgentsToBackend(agents: Agent[]): Promise<void> {
           instructions: a.instructions,
           triggers: [],
           enabled: a.isActive,
-        });
+          ...(inlineContacts ? { saved_contacts: inlineContacts } : {}),
+        } as any);
         const extracted = (resp?.triggers || []) as AgentTrigger[];
         const before = JSON.stringify(a.triggers || []);
         const after = JSON.stringify(extracted);

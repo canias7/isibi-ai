@@ -121,28 +121,9 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     try {
       // Sync contacts to backend FIRST so the extractor can resolve
       // labels like "my boss" → email address.
-      let contactsSyncResult = 'not attempted';
-      try {
-        const { syncSavedContactsToServer } = await import('../lib/api');
-        const localContacts = await getSavedContacts();
-        contactsSyncResult = `${localContacts.length} local`;
-        if (localContacts.length > 0) {
-          const mapped = localContacts.map(c => ({
-            label: c.label, name: c.name, email: c.email, phone: c.phone,
-          }));
-          // Retry up to 2 times (Render cold start can fail the first attempt)
-          for (let attempt = 1; attempt <= 2; attempt++) {
-            try {
-              const syncResp = await syncSavedContactsToServer(mapped);
-              contactsSyncResult += `, synced (attempt ${attempt}): ${JSON.stringify(syncResp)}`;
-              break;
-            } catch (retryErr: any) {
-              contactsSyncResult += `, attempt ${attempt} failed: ${retryErr?.message}`;
-              if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
-            }
-          }
-        }
-      } catch (e: any) { contactsSyncResult = `ERROR: ${e?.message}`; }
+      // Contacts are now passed inline with the agent upsert —
+      // no separate sync call needed.
+      let contactsSyncResult = 'inline with agent save';
       await saveAgents(updated);
       const fresh = await getAgents();
       setAgents(fresh);
