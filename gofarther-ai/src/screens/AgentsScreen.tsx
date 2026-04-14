@@ -118,15 +118,25 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     }
     setAgents(updated);
     setShowEdit(false);
-    // saveAgents now awaits the backend extraction (~3-5s). After it
-    // returns, triggers are in AsyncStorage. Re-read to show them.
-    await saveAgents(updated);
-    const fresh = await getAgents();
-    setAgents(fresh);
-    const me = fresh.find(a => a.id === savedId);
-    if (me) {
-      setTriggers(me.triggers || []);
-      if (selectedAgent?.id === savedId) setSelectedAgent(me);
+    try {
+      await saveAgents(updated);
+      const fresh = await getAgents();
+      setAgents(fresh);
+      const me = fresh.find(a => a.id === savedId);
+      if (me) {
+        setTriggers(me.triggers || []);
+        if (selectedAgent?.id === savedId) setSelectedAgent(me);
+      }
+      // Debug: show what happened
+      const trigCount = me?.triggers?.length || 0;
+      Alert.alert(
+        'Agent Sync Result',
+        trigCount > 0
+          ? `Extracted ${trigCount} trigger(s):\n${(me?.triggers || []).map((t: any) => `${t.kind}: ${t.from_email || t.subject_keyword || t.time_min || '?'}`).join('\n')}`
+          : `No triggers extracted.\n\nAgent ID: ${savedId}\nPrompt: "${instructions.slice(0, 80)}..."`,
+      );
+    } catch (e: any) {
+      Alert.alert('Sync Error', e?.message || 'Unknown error');
     }
   };
 
