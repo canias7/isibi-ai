@@ -22,9 +22,11 @@ interface UseChatOptions {
    * parent screen should rebuild its system prompt so the contact shows
    * up in the very next message, not only after a screen refocus. */
   onContactsChanged?: () => void;
+  /** Use fast model (Haiku) for quicker responses — used by voice mode. */
+  fast?: boolean;
 }
 
-export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsChanged }: UseChatOptions) {
+export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsChanged, fast }: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
@@ -200,7 +202,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: displayText } : m));
       }, (action) => {
         streamedAction = action;
-      });
+      }, fast ? { fast: true } : undefined);
       const durationMs = Date.now() - startTime;
       const responseText = typeof result === 'string' ? result : result.text;
       const tokens = typeof result === 'string' ? 0 : (result.tokens || 0);

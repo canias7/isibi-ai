@@ -77,7 +77,7 @@ export interface Message {
 }
 
 /** Send a message to Claude via backend proxy */
-export async function chat(messages: Message[], systemPrompt?: string): Promise<string> {
+export async function chat(messages: Message[], systemPrompt?: string, opts?: { fast?: boolean }): Promise<string> {
   await checkNetwork();
   const headers = await authHeaders();
   const res = await fetchWithTimeout(`${BASE}/chat`, {
@@ -87,6 +87,7 @@ export async function chat(messages: Message[], systemPrompt?: string): Promise<
       messages,
       system: systemPrompt || 'You are GoFarther AI, a helpful mobile assistant. Be concise and friendly.',
       max_tokens: 1024,
+      ...(opts?.fast ? { fast: true } : {}),
     }),
   });
   if (!res.ok) {
@@ -110,8 +111,8 @@ export async function chatStream(
   systemPrompt: string,
   onChunk: (text: string) => void,
   onAction?: (action: any) => void,
+  opts?: { fast?: boolean },
 ): Promise<{ text: string; tokens?: number }> {
-  // Use regular /chat endpoint (streaming disabled — SSE unreliable in React Native)
   await checkNetwork();
   const headers = await authHeaders();
   const res = await fetchWithTimeout(`${BASE}/chat`, {
@@ -121,6 +122,7 @@ export async function chatStream(
       messages,
       system: systemPrompt || 'You are GoFarther AI, a helpful mobile assistant.',
       max_tokens: 1024,
+      ...(opts?.fast ? { fast: true } : {}),
     }),
   });
   if (!res.ok) {

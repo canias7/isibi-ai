@@ -76,6 +76,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   const { messages, loading, send: chatSend } = useChat({
     sessionId,
     systemPrompt,
+    fast: true,
   });
 
   // Track which assistant messages we've already spoken so we don't
@@ -297,7 +298,8 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
           : 'Done.'
       : cleanText.slice(0, 400);  // cap at ~400 chars so replies stay snappy
 
-    // Don't show text yet — wait until audio is ready so they sync
+    // Show text immediately — audio follows when TTS is ready
+    setResponse(toSpeak);
     setStatus('speaking');
     Speech.stop();
     if (Platform.OS === 'ios') {
@@ -312,8 +314,6 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
         await FileSystem.writeAsStringAsync(tempFile, audio_base64, { encoding: FileSystem.EncodingType.Base64 });
         addLog('TTS audio received, playing...');
 
-        // Show text NOW — same moment audio starts
-        setResponse(toSpeak);
         const player = createAudioPlayer(tempFile);
         player.play();
 
@@ -331,7 +331,6 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
         }, estimatedMs);
       } catch (e: any) {
         addLog(`OpenAI TTS failed: ${e?.message}, falling back to expo-speech`);
-        setResponse(toSpeak);
         Speech.speak(toSpeak, {
           rate: 0.98, pitch: 1.0,
           onDone: () => {
