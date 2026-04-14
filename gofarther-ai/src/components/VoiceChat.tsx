@@ -155,6 +155,8 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   const continuousRef = useRef(false);
   useEffect(() => { continuousRef.current = continuous; }, [continuous]);
   const [textOpacity] = useState(new Animated.Value(0));
+  const [displayedText, setDisplayedText] = useState('');
+  const wordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const insets = useSafeAreaInsets();
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
@@ -208,6 +210,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
     return () => {
       spinRef.current?.stop();
       glowRef.current?.stop();
+      if (wordTimerRef.current) clearInterval(wordTimerRef.current);
       Speech.stop();
       if (autoStopRef.current) clearTimeout(autoStopRef.current);
       try { if (recorder.isRecording) recorder.stop(); } catch {}
@@ -259,11 +262,31 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
     }
   }, [status]);
 
-  // Fade in text
-  const showText = (text: string) => {
-    textOpacity.setValue(0);
-    setResponse(text);
-    Animated.timing(textOpacity, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+  /** Reveal text word-by-word over a given duration (synced to audio). */
+  const revealText = (text: string, durationMs: number) => {
+    if (wordTimerRef.current) { clearInterval(wordTimerRef.current); wordTimerRef.current = null; }
+    const words = text.split(' ');
+    if (words.length === 0) return;
+    const interval = Math.max(80, durationMs / words.length);
+    let idx = 0;
+    setDisplayedText('');
+    setResponse(text); // keep full text in state for reference
+    textOpacity.setValue(1);
+    wordTimerRef.current = setInterval(() => {
+      idx++;
+      if (idx >= words.length) {
+        setDisplayedText(text);
+        if (wordTimerRef.current) { clearInterval(wordTimerRef.current); wordTimerRef.current = null; }
+      } else {
+        setDisplayedText(words.slice(0, idx).join(' '));
+      }
+    }, interval);
+  };
+
+  /** Stop word reveal immediately and show full text. */
+  const finishReveal = () => {
+    if (wordTimerRef.current) { clearInterval(wordTimerRef.current); wordTimerRef.current = null; }
+    setDisplayedText(response);
   };
 
   // ── Recording ───────────────────────────────────────────────────────
@@ -282,6 +305,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
       addLog(`isRecording: ${recorder.isRecording}`);
       setStatus('listening');
       setResponse('');
+      setDisplayedText('');
       autoStopRef.current = setTimeout(() => {
         addLog('Auto-stop');
         stopRecording();
@@ -349,7 +373,8 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
         : raw.includes('Something went wrong') ? 'Something went wrong.' : 'Done.'
       : cleanText.slice(0, 400);
 
-    showText(toSpeak);
+    setDisplayedText('');
+    setResponse('');
     setStatus('speaking');
     Speech.stop();
     if (Platform.OS === 'ios') {
@@ -362,9 +387,12 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
         const tempFile = FileSystem.cacheDirectory + `tts_${Date.now()}.mp3`;
         await FileSystem.writeAsStringAsync(tempFile, audio_base64, { encoding: FileSystem.EncodingType.Base64 });
         const player = createAudioPlayer(tempFile);
-        player.play();
         const estimatedMs = Math.max(2000, (toSpeak.length / 5) * (60000 / 150));
+        // Start audio + word-by-word text reveal together
+        player.play();
+        revealText(toSpeak, estimatedMs);
         setTimeout(() => {
+          finishReveal();
           try { player.remove(); } catch {}
           setStatus('idle');
           if (continuousRef.current) {
@@ -372,11 +400,13 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
           }
         }, estimatedMs);
       } catch {
+        const fallbackMs = Math.max(2000, (toSpeak.length / 5) * (60000 / 150));
+        revealText(toSpeak, fallbackMs);
         Speech.speak(toSpeak, {
           rate: 0.95, pitch: 1.0,
-          onDone: () => { setStatus('idle'); if (continuousRef.current) setTimeout(() => { if (!recorder.isRecording) startRecording(); }, 300); },
-          onError: () => setStatus('idle'),
-          onStopped: () => setStatus('idle'),
+          onDone: () => { finishReveal(); setStatus('idle'); if (continuousRef.current) setTimeout(() => { if (!recorder.isRecording) startRecording(); }, 300); },
+          onError: () => { finishReveal(); setStatus('idle'); },
+          onStopped: () => { finishReveal(); setStatus('idle'); },
         });
       }
     })();
@@ -438,11 +468,11 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
 
       {/* Center */}
       <View style={vs.center}>
-        {/* Response text with fade-in */}
-        {response ? (
-          <Animated.Text style={[vs.responseText, { opacity: textOpacity }]} numberOfLines={6}>
-            {response}
-          </Animated.Text>
+        {/* Response text — word-by-word reveal synced to audio */}
+        {displayedText ? (
+          <Text style={vs.responseText} numberOfLines={6}>
+            {displayedText}
+          </Text>
         ) : null}
 
         {/* Orb */}
