@@ -63,32 +63,42 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
   const recorderState = useAudioRecorderState(recorder, 300);
 
-  // ── Silence detection: auto-stop after 1.5s of quiet ──────────────
-  const SILENCE_THRESHOLD = -38; // dB — adjust if too sensitive / not sensitive enough
-  const SILENCE_DURATION = 1500; // ms of sustained silence before auto-send
+  // ── Silence detection: auto-stop after sustained quiet ──────────────
+  const SILENCE_THRESHOLD = -50; // dB — lower = more lenient (waits longer before deciding "silence")
+  const SILENCE_DURATION = 2000; // ms of sustained silence before auto-send
+  const MIN_RECORD_TIME = 1200;  // ms — don't check silence for the first 1.2s (gives user time to start talking)
   const silenceStartRef = useRef<number | null>(null);
+  const recordStartRef = useRef<number | null>(null);
+  // Track whether user has actually spoken (metering went above threshold at least once)
+  const hasSpokenRef = useRef(false);
 
   useEffect(() => {
     if (status !== 'listening' || !recorder.isRecording) {
       silenceStartRef.current = null;
+      hasSpokenRef.current = false;
       return;
     }
     const metering = recorderState?.metering;
     if (metering === undefined || metering === null) return;
 
-    if (metering < SILENCE_THRESHOLD) {
-      // Audio is quiet
+    // Don't check silence until minimum recording time has passed
+    if (recordStartRef.current && Date.now() - recordStartRef.current < MIN_RECORD_TIME) return;
+
+    if (metering >= SILENCE_THRESHOLD) {
+      // Audio detected — user is speaking
+      hasSpokenRef.current = true;
+      silenceStartRef.current = null;
+    } else if (hasSpokenRef.current) {
+      // Audio is quiet AND user already spoke — start/check silence timer
       if (!silenceStartRef.current) {
         silenceStartRef.current = Date.now();
       } else if (Date.now() - silenceStartRef.current >= SILENCE_DURATION) {
-        // Sustained silence → auto-send
+        // Sustained silence after speech → auto-send
         silenceStartRef.current = null;
         stopRecording();
       }
-    } else {
-      // Audio detected — reset silence timer
-      silenceStartRef.current = null;
     }
+    // If user hasn't spoken yet, don't trigger silence detection at all
   }, [recorderState?.metering, status]);
 
   // Drive the main chat pipeline so every action the text chat can do
@@ -131,19 +141,18 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
             } as any);
           } catch {}
         }
+        // Permission granted + audio mode set → auto-start listening.
+        // Small delay to let the audio session fully settle.
+        setTimeout(() => {
+          setContinuous(true);
+          startRecording();
+        }, 400);
       } catch (e: any) {
         setResponse('Audio setup failed: ' + (e?.message || ''));
       }
     })();
 
     startBreathing();
-    // Auto-start listening so the user can just talk immediately —
-    // no need to tap the orb first. Short delay to let audio mode
-    // settle after mount.
-    setTimeout(() => {
-      setContinuous(true);
-      startRecording();
-    }, 600);
     return () => {
       pulseAnim.current?.stop();
       Speech.stop();
@@ -232,9 +241,12 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   const startRecording = async () => {
     try {
       tapHaptic();
+      recordStartRef.current = Date.now();
+      hasSpokenRef.current = false;
+      silenceStartRef.current = null;
       recorder.record();
       setStatus('listening');
-      setResponse('Listening...\nSpeak naturally — I\'ll send when you pause.');
+      setResponse('Listening...');
     } catch (e: any) {
       errorHaptic();
       setResponse('Could not start recording: ' + (e.message || ''));
