@@ -295,8 +295,7 @@ async function syncAgentsToBackend(agents: Agent[]): Promise<void> {
         // resolve labels like "my boss" in one round-trip
         let inlineContacts: any[] | undefined;
         try {
-          const { getSavedContacts: loadContacts } = await import('./storage');
-          const local = await loadContacts();
+          const local = await getSavedContacts();
           if (local.length > 0) {
             inlineContacts = local.map(c => ({
               label: c.label, name: c.name, email: c.email, phone: c.phone,
