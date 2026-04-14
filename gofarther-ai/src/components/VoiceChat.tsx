@@ -184,12 +184,9 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   };
 
   const startListeningPulse = () => {
-    // Gentle pulse — not too aggressive
-    pulseAnim.current = Animated.loop(Animated.sequence([
-      Animated.timing(orbScale, { toValue: 1.08, duration: 800, useNativeDriver: true }),
-      Animated.timing(orbScale, { toValue: 0.98, duration: 800, useNativeDriver: true }),
-    ]));
-    pulseAnim.current.start();
+    // Static — no movement while recording
+    pulseAnim.current?.stop();
+    orbScale.setValue(1);
   };
 
   const startSpeakingPulse = () => {
@@ -207,7 +204,10 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
       tapHaptic();
       addLog('startRecording: preparing...');
       if (autoStopRef.current) { clearTimeout(autoStopRef.current); autoStopRef.current = null; }
-      // Key step: prepareToRecordAsync MUST be called before record()
+      // Re-enable recording mode (gets disabled during TTS playback)
+      if (Platform.OS === 'ios') {
+        await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true } as any);
+      }
       await recorder.prepareToRecordAsync();
       addLog('startRecording: prepared. Calling record()...');
       recorder.record();
@@ -222,9 +222,10 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
       }, 10000);
     } catch (e: any) {
       addLog(`startRecording ERROR: ${e?.message}`);
-      errorHaptic();
-      setResponse('Could not start recording: ' + (e.message || ''));
+      setResponse('');
       setStatus('idle');
+      // Silently retry after a brief pause
+      if (continuousRef.current) setTimeout(() => startRecording(), 1000);
     }
   };
 
