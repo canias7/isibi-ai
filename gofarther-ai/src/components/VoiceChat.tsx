@@ -308,15 +308,20 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
 
     setResponse(toSpeak);
     setStatus('speaking');
-    Speech.stop(); // cancel any in-flight speech before starting a new one
+    Speech.stop();
+    // Switch audio mode to playback-only so TTS comes out of the
+    // main speaker (not the earpiece). Recording mode routes audio
+    // to the earpiece on iOS which makes TTS inaudible.
+    if (Platform.OS === 'ios') {
+      setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true } as any).catch(() => {});
+    }
+    addLog(`Speaking: "${toSpeak.slice(0, 60)}..."`);
     Speech.speak(toSpeak, {
       rate: 0.98,
       pitch: 1.0,
       onDone: () => {
+        addLog('Speech done');
         setStatus('idle');
-        // Continuous conversation: if the user hasn't tapped to hang
-        // up, automatically start listening again so they can reply
-        // without touching the screen.
         if (continuousRef.current) {
           setTimeout(() => {
             if (continuousRef.current && !recorder.isRecording) {
@@ -325,8 +330,8 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
           }, 300);
         }
       },
-      onError: () => setStatus('idle'),
-      onStopped: () => setStatus('idle'),
+      onError: (e) => { addLog(`Speech error: ${e}`); setStatus('idle'); },
+      onStopped: () => { addLog('Speech stopped'); setStatus('idle'); },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, loading]);
