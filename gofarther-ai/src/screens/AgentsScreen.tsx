@@ -120,17 +120,19 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     setShowEdit(false);
     try {
       // Sync contacts to backend FIRST so the extractor can resolve
-      // labels like "my boss" → email address. Must complete before
-      // the agent upsert triggers extraction.
+      // labels like "my boss" → email address.
+      let contactsSyncResult = 'not attempted';
       try {
         const { syncSavedContactsToServer } = await import('../lib/api');
-        const contacts = await getSavedContacts();
-        if (contacts.length > 0) {
-          await syncSavedContactsToServer(contacts.map(c => ({
+        const localContacts = await getSavedContacts();
+        contactsSyncResult = `${localContacts.length} local contacts found`;
+        if (localContacts.length > 0) {
+          const syncResp = await syncSavedContactsToServer(localContacts.map(c => ({
             label: c.label, name: c.name, email: c.email, phone: c.phone,
           })));
+          contactsSyncResult += `, sync response: ${JSON.stringify(syncResp)}`;
         }
-      } catch (e) { console.warn('contacts pre-sync failed', e); }
+      } catch (e: any) { contactsSyncResult = `ERROR: ${e?.message}`; }
       await saveAgents(updated);
       const fresh = await getAgents();
       setAgents(fresh);
@@ -145,9 +147,10 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
       const debugStr = JSON.stringify(debug, null, 2);
       Alert.alert(
         'Agent Sync Result',
-        trigCount > 0
-          ? `Extracted ${trigCount} trigger(s):\n${(me?.triggers || []).map((t: any) => `${t.kind}: ${t.from_email || t.subject_keyword || t.time_min || '?'}`).join('\n')}\n\nDebug:\n${debugStr}`
-          : `No triggers extracted.\n\nDebug:\n${debugStr}`,
+        (trigCount > 0
+          ? `Extracted ${trigCount} trigger(s):\n${(me?.triggers || []).map((t: any) => `${t.kind}: ${t.from_email || t.subject_keyword || t.time_min || '?'}`).join('\n')}`
+          : `No triggers extracted.`)
+        + `\n\nContacts: ${contactsSyncResult}\n\nBackend:\n${debugStr}`,
       );
     } catch (e: any) {
       Alert.alert('Sync Error', e?.message || 'Unknown error');
