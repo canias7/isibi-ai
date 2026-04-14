@@ -119,6 +119,18 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     setAgents(updated);
     setShowEdit(false);
     try {
+      // Sync contacts to backend FIRST so the extractor can resolve
+      // labels like "my boss" → email address. Must complete before
+      // the agent upsert triggers extraction.
+      try {
+        const { syncSavedContactsToServer } = await import('../lib/api');
+        const contacts = await getSavedContacts();
+        if (contacts.length > 0) {
+          await syncSavedContactsToServer(contacts.map(c => ({
+            label: c.label, name: c.name, email: c.email, phone: c.phone,
+          })));
+        }
+      } catch (e) { console.warn('contacts pre-sync failed', e); }
       await saveAgents(updated);
       const fresh = await getAgents();
       setAgents(fresh);
