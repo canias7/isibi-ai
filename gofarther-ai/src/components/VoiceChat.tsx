@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Speech from 'expo-speech';
-import { Audio } from 'expo-av';
+import { useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } from 'expo-audio';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { transcribeAudio } from '../lib/ai';
@@ -63,7 +63,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   useEffect(() => { continuousRef.current = continuous; }, [continuous]);
 
   const insets = useSafeAreaInsets();
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const permissionReady = useRef(false);
 
@@ -90,17 +90,16 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
     (async () => {
       try {
         addLog('Requesting mic permission...');
-        const permStatus = await Audio.requestPermissionsAsync();
+        const permStatus = await AudioModule.requestRecordingPermissionsAsync();
         addLog(`Permission: ${permStatus.granted ? 'GRANTED' : 'DENIED'}`);
         if (!permStatus.granted) {
           setResponse('Microphone permission is required for voice mode.');
           return;
         }
         addLog('Setting audio mode...');
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: true,
-          playsInSilentModeIOS: true,
-        });
+        if (Platform.OS === 'ios') {
+          await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true } as any);
+        }
         addLog('Audio mode set. Ready.');
         permissionReady.current = true;
         setTimeout(() => {
@@ -119,15 +118,10 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
       pulseAnim.current?.stop();
       Speech.stop();
       if (autoStopRef.current) clearTimeout(autoStopRef.current);
-      (async () => {
-        try {
-          if (recordingRef.current) {
-            await recordingRef.current.stopAndUnloadAsync();
-            recordingRef.current = null;
-          }
-        } catch {}
-        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }).catch(() => {});
-      })();
+      try { if (recorder.isRecording) recorder.stop(); } catch {}
+      if (Platform.OS === 'ios') {
+        setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true } as any).catch(() => {});
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -203,28 +197,21 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
     pulseAnim.current.start();
   };
 
-  // ── Recording (expo-av) ─────────────────────────────────────────────
+  // ── Recording (expo-audio with prepareToRecordAsync) ────────────────
   const startRecording = async () => {
     try {
       tapHaptic();
-      addLog('startRecording called');
+      addLog('startRecording: preparing...');
       if (autoStopRef.current) { clearTimeout(autoStopRef.current); autoStopRef.current = null; }
-      // Clean up any leftover recording
-      if (recordingRef.current) {
-        try { await recordingRef.current.stopAndUnloadAsync(); } catch {}
-        recordingRef.current = null;
-      }
-      // Ensure audio mode allows recording (might have been reset by TTS)
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      await recording.startAsync();
-      recordingRef.current = recording;
-      const recStatus = await recording.getStatusAsync();
-      addLog(`Recording started. isRecording: ${recStatus.isRecording}, durationMs: ${recStatus.durationMillis}`);
+      // Key step: prepareToRecordAsync MUST be called before record()
+      await recorder.prepareToRecordAsync();
+      addLog('startRecording: prepared. Calling record()...');
+      recorder.record();
+      // Give native a moment to start, then verify
+      await new Promise(r => setTimeout(r, 200));
+      addLog(`isRecording: ${recorder.isRecording}`);
       setStatus('listening');
       setResponse('Listening... tap when done');
-      // Auto-stop after 10s
       autoStopRef.current = setTimeout(() => {
         addLog('Auto-stop timer fired');
         stopRecording();
@@ -239,20 +226,14 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
 
   const stopRecording = async (cancel = false) => {
     if (autoStopRef.current) { clearTimeout(autoStopRef.current); autoStopRef.current = null; }
-    const recording = recordingRef.current;
-    if (!recording) { addLog('stopRecording: no recording ref'); return; }
-    addLog(`stopRecording called. cancel=${cancel}`);
+    addLog(`stopRecording. cancel=${cancel}, isRecording=${recorder.isRecording}`);
+    if (!recorder.isRecording) { addLog('Not recording — skipping'); return; }
     try {
-      const st = await recording.getStatusAsync();
-      addLog(`Status before stop: isRecording=${st.isRecording}, duration=${st.durationMillis}ms`);
-      await recording.stopAndUnloadAsync();
-      // Reset audio mode so TTS playback works
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-      recordingRef.current = null;
+      recorder.stop();
+      addLog(`Stopped. uri=${recorder.uri ? 'YES' : 'NO'}`);
       if (cancel) { setStatus('idle'); return; }
-      const uri = recording.getURI();
-      addLog(`URI: ${uri ? 'YES' : 'NO'}`);
-      if (!uri) { setStatus('idle'); return; }
+      const uri = recorder.uri;
+      if (!uri) { addLog('No URI'); setStatus('idle'); return; }
       setStatus('thinking');
       setResponse('Transcribing...');
       const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
@@ -389,10 +370,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   const hangUp = () => {
     Speech.stop();
     if (autoStopRef.current) { clearTimeout(autoStopRef.current); autoStopRef.current = null; }
-    if (recordingRef.current) {
-      recordingRef.current.stopAndUnloadAsync().catch(() => {});
-      recordingRef.current = null;
-    }
+    try { if (recorder.isRecording) recorder.stop(); } catch {}
     setContinuous(false);
     setStatus('idle');
     onClose();
