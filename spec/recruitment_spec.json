@@ -1,0 +1,2922 @@
+{
+  "_meta": {
+    "app_name": "Recruitment",
+    "description": "Applicant tracking and recruitment management"
+  },
+  "entities": [
+    {
+      "name": "Department",
+      "table": "departments",
+      "description": "Company department",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Full name"
+        },
+        {
+          "name": "code",
+          "db_type": "VARCHAR(10) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "head_name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "budget",
+          "db_type": "NUMERIC(12,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "headcount",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "frozen",
+            "restructuring"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "frozen": "blue",
+            "restructuring": "yellow"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "code",
+            "head_name",
+            "budget",
+            "headcount",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Departments yet",
+            "subtext": "Create your first department",
+            "action_label": "Add Department"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Frozen",
+              "filter": {
+                "field": "status",
+                "value": "frozen"
+              }
+            },
+            {
+              "label": "Restructuring",
+              "filter": {
+                "field": "status",
+                "value": "restructuring"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "code",
+            "head_name",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "code",
+            "head_name",
+            "budget",
+            "headcount",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "code",
+            "budget",
+            "headcount",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "code",
+            "head_name",
+            "budget",
+            "headcount",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "code",
+            "budget",
+            "headcount",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/departments/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "code",
+            "head_name",
+            "budget"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "code",
+                "head_name",
+                "budget"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Recruiter",
+      "table": "recruiters",
+      "description": "Internal or external recruiter",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Full name"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          },
+          "placeholder": "(555) 123-4567"
+        },
+        {
+          "name": "recruiter_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "internal",
+            "agency",
+            "freelance"
+          ],
+          "badge_colors": {
+            "internal": "green",
+            "agency": "blue",
+            "freelance": "purple"
+          }
+        },
+        {
+          "name": "specialization",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "commission_pct",
+          "db_type": "NUMERIC(5,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "validation": {
+            "min": 0,
+            "max": 100
+          },
+          "conditional_visibility": {
+            "field": "recruiter_type",
+            "operator": "not_equals",
+            "value": "internal"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "inactive"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "gray"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "phone",
+            "recruiter_type",
+            "specialization",
+            "commission_pct"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Recruiters yet",
+            "subtext": "Create your first recruiter",
+            "action_label": "Add Recruiter"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "recruiter_type"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "recruiter_type",
+            "specialization",
+            "commission_pct",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone",
+            "recruiter_type",
+            "commission_pct",
+            "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "specialization",
+                "commission_pct"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "recruiter_type",
+                "status"
+              ]
+            }
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "recruiter_type",
+            "specialization",
+            "commission_pct",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone",
+            "recruiter_type",
+            "commission_pct",
+            "status"
+          ],
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "specialization",
+                "commission_pct"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "recruiter_type",
+                "status"
+              ]
+            }
+          ]
+        },
+        "detail_view": {
+          "route": "/recruiters/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "recruiter_type"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "recruiter_type"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "JobPosting",
+      "table": "job_postings",
+      "description": "Open job position",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Enter title"
+        },
+        {
+          "name": "department_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "departments",
+          "fk_display": "name"
+        },
+        {
+          "name": "recruiter_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "recruiters",
+          "fk_display": "name"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Add details..."
+        },
+        {
+          "name": "employment_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "full_time",
+            "part_time",
+            "contract",
+            "internship",
+            "temporary"
+          ],
+          "badge_colors": {
+            "full_time": "green",
+            "part_time": "blue",
+            "contract": "purple",
+            "internship": "teal",
+            "temporary": "orange"
+          }
+        },
+        {
+          "name": "salary_min",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "salary_max",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "location",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "remote_policy",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'on_site'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "on_site",
+          "enum_values": [
+            "on_site",
+            "hybrid",
+            "remote",
+            "flexible"
+          ],
+          "badge_colors": {
+            "on_site": "blue",
+            "hybrid": "green",
+            "remote": "purple",
+            "flexible": "teal"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'draft'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "draft",
+          "enum_values": [
+            "draft",
+            "open",
+            "paused",
+            "filled",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "draft": "gray",
+            "open": "green",
+            "paused": "yellow",
+            "filled": "blue",
+            "cancelled": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "title",
+            "department_id",
+            "recruiter_id",
+            "employment_type",
+            "salary_min",
+            "salary_max"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No JobPostings yet",
+            "subtext": "Create your first jobposting",
+            "action_label": "Add JobPosting"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Draft",
+              "filter": {
+                "field": "status",
+                "value": "draft"
+              }
+            },
+            {
+              "label": "Open",
+              "filter": {
+                "field": "status",
+                "value": "open"
+              }
+            },
+            {
+              "label": "Paused",
+              "filter": {
+                "field": "status",
+                "value": "paused"
+              }
+            },
+            {
+              "label": "Filled",
+              "filter": {
+                "field": "status",
+                "value": "filled"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "title",
+            "employment_type",
+            "location",
+            "remote_policy"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "title",
+            "department_id",
+            "recruiter_id",
+            "description",
+            "employment_type",
+            "salary_min",
+            "salary_max",
+            "location",
+            "remote_policy",
+            "status"
+          ],
+          "required_fields": [
+            "title",
+            "department_id",
+            "recruiter_id",
+            "description",
+            "employment_type",
+            "location",
+            "remote_policy",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "title",
+            "department_id",
+            "recruiter_id",
+            "description",
+            "employment_type",
+            "salary_min",
+            "salary_max",
+            "location",
+            "remote_policy",
+            "status"
+          ],
+          "required_fields": [
+            "title",
+            "department_id",
+            "recruiter_id",
+            "description",
+            "employment_type",
+            "location",
+            "remote_policy",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/job_postings/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "title"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "title",
+            "department_id",
+            "recruiter_id",
+            "employment_type"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "title",
+                "department_id",
+                "recruiter_id",
+                "employment_type"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "department_id",
+          "references": {
+            "table": "departments",
+            "column": "id"
+          }
+        },
+        {
+          "column": "recruiter_id",
+          "references": {
+            "table": "recruiters",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "salary_range",
+          "expression": "'$' || salary_min || ' - $' || salary_max",
+          "ts_expression": "'$' + salary_min + ' - $' + salary_max"
+        }
+      ]
+    },
+    {
+      "name": "Candidate",
+      "table": "candidates",
+      "description": "Job candidate",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "first_name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "First name"
+        },
+        {
+          "name": "last_name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Last name"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          },
+          "placeholder": "(555) 123-4567"
+        },
+        {
+          "name": "resume_url",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "https://..."
+        },
+        {
+          "name": "linkedin_url",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "https://..."
+        },
+        {
+          "name": "experience_years",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0,
+            "max": 50
+          }
+        },
+        {
+          "name": "source",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "linkedin",
+            "indeed",
+            "referral",
+            "website",
+            "career_fair",
+            "agency",
+            "other"
+          ],
+          "badge_colors": {
+            "linkedin": "blue",
+            "indeed": "purple",
+            "referral": "green",
+            "website": "teal",
+            "career_fair": "orange",
+            "agency": "yellow",
+            "other": "gray"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'new'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "new",
+          "enum_values": [
+            "new",
+            "screening",
+            "interviewing",
+            "offer_stage",
+            "hired",
+            "rejected",
+            "withdrawn"
+          ],
+          "badge_colors": {
+            "new": "blue",
+            "screening": "teal",
+            "interviewing": "purple",
+            "offer_stage": "yellow",
+            "hired": "green",
+            "rejected": "red",
+            "withdrawn": "gray"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "experience_years",
+            "source"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Candidates yet",
+            "subtext": "Create your first candidate",
+            "action_label": "Add Candidate"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "New",
+              "filter": {
+                "field": "status",
+                "value": "new"
+              }
+            },
+            {
+              "label": "Screening",
+              "filter": {
+                "field": "status",
+                "value": "screening"
+              }
+            },
+            {
+              "label": "Interviewing",
+              "filter": {
+                "field": "status",
+                "value": "interviewing"
+              }
+            },
+            {
+              "label": "Offer Stage",
+              "filter": {
+                "field": "status",
+                "value": "offer_stage"
+              }
+            },
+            {
+              "label": "Hired",
+              "filter": {
+                "field": "status",
+                "value": "hired"
+              }
+            },
+            {
+              "label": "Rejected",
+              "filter": {
+                "field": "status",
+                "value": "rejected"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "resume_url",
+            "linkedin_url",
+            "experience_years",
+            "source",
+            "status"
+          ],
+          "required_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "experience_years",
+            "source",
+            "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "resume_url",
+                "linkedin_url",
+                "experience_years",
+                "source"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "resume_url",
+            "linkedin_url",
+            "experience_years",
+            "source",
+            "status"
+          ],
+          "required_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "experience_years",
+            "source",
+            "status"
+          ],
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "resume_url",
+                "linkedin_url",
+                "experience_years",
+                "source"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
+        },
+        "detail_view": {
+          "route": "/candidates/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "first_name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "computed_fields": [
+        {
+          "name": "full_name",
+          "expression": "first_name || ' ' || last_name",
+          "ts_expression": "first_name + ' ' + last_name"
+        }
+      ]
+    },
+    {
+      "name": "Application",
+      "table": "applications",
+      "description": "Job application",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "job_posting_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "job_postings",
+          "fk_display": "title"
+        },
+        {
+          "name": "candidate_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "candidates",
+          "fk_display": "first_name"
+        },
+        {
+          "name": "applied_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "cover_letter_url",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "https://..."
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'received'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "received",
+          "enum_values": [
+            "received",
+            "reviewed",
+            "shortlisted",
+            "interview",
+            "offer",
+            "hired",
+            "rejected"
+          ],
+          "badge_colors": {
+            "received": "blue",
+            "reviewed": "teal",
+            "shortlisted": "purple",
+            "interview": "yellow",
+            "offer": "orange",
+            "hired": "green",
+            "rejected": "red"
+          }
+        },
+        {
+          "name": "rating",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1,
+            "max": 5
+          }
+        },
+        {
+          "name": "rejection_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "rejected"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Add details..."
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "job_posting_id",
+            "candidate_id",
+            "applied_date",
+            "status",
+            "rating"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Applications yet",
+            "subtext": "Create your first application",
+            "action_label": "Add Application"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Received",
+              "filter": {
+                "field": "status",
+                "value": "received"
+              }
+            },
+            {
+              "label": "Reviewed",
+              "filter": {
+                "field": "status",
+                "value": "reviewed"
+              }
+            },
+            {
+              "label": "Shortlisted",
+              "filter": {
+                "field": "status",
+                "value": "shortlisted"
+              }
+            },
+            {
+              "label": "Interview",
+              "filter": {
+                "field": "status",
+                "value": "interview"
+              }
+            },
+            {
+              "label": "Offer",
+              "filter": {
+                "field": "status",
+                "value": "offer"
+              }
+            },
+            {
+              "label": "Hired",
+              "filter": {
+                "field": "status",
+                "value": "hired"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "job_posting_id",
+            "candidate_id",
+            "applied_date",
+            "cover_letter_url",
+            "status",
+            "rating",
+            "rejection_reason",
+            "notes"
+          ],
+          "required_fields": [
+            "job_posting_id",
+            "candidate_id",
+            "applied_date",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "job_posting_id",
+            "candidate_id",
+            "applied_date",
+            "cover_letter_url",
+            "status",
+            "rating",
+            "rejection_reason",
+            "notes"
+          ],
+          "required_fields": [
+            "job_posting_id",
+            "candidate_id",
+            "applied_date",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/applications/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "job_posting_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "job_posting_id",
+            "candidate_id",
+            "applied_date",
+            "status"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "job_posting_id",
+                "candidate_id",
+                "applied_date",
+                "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "job_posting_id",
+          "references": {
+            "table": "job_postings",
+            "column": "id"
+          }
+        },
+        {
+          "column": "candidate_id",
+          "references": {
+            "table": "candidates",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Interview",
+      "table": "interviews",
+      "description": "Candidate interview",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "application_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "applications",
+          "fk_display": "id"
+        },
+        {
+          "name": "interviewer_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "scheduled_date",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "datetime",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "duration_minutes",
+          "db_type": "INTEGER NOT NULL DEFAULT 60",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 60,
+          "validation": {
+            "min": 15,
+            "max": 480
+          }
+        },
+        {
+          "name": "interview_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "phone",
+            "video",
+            "in_person",
+            "panel",
+            "technical",
+            "behavioral"
+          ],
+          "badge_colors": {
+            "phone": "blue",
+            "video": "teal",
+            "in_person": "green",
+            "panel": "purple",
+            "technical": "orange",
+            "behavioral": "yellow"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'scheduled'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "scheduled",
+          "enum_values": [
+            "scheduled",
+            "completed",
+            "cancelled",
+            "no_show",
+            "rescheduled"
+          ],
+          "badge_colors": {
+            "scheduled": "blue",
+            "completed": "green",
+            "cancelled": "red",
+            "no_show": "gray",
+            "rescheduled": "yellow"
+          }
+        },
+        {
+          "name": "score",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1,
+            "max": 10
+          },
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "completed"
+          }
+        },
+        {
+          "name": "feedback",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "completed"
+          },
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "application_id",
+            "interviewer_name",
+            "scheduled_date",
+            "duration_minutes",
+            "interview_type",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Interviews yet",
+            "subtext": "Create your first interview",
+            "action_label": "Add Interview"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            },
+            {
+              "label": "Rescheduled",
+              "filter": {
+                "field": "status",
+                "value": "rescheduled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "interviewer_name",
+            "interview_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "application_id",
+            "interviewer_name",
+            "scheduled_date",
+            "duration_minutes",
+            "interview_type",
+            "status",
+            "score",
+            "feedback"
+          ],
+          "required_fields": [
+            "application_id",
+            "interviewer_name",
+            "scheduled_date",
+            "duration_minutes",
+            "interview_type",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "application_id",
+            "interviewer_name",
+            "scheduled_date",
+            "duration_minutes",
+            "interview_type",
+            "status",
+            "score",
+            "feedback"
+          ],
+          "required_fields": [
+            "application_id",
+            "interviewer_name",
+            "scheduled_date",
+            "duration_minutes",
+            "interview_type",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/interviews/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "application_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "application_id",
+            "interviewer_name",
+            "scheduled_date",
+            "duration_minutes"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "application_id",
+                "interviewer_name",
+                "scheduled_date",
+                "duration_minutes"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "application_id",
+          "references": {
+            "table": "applications",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Offer",
+      "table": "offers",
+      "description": "Job offer to candidate",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "candidate_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "candidates",
+          "fk_display": "first_name"
+        },
+        {
+          "name": "job_posting_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "job_postings",
+          "fk_display": "title"
+        },
+        {
+          "name": "salary",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          },
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "expiry_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "signing_bonus",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'pending'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "pending",
+          "enum_values": [
+            "pending",
+            "accepted",
+            "declined",
+            "expired",
+            "negotiating",
+            "withdrawn"
+          ],
+          "badge_colors": {
+            "pending": "yellow",
+            "accepted": "green",
+            "declined": "red",
+            "expired": "gray",
+            "negotiating": "blue",
+            "withdrawn": "orange"
+          }
+        },
+        {
+          "name": "decline_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "in",
+            "value": [
+              "declined",
+              "withdrawn"
+            ]
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "candidate_id",
+            "job_posting_id",
+            "salary",
+            "start_date",
+            "expiry_date",
+            "signing_bonus"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Offers yet",
+            "subtext": "Create your first offer",
+            "action_label": "Add Offer"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Accepted",
+              "filter": {
+                "field": "status",
+                "value": "accepted"
+              }
+            },
+            {
+              "label": "Declined",
+              "filter": {
+                "field": "status",
+                "value": "declined"
+              }
+            },
+            {
+              "label": "Expired",
+              "filter": {
+                "field": "status",
+                "value": "expired"
+              }
+            },
+            {
+              "label": "Negotiating",
+              "filter": {
+                "field": "status",
+                "value": "negotiating"
+              }
+            },
+            {
+              "label": "Withdrawn",
+              "filter": {
+                "field": "status",
+                "value": "withdrawn"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "candidate_id",
+            "job_posting_id",
+            "salary",
+            "start_date",
+            "expiry_date",
+            "signing_bonus",
+            "status",
+            "decline_reason"
+          ],
+          "required_fields": [
+            "candidate_id",
+            "job_posting_id",
+            "salary",
+            "start_date",
+            "expiry_date",
+            "signing_bonus",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "candidate_id",
+            "job_posting_id",
+            "salary",
+            "start_date",
+            "expiry_date",
+            "signing_bonus",
+            "status",
+            "decline_reason"
+          ],
+          "required_fields": [
+            "candidate_id",
+            "job_posting_id",
+            "salary",
+            "start_date",
+            "expiry_date",
+            "signing_bonus",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/offers/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "candidate_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "candidate_id",
+            "job_posting_id",
+            "salary",
+            "start_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "candidate_id",
+                "job_posting_id",
+                "salary",
+                "start_date"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "candidate_id",
+          "references": {
+            "table": "candidates",
+            "column": "id"
+          }
+        },
+        {
+          "column": "job_posting_id",
+          "references": {
+            "table": "job_postings",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "total_compensation",
+          "expression": "salary + signing_bonus",
+          "ts_expression": "salary + signing_bonus"
+        }
+      ]
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Departments",
+        "entity": "Department",
+        "method": "count",
+        "icon": "FileText",
+        "color": "blue"
+      },
+      {
+        "label": "Total Recruiters",
+        "entity": "Recruiter",
+        "method": "count",
+        "icon": "FileText",
+        "color": "emerald"
+      },
+      {
+        "label": "Total JobPostings",
+        "entity": "JobPosting",
+        "method": "count",
+        "icon": "FileText",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Offer",
+        "method": "sum",
+        "field": "salary",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Departments",
+        "entity": "Department",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
+}

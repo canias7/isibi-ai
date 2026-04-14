@@ -1,0 +1,1639 @@
+{
+  "_meta": {
+    "app_name": "OKR Goal Tracking",
+    "description": "Complete okr goal tracking management"
+  },
+  "spec_name": "okr_goal_tracking_spec",
+  "entities": [
+    {
+      "name": "Team",
+      "table": "okr_teams",
+      "description": "Team",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
+        },
+        {
+          "name": "department",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Department",
+          "help_text": "Department or division"
+        },
+        {
+          "name": "lead",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter lead"
+        },
+        {
+          "name": "lead_email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email required"
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
+        },
+        {
+          "name": "member_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "0"
+        },
+        {
+          "name": "active_objectives",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(objectives WHERE status=active)"
+        },
+        {
+          "name": "color",
+          "db_type": "VARCHAR(7)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "color_picker",
+          "display_component": "color_swatch"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "department",
+            "lead",
+            "lead_email",
+            "member_count",
+            "color"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Objectives",
+          "type": "related_list",
+          "entity": "Objective",
+          "foreign_key": "team_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "department",
+        "lead",
+        "lead_email"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Objective",
+      "table": "objectives",
+      "description": "Objective",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "team_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Team"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
+        },
+        {
+          "name": "time_frame",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "quarterly",
+            "semi_annual",
+            "annual"
+          ],
+          "badge_colors": {
+            "quarterly": "blue",
+            "semi_annual": "purple",
+            "annual": "green"
+          },
+          "placeholder": "Select time frame"
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "end_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "progress_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "AVG(key_results.progress_pct)"
+        },
+        {
+          "name": "owner",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter owner"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "draft",
+            "active",
+            "at_risk",
+            "completed",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "draft": "slate",
+            "active": "green",
+            "at_risk": "red",
+            "completed": "blue",
+            "cancelled": "purple"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "time_frame",
+          "columns": [
+            "quarterly",
+            "semi_annual",
+            "annual"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "start_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "description",
+            "owner"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "team_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "time_frame",
+            "start_date",
+            "end_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "time_frame",
+          "label": "Time Frame",
+          "options": [
+            "all",
+            "quarterly",
+            "semi_annual",
+            "annual"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "draft",
+            "active",
+            "at_risk",
+            "completed",
+            "cancelled"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "KeyResults",
+          "type": "related_list",
+          "entity": "KeyResult",
+          "foreign_key": "objective_id"
+        },
+        {
+          "label": "Alignments",
+          "type": "related_list",
+          "entity": "Alignment",
+          "foreign_key": "parent_objective_id"
+        }
+      ],
+      "default_sort": {
+        "field": "start_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "time_frame",
+        "owner",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "KeyResult",
+      "table": "key_results",
+      "description": "KeyResult",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "objective_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Objective"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
+        },
+        {
+          "name": "metric_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "number",
+            "percentage",
+            "currency",
+            "boolean"
+          ],
+          "badge_colors": {
+            "number": "blue",
+            "percentage": "green",
+            "currency": "amber",
+            "boolean": "purple"
+          },
+          "placeholder": "Select metric type"
+        },
+        {
+          "name": "start_value",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "0"
+        },
+        {
+          "name": "target_value",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "0"
+        },
+        {
+          "name": "current_value",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "0"
+        },
+        {
+          "name": "progress_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "(current_value - start_value) / (target_value - start_value) * 100"
+        },
+        {
+          "name": "owner",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter owner"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "on_track",
+            "behind",
+            "at_risk",
+            "achieved"
+          ],
+          "badge_colors": {
+            "on_track": "green",
+            "behind": "amber",
+            "at_risk": "red",
+            "achieved": "blue"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "metric_type",
+          "columns": [
+            "number",
+            "percentage",
+            "currency",
+            "boolean"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "start_value",
+            "target_value",
+            "current_value",
+            "owner"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "objective_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "metric_type",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "metric_type",
+          "label": "Metric Type",
+          "options": [
+            "all",
+            "number",
+            "percentage",
+            "currency",
+            "boolean"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "on_track",
+            "behind",
+            "at_risk",
+            "achieved"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Initiatives",
+          "type": "related_list",
+          "entity": "Initiative",
+          "foreign_key": "key_result_id"
+        },
+        {
+          "label": "CheckIns",
+          "type": "related_list",
+          "entity": "CheckIn",
+          "foreign_key": "key_result_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "metric_type",
+        "owner",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Initiative",
+      "table": "okr_initiatives",
+      "description": "Initiative",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "key_result_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "KeyResult"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
+        },
+        {
+          "name": "assignee",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter assignee"
+        },
+        {
+          "name": "priority",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "badge_colors": {
+            "low": "slate",
+            "medium": "blue",
+            "high": "amber",
+            "critical": "red"
+          },
+          "placeholder": "Select priority",
+          "help_text": "Priority level"
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "estimated_effort_days",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "0"
+        },
+        {
+          "name": "completion_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "not_started",
+            "in_progress",
+            "blocked",
+            "completed"
+          ],
+          "badge_colors": {
+            "not_started": "slate",
+            "in_progress": "blue",
+            "blocked": "red",
+            "completed": "green"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "priority",
+          "columns": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "start_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "description",
+            "assignee",
+            "estimated_effort_days"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "key_result_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "priority",
+            "start_date",
+            "due_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "priority",
+          "label": "Priority",
+          "options": [
+            "all",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "not_started",
+            "in_progress",
+            "blocked",
+            "completed"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "start_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "assignee",
+        "priority",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "CheckIn",
+      "table": "okr_checkins",
+      "description": "CheckIn",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "key_result_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "KeyResult"
+        },
+        {
+          "name": "author",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter author",
+          "help_text": "Report author"
+        },
+        {
+          "name": "checkin_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "previous_value",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "new_value",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "0"
+        },
+        {
+          "name": "delta",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text",
+          "computed": "new_value - previous_value"
+        },
+        {
+          "name": "confidence",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "on_track",
+            "at_risk",
+            "off_track"
+          ],
+          "badge_colors": {
+            "on_track": "green",
+            "at_risk": "amber",
+            "off_track": "red"
+          },
+          "placeholder": "Select confidence"
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Add notes...",
+          "help_text": "Additional notes or comments"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "confidence",
+          "columns": [
+            "on_track",
+            "at_risk",
+            "off_track"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "checkin_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "author",
+            "new_value",
+            "notes"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "key_result_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "checkin_date",
+            "confidence"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "confidence",
+          "label": "Confidence",
+          "options": [
+            "all",
+            "on_track",
+            "at_risk",
+            "off_track"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "checkin_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "author",
+        "confidence"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Alignment",
+      "table": "okr_alignments",
+      "description": "Alignment",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "parent_objective_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Objective"
+        },
+        {
+          "name": "child_objective_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Objective"
+        },
+        {
+          "name": "alignment_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "supports",
+            "contributes_to",
+            "depends_on",
+            "blocks"
+          ],
+          "badge_colors": {
+            "supports": "green",
+            "contributes_to": "blue",
+            "depends_on": "amber",
+            "blocks": "red"
+          },
+          "placeholder": "Select alignment type"
+        },
+        {
+          "name": "contribution_weight",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage"
+        },
+        {
+          "name": "rationale",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter rationale..."
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "proposed",
+            "approved",
+            "active",
+            "removed"
+          ],
+          "badge_colors": {
+            "proposed": "slate",
+            "approved": "blue",
+            "active": "green",
+            "removed": "red"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "alignment_type",
+          "columns": [
+            "supports",
+            "contributes_to",
+            "depends_on",
+            "blocks"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "rationale"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "parent_objective_id",
+            "child_objective_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "alignment_type",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "alignment_type",
+          "label": "Alignment Type",
+          "options": [
+            "all",
+            "supports",
+            "contributes_to",
+            "depends_on",
+            "blocks"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "proposed",
+            "approved",
+            "active",
+            "removed"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "alignment_type",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Teams",
+        "query": "COUNT(*) FROM okr_teams",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM okr_teams WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total Objectives",
+        "query": "COUNT(*) FROM objectives",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Objectives",
+        "query": "COUNT(*) FROM objectives WHERE time_frame = 'quarterly'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "Total KeyResults",
+        "query": "COUNT(*) FROM key_results",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active KeyResults",
+        "query": "COUNT(*) FROM key_results WHERE metric_type = 'number'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      }
+    ]
+  }
+}

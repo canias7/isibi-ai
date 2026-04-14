@@ -1,0 +1,1766 @@
+{
+  "_meta": {
+    "app_name": "Risk Management",
+    "description": "Complete risk management management"
+  },
+  "spec_name": "risk_management_spec",
+  "entities": [
+    {
+      "name": "Risk",
+      "table": "risks",
+      "description": "Risk",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "operational",
+            "financial",
+            "strategic",
+            "compliance",
+            "reputational",
+            "technical"
+          ],
+          "badge_colors": {
+            "operational": "blue",
+            "financial": "green",
+            "strategic": "purple",
+            "compliance": "amber",
+            "reputational": "pink",
+            "technical": "slate"
+          },
+          "placeholder": "Select category",
+          "help_text": "Category classification"
+        },
+        {
+          "name": "likelihood",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "rare",
+            "unlikely",
+            "possible",
+            "likely",
+            "almost_certain"
+          ],
+          "badge_colors": {
+            "rare": "green",
+            "unlikely": "blue",
+            "possible": "amber",
+            "likely": "red",
+            "almost_certain": "purple"
+          },
+          "placeholder": "Select likelihood"
+        },
+        {
+          "name": "impact",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "negligible",
+            "minor",
+            "moderate",
+            "major",
+            "catastrophic"
+          ],
+          "badge_colors": {
+            "negligible": "green",
+            "minor": "blue",
+            "moderate": "amber",
+            "major": "red",
+            "catastrophic": "purple"
+          },
+          "placeholder": "Select impact"
+        },
+        {
+          "name": "risk_score",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "likelihood_rank * impact_rank"
+        },
+        {
+          "name": "owner",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter owner"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "identified",
+            "analyzing",
+            "mitigating",
+            "accepted",
+            "closed"
+          ],
+          "badge_colors": {
+            "identified": "blue",
+            "analyzing": "amber",
+            "mitigating": "purple",
+            "accepted": "green",
+            "closed": "slate"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "category",
+          "columns": [
+            "operational",
+            "financial",
+            "strategic",
+            "compliance",
+            "reputational",
+            "technical"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "description",
+            "owner"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "category",
+            "likelihood",
+            "impact",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "category",
+          "label": "Category",
+          "options": [
+            "all",
+            "operational",
+            "financial",
+            "strategic",
+            "compliance",
+            "reputational",
+            "technical"
+          ]
+        },
+        {
+          "field": "likelihood",
+          "label": "Likelihood",
+          "options": [
+            "all",
+            "rare",
+            "unlikely",
+            "possible",
+            "likely",
+            "almost_certain"
+          ]
+        },
+        {
+          "field": "impact",
+          "label": "Impact",
+          "options": [
+            "all",
+            "negligible",
+            "minor",
+            "moderate",
+            "major",
+            "catastrophic"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "identified",
+            "analyzing",
+            "mitigating",
+            "accepted",
+            "closed"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Assessments",
+          "type": "related_list",
+          "entity": "Assessment",
+          "foreign_key": "risk_id"
+        },
+        {
+          "label": "Mitigations",
+          "type": "related_list",
+          "entity": "Mitigation",
+          "foreign_key": "risk_id"
+        },
+        {
+          "label": "Controls",
+          "type": "related_list",
+          "entity": "Control",
+          "foreign_key": "risk_id"
+        },
+        {
+          "label": "Incidents",
+          "type": "related_list",
+          "entity": "Incident",
+          "foreign_key": "risk_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "category",
+        "likelihood",
+        "impact"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Assessment",
+      "table": "risk_assessments",
+      "description": "Assessment",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "risk_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Risk"
+        },
+        {
+          "name": "assessor",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter assessor"
+        },
+        {
+          "name": "assessment_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "likelihood_score",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "0"
+        },
+        {
+          "name": "impact_score",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "0"
+        },
+        {
+          "name": "risk_rating",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "likelihood_score * impact_score"
+        },
+        {
+          "name": "methodology",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "qualitative",
+            "quantitative",
+            "semi_quantitative"
+          ],
+          "placeholder": "Select methodology",
+          "badge_colors": {
+            "qualitative": "pink",
+            "quantitative": "blue",
+            "semi_quantitative": "green"
+          }
+        },
+        {
+          "name": "findings",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter findings...",
+          "help_text": "Inspection findings and observations"
+        },
+        {
+          "name": "recommendations",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter recommendations..."
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "calendar",
+          "date_field": "assessment_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "assessor",
+            "likelihood_score",
+            "impact_score",
+            "methodology",
+            "findings",
+            "recommendations"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "risk_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "assessment_date"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "assessment_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "assessor",
+        "methodology"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Mitigation",
+      "table": "risk_mitigations",
+      "description": "Mitigation",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "risk_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Risk"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
+        },
+        {
+          "name": "strategy",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "avoid",
+            "transfer",
+            "reduce",
+            "accept"
+          ],
+          "badge_colors": {
+            "avoid": "red",
+            "transfer": "blue",
+            "reduce": "amber",
+            "accept": "green"
+          },
+          "placeholder": "Select strategy"
+        },
+        {
+          "name": "estimated_cost",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Cost amount"
+        },
+        {
+          "name": "actual_cost",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Cost amount"
+        },
+        {
+          "name": "target_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "owner",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter owner"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "planned",
+            "in_progress",
+            "completed",
+            "deferred"
+          ],
+          "badge_colors": {
+            "planned": "blue",
+            "in_progress": "amber",
+            "completed": "green",
+            "deferred": "slate"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "effectiveness_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "strategy",
+          "columns": [
+            "avoid",
+            "transfer",
+            "reduce",
+            "accept"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "target_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "estimated_cost",
+            "actual_cost",
+            "owner"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "risk_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "strategy",
+            "target_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "strategy",
+          "label": "Strategy",
+          "options": [
+            "all",
+            "avoid",
+            "transfer",
+            "reduce",
+            "accept"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "planned",
+            "in_progress",
+            "completed",
+            "deferred"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "target_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "strategy",
+        "owner",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Control",
+      "table": "risk_controls",
+      "description": "Control",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "risk_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Risk"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
+        },
+        {
+          "name": "control_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "preventive",
+            "detective",
+            "corrective",
+            "compensating"
+          ],
+          "badge_colors": {
+            "preventive": "green",
+            "detective": "blue",
+            "corrective": "amber",
+            "compensating": "purple"
+          },
+          "placeholder": "Select control type"
+        },
+        {
+          "name": "frequency",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "continuous",
+            "daily",
+            "weekly",
+            "monthly",
+            "quarterly",
+            "annual"
+          ],
+          "placeholder": "Select frequency",
+          "badge_colors": {
+            "continuous": "pink",
+            "daily": "blue",
+            "weekly": "green",
+            "monthly": "amber",
+            "quarterly": "purple",
+            "annual": "red"
+          }
+        },
+        {
+          "name": "owner",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter owner"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "effective",
+            "partially_effective",
+            "ineffective",
+            "not_tested"
+          ],
+          "badge_colors": {
+            "effective": "green",
+            "partially_effective": "amber",
+            "ineffective": "red",
+            "not_tested": "slate"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "last_tested",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "evidence",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter evidence..."
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "control_type",
+          "columns": [
+            "preventive",
+            "detective",
+            "corrective",
+            "compensating"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "last_tested"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "frequency",
+            "owner",
+            "evidence"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "risk_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "control_type",
+            "status",
+            "last_tested"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "control_type",
+          "label": "Control Type",
+          "options": [
+            "all",
+            "preventive",
+            "detective",
+            "corrective",
+            "compensating"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "effective",
+            "partially_effective",
+            "ineffective",
+            "not_tested"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "last_tested",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "control_type",
+        "frequency",
+        "owner"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Incident",
+      "table": "risk_incidents",
+      "description": "Incident",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "risk_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Risk"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
+        },
+        {
+          "name": "occurred_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "severity",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "badge_colors": {
+            "low": "slate",
+            "medium": "amber",
+            "high": "red",
+            "critical": "purple"
+          },
+          "placeholder": "Select severity"
+        },
+        {
+          "name": "financial_impact",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Enter financial impact"
+        },
+        {
+          "name": "reported_by",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter reported by"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "reported",
+            "investigating",
+            "resolved",
+            "closed"
+          ],
+          "badge_colors": {
+            "reported": "amber",
+            "investigating": "blue",
+            "resolved": "green",
+            "closed": "slate"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "severity",
+          "columns": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "occurred_at"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "description",
+            "financial_impact",
+            "reported_by"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "risk_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "occurred_at",
+            "severity",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "severity",
+          "label": "Severity",
+          "options": [
+            "all",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "reported",
+            "investigating",
+            "resolved",
+            "closed"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "occurred_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "severity",
+        "reported_by",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Report",
+      "table": "risk_reports",
+      "description": "Report",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
+        },
+        {
+          "name": "report_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "risk_register",
+            "heat_map",
+            "trend_analysis",
+            "executive_summary"
+          ],
+          "badge_colors": {
+            "risk_register": "blue",
+            "heat_map": "red",
+            "trend_analysis": "green",
+            "executive_summary": "purple"
+          },
+          "placeholder": "Select report type"
+        },
+        {
+          "name": "period_start",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "period_end",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "total_risks",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(risks)",
+          "placeholder": "0.00",
+          "help_text": "Total amount"
+        },
+        {
+          "name": "high_risks",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(risks WHERE risk_score >= 15)"
+        },
+        {
+          "name": "mitigated_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(risks WHERE status=mitigating)"
+        },
+        {
+          "name": "summary",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Brief summary...",
+          "help_text": "Short summary of the item"
+        },
+        {
+          "name": "prepared_by",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter prepared by"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "report_type",
+          "columns": [
+            "risk_register",
+            "heat_map",
+            "trend_analysis",
+            "executive_summary"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "period_start"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "summary",
+            "prepared_by"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "report_type",
+            "period_start",
+            "period_end"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "report_type",
+          "label": "Report Type",
+          "options": [
+            "all",
+            "risk_register",
+            "heat_map",
+            "trend_analysis",
+            "executive_summary"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "period_start",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "report_type",
+        "prepared_by"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Risks",
+        "query": "COUNT(*) FROM risks",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Risks",
+        "query": "COUNT(*) FROM risks WHERE category = 'operational'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM risks WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total Assessments",
+        "query": "COUNT(*) FROM risk_assessments",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Mitigations",
+        "query": "COUNT(*) FROM risk_mitigations",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Estimated Cost",
+        "query": "SUM(estimated_cost) FROM risk_mitigations",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      }
+    ]
+  }
+}

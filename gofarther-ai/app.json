@@ -1,0 +1,115 @@
+{
+  "expo": {
+    "name": "GoFarther AI",
+    "slug": "gofurther-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1e1e1e"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "GoFarther AI needs speech recognition to understand your voice commands.",
+        "NSMicrophoneUsageDescription": "GoFarther AI needs microphone access for voice commands.",
+        "NSContactsUsageDescription": "GoFarther AI needs contacts access to find and call people.",
+        "NSCalendarsUsageDescription": "GoFarther AI needs calendar access to create and view events.",
+        "NSCameraUsageDescription": "GoFarther AI uses the camera for document scanning.",
+        "NSLocationWhenInUseUsageDescription": "GoFarther AI needs location for directions and nearby search.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "remote-notification",
+          "fetch"
+        ]
+      },
+      "bundleIdentifier": "com.gofarther.ai",
+      "entitlements": {
+        "aps-environment": "production"
+      }
+    },
+    "android": {
+      "permissions": [
+        "NOTIFICATIONS",
+        "RECORD_AUDIO",
+        "READ_CONTACTS",
+        "READ_CALENDAR",
+        "WRITE_CALENDAR",
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#1e1e1e"
+      },
+      "package": "com.gofarther.ai",
+      "versionCode": 5
+    },
+    "scheme": "gofarther",
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#ec4899",
+          "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "GoFarther AI needs your location for directions and nearby search."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "GoFarther AI needs camera access for photo attachments.",
+          "photosPermission": "GoFarther AI needs photo library access to attach images."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "GoFarther AI uses Face ID to unlock the app."
+        }
+      ],
+      "expo-sharing",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "GoFarther AI needs camera access for AR mode and photos."
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "GoFarther AI needs contacts access to find people when calling or texting."
+        }
+      ],
+      "expo-audio",
+      [
+        "@sentry/react-native",
+        {
+          "organization": "anias-capital-corp",
+          "project": "gofarther-ai"
+        }
+      ]
+    ],
+    "updates": {
+      "url": "https://u.expo.dev/de7252a0-40c1-4cb5-b6f3-eac7cc1f3b5e"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "de7252a0-40c1-4cb5-b6f3-eac7cc1f3b5e"
+      }
+    },
+    "owner": "isibi.ai"
+  }
+}

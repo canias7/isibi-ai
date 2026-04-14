@@ -1,0 +1,555 @@
+{
+  "_meta": {
+    "app_name": "Budget Spreadsheet",
+    "description": "Spreadsheet-style budget planning and tracking"
+  },
+  "entities": [
+    {
+      "name": "BudgetLine",
+      "table": "budget_lines",
+      "description": "Budget line item",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "housing",
+            "transportation",
+            "food",
+            "utilities",
+            "insurance",
+            "healthcare",
+            "savings",
+            "debt_payment",
+            "entertainment",
+            "personal",
+            "education",
+            "other"
+          ],
+          "badge_colors": {
+            "housing": "blue",
+            "transportation": "cyan",
+            "food": "amber",
+            "utilities": "green",
+            "insurance": "purple",
+            "healthcare": "red",
+            "savings": "emerald",
+            "debt_payment": "rose",
+            "entertainment": "pink",
+            "personal": "indigo",
+            "education": "teal",
+            "other": "gray"
+          }
+        },
+        {
+          "name": "subcategory",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "e.g. Groceries, Gas, Netflix",
+          "help_text": "Specific budget item"
+        },
+        {
+          "name": "planned_amount",
+          "db_type": "NUMERIC(12,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Budgeted amount"
+        },
+        {
+          "name": "actual_amount",
+          "db_type": "NUMERIC(12,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Actual amount spent"
+        },
+        {
+          "name": "variance",
+          "db_type": "NUMERIC(12,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "currency",
+          "computed": "planned_amount - actual_amount",
+          "help_text": "Calculated: planned - actual (positive = under budget)"
+        },
+        {
+          "name": "month",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "enum_values": [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+          ]
+        },
+        {
+          "name": "year",
+          "db_type": "INTEGER NOT NULL DEFAULT 2026",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "2026"
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Additional notes"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) DEFAULT 'on_track'",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": ["on_track", "over_budget", "under_budget"],
+          "badge_colors": {
+            "on_track": "green",
+            "over_budget": "red",
+            "under_budget": "blue"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": ["category", "subcategory", "planned_amount", "actual_amount", "variance", "month", "year", "status"],
+          "filters": [],
+          "empty_state": {
+            "icon": "Calculator",
+            "heading": "No budget lines yet",
+            "subtext": "Start planning your budget",
+            "action_label": "Add Budget Line"
+          },
+          "views": [
+            {"name": "Spreadsheet", "layout": "spreadsheet"},
+            {"name": "Table", "layout": "table"}
+          ],
+          "quick_filters": [
+            {"field": "category", "label": "Category", "options": ["housing", "transportation", "food", "utilities", "insurance", "healthcare", "savings", "debt_payment", "entertainment", "personal", "education", "other"]},
+            {"field": "status", "label": "Status", "options": ["on_track", "over_budget", "under_budget"]}
+          ],
+          "default_sort": {"field": "category", "direction": "asc"},
+          "searchable_fields": ["category", "subcategory"],
+          "row_actions": [
+            {"name": "Edit", "icon": "Pencil", "action": "edit"},
+            {"name": "View", "icon": "Eye", "action": "view"},
+            {"name": "Delete", "icon": "Trash2", "action": "delete", "confirm": true}
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": ["category", "subcategory", "planned_amount", "actual_amount", "month", "year", "notes", "status"],
+          "required_fields": ["category", "planned_amount", "month", "year"]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": ["category", "subcategory", "planned_amount", "actual_amount", "month", "year", "notes", "status"],
+          "required_fields": ["category", "planned_amount", "month", "year"],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/budget-lines/:id",
+          "layout": "tabbed",
+          "header": {"title_fields": ["subcategory"], "badge_fields": ["status"]},
+          "primary_fields": ["category", "subcategory", "planned_amount", "actual_amount", "variance"],
+          "tabs": [
+            {"name": "Details", "fields": ["category", "subcategory", "planned_amount", "actual_amount", "variance", "month", "year", "notes", "status"]}
+          ]
+        }
+      }
+    },
+    {
+      "name": "Income",
+      "table": "incomes",
+      "description": "Income source",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "source",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Salary, freelance, etc."
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(12,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "placeholder": "0.00"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "recurring",
+          "db_type": "BOOLEAN DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "frequency",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": ["weekly", "biweekly", "monthly", "quarterly", "annually", "one_time"],
+          "badge_colors": {
+            "weekly": "blue",
+            "biweekly": "cyan",
+            "monthly": "green",
+            "quarterly": "purple",
+            "annually": "amber",
+            "one_time": "gray"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": ["source", "amount", "date", "recurring", "frequency"],
+          "filters": [],
+          "empty_state": {
+            "icon": "Wallet",
+            "heading": "No income sources yet",
+            "subtext": "Add your income sources",
+            "action_label": "Add Income"
+          },
+          "views": [{"name": "Table", "layout": "table"}],
+          "default_sort": {"field": "date", "direction": "desc"},
+          "searchable_fields": ["source"],
+          "row_actions": [
+            {"name": "Edit", "icon": "Pencil", "action": "edit"},
+            {"name": "Delete", "icon": "Trash2", "action": "delete", "confirm": true}
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": ["source", "amount", "date", "recurring", "frequency"],
+          "required_fields": ["source", "amount", "date"]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": ["source", "amount", "date", "recurring", "frequency"],
+          "required_fields": ["source", "amount", "date"],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/incomes/:id",
+          "layout": "tabbed",
+          "header": {"title_fields": ["source"], "badge_fields": ["frequency"]},
+          "primary_fields": ["source", "amount", "date", "recurring", "frequency"],
+          "tabs": [{"name": "Overview", "fields": ["source", "amount", "date", "recurring", "frequency"]}]
+        }
+      }
+    }
+  ],
+  "modules": [
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "component": "DashboardPage",
+      "layout": "app",
+      "sidebar_order": 1,
+      "sidebar_icon": "LayoutDashboard"
+    },
+    {
+      "name": "Budget",
+      "route": "/budget-lines",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 2,
+      "sidebar_icon": "Calculator",
+      "entity": "BudgetLine"
+    },
+    {
+      "name": "Income",
+      "route": "/incomes",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 3,
+      "sidebar_icon": "Wallet",
+      "entity": "Income"
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Planned",
+        "entity": "BudgetLine",
+        "method": "sum",
+        "field": "planned_amount",
+        "icon": "Target",
+        "color": "blue"
+      },
+      {
+        "label": "Total Spent",
+        "entity": "BudgetLine",
+        "method": "sum",
+        "field": "actual_amount",
+        "icon": "DollarSign",
+        "color": "green"
+      },
+      {
+        "label": "Total Income",
+        "entity": "Income",
+        "method": "sum",
+        "field": "amount",
+        "icon": "Wallet",
+        "color": "emerald"
+      },
+      {
+        "label": "Over Budget",
+        "entity": "BudgetLine",
+        "method": "count",
+        "filter": {"field": "status", "value": "over_budget"},
+        "icon": "AlertTriangle",
+        "color": "red"
+      }
+    ]
+  },
+  "design_system": {
+    "theme": "light",
+    "colors": {
+      "primary": "#8b5cf6",
+      "secondary": "#64748b",
+      "background": "#ffffff",
+      "surface": "#f8fafc",
+      "text": "#0f172a",
+      "muted": "#94a3b8"
+    },
+    "spacing": {
+      "page_padding": "24px",
+      "card_padding": "16px",
+      "gap": "16px"
+    },
+    "buttons": {
+      "primary": {
+        "bg": "bg-violet-500",
+        "text": "text-white",
+        "hover": "hover:bg-violet-600"
+      }
+    },
+    "table": {
+      "header_bg": "bg-gray-50",
+      "row_hover": "hover:bg-gray-50",
+      "border": "border-gray-200"
+    },
+    "typography": {
+      "heading": "text-gray-900 font-semibold",
+      "body": "text-gray-700",
+      "muted": "text-gray-400"
+    }
+  },
+  "pagination": {
+    "type": "cursor",
+    "default_page_size": 25,
+    "max_page_size": 100
+  }
+}

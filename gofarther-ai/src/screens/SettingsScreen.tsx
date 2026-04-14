@@ -1,0 +1,1346 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking, Switch, TextInput, ActivityIndicator, Modal, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { C } from '../lib/theme';
+import { useTheme } from '../lib/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
+import { logout, getMe, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage, setup2FA, verify2FA, disable2FA, getSessions, revokeSession, revokeAllSessions, SessionInfo, exportMyData, startOAuth, getNotificationPrefs, updateNotificationPrefs, sendTestPush, getDigestConfig, updateDigestConfig, runDigestNow, type NotificationPrefs, type DigestConfig } from '../lib/api';
+import * as WebBrowser from 'expo-web-browser';
+import { isBiometricAvailable, getBiometricType } from '../lib/biometrics';
+import { registerForPushNotifications } from '../lib/notifications';
+import { getBiometricEnabled, saveBiometricEnabled } from '../lib/storage';
+import {
+  getCustomInstructions, saveCustomInstructions,
+  getMemory, clearMemory, MemoryFact,
+  getLearnedPreferences, saveLearnedPreferences, deleteLearnedPreference, LearnedPreference,
+  getLanguage, saveLanguage,
+  getSavedContacts, saveSavedContacts, SavedContact,
+  getConnectedApps, saveConnectedApps, ConnectedApp,
+} from '../lib/storage';
+
+interface UserInfo { name?: string; email?: string; }
+
+export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }: { onLogout: () => void; onBack: () => void; onOpenSubscription?: () => void }) {
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [customInstructions, setCustomInstructions] = useState('');
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [memory, setMemory] = useState<MemoryFact[]>([]);
+  const [showMemory, setShowMemory] = useState(false);
+  const [learnedPrefs, setLearnedPrefs] = useState<LearnedPreference[]>([]);
+  const [showPrefs, setShowPrefs] = useState(false);
+  const [language, setLanguage] = useState('en');
+  const [contacts, setContacts] = useState<SavedContact[]>([]);
+  const [showContacts, setShowContacts] = useState(false);
+  const [addingContact, setAddingContact] = useState(false);
+  const [newLabel, setNewLabel] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  // Legacy SMTP state removed — outbound email now routes through the
+  // user's connected email app (Gmail / Outlook / Neo / Titan / IMAP)
+  // under Connect Apps below. See send_email_for_user() on the backend.
+  const [showApps, setShowApps] = useState(false);
+  const [allApps, setAllApps] = useState<any[]>([]);
+  const [appCategories, setAppCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [expandedApp, setExpandedApp] = useState<string | null>(null);
+  const [appSearch, setAppSearch] = useState('');
+  const [appCredentials, setAppCredentials] = useState<Record<string, Record<string, string>>>({});
+  const [connectingApp, setConnectingApp] = useState<string | null>(null);
+  const [connectedCount, setConnectedCount] = useState(0);
+  const [biometricOn, setBiometricOn] = useState(false);
+  const [biometricAvail, setBiometricAvail] = useState(false);
+  const [bioType, setBioType] = useState('Biometric');
+  // 2FA
+  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [show2FASetup, setShow2FASetup] = useState(false);
+  const [totpSecret, setTotpSecret] = useState('');
+  const [totpQrUrl, setTotpQrUrl] = useState('');
+  const [totpCode, setTotpCode] = useState('');
+  const [setting2FA, setSetting2FA] = useState(false);
+  // Sessions
+  const [showSessions, setShowSessions] = useState(false);
+  const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [pushToken, setPushToken] = useState<string | null>(null);
+  const [pushPrefs, setPushPrefs] = useState<NotificationPrefs | null>(null);
+  const [showNotifSettings, setShowNotifSettings] = useState(false);
+  // Morning digest state
+  const [digestConfig, setDigestConfig] = useState<DigestConfig | null>(null);
+  const [showDigestSettings, setShowDigestSettings] = useState(false);
+  const [digestTimeText, setDigestTimeText] = useState('08:00');
+  const [digestCustomPrompt, setDigestCustomPrompt] = useState('');
+  const [previewingDigest, setPreviewingDigest] = useState(false);
+
+  /** Patch digest config on the server + update local state. */
+  const patchDigest = async (patch: Partial<DigestConfig>) => {
+    setDigestConfig(prev => prev ? { ...prev, ...patch } : prev);
+    try {
+      const updated = await updateDigestConfig(patch);
+      setDigestConfig(updated);
+    } catch (e: any) {
+      try { setDigestConfig(await getDigestConfig()); } catch {}
+      Alert.alert('Could not update digest', e.message || 'Unknown error');
+    }
+  };
+
+  /** Parse "HH:MM" into minutes-from-midnight, or return null. */
+  const parseTime = (text: string): number | null => {
+    const m = text.match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return null;
+    const h = parseInt(m[1], 10);
+    const min = parseInt(m[2], 10);
+    if (isNaN(h) || isNaN(min) || h < 0 || h > 23 || min < 0 || min > 59) return null;
+    return h * 60 + min;
+  };
+
+  const formatTime = (mins: number): string => {
+    const h = Math.floor(mins / 60);
+    const min = mins % 60;
+    return `${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+  };
+
+  /** Patch notification prefs on the server, update local state on
+   *  success. Called from each toggle inside the expanded section. */
+  const patchPrefs = async (patch: Partial<NotificationPrefs>) => {
+    // Optimistic update so the toggle feels instant
+    setPushPrefs(prev => prev ? { ...prev, ...patch } : prev);
+    try {
+      const updated = await updateNotificationPrefs(patch);
+      setPushPrefs(updated);
+    } catch {
+      // Revert on error — just re-fetch to be safe
+      try { setPushPrefs(await getNotificationPrefs()); } catch {}
+    }
+  };
+  const theme = useTheme();
+  const themeMode = theme?.mode ?? 'light';
+  const toggleTheme = theme?.toggle ?? (() => {});
+  const tc = theme?.colors ?? {
+    bg: '#ffffff', bg2: '#f5f5f5', card: '#f2f2f2', border: '#ebebeb',
+    text: '#1a1a1a', textMid: '#666666', textDim: '#999999',
+    inputBg: '#f7f7f8', surface: '#f8f8f8', bubbleAI: '#f7f7f8', bubbleBorder: 'transparent',
+  };
+  const [usageData, setUsageData] = useState<{ total_messages: number; total_tokens: number; credits_remaining: number; plan: string } | null>(null);
+  const [usagePeriod, setUsagePeriod] = useState('7d');
+  const [showUsage, setShowUsage] = useState(false);
+
+  // Reload the workspace-scoped settings. As of Phase 2, connected
+  // apps are ALSO workspace-scoped on the backend (credentials live
+  // under a (user_id, workspace_id, app_id) key), so switching
+  // workspaces must re-fetch the connector list too — otherwise the
+  // user would see their "Personal" Gmail highlighted as "Connected"
+  // in their "Work" workspace where it isn't actually authenticated.
+  const loadWorkspaceData = useCallback(() => {
+    getCustomInstructions().then(setCustomInstructions);
+    getMemory().then(setMemory);
+    getLearnedPreferences().then(setLearnedPrefs);
+    getSavedContacts().then(setContacts);
+    getConnectors().then((data: any) => {
+      setAllApps(data.connectors || []);
+      const connected = (data.connectors || []).filter((a: any) => a.connected);
+      setConnectedCount(connected.length);
+      saveConnectedApps(connected.map((a: any) => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions, action_hints: a.action_hints || {} })));
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    getMe().then((u: any) => { setUser(u); setIs2FAEnabled(u?.is_2fa_enabled || false); }).catch(() => {}).finally(() => setLoadingUser(false));
+    getUsage('7d').then(setUsageData).catch(() => {});
+    loadWorkspaceData();
+    getLanguage().then(setLanguage);
+    getConnectors().then((data: any) => {
+      setAllApps(data.connectors || []);
+      setAppCategories(data.categories || []);
+      const connected = (data.connectors || []).filter((a: any) => a.connected);
+      setConnectedCount(connected.length);
+      saveConnectedApps(connected.map((a: any) => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions })));
+    }).catch(() => {});
+    isBiometricAvailable().then(setBiometricAvail);
+    getBiometricType().then(setBioType);
+    getBiometricEnabled().then(setBiometricOn);
+    registerForPushNotifications().then(setPushToken).catch(() => {});
+    getNotificationPrefs().then(setPushPrefs).catch(() => {});
+    getDigestConfig().then(cfg => {
+      setDigestConfig(cfg);
+      setDigestTimeText(formatTime(cfg.time_min));
+      setDigestCustomPrompt(cfg.custom_prompt || '');
+    }).catch(() => {});
+  }, [loadWorkspaceData]);
+
+  // Re-fetch the per-workspace bits when the user switches workspace so
+  // "my boss" / memory / preferences reflect the new workspace.
+  useEffect(() => {
+    const { onWorkspaceChange } = require('../lib/workspaces');
+    const off = onWorkspaceChange(() => { loadWorkspaceData(); });
+    return off;
+  }, [loadWorkspaceData]);
+
+  const handleLogout = () => {
+    Alert.alert('Log Out', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      // onLogout is now the full handleFullLogout from AppNavigator which
+      // already calls api.logout() internally — just invoke it directly.
+      { text: 'Log Out', style: 'destructive', onPress: () => onLogout() },
+    ]);
+  };
+
+  const saveInstructions = async () => {
+    await saveCustomInstructions(customInstructions);
+    setShowInstructions(false);
+    Alert.alert('Saved', 'Custom instructions updated');
+  };
+
+  const handleClearMemory = () => {
+    Alert.alert('Clear Memory', 'The AI will forget everything it remembers about you.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Clear', style: 'destructive', onPress: async () => { await clearMemory(); setMemory([]); } },
+    ]);
+  };
+
+  const saveContact = async () => {
+    if (!newLabel.trim() || !newName.trim()) return Alert.alert('Required', 'Label and name are required');
+    const updated = [...contacts, { id: Date.now().toString(), label: newLabel.trim(), name: newName.trim(), email: newEmail.trim() || undefined, phone: newPhone.trim() || undefined }];
+    setContacts(updated);
+    await saveSavedContacts(updated);
+    setNewLabel(''); setNewName(''); setNewEmail(''); setNewPhone('');
+    setAddingContact(false);
+  };
+
+  const deleteContact = async (id: string) => {
+    const updated = contacts.filter(c => c.id !== id);
+    setContacts(updated);
+    await saveSavedContacts(updated);
+  };
+
+  const initials = user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : (loadingUser ? '...' : '?');
+
+  return (
+    <SafeAreaView style={[s.safe, { backgroundColor: tc.bg2 }]}>
+      <View style={s.header}>
+        <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Back" accessibilityRole="button">
+          <Ionicons name="chevron-back" size={24} color={tc.text} />
+        </TouchableOpacity>
+        <Text style={[s.headerTitle, { color: tc.text }]}>Settings</Text>
+        <View style={{ width: 28 }} />
+      </View>
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        {/* Profile */}
+        <View style={s.profileSection}>
+          <View style={s.avatar}><Text style={s.avatarText}>{initials}</Text></View>
+          <Text style={[s.profileName, { color: tc.text }]}>{user?.name || 'Loading...'}</Text>
+          <Text style={[s.profileEmail, { color: tc.textMid }]}>{user?.email || ''}</Text>
+        </View>
+
+        {/* Subscription */}
+        {onOpenSubscription && (
+          <>
+            <Text style={[s.sectionLabel, { color: tc.textMid }]}>Billing</Text>
+            <View style={[s.card, { backgroundColor: tc.bg }]}>
+              <TouchableOpacity style={s.row} onPress={onOpenSubscription}>
+                <Text style={s.rowLabel}>Subscription & Plans</Text>
+                <Text style={s.chevron}>{'>'}</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+
+        {/* Usage Stats */}
+        <Text style={[s.sectionLabel, { color: tc.textMid }]}>Usage</Text>
+        <View style={[s.card, { backgroundColor: tc.bg }]}>
+          <TouchableOpacity style={s.row} onPress={() => { setShowUsage(!showUsage); if (!showUsage && !usageData) getUsage(usagePeriod).then(setUsageData).catch(() => {}); }}>
+            <Text style={s.rowLabel}>Usage & Analytics</Text>
+            <Text style={s.chevron}>{showUsage ? 'v' : '>'}</Text>
+          </TouchableOpacity>
+          {showUsage && (
+            <View style={s.expandedSection}>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                {['7d', '30d', 'all'].map(p => (
+                  <TouchableOpacity key={p} onPress={() => { setUsagePeriod(p); getUsage(p).then(setUsageData).catch(() => {}); }}
+                    style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: usagePeriod === p ? '#1a1a1a' : '#f0f0f0' }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: usagePeriod === p ? '#fff' : '#666' }}>{p === '7d' ? '7 Days' : p === '30d' ? '30 Days' : 'All Time'}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {usageData ? (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                  <View style={{ flex: 1, minWidth: '45%', padding: 12, borderRadius: 12, backgroundColor: '#f8f8f8' }}>
+                    <Text style={{ fontSize: 22, fontWeight: '700', color: tc.text }}>{usageData.total_messages}</Text>
+                    <Text style={{ fontSize: 11, color: tc.textDim, marginTop: 2 }}>Messages</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: '45%', padding: 12, borderRadius: 12, backgroundColor: '#f8f8f8' }}>
+                    <Text style={{ fontSize: 22, fontWeight: '700', color: tc.text }}>{usageData.total_tokens >= 1000 ? `${(usageData.total_tokens / 1000).toFixed(1)}k` : usageData.total_tokens}</Text>
+                    <Text style={{ fontSize: 11, color: tc.textDim, marginTop: 2 }}>Tokens Used</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: '45%', padding: 12, borderRadius: 12, backgroundColor: '#f8f8f8' }}>
+                    <Text style={{ fontSize: 22, fontWeight: '700', color: tc.text }}>{usageData.credits_remaining}</Text>
+                    <Text style={{ fontSize: 11, color: tc.textDim, marginTop: 2 }}>Credits Left</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: '45%', padding: 12, borderRadius: 12, backgroundColor: '#f8f8f8' }}>
+                    <Text style={{ fontSize: 22, fontWeight: '700', color: tc.text, textTransform: 'capitalize' }}>{usageData.plan}</Text>
+                    <Text style={{ fontSize: 11, color: tc.textDim, marginTop: 2 }}>Plan</Text>
+                  </View>
+                </View>
+              ) : (
+                <Text style={{ fontSize: 13, color: tc.textDim }}>Loading usage data...</Text>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* Custom Instructions */}
+        <Text style={[s.sectionLabel, { color: tc.textMid }]}>Personalization</Text>
+        <View style={[s.card, { backgroundColor: tc.bg }]}>
+          <TouchableOpacity style={s.row} onPress={() => setShowInstructions(!showInstructions)}>
+            <Text style={s.rowLabel}>Custom Instructions</Text>
+            <Text style={s.chevron}>{showInstructions ? 'v' : '>'}</Text>
+          </TouchableOpacity>
+          {showInstructions && (
+            <View style={s.expandedSection}>
+              <Text style={s.expandedHint}>Tell the AI how to behave across all chats</Text>
+              <TextInput
+                style={[s.instructionsInput, { color: tc.text }]}
+                value={customInstructions}
+                onChangeText={setCustomInstructions}
+                placeholder="e.g. Always respond in Spanish. Be very concise. My name is Mario."
+                placeholderTextColor="#bbb"
+                multiline
+                textAlignVertical="top"
+              />
+              <TouchableOpacity style={s.saveBtn} onPress={saveInstructions}>
+                <Text style={s.saveBtnText}>Save Instructions</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <View style={s.rowDivider} />
+          <TouchableOpacity style={s.row} onPress={() => setShowMemory(!showMemory)}>
+            <Text style={s.rowLabel}>Memory</Text>
+            <Text style={s.rowValue}>{memory.length} facts</Text>
+          </TouchableOpacity>
+          {showMemory && (
+            <View style={s.expandedSection}>
+              <Text style={s.expandedHint}>Things the AI remembers about you</Text>
+              {memory.length === 0 ? (
+                <Text style={s.memoryEmpty}>No memories yet. Tell the AI "remember that..." in chat.</Text>
+              ) : (
+                memory.slice(0, 20).map(m => (
+                  <Text key={m.id} style={[s.memoryFact, { color: tc.textMid }]}>- {m.fact}</Text>
+                ))
+              )}
+              {memory.length > 0 && (
+                <TouchableOpacity style={s.clearMemBtn} onPress={handleClearMemory}>
+                  <Text style={s.clearMemText}>Clear all memory</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          <View style={s.rowDivider} />
+          <TouchableOpacity style={s.row} onPress={() => setShowPrefs(!showPrefs)}>
+            <Text style={s.rowLabel}>Learned Preferences</Text>
+            <Text style={s.rowValue}>{learnedPrefs.length} rules</Text>
+          </TouchableOpacity>
+          {showPrefs && (
+            <View style={s.expandedSection}>
+              <Text style={s.expandedHint}>Patterns learned from your thumbs up/down reactions</Text>
+              {learnedPrefs.length === 0 ? (
+                <Text style={s.memoryEmpty}>No preferences learned yet. React to AI messages with thumbs up/down to train it.</Text>
+              ) : (
+                learnedPrefs.map(p => (
+                  <View key={p.id} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 }}>
+                    <Text style={[s.memoryFact, { flex: 1, color: tc.textMid }]}>- {p.rule}</Text>
+                    <TouchableOpacity onPress={async () => {
+                      await deleteLearnedPreference(p.id);
+                      setLearnedPrefs(prev => prev.filter(x => x.id !== p.id));
+                    }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Ionicons name="close-circle" size={18} color="#ccc" />
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+              {learnedPrefs.length > 0 && (
+                <TouchableOpacity style={s.clearMemBtn} onPress={() => {
+                  Alert.alert('Clear Preferences', 'Remove all learned rules?', [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Clear', style: 'destructive', onPress: async () => {
+                      await saveLearnedPreferences([]);
+                      setLearnedPrefs([]);
+                    }},
+                  ]);
+                }}>
+                  <Text style={s.clearMemText}>Clear all preferences</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          <View style={s.rowDivider} />
+          <TouchableOpacity style={s.row} onPress={() => setShowContacts(!showContacts)}>
+            <Text style={s.rowLabel}>My Contacts</Text>
+            <Text style={s.rowValue}>{contacts.length} saved</Text>
+          </TouchableOpacity>
+          {showContacts && (
+            <View style={s.expandedSection}>
+              <Text style={s.expandedHint}>People the AI should know — "my boss", "my mom", etc.</Text>
+              {contacts.length === 0 && !addingContact && (
+                <Text style={s.memoryEmpty}>No contacts yet. Add someone the AI should know.</Text>
+              )}
+              {contacts.map(c => (
+                <View key={c.id} style={s.contactRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.contactLabel, { color: tc.text }]}>{c.label}</Text>
+                    <Text style={s.contactDetail}>{c.name}{c.email ? ` · ${c.email}` : ''}{c.phone ? ` · ${c.phone}` : ''}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => deleteContact(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close-circle" size={20} color="#ccc" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {addingContact ? (
+                <View style={s.addContactForm}>
+                  <TextInput style={s.contactInput} value={newLabel} onChangeText={setNewLabel} placeholder='Label (e.g. "My boss")' placeholderTextColor="#bbb" autoFocus />
+                  <TextInput style={s.contactInput} value={newName} onChangeText={setNewName} placeholder="Name" placeholderTextColor="#bbb" />
+                  <TextInput style={s.contactInput} value={newEmail} onChangeText={setNewEmail} placeholder="Email (optional)" placeholderTextColor="#bbb" keyboardType="email-address" autoCapitalize="none" />
+                  <TextInput style={s.contactInput} value={newPhone} onChangeText={setNewPhone} placeholder="Phone (optional)" placeholderTextColor="#bbb" keyboardType="phone-pad" />
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                    <TouchableOpacity style={s.saveBtn} onPress={saveContact}>
+                      <Text style={s.saveBtnText}>Save</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[s.saveBtn, { backgroundColor: '#eee' }]} onPress={() => { setAddingContact(false); setNewLabel(''); setNewName(''); setNewEmail(''); setNewPhone(''); }}>
+                      <Text style={[s.saveBtnText, { color: '#666' }]}>Cancel</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity style={[s.saveBtn, { marginTop: 10 }]} onPress={() => setAddingContact(true)}>
+                  <Text style={s.saveBtnText}>+ Add Contact</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          <View style={s.rowDivider} />
+          <TouchableOpacity style={[s.row, s.rowLast]} onPress={() => {
+            const langs = ['English', 'Spanish', 'French'];
+            const codes = ['en', 'es', 'fr'];
+            Alert.alert('Language', 'Choose AI response language', [
+              ...langs.map((l, i) => ({
+                text: l + (codes[i] === language ? ' *' : ''),
+                onPress: () => { setLanguage(codes[i]); saveLanguage(codes[i]); },
+              })),
+              { text: 'Cancel', style: 'cancel' as const },
+            ]);
+          }}>
+            <Text style={s.rowLabel}>AI Language</Text>
+            <Text style={s.rowValue}>{language === 'en' ? 'English' : language === 'es' ? 'Spanish' : language === 'fr' ? 'French' : language === 'pt' ? 'Portuguese' : 'German'}</Text>
+          </TouchableOpacity>
+        </View>
+
+
+        {/* Connect Apps */}
+        <Text style={[s.sectionLabel, { color: tc.textMid }]}>Integrations</Text>
+        <View style={[s.card, { backgroundColor: tc.bg }]}>
+          <TouchableOpacity style={s.row} onPress={() => setShowApps(!showApps)}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="apps" size={18} color={C.primary} />
+              <Text style={[s.rowLabel, { color: tc.text }]}>Connect Apps</Text>
+            </View>
+            <Text style={[s.rowValue, { color: connectedCount > 0 ? '#22c55e' : tc.textMid }]}>
+              {connectedCount > 0 ? `${connectedCount} connected` : 'None'}
+            </Text>
+          </TouchableOpacity>
+          {showApps && (
+            <View style={s.expandedSection}>
+              <Text style={[s.expandedHint, { marginBottom: 8 }]}>Connect your apps so the AI can manage them. Say "show my leads" or "create an invoice" and it just works.</Text>
+              {/* Search bar */}
+              <TextInput
+                style={[s.contactInput, { color: tc.text, marginBottom: 10 }]}
+                value={appSearch}
+                onChangeText={setAppSearch}
+                placeholder="Search apps..."
+                placeholderTextColor="#bbb"
+                autoCapitalize="none"
+              />
+              {/* Category filter */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                <TouchableOpacity
+                  style={[s.categoryChip, selectedCategory === 'All' && s.categoryChipActive]}
+                  onPress={() => setSelectedCategory('All')}
+                >
+                  <Text style={[s.categoryChipText, selectedCategory === 'All' && s.categoryChipTextActive]}>All</Text>
+                </TouchableOpacity>
+                {appCategories.map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[s.categoryChip, selectedCategory === cat && s.categoryChipActive]}
+                    onPress={() => setSelectedCategory(cat)}
+                  >
+                    <Text style={[s.categoryChipText, selectedCategory === cat && s.categoryChipTextActive]}>{cat}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              {/* App list — scrolls independently */}
+              <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled showsVerticalScrollIndicator>
+              {allApps
+                .filter(a => selectedCategory === 'All' || a.category === selectedCategory)
+                .filter(a => !appSearch.trim() || a.name.toLowerCase().includes(appSearch.toLowerCase()) || a.category.toLowerCase().includes(appSearch.toLowerCase()))
+                // Connected apps on top — easier to find what you're already using.
+                // Stable sort preserves the original order within each group.
+                .slice()
+                .sort((a, b) => (a.connected ? 0 : 1) - (b.connected ? 0 : 1))
+                .map(app => (
+                <View key={app.id} style={{ marginBottom: 2 }}>
+                  <TouchableOpacity
+                    style={[s.appRow, expandedApp === app.id && { backgroundColor: 'rgba(0,0,0,0.02)' }]}
+                    onPress={() => setExpandedApp(expandedApp === app.id ? null : app.id)}
+                    activeOpacity={0.6}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                      <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: (({
+                        // CRM
+                        hubspot: '#FF7A59', salesforce: '#00A1E0', pipedrive: '#017737', gohighlevel: '#0F4C81',
+                        zoho_crm: '#E42527', close: '#1A1A1A', freshsales: '#F36C21', copper: '#1DA1A0',
+                        ringy: '#6C63FF', monday_crm: '#FF3D57', keap: '#2CBA00', insightly: '#2196F3',
+                        nutshell: '#F5A623', less_annoying_crm: '#4CAF50', liondesk: '#FF6B35',
+                        follow_up_boss: '#3B82F6', kvcore: '#1E3A5F', chime: '#00BCD4',
+                        // Accounting
+                        quickbooks: '#2CA01C', xero: '#13B5EA', freshbooks: '#0075DD',
+                        wave: '#1C4E80', sage: '#00DC00', zoho_books: '#E42527',
+                        billcom: '#00C4B3', gusto: '#F45D48', adp: '#D0271D', plaid: '#111111',
+                        // Project Management
+                        asana: '#F06A6A', trello: '#0079BF', monday: '#FF3D57', clickup: '#7B68EE',
+                        notion: '#000000', jira: '#0052CC', linear: '#5E6AD2', basecamp: '#1D2D35',
+                        wrike: '#08CF65', todoist: '#E44332', teamwork: '#6B47DC',
+                        // Communication
+                        slack: '#4A154B', teams: '#6264A7', discord: '#5865F2', zoom: '#2D8CFF',
+                        telegram: '#0088CC', twilio: '#F22F46', whatsapp_business: '#25D366', intercom: '#286EFA',
+                        // Calendar
+                        google_calendar: '#4285F4', outlook_calendar: '#0078D4', calendly: '#006BFF',
+                        acuity: '#3A8DDE', calcom: '#292929',
+                        // E-commerce
+                        shopify: '#96BF48', stripe: '#635BFF', square: '#006AFF', paypal: '#003087',
+                        woocommerce: '#96588A', amazon_seller: '#FF9900', etsy: '#F16521',
+                        // Storage
+                        google_drive: '#4285F4', dropbox: '#0061FF', onedrive: '#0078D4',
+                        box: '#0061D5', google_sheets: '#0F9D58', airtable: '#FCBF49',
+                        // Email Marketing
+                        mailchimp: '#FFE01B', convertkit: '#FB6970', klaviyo: '#1A1A1A',
+                        activecampaign: '#356AE6', constant_contact: '#0076BE', brevo: '#0B996E',
+                        // Customer Support
+                        zendesk: '#03363D', freshdesk: '#25C16F', helpscout: '#1292EE',
+                        livechat: '#FF5100',
+                        // Legal
+                        docusign: '#FFD100', hellosign: '#00B4E6', pandadoc: '#4BD964',
+                        contractsafe: '#2E5090',
+                        // HR
+                        bamboohr: '#73C41D', greenhouse: '#24A47F', lever: '#5C5CFF',
+                        // Social Media
+                        instagram: '#E1306C', facebook_pages: '#1877F2', twitter: '#1DA1F2',
+                        linkedin: '#0A66C2', tiktok: '#000000', buffer: '#168EEA', hootsuite: '#143059',
+                        // Healthcare
+                        athenahealth: '#50B848', drchrono: '#2196F3', simplepractice: '#0077CC',
+                        // Finance
+                        brex: '#000000', mercury: '#5856D6', ramp: '#0A8548', wise: '#9FE870',
+                        // Real Estate
+                        propertybase: '#00A0E3', boomtown: '#FF6600',
+                        // Legal
+                        clio: '#2962FF', lawpay: '#1A237E', mycase: '#4CAF50', practicepanther: '#3F51B5',
+                        // Education
+                        canvas_lms: '#E13F29', google_classroom: '#0F9D58',
+                        // POS
+                        toast: '#FF4F00', clover: '#00A651', lightspeed: '#FF6B00',
+                        // Field Service
+                        servicetitan: '#003B6F', jobber: '#48C774', housecall_pro: '#0066FF',
+                        // Logistics
+                        shipstation: '#84C225', shippo: '#0066FF', easypost: '#3E7BFA',
+                        // Design
+                        figma: '#A259FF', canva: '#00C4CC',
+                        // Analytics
+                        google_analytics: '#E37400', mixpanel: '#7856FF', segment: '#52BD95',
+                        // Dev Tools
+                        github: '#24292E', gitlab: '#FC6D26', vercel: '#000000',
+                        // Video
+                        youtube: '#FF0000', loom: '#625DF5',
+                        // Surveys
+                        typeform: '#262627', surveymonkey: '#00BF6F', tally: '#000000',
+                        // Appointments
+                        vagaro: '#FF6B00', mindbody: '#00A1E0', fresha: '#1A1A1A', booksy: '#3D5AFE',
+                        // Insurance
+                        applied_epic: '#003B71', hawksoft: '#1565C0', ezlynx: '#FF6F00',
+                        agency_zoom: '#6A1B9A', better_agency: '#00897B',
+                        // Construction
+                        procore: '#F7941D', buildertrend: '#0072CE', coconstruct: '#2E7D32', plangrid: '#00BCD4',
+                        // Automotive
+                        dealersocket: '#1A237E', vinsolutions: '#D32F2F',
+                        // Nonprofit
+                        bloomerang: '#E91E63', donorperfect: '#1976D2', givebutter: '#FFB300',
+                        // Hospitality
+                        guesty: '#6200EA', hostaway: '#00838F', cloudbeds: '#1E88E5',
+                        // Fitness
+                        gymmaster: '#FF5722', glofox: '#7C4DFF', wellnessliving: '#43A047',
+                        // Dental
+                        dentrix: '#0D47A1', open_dental: '#388E3C', curve_dental: '#7B1FA2',
+                        // Government
+                        govpilot: '#283593', accela: '#00695C',
+                        // Automation
+                        zapier: '#FF4F00', make: '#6D00CC', ifttt: '#000000',
+                        // ERP / Oracle
+                        oracle_netsuite: '#C74634', oracle_cloud_erp: '#C74634', oracle_cx_sales: '#C74634',
+                        oracle_cx_service: '#C74634', oracle_hcm: '#C74634', oracle_epm: '#C74634',
+                        oracle_scm: '#C74634', oracle_apex: '#C74634', oracle_analytics: '#C74634',
+                        oracle_commerce: '#C74634',
+                        // Email (mailbox access)
+                        outlook_mail: '#0078D4', gmail: '#EA4335', neo_mail: '#6C5CE7',
+                        titan_mail: '#1A1A2E', imap_mail: '#6B7280',
+                        yahoo_mail: '#6001D2', icloud_mail: '#0A84FF', zoho_mail: '#E42527',
+                        fastmail_mail: '#2660FF', aol_mail: '#FF0B00', gmx_mail: '#1C449B',
+                        mailru_mail: '#0099F7', yandex_mail: '#FFCC00',
+                        protonmail_mail: '#6D4AFF', hostinger_mail: '#673DE6',
+                        godaddy_mail: '#1BDBDB', namecheap_mail: '#DE3723',
+                        ionos_mail: '#003D8F', mailboxorg_mail: '#005EA1',
+                        posteo_mail: '#2E7D32', mailfence_mail: '#00263E',
+                      } as Record<string, string>)[app.id]) || '#999', alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name={(app.icon || 'cube') as any} size={16} color="#fff" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.rowLabel, { color: tc.text, fontSize: 14 }]}>{app.name}</Text>
+                        {/* Show a meaningful per-connector subtitle instead
+                            of just repeating the category. Falls back to
+                            the category when the connector doesn't have a
+                            more specific tagline. Hidden entirely when the
+                            user has filtered to a specific category — the
+                            category pill already shows the group and
+                            repeating it on every row is noise. */}
+                        {(() => {
+                          const subtitles: Record<string, string> = {
+                            outlook_mail: 'Office 365 & Outlook.com',
+                            gmail: 'Google Workspace & personal',
+                            neo_mail: 'Neo Business Email · IMAP preset',
+                            titan_mail: 'Titan Email · IMAP preset',
+                            yahoo_mail: 'Yahoo Mail · IMAP preset',
+                            icloud_mail: 'iCloud Mail · IMAP preset',
+                            zoho_mail: 'Zoho Mail · IMAP preset',
+                            fastmail_mail: 'Fastmail · IMAP preset',
+                            aol_mail: 'AOL Mail · IMAP preset',
+                            gmx_mail: 'GMX Mail · IMAP preset',
+                            mailru_mail: 'Mail.ru · IMAP preset',
+                            yandex_mail: 'Yandex Mail · IMAP preset',
+                            protonmail_mail: 'ProtonMail · Bridge required',
+                            hostinger_mail: 'Hostinger · business email',
+                            godaddy_mail: 'GoDaddy Workspace',
+                            namecheap_mail: 'Namecheap Private Email',
+                            ionos_mail: 'IONOS Email',
+                            mailboxorg_mail: 'Mailbox.org',
+                            posteo_mail: 'Posteo',
+                            mailfence_mail: 'Mailfence',
+                            imap_mail: 'Any provider · auto-detected',
+                          };
+                          const sub = subtitles[app.id] || (selectedCategory === 'All' ? app.category : '');
+                          if (!sub) return null;
+                          return <Text style={{ fontSize: 11, color: tc.textMid }}>{sub}</Text>;
+                        })()}
+                      </View>
+                    </View>
+                    {app.connected ? (
+                      <View style={s.connectedBadge}><Text style={s.connectedBadgeText}>Connected</Text></View>
+                    ) : (
+                      <Ionicons name="chevron-forward" size={16} color="#ccc" />
+                    )}
+                  </TouchableOpacity>
+                  {expandedApp === app.id && (
+                    <View style={s.appExpanded}>
+                      {app.connected ? (
+                        <>
+                          <Text style={[s.expandedHint, { color: '#22c55e', marginBottom: 4 }]}>Connected and ready to use in chat.</Text>
+                          <Text style={[s.expandedHint]}>Actions: {app.actions.join(', ')}</Text>
+                          <TouchableOpacity
+                            style={[s.saveBtn, { backgroundColor: '#fef2f2', marginTop: 8 }]}
+                            onPress={async () => {
+                              try {
+                                await disconnectApp(app.id);
+                                setAllApps(prev => prev.map(a => a.id === app.id ? { ...a, connected: false } : a));
+                                setConnectedCount(prev => prev - 1);
+                                const connected = allApps.filter(a => a.id !== app.id && a.connected);
+                                saveConnectedApps(connected.map(a => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions })));
+                              } catch (e: any) { Alert.alert('Error', e.message); }
+                            }}
+                          >
+                            <Text style={[s.saveBtnText, { color: '#ef4444' }]}>Disconnect</Text>
+                          </TouchableOpacity>
+                        </>
+                      ) : app.oauth_flow ? (
+                        <>
+                          <View style={s.smtpInstructions}>
+                            <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>{app.setup}</Text>
+                          </View>
+                          <TouchableOpacity
+                            style={[s.saveBtn, { marginTop: 10, backgroundColor: '#2f2f2f', opacity: connectingApp === app.id ? 0.5 : 1 }]}
+                            disabled={connectingApp === app.id}
+                            onPress={async () => {
+                              setConnectingApp(app.id);
+                              try {
+                                const { authorize_url } = await startOAuth(app.id);
+                                await WebBrowser.openBrowserAsync(authorize_url);
+                                // After the browser closes, refresh the connectors list to see if it succeeded
+                                const data = await getConnectors();
+                                const fresh = data?.connectors || [];
+                                const updated = fresh.find((a: any) => a.id === app.id);
+                                if (updated?.connected) {
+                                  setAllApps(prev => prev.map(a => a.id === app.id ? { ...a, connected: true } : a));
+                                  setConnectedCount(prev => prev + 1);
+                                  const connected = fresh.filter((a: any) => a.connected);
+                                  saveConnectedApps(connected.map((a: any) => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions, action_hints: a.action_hints || {} })));
+                                  setExpandedApp(null);
+                                  Alert.alert('Connected', `${app.name} is now connected!`);
+                                } else {
+                                  Alert.alert('Not Connected', `It looks like you didn\u2019t finish the ${app.name} sign-in. Try again when ready.`);
+                                }
+                              } catch (e: any) {
+                                Alert.alert('Connection Failed', e.message || 'Could not start OAuth');
+                              } finally { setConnectingApp(null); }
+                            }}
+                          >
+                            <Text style={[s.saveBtnText, { color: '#fff' }]}>
+                              {connectingApp === app.id ? 'Connecting...' : `Connect with ${app.name.replace(/\s+\(Bridge\)|\s+Mail$|\s+Email$/, '').trim() || app.name}`}
+                            </Text>
+                          </TouchableOpacity>
+                        </>
+                      ) : (
+                        <>
+                          <View style={s.smtpInstructions}>
+                            <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>{app.setup}</Text>
+                          </View>
+                          {/* Deep link to the provider's credential page.
+                              Shown for any connector that has a setup_url —
+                              lets the user jump straight to where they need
+                              to go to generate an app password / API key /
+                              whatever, instead of googling for it. */}
+                          {app.setup_url && (
+                            <TouchableOpacity
+                              style={{ marginTop: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.06)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                              onPress={() => { Linking.openURL(app.setup_url).catch(() => Alert.alert('Could not open link')); }}
+                            >
+                              <Ionicons name="open-outline" size={16} color={tc.text} />
+                              <Text style={{ color: tc.text, fontSize: 13, fontWeight: '600' }}>Get App Password →</Text>
+                            </TouchableOpacity>
+                          )}
+                          {app.auth_fields.map((field: any) => (
+                            <TextInput
+                              key={field.key}
+                              style={[s.contactInput, { color: tc.text, marginTop: 8 }]}
+                              value={appCredentials[app.id]?.[field.key] || ''}
+                              onChangeText={(v) => setAppCredentials(prev => ({
+                                ...prev,
+                                [app.id]: { ...(prev[app.id] || {}), [field.key]: v },
+                              }))}
+                              placeholder={field.label}
+                              placeholderTextColor="#bbb"
+                              secureTextEntry={field.secure}
+                              autoCapitalize="none"
+                              autoCorrect={false}
+                            />
+                          ))}
+                          <TouchableOpacity
+                            style={[s.saveBtn, { marginTop: 10, opacity: connectingApp === app.id ? 0.5 : 1 }]}
+                            disabled={connectingApp === app.id}
+                            onPress={async () => {
+                              const creds = appCredentials[app.id] || {};
+                              const missing = app.auth_fields.filter((f: any) => !creds[f.key]?.trim());
+                              if (missing.length) return Alert.alert('Missing', `Please fill in: ${missing.map((f: any) => f.label).join(', ')}`);
+                              setConnectingApp(app.id);
+                              try {
+                                await connectApp(app.id, creds);
+                                setAllApps(prev => prev.map(a => a.id === app.id ? { ...a, connected: true } : a));
+                                setConnectedCount(prev => prev + 1);
+                                const connected = [...allApps.filter(a => a.connected), app];
+                                saveConnectedApps(connected.map(a => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions })));
+                                setExpandedApp(null);
+                                Alert.alert('Connected', `${app.name} is now connected! Try saying "show my ${app.actions[0]?.replace('get_', '').replace('_', ' ') || 'data'}" in chat.`);
+                              } catch (e: any) {
+                                Alert.alert('Connection Failed', e.message || 'Could not connect');
+                              } finally { setConnectingApp(null); }
+                            }}
+                          >
+                            <Text style={s.saveBtnText}>{connectingApp === app.id ? 'Connecting...' : 'Connect'}</Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+                    </View>
+                  )}
+                </View>
+              ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
+        {/* Security */}
+        <Text style={[s.sectionLabel, { color: tc.textMid }]}>Security</Text>
+        <View style={[s.card, { backgroundColor: tc.bg }]}>
+          {/* 2FA Toggle */}
+          <TouchableOpacity style={s.row} onPress={async () => {
+            if (is2FAEnabled) {
+              // Disable flow — ask for code
+              // Alert.prompt can crash on iPad — use a safe fallback
+              if (Platform.OS === 'ios' && Alert.prompt) {
+                Alert.prompt('Disable 2FA', 'Enter your authenticator code to disable 2FA:', async (code) => {
+                  if (!code || code.length !== 6) return;
+                  try {
+                    await disable2FA(code);
+                    setIs2FAEnabled(false);
+                    Alert.alert('Done', '2FA has been disabled');
+                  } catch (e: any) { Alert.alert('Error', e.message || 'Invalid code'); }
+                }, 'plain-text', '', 'number-pad');
+              } else {
+                Alert.alert('Disable 2FA', 'To disable 2FA, please use the authenticator code entry in the 2FA setup screen.');
+              }
+            } else {
+              // Enable flow — setup
+              setSetting2FA(true);
+              try {
+                const data = await setup2FA();
+                setTotpSecret(data.secret);
+                setTotpQrUrl(data.qr_url);
+                setShow2FASetup(true);
+              } catch (e: any) { Alert.alert('Error', e.message || 'Could not setup 2FA'); }
+              finally { setSetting2FA(false); }
+            }
+          }} activeOpacity={0.7}>
+            <Text style={s.rowLabel}>Two-Factor Authentication</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {setting2FA && <ActivityIndicator size="small" color={C.primary} style={{ marginRight: 8 }} />}
+              <Text style={{ fontSize: 13, color: is2FAEnabled ? '#22c55e' : '#999', fontWeight: '600' }}>{is2FAEnabled ? 'Enabled' : 'Off'}</Text>
+              <Ionicons name="chevron-forward" size={16} color="#ccc" style={{ marginLeft: 6 }} />
+            </View>
+          </TouchableOpacity>
+          <View style={s.rowDivider} />
+          {/* Active Sessions */}
+          <TouchableOpacity style={s.row} onPress={async () => {
+            setShowSessions(true);
+            setLoadingSessions(true);
+            try {
+              const data = await getSessions();
+              setSessions(data);
+            } catch (e: any) { Alert.alert('Error', e.message || 'Could not load sessions'); }
+            finally { setLoadingSessions(false); }
+          }} activeOpacity={0.7}>
+            <Text style={s.rowLabel}>Active Sessions</Text>
+            <Ionicons name="chevron-forward" size={16} color="#ccc" />
+          </TouchableOpacity>
+          <View style={s.rowDivider} />
+          {/* Export My Data */}
+          <TouchableOpacity style={s.row} onPress={async () => {
+            try {
+              Alert.alert('Exporting...', 'Preparing your data export');
+              const data = await exportMyData();
+              const json = JSON.stringify(data, null, 2);
+              // Use share sheet
+              const { Share } = require('react-native');
+              await Share.share({ message: json, title: 'GoFarther AI Data Export' });
+            } catch (e: any) { Alert.alert('Error', e.message || 'Could not export data'); }
+          }} activeOpacity={0.7}>
+            <Text style={s.rowLabel}>Export My Data</Text>
+            <Ionicons name="chevron-forward" size={16} color="#ccc" />
+          </TouchableOpacity>
+        </View>
+
+        {/* 2FA Setup Modal */}
+        <Modal visible={show2FASetup} animationType="slide" presentationStyle="formSheet">
+          <SafeAreaView style={{ flex: 1, backgroundColor: tc.surface }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
+              <TouchableOpacity onPress={() => { setShow2FASetup(false); setTotpCode(''); }}><Text style={{ fontSize: 16, color: C.primary }}>Cancel</Text></TouchableOpacity>
+              <Text style={{ fontSize: 17, fontWeight: '600', color: tc.text }}>Setup 2FA</Text>
+              <View style={{ width: 50 }} />
+            </View>
+            <ScrollView contentContainerStyle={{ padding: 24, alignItems: 'center' }}>
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#ec489915', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                <Text style={{ fontSize: 28 }}>🔐</Text>
+              </View>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: tc.text, marginBottom: 8, textAlign: 'center' }}>Add to your authenticator app</Text>
+              <Text style={{ fontSize: 13, color: tc.textMid, marginBottom: 24, textAlign: 'center' }}>Open Google Authenticator, Authy, or any TOTP app and add this account manually with the secret below:</Text>
+              <View style={{ backgroundColor: tc.bg, borderRadius: 12, padding: 16, width: '100%', marginBottom: 20 }}>
+                <Text style={{ fontSize: 12, color: tc.textMid, marginBottom: 4 }}>Secret Key</Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: tc.text, letterSpacing: 2 }} selectable>{totpSecret}</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: tc.text, fontWeight: '600', marginBottom: 12, alignSelf: 'flex-start' }}>Enter the 6-digit code to verify:</Text>
+              <TextInput
+                style={{ width: '100%', backgroundColor: tc.bg, borderRadius: 12, padding: 16, fontSize: 24, textAlign: 'center', letterSpacing: 8, color: tc.text, borderWidth: 1, borderColor: '#e0e0e0', marginBottom: 20 }}
+                placeholder="000000" placeholderTextColor="#ccc"
+                value={totpCode} onChangeText={(t) => setTotpCode(t.replace(/\D/g, '').slice(0, 6))}
+                keyboardType="number-pad" maxLength={6} autoFocus
+              />
+              <TouchableOpacity
+                style={{ width: '100%', height: 52, borderRadius: 26, backgroundColor: totpCode.length === 6 ? C.primary : '#ccc', alignItems: 'center', justifyContent: 'center' }}
+                disabled={totpCode.length !== 6}
+                onPress={async () => {
+                  try {
+                    await verify2FA(totpCode);
+                    setIs2FAEnabled(true);
+                    setShow2FASetup(false);
+                    setTotpCode('');
+                    Alert.alert('2FA Enabled', 'Two-factor authentication is now active. You will need your authenticator app to log in.');
+                  } catch (e: any) { Alert.alert('Error', e.message || 'Invalid code'); }
+                }}
+              >
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Enable 2FA</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
+
+        {/* Sessions Modal */}
+        <Modal visible={showSessions} animationType="slide" presentationStyle="formSheet">
+          <SafeAreaView style={{ flex: 1, backgroundColor: tc.surface }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
+              <TouchableOpacity onPress={() => setShowSessions(false)}><Text style={{ fontSize: 16, color: C.primary }}>Done</Text></TouchableOpacity>
+              <Text style={{ fontSize: 17, fontWeight: '600', color: tc.text }}>Active Sessions</Text>
+              <TouchableOpacity onPress={() => {
+                Alert.alert('Log out everywhere?', 'All other sessions will be revoked. You will stay logged in on this device.', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Log Out All', style: 'destructive', onPress: async () => {
+                    try {
+                      const r = await revokeAllSessions();
+                      Alert.alert('Done', `Revoked ${r.revoked} session(s)`);
+                      const data = await getSessions();
+                      setSessions(data);
+                    } catch (e: any) { Alert.alert('Error', e.message); }
+                  }},
+                ]);
+              }}><Text style={{ fontSize: 14, color: '#ef4444', fontWeight: '600' }}>Revoke All</Text></TouchableOpacity>
+            </View>
+            {loadingSessions ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color={C.primary} /></View>
+            ) : (
+              <ScrollView contentContainerStyle={{ padding: 16 }}>
+                {sessions.length === 0 && <Text style={{ textAlign: 'center', color: tc.textMid, marginTop: 40 }}>No active sessions</Text>}
+                {sessions.map((sess) => (
+                  <View key={sess.id} style={{ backgroundColor: tc.bg, borderRadius: 12, padding: 16, marginBottom: 10, borderWidth: sess.is_current ? 1.5 : 0, borderColor: sess.is_current ? C.primary : 'transparent' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 15, fontWeight: '600', color: tc.text }}>{sess.device_name || 'Unknown device'}{sess.is_current ? ' (this device)' : ''}</Text>
+                        <Text style={{ fontSize: 12, color: tc.textMid, marginTop: 4 }}>IP: {sess.ip_address || 'Unknown'}</Text>
+                        <Text style={{ fontSize: 12, color: tc.textMid, marginTop: 2 }}>Last active: {new Date(sess.last_active).toLocaleDateString()}</Text>
+                      </View>
+                      {!sess.is_current && (
+                        <TouchableOpacity onPress={async () => {
+                          try {
+                            await revokeSession(sess.id);
+                            setSessions(prev => prev.filter(s => s.id !== sess.id));
+                          } catch (e: any) { Alert.alert('Error', e.message); }
+                        }} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: '#ef444415' }}>
+                          <Text style={{ fontSize: 13, fontWeight: '600', color: '#ef4444' }}>Revoke</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </SafeAreaView>
+        </Modal>
+
+        {/* App */}
+        <Text style={[s.sectionLabel, { color: tc.textMid }]}>App</Text>
+        <View style={[s.card, { backgroundColor: tc.bg }]}>
+          <View style={s.row}>
+            <Text style={s.rowLabel}>Dark Mode</Text>
+            <Switch value={themeMode === 'dark'} onValueChange={toggleTheme} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={themeMode === 'dark' ? C.primary : '#f4f4f4'} />
+          </View>
+          {biometricAvail && (
+            <>
+              <View style={s.rowDivider} />
+              <View style={s.row}>
+                <Text style={s.rowLabel}>{bioType} Lock</Text>
+                <Switch value={biometricOn} onValueChange={(v) => { setBiometricOn(v); saveBiometricEnabled(v); }} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={biometricOn ? C.primary : '#f4f4f4'} />
+              </View>
+            </>
+          )}
+          <View style={s.rowDivider} />
+          {/* Notifications — tap to expand into per-type toggles */}
+          <TouchableOpacity style={s.row} onPress={() => setShowNotifSettings(v => !v)} activeOpacity={0.6}>
+            <Text style={[s.rowLabel, { color: tc.text }]}>Notifications</Text>
+            <Text style={[s.rowValue, { color: pushToken && pushPrefs?.enabled ? '#22c55e' : tc.textMid }]}>
+              {!pushToken ? 'Off' : pushPrefs?.enabled === false ? 'Muted' : 'On'}
+            </Text>
+          </TouchableOpacity>
+          {showNotifSettings && (
+            <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+              {!pushToken && (
+                <TouchableOpacity
+                  style={{ backgroundColor: C.primary, borderRadius: 10, paddingVertical: 10, alignItems: 'center', marginBottom: 10 }}
+                  onPress={async () => {
+                    const t = await registerForPushNotifications();
+                    setPushToken(t);
+                    if (!t) Alert.alert('Notifications', 'Could not enable. Check iOS Settings → GoFarther AI → Notifications.');
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Enable Push Notifications</Text>
+                </TouchableOpacity>
+              )}
+              {pushToken && pushPrefs && (
+                <>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 }}>
+                    <Text style={{ fontSize: 14, color: tc.text }}>Master switch</Text>
+                    <Switch value={pushPrefs.enabled} onValueChange={v => patchPrefs({ enabled: v })} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={pushPrefs.enabled ? C.primary : '#f4f4f4'} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, opacity: pushPrefs.enabled ? 1 : 0.4 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, color: tc.text }}>Urgent emails</Text>
+                      <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>From saved contacts or flagged as important</Text>
+                    </View>
+                    <Switch value={pushPrefs.urgent_email} onValueChange={v => patchPrefs({ urgent_email: v })} disabled={!pushPrefs.enabled} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={pushPrefs.urgent_email ? C.primary : '#f4f4f4'} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, opacity: pushPrefs.enabled && pushPrefs.urgent_email ? 1 : 0.4 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, color: tc.text }}>Every incoming email</Text>
+                      <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>Firehose — push for every new message (not just urgent). A busy inbox can destroy your lock screen — use carefully.</Text>
+                    </View>
+                    <Switch value={pushPrefs.notify_all_incoming} onValueChange={v => patchPrefs({ notify_all_incoming: v })} disabled={!pushPrefs.enabled || !pushPrefs.urgent_email} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={pushPrefs.notify_all_incoming ? C.primary : '#f4f4f4'} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, opacity: pushPrefs.enabled ? 1 : 0.4 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, color: tc.text }}>Plan completed</Text>
+                      <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>When a background task finishes</Text>
+                    </View>
+                    <Switch value={pushPrefs.plan_done} onValueChange={v => patchPrefs({ plan_done: v })} disabled={!pushPrefs.enabled} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={pushPrefs.plan_done ? C.primary : '#f4f4f4'} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, opacity: pushPrefs.enabled ? 1 : 0.4 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, color: tc.text }}>Daily digest</Text>
+                      <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>Morning summary from scheduled tasks</Text>
+                    </View>
+                    <Switch value={pushPrefs.digest} onValueChange={v => patchPrefs({ digest: v })} disabled={!pushPrefs.enabled} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={pushPrefs.digest ? C.primary : '#f4f4f4'} />
+                  </View>
+                  <TouchableOpacity
+                    style={{ marginTop: 10, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: tc.border, alignItems: 'center' }}
+                    onPress={async () => {
+                      try {
+                        const r = await sendTestPush();
+                        Alert.alert('Test notification', r.sent > 0 ? `Sent to ${r.sent} device${r.sent > 1 ? 's' : ''}. Check your lock screen.` : (r as any).skipped ? `Skipped (${(r as any).skipped})` : 'No active devices.');
+                      } catch (e: any) {
+                        Alert.alert('Test failed', e.message || 'Unknown error');
+                      }
+                    }}
+                  >
+                    <Text style={{ color: tc.text, fontWeight: '600', fontSize: 13 }}>Send test notification</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          )}
+          <View style={s.rowDivider} />
+
+          {/* Morning Digest — personalized daily brief */}
+          <TouchableOpacity style={s.row} onPress={() => setShowDigestSettings(v => !v)} activeOpacity={0.6}>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.rowLabel, { color: tc.text }]}>Morning Digest</Text>
+              {digestConfig?.enabled && (
+                <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>
+                  Every day at {formatTime(digestConfig.time_min)} ({digestConfig.timezone_name.split('/').pop()})
+                </Text>
+              )}
+            </View>
+            <Text style={[s.rowValue, { color: digestConfig?.enabled ? '#22c55e' : tc.textMid }]}>
+              {digestConfig?.enabled ? 'On' : 'Off'}
+            </Text>
+          </TouchableOpacity>
+          {showDigestSettings && digestConfig && (
+            <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+              <Text style={{ fontSize: 12, color: tc.textMid, marginBottom: 10 }}>
+                A personalized brief pushed every morning. Pick what you want in it.
+              </Text>
+
+              {/* Master enable */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 }}>
+                <Text style={{ fontSize: 14, color: tc.text, fontWeight: '600' }}>Enable morning digest</Text>
+                <Switch value={digestConfig.enabled} onValueChange={v => patchDigest({ enabled: v })} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={digestConfig.enabled ? C.primary : '#f4f4f4'} />
+              </View>
+
+              {digestConfig.enabled && (
+                <>
+                  {/* Time */}
+                  <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 12, marginBottom: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Time (24h)</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                    <TextInput
+                      style={[s.contactInput, { color: tc.text, flex: 1 }]}
+                      value={digestTimeText}
+                      onChangeText={setDigestTimeText}
+                      placeholder="08:00"
+                      placeholderTextColor="#bbb"
+                      keyboardType="numbers-and-punctuation"
+                      onBlur={() => {
+                        const mins = parseTime(digestTimeText);
+                        if (mins === null) {
+                          setDigestTimeText(formatTime(digestConfig.time_min));
+                          Alert.alert('Invalid time', 'Use HH:MM format (e.g. 08:00)');
+                        } else if (mins !== digestConfig.time_min) {
+                          patchDigest({ time_min: mins });
+                        }
+                      }}
+                    />
+                    <TextInput
+                      style={[s.contactInput, { color: tc.text, flex: 1 }]}
+                      value={digestConfig.timezone_name}
+                      onChangeText={(v) => patchDigest({ timezone_name: v })}
+                      placeholder="America/New_York"
+                      placeholderTextColor="#bbb"
+                      autoCapitalize="none"
+                    />
+                  </View>
+
+                  {/* Day of week filter */}
+                  <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 14, marginBottom: 6, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Days</Text>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
+                      const active = digestConfig.days_of_week[idx] === 'Y';
+                      return (
+                        <TouchableOpacity
+                          key={idx}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 10,
+                            borderRadius: 8,
+                            backgroundColor: active ? C.primary : 'rgba(0,0,0,0.05)',
+                            alignItems: 'center',
+                          }}
+                          onPress={() => {
+                            const chars = digestConfig.days_of_week.split('');
+                            chars[idx] = active ? '-' : 'Y';
+                            patchDigest({ days_of_week: chars.join('') });
+                          }}
+                        >
+                          <Text style={{ color: active ? '#fff' : tc.text, fontSize: 13, fontWeight: '700' }}>{day}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* Sources */}
+                  <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 16, marginBottom: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>What to include</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, color: tc.text }}>Inbox summary</Text>
+                      <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>Unread count + top senders</Text>
+                    </View>
+                    <Switch value={digestConfig.inbox_summary} onValueChange={v => patchDigest({ inbox_summary: v })} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={digestConfig.inbox_summary ? C.primary : '#f4f4f4'} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, color: tc.text }}>Saved notes</Text>
+                      <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>Memory facts + reminders</Text>
+                    </View>
+                    <Switch value={digestConfig.saved_notes} onValueChange={v => patchDigest({ saved_notes: v })} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={digestConfig.saved_notes ? C.primary : '#f4f4f4'} />
+                  </View>
+
+                  {/* Spreadsheet (optional) */}
+                  <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 14, marginBottom: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Spreadsheet (optional)</Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TextInput
+                      style={[s.contactInput, { color: tc.text, flex: 2 }]}
+                      value={digestConfig.spreadsheet_workbook || ''}
+                      onChangeText={(v) => patchDigest({ spreadsheet_workbook: v || null })}
+                      placeholder="budget"
+                      placeholderTextColor="#bbb"
+                      autoCapitalize="none"
+                    />
+                    <TextInput
+                      style={[s.contactInput, { color: tc.text, flex: 1 }]}
+                      value={digestConfig.spreadsheet_column || ''}
+                      onChangeText={(v) => patchDigest({ spreadsheet_column: v || null })}
+                      placeholder="B"
+                      placeholderTextColor="#bbb"
+                      autoCapitalize="characters"
+                      maxLength={3}
+                    />
+                  </View>
+
+                  {/* Custom personalization */}
+                  <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 14, marginBottom: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Personal touch (optional)</Text>
+                  <TextInput
+                    style={[s.contactInput, { color: tc.text, minHeight: 60 }]}
+                    value={digestCustomPrompt}
+                    onChangeText={setDigestCustomPrompt}
+                    onBlur={() => {
+                      if (digestCustomPrompt !== (digestConfig.custom_prompt || '')) {
+                        patchDigest({ custom_prompt: digestCustomPrompt || null });
+                      }
+                    }}
+                    placeholder={'e.g. "Start with a joke" or "Be extra brief"'}
+                    placeholderTextColor="#bbb"
+                    multiline
+                  />
+
+                  {/* Delivery channels */}
+                  <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 14, marginBottom: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Delivery</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
+                    <Text style={{ fontSize: 14, color: tc.text }}>Push notification</Text>
+                    <Switch value={digestConfig.push_enabled} onValueChange={v => patchDigest({ push_enabled: v })} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={digestConfig.push_enabled ? C.primary : '#f4f4f4'} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
+                    <Text style={{ fontSize: 14, color: tc.text }}>Email me too</Text>
+                    <Switch value={digestConfig.email_enabled} onValueChange={v => patchDigest({ email_enabled: v })} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={digestConfig.email_enabled ? C.primary : '#f4f4f4'} />
+                  </View>
+                  {digestConfig.email_enabled && (
+                    <TextInput
+                      style={[s.contactInput, { color: tc.text, marginTop: 6 }]}
+                      value={digestConfig.email_recipient || ''}
+                      onChangeText={(v) => patchDigest({ email_recipient: v || null })}
+                      placeholder="you@example.com"
+                      placeholderTextColor="#bbb"
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                    />
+                  )}
+
+                  {/* Preview button */}
+                  <TouchableOpacity
+                    style={{ marginTop: 14, paddingVertical: 12, borderRadius: 10, backgroundColor: C.primary, alignItems: 'center', opacity: previewingDigest ? 0.6 : 1 }}
+                    disabled={previewingDigest}
+                    onPress={async () => {
+                      setPreviewingDigest(true);
+                      try {
+                        const result = await runDigestNow();
+                        Alert.alert('Digest preview', `${result.headline}\n\nSources used: ${result.raw_sources.join(', ') || 'none — connect apps first'}`);
+                      } catch (e: any) {
+                        Alert.alert('Preview failed', e.message || 'Unknown error');
+                      } finally {
+                        setPreviewingDigest(false);
+                      }
+                    }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{previewingDigest ? 'Running...' : 'Preview digest now'}</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          )}
+          <View style={s.rowDivider} />
+          <Row label="AI Model" value="Claude Sonnet" />
+          <Row label="Image Generation" value="DALL-E 3" />
+          <Row label="Voice" value="ElevenLabs" />
+          <Row label="Version" value="1.0.0" last />
+        </View>
+
+        {/* About */}
+        <Text style={[s.sectionLabel, { color: tc.textMid }]}>About</Text>
+        <View style={[s.card, { backgroundColor: tc.bg }]}>
+          <Row label="Report Bug" chevron onPress={() => Linking.openURL('mailto:support@isibi.ai?subject=GoFarther%20Bug')} />
+          <Row label="Help Center" chevron onPress={() => Linking.openURL('https://isibi.ai/help')} />
+          <Row label="Terms of Use" chevron onPress={() => Linking.openURL('https://isibi.ai/terms')} />
+          <Row label="Privacy Policy" chevron onPress={() => Linking.openURL('https://isibi.ai/privacy')} last />
+        </View>
+
+        {/* Log out */}
+        <TouchableOpacity style={[s.logoutCard, { backgroundColor: tc.bg }]} onPress={handleLogout} activeOpacity={0.7}>
+          <Text style={[s.logoutText, { color: tc.text }]}>Log out</Text>
+        </TouchableOpacity>
+
+        {/* Delete Account */}
+        <TouchableOpacity style={[s.logoutCard, { backgroundColor: tc.bg, marginTop: 12 }]} onPress={() => {
+          Alert.alert(
+            'Delete Account',
+            'This will permanently delete your account and all your data. This action cannot be undone.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Delete Account', style: 'destructive', onPress: () => {
+                Alert.alert(
+                  'Are you sure?',
+                  'Your account, chat history, contacts, and all settings will be permanently deleted.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Yes, Delete Everything', style: 'destructive', onPress: async () => {
+                      try {
+                        await deleteAccount();
+                        await logout();
+                        onLogout();
+                      } catch (e: any) {
+                        Alert.alert('Error', e.message || 'Could not delete account');
+                      }
+                    }},
+                  ]
+                );
+              }},
+            ]
+          );
+        }} activeOpacity={0.7}>
+          <Text style={{ fontSize: 15, fontWeight: '500', color: '#ef4444' }}>Delete Account</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function Row({ label, value, chevron, onPress, last }: { label: string; value?: string; chevron?: boolean; onPress?: () => void; last?: boolean }) {
+  const rtheme = useTheme();
+  const rtc = rtheme?.colors ?? { text: '#1a1a1a', textMid: '#666', textDim: '#999' };
+  const Wrap = onPress ? TouchableOpacity : View;
+  return (
+    <>
+      <Wrap style={[s.row, last && s.rowLast]} {...(onPress ? { onPress, activeOpacity: 0.6 } : {})} accessibilityLabel={label} accessibilityRole={onPress ? 'button' : 'text'}>
+        <Text style={[s.rowLabel, { color: rtc.text }]}>{label}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {value ? <Text style={[s.rowValue, { color: rtc.textMid }]}>{value}</Text> : null}
+          {chevron ? <Ionicons name="chevron-forward" size={16} color={rtc.textDim} /> : null}
+        </View>
+      </Wrap>
+      {!last && <View style={s.rowDivider} />}
+    </>
+  );
+}
+
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#f2f2f2' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 },
+  backArrow: { fontSize: 20, color: '#1a1a1a', fontWeight: '400' },
+  headerTitle: { fontSize: 17, fontWeight: '600', color: '#1a1a1a' },
+  scrollContent: { paddingHorizontal: 16 },
+  profileSection: { alignItems: 'center', paddingVertical: 24 },
+  avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  avatarText: { fontSize: 24, fontWeight: '700', color: '#ffffff' },
+  profileName: { fontSize: 20, fontWeight: '700', color: '#1a1a1a', marginBottom: 4 },
+  profileEmail: { fontSize: 13, color: '#888' },
+  sectionLabel: { fontSize: 12, fontWeight: '600', color: '#888', paddingHorizontal: 8, paddingTop: 20, paddingBottom: 8 },
+  card: { backgroundColor: '#ffffff', borderRadius: 14, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16 },
+  rowLast: {},
+  rowDivider: { height: StyleSheet.hairlineWidth, backgroundColor: '#eee', marginLeft: 16 },
+  rowLabel: { fontSize: 15, fontWeight: '500' },
+  rowValue: { fontSize: 14, color: '#888', marginRight: 4 },
+  chevron: { fontSize: 16, color: '#ccc', fontWeight: '300' },
+
+  // Expanded sections
+  expandedSection: { paddingHorizontal: 16, paddingBottom: 16 },
+  expandedHint: { fontSize: 12, color: '#999', marginBottom: 8 },
+  instructionsInput: { backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e8e8e8', borderRadius: 12, padding: 12, fontSize: 14, height: 100, textAlignVertical: 'top' },
+  saveBtn: { marginTop: 10, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#1a1a1a', alignSelf: 'flex-start' },
+  saveBtnText: { fontSize: 13, fontWeight: '600', color: '#ffffff' },
+  memoryEmpty: { fontSize: 13, color: '#bbb', fontStyle: 'italic' },
+  memoryFact: { fontSize: 13, lineHeight: 20, marginBottom: 2 },
+  clearMemBtn: { marginTop: 10, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, backgroundColor: '#fef2f2', alignSelf: 'flex-start' },
+  clearMemText: { fontSize: 13, color: '#ef4444', fontWeight: '500' },
+
+  // smtpInstructions + smtpInstructionText are still used by the
+  // Connect Apps card to render per-connector setup text. smtpStep was
+  // only used by the old Send from My Email block and has been removed.
+  smtpInstructions: { backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 10, padding: 12, marginTop: 4, gap: 6 },
+  smtpInstructionText: { fontSize: 13, lineHeight: 20 },
+  contactRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 8 },
+  contactLabel: { fontSize: 14, fontWeight: '600' },
+  contactDetail: { fontSize: 12, color: '#888', marginTop: 1 },
+  addContactForm: { marginTop: 8, gap: 8 },
+  contactInput: { backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e8e8e8', borderRadius: 10, padding: 10, fontSize: 14 },
+
+  // Connect Apps
+  categoryChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#f0f0f0', marginRight: 8 },
+  categoryChipActive: { backgroundColor: '#1a1a1a' },
+  categoryChipText: { fontSize: 12, fontWeight: '500', color: '#666' },
+  categoryChipTextActive: { color: '#fff' },
+  appRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#f0f0f0' },
+  appExpanded: { paddingHorizontal: 16, paddingBottom: 14, paddingTop: 4 },
+  connectedBadge: { backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  connectedBadgeText: { fontSize: 11, fontWeight: '600', color: '#16a34a' },
+
+  logoutCard: { backgroundColor: '#ffffff', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16, marginTop: 24, alignItems: 'center' },
+  logoutText: { fontSize: 15, fontWeight: '500', color: '#1a1a1a' },
+});

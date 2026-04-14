@@ -1,0 +1,1875 @@
+{
+  "_meta": {
+    "app_name": "Tax Management",
+    "description": "Complete tax management management"
+  },
+  "spec_name": "tax_management_spec",
+  "entities": [
+    {
+      "name": "Client",
+      "table": "tax_clients",
+      "description": "Client",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email required"
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "phone",
+            "message": "Valid phone number required"
+          },
+          "placeholder": "+1 (555) 123-4567",
+          "help_text": "Phone number with area code"
+        },
+        {
+          "name": "tax_id",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter tax id"
+        },
+        {
+          "name": "client_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "individual",
+            "business",
+            "trust",
+            "nonprofit"
+          ],
+          "badge_colors": {
+            "individual": "blue",
+            "business": "green",
+            "trust": "purple",
+            "nonprofit": "amber"
+          },
+          "placeholder": "Select client type"
+        },
+        {
+          "name": "filing_status",
+          "db_type": "VARCHAR(30)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "single",
+            "married_joint",
+            "married_separate",
+            "head_of_household",
+            "qualifying_widow"
+          ],
+          "badge_colors": {
+            "single": "blue",
+            "married_joint": "green",
+            "married_separate": "amber",
+            "head_of_household": "purple",
+            "qualifying_widow": "pink"
+          },
+          "placeholder": "Select filing status"
+        },
+        {
+          "name": "total_tax_paid",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "SUM(payments.amount)",
+          "validation": {
+            "min": 0
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "inactive",
+            "prospect"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "slate",
+            "prospect": "blue"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "client_type",
+          "columns": [
+            "individual",
+            "business",
+            "trust",
+            "nonprofit"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name",
+            "email",
+            "phone"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "tax_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "client_type",
+            "filing_status",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "client_type",
+          "label": "Client Type",
+          "options": [
+            "all",
+            "individual",
+            "business",
+            "trust",
+            "nonprofit"
+          ]
+        },
+        {
+          "field": "filing_status",
+          "label": "Filing Status",
+          "options": [
+            "all",
+            "single",
+            "married_joint",
+            "married_separate",
+            "head_of_household",
+            "qualifying_widow"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "active",
+            "inactive",
+            "prospect"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "TaxReturns",
+          "type": "related_list",
+          "entity": "TaxReturn",
+          "foreign_key": "client_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "email",
+        "phone",
+        "tax_id"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "TaxReturn",
+      "table": "tax_returns",
+      "description": "TaxReturn",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "client_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Client"
+        },
+        {
+          "name": "tax_year",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "validation": {
+            "min": 2000,
+            "max": 2100
+          },
+          "placeholder": "0"
+        },
+        {
+          "name": "return_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "1040",
+            "1120",
+            "1065",
+            "990",
+            "1041",
+            "state"
+          ],
+          "badge_colors": {
+            "1040": "blue",
+            "1120": "green",
+            "1065": "purple",
+            "990": "amber",
+            "1041": "pink",
+            "state": "slate"
+          },
+          "placeholder": "Select return type"
+        },
+        {
+          "name": "gross_income",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter gross income"
+        },
+        {
+          "name": "total_deductions",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
+        },
+        {
+          "name": "taxable_income",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "gross_income - total_deductions",
+          "validation": {
+            "min": 0
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter taxable income"
+        },
+        {
+          "name": "tax_liability",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "calculated from brackets",
+          "validation": {
+            "min": 0
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter tax liability"
+        },
+        {
+          "name": "total_payments",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
+        },
+        {
+          "name": "refund_or_due",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "total_payments - tax_liability",
+          "validation": {
+            "min": 0
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter refund or due"
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "not_started",
+            "in_progress",
+            "review",
+            "filed",
+            "amended",
+            "extended"
+          ],
+          "badge_colors": {
+            "not_started": "slate",
+            "in_progress": "blue",
+            "review": "amber",
+            "filed": "green",
+            "amended": "purple",
+            "extended": "pink"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "return_type",
+          "columns": [
+            "1040",
+            "1120",
+            "1065",
+            "990",
+            "1041",
+            "state"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "due_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "tax_year",
+            "gross_income",
+            "total_deductions",
+            "total_payments"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "client_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "return_type",
+            "due_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "return_type",
+          "label": "Return Type",
+          "options": [
+            "all",
+            "1040",
+            "1120",
+            "1065",
+            "990",
+            "1041",
+            "state"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "not_started",
+            "in_progress",
+            "review",
+            "filed",
+            "amended",
+            "extended"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Documents",
+          "type": "related_list",
+          "entity": "Document",
+          "foreign_key": "tax_return_id"
+        },
+        {
+          "label": "Deductions",
+          "type": "related_list",
+          "entity": "Deduction",
+          "foreign_key": "tax_return_id"
+        },
+        {
+          "label": "Payments",
+          "type": "related_list",
+          "entity": "Payment",
+          "foreign_key": "tax_return_id"
+        },
+        {
+          "label": "Filings",
+          "type": "related_list",
+          "entity": "Filing",
+          "foreign_key": "tax_return_id"
+        }
+      ],
+      "default_sort": {
+        "field": "due_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "return_type",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Document",
+      "table": "tax_documents",
+      "description": "Document",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "tax_return_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "TaxReturn"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
+        },
+        {
+          "name": "doc_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "w2",
+            "1099",
+            "1098",
+            "k1",
+            "receipt",
+            "bank_statement",
+            "other"
+          ],
+          "badge_colors": {
+            "w2": "blue",
+            "1099": "green",
+            "1098": "purple",
+            "k1": "amber",
+            "receipt": "pink",
+            "bank_statement": "slate",
+            "other": "red"
+          },
+          "placeholder": "Select doc type"
+        },
+        {
+          "name": "file_url",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "file_upload",
+          "display_component": "file_link",
+          "placeholder": "https://example.com",
+          "help_text": "Enter a valid URL"
+        },
+        {
+          "name": "tax_year",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter tax year"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "pending",
+            "verified",
+            "rejected",
+            "archived"
+          ],
+          "badge_colors": {
+            "pending": "amber",
+            "verified": "green",
+            "rejected": "red",
+            "archived": "slate"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "uploaded_by",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter uploaded by"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "doc_type",
+          "columns": [
+            "w2",
+            "1099",
+            "1098",
+            "k1",
+            "receipt",
+            "bank_statement",
+            "other"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "file_url",
+            "tax_year",
+            "uploaded_by"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "tax_return_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "doc_type",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "doc_type",
+          "label": "Doc Type",
+          "options": [
+            "all",
+            "w2",
+            "1099",
+            "1098",
+            "k1",
+            "receipt",
+            "bank_statement",
+            "other"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "pending",
+            "verified",
+            "rejected",
+            "archived"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "doc_type",
+        "status",
+        "uploaded_by"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Deduction",
+      "table": "tax_deductions",
+      "description": "Deduction",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "tax_return_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "TaxReturn"
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "mortgage_interest",
+            "charitable",
+            "medical",
+            "state_local_tax",
+            "business_expense",
+            "education",
+            "other"
+          ],
+          "badge_colors": {
+            "mortgage_interest": "blue",
+            "charitable": "green",
+            "medical": "red",
+            "state_local_tax": "purple",
+            "business_expense": "amber",
+            "education": "pink",
+            "other": "slate"
+          },
+          "placeholder": "Select category",
+          "help_text": "Category classification"
+        },
+        {
+          "name": "description",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
+        },
+        {
+          "name": "is_itemized",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "documentation_status",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "documented",
+            "needs_docs",
+            "insufficient"
+          ],
+          "badge_colors": {
+            "documented": "green",
+            "needs_docs": "amber",
+            "insufficient": "red"
+          },
+          "placeholder": "Select documentation status"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "category",
+          "columns": [
+            "mortgage_interest",
+            "charitable",
+            "medical",
+            "state_local_tax",
+            "business_expense",
+            "education",
+            "other"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "description",
+            "amount",
+            "is_itemized"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "tax_return_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "category",
+            "documentation_status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "category",
+          "label": "Category",
+          "options": [
+            "all",
+            "mortgage_interest",
+            "charitable",
+            "medical",
+            "state_local_tax",
+            "business_expense",
+            "education",
+            "other"
+          ]
+        },
+        {
+          "field": "documentation_status",
+          "label": "Documentation Status",
+          "options": [
+            "all",
+            "documented",
+            "needs_docs",
+            "insufficient"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "category",
+        "description",
+        "documentation_status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Payment",
+      "table": "tax_payments",
+      "description": "Payment",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "tax_return_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "TaxReturn"
+        },
+        {
+          "name": "payment_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "estimated_q1",
+            "estimated_q2",
+            "estimated_q3",
+            "estimated_q4",
+            "withholding",
+            "extension",
+            "final"
+          ],
+          "badge_colors": {
+            "estimated_q1": "blue",
+            "estimated_q2": "green",
+            "estimated_q3": "purple",
+            "estimated_q4": "amber",
+            "withholding": "pink",
+            "extension": "slate",
+            "final": "red"
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter payment type"
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
+        },
+        {
+          "name": "payment_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "0.00",
+          "help_text": "Enter payment date"
+        },
+        {
+          "name": "method",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "eft",
+            "check",
+            "credit_card",
+            "eftps"
+          ],
+          "placeholder": "Select method",
+          "badge_colors": {
+            "eft": "pink",
+            "check": "blue",
+            "credit_card": "green",
+            "eftps": "amber"
+          }
+        },
+        {
+          "name": "confirmation_number",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter confirmation number"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "scheduled",
+            "paid",
+            "confirmed",
+            "failed"
+          ],
+          "badge_colors": {
+            "scheduled": "blue",
+            "paid": "green",
+            "confirmed": "purple",
+            "failed": "red"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "payment_type",
+          "columns": [
+            "estimated_q1",
+            "estimated_q2",
+            "estimated_q3",
+            "estimated_q4",
+            "withholding",
+            "extension",
+            "final"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "payment_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "amount",
+            "method",
+            "confirmation_number"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "tax_return_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "payment_type",
+            "payment_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "payment_type",
+          "label": "Payment Type",
+          "options": [
+            "all",
+            "estimated_q1",
+            "estimated_q2",
+            "estimated_q3",
+            "estimated_q4",
+            "withholding",
+            "extension",
+            "final"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "scheduled",
+            "paid",
+            "confirmed",
+            "failed"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "payment_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "payment_type",
+        "method",
+        "confirmation_number",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Filing",
+      "table": "tax_filings",
+      "description": "Filing",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "tax_return_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "TaxReturn"
+        },
+        {
+          "name": "filing_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "original",
+            "amended",
+            "extension"
+          ],
+          "badge_colors": {
+            "original": "blue",
+            "amended": "amber",
+            "extension": "purple"
+          },
+          "placeholder": "Select filing type"
+        },
+        {
+          "name": "filing_method",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "e_file",
+            "mail",
+            "in_person"
+          ],
+          "placeholder": "Select filing method",
+          "badge_colors": {
+            "e_file": "pink",
+            "mail": "blue",
+            "in_person": "green"
+          }
+        },
+        {
+          "name": "filed_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "confirmation_number",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter confirmation number"
+        },
+        {
+          "name": "accepted_rejected",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "status_badge",
+          "enum_values": [
+            "accepted",
+            "rejected",
+            "pending"
+          ],
+          "badge_colors": {
+            "accepted": "green",
+            "rejected": "red",
+            "pending": "amber"
+          }
+        },
+        {
+          "name": "rejection_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "visible_when": {
+            "field": "accepted_rejected",
+            "operator": "eq",
+            "value": "rejected"
+          },
+          "placeholder": "Enter rejection reason..."
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "submitted",
+            "accepted",
+            "rejected",
+            "processing"
+          ],
+          "badge_colors": {
+            "submitted": "amber",
+            "accepted": "green",
+            "rejected": "red",
+            "processing": "blue"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "filing_type",
+          "columns": [
+            "original",
+            "amended",
+            "extension"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "filed_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "filing_method",
+            "confirmation_number",
+            "rejection_reason"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "tax_return_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "filing_type",
+            "filed_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "filing_type",
+          "label": "Filing Type",
+          "options": [
+            "all",
+            "original",
+            "amended",
+            "extension"
+          ]
+        },
+        {
+          "field": "accepted_rejected",
+          "label": "Accepted Rejected",
+          "options": [
+            "all",
+            "accepted",
+            "rejected",
+            "pending"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "submitted",
+            "accepted",
+            "rejected",
+            "processing"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "filed_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "filing_type",
+        "filing_method",
+        "confirmation_number",
+        "accepted_rejected"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Clients",
+        "query": "COUNT(*) FROM tax_clients",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Total Tax Paid",
+        "query": "SUM(total_tax_paid) FROM tax_clients",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      },
+      {
+        "label": "Active Clients",
+        "query": "COUNT(*) FROM tax_clients WHERE client_type = 'individual'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM tax_clients WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total TaxReturns",
+        "query": "COUNT(*) FROM tax_returns",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Gross Income",
+        "query": "SUM(gross_income) FROM tax_returns",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      }
+    ]
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "app_name": "LensCraft Studio",
+  "entities": [
+    {
+      "name": "Client",
+      "table": "client",
+      "description": "Photography clients and their contact information",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "full_name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "email", "db_type": "VARCHAR(255)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "EmailInput", "display_component": "Text", "validation": {"required": true, "pattern": "^[^@]+@[^@]+\\.[^@]+$"}},
+        {"name": "phone", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "client_type", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "wedding", "label": "Wedding", "badge_color": "pink"}, {"value": "portrait", "label": "Portrait", "badge_color": "blue"}, {"value": "commercial", "label": "Commercial", "badge_color": "green"}, {"value": "event", "label": "Event", "badge_color": "purple"}], "validation": {"required": true}},
+        {"name": "referral_source", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "notes", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "full_name", "default_sort_order": "asc", "page_size": 25, "columns": ["full_name", "email", "phone", "client_type", "referral_source", "created_at"], "filters": ["client_type"], "empty_state": {"icon": "user", "heading": "No clients yet", "subtext": "Add your first photography client", "action_label": "Add Client"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Client", "required_fields": ["full_name", "email", "client_type"], "field_order": ["full_name", "email", "phone", "client_type", "referral_source", "notes"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "PhotoSession",
+      "table": "photo_session",
+      "description": "Scheduled and completed photography sessions",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "client_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Client", "validation": {"required": true}},
+        {"name": "session_type", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "wedding", "label": "Wedding", "badge_color": "pink"}, {"value": "portrait", "label": "Portrait", "badge_color": "blue"}, {"value": "family", "label": "Family", "badge_color": "green"}, {"value": "headshot", "label": "Headshot", "badge_color": "indigo"}, {"value": "product", "label": "Product", "badge_color": "orange"}, {"value": "event", "label": "Event", "badge_color": "purple"}], "validation": {"required": true}},
+        {"name": "session_date", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "DateTime", "validation": {"required": true}},
+        {"name": "location", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "duration_hours", "db_type": "DECIMAL(4,1)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 0.5, "max": 12}},
+        {"name": "package_id", "db_type": "UUID", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Package"},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "scheduled", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "scheduled", "label": "Scheduled", "badge_color": "blue"}, {"value": "completed", "label": "Completed", "badge_color": "green"}, {"value": "editing", "label": "Editing", "badge_color": "purple"}, {"value": "delivered", "label": "Delivered", "badge_color": "indigo"}, {"value": "cancelled", "label": "Cancelled", "badge_color": "red"}], "validation": {"required": true}},
+        {"name": "notes", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "session_date", "default_sort_order": "desc", "page_size": 25, "columns": ["client_id", "session_type", "session_date", "location", "duration_hours", "package_id", "status", "created_at"], "filters": ["session_type", "status", "client_id"], "empty_state": {"icon": "camera", "heading": "No sessions booked", "subtext": "Schedule your first photography session", "action_label": "Book Session"}},
+        "create_form": {"type": "SlideOverForm", "title": "Book Session", "required_fields": ["client_id", "session_type", "session_date", "location", "duration_hours"], "field_order": ["client_id", "session_type", "session_date", "location", "duration_hours", "package_id", "status", "notes"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Gallery",
+      "table": "gallery",
+      "description": "Photo galleries for delivering images to clients",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "title", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "session_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "PhotoSession", "validation": {"required": true}},
+        {"name": "photo_count", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 0, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 0}},
+        {"name": "gallery_url", "db_type": "VARCHAR(500)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "password", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "expiry_date", "db_type": "DATE", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "Date"},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "draft", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "draft", "label": "Draft", "badge_color": "gray"}, {"value": "published", "label": "Published", "badge_color": "green"}, {"value": "expired", "label": "Expired", "badge_color": "red"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "created_at", "default_sort_order": "desc", "page_size": 25, "columns": ["title", "session_id", "photo_count", "gallery_url", "expiry_date", "status", "created_at"], "filters": ["status"], "empty_state": {"icon": "image", "heading": "No galleries created", "subtext": "Create a gallery to share photos with clients", "action_label": "Create Gallery"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Gallery", "required_fields": ["title", "session_id", "photo_count"], "field_order": ["title", "session_id", "photo_count", "gallery_url", "password", "expiry_date", "status"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Package",
+      "table": "package",
+      "description": "Photography packages and pricing tiers",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "description", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "price", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "duration_hours", "db_type": "DECIMAL(4,1)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 0.5}},
+        {"name": "photos_included", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 1}},
+        {"name": "is_active", "db_type": "BOOLEAN", "ts_type": "boolean", "nullable": false, "default": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Toggle", "display_component": "Badge", "enum_values": [{"value": true, "label": "Active", "badge_color": "green"}, {"value": false, "label": "Inactive", "badge_color": "gray"}]},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "price", "default_sort_order": "asc", "page_size": 25, "columns": ["name", "price", "duration_hours", "photos_included", "is_active", "created_at"], "filters": ["is_active"], "empty_state": {"icon": "gift", "heading": "No packages defined", "subtext": "Create photography packages for your clients", "action_label": "Create Package"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Package", "required_fields": ["name", "price", "duration_hours", "photos_included"], "field_order": ["name", "description", "price", "duration_hours", "photos_included", "is_active"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Booking",
+      "table": "booking",
+      "description": "Client booking requests and confirmations",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "client_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Client", "validation": {"required": true}},
+        {"name": "package_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Package", "validation": {"required": true}},
+        {"name": "preferred_date", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "Date", "validation": {"required": true}},
+        {"name": "deposit_amount", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency"},
+        {"name": "total_amount", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "inquiry", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "inquiry", "label": "Inquiry", "badge_color": "yellow"}, {"value": "confirmed", "label": "Confirmed", "badge_color": "green"}, {"value": "deposit_paid", "label": "Deposit Paid", "badge_color": "blue"}, {"value": "completed", "label": "Completed", "badge_color": "indigo"}, {"value": "cancelled", "label": "Cancelled", "badge_color": "red"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "preferred_date", "default_sort_order": "desc", "page_size": 25, "columns": ["client_id", "package_id", "preferred_date", "deposit_amount", "total_amount", "status", "created_at"], "filters": ["status", "client_id"], "empty_state": {"icon": "calendar-check", "heading": "No bookings yet", "subtext": "Booking inquiries will appear here", "action_label": "Create Booking"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Booking", "required_fields": ["client_id", "package_id", "preferred_date", "total_amount"], "field_order": ["client_id", "package_id", "preferred_date", "deposit_amount", "total_amount", "status"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    }
+  ],
+  "modules": [
+    {"name": "Dashboard", "route": "/", "component": "Dashboard", "layout": "dashboard", "sidebar_order": 0, "sidebar_icon": "LayoutDashboard", "entity": null},
+    {"name": "Clients", "route": "/clients", "component": "EntityList", "layout": "table", "sidebar_order": 1, "sidebar_icon": "User", "entity": "Client"},
+    {"name": "Sessions", "route": "/sessions", "component": "EntityList", "layout": "table", "sidebar_order": 2, "sidebar_icon": "Camera", "entity": "PhotoSession"},
+    {"name": "Galleries", "route": "/galleries", "component": "EntityList", "layout": "table", "sidebar_order": 3, "sidebar_icon": "Image", "entity": "Gallery"},
+    {"name": "Packages", "route": "/packages", "component": "EntityList", "layout": "table", "sidebar_order": 4, "sidebar_icon": "Gift", "entity": "Package"},
+    {"name": "Bookings", "route": "/bookings", "component": "EntityList", "layout": "table", "sidebar_order": 5, "sidebar_icon": "CalendarCheck", "entity": "Booking"}
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {"label": "Total Clients", "entity": "Client", "icon": "User", "color": "pink"},
+      {"label": "Upcoming Sessions", "entity": "PhotoSession", "icon": "Camera", "color": "blue"},
+      {"label": "Active Galleries", "entity": "Gallery", "icon": "Image", "color": "green"},
+      {"label": "Pending Bookings", "entity": "Booking", "icon": "CalendarCheck", "color": "purple"}
+    ]
+  },
+  "design_system": {
+    "colors": {"primary": "#be185d", "secondary": "#ec4899", "sidebar_bg": "#fdf2f8", "sidebar_text": "#831843"},
+    "spacing": {"page_padding": "24px", "card_padding": "16px", "gap": "16px"},
+    "buttons": {"primary_bg": "#be185d", "primary_text": "white"},
+    "table": {"striped": false, "hover": true},
+    "typography": {"font": "Cormorant Garamond"}
+  },
+  "pagination": {"default_page_size": 25, "max_page_size": 100}
+}

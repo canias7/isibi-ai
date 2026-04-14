@@ -1,0 +1,144 @@
+{
+  "app_name": "FreightFlow Logistics",
+  "entities": [
+    {
+      "name": "Shipment",
+      "table": "shipment",
+      "description": "Freight shipments being transported between locations",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "tracking_number", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": true, "input_component": null, "display_component": "Text"},
+        {"name": "origin", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "max_length": 200}},
+        {"name": "destination", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "max_length": 200}},
+        {"name": "driver_id", "db_type": "UUID", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Driver"},
+        {"name": "weight_kg", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 0.1}},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "pending", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "pending", "label": "Pending", "badge_color": "yellow"}, {"value": "in_transit", "label": "In Transit", "badge_color": "blue"}, {"value": "delivered", "label": "Delivered", "badge_color": "green"}, {"value": "delayed", "label": "Delayed", "badge_color": "red"}, {"value": "returned", "label": "Returned", "badge_color": "gray"}], "validation": {"required": true}},
+        {"name": "estimated_delivery", "db_type": "DATE", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "Date"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "created_at", "default_sort_order": "desc", "page_size": 25, "columns": ["tracking_number", "origin", "destination", "driver_id", "weight_kg", "status", "estimated_delivery", "created_at"], "filters": ["status", "driver_id"], "empty_state": {"icon": "truck", "heading": "No shipments yet", "subtext": "Create your first shipment to start tracking", "action_label": "Create Shipment"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Shipment", "required_fields": ["origin", "destination", "weight_kg"], "field_order": ["origin", "destination", "driver_id", "weight_kg", "status", "estimated_delivery"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Warehouse",
+      "table": "warehouse",
+      "description": "Storage facilities for inventory management",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2, "max_length": 150}},
+        {"name": "address", "db_type": "TEXT", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text", "validation": {"required": true}},
+        {"name": "capacity_sqft", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 1}},
+        {"name": "manager_name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "active", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "active", "label": "Active", "badge_color": "green"}, {"value": "full", "label": "Full", "badge_color": "red"}, {"value": "maintenance", "label": "Maintenance", "badge_color": "yellow"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "name", "default_sort_order": "asc", "page_size": 25, "columns": ["name", "address", "capacity_sqft", "manager_name", "status", "created_at"], "filters": ["status"], "empty_state": {"icon": "warehouse", "heading": "No warehouses", "subtext": "Add your first warehouse location", "action_label": "Add Warehouse"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Warehouse", "required_fields": ["name", "address", "capacity_sqft"], "field_order": ["name", "address", "capacity_sqft", "manager_name", "status"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Driver",
+      "table": "driver",
+      "description": "Delivery drivers and their assignment status",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "full_name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "phone", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "license_number", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "license_expiry", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "Date", "validation": {"required": true}},
+        {"name": "vehicle_plate", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "available", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "available", "label": "Available", "badge_color": "green"}, {"value": "on_route", "label": "On Route", "badge_color": "blue"}, {"value": "off_duty", "label": "Off Duty", "badge_color": "gray"}, {"value": "suspended", "label": "Suspended", "badge_color": "red"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "full_name", "default_sort_order": "asc", "page_size": 25, "columns": ["full_name", "phone", "license_number", "license_expiry", "vehicle_plate", "status", "created_at"], "filters": ["status"], "empty_state": {"icon": "user", "heading": "No drivers registered", "subtext": "Add drivers to assign them to shipments", "action_label": "Add Driver"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Driver", "required_fields": ["full_name", "phone", "license_number", "license_expiry"], "field_order": ["full_name", "phone", "license_number", "license_expiry", "vehicle_plate", "status"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Route",
+      "table": "route",
+      "description": "Delivery routes between locations",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "max_length": 100}},
+        {"name": "start_point", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "end_point", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "distance_km", "db_type": "DECIMAL(8,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 0.1}},
+        {"name": "estimated_hours", "db_type": "DECIMAL(5,1)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 0.1}},
+        {"name": "is_active", "db_type": "BOOLEAN", "ts_type": "boolean", "nullable": false, "default": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Toggle", "display_component": "Badge", "enum_values": [{"value": true, "label": "Active", "badge_color": "green"}, {"value": false, "label": "Inactive", "badge_color": "gray"}]},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "name", "default_sort_order": "asc", "page_size": 25, "columns": ["name", "start_point", "end_point", "distance_km", "estimated_hours", "is_active", "created_at"], "filters": ["is_active"], "empty_state": {"icon": "map-pin", "heading": "No routes defined", "subtext": "Create routes to optimize your deliveries", "action_label": "Add Route"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Route", "required_fields": ["name", "start_point", "end_point", "distance_km", "estimated_hours"], "field_order": ["name", "start_point", "end_point", "distance_km", "estimated_hours", "is_active"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Inventory",
+      "table": "inventory",
+      "description": "Inventory items stored across warehouses",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "item_name", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "sku", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "warehouse_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Warehouse", "validation": {"required": true}},
+        {"name": "quantity", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 0, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 0}},
+        {"name": "unit_weight_kg", "db_type": "DECIMAL(8,2)", "ts_type": "number", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text"},
+        {"name": "category", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "raw_material", "label": "Raw Material", "badge_color": "orange"}, {"value": "finished_goods", "label": "Finished Goods", "badge_color": "green"}, {"value": "packaging", "label": "Packaging", "badge_color": "blue"}, {"value": "spare_parts", "label": "Spare Parts", "badge_color": "purple"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "item_name", "default_sort_order": "asc", "page_size": 25, "columns": ["item_name", "sku", "warehouse_id", "quantity", "unit_weight_kg", "category", "created_at"], "filters": ["warehouse_id", "category"], "empty_state": {"icon": "boxes", "heading": "No inventory items", "subtext": "Add items to track your warehouse inventory", "action_label": "Add Item"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Inventory Item", "required_fields": ["item_name", "sku", "warehouse_id", "quantity", "category"], "field_order": ["item_name", "sku", "warehouse_id", "quantity", "unit_weight_kg", "category"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    }
+  ],
+  "modules": [
+    {"name": "Dashboard", "route": "/", "component": "Dashboard", "layout": "dashboard", "sidebar_order": 0, "sidebar_icon": "LayoutDashboard", "entity": null},
+    {"name": "Shipments", "route": "/shipments", "component": "EntityList", "layout": "table", "sidebar_order": 1, "sidebar_icon": "Truck", "entity": "Shipment"},
+    {"name": "Warehouses", "route": "/warehouses", "component": "EntityList", "layout": "table", "sidebar_order": 2, "sidebar_icon": "Warehouse", "entity": "Warehouse"},
+    {"name": "Drivers", "route": "/drivers", "component": "EntityList", "layout": "table", "sidebar_order": 3, "sidebar_icon": "User", "entity": "Driver"},
+    {"name": "Routes", "route": "/routes", "component": "EntityList", "layout": "table", "sidebar_order": 4, "sidebar_icon": "MapPin", "entity": "Route"},
+    {"name": "Inventory", "route": "/inventory", "component": "EntityList", "layout": "table", "sidebar_order": 5, "sidebar_icon": "Boxes", "entity": "Inventory"}
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {"label": "Active Shipments", "entity": "Shipment", "icon": "Truck", "color": "orange"},
+      {"label": "Warehouses", "entity": "Warehouse", "icon": "Warehouse", "color": "blue"},
+      {"label": "Available Drivers", "entity": "Driver", "icon": "User", "color": "green"},
+      {"label": "Inventory Items", "entity": "Inventory", "icon": "Boxes", "color": "purple"}
+    ]
+  },
+  "design_system": {
+    "colors": {"primary": "#b45309", "secondary": "#d97706", "sidebar_bg": "#1c1917", "sidebar_text": "#fbbf24"},
+    "spacing": {"page_padding": "24px", "card_padding": "16px", "gap": "16px"},
+    "buttons": {"primary_bg": "#b45309", "primary_text": "white"},
+    "table": {"striped": true, "hover": true},
+    "typography": {"font": "Barlow"}
+  },
+  "pagination": {"default_page_size": 25, "max_page_size": 100}
+}

@@ -1,0 +1,147 @@
+{
+  "app_name": "Eventique Planner",
+  "entities": [
+    {
+      "name": "Event",
+      "table": "event",
+      "description": "Events being planned and managed",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "name", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 3, "max_length": 200}},
+        {"name": "event_type", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "wedding", "label": "Wedding", "badge_color": "pink"}, {"value": "corporate", "label": "Corporate", "badge_color": "blue"}, {"value": "birthday", "label": "Birthday", "badge_color": "purple"}, {"value": "gala", "label": "Gala", "badge_color": "indigo"}, {"value": "conference", "label": "Conference", "badge_color": "green"}, {"value": "other", "label": "Other", "badge_color": "gray"}], "validation": {"required": true}},
+        {"name": "event_date", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "DateTime", "validation": {"required": true}},
+        {"name": "venue_id", "db_type": "UUID", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Venue"},
+        {"name": "guest_count", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 1}},
+        {"name": "budget", "db_type": "DECIMAL(12,2)", "ts_type": "number", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency"},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "planning", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "planning", "label": "Planning", "badge_color": "yellow"}, {"value": "confirmed", "label": "Confirmed", "badge_color": "blue"}, {"value": "in_progress", "label": "In Progress", "badge_color": "purple"}, {"value": "completed", "label": "Completed", "badge_color": "green"}, {"value": "cancelled", "label": "Cancelled", "badge_color": "red"}], "validation": {"required": true}},
+        {"name": "description", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "event_date", "default_sort_order": "desc", "page_size": 25, "columns": ["name", "event_type", "event_date", "venue_id", "guest_count", "budget", "status", "created_at"], "filters": ["event_type", "status"], "empty_state": {"icon": "party-popper", "heading": "No events planned", "subtext": "Create your first event to get started", "action_label": "Create Event"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Event", "required_fields": ["name", "event_type", "event_date", "guest_count"], "field_order": ["name", "event_type", "event_date", "venue_id", "guest_count", "budget", "status", "description"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Venue",
+      "table": "venue",
+      "description": "Event venues and locations",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "name", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "address", "db_type": "TEXT", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text", "validation": {"required": true}},
+        {"name": "capacity", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 1}},
+        {"name": "venue_type", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "indoor", "label": "Indoor", "badge_color": "blue"}, {"value": "outdoor", "label": "Outdoor", "badge_color": "green"}, {"value": "hybrid", "label": "Hybrid", "badge_color": "purple"}], "validation": {"required": true}},
+        {"name": "rental_cost", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "contact_phone", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "name", "default_sort_order": "asc", "page_size": 25, "columns": ["name", "address", "capacity", "venue_type", "rental_cost", "contact_phone", "created_at"], "filters": ["venue_type"], "empty_state": {"icon": "map-pin", "heading": "No venues added", "subtext": "Add venues to assign to events", "action_label": "Add Venue"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Venue", "required_fields": ["name", "address", "capacity", "venue_type", "rental_cost"], "field_order": ["name", "address", "capacity", "venue_type", "rental_cost", "contact_phone"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Vendor",
+      "table": "vendor",
+      "description": "Third-party vendors and service providers for events",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "company_name", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "contact_name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "email", "db_type": "VARCHAR(255)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "EmailInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "phone", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "service_type", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "catering", "label": "Catering", "badge_color": "orange"}, {"value": "photography", "label": "Photography", "badge_color": "pink"}, {"value": "entertainment", "label": "Entertainment", "badge_color": "purple"}, {"value": "decor", "label": "Decor", "badge_color": "green"}, {"value": "av_tech", "label": "AV/Tech", "badge_color": "blue"}, {"value": "florist", "label": "Florist", "badge_color": "rose"}], "validation": {"required": true}},
+        {"name": "rating", "db_type": "INTEGER", "ts_type": "number", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"min": 1, "max": 5}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "company_name", "default_sort_order": "asc", "page_size": 25, "columns": ["company_name", "contact_name", "email", "phone", "service_type", "rating", "created_at"], "filters": ["service_type"], "empty_state": {"icon": "handshake", "heading": "No vendors registered", "subtext": "Add your vendor partners", "action_label": "Add Vendor"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Vendor", "required_fields": ["company_name", "contact_name", "email", "service_type"], "field_order": ["company_name", "contact_name", "email", "phone", "service_type", "rating"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "GuestList",
+      "table": "guest_list",
+      "description": "Guest lists and RSVP tracking for events",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "event_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Event", "validation": {"required": true}},
+        {"name": "guest_name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "email", "db_type": "VARCHAR(255)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "EmailInput", "display_component": "Text"},
+        {"name": "plus_ones", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 0, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 0, "max": 5}},
+        {"name": "dietary_restrictions", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "rsvp_status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "pending", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "pending", "label": "Pending", "badge_color": "yellow"}, {"value": "accepted", "label": "Accepted", "badge_color": "green"}, {"value": "declined", "label": "Declined", "badge_color": "red"}, {"value": "maybe", "label": "Maybe", "badge_color": "blue"}], "validation": {"required": true}},
+        {"name": "table_number", "db_type": "VARCHAR(10)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "guest_name", "default_sort_order": "asc", "page_size": 25, "columns": ["event_id", "guest_name", "email", "plus_ones", "rsvp_status", "table_number", "created_at"], "filters": ["event_id", "rsvp_status"], "empty_state": {"icon": "users", "heading": "No guests added", "subtext": "Start building your guest list", "action_label": "Add Guest"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Guest", "required_fields": ["event_id", "guest_name"], "field_order": ["event_id", "guest_name", "email", "plus_ones", "dietary_restrictions", "rsvp_status", "table_number"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Task",
+      "table": "task",
+      "description": "Planning tasks and to-dos for events",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "event_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Event", "validation": {"required": true}},
+        {"name": "title", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 3}},
+        {"name": "assigned_to", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "due_date", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "Date", "validation": {"required": true}},
+        {"name": "priority", "db_type": "VARCHAR(10)", "ts_type": "string", "nullable": false, "default": "medium", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "low", "label": "Low", "badge_color": "gray"}, {"value": "medium", "label": "Medium", "badge_color": "yellow"}, {"value": "high", "label": "High", "badge_color": "orange"}, {"value": "urgent", "label": "Urgent", "badge_color": "red"}], "validation": {"required": true}},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "pending", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "pending", "label": "Pending", "badge_color": "yellow"}, {"value": "in_progress", "label": "In Progress", "badge_color": "blue"}, {"value": "completed", "label": "Completed", "badge_color": "green"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "due_date", "default_sort_order": "asc", "page_size": 25, "columns": ["event_id", "title", "assigned_to", "due_date", "priority", "status", "created_at"], "filters": ["event_id", "priority", "status"], "empty_state": {"icon": "check-square", "heading": "No tasks created", "subtext": "Create tasks to keep your event on track", "action_label": "Add Task"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Task", "required_fields": ["event_id", "title", "due_date"], "field_order": ["event_id", "title", "assigned_to", "due_date", "priority", "status"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    }
+  ],
+  "modules": [
+    {"name": "Dashboard", "route": "/", "component": "Dashboard", "layout": "dashboard", "sidebar_order": 0, "sidebar_icon": "LayoutDashboard", "entity": null},
+    {"name": "Events", "route": "/events", "component": "EntityList", "layout": "table", "sidebar_order": 1, "sidebar_icon": "PartyPopper", "entity": "Event"},
+    {"name": "Venues", "route": "/venues", "component": "EntityList", "layout": "table", "sidebar_order": 2, "sidebar_icon": "MapPin", "entity": "Venue"},
+    {"name": "Vendors", "route": "/vendors", "component": "EntityList", "layout": "table", "sidebar_order": 3, "sidebar_icon": "Handshake", "entity": "Vendor"},
+    {"name": "Guest Lists", "route": "/guest-lists", "component": "EntityList", "layout": "table", "sidebar_order": 4, "sidebar_icon": "Users", "entity": "GuestList"},
+    {"name": "Tasks", "route": "/tasks", "component": "EntityList", "layout": "table", "sidebar_order": 5, "sidebar_icon": "CheckSquare", "entity": "Task"}
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {"label": "Upcoming Events", "entity": "Event", "icon": "PartyPopper", "color": "purple"},
+      {"label": "Venues", "entity": "Venue", "icon": "MapPin", "color": "blue"},
+      {"label": "Vendors", "entity": "Vendor", "icon": "Handshake", "color": "green"},
+      {"label": "Pending Tasks", "entity": "Task", "icon": "CheckSquare", "color": "yellow"}
+    ]
+  },
+  "design_system": {
+    "colors": {"primary": "#c026d3", "secondary": "#d946ef", "sidebar_bg": "#3b0764", "sidebar_text": "#e9d5ff"},
+    "spacing": {"page_padding": "24px", "card_padding": "16px", "gap": "16px"},
+    "buttons": {"primary_bg": "#c026d3", "primary_text": "white"},
+    "table": {"striped": false, "hover": true},
+    "typography": {"font": "Outfit"}
+  },
+  "pagination": {"default_page_size": 25, "max_page_size": 100}
+}

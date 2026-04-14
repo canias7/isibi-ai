@@ -1,0 +1,2607 @@
+{
+  "_meta": {
+    "app_name": "Invoice & Billing",
+    "description": "Professional invoicing and billing management"
+  },
+  "entities": [
+    {
+      "name": "Customer",
+      "table": "customers",
+      "description": "Billing customer",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "company_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "contact_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Full name"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          },
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
+        },
+        {
+          "name": "billing_address",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Street address"
+        },
+        {
+          "name": "tax_id",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "payment_terms",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'net_30'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "net_30",
+          "enum_values": [
+            "due_on_receipt",
+            "net_15",
+            "net_30",
+            "net_45",
+            "net_60"
+          ],
+          "badge_colors": {
+            "due_on_receipt": "red",
+            "net_15": "orange",
+            "net_30": "blue",
+            "net_45": "teal",
+            "net_60": "purple"
+          }
+        },
+        {
+          "name": "credit_limit",
+          "db_type": "NUMERIC(12,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "inactive",
+            "suspended",
+            "on_hold"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "gray",
+            "suspended": "red",
+            "on_hold": "yellow"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "payment_terms",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Customers yet",
+            "subtext": "Create your first customer",
+            "action_label": "Add Customer"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            },
+            {
+              "label": "Suspended",
+              "filter": {
+                "field": "status",
+                "value": "suspended"
+              }
+            },
+            {
+              "label": "On Hold",
+              "filter": {
+                "field": "status",
+                "value": "on_hold"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "billing_address",
+            "tax_id",
+            "payment_terms",
+            "credit_limit",
+            "status"
+          ],
+          "required_fields": [
+            "company_name",
+            "contact_name",
+            "email",
+            "billing_address",
+            "payment_terms",
+            "credit_limit",
+            "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "contact_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "company_name",
+                "billing_address",
+                "tax_id",
+                "payment_terms",
+                "credit_limit"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "billing_address",
+            "tax_id",
+            "payment_terms",
+            "credit_limit",
+            "status"
+          ],
+          "required_fields": [
+            "company_name",
+            "contact_name",
+            "email",
+            "billing_address",
+            "payment_terms",
+            "credit_limit",
+            "status"
+          ],
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "contact_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "company_name",
+                "billing_address",
+                "tax_id",
+                "payment_terms",
+                "credit_limit"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
+        },
+        "detail_view": {
+          "route": "/customers/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "company_name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "company_name",
+                "contact_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Invoice",
+      "table": "invoices",
+      "description": "Customer invoice",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "invoice_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^INV-[0-9]+$",
+            "message": "Format: INV-001"
+          }
+        },
+        {
+          "name": "customer_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "customers",
+          "fk_display": "company_name"
+        },
+        {
+          "name": "issue_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "subtotal",
+          "db_type": "NUMERIC(12,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "tax_rate",
+          "db_type": "NUMERIC(5,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "validation": {
+            "min": 0,
+            "max": 100
+          },
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "tax_amount",
+          "db_type": "NUMERIC(12,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "discount_pct",
+          "db_type": "NUMERIC(5,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "validation": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'draft'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "draft",
+          "enum_values": [
+            "draft",
+            "sent",
+            "viewed",
+            "paid",
+            "overdue",
+            "void",
+            "refunded"
+          ],
+          "badge_colors": {
+            "draft": "gray",
+            "sent": "blue",
+            "viewed": "purple",
+            "paid": "green",
+            "overdue": "red",
+            "void": "gray",
+            "refunded": "orange"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Add details...",
+          "help_text": "Internal notes (not visible to customers)"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "invoice_number",
+            "customer_id",
+            "issue_date",
+            "due_date",
+            "subtotal",
+            "tax_rate"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Invoices yet",
+            "subtext": "Create your first invoice",
+            "action_label": "Add Invoice"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Draft",
+              "filter": {
+                "field": "status",
+                "value": "draft"
+              }
+            },
+            {
+              "label": "Sent",
+              "filter": {
+                "field": "status",
+                "value": "sent"
+              }
+            },
+            {
+              "label": "Viewed",
+              "filter": {
+                "field": "status",
+                "value": "viewed"
+              }
+            },
+            {
+              "label": "Paid",
+              "filter": {
+                "field": "status",
+                "value": "paid"
+              }
+            },
+            {
+              "label": "Overdue",
+              "filter": {
+                "field": "status",
+                "value": "overdue"
+              }
+            },
+            {
+              "label": "Void",
+              "filter": {
+                "field": "status",
+                "value": "void"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "invoice_number",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Paid",
+              "action": "update_status",
+              "value": "paid"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "invoice_number",
+            "customer_id",
+            "issue_date",
+            "due_date",
+            "tax_rate",
+            "discount_pct",
+            "status",
+            "notes"
+          ],
+          "required_fields": [
+            "invoice_number",
+            "customer_id",
+            "issue_date",
+            "due_date",
+            "tax_rate",
+            "discount_pct",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "invoice_number",
+            "customer_id",
+            "issue_date",
+            "due_date",
+            "tax_rate",
+            "discount_pct",
+            "status",
+            "notes"
+          ],
+          "required_fields": [
+            "invoice_number",
+            "customer_id",
+            "issue_date",
+            "due_date",
+            "tax_rate",
+            "discount_pct",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/invoices/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "invoice_number"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "invoice_number",
+            "customer_id",
+            "issue_date",
+            "due_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "invoice_number",
+                "customer_id",
+                "issue_date",
+                "due_date"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "customer_id",
+          "references": {
+            "table": "customers",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "total",
+          "expression": "subtotal + tax_amount - (subtotal * discount_pct / 100)",
+          "ts_expression": "subtotal + tax_amount - (subtotal * discount_pct / 100)"
+        },
+        {
+          "name": "discount_amount",
+          "expression": "subtotal * discount_pct / 100",
+          "ts_expression": "subtotal * discount_pct / 100"
+        }
+      ]
+    },
+    {
+      "name": "InvoiceLine",
+      "table": "invoice_lines",
+      "description": "Invoice line item",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "customer_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "customers",
+            "column": "id",
+            "display_column": "company_name"
+          }
+        },
+        {
+          "name": "invoice_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "invoices",
+          "fk_display": "invoice_number"
+        },
+        {
+          "name": "description",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "quantity",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0.01
+          },
+          "placeholder": "1",
+          "help_text": "Number of units"
+        },
+        {
+          "name": "unit_price",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          },
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "tax_rate_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "tax_rates",
+          "fk_display": "name",
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "discount_pct",
+          "db_type": "NUMERIC(5,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "validation": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "invoice_id",
+            "description",
+            "quantity",
+            "unit_price",
+            "tax_rate_id",
+            "customer_id"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No InvoiceLines yet",
+            "subtext": "Create your first invoiceline",
+            "action_label": "Add InvoiceLine"
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "description"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "invoice_id",
+            "description",
+            "quantity",
+            "unit_price",
+            "tax_rate_id",
+            "discount_pct",
+            "customer_id"
+          ],
+          "required_fields": [
+            "invoice_id",
+            "description",
+            "quantity",
+            "unit_price",
+            "discount_pct"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "invoice_id",
+            "description",
+            "quantity",
+            "unit_price",
+            "tax_rate_id",
+            "discount_pct",
+            "customer_id"
+          ],
+          "required_fields": [
+            "invoice_id",
+            "description",
+            "quantity",
+            "unit_price",
+            "discount_pct"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/invoice_lines/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "invoice_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "invoice_id",
+            "description",
+            "quantity",
+            "unit_price"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "invoice_id",
+                "description",
+                "quantity",
+                "unit_price",
+                "customer_id"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "invoice_id",
+          "references": {
+            "table": "invoices",
+            "column": "id"
+          }
+        },
+        {
+          "column": "tax_rate_id",
+          "references": {
+            "table": "tax_rates",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "line_total",
+          "expression": "quantity * unit_price * (1 - discount_pct / 100)",
+          "ts_expression": "quantity * unit_price * (1 - discount_pct / 100)"
+        }
+      ]
+    },
+    {
+      "name": "Payment",
+      "table": "payments",
+      "description": "Payment received",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "invoice_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "invoices",
+          "fk_display": "invoice_number"
+        },
+        {
+          "name": "customer_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "customers",
+          "fk_display": "company_name"
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(12,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0.01
+          },
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
+        },
+        {
+          "name": "payment_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "payment_method",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "bank_transfer",
+            "credit_card",
+            "check",
+            "cash",
+            "paypal",
+            "stripe"
+          ],
+          "badge_colors": {
+            "bank_transfer": "blue",
+            "credit_card": "purple",
+            "check": "teal",
+            "cash": "green",
+            "paypal": "blue",
+            "stripe": "purple"
+          }
+        },
+        {
+          "name": "reference_number",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'completed'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "completed",
+          "enum_values": [
+            "pending",
+            "completed",
+            "failed",
+            "refunded"
+          ],
+          "badge_colors": {
+            "pending": "yellow",
+            "completed": "green",
+            "failed": "red",
+            "refunded": "orange"
+          }
+        },
+        {
+          "name": "refund_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "refunded"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "invoice_id",
+            "customer_id",
+            "amount",
+            "payment_date",
+            "payment_method",
+            "reference_number"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Payments yet",
+            "subtext": "Create your first payment",
+            "action_label": "Add Payment"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Failed",
+              "filter": {
+                "field": "status",
+                "value": "failed"
+              }
+            },
+            {
+              "label": "Refunded",
+              "filter": {
+                "field": "status",
+                "value": "refunded"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "payment_method",
+            "reference_number",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "invoice_id",
+            "customer_id",
+            "amount",
+            "payment_date",
+            "payment_method",
+            "reference_number",
+            "status",
+            "refund_reason"
+          ],
+          "required_fields": [
+            "invoice_id",
+            "customer_id",
+            "amount",
+            "payment_date",
+            "payment_method",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "invoice_id",
+            "customer_id",
+            "amount",
+            "payment_date",
+            "payment_method",
+            "reference_number",
+            "status",
+            "refund_reason"
+          ],
+          "required_fields": [
+            "invoice_id",
+            "customer_id",
+            "amount",
+            "payment_date",
+            "payment_method",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/payments/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "invoice_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "invoice_id",
+            "customer_id",
+            "amount",
+            "payment_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "invoice_id",
+                "customer_id",
+                "amount",
+                "payment_date"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "invoice_id",
+          "references": {
+            "table": "invoices",
+            "column": "id"
+          }
+        },
+        {
+          "column": "customer_id",
+          "references": {
+            "table": "customers",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TaxRate",
+      "table": "tax_rates",
+      "description": "Tax rate configuration",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Full name",
+          "help_text": "Full name"
+        },
+        {
+          "name": "rate",
+          "db_type": "NUMERIC(5,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0,
+            "max": 100
+          },
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
+        },
+        {
+          "name": "description",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "tax_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "sales_tax",
+            "vat",
+            "gst",
+            "service_tax",
+            "custom"
+          ],
+          "badge_colors": {
+            "sales_tax": "blue",
+            "vat": "green",
+            "gst": "purple",
+            "service_tax": "orange",
+            "custom": "gray"
+          }
+        },
+        {
+          "name": "is_default",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT TRUE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "rate",
+            "tax_type",
+            "is_default",
+            "is_active"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No TaxRates yet",
+            "subtext": "Create your first taxrate",
+            "action_label": "Add TaxRate"
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "tax_type"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "rate",
+            "description",
+            "tax_type",
+            "is_default",
+            "is_active"
+          ],
+          "required_fields": [
+            "name",
+            "rate",
+            "tax_type",
+            "is_default",
+            "is_active"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "rate",
+            "description",
+            "tax_type",
+            "is_default",
+            "is_active"
+          ],
+          "required_fields": [
+            "name",
+            "rate",
+            "tax_type",
+            "is_default",
+            "is_active"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/tax_rates/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "rate",
+            "tax_type",
+            "is_default"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "rate",
+                "tax_type",
+                "is_default"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "FinancialPeriod",
+      "table": "financial_periods",
+      "description": "Accounting period",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Full name",
+          "help_text": "Full name"
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "end_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "period_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "monthly",
+            "quarterly",
+            "semi_annual",
+            "annual"
+          ],
+          "badge_colors": {
+            "monthly": "blue",
+            "quarterly": "green",
+            "semi_annual": "purple",
+            "annual": "gold"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'open'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "open",
+          "enum_values": [
+            "open",
+            "closed",
+            "locked"
+          ],
+          "badge_colors": {
+            "open": "green",
+            "closed": "blue",
+            "locked": "red"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Add details...",
+          "help_text": "Internal notes (not visible to customers)"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "start_date",
+            "end_date",
+            "period_type",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No FinancialPeriods yet",
+            "subtext": "Create your first financialperiod",
+            "action_label": "Add FinancialPeriod"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Open",
+              "filter": {
+                "field": "status",
+                "value": "open"
+              }
+            },
+            {
+              "label": "Closed",
+              "filter": {
+                "field": "status",
+                "value": "closed"
+              }
+            },
+            {
+              "label": "Locked",
+              "filter": {
+                "field": "status",
+                "value": "locked"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "period_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "start_date",
+            "end_date",
+            "period_type",
+            "status",
+            "notes"
+          ],
+          "required_fields": [
+            "name",
+            "start_date",
+            "end_date",
+            "period_type",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "start_date",
+            "end_date",
+            "period_type",
+            "status",
+            "notes"
+          ],
+          "required_fields": [
+            "name",
+            "start_date",
+            "end_date",
+            "period_type",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/financial_periods/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "start_date",
+            "end_date",
+            "period_type"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "start_date",
+                "end_date",
+                "period_type"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "RevenueAccount",
+      "table": "revenue_accounts",
+      "description": "Revenue chart of accounts",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "account_code",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[0-9]{3,6}$",
+            "message": "3-6 digit code"
+          }
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Full name",
+          "help_text": "Full name"
+        },
+        {
+          "name": "account_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "revenue",
+            "cost_of_goods",
+            "operating_expense",
+            "other_income",
+            "other_expense"
+          ],
+          "badge_colors": {
+            "revenue": "green",
+            "cost_of_goods": "orange",
+            "operating_expense": "red",
+            "other_income": "teal",
+            "other_expense": "purple"
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "parent_account_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "revenue_accounts",
+          "fk_display": "name"
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT TRUE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "account_code",
+            "name",
+            "account_type",
+            "parent_account_id",
+            "is_active"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No RevenueAccounts yet",
+            "subtext": "Create your first revenueaccount",
+            "action_label": "Add RevenueAccount"
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "account_code",
+            "name",
+            "account_type"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "account_code",
+            "name",
+            "account_type",
+            "description",
+            "parent_account_id",
+            "is_active"
+          ],
+          "required_fields": [
+            "account_code",
+            "name",
+            "account_type",
+            "is_active"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "account_code",
+            "name",
+            "account_type",
+            "description",
+            "parent_account_id",
+            "is_active"
+          ],
+          "required_fields": [
+            "account_code",
+            "name",
+            "account_type",
+            "is_active"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/revenue_accounts/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "account_code"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "account_code",
+            "name",
+            "account_type",
+            "parent_account_id"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "account_code",
+                "name",
+                "account_type",
+                "parent_account_id"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "parent_account_id",
+          "references": {
+            "table": "revenue_accounts",
+            "column": "id"
+          }
+        }
+      ]
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Customers",
+        "entity": "Customer",
+        "method": "count",
+        "icon": "Users",
+        "color": "blue"
+      },
+      {
+        "label": "Total Invoices",
+        "entity": "Invoice",
+        "method": "count",
+        "icon": "FileText",
+        "color": "emerald"
+      },
+      {
+        "label": "Total InvoiceLines",
+        "entity": "InvoiceLine",
+        "method": "count",
+        "icon": "FileText",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Invoice",
+        "method": "sum",
+        "field": "subtotal",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Customers",
+        "entity": "Customer",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
+}

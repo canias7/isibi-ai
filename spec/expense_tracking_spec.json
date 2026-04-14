@@ -1,0 +1,1595 @@
+{
+  "_meta": {
+    "app_name": "Expense Tracking",
+    "description": "Complete expense tracking management"
+  },
+  "spec_name": "expense_tracking_spec",
+  "entities": [
+    {
+      "name": "Employee",
+      "table": "expense_employees",
+      "description": "Employee",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email required"
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "phone",
+            "message": "Valid phone number required"
+          },
+          "placeholder": "+1 (555) 123-4567",
+          "help_text": "Phone number with area code"
+        },
+        {
+          "name": "department",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Department",
+          "help_text": "Department or division"
+        },
+        {
+          "name": "employee_id_code",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "unique",
+            "message": "Must be unique"
+          },
+          "placeholder": "Enter code",
+          "help_text": "Unique identifier code"
+        },
+        {
+          "name": "spending_limit",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter spending limit"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "on_leave",
+            "terminated"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "on_leave": "amber",
+            "terminated": "red"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "status",
+          "columns": [
+            "active",
+            "on_leave",
+            "terminated"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name",
+            "email",
+            "phone"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "department",
+            "employee_id_code",
+            "spending_limit"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "active",
+            "on_leave",
+            "terminated"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Reports",
+          "type": "related_list",
+          "entity": "Report",
+          "foreign_key": "employee_id"
+        },
+        {
+          "label": "Expenses",
+          "type": "related_list",
+          "entity": "Expense",
+          "foreign_key": "employee_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "email",
+        "phone",
+        "department"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Category",
+      "table": "expense_categories",
+      "description": "Category",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
+        },
+        {
+          "name": "code",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter code",
+          "help_text": "Unique identifier code"
+        },
+        {
+          "name": "expense_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "travel",
+            "meals",
+            "supplies",
+            "equipment",
+            "software",
+            "other"
+          ],
+          "badge_colors": {
+            "travel": "blue",
+            "meals": "green",
+            "supplies": "amber",
+            "equipment": "purple",
+            "software": "pink",
+            "other": "slate"
+          },
+          "placeholder": "Select expense type"
+        },
+        {
+          "name": "budget_limit",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Budget amount"
+        },
+        {
+          "name": "receipt_required",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "expense_type",
+          "columns": [
+            "travel",
+            "meals",
+            "supplies",
+            "equipment",
+            "software",
+            "other"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "code",
+            "budget_limit",
+            "receipt_required",
+            "is_active"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "expense_type"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "expense_type",
+          "label": "Expense Type",
+          "options": [
+            "all",
+            "travel",
+            "meals",
+            "supplies",
+            "equipment",
+            "software",
+            "other"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Expenses",
+          "type": "related_list",
+          "entity": "Expense",
+          "foreign_key": "category_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "code",
+        "expense_type"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Report",
+      "table": "expense_reports",
+      "description": "Report",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "employee_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Employee"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
+        },
+        {
+          "name": "period_start",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "period_end",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "total_amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "SUM(expenses.amount)",
+          "validation": {
+            "min": 0
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
+        },
+        {
+          "name": "item_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(expenses)"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "draft",
+            "submitted",
+            "approved",
+            "rejected",
+            "paid"
+          ],
+          "badge_colors": {
+            "draft": "slate",
+            "submitted": "amber",
+            "approved": "blue",
+            "rejected": "red",
+            "paid": "green"
+          },
+          "placeholder": "Select status"
+        },
+        {
+          "name": "rejection_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "visible_when": {
+            "field": "status",
+            "operator": "eq",
+            "value": "rejected"
+          },
+          "placeholder": "Enter rejection reason..."
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "status",
+          "columns": [
+            "draft",
+            "submitted",
+            "approved",
+            "rejected",
+            "paid"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "period_start"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "rejection_reason"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "employee_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "period_start",
+            "period_end",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "draft",
+            "submitted",
+            "approved",
+            "rejected",
+            "paid"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Expenses",
+          "type": "related_list",
+          "entity": "Expense",
+          "foreign_key": "report_id"
+        },
+        {
+          "label": "Approvals",
+          "type": "related_list",
+          "entity": "Approval",
+          "foreign_key": "report_id"
+        }
+      ],
+      "default_sort": {
+        "field": "period_start",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Mark Paid",
+          "icon": "CheckCircle",
+          "action": "update_field",
+          "field": "status",
+          "value": "paid",
+          "confirm": true
+        },
+        {
+          "label": "Cancel",
+          "icon": "XCircle",
+          "action": "update_field",
+          "field": "status",
+          "value": "rejected",
+          "confirm": true,
+          "variant": "danger"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Expense",
+      "table": "expenses",
+      "description": "Expense",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "employee_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Employee"
+        },
+        {
+          "name": "category_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Category",
+          "placeholder": "Select category",
+          "help_text": "Category classification"
+        },
+        {
+          "name": "report_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Report"
+        },
+        {
+          "name": "description",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
+        },
+        {
+          "name": "currency",
+          "db_type": "CHAR(3) NOT NULL DEFAULT 'USD'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter currency"
+        },
+        {
+          "name": "expense_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "placeholder": "Select date"
+        },
+        {
+          "name": "merchant",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter merchant"
+        },
+        {
+          "name": "payment_method",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "corporate_card",
+            "personal",
+            "cash",
+            "other"
+          ],
+          "badge_colors": {
+            "corporate_card": "blue",
+            "personal": "green",
+            "cash": "amber",
+            "other": "slate"
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter payment method"
+        },
+        {
+          "name": "is_billable",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "payment_method",
+          "columns": [
+            "corporate_card",
+            "personal",
+            "cash",
+            "other"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "expense_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "description",
+            "amount",
+            "currency",
+            "merchant",
+            "is_billable"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "employee_id",
+            "category_id",
+            "report_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "expense_date",
+            "payment_method"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "payment_method",
+          "label": "Payment Method",
+          "options": [
+            "all",
+            "corporate_card",
+            "personal",
+            "cash",
+            "other"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Receipts",
+          "type": "related_list",
+          "entity": "Receipt",
+          "foreign_key": "expense_id"
+        }
+      ],
+      "default_sort": {
+        "field": "expense_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "description",
+        "merchant",
+        "payment_method"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Receipt",
+      "table": "expense_receipts",
+      "description": "Receipt",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "expense_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Expense"
+        },
+        {
+          "name": "file_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
+        },
+        {
+          "name": "file_url",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "file_upload",
+          "display_component": "file_link",
+          "placeholder": "https://example.com",
+          "help_text": "Enter a valid URL"
+        },
+        {
+          "name": "file_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "status_badge",
+          "enum_values": [
+            "image",
+            "pdf",
+            "other"
+          ],
+          "badge_colors": {
+            "image": "pink",
+            "pdf": "blue",
+            "other": "green"
+          }
+        },
+        {
+          "name": "file_size_kb",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "0"
+        },
+        {
+          "name": "receipt_amount",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
+        },
+        {
+          "name": "ocr_verified",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "file_name",
+            "file_url",
+            "file_size_kb",
+            "receipt_amount",
+            "ocr_verified"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "expense_id"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "file_name",
+        "file_type"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    },
+    {
+      "name": "Approval",
+      "table": "expense_approvals",
+      "description": "Approval",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "report_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Report"
+        },
+        {
+          "name": "approver_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
+        },
+        {
+          "name": "approver_email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email required"
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
+        },
+        {
+          "name": "decision",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "pending",
+            "approved",
+            "rejected",
+            "escalated"
+          ],
+          "badge_colors": {
+            "pending": "amber",
+            "approved": "green",
+            "rejected": "red",
+            "escalated": "purple"
+          },
+          "placeholder": "Select decision"
+        },
+        {
+          "name": "comments",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter comments..."
+        },
+        {
+          "name": "decided_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "datetime_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "approval_level",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "0"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "decision",
+          "columns": [
+            "pending",
+            "approved",
+            "rejected",
+            "escalated"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "decided_at"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "approver_name",
+            "approver_email",
+            "comments",
+            "approval_level"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "report_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "decision"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "decision",
+          "label": "Decision",
+          "options": [
+            "all",
+            "pending",
+            "approved",
+            "rejected",
+            "escalated"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "decided_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "approver_name",
+        "approver_email",
+        "decision"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Mark Approved",
+          "icon": "CheckCircle",
+          "action": "update_field",
+          "field": "decision",
+          "value": "approved",
+          "confirm": true
+        },
+        {
+          "label": "Cancel",
+          "icon": "XCircle",
+          "action": "update_field",
+          "field": "decision",
+          "value": "rejected",
+          "confirm": true,
+          "variant": "danger"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
+      ]
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Employees",
+        "query": "COUNT(*) FROM expense_employees",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Spending Limit",
+        "query": "SUM(spending_limit) FROM expense_employees",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      },
+      {
+        "label": "Active Employees",
+        "query": "COUNT(*) FROM expense_employees WHERE status = 'active'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM expense_employees WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total Categorys",
+        "query": "COUNT(*) FROM expense_categories",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Budget Limit",
+        "query": "SUM(budget_limit) FROM expense_categories",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      }
+    ]
+  }
+}
