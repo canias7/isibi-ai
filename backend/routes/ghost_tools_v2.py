@@ -598,6 +598,7 @@ async def text_to_speech(req: TTSRequest, authorization: str = Header(...)):
                 "input": text,
                 "voice": voice,
                 "response_format": "mp3",
+                "speed": 0.92,
             },
         )
         if res.status_code != 200:
