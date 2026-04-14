@@ -139,13 +139,15 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
         setTriggers(me.triggers || []);
         if (selectedAgent?.id === savedId) setSelectedAgent(me);
       }
-      // Debug: show what happened
+      // Debug: show what happened including backend extraction details
       const trigCount = me?.triggers?.length || 0;
+      const debug = (me as any)?._debug || {};
+      const debugStr = JSON.stringify(debug, null, 2);
       Alert.alert(
         'Agent Sync Result',
         trigCount > 0
-          ? `Extracted ${trigCount} trigger(s):\n${(me?.triggers || []).map((t: any) => `${t.kind}: ${t.from_email || t.subject_keyword || t.time_min || '?'}`).join('\n')}`
-          : `No triggers extracted.\n\nAgent ID: ${savedId}\nPrompt: "${instructions.slice(0, 80)}..."`,
+          ? `Extracted ${trigCount} trigger(s):\n${(me?.triggers || []).map((t: any) => `${t.kind}: ${t.from_email || t.subject_keyword || t.time_min || '?'}`).join('\n')}\n\nDebug:\n${debugStr}`
+          : `No triggers extracted.\n\nDebug:\n${debugStr}`,
       );
     } catch (e: any) {
       Alert.alert('Sync Error', e?.message || 'Unknown error');

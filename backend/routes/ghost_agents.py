@@ -272,7 +272,7 @@ async def _extract_triggers_from_prompt(
             "Return the triggers JSON array now."
         )
         msg = await client.messages.create(
-            model="claude-sonnet-4-5",
+            model="claude-sonnet-4-20250514",
             max_tokens=600,
             system=sys_prompt,
             messages=[{"role": "user", "content": user_msg}],
@@ -430,16 +430,28 @@ async def upsert_agent(
     # is allowed to send explicit triggers too (advanced users / future
     # UIs); if it does, we use those AS-IS and skip extraction. Otherwise
     # we run the LLM extractor on `instructions`.
+    extraction_debug = {}
     if body.triggers is not None and len(body.triggers) > 0:
         triggers_json = [t.model_dump(exclude_none=True) for t in body.triggers]
+        extraction_debug = {"mode": "explicit", "count": len(triggers_json)}
     else:
         default_tz = await _user_default_timezone(db, user_id)
-        contacts = await _load_saved_contacts(db, user_id, workspace_id)
-        triggers_json = await _extract_triggers_from_prompt(
-            body.name, body.instructions or "",
-            default_tz=default_tz,
-            saved_contacts=contacts,
-        )
+        loaded_contacts = await _load_saved_contacts(db, user_id, workspace_id)
+        extraction_debug["mode"] = "auto"
+        extraction_debug["contacts_count"] = len(loaded_contacts)
+        extraction_debug["contacts"] = [f"{c.get('label')}: {c.get('email')}" for c in loaded_contacts]
+        extraction_debug["workspace"] = workspace_id
+        try:
+            triggers_json = await _extract_triggers_from_prompt(
+                body.name, body.instructions or "",
+                default_tz=default_tz,
+                saved_contacts=loaded_contacts,
+            )
+            extraction_debug["triggers_count"] = len(triggers_json)
+            extraction_debug["triggers"] = triggers_json
+        except Exception as ext_err:
+            extraction_debug["error"] = str(ext_err)
+            triggers_json = []
 
     # Try to find existing row by client_id (idempotent upsert)
     result = await db.execute(
@@ -475,7 +487,9 @@ async def upsert_agent(
         db.add(row)
     await db.commit()
     await db.refresh(row)
-    return _row_to_dict(row)
+    result = _row_to_dict(row)
+    result["_debug"] = extraction_debug
+    return result
 
 
 @router.delete("/{client_id}")

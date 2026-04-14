@@ -296,7 +296,7 @@ async function syncAgentsToBackend(agents: Agent[]): Promise<void> {
           name: a.name,
           role: a.role,
           instructions: a.instructions,
-          triggers: [],   // empty = let backend extract from prompt
+          triggers: [],
           enabled: a.isActive,
         });
         const extracted = (resp?.triggers || []) as AgentTrigger[];
@@ -306,6 +306,8 @@ async function syncAgentsToBackend(agents: Agent[]): Promise<void> {
           a.triggers = extracted;
           mutated = true;
         }
+        // Stash debug info for the UI
+        (a as any)._debug = (resp as any)?._debug;
       } catch (e) {
         console.warn('[agents] upsert failed for', a.id, e);
       }
