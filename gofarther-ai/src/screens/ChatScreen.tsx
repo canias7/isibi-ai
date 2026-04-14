@@ -546,7 +546,8 @@ RULES:
 
   // Voice mode
   if (showAR) return <ARScreen onClose={() => setShowAR(false)} />;
-  if (voiceMode !== 'off') return <VoiceChat voice={selectedVoice} onClose={() => setVoiceMode('off')} agentName={aiName} />;
+  if (voiceMode === 'picker') return <VoicePicker onSelect={(v) => { setSelectedVoice(v); setVoiceMode('active'); }} onCancel={() => setVoiceMode('off')} />;
+  if (voiceMode === 'active') return <VoiceChat voice={selectedVoice} onClose={() => setVoiceMode('off')} agentName={aiName} chatSessionId={currentSessionId.current} />;
 
   const suggestions = getSuggestions();
 

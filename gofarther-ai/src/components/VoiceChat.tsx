@@ -41,11 +41,12 @@ interface Props {
   onClose: () => void;
   agentName?: string;
   agentInstructions?: string;
+  chatSessionId?: string | null;
 }
 
 type VoiceStatus = 'idle' | 'listening' | 'thinking' | 'speaking';
 
-export default function VoiceChat({ voice, onClose, agentName, agentInstructions }: Props) {
+export default function VoiceChat({ voice, onClose, agentName, agentInstructions, chatSessionId }: Props) {
   const [status, setStatus] = useState<VoiceStatus>('idle');
   const { colors: tc } = useTheme();
   const [input, setInput] = useState('');
@@ -71,7 +72,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   // (plans, connectors, saved_contact sidecars, templates, memory)
   // works the same way over voice. The session id is fixed so voice
   // history persists across sessions and can be resumed in text chat.
-  const sessionId = useRef(`voice_${Date.now()}`).current;
+  const sessionId = useRef(chatSessionId || `voice_${Date.now()}`).current;
   const { messages, loading, send: chatSend } = useChat({
     sessionId,
     systemPrompt,
@@ -174,25 +175,28 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   };
 
   const startThinkingPulse = () => {
+    // Subtle, slow breathe — minimal movement
     pulseAnim.current = Animated.loop(Animated.sequence([
-      Animated.timing(orbScale, { toValue: 0.9, duration: 600, useNativeDriver: true }),
-      Animated.timing(orbScale, { toValue: 1.1, duration: 600, useNativeDriver: true }),
+      Animated.timing(orbScale, { toValue: 0.97, duration: 1200, useNativeDriver: true }),
+      Animated.timing(orbScale, { toValue: 1.03, duration: 1200, useNativeDriver: true }),
     ]));
     pulseAnim.current.start();
   };
 
   const startListeningPulse = () => {
+    // Gentle pulse — not too aggressive
     pulseAnim.current = Animated.loop(Animated.sequence([
-      Animated.timing(orbScale, { toValue: 1.2, duration: 400, useNativeDriver: true }),
-      Animated.timing(orbScale, { toValue: 0.95, duration: 400, useNativeDriver: true }),
+      Animated.timing(orbScale, { toValue: 1.08, duration: 800, useNativeDriver: true }),
+      Animated.timing(orbScale, { toValue: 0.98, duration: 800, useNativeDriver: true }),
     ]));
     pulseAnim.current.start();
   };
 
   const startSpeakingPulse = () => {
+    // Smooth rhythm while speaking
     pulseAnim.current = Animated.loop(Animated.sequence([
-      Animated.timing(orbScale, { toValue: 1.15, duration: 300, useNativeDriver: true }),
-      Animated.timing(orbScale, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(orbScale, { toValue: 1.06, duration: 500, useNativeDriver: true }),
+      Animated.timing(orbScale, { toValue: 0.98, duration: 500, useNativeDriver: true }),
     ]));
     pulseAnim.current.start();
   };
@@ -211,7 +215,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
       await new Promise(r => setTimeout(r, 200));
       addLog(`isRecording: ${recorder.isRecording}`);
       setStatus('listening');
-      setResponse('Listening... tap when done');
+      setResponse('');
       autoStopRef.current = setTimeout(() => {
         addLog('Auto-stop timer fired');
         stopRecording();
@@ -235,7 +239,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
       const uri = recorder.uri;
       if (!uri) { addLog('No URI'); setStatus('idle'); return; }
       setStatus('thinking');
-      setResponse('Transcribing...');
+      setResponse('');
       const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
       addLog(`Base64 length: ${base64.length}`);
       const result = await transcribeAudio(base64);
@@ -244,8 +248,10 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
       if (!text) {
         errorHaptic();
         addLog('Empty transcription');
-        setResponse('I didn\'t catch that. Tap to try again.');
+        setResponse('');
         setStatus('idle');
+        // Auto-retry listening
+        if (continuousRef.current) setTimeout(() => startRecording(), 500);
         return;
       }
       selectionHaptic();
@@ -440,12 +446,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
           </Animated.View>
         </TouchableOpacity>
 
-        <Text style={s.statusText}>
-          {status === 'listening' ? 'Listening…' :
-            status === 'thinking' ? 'Thinking…' :
-            status === 'speaking' ? 'Tap to interrupt' :
-            'Conversation mode · tap x to hang up'}
-        </Text>
+        {status === 'speaking' && <Text style={s.statusText}>Tap to interrupt</Text>}
       </View>
 
       {/* Input bar */}
@@ -470,7 +471,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
             </TouchableOpacity>
           </>
         ) : (
-          <Text style={s.voiceHint}>{continuous ? 'Conversation mode · tap × to hang up' : 'Tap the orb to start talking'}</Text>
+          <Text style={s.voiceHint}></Text>
         )}
       </View>
     </KeyboardAvoidingView>
