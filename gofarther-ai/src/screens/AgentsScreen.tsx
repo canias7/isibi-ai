@@ -125,12 +125,22 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
       try {
         const { syncSavedContactsToServer } = await import('../lib/api');
         const localContacts = await getSavedContacts();
-        contactsSyncResult = `${localContacts.length} local contacts found`;
+        contactsSyncResult = `${localContacts.length} local`;
         if (localContacts.length > 0) {
-          const syncResp = await syncSavedContactsToServer(localContacts.map(c => ({
+          const mapped = localContacts.map(c => ({
             label: c.label, name: c.name, email: c.email, phone: c.phone,
-          })));
-          contactsSyncResult += `, sync response: ${JSON.stringify(syncResp)}`;
+          }));
+          // Retry up to 2 times (Render cold start can fail the first attempt)
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+              const syncResp = await syncSavedContactsToServer(mapped);
+              contactsSyncResult += `, synced (attempt ${attempt}): ${JSON.stringify(syncResp)}`;
+              break;
+            } catch (retryErr: any) {
+              contactsSyncResult += `, attempt ${attempt} failed: ${retryErr?.message}`;
+              if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
+            }
+          }
         }
       } catch (e: any) { contactsSyncResult = `ERROR: ${e?.message}`; }
       await saveAgents(updated);
