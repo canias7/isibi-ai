@@ -83,8 +83,15 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   const spokenIdsRef = useRef<Set<string>>(new Set());
 
   const orbScale = useRef(new Animated.Value(1)).current;
-  const orbOpacity = useRef(new Animated.Value(0.8)).current;
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  const spinRef = useRef<Animated.CompositeAnimation | null>(null);
   const pulseAnim = useRef<Animated.CompositeAnimation | null>(null);
+
+  // Spin interpolation for the thinking ring
+  const spinInterpolate = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   // ── iOS audio mode + permission on mount ───────────────────────────
   useEffect(() => {
@@ -114,9 +121,9 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
       }
     })();
 
-    startBreathing();
     return () => {
       pulseAnim.current?.stop();
+      spinRef.current?.stop();
       Speech.stop();
       if (autoStopRef.current) clearTimeout(autoStopRef.current);
       try { if (recorder.isRecording) recorder.stop(); } catch {}
@@ -157,46 +164,23 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
 
   useEffect(() => { loadSystemPrompt(); }, [loadSystemPrompt]);
 
-  // ── Orb pulse animations by state ──────────────────────────────────
+  // ── Orb state management — no scale animations, just spinner ring ───
   useEffect(() => {
-    pulseAnim.current?.stop();
-    if (status === 'listening') startListeningPulse();
-    else if (status === 'thinking') startThinkingPulse();
-    else if (status === 'speaking') startSpeakingPulse();
-    else startBreathing();
-  }, [status]);
-
-  const startBreathing = () => {
-    pulseAnim.current = Animated.loop(Animated.sequence([
-      Animated.timing(orbScale, { toValue: 1.05, duration: 2000, useNativeDriver: true }),
-      Animated.timing(orbScale, { toValue: 1, duration: 2000, useNativeDriver: true }),
-    ]));
-    pulseAnim.current.start();
-  };
-
-  const startThinkingPulse = () => {
-    // Subtle, slow breathe — minimal movement
-    pulseAnim.current = Animated.loop(Animated.sequence([
-      Animated.timing(orbScale, { toValue: 0.97, duration: 1200, useNativeDriver: true }),
-      Animated.timing(orbScale, { toValue: 1.03, duration: 1200, useNativeDriver: true }),
-    ]));
-    pulseAnim.current.start();
-  };
-
-  const startListeningPulse = () => {
-    // Static — no movement while recording
+    // Kill all animations — orb stays perfectly still in every state
     pulseAnim.current?.stop();
     orbScale.setValue(1);
-  };
 
-  const startSpeakingPulse = () => {
-    // Smooth rhythm while speaking
-    pulseAnim.current = Animated.loop(Animated.sequence([
-      Animated.timing(orbScale, { toValue: 1.06, duration: 500, useNativeDriver: true }),
-      Animated.timing(orbScale, { toValue: 0.98, duration: 500, useNativeDriver: true }),
-    ]));
-    pulseAnim.current.start();
-  };
+    // Spinning ring only during thinking
+    if (status === 'thinking') {
+      spinAnim.setValue(0);
+      spinRef.current = Animated.loop(
+        Animated.timing(spinAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+      );
+      spinRef.current.start();
+    } else {
+      spinRef.current?.stop();
+    }
+  }, [status]);
 
   // ── Recording (expo-audio with prepareToRecordAsync) ────────────────
   const startRecording = async () => {
@@ -313,16 +297,14 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
           : 'Done.'
       : cleanText.slice(0, 400);  // cap at ~400 chars so replies stay snappy
 
-    setResponse(toSpeak);
+    // Don't show text yet — wait until audio is ready so they sync
     setStatus('speaking');
     Speech.stop();
-    // Switch audio mode to playback so TTS comes out of main speaker
     if (Platform.OS === 'ios') {
       setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true } as any).catch(() => {});
     }
     addLog(`Speaking: "${toSpeak.slice(0, 60)}..."`);
 
-    // Use OpenAI TTS for natural voice, fall back to expo-speech if it fails
     (async () => {
       try {
         const { audio_base64 } = await textToSpeech(toSpeak, voice.ttsVoice || 'nova');
@@ -330,6 +312,8 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
         await FileSystem.writeAsStringAsync(tempFile, audio_base64, { encoding: FileSystem.EncodingType.Base64 });
         addLog('TTS audio received, playing...');
 
+        // Show text NOW — same moment audio starts
+        setResponse(toSpeak);
         const player = createAudioPlayer(tempFile);
         player.play();
 
@@ -347,7 +331,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
         }, estimatedMs);
       } catch (e: any) {
         addLog(`OpenAI TTS failed: ${e?.message}, falling back to expo-speech`);
-        // Fallback to expo-speech
+        setResponse(toSpeak);
         Speech.speak(toSpeak, {
           rate: 0.98, pitch: 1.0,
           onDone: () => {
@@ -437,17 +421,27 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
         {response ? <Text style={s.responseText} numberOfLines={6}>{response}</Text> : null}
 
         <TouchableOpacity onPress={handleOrbTap} activeOpacity={0.9} style={s.orbTouch} accessibilityLabel="Voice orb">
-          <Animated.View style={[s.orbOuter, { backgroundColor: voice.color1 + '20', transform: [{ scale: orbScale }] }]} />
-          <Animated.View style={[s.orb, { backgroundColor: status === 'listening' ? '#ef4444' : voice.color1, transform: [{ scale: orbScale }] }]}>
+          {/* Thinking spinner ring */}
+          {status === 'thinking' && (
+            <Animated.View style={[s.spinnerRing, {
+              width: ORB_SIZE + 24, height: ORB_SIZE + 24, borderRadius: (ORB_SIZE + 24) / 2,
+              borderColor: voice.color1,
+              transform: [{ rotate: spinInterpolate }],
+            }]} />
+          )}
+          {/* Static glow behind orb */}
+          {status !== 'thinking' && (
+            <View style={[s.orbGlow, { width: ORB_SIZE + 24, height: ORB_SIZE + 24, borderRadius: (ORB_SIZE + 24) / 2, backgroundColor: voice.color1 + '15' }]} />
+          )}
+          {/* The orb — always same color, always same size */}
+          <View style={[s.orb, { backgroundColor: voice.color1 }]}>
             <Ionicons
-              name={status === 'listening' ? 'mic' : status === 'speaking' ? 'volume-high' : status === 'thinking' ? 'ellipsis-horizontal' : 'mic-outline'}
-              size={ORB_SIZE * 0.3}
+              name={status === 'speaking' ? 'volume-high' : 'mic'}
+              size={ORB_SIZE * 0.28}
               color="#fff"
             />
-          </Animated.View>
+          </View>
         </TouchableOpacity>
-
-        {status === 'speaking' && <Text style={s.statusText}>Tap to interrupt</Text>}
       </View>
 
       {/* Input bar */}
@@ -490,9 +484,9 @@ const s = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
   responseText: { fontSize: 16, color: '#444', textAlign: 'center', lineHeight: 24, marginBottom: 24, maxWidth: 320 },
   orbTouch: { alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  orbOuter: { position: 'absolute', width: ORB_SIZE + 40, height: ORB_SIZE + 40, borderRadius: (ORB_SIZE + 40) / 2 },
+  orbGlow: { position: 'absolute' },
+  spinnerRing: { position: 'absolute', borderWidth: 3, borderColor: 'transparent', borderTopWidth: 3 },
   orb: { width: ORB_SIZE, height: ORB_SIZE, borderRadius: ORB_SIZE / 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  statusText: { fontSize: 15, fontWeight: '500', color: '#888' },
   inputBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#e8e8e8' },
   textInput: { flex: 1, backgroundColor: '#f0f0f0', borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, color: '#1a1a1a', borderWidth: 1, borderColor: '#e0e0e0' },
   sendBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center' },
