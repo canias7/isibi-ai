@@ -63,15 +63,22 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
   const recorderState = useAudioRecorderState(recorder, 300);
 
-  // ── Silence detection: auto-stop after sustained quiet ──────────────
-  const SILENCE_THRESHOLD = -50; // dB — lower = more lenient (waits longer before deciding "silence")
-  const SILENCE_DURATION = 2000; // ms of sustained silence before auto-send
-  const MIN_RECORD_TIME = 1200;  // ms — don't check silence for the first 1.2s (gives user time to start talking)
+  // ── Auto-stop: silence detection with timer fallback ────────────────
+  // expo-audio metering may not work on all iOS devices. We use a dual
+  // strategy: if metering data is available, use it for smart silence
+  // detection. If not, fall back to a fixed timer so the recording
+  // always gets sent eventually.
+  const SILENCE_THRESHOLD = -50;
+  const SILENCE_DURATION = 2000;
+  const MIN_RECORD_TIME = 1500;
+  const MAX_RECORD_TIME = 15000; // hard cap — send after 15s no matter what
   const silenceStartRef = useRef<number | null>(null);
   const recordStartRef = useRef<number | null>(null);
-  // Track whether user has actually spoken (metering went above threshold at least once)
   const hasSpokenRef = useRef(false);
+  const meteringWorksRef = useRef(false);
+  const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Metering-based silence detection
   useEffect(() => {
     if (status !== 'listening' || !recorder.isRecording) {
       silenceStartRef.current = null;
@@ -81,24 +88,21 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
     const metering = recorderState?.metering;
     if (metering === undefined || metering === null) return;
 
-    // Don't check silence until minimum recording time has passed
+    meteringWorksRef.current = true;
+
     if (recordStartRef.current && Date.now() - recordStartRef.current < MIN_RECORD_TIME) return;
 
     if (metering >= SILENCE_THRESHOLD) {
-      // Audio detected — user is speaking
       hasSpokenRef.current = true;
       silenceStartRef.current = null;
     } else if (hasSpokenRef.current) {
-      // Audio is quiet AND user already spoke — start/check silence timer
       if (!silenceStartRef.current) {
         silenceStartRef.current = Date.now();
       } else if (Date.now() - silenceStartRef.current >= SILENCE_DURATION) {
-        // Sustained silence after speech → auto-send
         silenceStartRef.current = null;
         stopRecording();
       }
     }
-    // If user hasn't spoken yet, don't trigger silence detection at all
   }, [recorderState?.metering, status]);
 
   // Drive the main chat pipeline so every action the text chat can do
@@ -244,9 +248,28 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
       recordStartRef.current = Date.now();
       hasSpokenRef.current = false;
       silenceStartRef.current = null;
+      meteringWorksRef.current = false;
+      // Clear any previous fallback timer
+      if (autoStopTimerRef.current) { clearTimeout(autoStopTimerRef.current); autoStopTimerRef.current = null; }
       recorder.record();
       setStatus('listening');
       setResponse('Listening...');
+      // Fallback timer: if metering never kicks in (iOS native issue),
+      // auto-stop after MAX_RECORD_TIME so the audio gets sent.
+      // Also set a shorter "speech check" at 3s — if no metering data
+      // has arrived by then, switch to a fixed 8s recording window.
+      autoStopTimerRef.current = setTimeout(() => {
+        if (!meteringWorksRef.current && recorder.isRecording) {
+          // Metering isn't working — use fixed 8s window from now
+          autoStopTimerRef.current = setTimeout(() => {
+            if (recorder.isRecording) stopRecording();
+          }, 5000);
+        }
+      }, 3000);
+      // Hard cap regardless
+      setTimeout(() => {
+        if (recorder.isRecording) stopRecording();
+      }, MAX_RECORD_TIME);
     } catch (e: any) {
       errorHaptic();
       setResponse('Could not start recording: ' + (e.message || ''));
@@ -256,6 +279,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
 
   const stopRecording = async (cancel = false) => {
     if (!recorder.isRecording) return;
+    if (autoStopTimerRef.current) { clearTimeout(autoStopTimerRef.current); autoStopTimerRef.current = null; }
     try {
       await recorder.stop();
       if (cancel) { setStatus('idle'); return; }
@@ -394,6 +418,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   // ── Hang up / end session ──────────────────────────────────────────
   const hangUp = () => {
     Speech.stop();
+    if (autoStopTimerRef.current) { clearTimeout(autoStopTimerRef.current); autoStopTimerRef.current = null; }
     try { if (recorder.isRecording) recorder.stop(); } catch {}
     setContinuous(false);
     setStatus('idle');
