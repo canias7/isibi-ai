@@ -49,6 +49,7 @@ same mailbox call so we don't double-poll).
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -473,13 +474,24 @@ async def upsert_agent(
         extraction_debug["contacts"] = [f"{c.get('label')}: {c.get('email')}" for c in loaded_contacts]
         extraction_debug["workspace"] = workspace_id
         try:
-            triggers_json = await _extract_triggers_from_prompt(
-                body.name, body.instructions or "",
-                default_tz=default_tz,
-                saved_contacts=loaded_contacts,
+            # Hard 20s ceiling on trigger extraction so the POST /agents
+            # handler always returns within the frontend's 60s deadline,
+            # no matter how Claude (or the network to Anthropic) behaves.
+            # On timeout we save the agent with empty triggers — the user
+            # can re-save to retry extraction.
+            triggers_json = await asyncio.wait_for(
+                _extract_triggers_from_prompt(
+                    body.name, body.instructions or "",
+                    default_tz=default_tz,
+                    saved_contacts=loaded_contacts,
+                ),
+                timeout=20.0,
             )
             extraction_debug["triggers_count"] = len(triggers_json)
             extraction_debug["triggers"] = triggers_json
+        except asyncio.TimeoutError:
+            extraction_debug["error"] = "extraction_timeout_20s"
+            triggers_json = []
         except Exception as ext_err:
             extraction_debug["error"] = str(ext_err)
             triggers_json = []

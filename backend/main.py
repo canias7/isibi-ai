@@ -451,6 +451,7 @@ async def health():
         "routes_count": routes_count,
         "cache_entries": cache_entries,
         "active_pools": active_pools,
+        "git_sha": os.environ.get("RENDER_GIT_COMMIT", "unknown")[:12],
     }
 
 
