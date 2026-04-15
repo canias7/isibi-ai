@@ -291,17 +291,6 @@ async function syncAgentsToBackend(agents: Agent[]): Promise<void> {
     let mutated = false;
     for (const a of agents) {
       try {
-        // Load contacts and pass them inline so the backend can
-        // resolve labels like "my boss" in one round-trip
-        let inlineContacts: any[] | undefined;
-        try {
-          const local = await getSavedContacts();
-          if (local.length > 0) {
-            inlineContacts = local.map(c => ({
-              label: c.label, name: c.name, email: c.email, phone: c.phone,
-            }));
-          }
-        } catch {}
         const resp = await upsertServerAgent({
           client_id: a.id,
           name: a.name,
@@ -309,7 +298,6 @@ async function syncAgentsToBackend(agents: Agent[]): Promise<void> {
           instructions: a.instructions,
           triggers: [],
           enabled: a.isActive,
-          ...(inlineContacts ? { saved_contacts: inlineContacts } : {}),
         } as any);
         const extracted = (resp?.triggers || []) as AgentTrigger[];
         const before = JSON.stringify(a.triggers || []);
@@ -318,7 +306,6 @@ async function syncAgentsToBackend(agents: Agent[]): Promise<void> {
           a.triggers = extracted;
           mutated = true;
         }
-        // Stash debug info for the UI
         (a as any)._debug = (resp as any)?._debug;
       } catch (e) {
         console.warn('[agents] upsert failed for', a.id, e);

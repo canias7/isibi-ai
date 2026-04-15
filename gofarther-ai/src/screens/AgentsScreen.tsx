@@ -9,7 +9,8 @@ import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { ChatMsg, genId } from '../lib/types';
 import { useChat } from '../lib/useChat';
-import { getAgents, saveAgents, deleteAgent as deleteAgentBoth, Agent, AgentTrigger, getSavedContacts, saveSavedContacts } from '../lib/storage';
+import { getAgents, saveAgents, deleteAgent as deleteAgentBoth, Agent, AgentTrigger, getSavedContacts, saveSavedContacts, save as rawSave } from '../lib/storage';
+import { upsertServerAgent } from '../lib/api';
 import { buildUserContextPrompt } from '../lib/promptContext';
 import { onWorkspaceChange } from '../lib/workspaces';
 
@@ -119,12 +120,41 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     setAgents(updated);
     setShowEdit(false);
     try {
-      // Sync contacts to backend FIRST so the extractor can resolve
-      // labels like "my boss" → email address.
-      // Contacts are now passed inline with the agent upsert —
-      // no separate sync call needed.
-      let contactsSyncResult = 'inline with agent save';
-      await saveAgents(updated);
+      // Save locally only (skip syncAgentsToBackend — we do the
+      // upsert ourselves below with contacts included)
+      await rawSave('agents', updated);
+
+      // Upsert to backend directly from here with contacts
+      // (bypasses syncAgentsToBackend where scoping breaks)
+      const contacts = await getSavedContacts();
+      const inlineContacts = contacts.length > 0
+        ? contacts.map(c => ({ label: c.label, name: c.name, email: c.email, phone: c.phone }))
+        : undefined;
+      const agent = updated.find(a => a.id === savedId);
+      let backendDebug: any = {};
+      const contactsSentCount = inlineContacts?.length ?? 0;
+      if (agent) {
+        try {
+          const resp = await upsertServerAgent({
+            client_id: agent.id,
+            name: agent.name,
+            role: agent.role,
+            instructions: agent.instructions,
+            triggers: [],
+            enabled: agent.isActive,
+            ...(inlineContacts ? { saved_contacts: inlineContacts } : {}),
+          } as any);
+          backendDebug = (resp as any)?._debug || {};
+          // Write back extracted triggers
+          const extracted = (resp?.triggers || []) as AgentTrigger[];
+          if (JSON.stringify(agent.triggers || []) !== JSON.stringify(extracted)) {
+            agent.triggers = extracted;
+          }
+        } catch (e: any) {
+          backendDebug = { error: e?.message || 'upsert failed' };
+        }
+      }
+
       const fresh = await getAgents();
       setAgents(fresh);
       const me = fresh.find(a => a.id === savedId);
@@ -132,16 +162,12 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
         setTriggers(me.triggers || []);
         if (selectedAgent?.id === savedId) setSelectedAgent(me);
       }
-      // Debug: show what happened including backend extraction details
-      const trigCount = me?.triggers?.length || 0;
-      const debug = (me as any)?._debug || {};
-      const debugStr = JSON.stringify(debug, null, 2);
+      // Debug alert
       Alert.alert(
         'Agent Sync Result',
-        (trigCount > 0
-          ? `Extracted ${trigCount} trigger(s):\n${(me?.triggers || []).map((t: any) => `${t.kind}: ${t.from_email || t.subject_keyword || t.time_min || '?'}`).join('\n')}`
-          : `No triggers extracted.`)
-        + `\n\nContacts: ${contactsSyncResult}\n\nBackend:\n${debugStr}`,
+        `Contacts loaded: ${contacts.length}`
+        + `\nContacts sent: ${contactsSentCount}`
+        + `\n\nBackend:\n${JSON.stringify(backendDebug, null, 2)}`,
       );
     } catch (e: any) {
       Alert.alert('Sync Error', e?.message || 'Unknown error');
