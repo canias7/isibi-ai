@@ -250,7 +250,12 @@ async def _extract_triggers_from_prompt(
 
     try:
         from anthropic import AsyncAnthropic
-        client = AsyncAnthropic(api_key=api_key)
+        # 30s hard timeout on the Claude call. Without this, a slow or
+        # stalled Anthropic response would block the POST /agents handler
+        # past the frontend's 60s fetch deadline, surfacing as
+        # "Server is taking a moment" even with retries. On timeout we
+        # fall back to the regex extractor below.
+        client = AsyncAnthropic(api_key=api_key, timeout=30.0)
         sys_prompt = (
             "You extract proactive trigger configurations from a user's natural-language "
             "instructions for a personal assistant agent. Return ONLY a JSON array of "
