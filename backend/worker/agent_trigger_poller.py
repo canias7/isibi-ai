@@ -128,7 +128,56 @@ async def _save_fired_cursor(db: AsyncSession, sid: str, user_id, workspace_id: 
 # ── Claude call ────────────────────────────────────────────────────────
 
 
-async def _run_agent_against_event(agent_name: str, instructions: str, event_text: str) -> tuple[str, str]:
+async def _load_saved_contacts_for_user(db: AsyncSession, user_id, workspace_id: str) -> list[dict]:
+    """Load the user's relationship labels (e.g. 'my boss' → email)
+    so we can inject them into the agent's runtime system prompt. Without
+    this the agent's LLM call doesn't know that Cristian Anias IS the
+    user's boss and ends up saying 'this is not from your boss' on a
+    correctly-matched trigger."""
+    try:
+        res = await db.execute(sql_text(
+            "SELECT label, name, email, phone FROM ghost_saved_contacts "
+            "WHERE user_id = :uid AND workspace_id = :ws"
+        ), {"uid": str(user_id), "ws": workspace_id})
+        return [
+            {"label": r[0], "name": r[1], "email": r[2], "phone": r[3]}
+            for r in res.all()
+        ]
+    except Exception:
+        return []
+
+
+def _format_saved_contacts_block(contacts: list[dict]) -> str:
+    """Render contacts as a relationship context block for the agent's
+    system prompt."""
+    lines = []
+    for c in contacts or []:
+        label = (c.get("label") or "").strip()
+        email = (c.get("email") or "").strip()
+        name = (c.get("name") or "").strip()
+        if not label:
+            continue
+        if email and name:
+            lines.append(f'  - "{label}" is {name} ({email})')
+        elif email:
+            lines.append(f'  - "{label}" → {email}')
+        elif name:
+            lines.append(f'  - "{label}" is {name}')
+    if not lines:
+        return ""
+    return (
+        "\n\nThe user has these saved relationships. Use them when "
+        "interpreting events — if an email is from one of these people, "
+        "the relationship label applies:\n" + "\n".join(lines)
+    )
+
+
+async def _run_agent_against_event(
+    agent_name: str,
+    instructions: str,
+    event_text: str,
+    saved_contacts: list[dict] | None = None,
+) -> tuple[str, str]:
     """Run the agent's system prompt against an event payload. Returns
     (headline, body). Falls back to a mechanical summary if Claude fails
     so we always push something useful instead of dropping the alert."""
@@ -137,10 +186,12 @@ async def _run_agent_against_event(agent_name: str, instructions: str, event_tex
         api_key = os.getenv("ANTHROPIC_API_KEY", "")
         if not api_key:
             raise RuntimeError("ANTHROPIC_API_KEY missing")
-        client = AsyncAnthropic(api_key=api_key)
+        client = AsyncAnthropic(api_key=api_key, timeout=30.0)
+        contacts_block = _format_saved_contacts_block(saved_contacts or [])
         sys = (
-            f"You are {agent_name}. {instructions or 'You watch for events and report back to the user concisely.'}\n\n"
-            "When given an event, respond in EXACTLY this format with no extra text:\n"
+            f"You are {agent_name}. {instructions or 'You watch for events and report back to the user concisely.'}"
+            + contacts_block
+            + "\n\nWhen given an event, respond in EXACTLY this format with no extra text:\n"
             "HEADLINE: <max 60 chars, what happened>\n"
             "BODY: <max 140 chars, the actionable detail>\n"
         )
@@ -351,10 +402,14 @@ async def poll_email_triggers_for_all_users(cap_messages_per_user: int = 10) -> 
                             if not matched_msg:
                                 continue
 
-                            # Run the agent against the matched event
+                            # Run the agent against the matched event —
+                            # inject saved contacts so the LLM can resolve
+                            # relationship labels ("my boss" → real email).
                             event_text = _format_email_event(matched_msg)
+                            saved_contacts = await _load_saved_contacts_for_user(db, user_id, ws)
                             headline, body = await _run_agent_against_event(
                                 agent["name"], agent["instructions"], event_text,
+                                saved_contacts=saved_contacts,
                             )
                             push_result = await send_push_to_user(
                                 user_id,
@@ -448,8 +503,12 @@ async def tick_schedule_triggers() -> int:
                         f"Generate your scheduled report based on your instructions."
                     )
                     try:
+                        saved_contacts = await _load_saved_contacts_for_user(
+                            db, r.user_id, r.workspace_id or "personal",
+                        )
                         headline, body = await _run_agent_against_event(
                             r.name, r.instructions or "", event_text,
+                            saved_contacts=saved_contacts,
                         )
                         push_result = await send_push_to_user(
                             r.user_id,
