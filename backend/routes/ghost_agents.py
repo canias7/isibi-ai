@@ -261,14 +261,19 @@ async def _extract_triggers_from_prompt(
             "You extract proactive trigger configurations from a user's natural-language "
             "instructions for a personal assistant agent. Return ONLY a JSON array of "
             "trigger objects (no markdown, no commentary). Each trigger is one of:\n"
-            '  {"kind": "email_from", "from_email": "<lowercase email address>"}\n'
-            '  {"kind": "email_keyword", "subject_keyword": "<single word or short phrase>"}\n'
+            '  {"kind": "email_from", "from_email": "<lowercase email address>", "actions": [<optional action list>]}\n'
+            '  {"kind": "email_keyword", "subject_keyword": "<single word or short phrase>", "actions": [<optional action list>]}\n'
             '  {"kind": "schedule", "time_min": <minutes 0-1439>, "days_of_week": "<7-char Y/- mask Mon-Sun>", "timezone_name": "<IANA tz>"}\n\n'
+            "Supported actions (for email triggers only, schedule triggers never carry actions):\n"
+            '  "auto_reply" — the agent will automatically draft and send an email reply on the user\'s behalf.\n\n'
             "Rules:\n"
             "- If the user says 'every weekday' use 'YYYYY--'. 'Every day' = 'YYYYYYY'. 'Mon/Wed/Fri' = 'Y-Y-Y--'.\n"
             "- For times like '9am' use time_min=540, '9:30am' = 570, '6pm' = 1080.\n"
             f"- If timezone isn't mentioned, use \"{default_tz}\".\n"
             "- If the user mentions watching emails from a person identified by a label (e.g. 'my boss', 'my mom'), look up the saved contact list and emit an email_from trigger using the matching contact's email. If the label is NOT in the saved contacts and no concrete email is provided, do NOT emit a trigger for that — skip it.\n"
+            "- If the user's prompt contains reply intent — phrases like 'reply back', 'respond to them', 'answer them', 'auto-reply', 'write back', 'send a reply' — add \"auto_reply\" to the matching email trigger's actions array. Only apply to email triggers.\n"
+            "- Do NOT invent actions. Only emit \"auto_reply\" when the user explicitly asks for a reply. Reading/notifying alone is NOT reply intent.\n"
+            "- Omit the actions field entirely (or use []) when there are no actions.\n"
             "- Multiple triggers per agent are fine. Return [] if nothing is actionable."
             + contacts_section
         )
@@ -296,16 +301,34 @@ async def _extract_triggers_from_prompt(
         if not isinstance(parsed, list):
             return _regex_extract_triggers(instructions)
         # Light validation — drop anything that doesn't match our schema
+        # Known actions allowlist; drop anything we don't recognize so a
+        # hallucinated action can't slip through to the poller.
+        KNOWN_ACTIONS = {"auto_reply"}
+
+        def _clean_actions(raw: Any) -> list[str]:
+            if not isinstance(raw, list):
+                return []
+            return [a for a in raw if isinstance(a, str) and a in KNOWN_ACTIONS]
+
         clean: list[dict] = []
         for t in parsed:
             if not isinstance(t, dict):
                 continue
             kind = t.get("kind")
             if kind == "email_from" and t.get("from_email"):
-                clean.append({"kind": "email_from", "from_email": str(t["from_email"]).lower().strip()})
+                entry = {"kind": "email_from", "from_email": str(t["from_email"]).lower().strip()}
+                actions = _clean_actions(t.get("actions"))
+                if actions:
+                    entry["actions"] = actions
+                clean.append(entry)
             elif kind == "email_keyword" and t.get("subject_keyword"):
-                clean.append({"kind": "email_keyword", "subject_keyword": str(t["subject_keyword"]).strip()})
+                entry = {"kind": "email_keyword", "subject_keyword": str(t["subject_keyword"]).strip()}
+                actions = _clean_actions(t.get("actions"))
+                if actions:
+                    entry["actions"] = actions
+                clean.append(entry)
             elif kind == "schedule" and isinstance(t.get("time_min"), (int, float)):
+                # Schedule triggers never carry actions
                 clean.append({
                     "kind": "schedule",
                     "time_min": int(t["time_min"]),
@@ -363,6 +386,9 @@ class AgentTriggerBody(BaseModel):
     subject_keyword: Optional[str] = None
     # email_* shared
     app_id: Optional[str] = None
+    # Email-trigger actions: for now only ["auto_reply"] is supported.
+    # Schedule triggers must leave this empty.
+    actions: Optional[list[str]] = None
     # schedule
     time_min: Optional[int] = None
     days_of_week: Optional[str] = None
