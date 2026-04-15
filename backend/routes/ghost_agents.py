@@ -469,12 +469,18 @@ async def upsert_agent(
                     label = (c.get("label") or "").strip()
                     if not label:
                         continue
+                    # Generate the id in Python rather than relying on
+                    # the column DEFAULT gen_random_uuid() — pgcrypto
+                    # isn't enabled on the Render postgres, so letting
+                    # it default hit a NOT NULL violation and poisoned
+                    # the transaction.
                     await contacts_db.execute(sql_text(
-                        "INSERT INTO ghost_saved_contacts (user_id, workspace_id, label, name, email, phone, updated_at) "
-                        "VALUES (:uid, :ws, :label, :name, :email, :phone, NOW()) "
+                        "INSERT INTO ghost_saved_contacts (id, user_id, workspace_id, label, name, email, phone, updated_at) "
+                        "VALUES (:id, :uid, :ws, :label, :name, :email, :phone, NOW()) "
                         "ON CONFLICT (user_id, workspace_id, label) DO UPDATE "
-                        "SET name = :name, email = :email, phone = :phone, updated_at = NOW()"
+                        "SET name = EXCLUDED.name, email = EXCLUDED.email, phone = EXCLUDED.phone, updated_at = NOW()"
                     ), {
+                        "id": str(uuid.uuid4()),
                         "uid": str(user_id), "ws": workspace_id,
                         "label": label, "name": c.get("name"), "email": c.get("email"), "phone": c.get("phone"),
                     })
