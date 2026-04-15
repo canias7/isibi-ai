@@ -586,6 +586,8 @@ export interface ServerAgentTrigger {
   subject_keyword?: string;
   // email_*
   app_id?: string;
+  // Email-trigger actions. v1 supports only "auto_reply".
+  actions?: string[];
   // schedule
   time_min?: number;        // minutes from midnight, e.g. 540 = 09:00
   days_of_week?: string;    // 7-char "YYYYY--" mask, Mon=index 0

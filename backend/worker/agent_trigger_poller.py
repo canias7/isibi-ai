@@ -218,6 +218,125 @@ async def _run_agent_against_event(
         return (agent_name, event_text[:140])
 
 
+# ── Auto-reply action ──────────────────────────────────────────────────
+
+
+_AUTOREPLY_BLOCKED_SENDER_RE = re.compile(
+    r"(no[-_.]?reply|donotreply|do[-_.]?not[-_.]?reply|mailer[-_.]?daemon|postmaster|bounce|noreply|auto[-_.]?reply)",
+    re.IGNORECASE,
+)
+
+_AUTOREPLY_BLOCKED_SUBJECT_RE = re.compile(
+    r"(auto[-_.]?reply|out[-_.]?of[-_.]?office|\[ooo\]|automatic reply|automated response)",
+    re.IGNORECASE,
+)
+
+
+def _is_autoreply_safe(msg: dict) -> tuple[bool, str]:
+    """Return (safe, reason_if_blocked). Never auto-reply to automated
+    senders or to auto-replies themselves — that's how email loops start.
+    Also skip anything missing a sender we can actually reply to."""
+    from_raw = (msg.get("from") or msg.get("from_name") or "").strip()
+    if not from_raw:
+        return False, "no_sender"
+    if _AUTOREPLY_BLOCKED_SENDER_RE.search(from_raw):
+        return False, "blocked_sender_pattern"
+    subject = (msg.get("subject") or "").strip()
+    if subject and _AUTOREPLY_BLOCKED_SUBJECT_RE.search(subject):
+        return False, "blocked_subject_pattern"
+    return True, ""
+
+
+async def _draft_reply_body(
+    agent_name: str,
+    instructions: str,
+    email_msg: dict,
+    saved_contacts: list[dict] | None,
+) -> str:
+    """Ask Claude to draft a reply body for the matched email. Written in
+    the user's voice, referencing the original message. Returns a single
+    plain-text body; caller wraps it for delivery."""
+    try:
+        from anthropic import AsyncAnthropic
+        api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            raise RuntimeError("ANTHROPIC_API_KEY missing")
+        client = AsyncAnthropic(api_key=api_key, timeout=30.0)
+        contacts_block = _format_saved_contacts_block(saved_contacts or [])
+        sender = (email_msg.get("from") or email_msg.get("from_name") or "unknown").strip()
+        subject = (email_msg.get("subject") or "").strip() or "(no subject)"
+        snippet = (email_msg.get("body") or email_msg.get("snippet") or email_msg.get("preview") or "").strip()
+        # Cap the email body we feed in so reply drafting stays under token
+        # budget even on giant signature-laden threads
+        if len(snippet) > 2000:
+            snippet = snippet[:2000] + "…"
+
+        sys = (
+            f"You are {agent_name}, an assistant that writes email replies on behalf of the user. "
+            f"The user's original instructions to you are: {instructions or '(none)'}."
+            + contacts_block
+            + "\n\nDraft a concise, natural email reply in the user's voice. Guidelines:\n"
+            "- Write ONLY the reply body. No greeting line rewrite, no subject, no signature.\n"
+            "- Keep it under 120 words unless the email genuinely needs more.\n"
+            "- Don't fabricate facts, commitments, or dates the user didn't authorize.\n"
+            "- If the email asks for information you don't have, acknowledge and say you'll follow up.\n"
+            "- Match the tone of the incoming email (formal ↔ casual).\n"
+            "- Do NOT mention that an AI wrote this. Write as the user directly."
+        )
+        user_msg = (
+            f"From: {sender}\n"
+            f"Subject: {subject}\n\n"
+            f"{snippet}\n\n"
+            "Write the reply body now."
+        )
+        msg = await client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=400,
+            system=sys,
+            messages=[{"role": "user", "content": user_msg}],
+        )
+        text = "".join(b.text for b in msg.content if hasattr(b, "text")).strip()
+        return text
+    except Exception as e:
+        logger.warning(f"agent_trigger_poller: reply drafting failed: {e}")
+        return ""
+
+
+async def _send_auto_reply(
+    adapter,
+    creds: dict,
+    email_msg: dict,
+    reply_body: str,
+) -> tuple[bool, str]:
+    """Send a reply via the mailbox adapter. Returns (ok, detail).
+    Uses reply_to_email with the matched message id + reply body."""
+    message_id = str(email_msg.get("id") or "").strip()
+    if not message_id:
+        return False, "no_message_id"
+    if not reply_body or len(reply_body.strip()) < 3:
+        return False, "empty_draft"
+    try:
+        # HTML-ify plaintext so it renders as paragraphs in the recipient's
+        # mail client. Simple double-newline → <br><br>, single → <br>.
+        html_body = (
+            reply_body.replace("\r\n", "\n")
+            .replace("\n\n", "</p><p>")
+            .replace("\n", "<br>")
+        )
+        html_body = f"<p>{html_body}</p>"
+        result = await adapter(
+            "reply_to_email",
+            {"message_id": message_id, "body": html_body, "reply_all": "false"},
+            creds,
+        )
+        if isinstance(result, dict) and result.get("error"):
+            return False, str(result["error"])[:200]
+        return True, "sent"
+    except Exception as e:
+        logger.warning(f"agent_trigger_poller: reply send failed: {e}")
+        return False, str(e)[:200]
+
+
 # ── Trigger matching helpers ───────────────────────────────────────────
 
 
@@ -323,6 +442,10 @@ async def poll_email_triggers_for_all_users(cap_messages_per_user: int = 10) -> 
                         continue
 
                     messages_by_workspace: dict[str, list[dict]] = {}
+                    # Track the adapter + creds for each workspace so the
+                    # auto-reply action can call back into the same mailbox
+                    # after a trigger fires. Keyed by workspace id.
+                    adapter_by_workspace: dict[str, tuple] = {}
 
                     for cr in creds_rows:
                         ws = cr.workspace_id or "personal"
@@ -342,6 +465,7 @@ async def poll_email_triggers_for_all_users(cap_messages_per_user: int = 10) -> 
                             messages = result.get("messages") or []
                             if messages:
                                 messages_by_workspace[ws] = messages
+                                adapter_by_workspace[ws] = (adapter, creds)
                         except Exception as poll_err:
                             logger.warning(f"agent_trigger_poller: poll failed user={user_id} app={cr.app_id}: {poll_err}")
                             continue
@@ -411,6 +535,54 @@ async def poll_email_triggers_for_all_users(cap_messages_per_user: int = 10) -> 
                                 agent["name"], agent["instructions"], event_text,
                                 saved_contacts=saved_contacts,
                             )
+
+                            # Auto-reply action — if the trigger asked for
+                            # it, draft and send a reply via the same
+                            # mailbox adapter that delivered the event.
+                            # Safety: skip automated senders / out-of-
+                            # office / malformed messages. Status goes
+                            # into the push notification copy so the
+                            # user always sees what happened.
+                            trigger_actions = trig.get("actions") or []
+                            reply_status = ""
+                            if "auto_reply" in trigger_actions:
+                                safe, block_reason = _is_autoreply_safe(matched_msg)
+                                adapter_creds = adapter_by_workspace.get(ws)
+                                if not safe:
+                                    reply_status = f" [reply skipped: {block_reason}]"
+                                    logger.info(
+                                        f"agent_trigger_poller: auto_reply skipped user={user_id} "
+                                        f"agent={agent['client_id']} reason={block_reason}"
+                                    )
+                                elif not adapter_creds:
+                                    reply_status = " [reply skipped: no adapter]"
+                                else:
+                                    reply_adapter, reply_creds = adapter_creds
+                                    draft = await _draft_reply_body(
+                                        agent["name"], agent["instructions"],
+                                        matched_msg, saved_contacts,
+                                    )
+                                    ok, detail = await _send_auto_reply(
+                                        reply_adapter, reply_creds, matched_msg, draft,
+                                    )
+                                    if ok:
+                                        preview = (draft[:60] + "…") if len(draft) > 60 else draft
+                                        reply_status = f" ✓ Replied: {preview}"
+                                        logger.info(
+                                            f"agent_trigger_poller: auto_reply sent user={user_id} "
+                                            f"agent={agent['client_id']} msg={matched_msg.get('id')}"
+                                        )
+                                    else:
+                                        reply_status = f" [reply failed: {detail}]"
+                                        logger.warning(
+                                            f"agent_trigger_poller: auto_reply failed user={user_id} "
+                                            f"agent={agent['client_id']} detail={detail}"
+                                        )
+                            if reply_status:
+                                # Append the reply outcome to the notification
+                                # body so the user can see it on the lock screen.
+                                combined = (body or "") + reply_status
+                                body = combined[:180]
                             push_result = await send_push_to_user(
                                 user_id,
                                 db,

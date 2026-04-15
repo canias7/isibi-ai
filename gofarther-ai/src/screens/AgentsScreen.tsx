@@ -240,15 +240,23 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
           {triggers.length > 0 && (
             <>
               <Text style={[s.label, { color: tc.textDim }]}>Detected triggers</Text>
-              {triggers.map((trig, idx) => (
-                <View key={idx} style={[s.triggerCard, { backgroundColor: tc.card, borderColor: tc.border }]}>
-                  <Text style={[s.triggerTitle, { color: tc.text }]}>
-                    {trig.kind === 'email_from' && `📧 When an email arrives from ${trig.from_email}`}
-                    {trig.kind === 'email_keyword' && `🔍 When email subject contains "${trig.subject_keyword}"`}
-                    {trig.kind === 'schedule' && `⏰ ${minutesToLabel(trig.time_min ?? 540)} on ${(trig.days_of_week || DEFAULT_DAYS).split('').map((c, i) => c === 'Y' ? DAY_LABELS[i] : '').filter(Boolean).join(' ')}`}
-                  </Text>
-                </View>
-              ))}
+              {triggers.map((trig, idx) => {
+                const willAutoReply = Array.isArray(trig.actions) && trig.actions.includes('auto_reply');
+                return (
+                  <View key={idx} style={[s.triggerCard, { backgroundColor: tc.card, borderColor: tc.border }]}>
+                    <Text style={[s.triggerTitle, { color: tc.text }]}>
+                      {trig.kind === 'email_from' && `📧 When an email arrives from ${trig.from_email}`}
+                      {trig.kind === 'email_keyword' && `🔍 When email subject contains "${trig.subject_keyword}"`}
+                      {trig.kind === 'schedule' && `⏰ ${minutesToLabel(trig.time_min ?? 540)} on ${(trig.days_of_week || DEFAULT_DAYS).split('').map((c, i) => c === 'Y' ? DAY_LABELS[i] : '').filter(Boolean).join(' ')}`}
+                    </Text>
+                    {willAutoReply && (
+                      <Text style={[s.triggerAction, { color: tc.textDim }]}>
+                        ✉️  Will reply automatically
+                      </Text>
+                    )}
+                  </View>
+                );
+              })}
             </>
           )}
 
@@ -451,4 +459,5 @@ const s = StyleSheet.create({
   helperText: { fontSize: 12, lineHeight: 17 },
   triggerCard: { borderRadius: 12, borderWidth: 1, padding: 12, marginTop: 8 },
   triggerTitle: { fontSize: 13, fontWeight: '600', lineHeight: 18 },
+  triggerAction: { fontSize: 12, fontWeight: '500', marginTop: 6 },
 });

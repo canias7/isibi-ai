@@ -246,6 +246,10 @@ export interface AgentTrigger {
   from_email?: string;
   subject_keyword?: string;
   app_id?: string;
+  // Email-trigger actions. v1 supports only "auto_reply". When present,
+  // the backend poller will draft + send an email reply on the user's
+  // behalf after the trigger fires.
+  actions?: string[];
   time_min?: number;
   days_of_week?: string;
   timezone_name?: string;
