@@ -134,24 +134,36 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
       let backendDebug: any = {};
       const contactsSentCount = inlineContacts?.length ?? 0;
       if (agent) {
-        try {
-          const resp = await upsertServerAgent({
-            client_id: agent.id,
-            name: agent.name,
-            role: agent.role,
-            instructions: agent.instructions,
-            triggers: [],
-            enabled: agent.isActive,
-            ...(inlineContacts ? { saved_contacts: inlineContacts } : {}),
-          } as any);
-          backendDebug = (resp as any)?._debug || {};
+        const payload = {
+          client_id: agent.id,
+          name: agent.name,
+          role: agent.role,
+          instructions: agent.instructions,
+          triggers: [],
+          enabled: agent.isActive,
+          ...(inlineContacts ? { saved_contacts: inlineContacts } : {}),
+        } as any;
+        // Retry up to 3 times — Render free tier cold starts can time out
+        // the first call while the server wakes up.
+        let resp: any = null;
+        let lastErr: any = null;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            resp = await upsertServerAgent(payload);
+            backendDebug = { ...(resp?._debug || {}), attempts: attempt };
+            break;
+          } catch (e: any) {
+            lastErr = e;
+            backendDebug = { error: e?.message || 'upsert failed', attempts: attempt };
+            if (attempt < 3) await new Promise(r => setTimeout(r, 3000));
+          }
+        }
+        if (resp) {
           // Write back extracted triggers
           const extracted = (resp?.triggers || []) as AgentTrigger[];
           if (JSON.stringify(agent.triggers || []) !== JSON.stringify(extracted)) {
             agent.triggers = extracted;
           }
-        } catch (e: any) {
-          backendDebug = { error: e?.message || 'upsert failed' };
         }
       }
 
