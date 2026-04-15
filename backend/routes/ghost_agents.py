@@ -427,10 +427,19 @@ async def upsert_agent(
     x_workspace_id: Optional[str] = Header(default=None, alias="X-Workspace-Id"),
     db: AsyncSession = Depends(get_db),
 ):
+    import time as _time
+    stage_timings: dict = {}
+    t_start = _time.monotonic()
+
+    def _mark(stage: str) -> None:
+        stage_timings[stage] = round((_time.monotonic() - t_start) * 1000)
+
     payload = _verify_auth(authorization)
     user_id = payload.get("sub")
     workspace_id = _normalize_workspace(x_workspace_id)
+    _mark("auth")
     await ensure_agents_schema(db)
+    _mark("schema")
 
     if not body.client_id or not body.name:
         raise HTTPException(status_code=400, detail="client_id and name are required")
@@ -461,42 +470,12 @@ async def upsert_agent(
             await db.commit()
         except Exception as contacts_err:
             logger.warning(f"ghost_agents: inline contacts save failed: {contacts_err}")
+    _mark("contacts_save")
 
-    extraction_debug = {}
-    if body.triggers is not None and len(body.triggers) > 0:
-        triggers_json = [t.model_dump(exclude_none=True) for t in body.triggers]
-        extraction_debug = {"mode": "explicit", "count": len(triggers_json)}
-    else:
-        default_tz = await _user_default_timezone(db, user_id)
-        loaded_contacts = await _load_saved_contacts(db, user_id, workspace_id)
-        extraction_debug["mode"] = "auto"
-        extraction_debug["contacts_count"] = len(loaded_contacts)
-        extraction_debug["contacts"] = [f"{c.get('label')}: {c.get('email')}" for c in loaded_contacts]
-        extraction_debug["workspace"] = workspace_id
-        try:
-            # Hard 20s ceiling on trigger extraction so the POST /agents
-            # handler always returns within the frontend's 60s deadline,
-            # no matter how Claude (or the network to Anthropic) behaves.
-            # On timeout we save the agent with empty triggers — the user
-            # can re-save to retry extraction.
-            triggers_json = await asyncio.wait_for(
-                _extract_triggers_from_prompt(
-                    body.name, body.instructions or "",
-                    default_tz=default_tz,
-                    saved_contacts=loaded_contacts,
-                ),
-                timeout=20.0,
-            )
-            extraction_debug["triggers_count"] = len(triggers_json)
-            extraction_debug["triggers"] = triggers_json
-        except asyncio.TimeoutError:
-            extraction_debug["error"] = "extraction_timeout_20s"
-            triggers_json = []
-        except Exception as ext_err:
-            extraction_debug["error"] = str(ext_err)
-            triggers_json = []
-
-    # Try to find existing row by client_id (idempotent upsert)
+    # ── Save the agent FIRST with whatever triggers the client sent (or
+    #    keep existing triggers on update). Extraction runs after the
+    #    save is committed so a slow/broken extraction can NEVER block
+    #    the save from succeeding. ────────────────────────────────────
     result = await db.execute(
         select(GhostAgent).where(
             GhostAgent.user_id == user_id,
@@ -505,12 +484,25 @@ async def upsert_agent(
         )
     )
     row = result.scalar_one_or_none()
+    _mark("find_existing")
     now = datetime.now(timezone.utc)
+
+    # Decide the triggers_json to persist on this first save:
+    # - If the client sent explicit triggers, use them.
+    # - Otherwise keep the existing row's triggers (preserves previous
+    #   extraction while the new one runs).
+    if body.triggers is not None and len(body.triggers) > 0:
+        initial_triggers = [t.model_dump(exclude_none=True) for t in body.triggers]
+    elif row is not None:
+        initial_triggers = row.triggers or []
+    else:
+        initial_triggers = []
+
     if row:
         row.name = body.name
         row.role = body.role
         row.instructions = body.instructions
-        row.triggers = triggers_json
+        row.triggers = initial_triggers
         if body.enabled is not None:
             row.enabled = body.enabled
         row.updated_at = now
@@ -522,7 +514,7 @@ async def upsert_agent(
             name=body.name,
             role=body.role,
             instructions=body.instructions,
-            triggers=triggers_json,
+            triggers=initial_triggers,
             enabled=body.enabled if body.enabled is not None else True,
             created_at=now,
             updated_at=now,
@@ -530,9 +522,54 @@ async def upsert_agent(
         db.add(row)
     await db.commit()
     await db.refresh(row)
-    result = _row_to_dict(row)
-    result["_debug"] = extraction_debug
-    return result
+    _mark("initial_save")
+
+    # ── Now try extraction (skipped when client sent explicit triggers).
+    #    Bounded by asyncio.wait_for so the handler always returns in
+    #    bounded time. If it succeeds, update the row again with the
+    #    extracted triggers. ────────────────────────────────────────────
+    extraction_debug: dict = {}
+    if body.triggers is not None and len(body.triggers) > 0:
+        extraction_debug = {"mode": "explicit", "count": len(initial_triggers)}
+    else:
+        default_tz = await _user_default_timezone(db, user_id)
+        _mark("load_tz")
+        loaded_contacts = await _load_saved_contacts(db, user_id, workspace_id)
+        _mark("load_contacts")
+        extraction_debug["mode"] = "auto"
+        extraction_debug["contacts_count"] = len(loaded_contacts)
+        extraction_debug["workspace"] = workspace_id
+        try:
+            extracted = await asyncio.wait_for(
+                _extract_triggers_from_prompt(
+                    body.name, body.instructions or "",
+                    default_tz=default_tz,
+                    saved_contacts=loaded_contacts,
+                ),
+                timeout=15.0,
+            )
+            _mark("extract")
+            extraction_debug["triggers_count"] = len(extracted)
+            extraction_debug["triggers"] = extracted
+            # Second commit: update row with extracted triggers
+            row.triggers = extracted
+            row.updated_at = datetime.now(timezone.utc)
+            await db.commit()
+            await db.refresh(row)
+            _mark("update_triggers")
+        except asyncio.TimeoutError:
+            extraction_debug["error"] = "extraction_timeout_15s"
+            _mark("extract_timeout")
+        except Exception as ext_err:
+            extraction_debug["error"] = str(ext_err)[:200]
+            _mark("extract_error")
+
+    result_dict = _row_to_dict(row)
+    extraction_debug["stages_ms"] = stage_timings
+    extraction_debug["total_ms"] = round((_time.monotonic() - t_start) * 1000)
+    result_dict["_debug"] = extraction_debug
+    logger.info(f"ghost_agents: upsert {body.client_id} stages={stage_timings}")
+    return result_dict
 
 
 @router.delete("/{client_id}")
