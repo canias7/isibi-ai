@@ -448,27 +448,46 @@ async def upsert_agent(
     # is allowed to send explicit triggers too (advanced users / future
     # UIs); if it does, we use those AS-IS and skip extraction. Otherwise
     # we run the LLM extractor on `instructions`.
-    # If contacts were passed inline, save them first
+    # If contacts were passed inline, save them first. Runs on a FRESH
+    # session so a lock on ghost_saved_contacts from a previous stuck
+    # transaction can't block the main save path — and is wrapped in
+    # a hard 5s ceiling so the request never waits on DB locks.
+    contacts_debug: dict = {"sent": 0}
     if body.saved_contacts:
+        contacts_debug["sent"] = len(body.saved_contacts)
+
+        async def _save_contacts_isolated() -> None:
+            from db import async_session
+            async with async_session() as contacts_db:
+                # 3s per-statement ceiling: if there's lock contention,
+                # fail fast instead of blocking the whole handler.
+                await contacts_db.execute(sql_text("SET LOCAL statement_timeout = 3000"))
+                await contacts_db.execute(sql_text(
+                    "DELETE FROM ghost_saved_contacts WHERE user_id = :uid AND workspace_id = :ws"
+                ), {"uid": str(user_id), "ws": workspace_id})
+                for c in body.saved_contacts or []:
+                    label = (c.get("label") or "").strip()
+                    if not label:
+                        continue
+                    await contacts_db.execute(sql_text(
+                        "INSERT INTO ghost_saved_contacts (user_id, workspace_id, label, name, email, phone, updated_at) "
+                        "VALUES (:uid, :ws, :label, :name, :email, :phone, NOW()) "
+                        "ON CONFLICT (user_id, workspace_id, label) DO UPDATE "
+                        "SET name = :name, email = :email, phone = :phone, updated_at = NOW()"
+                    ), {
+                        "uid": str(user_id), "ws": workspace_id,
+                        "label": label, "name": c.get("name"), "email": c.get("email"), "phone": c.get("phone"),
+                    })
+                await contacts_db.commit()
+
         try:
-            await db.execute(sql_text(
-                "DELETE FROM ghost_saved_contacts WHERE user_id = :uid AND workspace_id = :ws"
-            ), {"uid": str(user_id), "ws": workspace_id})
-            for c in body.saved_contacts:
-                label = (c.get("label") or "").strip()
-                if not label:
-                    continue
-                await db.execute(sql_text(
-                    "INSERT INTO ghost_saved_contacts (user_id, workspace_id, label, name, email, phone, updated_at) "
-                    "VALUES (:uid, :ws, :label, :name, :email, :phone, NOW()) "
-                    "ON CONFLICT (user_id, workspace_id, label) DO UPDATE "
-                    "SET name = :name, email = :email, phone = :phone, updated_at = NOW()"
-                ), {
-                    "uid": str(user_id), "ws": workspace_id,
-                    "label": label, "name": c.get("name"), "email": c.get("email"), "phone": c.get("phone"),
-                })
-            await db.commit()
+            await asyncio.wait_for(_save_contacts_isolated(), timeout=5.0)
+            contacts_debug["ok"] = True
+        except asyncio.TimeoutError:
+            contacts_debug["error"] = "contacts_save_timeout_5s"
+            logger.warning("ghost_agents: inline contacts save timed out (locks?)")
         except Exception as contacts_err:
+            contacts_debug["error"] = str(contacts_err)[:200]
             logger.warning(f"ghost_agents: inline contacts save failed: {contacts_err}")
     _mark("contacts_save")
 
@@ -565,6 +584,7 @@ async def upsert_agent(
             _mark("extract_error")
 
     result_dict = _row_to_dict(row)
+    extraction_debug["contacts_save"] = contacts_debug
     extraction_debug["stages_ms"] = stage_timings
     extraction_debug["total_ms"] = round((_time.monotonic() - t_start) * 1000)
     result_dict["_debug"] = extraction_debug
