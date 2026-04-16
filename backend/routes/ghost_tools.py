@@ -1336,7 +1336,27 @@ def _content_to_file(content: str, ext: str, base_name: str) -> tuple:
             from lib.pdf_templates import create_professional_pdf
             file_bytes = create_professional_pdf(content, title=base_name)
         except Exception:
-            file_bytes = content.encode('utf-8')
+            try:
+                from reportlab.lib.pagesizes import letter
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                from reportlab.lib.styles import getSampleStyleSheet
+                buf = io.BytesIO()
+                doc = SimpleDocTemplate(buf, pagesize=letter)
+                styles = getSampleStyleSheet()
+                story = []
+                for line in content.split('\n'):
+                    line = line.strip()
+                    if not line:
+                        story.append(Spacer(1, 12))
+                    else:
+                        clean = re.sub(r'\*\*(.+?)\*\*', r'\1', line)
+                        clean = re.sub(r'\*(.+?)\*', r'\1', clean)
+                        clean = re.sub(r'^#+\s*', '', clean)
+                        story.append(Paragraph(clean, styles['Normal']))
+                doc.build(story)
+                file_bytes = buf.getvalue()
+            except Exception:
+                file_bytes = content.encode('utf-8')
         return file_bytes, f"{base_name}.pdf", "application/pdf"
     elif ext == "xlsx":
         try:
