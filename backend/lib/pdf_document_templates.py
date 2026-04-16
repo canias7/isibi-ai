@@ -2037,13 +2037,36 @@ def create_lease_pdf(data: dict) -> bytes:
 
     story.append(Paragraph('Property Details', s['LsSection']))
     story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+
+    def _money(val):
+        try:
+            return f"{sym}{float(val):,.2f}"
+        except (ValueError, TypeError):
+            return str(val)
+
+    monthly = rent.get('monthly_amount', rent.get('amount', 0))
+    late = rent.get('late_fee', 'N/A')
+    due_day = rent.get('due_day', rent.get('due_date', '1st'))
+    grace = rent.get('grace_period_days', '')
+    deposit_val = data.get('security_deposit', data.get('deposit', {}))
+    if isinstance(deposit_val, dict):
+        deposit_display = _money(deposit_val.get('amount', 0))
+        deposit_terms = deposit_val.get('terms', '')
+    else:
+        deposit_display = _money(deposit_val)
+        deposit_terms = ''
+
+    late_display = _money(late) if isinstance(late, (int, float)) else str(late)
+    if grace:
+        late_display += f" after {grace} day grace period"
+
     details = [
         ['ADDRESS', prop.get('address', '')],
-        ['TYPE', f"{prop.get('type', '')} — {prop.get('bedrooms', '')} bed / {prop.get('bathrooms', '')} bath"],
-        ['LEASE TERM', f"{term.get('start_date', '')} to {term.get('end_date', '')} ({term.get('duration', '')})"],
-        ['MONTHLY RENT', f"{sym}{rent.get('monthly_amount', 0):,.2f} due on the {rent.get('due_day', 1)}st of each month"],
-        ['LATE FEE', f"{sym}{rent.get('late_fee', 0):,.2f} after {rent.get('grace_period_days', 5)} day grace period"],
-        ['SECURITY DEPOSIT', f"{sym}{deposit:,.2f}"],
+        ['TYPE', prop.get('type', '')],
+        ['LEASE TERM', f"{term.get('start_date', term.get('start', ''))} to {term.get('end_date', term.get('end', ''))}"],
+        ['MONTHLY RENT', f"{_money(monthly)} due on the {due_day} of each month"],
+        ['LATE FEE', late_display],
+        ['SECURITY DEPOSIT', deposit_display],
     ]
     for label, value in details:
         row = Table([[Paragraph(label, s['LsLabel']), Paragraph(value, s['LsBody'])]], colWidths=[1.5*inch, 5.3*inch])
