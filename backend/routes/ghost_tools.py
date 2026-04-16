@@ -1010,69 +1010,13 @@ Highlight cells that match the user's criteria. Include ALL data rows — don't 
 Return ONLY valid JSON."""
                 prompt = f"Data:\n{text_content}\n\nHighlight criteria: {req.instructions or 'Highlight anomalies, outliers, and values that need attention.'}"
                 highlighted = await _ask_claude(prompt, system)
-                # Build styled Excel with highlights
                 try:
-                    highlighted_data = _extract_json_from_content(highlighted)
-                    if not isinstance(highlighted_data, dict):
-                        highlighted_data = {"headers": [], "rows": [], "formulas": {}, "highlights": {}}
-                    from openpyxl import Workbook as _HlWB
-                    from openpyxl.styles import Font as _HlFont, PatternFill as _HlFill, Border as _HlBorder, Side as _HlSide
-                    from openpyxl.utils import get_column_letter as _hl_gcl
-
-                    color_map = {
-                        "red": "FFCCCC", "green": "CCFFCC", "yellow": "FFFFCC",
-                        "blue": "CCE5FF", "orange": "FFE0CC",
-                    }
-                    wb = _HlWB()
-                    ws = wb.active
-                    ws.title = "Highlighted"
-                    headers = highlighted_data.get("headers", [])
-                    rows = highlighted_data.get("rows", [])
-                    highlights = highlighted_data.get("highlights", {})
-                    formulas = highlighted_data.get("formulas", {})
-
-                    # Header row
-                    header_font = _HlFont(bold=True, color="FFFFFF", size=11)
-                    header_fill = _HlFill(start_color="2B579A", end_color="2B579A", fill_type="solid")
-                    thin_border = _HlBorder(
-                        left=_HlSide(style='thin', color='D9D9D9'), right=_HlSide(style='thin', color='D9D9D9'),
-                        top=_HlSide(style='thin', color='D9D9D9'), bottom=_HlSide(style='thin', color='D9D9D9'),
-                    )
-                    for c, h in enumerate(headers, 1):
-                        cell = ws.cell(row=1, column=c, value=h)
-                        cell.font = header_font
-                        cell.fill = header_fill
-                        cell.border = thin_border
-                    for r, row in enumerate(rows, 2):
-                        for c, val in enumerate(row, 1):
-                            cell = ws.cell(row=r, column=c, value=val)
-                            cell.border = thin_border
-                    # Apply highlights
-                    for cell_ref, color in highlights.items():
-                        try:
-                            fill_color = color_map.get(color.lower(), "FFFFCC")
-                            ws[cell_ref].fill = _HlFill(start_color=fill_color, end_color=fill_color, fill_type="solid")
-                        except Exception:
-                            pass
-                    # Apply formulas
-                    for cell_ref, formula in formulas.items():
-                        try:
-                            ws[cell_ref] = formula
-                        except Exception:
-                            pass
-                    # Auto-width
-                    for col in ws.columns:
-                        ws.column_dimensions[col[0].column_letter].width = 18
-
-                    buf = io.BytesIO()
-                    wb.save(buf)
-                    file_bytes = buf.getvalue()
+                    _fname = _smart_filename("", "highlighted", "xlsx", original_filename)
+                    file_bytes, filename, mime = _build_highlighted_xlsx(highlighted, _fname.rsplit('.', 1)[0])
                 except Exception:
-                    # Fallback: treat as edit
                     file_bytes = highlighted.encode('utf-8')
-                _fname = _smart_filename("", "highlighted", "xlsx", original_filename)
-                filename = _fname
-                mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    filename = _smart_filename("", "highlighted", "xlsx", original_filename)
+                    mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
             # ── READ OPERATIONS — return text, not a file ──
             elif req.operation in ("summarize", "analyze", "find", "extract", "answer"):
@@ -1131,24 +1075,43 @@ Return ONLY valid JSON."""
                         # Scanned PDF — convert first page to image via fitz, send to Vision
                         try:
                             import fitz
+                            import asyncio as _ocr_aio
                             doc = fitz.open(stream=original_bytes, filetype="pdf")
-                            pages_text = []
-                            for page_num in range(min(len(doc), 10)):  # Max 10 pages
+                            num_pages = min(len(doc), 10)
+
+                            # Convert all pages to PNG first
+                            page_images = []
+                            for page_num in range(num_pages):
                                 page = doc[page_num]
                                 pix = page.get_pixmap(dpi=200)
-                                img_bytes = pix.tobytes("png")
-                                img_b64 = base64.b64encode(img_bytes).decode()
+                                img_b64 = base64.b64encode(pix.tobytes("png")).decode()
+                                page_images.append((page_num, img_b64))
+
+                            # OCR all pages in parallel (batches of 3 to avoid rate limits)
+                            async def _ocr_page(pnum: int, b64: str) -> str:
                                 async with httpx.AsyncClient(timeout=60) as client:
                                     res = await client.post(
                                         "https://api.anthropic.com/v1/messages",
                                         headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01"},
                                         json={"model": "claude-sonnet-4-20250514", "max_tokens": 4096, "messages": [{"role": "user", "content": [
-                                            {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": img_b64}},
-                                            {"type": "text", "text": f"Extract ALL text from this scanned document page ({page_num + 1}). Preserve structure, tables, and formatting."},
+                                            {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64}},
+                                            {"type": "text", "text": f"Extract ALL text from this scanned document page ({pnum + 1}). Preserve structure, tables, and formatting."},
                                         ]}]},
                                     )
-                                    page_text = res.json().get("content", [{}])[0].get("text", "")
-                                    pages_text.append(f"--- Page {page_num + 1} ---\n{page_text}")
+                                    return res.json().get("content", [{}])[0].get("text", "")
+
+                            pages_text = [""] * num_pages
+                            # Process in batches of 3 for rate limit safety
+                            for batch_start in range(0, len(page_images), 3):
+                                batch = page_images[batch_start:batch_start + 3]
+                                batch_results = await _ocr_aio.gather(
+                                    *[_ocr_page(pnum, b64) for pnum, b64 in batch]
+                                )
+                                for i, (pnum, _) in enumerate(batch):
+                                    pages_text[pnum] = f"--- Page {pnum + 1} ---\n{batch_results[i]}"
+                                # Update progress
+                                JOB_STORE[job_id]["progress"] = f"OCR: {min(batch_start + 3, num_pages)}/{num_pages} pages"
+
                             result_text = "\n\n".join(pages_text)
                         except ImportError:
                             result_text = "OCR requires PyMuPDF for scanned PDFs. The PDF has no extractable text."
@@ -1193,6 +1156,7 @@ Return ONLY valid JSON."""
                             fb, fn, mi = _content_to_file(text, target_fmt, _fname.rsplit('.', 1)[0])
                         await _store_file(new_id, fn, mi, fb, owner)
                         results.append({"file_id": new_id, "filename": fn, "download_url": f"/api/ghost/tools/download/{new_id}"})
+                        JOB_STORE[job_id]["progress"] = f"Batch: {len(results)}/{len(req.file_ids)} files"
                     except Exception as e:
                         results.append({"file_id": fid, "error": str(e)})
                 # Create a zip of all successful files for one-click download
@@ -1343,7 +1307,7 @@ Return ONLY valid JSON."""
                         elif step_op == "highlight":
                             system = "You are a formatting expert. Return JSON with highlights: {\"headers\":[...],\"rows\":[...],\"formulas\":{},\"highlights\":{\"A5\":\"red\",\"B3\":\"green\"}}\nReturn ONLY valid JSON."
                             result = await _ask_claude(f"Data:\n{text}\n\nHighlight: {step_instructions or 'Highlight anomalies.'}", system)
-                            fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            fb, fn, mi = _build_highlighted_xlsx(result, f"step{step_idx}")
                             ext = "xlsx"
                         else:
                             raise ValueError(f"Unsupported chain step: {step_op}")
@@ -1352,6 +1316,7 @@ Return ONLY valid JSON."""
                         current_mime = mi
                         current_filename = fn
                         completed_steps.append(step_op)
+                        JOB_STORE[job_id]["progress"] = f"Chain: {len(completed_steps)}/{len(req.chain_ops)} steps ({' → '.join(completed_steps)})"
                     except Exception as e:
                         failed_step = f"{step_op}: {str(e)[:100]}"
                         logger.warning("Chain step %d (%s) failed: %s — delivering partial result", step_idx, step_op, e)
@@ -1643,6 +1608,59 @@ async def _validate_and_fix_spreadsheet_json(content: str, original_prompt: str 
             retries=0
         )
         return fix_result
+
+
+def _build_highlighted_xlsx(content: str, base_name: str) -> tuple:
+    """Build an Excel file with conditional highlighting colors applied."""
+    from openpyxl import Workbook as _HWB
+    from openpyxl.styles import Font as _HF, PatternFill as _HP, Border as _HB, Side as _HS
+
+    data = _extract_json_from_content(content)
+    if not isinstance(data, dict):
+        data = {"headers": [], "rows": [], "formulas": {}, "highlights": {}}
+
+    color_map = {
+        "red": "FFCCCC", "green": "CCFFCC", "yellow": "FFFFCC",
+        "blue": "CCE5FF", "orange": "FFE0CC",
+    }
+    wb = _HWB()
+    ws = wb.active
+    ws.title = "Highlighted"
+    headers = data.get("headers", [])
+    rows = data.get("rows", [])
+    highlights = data.get("highlights", {})
+    formulas = data.get("formulas", {})
+
+    hdr_font = _HF(bold=True, color="FFFFFF", size=11)
+    hdr_fill = _HP(start_color="2B579A", end_color="2B579A", fill_type="solid")
+    border = _HB(left=_HS(style='thin', color='D9D9D9'), right=_HS(style='thin', color='D9D9D9'),
+                 top=_HS(style='thin', color='D9D9D9'), bottom=_HS(style='thin', color='D9D9D9'))
+    for c, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=c, value=h)
+        cell.font = hdr_font
+        cell.fill = hdr_fill
+        cell.border = border
+    for r, row in enumerate(rows, 2):
+        for c, val in enumerate(row, 1):
+            cell = ws.cell(row=r, column=c, value=val)
+            cell.border = border
+    for cell_ref, color in highlights.items():
+        try:
+            fc = color_map.get(color.lower(), "FFFFCC")
+            ws[cell_ref].fill = _HP(start_color=fc, end_color=fc, fill_type="solid")
+        except Exception:
+            pass
+    for cell_ref, formula in formulas.items():
+        try:
+            ws[cell_ref] = formula
+        except Exception:
+            pass
+    for col in ws.columns:
+        ws.column_dimensions[col[0].column_letter].width = 18
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue(), f"{base_name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
 def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
@@ -2016,6 +2034,27 @@ def _content_to_file(content: str, ext: str, base_name: str) -> tuple:
             return content.encode('utf-8'), f"{base_name}.txt", "text/plain"
     elif ext == "csv":
         return content.encode('utf-8'), f"{base_name}.csv", "text/csv"
+    elif ext == "json":
+        # Pretty-print if it's valid JSON, otherwise save as-is
+        try:
+            data = json.loads(content)
+            formatted = json.dumps(data, indent=2, ensure_ascii=False)
+            return formatted.encode('utf-8'), f"{base_name}.json", "application/json"
+        except Exception:
+            return content.encode('utf-8'), f"{base_name}.json", "application/json"
+    elif ext in ("html", "htm"):
+        # Wrap in basic HTML structure if it doesn't have one
+        if not content.strip().lower().startswith("<!doctype") and not content.strip().lower().startswith("<html"):
+            html_content = f"<!DOCTYPE html>\n<html>\n<head><meta charset=\"utf-8\"><title>{base_name}</title></head>\n<body>\n{content}\n</body>\n</html>"
+        else:
+            html_content = content
+        return html_content.encode('utf-8'), f"{base_name}.html", "text/html"
+    elif ext == "md":
+        return content.encode('utf-8'), f"{base_name}.md", "text/markdown"
+    elif ext == "rtf":
+        # Wrap in minimal RTF structure
+        rtf_content = r"{\rtf1\ansi " + content.replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}") + "}"
+        return rtf_content.encode('utf-8'), f"{base_name}.rtf", "application/rtf"
     else:
         return content.encode('utf-8'), f"{base_name}.txt", "text/plain"
 
