@@ -353,24 +353,24 @@ def create_resume_pdf(data: dict) -> bytes:
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
         buf, pagesize=letter,
-        leftMargin=0.55 * inch, rightMargin=0.55 * inch,
-        topMargin=0.5 * inch, bottomMargin=0.5 * inch,
+        leftMargin=0.5 * inch, rightMargin=0.5 * inch,
+        topMargin=0.4 * inch, bottomMargin=0.4 * inch,
     )
 
     # ── Styles ────────────────────────────────────────────────────────
     s = getSampleStyleSheet()
-    s.add(ParagraphStyle('ResName', fontSize=24, leading=28, textColor=DARK, fontName='Helvetica-Bold', alignment=TA_CENTER))
-    s.add(ParagraphStyle('ResTitle', fontSize=11, leading=14, textColor=ACCENT_BLUE, fontName='Helvetica', alignment=TA_CENTER))
-    s.add(ParagraphStyle('ResContact', fontSize=8.5, leading=11, textColor=MID, fontName='Helvetica', alignment=TA_CENTER))
-    s.add(ParagraphStyle('ResSectionHead', fontSize=11, leading=14, textColor=ACCENT_BLUE, fontName='Helvetica-Bold', spaceBefore=10, spaceAfter=2))
-    s.add(ParagraphStyle('ResCompany', fontSize=10.5, leading=13, textColor=DARK, fontName='Helvetica-Bold'))
-    s.add(ParagraphStyle('ResRole', fontSize=10, leading=13, textColor=MID, fontName='Helvetica-Oblique'))
-    s.add(ParagraphStyle('ResDates', fontSize=9, leading=12, textColor=LIGHT, fontName='Helvetica'))
-    s.add(ParagraphStyle('ResBullet', fontSize=9.5, leading=13, textColor=DARK, fontName='Helvetica', leftIndent=14, bulletIndent=4, spaceAfter=2))
-    s.add(ParagraphStyle('ResBody', fontSize=9.5, leading=13, textColor=DARK, fontName='Helvetica', spaceAfter=4))
-    s.add(ParagraphStyle('ResSkillCat', fontSize=9, leading=12, textColor=DARK, fontName='Helvetica-Bold'))
-    s.add(ParagraphStyle('ResSkillList', fontSize=9, leading=12, textColor=MID, fontName='Helvetica'))
-    s.add(ParagraphStyle('ResSmall', fontSize=8.5, leading=11, textColor=MID, fontName='Helvetica'))
+    s.add(ParagraphStyle('ResName', fontSize=22, leading=26, textColor=DARK, fontName='Helvetica-Bold', alignment=TA_CENTER))
+    s.add(ParagraphStyle('ResTitle', fontSize=10, leading=13, textColor=ACCENT_BLUE, fontName='Helvetica', alignment=TA_CENTER))
+    s.add(ParagraphStyle('ResContact', fontSize=8, leading=10, textColor=MID, fontName='Helvetica', alignment=TA_CENTER))
+    s.add(ParagraphStyle('ResSectionHead', fontSize=10, leading=13, textColor=ACCENT_BLUE, fontName='Helvetica-Bold', spaceBefore=6, spaceAfter=1))
+    s.add(ParagraphStyle('ResCompany', fontSize=10, leading=12, textColor=DARK, fontName='Helvetica-Bold'))
+    s.add(ParagraphStyle('ResRole', fontSize=9, leading=11, textColor=MID, fontName='Helvetica-Oblique'))
+    s.add(ParagraphStyle('ResDates', fontSize=8.5, leading=11, textColor=LIGHT, fontName='Helvetica'))
+    s.add(ParagraphStyle('ResBullet', fontSize=9, leading=12, textColor=DARK, fontName='Helvetica', leftIndent=12, bulletIndent=4, spaceAfter=1))
+    s.add(ParagraphStyle('ResBody', fontSize=9, leading=12, textColor=DARK, fontName='Helvetica', spaceAfter=2))
+    s.add(ParagraphStyle('ResSkillCat', fontSize=8.5, leading=11, textColor=DARK, fontName='Helvetica-Bold'))
+    s.add(ParagraphStyle('ResSkillList', fontSize=8.5, leading=11, textColor=MID, fontName='Helvetica'))
+    s.add(ParagraphStyle('ResSmall', fontSize=8, leading=10, textColor=MID, fontName='Helvetica'))
 
     story = []
 
@@ -382,7 +382,7 @@ def create_resume_pdf(data: dict) -> bytes:
     story.append(Paragraph(name, s['ResName']))
     if title:
         story.append(Paragraph(title, s['ResTitle']))
-    story.append(Spacer(1, 6))
+    story.append(Spacer(1, 3))
 
     # Contact row
     contact_parts = []
@@ -399,22 +399,21 @@ def create_resume_pdf(data: dict) -> bytes:
     if contact_parts:
         story.append(Paragraph('  ·  '.join(contact_parts), s['ResContact']))
 
-    story.append(Spacer(1, 4))
-    story.append(HRFlowable(width="100%", thickness=1.5, color=ACCENT_BLUE, spaceAfter=8))
+    story.append(Spacer(1, 2))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=ACCENT_BLUE, spaceAfter=4))
 
     # ── Summary ───────────────────────────────────────────────────────
     summary = data.get('summary', '')
     if summary:
         story.append(Paragraph('PROFESSIONAL SUMMARY', s['ResSectionHead']))
-        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=3))
         story.append(Paragraph(summary, s['ResBody']))
-        story.append(Spacer(1, 4))
 
     # ── Experience ────────────────────────────────────────────────────
     experience = data.get('experience', [])
     if experience:
         story.append(Paragraph('EXPERIENCE', s['ResSectionHead']))
-        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=3))
 
         for exp in experience:
             company = exp.get('company', '')
@@ -446,15 +445,15 @@ def create_resume_pdf(data: dict) -> bytes:
                 story.append(Paragraph(role, s['ResRole']))
 
             for bullet in exp.get('bullets', []):
-                story.append(Paragraph(f"▸  {bullet}", s['ResBullet']))
+                story.append(Paragraph(f"-  {bullet}", s['ResBullet']))
 
-            story.append(Spacer(1, 6))
+            story.append(Spacer(1, 3))
 
     # ── Education ─────────────────────────────────────────────────────
     education = data.get('education', [])
     if education:
         story.append(Paragraph('EDUCATION', s['ResSectionHead']))
-        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=3))
 
         for edu in education:
             school = edu.get('school', '')
@@ -488,13 +487,13 @@ def create_resume_pdf(data: dict) -> bytes:
             if detail_parts:
                 story.append(Paragraph('  |  '.join(detail_parts), s['ResRole']))
 
-            story.append(Spacer(1, 4))
+            story.append(Spacer(1, 2))
 
     # ── Skills ────────────────────────────────────────────────────────
     skills = data.get('skills', {})
     if skills:
         story.append(Paragraph('SKILLS', s['ResSectionHead']))
-        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=3))
 
         if isinstance(skills, dict):
             for category, skill_list in skills.items():
@@ -523,7 +522,7 @@ def create_resume_pdf(data: dict) -> bytes:
     certs = data.get('certifications', [])
     if certs:
         story.append(Paragraph('CERTIFICATIONS', s['ResSectionHead']))
-        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=3))
         story.append(Paragraph('  ·  '.join(certs), s['ResBody']))
         story.append(Spacer(1, 4))
 
@@ -531,7 +530,7 @@ def create_resume_pdf(data: dict) -> bytes:
     languages = data.get('languages', [])
     if languages:
         story.append(Paragraph('LANGUAGES', s['ResSectionHead']))
-        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=3))
         story.append(Paragraph('  ·  '.join(languages), s['ResBody']))
 
     doc.build(story)
