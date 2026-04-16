@@ -599,6 +599,12 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
                   registerFile(uploaded.filename, uploaded.file_id);
                 } catch (uploadErr: any) {
                   console.warn('Auto-upload failed:', uploadErr.message);
+                  updateAndPersist(aiMsgIdStream, {
+                    content: `File upload failed: ${uploadErr.message || 'Unknown error'}. Try again or attach the file again.`,
+                    isCreatingFile: false, isProcessing: false,
+                  });
+                  setIsCreating(false);
+                  return;
                 }
                 break;
               }
@@ -606,7 +612,17 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           }
         }
 
-        const chainOps = finalAction.chain_ops;
+        // Validate chain_ops if present
+        let chainOps = finalAction.chain_ops;
+        if (operation === 'chain' && chainOps) {
+          // Ensure every step has an operation field
+          chainOps = chainOps.filter((step: any) => step && typeof step.operation === 'string' && step.operation.trim());
+          if (chainOps.length < 2) {
+            updateAndPersist(aiMsgIdStream, { content: 'Chain requires at least 2 valid steps.', isCreatingFile: false });
+            setIsCreating(false);
+            return;
+          }
+        }
         const targetFormat = operation === 'convert' || operation === 'batch' ? (finalAction.key || undefined) : undefined;
         const progressCallback = (progress: string) => {
           updateAndPersist(aiMsgIdStream, { content: `${finalText || loadingLabel}\n\n_${progress}_` });

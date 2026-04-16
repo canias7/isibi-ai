@@ -237,7 +237,7 @@ OTHER TOOLS:
 {"type":"web_search","target":"search query"}
 {"type":"read_url","target":"https://url","text":"question about the page"}
 {"type":"run_code","target":"what to compute/calculate"} — ONLY for pure math or algorithm snippets on data the user literally pastes into the chat. NEVER use run_code to touch external data: files on OneDrive/Google Drive, Excel workbooks, emails, CRM records, calendars, contacts, or anything that lives inside a connected app. The Python sandbox has NO network access, NO filesystem access to your OneDrive, and cannot import "os", "glob", "pathlib.Path.cwd()", "requests", etc. If the user says "grab info from my excel", "read my sheet", "pull my contacts", "check my emails", etc — that is ALWAYS a connector action or plan, NEVER run_code. If a connected app has an action for it, use the connector JSON instead.
-{"type":"translate","target":"text to translate","text":"target language"}
+{"type":"translate","target":"text to translate","text":"target language"} — for translating TEXT in chat. To translate an uploaded FILE, use modify_file with target:"translate" instead.
 {"type":"youtube_summary","target":"youtube URL"}
 {"type":"research","target":"topic","text":"general/academic/patent/legal"}
 {"type":"generate_qr","target":"URL or text for QR code"}
