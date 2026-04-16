@@ -546,12 +546,27 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         let resolvedFileId: string | undefined;
         let resolvedFileIds: string[] | undefined;
 
-        if (multiFileOps.includes(operation) && finalAction.file_ids) {
+        if (multiFileOps.includes(operation) && finalAction.file_ids && finalAction.file_ids.length > 0) {
           // Model provided file references — resolve names to IDs via registry
           resolvedFileIds = [];
+          const unresolvedNames: string[] = [];
           for (const ref of finalAction.file_ids) {
-            const id = resolveFileId(ref) || ref; // Use as-is if it looks like an ID already
-            resolvedFileIds.push(id);
+            const id = resolveFileId(ref);
+            if (id) {
+              resolvedFileIds.push(id);
+            } else {
+              unresolvedNames.push(ref);
+            }
+          }
+          // If any filenames couldn't be resolved, tell the user
+          if (unresolvedNames.length > 0) {
+            const knownFiles = Array.from(fileRegistryRef.current.keys()).filter(k => k.includes('.')).slice(0, 10);
+            updateAndPersist(aiMsgIdStream, {
+              content: `Could not find: ${unresolvedNames.join(', ')}${knownFiles.length > 0 ? `\n\nFiles I know about:\n${knownFiles.map(f => `- ${f}`).join('\n')}` : '\n\nNo files in this session yet. Create or upload files first.'}`,
+              isCreatingFile: false,
+            });
+            setIsCreating(false);
+            return;
           }
         } else if (multiFileOps.includes(operation) && finalAction.text) {
           // Fallback: try to extract filenames from the instructions text
@@ -559,6 +574,16 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           if (nameMatches && nameMatches.length >= 2) {
             resolvedFileIds = resolveFileIds(nameMatches);
           }
+        }
+        // Multi-file ops with no resolved file_ids — tell user
+        if (multiFileOps.includes(operation) && (!resolvedFileIds || resolvedFileIds.length < 2)) {
+          const minFiles = operation === 'batch' ? 2 : 2;
+          updateAndPersist(aiMsgIdStream, {
+            content: `${operation} requires at least ${minFiles} files. Please specify which files to use.`,
+            isCreatingFile: false,
+          });
+          setIsCreating(false);
+          return;
         }
 
         // Single-file ops: resolve from registry first, fall back to message history scan
