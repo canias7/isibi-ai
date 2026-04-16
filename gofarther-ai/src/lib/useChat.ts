@@ -567,23 +567,32 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           if (finalAction.file_ids?.[0]) {
             resolvedFileId = resolveFileId(finalAction.file_ids[0]);
           }
-          // Fall back to most recent file in chat (server-created files have hex IDs in the URL)
+          // Fall back to most recent file in chat
           if (!resolvedFileId) {
             for (let i = messagesRef.current.length - 1; i >= 0; i--) {
               const m = messagesRef.current[i];
-              if (m.fileUrl && m.content.includes('**')) {
-                const match = m.fileUrl.match(/([a-f0-9-]{8})/);
-                if (match) { resolvedFileId = match[1]; break; }
+              if (!m.fileUrl) continue;
+              // Server-created files: download URL contains /api/ghost/tools/download/{id}
+              const serverMatch = m.fileUrl.match(/download\/([a-f0-9-]{8})/);
+              if (serverMatch) { resolvedFileId = serverMatch[1]; break; }
+              // Cached files from previous downloads: filename in cache dir with id prefix
+              if (m.fileUrl.includes('FileSystem') || m.fileUrl.includes('cache')) {
+                const cacheMatch = m.content?.match(/\*\*([^*]+\.\w+)\*\*/);
+                if (cacheMatch) {
+                  const regId = resolveFileId(cacheMatch[1]);
+                  if (regId) { resolvedFileId = regId; break; }
+                }
               }
             }
           }
-          // If still no file_id, check for user-uploaded local attachment and upload it
+          // If still no server file_id, check for user-uploaded local attachment and upload it
           if (!resolvedFileId) {
             for (let i = messagesRef.current.length - 1; i >= 0; i--) {
               const m = messagesRef.current[i];
               if (m.fileUrl && m.fileMimeType && !m.fileUrl.includes('/api/ghost/')) {
                 // This is a local file attachment — upload to backend first
                 try {
+                  updateAndPersist(aiMsgIdStream, { content: `${finalText || loadingLabel}\n\n_Uploading file..._` });
                   const name = m.fileUrl.split('/').pop() || 'upload';
                   const uploaded = await uploadFile(m.fileUrl, name, m.fileMimeType);
                   resolvedFileId = uploaded.file_id;
