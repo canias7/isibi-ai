@@ -348,6 +348,7 @@ TOTAL,6800,6800,0
 
 IMPORTANT: Return ONLY the CSV data. No markdown fences. No explanations.""",
                 "pdf": "Return well-structured text using markdown-style headings (# ## ###). Use - for bullet points. Use **bold** for emphasis. For financial documents, include tables using | pipes.",
+                "pptx": "Return presentation content as slides separated by --- on its own line. Each slide starts with a # heading (the slide title) followed by bullet points. Include at least 5 slides: title slide, 3+ content slides, and a closing slide.",
                 "docx": "Return well-structured text using markdown-style headings.",
             }
 
@@ -424,6 +425,9 @@ Return ONLY the document content, no explanations."""
                 file_bytes = content.encode('utf-8')
                 filename += ".csv"
                 mime = "text/csv"
+            elif req.file_type == "pptx":
+                file_bytes, fname, mime = _content_to_file(content, "pptx", filename)
+                filename = fname
             else:
                 file_bytes = content.encode('utf-8')
                 filename += ".txt"
