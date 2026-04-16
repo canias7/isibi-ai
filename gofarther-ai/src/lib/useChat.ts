@@ -43,17 +43,71 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
   const currentSessionId = useRef<string | null>(sessionId);
   const systemPromptRef = useRef(systemPrompt);
 
+  // ── File Registry — maps filenames to file_ids for multi-file operations ──
+  const fileRegistryRef = useRef<Map<string, string>>(new Map());
+
+  /** Register a file so future operations can reference it by name */
+  const registerFile = (filename: string, fileId: string) => {
+    fileRegistryRef.current.set(filename.toLowerCase(), fileId);
+    // Also register without extension for fuzzy matching
+    const base = filename.replace(/\.[^.]+$/, '').toLowerCase();
+    if (base !== filename.toLowerCase()) {
+      fileRegistryRef.current.set(base, fileId);
+    }
+  };
+
+  /** Resolve a filename (or partial name) to a file_id */
+  const resolveFileId = (name: string): string | undefined => {
+    const lower = name.toLowerCase().trim();
+    // Exact match
+    if (fileRegistryRef.current.has(lower)) return fileRegistryRef.current.get(lower);
+    // Without extension
+    const base = lower.replace(/\.[^.]+$/, '');
+    if (fileRegistryRef.current.has(base)) return fileRegistryRef.current.get(base);
+    // Partial match — find first entry that contains the search term
+    for (const [key, id] of fileRegistryRef.current) {
+      if (key.includes(lower) || lower.includes(key)) return id;
+    }
+    return undefined;
+  };
+
+  /** Resolve an array of filenames to file_ids */
+  const resolveFileIds = (names: string[]): string[] => {
+    const ids: string[] = [];
+    for (const name of names) {
+      const id = resolveFileId(name);
+      if (id) ids.push(id);
+    }
+    return ids;
+  };
+
   // Keep system prompt ref in sync
   useEffect(() => { systemPromptRef.current = systemPrompt; }, [systemPrompt]);
 
   // Keep ref in sync
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
-  // Load history when session changes
+  // Load history when session changes — also rebuild file registry
   useEffect(() => {
     currentSessionId.current = sessionId;
+    fileRegistryRef.current.clear();
     if (sessionId) {
-      getChatHistory(sessionId).then(h => setMessages(h.map((m, i) => ({ ...m, id: `${sessionId}_${i}`, reaction: m.reaction }))));
+      getChatHistory(sessionId).then(h => {
+        const msgs = h.map((m, i) => ({ ...m, id: `${sessionId}_${i}`, reaction: m.reaction }));
+        setMessages(msgs);
+        // Rebuild file registry from message history
+        for (const m of msgs) {
+          if (m.fileUrl && m.content) {
+            // Extract filename from **filename** pattern in content
+            const nameMatch = m.content.match(/\*\*([^*]+\.\w+)\*\*/);
+            // Extract file_id from fileUrl or download URL pattern
+            const idMatch = m.fileUrl.match(/([a-f0-9-]{8})/);
+            if (nameMatch && idMatch) {
+              registerFile(nameMatch[1], idMatch[1]);
+            }
+          }
+        }
+      });
     } else {
       setMessages([]);
     }
@@ -431,6 +485,9 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           const dlResult = await FileSystem.downloadAsync(downloadUrl, filePath);
           if (dlResult.status !== 200) throw new Error(`Download failed (HTTP ${dlResult.status})`);
 
+          // Register in file registry for future multi-file operations
+          registerFile(result.filename, result.file_id);
+
           updateAndPersist(aiMsgIdStream, {
             content: `${finalText || 'Your file is ready!'}\n\n**${result.filename}**`,
             fileUrl: filePath,
@@ -466,21 +523,48 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         setLoading(false);
         setIsCreating(true);
         cancelRef.current = false;
-        // Find the most recent file_id from messages
-        let lastFileId: string | undefined;
-        for (let i = messagesRef.current.length - 1; i >= 0; i--) {
-          const m = messagesRef.current[i];
-          if (m.fileUrl && m.content.includes('**')) {
-            const match = m.fileUrl.match(/([a-f0-9-]{8})/);
-            if (match) { lastFileId = match[1]; break; }
+        // ── File ID Resolution via registry ──
+        // Multi-file ops: resolve file_ids from the action (model provides filenames, we resolve to IDs)
+        const multiFileOps = ['merge', 'compare', 'reconcile', 'batch'];
+        let resolvedFileId: string | undefined;
+        let resolvedFileIds: string[] | undefined;
+
+        if (multiFileOps.includes(operation) && finalAction.file_ids) {
+          // Model provided file references — resolve names to IDs via registry
+          resolvedFileIds = [];
+          for (const ref of finalAction.file_ids) {
+            const id = resolveFileId(ref) || ref; // Use as-is if it looks like an ID already
+            resolvedFileIds.push(id);
+          }
+        } else if (multiFileOps.includes(operation) && finalAction.text) {
+          // Fallback: try to extract filenames from the instructions text
+          const nameMatches = finalAction.text.match(/[\w\-. ]+\.\w{2,5}/g);
+          if (nameMatches && nameMatches.length >= 2) {
+            resolvedFileIds = resolveFileIds(nameMatches);
           }
         }
-        // Get chain_ops and file_ids directly from the parsed action (not from key)
+
+        // Single-file ops: resolve from registry first, fall back to message history scan
+        if (!multiFileOps.includes(operation)) {
+          // Try to find a specific file reference in the action
+          if (finalAction.file_ids?.[0]) {
+            resolvedFileId = resolveFileId(finalAction.file_ids[0]);
+          }
+          // Fall back to most recent file in chat
+          if (!resolvedFileId) {
+            for (let i = messagesRef.current.length - 1; i >= 0; i--) {
+              const m = messagesRef.current[i];
+              if (m.fileUrl && m.content.includes('**')) {
+                const match = m.fileUrl.match(/([a-f0-9-]{8})/);
+                if (match) { resolvedFileId = match[1]; break; }
+              }
+            }
+          }
+        }
+
         const chainOps = finalAction.chain_ops;
-        const fileIds = finalAction.file_ids;
-        // For non-chain/batch ops, don't pass key as target_format if it's not a convert
         const targetFormat = operation === 'convert' || operation === 'batch' ? (finalAction.key || undefined) : undefined;
-        modifyFile(operation, finalAction.text || '', lastFileId, targetFormat, fileIds, chainOps).then(async (result) => {
+        modifyFile(operation, finalAction.text || '', resolvedFileId, targetFormat, resolvedFileIds, chainOps).then(async (result) => {
           if (cancelRef.current) { setIsCreating(false); return; }
           // Read operations return text instead of a file
           if (isReadOp && result.result_text) {
@@ -496,6 +580,10 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           if (result.batch_results) {
             const successful = result.batch_results.filter((r: any) => r.filename && r.download_url);
             const failed = result.batch_results.filter((r: any) => r.error);
+            // Register all successful files in the registry
+            for (const r of successful) {
+              if (r.file_id && r.filename) registerFile(r.filename, r.file_id);
+            }
             // Download the first successful file for immediate access
             let firstFilePath: string | undefined;
             if (successful.length > 0) {
@@ -524,6 +612,8 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
           const dlResult = await FileSystem.downloadAsync(downloadUrl, filePath);
           if (dlResult.status !== 200) throw new Error(`Download failed (HTTP ${dlResult.status})`);
+          // Register in file registry for future multi-file operations
+          if (result.file_id && result.filename) registerFile(result.filename, result.file_id);
           // Include chain step info if available
           let successMsg = `${finalText || 'Your modified file is ready!'}\n\n**${result.filename}**`;
           if ((result as any).completed_steps) {
