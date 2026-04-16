@@ -7,7 +7,10 @@ from __future__ import annotations
 import os
 import json
 import base64
+import logging
 import httpx
+
+logger = logging.getLogger(__name__)
 from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -373,13 +376,54 @@ async def image_proxy(req: ImageRequest, authorization: str = Header(...)):
             raise HTTPException(res.status_code, "Image generation error")
         data = res.json()
         img_data = (data.get("data") or [{}])[0]
+
         url = img_data.get("url", "")
+        b64 = img_data.get("b64_json", "")
+
+        if not url and not b64:
+            raise HTTPException(500, "No image returned")
+
+        # Upload to R2 so we serve a real URL (not a huge base64 blob)
+        import uuid as _uuid, base64 as _b64
+        file_id = str(_uuid.uuid4())
+        if b64:
+            img_bytes = _b64.b64decode(b64)
+        elif url:
+            dl = await client.get(url, timeout=30)
+            if dl.status_code == 200:
+                img_bytes = dl.content
+            else:
+                return {"url": url}
+
+        try:
+            from utils.file_storage import upload_to_r2, USE_CLOUD
+            if USE_CLOUD:
+                await upload_to_r2(f"ghost-images/{file_id}.png", img_bytes, content_type="image/png")
+                return {"url": f"/api/ghost/ai/images/{file_id}"}
+        except Exception as upload_err:
+            logger.warning(f"R2 image upload failed: {upload_err}")
+
         if url:
             return {"url": url}
-        b64 = img_data.get("b64_json", "")
-        if b64:
-            return {"url": f"data:image/png;base64,{b64}"}
-        raise HTTPException(500, "No image returned")
+        return {"url": f"data:image/png;base64,{b64}"}
+
+
+@router.get("/images/{file_id}")
+async def serve_generated_image(file_id: str):
+    """Serve a generated image from R2 storage."""
+    from fastapi.responses import Response
+    try:
+        from utils.file_storage import download_from_r2
+        result = await download_from_r2(f"ghost-images/{file_id}.png")
+        if result and result.get("data"):
+            return Response(
+                content=result["data"],
+                media_type="image/png",
+                headers={"Cache-Control": "public, max-age=604800"},
+            )
+    except Exception as e:
+        logger.warning(f"Image serve failed: {e}")
+    raise HTTPException(404, "Image not found")
 
 
 @router.post("/tts")
