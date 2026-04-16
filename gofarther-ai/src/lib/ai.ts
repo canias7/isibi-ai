@@ -215,13 +215,13 @@ export async function createFile(description: string, fileType: string = 'pdf', 
   const startRes = await fetchWithTimeout(`${TOOLS_BASE}/create-file-async`, {
     method: 'POST', headers,
     body: JSON.stringify({ description, file_type: fileType, quality }),
-  }, 30000);
+  }, 90000);
   if (!startRes.ok) throw new Error('File creation failed to start');
   const { job_id } = await startRes.json();
 
   // Poll for result — works even if app was backgrounded
-  for (let i = 0; i < 60; i++) {
-    await new Promise(r => setTimeout(r, 3000)); // Wait 3 seconds between polls
+  for (let i = 0; i < 90; i++) {
+    await new Promise(r => setTimeout(r, 2000)); // Wait 2 seconds between polls
     try {
       const pollRes = await fetchWithTimeout(`${TOOLS_BASE}/job-status/${job_id}`, {
         method: 'GET', headers,
@@ -252,12 +252,12 @@ export async function modifyFile(operation: string, instructions: string, fileId
   const startRes = await fetchWithTimeout(`${TOOLS_BASE}/modify-file-async`, {
     method: 'POST', headers,
     body: JSON.stringify({ operation, instructions, file_id: fileId, target_format: targetFormat }),
-  }, 30000);
+  }, 90000);
   if (!startRes.ok) throw new Error('File modification failed to start');
   const { job_id } = await startRes.json();
 
-  for (let i = 0; i < 60; i++) {
-    await new Promise(r => setTimeout(r, 3000));
+  for (let i = 0; i < 90; i++) {
+    await new Promise(r => setTimeout(r, 2000));
     try {
       const pollRes = await fetchWithTimeout(`${TOOLS_BASE}/job-status/${job_id}`, {
         method: 'GET', headers,
