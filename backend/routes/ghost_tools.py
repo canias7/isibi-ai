@@ -1761,6 +1761,97 @@ async def read_url(req: ReadURLRequest, authorization: str = Header(...), db: As
             await db.commit()
             return {"url": req.url, "summary": summary, "type": "video", "title": page_title}
 
+    # ── Detect content type with HEAD request first ──
+    content_type = ''
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            head = await client.head(req.url, headers={
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+            })
+            content_type = head.headers.get('content-type', '').lower()
+    except Exception:
+        pass
+
+    # ── Image: download and send to Claude Vision ──
+    IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+    url_lower = req.url.lower().split('?')[0]
+    is_image = any(ct in content_type for ct in IMAGE_TYPES) or any(url_lower.endswith(ext) for ext in IMAGE_EXTENSIONS)
+
+    if is_image:
+        try:
+            async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
+                img_res = await client.get(req.url, headers={"User-Agent": "Mozilla/5.0"})
+                if img_res.status_code != 200:
+                    raise HTTPException(400, f"Could not fetch image (status {img_res.status_code})")
+                img_bytes = img_res.content
+                if len(img_bytes) > 20 * 1024 * 1024:
+                    raise HTTPException(400, "Image too large (max 20MB)")
+                img_ct = img_res.headers.get('content-type', 'image/jpeg').split(';')[0].strip()
+                if img_ct not in IMAGE_TYPES:
+                    img_ct = 'image/jpeg'
+
+            img_b64 = base64.b64encode(img_bytes).decode()
+            logger.info("[read-url] image detected, %d bytes, type=%s", len(img_bytes), img_ct)
+
+            # Send to Claude Vision
+            async with httpx.AsyncClient(timeout=120) as client:
+                vision_res = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01"},
+                    json={
+                        "model": "claude-sonnet-4-20250514", "max_tokens": 4096,
+                        "messages": [{"role": "user", "content": [
+                            {"type": "image", "source": {"type": "base64", "media_type": img_ct, "data": img_b64}},
+                            {"type": "text", "text": req.question or "Describe this image in detail. What do you see?"},
+                        ]}],
+                    },
+                )
+                if vision_res.status_code == 200:
+                    summary = vision_res.json().get("content", [{}])[0].get("text", "")
+                else:
+                    summary = f"Could not analyze image (API returned {vision_res.status_code})"
+
+            await _audit_log_lazy()(db, payload.get("email", ""), "tool_read_url", f"Image: {req.url[:80]}")
+            await db.commit()
+            return {"url": req.url, "summary": summary, "type": "image"}
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error("[read-url] image processing failed: %s", e)
+
+    # ── PDF: download and extract text with PyMuPDF ──
+    is_pdf = 'application/pdf' in content_type or url_lower.endswith('.pdf')
+    if is_pdf:
+        try:
+            async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+                pdf_res = await client.get(req.url, headers={"User-Agent": "Mozilla/5.0"})
+                if pdf_res.status_code != 200:
+                    raise HTTPException(400, f"Could not fetch PDF (status {pdf_res.status_code})")
+                pdf_bytes = pdf_res.content
+                if len(pdf_bytes) > 50 * 1024 * 1024:
+                    raise HTTPException(400, "PDF too large (max 50MB)")
+
+            import fitz
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            pages_text = []
+            for page in doc:
+                pages_text.append(page.get_text())
+            doc.close()
+            text = '\n\n'.join(pages_text)[:20000]
+            logger.info("[read-url] PDF extracted, %d pages, %d chars", len(pages_text), len(text))
+
+            prompt = f"Based on this PDF document content, {req.question}\n\nDocument ({len(pages_text)} pages):\n{text}"
+            summary = await _ask_claude(prompt)
+
+            await _audit_log_lazy()(db, payload.get("email", ""), "tool_read_url", f"PDF: {req.url[:80]}")
+            await db.commit()
+            return {"url": req.url, "summary": summary, "type": "pdf", "pages": len(pages_text)}
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error("[read-url] PDF processing failed: %s", e)
+
     # ── Standard webpage ──
     async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
         res = await client.get(req.url, headers={
@@ -1772,7 +1863,6 @@ async def read_url(req: ReadURLRequest, authorization: str = Header(...), db: As
             raise HTTPException(400, f"Could not fetch URL (status {res.status_code})")
         html = res.text[:100000]
 
-    # Extract clean text with BeautifulSoup
     is_video = _is_video_url(req.url)
     try:
         from bs4 import BeautifulSoup
