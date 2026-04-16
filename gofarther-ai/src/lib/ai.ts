@@ -181,7 +181,11 @@ export async function generateImage(prompt: string): Promise<string> {
     throw new Error(err?.detail || `Image error (${res.status})`);
   }
   const data = await res.json();
-  return data.url || '';
+  let url = data.url || '';
+  if (url.startsWith('/api/')) {
+    url = 'https://isibi-backend.onrender.com' + url;
+  }
+  return url;
 }
 
 /** Text-to-speech via OpenAI TTS API. Returns {audio_base64, format}. */
