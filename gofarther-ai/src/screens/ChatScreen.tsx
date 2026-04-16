@@ -249,15 +249,17 @@ OTHER TOOLS:
 {"type":"create_meme","target":"top text","text":"bottom text"}
 {"type":"barcode_lookup","target":"barcode number"}
 {"type":"modify_file","target":"<operation>","text":"instructions","key":"target_format (for convert)"}
+For multi-file operations (merge, compare, reconcile), include: "file_ids":["filename1.xlsx","filename2.xlsx"]
+Use FILENAMES (not IDs) — the app automatically resolves filenames to internal IDs. The most recent file is used automatically for single-file ops.
 
 FILE MODIFICATION — operations (user uploaded a file and wants changes):
   edit       → add/delete rows, change values, update text, add formulas, reformat. Make ONLY the changes asked for.
   chart      → bar, pie, line, scatter, histogram. Pick best type if not specified. Always label axes + title.
   convert    → change format (xlsx→pdf, csv→xlsx, etc.). Warn if data loss is unavoidable.
-  merge      → combine multiple files. Ask how: vertical, side-by-side, or by key column. Flag column conflicts.
+  merge      → combine multiple files. Include file_ids with FILENAMES (not IDs) — the app resolves names to IDs automatically.
   filter     → extract rows matching criteria. Show match count before delivering.
-  compare    → diff two files. Show added, removed, changed. Deliver as downloadable report.
-  reconcile  → match transactions between 2 sources. Output: matched count, unmatched, total discrepancy.
+  compare    → diff two files. Include file_ids with the two FILENAMES to compare.
+  reconcile  → match transactions between 2 sources. Include file_ids with the two FILENAMES (bank statement + book records).
   clean      → remove duplicates, fix formatting, standardize data. Report what was cleaned and how many records.
   split      → split one file into multiple. Confirm how many output files before executing.
   rename     → rename/reorder columns, sheets, or files. Show before/after names before applying.
@@ -273,9 +275,9 @@ FILE READING — operations (user uploaded a file and asks a question, returns t
 For read operations use: {"type":"modify_file","target":"summarize|analyze|find|extract|answer|ocr","text":"what the user wants to know"}
 
 BATCH — run the same operation on multiple files at once:
-{"type":"modify_file","target":"batch","text":"convert:","key":"pdf","file_ids":["id1","id2","id3"]}
-The text field format is "operation:instructions". The key field is target_format (for convert). file_ids is an array of file IDs.
-Example: user says "convert all 5 files to PDF" → include file_ids from their uploaded files.
+{"type":"modify_file","target":"batch","text":"convert:","key":"pdf","file_ids":["budget.xlsx","sales.xlsx","report.xlsx"]}
+The text field format is "operation:instructions". The key field is target_format (for convert). file_ids uses FILENAMES — the app resolves them to IDs.
+Example: user says "convert all my files to PDF" → include the filenames from the conversation in file_ids.
 
 CHAIN — run multiple operations sequentially on the same file:
 {"type":"modify_file","target":"chain","chain_ops":[{"operation":"clean"},{"operation":"filter","instructions":"only rows where status=active"},{"operation":"convert","target_format":"pdf"}]}
