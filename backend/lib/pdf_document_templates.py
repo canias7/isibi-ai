@@ -292,6 +292,253 @@ def create_invoice_pdf(data: dict) -> bytes:
 
 
 # ══════════════════════════════════════════════════════════════════════════
+#  RESUME TEMPLATE
+# ══════════════════════════════════════════════════════════════════════════
+
+RESUME_PROMPT = """You generate structured resume data. Return ONLY a valid JSON object with this EXACT structure — no markdown, no explanation, no commentary:
+
+{
+  "name": "Full Name",
+  "title": "Professional Title (e.g. Senior Software Engineer)",
+  "contact": {
+    "email": "email@example.com",
+    "phone": "(555) 123-4567",
+    "location": "City, State",
+    "linkedin": "linkedin.com/in/name",
+    "website": ""
+  },
+  "summary": "2-3 sentence professional summary highlighting key strengths and years of experience.",
+  "experience": [
+    {
+      "company": "Company Name",
+      "role": "Job Title",
+      "dates": "Jan 2022 — Present",
+      "location": "City, State",
+      "bullets": [
+        "Led a team of 8 engineers to deliver a platform serving 2M+ users, reducing latency by 40%",
+        "Designed microservices architecture that cut infrastructure costs by $120K/year",
+        "Implemented CI/CD pipeline reducing deployment time from 2 hours to 15 minutes"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "school": "University Name",
+      "degree": "Bachelor of Science in Computer Science",
+      "dates": "2014 — 2018",
+      "gpa": "3.8/4.0",
+      "honors": "Magna Cum Laude"
+    }
+  ],
+  "skills": {
+    "Technical": ["Python", "JavaScript", "React", "AWS", "Docker"],
+    "Leadership": ["Team Management", "Agile/Scrum", "Stakeholder Communication"]
+  },
+  "certifications": ["AWS Solutions Architect", "PMP"],
+  "languages": ["English (Native)", "Spanish (Conversational)"]
+}
+
+RULES:
+- Generate realistic, detailed content based on the user's description
+- Experience bullets MUST start with strong action verbs and include quantified achievements
+- Include 2-4 experience entries with 3-4 bullets each
+- Skills should be grouped into 2-3 categories
+- If the user provides their info, use it exactly. Otherwise generate realistic data for the role described
+- Tailor everything to the specific role/industry mentioned
+- Return ONLY the JSON. No text before or after."""
+
+
+def create_resume_pdf(data: dict) -> bytes:
+    """Create a professional resume PDF from structured data."""
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=letter,
+        leftMargin=0.55 * inch, rightMargin=0.55 * inch,
+        topMargin=0.5 * inch, bottomMargin=0.5 * inch,
+    )
+
+    # ── Styles ────────────────────────────────────────────────────────
+    s = getSampleStyleSheet()
+    s.add(ParagraphStyle('ResName', fontSize=24, leading=28, textColor=DARK, fontName='Helvetica-Bold', alignment=TA_CENTER))
+    s.add(ParagraphStyle('ResTitle', fontSize=11, leading=14, textColor=ACCENT_BLUE, fontName='Helvetica', alignment=TA_CENTER))
+    s.add(ParagraphStyle('ResContact', fontSize=8.5, leading=11, textColor=MID, fontName='Helvetica', alignment=TA_CENTER))
+    s.add(ParagraphStyle('ResSectionHead', fontSize=11, leading=14, textColor=ACCENT_BLUE, fontName='Helvetica-Bold', spaceBefore=10, spaceAfter=2))
+    s.add(ParagraphStyle('ResCompany', fontSize=10.5, leading=13, textColor=DARK, fontName='Helvetica-Bold'))
+    s.add(ParagraphStyle('ResRole', fontSize=10, leading=13, textColor=MID, fontName='Helvetica-Oblique'))
+    s.add(ParagraphStyle('ResDates', fontSize=9, leading=12, textColor=LIGHT, fontName='Helvetica'))
+    s.add(ParagraphStyle('ResBullet', fontSize=9.5, leading=13, textColor=DARK, fontName='Helvetica', leftIndent=14, bulletIndent=4, spaceAfter=2))
+    s.add(ParagraphStyle('ResBody', fontSize=9.5, leading=13, textColor=DARK, fontName='Helvetica', spaceAfter=4))
+    s.add(ParagraphStyle('ResSkillCat', fontSize=9, leading=12, textColor=DARK, fontName='Helvetica-Bold'))
+    s.add(ParagraphStyle('ResSkillList', fontSize=9, leading=12, textColor=MID, fontName='Helvetica'))
+    s.add(ParagraphStyle('ResSmall', fontSize=8.5, leading=11, textColor=MID, fontName='Helvetica'))
+
+    story = []
+
+    # ── Name + title header ───────────────────────────────────────────
+    name = data.get('name', 'Your Name')
+    title = data.get('title', '')
+    contact = data.get('contact', {})
+
+    story.append(Paragraph(name, s['ResName']))
+    if title:
+        story.append(Paragraph(title, s['ResTitle']))
+    story.append(Spacer(1, 6))
+
+    # Contact row
+    contact_parts = []
+    if contact.get('email'):
+        contact_parts.append(contact['email'])
+    if contact.get('phone'):
+        contact_parts.append(contact['phone'])
+    if contact.get('location'):
+        contact_parts.append(contact['location'])
+    if contact.get('linkedin'):
+        contact_parts.append(contact['linkedin'])
+    if contact.get('website'):
+        contact_parts.append(contact['website'])
+    if contact_parts:
+        story.append(Paragraph('  ·  '.join(contact_parts), s['ResContact']))
+
+    story.append(Spacer(1, 4))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=ACCENT_BLUE, spaceAfter=8))
+
+    # ── Summary ───────────────────────────────────────────────────────
+    summary = data.get('summary', '')
+    if summary:
+        story.append(Paragraph('PROFESSIONAL SUMMARY', s['ResSectionHead']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(Paragraph(summary, s['ResBody']))
+        story.append(Spacer(1, 4))
+
+    # ── Experience ────────────────────────────────────────────────────
+    experience = data.get('experience', [])
+    if experience:
+        story.append(Paragraph('EXPERIENCE', s['ResSectionHead']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+
+        for exp in experience:
+            company = exp.get('company', '')
+            role = exp.get('role', '')
+            dates = exp.get('dates', '')
+            location = exp.get('location', '')
+
+            # Company + dates on one line
+            right_text = dates
+            if location:
+                right_text = f"{location}  |  {dates}"
+
+            header_table = Table(
+                [[Paragraph(f"<b>{company}</b>", s['ResCompany']),
+                  Paragraph(right_text, s['ResDates'])]],
+                colWidths=[4.5 * inch, 2.4 * inch]
+            )
+            header_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+                ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ]))
+            story.append(header_table)
+
+            if role:
+                story.append(Paragraph(role, s['ResRole']))
+
+            for bullet in exp.get('bullets', []):
+                story.append(Paragraph(f"▸  {bullet}", s['ResBullet']))
+
+            story.append(Spacer(1, 6))
+
+    # ── Education ─────────────────────────────────────────────────────
+    education = data.get('education', [])
+    if education:
+        story.append(Paragraph('EDUCATION', s['ResSectionHead']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+
+        for edu in education:
+            school = edu.get('school', '')
+            degree = edu.get('degree', '')
+            dates = edu.get('dates', '')
+            gpa = edu.get('gpa', '')
+            honors = edu.get('honors', '')
+
+            header_table = Table(
+                [[Paragraph(f"<b>{school}</b>", s['ResCompany']),
+                  Paragraph(dates, s['ResDates'])]],
+                colWidths=[4.5 * inch, 2.4 * inch]
+            )
+            header_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+                ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ]))
+            story.append(header_table)
+
+            detail_parts = []
+            if degree:
+                detail_parts.append(degree)
+            if gpa:
+                detail_parts.append(f"GPA: {gpa}")
+            if honors:
+                detail_parts.append(honors)
+            if detail_parts:
+                story.append(Paragraph('  |  '.join(detail_parts), s['ResRole']))
+
+            story.append(Spacer(1, 4))
+
+    # ── Skills ────────────────────────────────────────────────────────
+    skills = data.get('skills', {})
+    if skills:
+        story.append(Paragraph('SKILLS', s['ResSectionHead']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+
+        if isinstance(skills, dict):
+            for category, skill_list in skills.items():
+                if isinstance(skill_list, list):
+                    skills_text = '  ·  '.join(skill_list)
+                else:
+                    skills_text = str(skill_list)
+                skill_row = Table(
+                    [[Paragraph(f"{category}:", s['ResSkillCat']),
+                      Paragraph(skills_text, s['ResSkillList'])]],
+                    colWidths=[1.3 * inch, 5.6 * inch]
+                )
+                skill_row.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ]))
+                story.append(skill_row)
+        elif isinstance(skills, list):
+            story.append(Paragraph('  ·  '.join(skills), s['ResSkillList']))
+
+        story.append(Spacer(1, 4))
+
+    # ── Certifications ────────────────────────────────────────────────
+    certs = data.get('certifications', [])
+    if certs:
+        story.append(Paragraph('CERTIFICATIONS', s['ResSectionHead']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(Paragraph('  ·  '.join(certs), s['ResBody']))
+        story.append(Spacer(1, 4))
+
+    # ── Languages ─────────────────────────────────────────────────────
+    languages = data.get('languages', [])
+    if languages:
+        story.append(Paragraph('LANGUAGES', s['ResSectionHead']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(Paragraph('  ·  '.join(languages), s['ResBody']))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
+# ══════════════════════════════════════════════════════════════════════════
 #  DOCUMENT TYPE DETECTION + ROUTING
 # ══════════════════════════════════════════════════════════════════════════
 
@@ -306,7 +553,8 @@ def detect_document_type(description: str) -> str | None:
     desc = description.lower()
     if any(kw in desc for kw in INVOICE_KEYWORDS):
         return 'invoice'
-    # Future: resume, proposal, report
+    if any(kw in desc for kw in RESUME_KEYWORDS):
+        return 'resume'
     return None
 
 
@@ -314,6 +562,8 @@ def get_structured_prompt(doc_type: str) -> str:
     """Return the structured JSON prompt for a given document type."""
     if doc_type == 'invoice':
         return INVOICE_PROMPT
+    if doc_type == 'resume':
+        return RESUME_PROMPT
     return ""
 
 
@@ -321,4 +571,6 @@ def render_structured_pdf(doc_type: str, data: dict) -> bytes:
     """Render structured data into a PDF using the appropriate template."""
     if doc_type == 'invoice':
         return create_invoice_pdf(data)
+    if doc_type == 'resume':
+        return create_resume_pdf(data)
     raise ValueError(f"Unknown document type: {doc_type}")
