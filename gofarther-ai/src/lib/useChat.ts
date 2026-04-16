@@ -383,20 +383,23 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         modifyFile(operation, finalAction.text || '', lastFileId, finalAction.key || undefined).then(async (result) => {
           if (cancelRef.current) { setIsCreating(false); return; }
           const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
-          const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
+          // Ensure filename has an extension so FileViewer can identify the type
+          let fname = result.filename;
+          if (fname && !fname.includes('.')) fname += '.pdf';
+          const filePath = `${FileSystem.cacheDirectory}${fname}`;
           const dlToken = await getToken();
           const dlResult = await FileSystem.downloadAsync(downloadUrl, filePath, {
             headers: { Authorization: `Bearer ${dlToken}` },
           });
           if (dlResult.status !== 200) throw new Error(`Download failed (HTTP ${dlResult.status})`);
           updateAndPersist(aiMsgIdStream, {
-            content: `${finalText || 'Your modified file is ready!'}\n\n**${result.filename}**`,
+            content: `${finalText || 'Your modified file is ready!'}\n\n**${fname}**`,
             fileUrl: filePath,
             fileId: result.file_id,
             isCreatingFile: false,
           });
           setIsCreating(false);
-          notify('File Ready', `${result.filename} is ready`, 1);
+          notify('File Ready', `${fname} is ready`, 1);
         }).catch(e => {
           setIsCreating(false);
           if (cancelRef.current) return;
