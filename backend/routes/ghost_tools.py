@@ -414,10 +414,10 @@ async def download_file(file_id: str, authorization: str = Header(...), db: Asyn
     return Response(content=base64.b64decode(f["data"]), media_type=f["mime"], headers={"Content-Disposition": f'attachment; filename="{f["filename"]}"'})
 
 
-# ─── FILE MODIFICATION (edit, chart, convert, merge, filter) ──────────────
+# ─── FILE MODIFICATION (edit, chart, convert, merge, filter, clean, split, rename, summarize, analyze, find, extract, answer) ──
 
 class ModifyFileRequest(BaseModel):
-    operation: str  # edit, chart, convert, merge, filter, compare
+    operation: str  # edit, chart, convert, merge, filter, compare, reconcile, clean, split, rename, summarize, analyze, find, extract, answer
     file_id: Optional[str] = None
     file_ids: Optional[list[str]] = None
     instructions: Optional[str] = ""
@@ -750,6 +750,113 @@ Be thorough. Match fuzzy descriptions. Return ONLY valid JSON."""
                         file_bytes = result_json.encode('utf-8')
                     filename = f"reconciliation_{file_id}.pdf"
                     mime = "application/pdf"
+
+            elif req.operation == "clean":
+                text_content = _extract_text(original_bytes, original_mime)
+                ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'csv'
+                is_spreadsheet = ext in ('xlsx', 'xls', 'csv')
+                if is_spreadsheet:
+                    system = """You are a data cleaning expert. Clean the spreadsheet data:
+- Remove exact duplicate rows
+- Standardize formatting (dates, phone numbers, capitalization)
+- Fix obvious typos in repeated values
+- Remove empty/blank rows
+- Trim whitespace
+Return a JSON object: {"headers": [...], "rows": [[...], ...], "formulas": {}, "cleaned_summary": "Removed X duplicates, standardized Y dates, fixed Z formatting issues"}
+Return ONLY valid JSON."""
+                    prompt = f"Data to clean:\n{text_content}\n\n{req.instructions or 'Clean this data: remove duplicates, standardize formatting, fix obvious issues.'}"
+                    cleaned = await _ask_claude(prompt, system)
+                    # Extract summary before building file
+                    try:
+                        import json as _cjson
+                        parsed = _cjson.loads(cleaned.strip().strip('`').replace('```json', '').replace('```', ''))
+                        clean_summary = parsed.get("cleaned_summary", "")
+                    except Exception:
+                        clean_summary = ""
+                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(cleaned, f"cleaned_{file_id}")
+                else:
+                    system = """You are a text editor. Clean the document: remove duplicate paragraphs, fix formatting, standardize structure. Return ONLY the cleaned content."""
+                    prompt = f"Document to clean:\n{text_content}\n\n{req.instructions or 'Clean this document.'}"
+                    cleaned = await _ask_claude(prompt, system)
+                    file_bytes, filename, mime = _content_to_file(cleaned, ext, f"cleaned_{file_id}")
+
+            elif req.operation == "split":
+                text_content = _extract_text(original_bytes, original_mime)
+                ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'csv'
+                system = """You are a data processor. Split this data into logical groups based on the user's criteria.
+Return a JSON array of groups: [{"group_name": "name", "headers": [...], "rows": [[...], ...]}, ...]
+Each group becomes a separate sheet in the output Excel file.
+Return ONLY valid JSON."""
+                prompt = f"Data:\n{text_content}\n\nSplit criteria: {req.instructions or 'Split into logical groups based on categories or types found in the data.'}"
+                split_result = await _ask_claude(prompt, system)
+                # Build multi-sheet Excel
+                try:
+                    import json as _sjson
+                    from openpyxl import Workbook as _SplitWB
+                    from openpyxl.styles import Font as _SFont, PatternFill as _SFill, Border as _SBorder, Side as _SSide
+                    groups = _sjson.loads(split_result.strip().strip('`').replace('```json', '').replace('```', ''))
+                    if not isinstance(groups, list):
+                        groups = [groups]
+                    wb = _SplitWB()
+                    wb.remove(wb.active)
+                    header_font = _SFont(bold=True, color="FFFFFF", size=11)
+                    header_fill = _SFill(start_color="2B579A", end_color="2B579A", fill_type="solid")
+                    thin_border = _SBorder(
+                        left=_SSide(style='thin', color='D9D9D9'), right=_SSide(style='thin', color='D9D9D9'),
+                        top=_SSide(style='thin', color='D9D9D9'), bottom=_SSide(style='thin', color='D9D9D9'),
+                    )
+                    for g in groups:
+                        name = str(g.get("group_name", "Sheet"))[:31]
+                        ws = wb.create_sheet(title=name)
+                        headers = g.get("headers", [])
+                        for c, h in enumerate(headers, 1):
+                            cell = ws.cell(row=1, column=c, value=h)
+                            cell.font = header_font
+                            cell.fill = header_fill
+                            cell.border = thin_border
+                        for r, row in enumerate(g.get("rows", []), 2):
+                            for c, val in enumerate(row, 1):
+                                ws.cell(row=r, column=c, value=val).border = thin_border
+                    buf = io.BytesIO()
+                    wb.save(buf)
+                    file_bytes = buf.getvalue()
+                except Exception:
+                    file_bytes = split_result.encode('utf-8')
+                filename = f"split_{file_id}.xlsx"
+                mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+            elif req.operation == "rename":
+                text_content = _extract_text(original_bytes, original_mime)
+                ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'csv'
+                is_spreadsheet = ext in ('xlsx', 'xls', 'csv')
+                if is_spreadsheet:
+                    system = """You are a spreadsheet editor. Rename or reorder columns as instructed.
+Return a JSON object: {"headers": [...new header names...], "rows": [[...], ...], "formulas": {}}
+Return ONLY valid JSON."""
+                    prompt = f"Current data:\n{text_content}\n\nRename instructions: {req.instructions}"
+                    renamed = await _ask_claude(prompt, system)
+                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(renamed, f"renamed_{file_id}")
+                else:
+                    system = """You are a document editor. Rename or restructure sections as instructed. Return ONLY the modified content."""
+                    prompt = f"Document:\n{text_content}\n\nRename instructions: {req.instructions}"
+                    renamed = await _ask_claude(prompt, system)
+                    file_bytes, filename, mime = _content_to_file(renamed, ext, f"renamed_{file_id}")
+
+            # ── READ OPERATIONS — return text, not a file ──
+            elif req.operation in ("summarize", "analyze", "find", "extract", "answer"):
+                text_content = _extract_text(original_bytes, original_mime)
+                system_map = {
+                    "summarize": "You are a data analyst. Provide a concise plain-English summary of this file. Lead with the key insight. For financial files, always include totals and flag anomalies. Keep it short unless asked for detail.",
+                    "analyze": "You are a data analyst. Provide deep analysis: trends, patterns, outliers, and actionable insights. Lead with the most significant finding. Include min, max, and average where relevant. Provide insight, not just description.",
+                    "find": "You are a search assistant. Find exactly what the user is looking for in this data. Return exactly what was found and where (row/column/section). If nothing matches, say so immediately and suggest similar terms.",
+                    "extract": "You are a data extraction assistant. Pull exactly the data points or sections the user asked for. Return only what was requested — nothing more. If the requested data isn't in the file, say so immediately.",
+                    "answer": "You are a data assistant. Answer the user's specific question about this file. Lead with the answer first, explanation second. Show calculation results before formulas if math is involved. If the data needed isn't in the file, say so immediately.",
+                }
+                prompt = f"File: {original_filename}\n\nContent:\n{text_content}\n\nUser request: {req.instructions or 'Summarize this file.'}"
+                result_text = await _ask_claude(prompt, system_map[req.operation])
+                # Read operations return text, not a file — store in job result directly
+                JOB_STORE[job_id] = {"status": "done", "file_id": None, "filename": None, "download_url": None, "result_text": result_text, "error": None}
+                return  # Skip file storage — this is a text response
 
             else:
                 raise ValueError(f"Unknown operation: {req.operation}")

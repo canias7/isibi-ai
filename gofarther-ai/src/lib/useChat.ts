@@ -361,11 +361,19 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         return;
       }
 
-      // Handle file modification (edit, chart, convert, merge, filter)
+      // Handle file modification (edit, chart, convert, merge, filter, clean, split, rename) and reading (summarize, analyze, find, extract, answer)
       if (finalAction?.type === 'modify_file') {
         const operation = finalAction.target || 'edit';
-        const opLabels: Record<string, string> = { edit: 'Editing file', chart: 'Creating chart', convert: 'Converting file', merge: 'Merging files', filter: 'Filtering data' };
-        updateAndPersist(aiMsgIdStream, { content: finalText || '', isCreatingFile: true });
+        const readOps = ['summarize', 'analyze', 'find', 'extract', 'answer'];
+        const isReadOp = readOps.includes(operation);
+        const opLabels: Record<string, string> = {
+          edit: 'Editing file', chart: 'Creating chart', convert: 'Converting file',
+          merge: 'Merging files', filter: 'Filtering data', clean: 'Cleaning data',
+          split: 'Splitting file', rename: 'Renaming columns',
+          summarize: 'Analyzing file', analyze: 'Analyzing file',
+          find: 'Searching file', extract: 'Extracting data', answer: 'Reading file',
+        };
+        updateAndPersist(aiMsgIdStream, { content: finalText || (opLabels[operation] || 'Processing file') + '...', isCreatingFile: true });
         setLoading(false);
         setIsCreating(true);
         cancelRef.current = false;
@@ -381,6 +389,16 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         }
         modifyFile(operation, finalAction.text || '', lastFileId, finalAction.key || undefined).then(async (result) => {
           if (cancelRef.current) { setIsCreating(false); return; }
+          // Read operations return text instead of a file
+          if (isReadOp && result.result_text) {
+            updateAndPersist(aiMsgIdStream, {
+              content: `${finalText ? finalText + '\n\n' : ''}${result.result_text}`,
+              isCreatingFile: false,
+            });
+            setIsCreating(false);
+            return;
+          }
+          // File operations — download the result
           const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
           const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
           const dlResult = await FileSystem.downloadAsync(downloadUrl, filePath);
@@ -395,7 +413,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         }).catch(e => {
           setIsCreating(false);
           if (cancelRef.current) return;
-          updateAndPersist(aiMsgIdStream, { content: 'File modification failed: ' + (e.message || 'Unknown error'), isCreatingFile: false });
+          updateAndPersist(aiMsgIdStream, { content: 'File operation failed: ' + (e.message || 'Unknown error'), isCreatingFile: false });
         });
         return;
       }
