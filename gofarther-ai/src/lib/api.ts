@@ -621,6 +621,28 @@ export async function deleteServerAgent(clientId: string): Promise<{ ok: boolean
   return apiFetch(`${AGENTS}/${encodeURIComponent(clientId)}`, { method: 'DELETE' });
 }
 
+export interface PrebuiltAgent {
+  id: string;
+  name: string;
+  role: string;
+  icon: string;
+  color: string;
+  description: string;
+  requires: string[];
+}
+
+export async function listPrebuiltAgents(): Promise<PrebuiltAgent[]> {
+  const data = await apiFetch(`${AGENTS}/prebuilt`);
+  return data.agents || [];
+}
+
+export async function activatePrebuiltAgent(templateId: string): Promise<ServerAgent> {
+  const data = await apiFetch(`${AGENTS}/prebuilt/${encodeURIComponent(templateId)}/activate`, {
+    method: 'POST',
+  });
+  return data.agent;
+}
+
 /** Mirror the user's saved-contacts list (their relationship table —
  *  "my boss", "my mom", etc) to the backend so the agent trigger
  *  extractor can resolve labels to email addresses. */
