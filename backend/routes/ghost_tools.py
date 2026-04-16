@@ -1888,14 +1888,22 @@ class TranslateRequest(BaseModel):
 async def translate_doc(req: TranslateRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     payload = _verify_auth(authorization)
 
-    translation = await _ask_claude(
-        f"Translate the following text to {req.target_language}. Return ONLY the translation, nothing else.\n\n{req.text}",
-        system=f"You are a professional translator. Translate accurately to {req.target_language}."
+    result = await _ask_claude(
+        f"Translate the following text to {req.target_language}.\n\nRules:\n- On the FIRST line, write ONLY the detected source language name (e.g. \"English\", \"French\", \"Japanese\")\n- On the SECOND line, write \"---\"\n- After that, write ONLY the translation, nothing else.\n\nText:\n{req.text}",
+        system=f"You are a professional translator. Translate accurately and naturally to {req.target_language}. Preserve tone, formatting, and meaning."
     )
+
+    # Parse detected language from response
+    detected = ""
+    translation = result
+    lines = result.split('\n', 2)
+    if len(lines) >= 3 and lines[1].strip().startswith('---'):
+        detected = lines[0].strip()
+        translation = lines[2].strip()
 
     await _audit_log_lazy()(db, payload.get("email", ""), "tool_translate_doc", f"To: {req.target_language}")
     await db.commit()
-    return {"original_language": "auto-detected", "target_language": req.target_language, "translation": translation}
+    return {"detected_language": detected, "target_language": req.target_language, "translation": translation}
 
 
 # ─── CODE INTERPRETER ─────────────────────────────────────────────────────

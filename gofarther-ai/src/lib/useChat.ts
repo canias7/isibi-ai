@@ -479,12 +479,15 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
 
       // Handle translation
       if (finalAction?.type === 'translate') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
-        setLoading(false);
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `🌐 Translating to ${finalAction.text || 'Spanish'}...` } : m));
+        setLoading(true);
         trackAsync(translateText(finalAction.target || '', finalAction.text || 'Spanish')).then(result => {
-          setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: result.translation } : m));
+          const header = result.detected_language ? `*Detected: ${result.detected_language}*\n\n` : '';
+          setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `${header}${result.translation}` } : m));
+          setLoading(false);
         }).catch(e => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Translation failed: ' + e.message } : m));
+          setLoading(false);
         });
         return;
       }
