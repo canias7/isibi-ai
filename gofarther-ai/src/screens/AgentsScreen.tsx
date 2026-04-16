@@ -7,10 +7,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { ChatMsg, genId } from '../lib/types';
+import { genId } from '../lib/types';
 import { useChat } from '../lib/useChat';
 import { getAgents, saveAgents, deleteAgent as deleteAgentBoth, Agent, AgentTrigger, getSavedContacts, saveSavedContacts, save as rawSave } from '../lib/storage';
-import { upsertServerAgent, listPrebuiltAgents, activatePrebuiltAgent, PrebuiltAgent } from '../lib/api';
+import { upsertServerAgent } from '../lib/api';
 import { buildUserContextPrompt } from '../lib/promptContext';
 import { onWorkspaceChange } from '../lib/workspaces';
 
@@ -38,10 +38,6 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
   const [role, setRole] = useState('');
   const [instructions, setInstructions] = useState('');
   const [triggers, setTriggers] = useState<AgentTrigger[]>([]);
-
-  const [showPrebuilt, setShowPrebuilt] = useState(false);
-  const [prebuiltAgents, setPrebuiltAgents] = useState<PrebuiltAgent[]>([]);
-  const [activating, setActivating] = useState<string | null>(null);
 
   const [input, setInput] = useState('');
   const flatList = useRef<FlatList>(null);
@@ -97,40 +93,6 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     });
     return off;
   }, [load]);
-
-  const loadPrebuilt = useCallback(async () => {
-    try {
-      const list = await listPrebuiltAgents();
-      setPrebuiltAgents(list);
-    } catch {}
-  }, []);
-
-  const handleActivatePrebuilt = async (templateId: string) => {
-    setActivating(templateId);
-    try {
-      const result = await activatePrebuiltAgent(templateId);
-      const newAgent: Agent = {
-        id: result.client_id || genId(),
-        name: result.name,
-        emoji: result.name[0]?.toUpperCase() || 'A',
-        role: result.role || '',
-        instructions: result.instructions || '',
-        isActive: true,
-        color: prebuiltAgents.find(p => p.id === templateId)?.color || DEFAULT_AGENT_COLOR,
-        triggers: result.triggers || [],
-      };
-      const updated = [...agents, newAgent];
-      setAgents(updated);
-      await rawSave('agents', updated);
-      setSelectedAgent(newAgent);
-      setShowPrebuilt(false);
-      Alert.alert('Agent Activated', `${newAgent.name} is now watching your email.`);
-    } catch (e: any) {
-      Alert.alert('Activation Failed', e?.message || 'Could not activate agent');
-    } finally {
-      setActivating(null);
-    }
-  };
 
   const openCreate = () => {
     setEditId(null); setName(''); setRole(''); setInstructions('');
@@ -246,67 +208,6 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     chatSend(text);
   };
 
-  // ==================== PRE-BUILT AGENTS ====================
-  if (showPrebuilt) {
-    return (
-      <SafeAreaView style={[s.container, { backgroundColor: tc.bg }]}>
-        <View style={[s.editHeader, { paddingHorizontal: 20, paddingTop: 12 }]}>
-          <TouchableOpacity onPress={() => setShowPrebuilt(false)}><Text style={[s.backText, { color: tc.text }]}>Back</Text></TouchableOpacity>
-          <Text style={[s.editTitle, { color: tc.text }]}>Ready-Made Agents</Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8 }}>
-          <Text style={[s.emptySub, { textAlign: 'left', marginBottom: 20 }]}>
-            Activate an agent with one tap. No setup needed — just connect the required app and it starts working.
-          </Text>
-          {prebuiltAgents.map(pa => {
-            const iconMap: Record<string, string> = { receipt: 'receipt-outline', flash: 'flash-outline', mail: 'mail-outline', briefcase: 'briefcase-outline', calendar: 'calendar-outline' };
-            const iconName = (iconMap[pa.icon] || 'flash-outline') as any;
-            const isActivating = activating === pa.id;
-            const alreadyActive = agents.some(a => a.name === pa.name);
-            return (
-              <View key={pa.id} style={[s.prebuiltCard, { backgroundColor: tc.card, borderColor: tc.border }]}>
-                <View style={[s.prebuiltIcon, { backgroundColor: pa.color + '18' }]}>
-                  <Ionicons name={iconName} size={24} color={pa.color} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[s.prebuiltName, { color: tc.text }]}>{pa.name}</Text>
-                  <Text style={[s.prebuiltDesc, { color: tc.textDim }]}>{pa.description}</Text>
-                  {pa.requires.length > 0 && (
-                    <View style={s.prebuiltReqs}>
-                      <Ionicons name="link-outline" size={12} color={tc.textDim} />
-                      <Text style={[s.prebuiltReqText, { color: tc.textDim }]}>Requires: {pa.requires.join(', ')}</Text>
-                    </View>
-                  )}
-                </View>
-                <TouchableOpacity
-                  style={[s.prebuiltBtn, alreadyActive && s.prebuiltBtnDone, { backgroundColor: alreadyActive ? tc.card : pa.color }]}
-                  onPress={() => !alreadyActive && !isActivating && handleActivatePrebuilt(pa.id)}
-                  disabled={alreadyActive || isActivating}
-                  activeOpacity={0.7}
-                >
-                  {isActivating ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : alreadyActive ? (
-                    <Ionicons name="checkmark" size={18} color={pa.color} />
-                  ) : (
-                    <Text style={s.prebuiltBtnText}>Activate</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-          {prebuiltAgents.length === 0 && (
-            <View style={{ alignItems: 'center', paddingTop: 40 }}>
-              <ActivityIndicator size="large" color={tc.textDim} />
-              <Text style={[s.emptySub, { marginTop: 12 }]}>Loading templates...</Text>
-            </View>
-          )}
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
   // ==================== EDIT/CREATE ====================
   if (showEdit) {
     return (
@@ -388,9 +289,6 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
                 <Text style={s.editLink}>Edit</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={[s.addBtn, { backgroundColor: '#2563eb', marginRight: 8 }]} onPress={() => { loadPrebuilt(); setShowPrebuilt(true); }} hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}>
-              <Ionicons name="flash" size={16} color="#fff" />
-            </TouchableOpacity>
             <TouchableOpacity style={s.addBtn} onPress={openCreate}><Text style={s.addText}>+</Text></TouchableOpacity>
           </View>
         </View>
@@ -419,15 +317,9 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
         {!selectedAgent ? (
           <View style={s.empty}>
             <Text style={[s.emptyTitle, { color: tc.text }]}>No agents yet</Text>
-            <Text style={[s.emptySub, { color: tc.textDim }]}>Use a ready-made agent or create your own</Text>
-            <TouchableOpacity style={[s.emptyBtn, { backgroundColor: '#2563eb', marginBottom: 12 }]} onPress={() => { loadPrebuilt(); setShowPrebuilt(true); }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="flash" size={16} color="#fff" />
-                <Text style={s.emptyBtnText}>Browse Ready-Made</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.emptyBtn, { backgroundColor: tc.card, borderWidth: 1, borderColor: tc.border }]} onPress={openCreate}>
-              <Text style={[s.emptyBtnText, { color: tc.text }]}>Create Custom Agent</Text>
+            <Text style={[s.emptySub, { color: tc.textDim }]}>Create an agent to get started</Text>
+            <TouchableOpacity style={s.emptyBtn} onPress={openCreate}>
+              <Text style={s.emptyBtnText}>Create Agent</Text>
             </TouchableOpacity>
           </View>
         ) : messages.length === 0 ? (
@@ -571,14 +463,4 @@ const s = StyleSheet.create({
   triggerTitle: { fontSize: 13, fontWeight: '600', lineHeight: 18 },
   triggerAction: { fontSize: 12, fontWeight: '500', marginTop: 6 },
 
-  // Pre-built agents
-  prebuiltCard: { flexDirection: 'row', alignItems: 'flex-start', padding: 16, borderRadius: 14, borderWidth: 1, marginBottom: 12, gap: 14 },
-  prebuiltIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  prebuiltName: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  prebuiltDesc: { fontSize: 13, lineHeight: 18, marginBottom: 8 },
-  prebuiltReqs: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  prebuiltReqText: { fontSize: 11, fontWeight: '500' },
-  prebuiltBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center', minWidth: 80 },
-  prebuiltBtnDone: { borderWidth: 1, borderColor: '#e0e0e0' },
-  prebuiltBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });
