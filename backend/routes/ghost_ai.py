@@ -361,18 +361,25 @@ async def image_proxy(req: ImageRequest, authorization: str = Header(...)):
         raise HTTPException(500, "OpenAI API key not configured on server")
 
     async with httpx.AsyncClient(timeout=120) as client:
+        size = req.size or "1024x1024"
+        if size not in ("1024x1024", "1536x1024", "1024x1536", "auto"):
+            size = "auto"
         res = await client.post(
             "https://api.openai.com/v1/images/generations",
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {OPENAI_KEY}"},
-            json={"model": "dall-e-3", "prompt": req.prompt, "n": 1, "size": req.size},
+            json={"model": "gpt-image-1", "prompt": req.prompt, "n": 1, "size": size, "quality": "high"},
         )
         if res.status_code != 200:
             raise HTTPException(res.status_code, "Image generation error")
         data = res.json()
-        url = data.get("data", [{}])[0].get("url", "")
-        if not url:
-            raise HTTPException(500, "No image URL returned")
-        return {"url": url}
+        img_data = (data.get("data") or [{}])[0]
+        url = img_data.get("url", "")
+        if url:
+            return {"url": url}
+        b64 = img_data.get("b64_json", "")
+        if b64:
+            return {"url": f"data:image/png;base64,{b64}"}
+        raise HTTPException(500, "No image returned")
 
 
 @router.post("/tts")

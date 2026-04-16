@@ -45,7 +45,7 @@ const MENU_ACTIONS: { key: string; label: string; sub: string; prompt: string; i
   { key: 'directions', label: 'Get directions', sub: 'Navigate anywhere', prompt: 'Get directions to ', icon: 'navigate-outline' },
   { key: 'search', label: 'Web search', sub: 'Search the web in-app', prompt: 'Search the web for ', icon: 'search-outline' },
   { key: 'readurl', label: 'Read a webpage', sub: 'Summarize any URL', prompt: 'Read and summarize this URL: ', icon: 'globe-outline' },
-  { key: 'image', label: 'Create image', sub: 'Generate with DALL-E', prompt: 'Create an image of ', icon: 'image-outline' },
+  { key: 'image', label: 'Create image', sub: 'Generate with GPT-4o', prompt: 'Create an image of ', icon: 'image-outline' },
   { key: 'file', label: 'Create file', sub: 'PDF, Excel, Word, CSV', prompt: 'Create a PDF file about ', icon: 'document-outline' },
   { key: 'code', label: 'Run code', sub: 'Execute Python', prompt: 'Write and run Python code to ', icon: 'code-slash-outline' },
   { key: 'translate', label: 'Translate', sub: 'Any language', prompt: 'Translate to Spanish: ', icon: 'language-outline' },
