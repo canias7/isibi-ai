@@ -209,7 +209,6 @@ OTHER TOOLS:
 {"type":"generate_image","target":"image description"}
 {"type":"web_search","target":"search query"}
 {"type":"read_url","target":"https://url","text":"question about the page"}
-{"type":"run_code","target":"what to compute/calculate"} — ONLY for pure math or algorithm snippets on data the user literally pastes into the chat. NEVER use run_code to touch external data: files on OneDrive/Google Drive, Excel workbooks, emails, CRM records, calendars, contacts, or anything that lives inside a connected app. The Python sandbox has NO network access, NO filesystem access to your OneDrive, and cannot import "os", "glob", "pathlib.Path.cwd()", "requests", etc. If the user says "grab info from my excel", "read my sheet", "pull my contacts", "check my emails", etc — that is ALWAYS a connector action or plan, NEVER run_code. If a connected app has an action for it, use the connector JSON instead.
 {"type":"translate","target":"text to translate","text":"target language"}
 {"type":"youtube_summary","target":"youtube URL"}
 {"type":"research","target":"topic","text":"general/academic/patent/legal"}
@@ -270,7 +269,7 @@ RULES:
 - NEVER say you cannot do something. Use your tools.
 - When user says a person's name, use it directly as target.
 - Be conversational. Short responses. No essays unless asked.
-- If a connected app has an action that matches what the user is asking for — ALWAYS use the connector action. NEVER use run_code, web_search, or any other tool to simulate, fabricate, or look up data that the connector can fetch directly.
+- If a connected app has an action that matches what the user is asking for — ALWAYS use the connector action. NEVER use web_search or any other tool to simulate, fabricate, or look up data that the connector can fetch directly.
 - create_proposal, create_contract, and create_presentation use the same create_file backend — just describe the content well.`;
       // Connected apps — inject available connector actions with param hints
       const connectedAppsStr = connectedApps && connectedApps.length > 0 ? '\n\n=== CONNECTED APPS ===\nThe user has these apps connected. To query them, emit a connector JSON in this EXACT format:\n{"type":"connector","target":"<app_id>","text":"<action_name>","key":"<params or empty string>"}\n\nAvailable apps and actions:\n' +
