@@ -323,19 +323,14 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
 
       // Handle image generation
       if (finalAction?.type === 'generate_image') {
-        updateAndPersist(aiMsgIdStream, { content: finalText || 'Generating image...' });
+        updateAndPersist(aiMsgIdStream, { content: 'Generating image...' });
         setLoading(false);
         trackAsync(generateImage(finalAction.target || '')).then(imageUrl => {
-          console.log('[IMG] Generated URL:', imageUrl?.substring(0, 80));
-          if (!imageUrl) {
-            updateAndPersist(aiMsgIdStream, { content: (finalText || '') + '\n\n(Image generation returned empty URL)' });
-            return;
-          }
-          updateAndPersist(aiMsgIdStream, { content: finalText || 'Here\'s your image:', imageUrl });
-          notify('Image Ready', 'Your AI-generated image is ready', 1);
+          const dbgUrl = imageUrl ? imageUrl.substring(0, 100) : 'EMPTY';
+          updateAndPersist(aiMsgIdStream, { content: `Here's your image:\n\n[dbg url: ${dbgUrl}]`, imageUrl: imageUrl || undefined });
+          if (imageUrl) notify('Image Ready', 'Your AI-generated image is ready', 1);
         }).catch((e: any) => {
-          console.log('[IMG] Error:', e.message);
-          updateAndPersist(aiMsgIdStream, { content: (finalText || '') + '\n\n(Image generation failed: ' + e.message + ')' });
+          updateAndPersist(aiMsgIdStream, { content: `Image generation failed:\n${e.message}` });
         });
         return;
       }
