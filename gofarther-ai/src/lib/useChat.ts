@@ -453,12 +453,14 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
 
       // Handle URL reading
       if (finalAction?.type === 'read_url') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
-        setLoading(false);
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `📄 Reading: ${finalAction.target}...` } : m));
+        setLoading(true);
         trackAsync(readURL(finalAction.target || '', finalAction.text)).then(result => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: result.summary } : m));
+          setLoading(false);
         }).catch(e => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Could not read URL: ' + e.message } : m));
+          setLoading(false);
         });
         return;
       }

@@ -1714,25 +1714,49 @@ class ReadURLRequest(BaseModel):
 @router.post("/read-url")
 async def read_url(req: ReadURLRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     payload = _verify_auth(authorization)
-    # SSRF protection — block internal/private URLs
     from routes.ghost_tools_v2 import _validate_external_url
     _validate_external_url(req.url)
 
-    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-        res = await client.get(req.url, headers={"User-Agent": "GoFarther-AI/1.0"})
+    async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
+        res = await client.get(req.url, headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+        })
         if res.status_code != 200:
             raise HTTPException(400, f"Could not fetch URL (status {res.status_code})")
-        html = res.text[:50000]  # Limit to 50KB
+        html = res.text[:100000]
 
-    # Strip HTML tags (basic)
-    import re
-    text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
-    text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL)
-    text = re.sub(r'<[^>]+>', ' ', text)
-    text = re.sub(r'\s+', ' ', text).strip()[:10000]
+    # Extract clean text with BeautifulSoup
+    try:
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(html, 'html.parser')
+        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'noscript', 'iframe', 'svg']):
+            tag.decompose()
+        # Try to find main content area first
+        main = soup.find('article') or soup.find('main') or soup.find(attrs={"role": "main"}) or soup.find('div', class_=re.compile(r'content|article|post|entry', re.I))
+        target = main if main else soup.body if soup.body else soup
+        # Get title
+        page_title = soup.title.get_text(strip=True) if soup.title else ''
+        text = target.get_text(separator='\n', strip=True)
+        # Collapse excessive blank lines
+        text = re.sub(r'\n{3,}', '\n\n', text)
+    except Exception:
+        text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
+        text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL)
+        text = re.sub(r'<[^>]+>', ' ', text)
+        text = re.sub(r'\s+', ' ', text).strip()
+        page_title = ''
 
-    # Ask AI to answer based on content
-    summary = await _ask_claude(f"Based on this webpage content, {req.question}\n\nContent:\n{text}")
+    text = text[:20000]
+    logger.info("[read-url] extracted %d chars from %s", len(text), req.url[:80])
+
+    prompt = f"Based on this webpage content, {req.question}"
+    if page_title:
+        prompt += f"\n\nPage title: {page_title}"
+    prompt += f"\n\nContent:\n{text}"
+
+    summary = await _ask_claude(prompt)
 
     await _audit_log_lazy()(db, payload.get("email", ""), "tool_read_url", f"URL: {req.url[:100]}")
     await db.commit()
