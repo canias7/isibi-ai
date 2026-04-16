@@ -370,6 +370,35 @@ async def create_file_async(req: CreateFileRequest, authorization: str = Header(
                     except (json.JSONDecodeError, Exception) as e:
                         logger.warning("[create-file-async] job=%s structured %s failed (%s), falling back", job_id, doc_type, e)
 
+            if req.file_type == "docx":
+                from lib.pdf_document_templates import detect_document_type, get_structured_prompt
+                from lib.docx_document_templates import render_structured_docx
+                doc_type = detect_document_type(req.description)
+                if doc_type:
+                    logger.info("[create-file-async] job=%s detected structured DOCX type=%s", job_id, doc_type)
+                    structured_prompt = get_structured_prompt(doc_type)
+                    raw_json = await _ask_claude(req.description, structured_prompt)
+                    clean = raw_json.strip()
+                    if clean.startswith('```'):
+                        clean = clean.split('\n', 1)[1] if '\n' in clean else clean[3:]
+                        if clean.endswith('```'):
+                            clean = clean[:-3]
+                        clean = clean.strip()
+                    try:
+                        data = json.loads(clean)
+                        file_bytes = render_structured_docx(doc_type, data)
+                        file_id = str(uuid.uuid4())[:8]
+                        filename = req.filename or f"{doc_type}_{file_id}"
+                        filename += ".docx"
+                        mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        await _store_file(file_id, filename, mime, file_bytes)
+                        elapsed = _time.time() - t0
+                        logger.info("[create-file-async] job=%s DONE structured DOCX %s file=%s elapsed=%.1fs", job_id, doc_type, filename, elapsed)
+                        JOB_STORE[job_id] = {"status": "done", "file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes), "error": None}
+                        return
+                    except (json.JSONDecodeError, Exception) as e:
+                        logger.warning("[create-file-async] job=%s structured DOCX %s failed (%s), falling back", job_id, doc_type, e)
+
             # Reuse the same logic as create_file
             format_instructions = {
                 "csv": "Return raw CSV data with headers.",
