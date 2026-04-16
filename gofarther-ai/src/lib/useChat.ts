@@ -7,7 +7,7 @@ import { chatStream, Message, generateImage, analyzeImage, createFile, modifyFil
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
-import { getChatHistory, saveChatHistory, addMemoryFact, deleteMemoryFact, deleteMemoryByCategory, clearMemory, getMemory, getMemoryByCategory, getSavedContacts, addSavedContact, addEmailTemplate, addCallRecording, trackEvent, addToOfflineQueue } from './storage';
+import { getChatHistory, saveChatHistory, addMemoryFact, deleteMemoryFact, deleteMemoryByCategory, clearMemory, getMemory, getMemoryByCategory, getSavedContacts, addSavedContact, addEmailTemplate, addCallRecording, trackEvent, addToOfflineQueue, getFileRegistry, saveFileRegistry } from './storage';
 import { pushSession } from './chatSync';
 import { incrementReactionCount } from './storage';
 import { runAnalysisIfNeeded } from './preferenceAnalysis';
@@ -54,6 +54,10 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
     if (base !== filename.toLowerCase()) {
       fileRegistryRef.current.set(base, fileId);
     }
+    // Persist to AsyncStorage (best-effort, don't await)
+    const obj: Record<string, string> = {};
+    fileRegistryRef.current.forEach((v, k) => { obj[k] = v; });
+    saveFileRegistry(obj).catch(() => {});
   };
 
   /** Resolve a filename (or partial name) to a file_id */
@@ -92,23 +96,29 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
   // Keep ref in sync
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
-  // Load history when session changes — also rebuild file registry
+  // Load history when session changes — also restore file registry
   useEffect(() => {
     currentSessionId.current = sessionId;
     fileRegistryRef.current.clear();
     if (sessionId) {
+      // Restore persisted file registry first
+      getFileRegistry().then(stored => {
+        for (const [k, v] of Object.entries(stored)) {
+          fileRegistryRef.current.set(k, v);
+        }
+      }).catch(() => {});
       getChatHistory(sessionId).then(h => {
         const msgs = h.map((m, i) => ({ ...m, id: `${sessionId}_${i}`, reaction: m.reaction }));
         setMessages(msgs);
-        // Rebuild file registry from message history
+        // Augment registry from message history (catches any files not yet persisted)
         for (const m of msgs) {
           if (m.fileUrl && m.content) {
-            // Extract filename from **filename** pattern in content
             const nameMatch = m.content.match(/\*\*([^*]+\.\w+)\*\*/);
-            // Extract file_id from fileUrl or download URL pattern
             const idMatch = m.fileUrl.match(/([a-f0-9-]{8})/);
             if (nameMatch && idMatch) {
-              registerFile(nameMatch[1], idMatch[1]);
+              fileRegistryRef.current.set(nameMatch[1].toLowerCase(), idMatch[1]);
+              const base = nameMatch[1].replace(/\.[^.]+$/, '').toLowerCase();
+              fileRegistryRef.current.set(base, idMatch[1]);
             }
           }
         }
@@ -581,7 +591,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
             setIsCreating(false);
             return;
           }
-          // Batch operations — download each file and list them
+          // Batch operations — download zip of all files
           if (result.batch_results) {
             const successful = result.batch_results.filter((r: any) => r.filename && r.download_url);
             const failed = result.batch_results.filter((r: any) => r.error);
@@ -589,23 +599,32 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
             for (const r of successful) {
               if (r.file_id && r.filename) registerFile(r.filename, r.file_id);
             }
-            // Download the first successful file for immediate access
-            let firstFilePath: string | undefined;
-            if (successful.length > 0) {
+            // Download the zip file if available, otherwise first individual file
+            let downloadFilePath: string | undefined;
+            if (result.download_url && result.filename) {
+              // Zip of all files
+              try {
+                const zipUrl = `https://isibi-backend.onrender.com${result.download_url}`;
+                downloadFilePath = `${FileSystem.cacheDirectory}${result.filename}`;
+                await FileSystem.downloadAsync(zipUrl, downloadFilePath);
+                registerFile(result.filename, result.file_id);
+              } catch { downloadFilePath = undefined; }
+            } else if (successful.length > 0) {
+              // Fallback: download first file
               try {
                 const dlUrl = `https://isibi-backend.onrender.com${successful[0].download_url}`;
-                firstFilePath = `${FileSystem.cacheDirectory}${successful[0].filename}`;
-                await FileSystem.downloadAsync(dlUrl, firstFilePath);
-              } catch { firstFilePath = undefined; }
+                downloadFilePath = `${FileSystem.cacheDirectory}${successful[0].filename}`;
+                await FileSystem.downloadAsync(dlUrl, downloadFilePath);
+              } catch { downloadFilePath = undefined; }
             }
             let batchMsg = `${finalText || 'Batch complete!'}\n\n`;
             batchMsg += `**${successful.length} files processed**${failed.length > 0 ? `, ${failed.length} failed` : ''}:\n`;
             for (const r of successful) batchMsg += `- **${r.filename}**\n`;
             for (const r of failed) batchMsg += `- ❌ ${r.error}\n`;
-            if (successful.length > 1) batchMsg += `\n_Showing first file. Ask me to send any of these or download individually._`;
+            if (result.filename?.endsWith('.zip')) batchMsg += `\n📦 **${result.filename}** — all files zipped for download.`;
             updateAndPersist(aiMsgIdStream, {
               content: batchMsg,
-              fileUrl: firstFilePath,
+              fileUrl: downloadFilePath,
               isCreatingFile: false,
             });
             setIsCreating(false);
