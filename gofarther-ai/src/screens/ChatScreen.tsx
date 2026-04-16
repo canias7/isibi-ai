@@ -224,7 +224,7 @@ OTHER TOOLS:
 {"type":"save_contact","target":"label (e.g. My boss)","text":"name","key":"email or phone"}
 {"type":"modify_file","target":"edit|chart|convert|merge|filter","text":"instructions","key":"target_format (for convert)"}
 
-FILE MODIFICATION (when user has uploaded a file and wants changes):
+FILE MODIFICATION (when user wants changes to ANY file — uploaded OR just created):
 - "edit": modify content (add rows, change text, update data, ADD FORMULAS like =SUM, =AVERAGE)
 - "chart": create a visualization from data (bar chart, pie chart, line chart, etc.)
 - "convert": change format (Excel to PDF, CSV to Excel, etc.)
@@ -232,6 +232,8 @@ FILE MODIFICATION (when user has uploaded a file and wants changes):
 - "filter": extract specific rows/data matching criteria
 - "compare": compare two spreadsheets and generate a diff report
 - "reconcile": bank reconciliation — match bank statement vs book records, flag unmatched transactions. Returns styled Excel with Summary, Matched (green), Bank Only (red), Books Only (orange) sheets
+
+IMPORTANT: When you just created a file using create_file, that file is ALREADY stored on the server. If the user says "modify it", "edit that", "delete a page", "add a row", "change the title", etc. — emit a modify_file action immediately. Do NOT ask them to upload or re-attach the file. The app automatically links modify_file to the most recent file.
 
 SALES & CRM (use connector action if a CRM is connected, otherwise use these standalone):
 {"type":"company_lookup","target":"company name"}
