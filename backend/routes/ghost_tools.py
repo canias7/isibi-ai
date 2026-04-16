@@ -1298,164 +1298,29 @@ def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
 
 
 def _convert_file(original_bytes: bytes, original_mime: str, source_ext: str, target_ext: str, base_name: str) -> tuple:
-    """Convert between file formats with structure preservation."""
+    """Convert between file formats using LibreOffice headless for quality,
+    with Python-native fallbacks for simple cases."""
+    import subprocess
     MIME_MAP = {
         "pdf": "application/pdf",
         "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "csv": "text/csv",
         "txt": "text/plain",
+        "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     }
+    # LibreOffice filter names for target formats
+    LO_FILTERS = {
+        "pdf": "writer_pdf_Export",
+        "docx": "MS Word 2007 XML",
+        "xlsx": "Calc MS Excel 2007 XML",
+        "csv": "Text - txt - csv (StarCalc)",
+        "txt": "Text",
+    }
+    # Source extensions that LibreOffice handles well
+    LO_SUPPORTED_SOURCE = {"pdf", "docx", "doc", "xlsx", "xls", "csv", "txt", "pptx", "ppt", "odt", "ods", "odp", "rtf"}
 
-    # ── PDF → DOCX: preserve headings, paragraphs, bold/italic ──
-    if source_ext == "pdf" and target_ext == "docx":
-        try:
-            import fitz
-            from docx import Document
-            from docx.shared import Pt, RGBColor
-            pdf = fitz.open(stream=original_bytes, filetype="pdf")
-            doc = Document()
-            for page in pdf:
-                blocks = page.get_text("dict")["blocks"]
-                for block in blocks:
-                    if block["type"] != 0:  # skip images
-                        continue
-                    for line in block.get("lines", []):
-                        text = ""
-                        is_bold = False
-                        font_size = 11
-                        for span in line.get("spans", []):
-                            text += span["text"]
-                            font_size = span.get("size", 11)
-                            if "bold" in span.get("font", "").lower() or "Bold" in span.get("font", ""):
-                                is_bold = True
-                        text = text.strip()
-                        if not text:
-                            continue
-                        if font_size >= 18 and is_bold:
-                            doc.add_heading(text, level=1)
-                        elif font_size >= 14 and is_bold:
-                            doc.add_heading(text, level=2)
-                        elif font_size >= 12 and is_bold:
-                            doc.add_heading(text, level=3)
-                        else:
-                            p = doc.add_paragraph()
-                            run = p.add_run(text)
-                            if is_bold:
-                                run.bold = True
-                            run.font.size = Pt(min(font_size, 14))
-            pdf.close()
-            buf = io.BytesIO()
-            doc.save(buf)
-            return buf.getvalue(), f"{base_name}.docx", MIME_MAP["docx"]
-        except Exception as e:
-            logger.error("PDF→DOCX failed: %s", e)
-            text = _extract_text(original_bytes, original_mime)
-            return _content_to_file(text, "docx", base_name)
-
-    # ── DOCX → PDF: preserve headings, bullets, structure ──
-    if source_ext == "docx" and target_ext == "pdf":
-        try:
-            from docx import Document
-            doc = Document(io.BytesIO(original_bytes))
-            lines = []
-            for p in doc.paragraphs:
-                text = p.text.strip()
-                if not text:
-                    lines.append("")
-                    continue
-                style = (p.style.name or "").lower()
-                if "heading 1" in style:
-                    lines.append(f"# {text}")
-                elif "heading 2" in style:
-                    lines.append(f"## {text}")
-                elif "heading 3" in style:
-                    lines.append(f"### {text}")
-                elif "list" in style or "bullet" in style:
-                    lines.append(f"- {text}")
-                else:
-                    # Preserve bold runs
-                    parts = []
-                    for run in p.runs:
-                        if run.bold and run.text.strip():
-                            parts.append(f"**{run.text}**")
-                        else:
-                            parts.append(run.text)
-                    lines.append("".join(parts) if parts else text)
-            # Also extract tables from docx
-            for table in doc.tables:
-                lines.append("")
-                for i, row in enumerate(table.rows):
-                    cells = [cell.text.strip() for cell in row.cells]
-                    lines.append("| " + " | ".join(cells) + " |")
-                    if i == 0:
-                        lines.append("| " + " | ".join(["---"] * len(cells)) + " |")
-                lines.append("")
-            content = "\n".join(lines)
-            from lib.pdf_templates import create_professional_pdf
-            file_bytes = create_professional_pdf(content, title=base_name.replace("_converted", ""))
-            return file_bytes, f"{base_name}.pdf", MIME_MAP["pdf"]
-        except Exception as e:
-            logger.error("DOCX→PDF failed: %s", e)
-            text = _extract_text(original_bytes, original_mime)
-            return _content_to_file(text, "pdf", base_name)
-
-    # ── XLSX → PDF: render as proper table ──
-    if source_ext in ("xlsx", "xls") and target_ext == "pdf":
-        try:
-            from openpyxl import load_workbook
-            from reportlab.lib.pagesizes import letter, landscape
-            from reportlab.lib.units import inch
-            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-            from reportlab.lib.styles import getSampleStyleSheet
-            from reportlab.lib.colors import HexColor, white
-
-            wb = load_workbook(io.BytesIO(original_bytes))
-            ws = wb.active
-            data = []
-            for row in ws.iter_rows(values_only=True):
-                data.append([str(c) if c is not None else "" for c in row])
-
-            if not data:
-                raise ValueError("Empty spreadsheet")
-
-            buf = io.BytesIO()
-            page = landscape(letter) if len(data[0]) > 5 else letter
-            pdf_doc = SimpleDocTemplate(buf, pagesize=page,
-                leftMargin=0.5*inch, rightMargin=0.5*inch,
-                topMargin=0.6*inch, bottomMargin=0.6*inch)
-            styles = getSampleStyleSheet()
-            story = []
-            title = base_name.replace("_converted", "")
-            story.append(Paragraph(title, styles['Title']))
-            story.append(Spacer(1, 12))
-
-            # Truncate cells for table fitting
-            table_data = []
-            for row in data:
-                table_data.append([c[:40] for c in row])
-
-            col_w = (page[0] - 1*inch) / max(len(data[0]), 1)
-            t = Table(table_data, colWidths=[col_w]*len(data[0]))
-            t.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1a1a1a')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),
-                ('TOPPADDING', (0, 0), (-1, -1), 4),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [white, HexColor('#f8f8f8')]),
-                ('GRID', (0, 0), (-1, -1), 0.5, HexColor('#e0e0e0')),
-            ]))
-            story.append(t)
-            pdf_doc.build(story)
-            return buf.getvalue(), f"{base_name}.pdf", MIME_MAP["pdf"]
-        except Exception as e:
-            logger.error("XLSX→PDF failed: %s", e)
-            text = _extract_text(original_bytes, original_mime)
-            return _content_to_file(text, "pdf", base_name)
-
-    # ── XLSX → CSV: proper extraction ──
+    # ── XLSX → CSV: use Python (faster, more reliable for this) ──
     if source_ext in ("xlsx", "xls") and target_ext == "csv":
         try:
             from openpyxl import load_workbook
@@ -1468,92 +1333,78 @@ def _convert_file(original_bytes: bytes, original_mime: str, source_ext: str, ta
                 writer.writerow([c if c is not None else "" for c in row])
             return buf.getvalue().encode('utf-8'), f"{base_name}.csv", MIME_MAP["csv"]
         except Exception as e:
-            logger.error("XLSX→CSV failed: %s", e)
-            text = _extract_text(original_bytes, original_mime)
-            return text.encode('utf-8'), f"{base_name}.csv", MIME_MAP["csv"]
+            logger.error("XLSX→CSV Python failed: %s", e)
 
-    # ── XLSX → DOCX: extract as formatted table ──
-    if source_ext in ("xlsx", "xls") and target_ext == "docx":
-        try:
-            from openpyxl import load_workbook
-            from docx import Document
-            from docx.shared import Pt, Inches
-            wb = load_workbook(io.BytesIO(original_bytes))
-            ws = wb.active
-            doc = Document()
-            doc.add_heading(base_name.replace("_converted", ""), level=1)
-            rows = list(ws.iter_rows(values_only=True))
-            if rows:
-                table = doc.add_table(rows=len(rows), cols=len(rows[0]))
-                table.style = 'Table Grid'
-                for i, row in enumerate(rows):
-                    for j, cell in enumerate(row):
-                        table.cell(i, j).text = str(cell) if cell is not None else ""
-                        if i == 0:
-                            for run in table.cell(i, j).paragraphs[0].runs:
-                                run.bold = True
-            buf = io.BytesIO()
-            doc.save(buf)
-            return buf.getvalue(), f"{base_name}.docx", MIME_MAP["docx"]
-        except Exception as e:
-            logger.error("XLSX→DOCX failed: %s", e)
-            text = _extract_text(original_bytes, original_mime)
-            return _content_to_file(text, "docx", base_name)
-
-    # ── CSV → XLSX: styled with headers ──
+    # ── CSV → XLSX: use Python (styled output) ──
     if source_ext == "csv" and target_ext == "xlsx":
         try:
             text = original_bytes.decode('utf-8', errors='ignore')
             file_bytes, fname, mime = _csv_to_styled_xlsx(text, base_name)
             return file_bytes, fname, mime
         except Exception as e:
-            logger.error("CSV→XLSX failed: %s", e)
-            text = _extract_text(original_bytes, original_mime)
-            return _content_to_file(text, "xlsx", base_name)
+            logger.error("CSV→XLSX Python failed: %s", e)
 
-    # ── PDF → XLSX: try to extract tabular data ──
-    if source_ext == "pdf" and target_ext in ("xlsx", "csv"):
-        try:
-            import fitz
-            from openpyxl import Workbook
-            pdf = fitz.open(stream=original_bytes, filetype="pdf")
-            all_rows = []
-            for page in pdf:
-                tables = page.find_tables()
-                for table in tables:
-                    for row in table.extract():
-                        all_rows.append([str(c) if c else "" for c in row])
-            pdf.close()
-            if not all_rows:
-                # No tables found — fall back to line-by-line text
-                text = _extract_text(original_bytes, original_mime)
-                all_rows = [[line] for line in text.split('\n') if line.strip()]
-            if target_ext == "csv":
-                import csv as _csv
-                buf = io.StringIO()
-                writer = _csv.writer(buf)
-                for row in all_rows:
-                    writer.writerow(row)
-                return buf.getvalue().encode('utf-8'), f"{base_name}.csv", MIME_MAP["csv"]
-            else:
-                wb = Workbook()
-                ws = wb.active
-                for row in all_rows:
-                    ws.append(row)
-                buf = io.BytesIO()
-                wb.save(buf)
-                return buf.getvalue(), f"{base_name}.xlsx", MIME_MAP["xlsx"]
-        except Exception as e:
-            logger.error("PDF→XLSX/CSV failed: %s", e)
-            text = _extract_text(original_bytes, original_mime)
-            return _content_to_file(text, target_ext, base_name)
-
-    # ── PDF → TXT or any → TXT: just extract text ──
+    # ── Any → TXT: just extract text ──
     if target_ext == "txt":
         text = _extract_text(original_bytes, original_mime)
         return text.encode('utf-8'), f"{base_name}.txt", MIME_MAP["txt"]
 
-    # ── Fallback: extract text and rebuild ──
+    # ── LibreOffice headless conversion (handles everything else) ──
+    if source_ext in LO_SUPPORTED_SOURCE and target_ext in LO_FILTERS:
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                src_path = os.path.join(tmpdir, f"input.{source_ext}")
+                with open(src_path, 'wb') as f:
+                    f.write(original_bytes)
+
+                # Pick the right filter for the target
+                lo_filter = LO_FILTERS[target_ext]
+                # For spreadsheet sources converting to PDF, use Calc filter
+                if source_ext in ("xlsx", "xls", "csv") and target_ext == "pdf":
+                    lo_filter = "calc_pdf_Export"
+                # For presentations converting to PDF
+                if source_ext in ("pptx", "ppt") and target_ext == "pdf":
+                    lo_filter = "impress_pdf_Export"
+
+                cmd = [
+                    "libreoffice", "--headless", "--norestore", "--convert-to",
+                    f"{target_ext}:{lo_filter}" if lo_filter else target_ext,
+                    "--outdir", tmpdir, src_path
+                ]
+                logger.info("[convert] running: %s", " ".join(cmd))
+                result = subprocess.run(cmd, capture_output=True, timeout=60, env={
+                    "HOME": tmpdir, "PATH": "/usr/bin:/usr/local/bin:/bin",
+                })
+                if result.returncode != 0:
+                    logger.error("[convert] LibreOffice failed: %s", result.stderr.decode()[:500])
+                    raise RuntimeError("LibreOffice conversion failed")
+
+                # Find the output file
+                out_path = os.path.join(tmpdir, f"input.{target_ext}")
+                if not os.path.exists(out_path):
+                    # Sometimes LO uses a different name
+                    for f in os.listdir(tmpdir):
+                        if f.endswith(f".{target_ext}") and f != f"input.{source_ext}":
+                            out_path = os.path.join(tmpdir, f)
+                            break
+
+                if not os.path.exists(out_path):
+                    raise RuntimeError(f"Output file not found after conversion")
+
+                with open(out_path, 'rb') as f:
+                    file_bytes = f.read()
+
+                filename = f"{base_name}.{target_ext}"
+                mime = MIME_MAP.get(target_ext, "application/octet-stream")
+                logger.info("[convert] LibreOffice success: %s → %s (%d bytes)", source_ext, target_ext, len(file_bytes))
+                return file_bytes, filename, mime
+        except subprocess.TimeoutExpired:
+            logger.error("[convert] LibreOffice timed out after 60s")
+        except Exception as e:
+            logger.error("[convert] LibreOffice failed: %s", e)
+
+    # ── Fallback: extract text and rebuild with Python ──
+    logger.warning("[convert] falling back to text extraction: %s → %s", source_ext, target_ext)
     text = _extract_text(original_bytes, original_mime)
     return _content_to_file(text, target_ext, base_name)
 

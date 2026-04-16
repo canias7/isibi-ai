@@ -13,6 +13,10 @@ WORKDIR /app
 # Create non-root user for security
 RUN groupadd -r isibi && useradd -r -g isibi -d /app -s /sbin/nologin isibi
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libreoffice-writer libreoffice-calc libreoffice-impress \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
