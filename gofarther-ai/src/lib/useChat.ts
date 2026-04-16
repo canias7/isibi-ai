@@ -523,12 +523,14 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
       // Handle file modification (edit, chart, convert, merge, filter, clean, split, rename, ocr, batch, chain) and reading (summarize, analyze, find, extract, answer)
       if (finalAction?.type === 'modify_file') {
         const operation = finalAction.target || 'edit';
-        const readOps = ['summarize', 'analyze', 'find', 'extract', 'answer', 'ocr'];
+        const readOps = ['summarize', 'analyze', 'find', 'extract', 'answer', 'ocr', 'validate'];
         const isReadOp = readOps.includes(operation);
         const opLabels: Record<string, string> = {
           edit: 'Editing file', chart: 'Creating chart', convert: 'Converting file',
           merge: 'Merging files', filter: 'Filtering data', clean: 'Cleaning data',
           split: 'Splitting file', rename: 'Renaming columns', ocr: 'Reading image',
+          append: 'Adding rows', pivot: 'Creating pivot table', translate: 'Translating file',
+          highlight: 'Highlighting data', validate: 'Validating data',
           summarize: 'Reading file', analyze: 'Analyzing file',
           find: 'Searching file', extract: 'Extracting data', answer: 'Reading file',
           batch: 'Processing files', chain: 'Running operations',
