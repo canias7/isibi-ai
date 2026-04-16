@@ -1,10 +1,12 @@
 /** Memoized chat message bubble — prevents unnecessary re-renders in FlatList */
 
-import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Platform, ActionSheetIOS, Alert, Animated } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Platform, ActionSheetIOS, Alert, Animated, Modal, Dimensions, ActivityIndicator, TextInput } from 'react-native';
 import FileViewer from 'react-native-file-viewer';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as MediaLibrary from 'expo-media-library';
 import { Ionicons } from '@expo/vector-icons';
 import { ChatMsg } from '../lib/types';
 import { successHaptic } from '../lib/haptics';
@@ -55,6 +57,8 @@ function formatTime(ts: number): string {
 }
 
 function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onCancel, onRegenerate, onEdit, onCopy, onRetry, onReaction, onOpenCanvas, onReviseFile, colors }: Props) {
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [imageSaving, setImageSaving] = useState(false);
   const onLongPress = () => {
     if (Platform.OS === 'ios') {
       const options = ['Copy', item.role === 'user' ? 'Edit' : 'Regenerate', 'Cancel'];
@@ -161,7 +165,7 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
                   if (Platform.OS === 'ios' && Alert.prompt) {
                     Alert.prompt('Revise File', 'What changes do you want?', [
                       { text: 'Cancel', style: 'cancel' },
-                      { text: 'Revise', onPress: (text) => { if (text?.trim()) onReviseFile(text.trim()); } },
+                      { text: 'Revise', onPress: (text?: string) => { if (text?.trim()) onReviseFile(text.trim()); } },
                     ], 'plain-text');
                   } else {
                     Alert.alert('Revise', 'Type your revision in chat, e.g. "revise the file to add a table"');
@@ -173,7 +177,97 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               )}
             </View>
           )}
-          {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]} resizeMode="cover" />}
+          {item.imageUrl && (
+            <>
+              <TouchableOpacity activeOpacity={0.9} onPress={() => setImageViewerOpen(true)}>
+                <Image source={{ uri: item.imageUrl }} style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]} resizeMode="cover" />
+              </TouchableOpacity>
+              <View style={s.imageBtns}>
+                <TouchableOpacity style={s.imageBtn} activeOpacity={0.7} onPress={async () => {
+                  try {
+                    setImageSaving(true);
+                    const { status } = await MediaLibrary.requestPermissionsAsync();
+                    if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to save images.'); return; }
+                    const fileUri = FileSystem.cacheDirectory + `image_${Date.now()}.png`;
+                    await FileSystem.downloadAsync(item.imageUrl!, fileUri);
+                    await MediaLibrary.saveToLibraryAsync(fileUri);
+                    successHaptic();
+                    Alert.alert('Saved', 'Image saved to your photo library.');
+                  } catch (e: any) {
+                    Alert.alert('Error', e.message || 'Could not save image');
+                  } finally { setImageSaving(false); }
+                }}>
+                  {imageSaving ? <ActivityIndicator size="small" color={colors.text} /> : <Ionicons name="download-outline" size={16} color={colors.text} />}
+                  <Text style={[s.imageBtnText, { color: colors.text }]}>Save</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.imageBtn} activeOpacity={0.7} onPress={async () => {
+                  try {
+                    const fileUri = FileSystem.cacheDirectory + `share_${Date.now()}.png`;
+                    await FileSystem.downloadAsync(item.imageUrl!, fileUri);
+                    if (await Sharing.isAvailableAsync()) { await Sharing.shareAsync(fileUri); }
+                  } catch (e: any) { Alert.alert('Error', e.message || 'Could not share'); }
+                }}>
+                  <Ionicons name="share-outline" size={16} color={colors.text} />
+                  <Text style={[s.imageBtnText, { color: colors.text }]}>Share</Text>
+                </TouchableOpacity>
+              </View>
+              <Modal visible={imageViewerOpen} transparent animationType="fade" onRequestClose={() => setImageViewerOpen(false)}>
+                <View style={s.imgvOverlay}>
+                  <View style={s.imgvTopBar}>
+                    <TouchableOpacity style={s.imgvTopBtn} onPress={() => setImageViewerOpen(false)}>
+                      <Ionicons name="close" size={22} color="#fff" />
+                    </TouchableOpacity>
+                    <View style={{ flex: 1 }} />
+                    <TouchableOpacity style={s.imgvTopBtn} onPress={() => Alert.alert('Image Info', 'Generated with GPT-4o\nSize: 1024×1024')}>
+                      <Ionicons name="information-circle-outline" size={22} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={s.imgvPillBtn} onPress={async () => {
+                      try {
+                        const { status } = await MediaLibrary.requestPermissionsAsync();
+                        if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to save.'); return; }
+                        const fileUri = FileSystem.cacheDirectory + `image_${Date.now()}.png`;
+                        await FileSystem.downloadAsync(item.imageUrl!, fileUri);
+                        await MediaLibrary.saveToLibraryAsync(fileUri);
+                        successHaptic();
+                        Alert.alert('Saved', 'Image saved to your photo library.');
+                      } catch (e: any) { Alert.alert('Error', e.message || 'Could not save'); }
+                    }}>
+                      <Text style={s.imgvPillText}>Save</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[s.imgvPillBtn, s.imgvPillWhite]} onPress={async () => {
+                      try {
+                        const fileUri = FileSystem.cacheDirectory + `share_${Date.now()}.png`;
+                        await FileSystem.downloadAsync(item.imageUrl!, fileUri);
+                        if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(fileUri);
+                      } catch (e: any) { Alert.alert('Error', e.message || 'Could not share'); }
+                    }}>
+                      <Text style={[s.imgvPillText, { color: '#000' }]}>Share</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={s.imgvCenter}>
+                    <Image source={{ uri: item.imageUrl }} style={s.imgvImage} resizeMode="contain" />
+                  </View>
+                  <View style={s.imgvBottomBar}>
+                    <TouchableOpacity style={s.imgvEditIcon}>
+                      <Ionicons name="options-outline" size={20} color="#999" />
+                    </TouchableOpacity>
+                    <TextInput
+                      style={s.imgvEditInput}
+                      placeholder="Describe edits"
+                      placeholderTextColor="#666"
+                      returnKeyType="send"
+                      onSubmitEditing={() => {
+                        Alert.alert('Coming Soon', 'Image editing will be available soon.');
+                      }}
+                    />
+                    <TouchableOpacity style={s.imgvMicBtn}>
+                      <Ionicons name="mic-outline" size={20} color="#999" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+            </>
+          )}
           {renderAction()}
           {item.stats && (
             <Text style={[s.statsText, { color: colors.textDim }]}>
@@ -224,6 +318,21 @@ const s = StyleSheet.create({
   fileViewerTitle: { fontSize: 16, fontWeight: '600', flex: 1 },
   fileViewerClose: { fontSize: 17, fontWeight: '600', color: '#007AFF', marginLeft: 16 },
   chatImage: { width: 240, height: 240, borderRadius: 16, marginTop: 8 },
+  imageBtns: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  imageBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: '#f0f0f0' },
+  imageBtnText: { fontSize: 13, fontWeight: '600' },
+  imgvOverlay: { flex: 1, backgroundColor: '#000' },
+  imgvTopBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 12 },
+  imgvTopBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  imgvPillBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)' },
+  imgvPillWhite: { backgroundColor: '#fff' },
+  imgvPillText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  imgvCenter: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  imgvImage: { width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.65 },
+  imgvBottomBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingBottom: Platform.OS === 'ios' ? 40 : 24, paddingTop: 12 },
+  imgvEditIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  imgvEditInput: { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 12, color: '#fff', fontSize: 15 },
+  imgvMicBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   actionConfirm: { marginTop: 10, padding: 14, borderRadius: 16, backgroundColor: '#f5f5f5' },
   actionConfirmText: { fontSize: 14, fontWeight: '500', marginBottom: 10 },
   actionConfirmBtns: { flexDirection: 'row', gap: 10 },
