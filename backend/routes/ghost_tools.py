@@ -1318,6 +1318,33 @@ Return ONLY valid JSON."""
                             fn = f"step{step_idx}.xlsx"
                             mi = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                             ext = "xlsx"
+                        elif step_op == "append":
+                            if is_spreadsheet:
+                                system = "You are a spreadsheet editor. ONLY append new rows at the bottom. Do NOT modify existing rows.\nReturn JSON: {\"headers\":[...],\"rows\":[...all existing + new rows...],\"formulas\":{}}\nReturn ONLY valid JSON."
+                                result = await _ask_claude(f"Data:\n{text}\n\nAppend: {step_instructions}", system)
+                                fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            else:
+                                result = await _ask_claude(f"Document:\n{text}\n\nAppend: {step_instructions}", "You are a document editor. Append content at the END. Do NOT modify existing content. Return the COMPLETE document.")
+                                fb, fn, mi = _content_to_file(result, ext, f"step{step_idx}")
+                        elif step_op == "pivot":
+                            system = "You are a data analyst. Create a pivot table. Return JSON: {\"headers\":[...],\"rows\":[...],\"formulas\":{}}\nReturn ONLY valid JSON."
+                            result = await _ask_claude(f"Data:\n{text}\n\nPivot: {step_instructions or 'Summarize by logical grouping.'}", system)
+                            fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            ext = "xlsx"
+                        elif step_op == "translate":
+                            target_lang = step_instructions or "English"
+                            if is_spreadsheet:
+                                system = f"You are a translator. Translate to {target_lang}. Keep numbers/dates/formulas. Return JSON: {{\"headers\":[...],\"rows\":[...],\"formulas\":{{}}}}\nReturn ONLY valid JSON."
+                                result = await _ask_claude(f"Translate to {target_lang}:\n{text}", system)
+                                fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            else:
+                                result = await _ask_claude(f"Translate to {target_lang}:\n{text}", f"You are a translator. Translate to {target_lang}. Preserve formatting. Return ONLY the translated content.")
+                                fb, fn, mi = _content_to_file(result, ext, f"step{step_idx}")
+                        elif step_op == "highlight":
+                            system = "You are a formatting expert. Return JSON with highlights: {\"headers\":[...],\"rows\":[...],\"formulas\":{},\"highlights\":{\"A5\":\"red\",\"B3\":\"green\"}}\nReturn ONLY valid JSON."
+                            result = await _ask_claude(f"Data:\n{text}\n\nHighlight: {step_instructions or 'Highlight anomalies.'}", system)
+                            fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            ext = "xlsx"
                         else:
                             raise ValueError(f"Unsupported chain step: {step_op}")
 
