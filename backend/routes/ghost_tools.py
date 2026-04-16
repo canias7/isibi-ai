@@ -200,16 +200,18 @@ Return ONLY the document content. No explanations, no preamble, no "here is your
     content = await _ask_claude(req.description, system)
 
     file_id = str(uuid.uuid4())
-    filename = req.filename or f"document_{file_id[:8]}"
+    # Use custom filename if provided, otherwise generate a descriptive one
+    _has_custom_name = bool(req.filename)
+    filename = req.filename or _smart_filename(req.description, "", req.file_type or "pdf").rsplit('.', 1)[0]
 
     if req.file_type == "csv":
         file_bytes = content.encode('utf-8')
-        filename += ".csv"
+        if not _has_custom_name or not filename.endswith('.csv'): filename += ".csv"
         mime = "text/csv"
 
     elif req.file_type == "txt":
         file_bytes = content.encode('utf-8')
-        filename += ".txt"
+        if not _has_custom_name or not filename.endswith('.txt'): filename += ".txt"
         mime = "text/plain"
 
     elif req.file_type == "xlsx":
@@ -370,14 +372,15 @@ Return ONLY the document content, no explanations."""
 
             content = await _ask_claude(req.description, system)
             file_id = str(uuid.uuid4())[:8]
-            filename = req.filename or f"document_{file_id}"
+            _has_custom = bool(req.filename)
+            filename = req.filename or _smart_filename(req.description, "", req.file_type or "pdf").rsplit('.', 1)[0]
 
             # Generate file bytes (same as sync endpoint)
             if req.file_type == "pdf":
                 try:
                     from lib.pdf_templates import create_professional_pdf
                     file_bytes = create_professional_pdf(content, title=filename)
-                    filename += ".pdf"
+                    if not _has_custom or not filename.endswith('.pdf'): filename += ".pdf"
                     mime = "application/pdf"
                 except Exception:
                     try:
@@ -489,6 +492,8 @@ async def modify_file_async(req: ModifyFileRequest, authorization: str = Header(
         try:
             # Load original file(s) — check cache then R2
             owner = payload.get("email", "")
+            # Operations that load their own files from file_ids
+            _self_loading_ops = ("compare", "reconcile", "batch")
             if req.operation == "merge" and req.file_ids:
                 sources = []
                 for fid in req.file_ids:
@@ -499,6 +504,11 @@ async def modify_file_async(req: ModifyFileRequest, authorization: str = Header(
                         raise ValueError(f"File {fid} not found")
                     content = base64.b64decode(f["data"])
                     sources.append({"filename": f["filename"], "content": content, "mime": f["mime"]})
+            elif req.operation in _self_loading_ops and req.file_ids:
+                # These operations handle their own file loading below
+                original_bytes = b""
+                original_filename = ""
+                original_mime = ""
             elif req.file_id:
                 f = await _get_file(req.file_id)
                 if not f:

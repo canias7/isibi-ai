@@ -59,14 +59,19 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
   /** Resolve a filename (or partial name) to a file_id */
   const resolveFileId = (name: string): string | undefined => {
     const lower = name.toLowerCase().trim();
-    // Exact match
+    // 1. Exact match
     if (fileRegistryRef.current.has(lower)) return fileRegistryRef.current.get(lower);
-    // Without extension
+    // 2. Without extension
     const base = lower.replace(/\.[^.]+$/, '');
     if (fileRegistryRef.current.has(base)) return fileRegistryRef.current.get(base);
-    // Partial match — find first entry that contains the search term
+    // 3. Partial match — compare both full name and base name against keys
+    //    This handles: model says "budget.xlsx", registry has "budget_edited_2026-04-16.xlsx"
+    //    because base "budget" is contained in key "budget_edited_2026-04-16"
     for (const [key, id] of fileRegistryRef.current) {
-      if (key.includes(lower) || lower.includes(key)) return id;
+      const keyBase = key.replace(/\.[^.]+$/, '');
+      if (key.includes(lower) || lower.includes(key) ||
+          key.includes(base) || base.includes(keyBase) ||
+          keyBase.includes(base)) return id;
     }
     return undefined;
   };
