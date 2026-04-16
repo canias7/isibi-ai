@@ -248,7 +248,7 @@ export async function createFile(description: string, fileType: string = 'pdf', 
 export async function modifyFile(
   operation: string, instructions: string, fileId?: string, targetFormat?: string,
   fileIds?: string[], chainOps?: { operation: string; instructions?: string; target_format?: string }[]
-): Promise<{ file_id: string; filename: string; download_url: string; result_text?: string; batch_results?: any[] }> {
+): Promise<{ file_id: string; filename: string; download_url: string; result_text?: string; batch_results?: any[]; completed_steps?: string[]; failed_step?: string }> {
   await checkNetwork();
   const headers = await authHeaders();
 
@@ -271,7 +271,7 @@ export async function modifyFile(
       }, 10000);
       if (!pollRes.ok) continue;
       const job = await pollRes.json();
-      if (job.status === 'done') return { file_id: job.file_id, filename: job.filename, download_url: job.download_url, result_text: job.result_text, batch_results: job.batch_results };
+      if (job.status === 'done') return { file_id: job.file_id, filename: job.filename, download_url: job.download_url, result_text: job.result_text, batch_results: job.batch_results, completed_steps: job.completed_steps, failed_step: job.failed_step };
       if (job.status === 'failed') throw new Error(job.error || 'File modification failed');
     } catch (e: any) {
       if (e.message?.includes('failed')) throw e;

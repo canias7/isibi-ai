@@ -57,11 +57,15 @@ def _smart_filename(description: str, operation: str, ext: str, original_name: s
         base = original_name.rsplit('.', 1)[0] if '.' in original_name else original_name
         # Clean the base name
         base = re.sub(r'[^a-zA-Z0-9_\- ]', '', base).strip().replace(' ', '_')[:50]
+        if not base:
+            base = "file"
         return f"{base}_{operation}_{date_str}.{ext}"
     elif description:
         # New file: description_date.ext
         slug = re.sub(r'[^a-zA-Z0-9 ]', '', description).strip().lower()
         slug = re.sub(r'\s+', '_', slug)[:50]
+        if not slug:
+            slug = "file"
         return f"{slug}_{date_str}.{ext}"
     else:
         return f"file_{date_str}.{ext}"
@@ -108,18 +112,46 @@ def _verify_auth(authorization: str):
     return verify_ghost_token(token)
 
 
-async def _ask_claude(prompt: str, system: str = "You are a helpful assistant.") -> str:
+async def _ask_claude(prompt: str, system: str = "You are a helpful assistant.", retries: int = 2) -> str:
     if not ANTHROPIC_KEY:
         raise HTTPException(500, "API key not configured")
-    async with httpx.AsyncClient(timeout=60) as client:
-        res = await client.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01"},
-            json={"model": "claude-sonnet-4-20250514", "max_tokens": 4096, "system": system, "messages": [{"role": "user", "content": prompt}]},
-        )
-        if res.status_code != 200:
-            raise HTTPException(res.status_code, "AI error")
-        return res.json().get("content", [{}])[0].get("text", "")
+    last_error = None
+    for attempt in range(1 + retries):
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                res = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01"},
+                    json={"model": "claude-sonnet-4-20250514", "max_tokens": 4096, "system": system, "messages": [{"role": "user", "content": prompt}]},
+                )
+                if res.status_code != 200:
+                    last_error = f"AI error (HTTP {res.status_code})"
+                    if attempt < retries:
+                        import asyncio as _aio
+                        await _aio.sleep(2 ** attempt)  # 1s, 2s backoff
+                        continue
+                    raise HTTPException(res.status_code, last_error)
+                text = res.json().get("content", [{}])[0].get("text", "")
+                if not text.strip():
+                    last_error = "Empty response from AI"
+                    if attempt < retries:
+                        continue
+                return text
+        except httpx.TimeoutException:
+            last_error = "AI request timed out"
+            if attempt < retries:
+                import asyncio as _aio
+                await _aio.sleep(2 ** attempt)
+                continue
+        except HTTPException:
+            raise
+        except Exception as e:
+            last_error = str(e)
+            if attempt < retries:
+                import asyncio as _aio
+                await _aio.sleep(2 ** attempt)
+                continue
+    raise HTTPException(500, f"AI failed after {retries + 1} attempts: {last_error}")
 
 
 # ─── FILE CREATION ────────────────────────────────────────────────────────
@@ -990,6 +1022,7 @@ Return ONLY valid JSON."""
                 current_mime = original_mime
                 current_filename = original_filename
                 completed_steps = []
+                failed_step = None
                 for step_idx, step in enumerate(req.chain_ops):
                     step_op = step.get("operation", "")
                     step_instructions = step.get("instructions", "")
@@ -1029,6 +1062,53 @@ Return ONLY valid JSON."""
                             else:
                                 result = await _ask_claude(f"Document:\n{text}\n\nRename: {step_instructions}", "You are a document editor. Rename sections as instructed. Return ONLY the modified content.")
                                 fb, fn, mi = _content_to_file(result, ext, f"step{step_idx}")
+                        elif step_op == "chart":
+                            import subprocess as _chain_sp
+                            system = "You are a data analyst. Generate matplotlib Python code to create the requested chart.\nThe code must: parse data from a DATA variable, create chart, save to BytesIO buf.\nReturn ONLY Python code."
+                            code = await _ask_claude(f"Data:\n{text}\n\nChart: {step_instructions or 'Create an appropriate chart'}", system)
+                            clean_code = code.replace("```python", "").replace("```", "").strip()
+                            with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as tmp:
+                                tmp.write("import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\nimport io, sys\n")
+                                tmp.write(f"DATA = {repr(text)}\nbuf = io.BytesIO()\n")
+                                tmp.write(clean_code + "\nbuf.seek(0)\nsys.stdout.buffer.write(buf.getvalue())\n")
+                                tmp_path = tmp.name
+                            try:
+                                r = _chain_sp.run(["python3", tmp_path], capture_output=True, timeout=15, env={"PATH": "/usr/bin:/usr/local/bin", "HOME": "/tmp"})
+                                if r.returncode != 0 or not r.stdout:
+                                    raise ValueError(f"Chart failed: {r.stderr.decode()[:200]}")
+                                fb = r.stdout
+                            finally:
+                                os.unlink(tmp_path)
+                            fn = f"step{step_idx}.png"
+                            mi = "image/png"
+                            ext = "png"
+                        elif step_op == "split":
+                            # In a chain, split converts to multi-sheet xlsx
+                            system = "You are a data processor. Split data into groups.\nReturn JSON array: [{\"group_name\":\"...\",\"headers\":[...],\"rows\":[[...]]}]\nReturn ONLY valid JSON."
+                            split_json = await _ask_claude(f"Data:\n{text}\n\nSplit: {step_instructions or 'Split into logical groups.'}", system)
+                            try:
+                                import json as _chain_json
+                                from openpyxl import Workbook as _ChainWB
+                                groups = _chain_json.loads(split_json.strip().strip('`').replace('```json', '').replace('```', ''))
+                                if not isinstance(groups, list):
+                                    groups = [groups]
+                                wb = _ChainWB()
+                                wb.remove(wb.active)
+                                for g in groups:
+                                    ws = wb.create_sheet(title=str(g.get("group_name", "Sheet"))[:31])
+                                    for c, h in enumerate(g.get("headers", []), 1):
+                                        ws.cell(row=1, column=c, value=h)
+                                    for r, row in enumerate(g.get("rows", []), 2):
+                                        for c, val in enumerate(row, 1):
+                                            ws.cell(row=r, column=c, value=val)
+                                buf = io.BytesIO()
+                                wb.save(buf)
+                                fb = buf.getvalue()
+                            except Exception:
+                                fb = split_json.encode('utf-8')
+                            fn = f"step{step_idx}.xlsx"
+                            mi = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            ext = "xlsx"
                         else:
                             raise ValueError(f"Unsupported chain step: {step_op}")
 
@@ -1037,15 +1117,27 @@ Return ONLY valid JSON."""
                         current_filename = fn
                         completed_steps.append(step_op)
                     except Exception as e:
-                        # Stop on failure — save what we have so far
+                        failed_step = f"{step_op}: {str(e)[:100]}"
                         logger.warning("Chain step %d (%s) failed: %s — delivering partial result", step_idx, step_op, e)
                         break
 
-                # Save the final result
+                # Save the final result with step metadata
                 _fname = _smart_filename("", "_".join(completed_steps), ext, original_filename)
                 filename = _fname
                 file_bytes = current_bytes
                 mime = current_mime
+                # Store step info in job for frontend display
+                await _store_file(file_id, filename, mime, file_bytes, owner)
+                job_result = {
+                    "status": "done", "file_id": file_id, "filename": filename,
+                    "download_url": f"/api/ghost/tools/download/{file_id}",
+                    "size": len(file_bytes), "error": None,
+                    "completed_steps": completed_steps,
+                }
+                if failed_step:
+                    job_result["failed_step"] = failed_step
+                JOB_STORE[job_id] = job_result
+                return
 
             else:
                 raise ValueError(f"Unknown operation: {req.operation}")
