@@ -244,6 +244,22 @@ export async function createFile(description: string, fileType: string = 'pdf', 
   throw new Error('File creation timed out');
 }
 
+/** Upload a local file to the backend so it gets a file_id for modify operations */
+export async function uploadFile(fileUri: string, filename: string, mimeType: string): Promise<{ file_id: string; filename: string; download_url: string }> {
+  await checkNetwork();
+  const headers = await authHeaders();
+  const form = new FormData();
+  form.append('file', { uri: fileUri, name: filename, type: mimeType } as any);
+  const h: any = { ...headers };
+  delete h['Content-Type'];
+  delete h['content-type'];
+  const res = await fetchWithTimeout(`${TOOLS_BASE}/upload-file`, {
+    method: 'POST', headers: h, body: form as any,
+  }, 60000);
+  if (!res.ok) throw new Error('File upload failed');
+  return res.json();
+}
+
 /** Modify an existing file (edit, chart, convert, merge, filter, clean, split, rename, ocr, batch, chain) or read it (summarize, analyze, find, extract, answer) */
 export async function modifyFile(
   operation: string, instructions: string, fileId?: string, targetFormat?: string,
