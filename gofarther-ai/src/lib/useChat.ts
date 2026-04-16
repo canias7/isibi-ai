@@ -465,18 +465,6 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         return;
       }
 
-      // Handle code execution
-      if (finalAction?.type === 'run_code') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
-        setLoading(false);
-        trackAsync(runCode(finalAction.target || '')).then(result => {
-          setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `**Code:**\n\`\`\`python\n${result.code}\n\`\`\`\n\n**Output:**\n\`\`\`\n${result.output}\n\`\`\`` } : m));
-        }).catch(e => {
-          setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Code execution failed: ' + e.message } : m));
-        });
-        return;
-      }
-
       // Handle translation
       if (finalAction?.type === 'translate') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `🌐 Translating to ${finalAction.text || 'Spanish'}...` } : m));
