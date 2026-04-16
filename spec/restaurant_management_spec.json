@@ -1,0 +1,2816 @@
+{
+  "_meta": {
+    "app_name": "Restaurant Manager",
+    "description": "Complete restaurant management"
+  },
+  "entities": [
+    {
+      "name": "MenuCategory",
+      "table": "menu_categories",
+      "description": "Menu category",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Full name",
+          "help_text": "Full name"
+        },
+        {
+          "name": "display_order",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean_badge"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "display_order",
+            "is_active"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No MenuCategorys yet",
+            "subtext": "Create your first menucategory",
+            "action_label": "Add MenuCategory"
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "display_order",
+            "is_active"
+          ],
+          "required_fields": [
+            "name",
+            "display_order",
+            "is_active"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "display_order",
+            "is_active"
+          ],
+          "required_fields": [
+            "name",
+            "display_order",
+            "is_active"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/menu_categories/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "display_order",
+            "is_active"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "display_order",
+                "is_active"
+              ]
+            },
+            {
+              "name": "MenuItems",
+              "type": "related_list",
+              "entity": "MenuItem",
+              "fk_field": "category_id"
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "MenuItem",
+      "table": "menu_items",
+      "description": "Menu item",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Full name",
+          "help_text": "Full name"
+        },
+        {
+          "name": "category_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "MenuCategory"
+        },
+        {
+          "name": "price",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "help_text": "Enter amount in USD",
+          "validation": {
+            "min": 0,
+            "message": "Price must be a positive number"
+          },
+          "placeholder": "0.00"
+        },
+        {
+          "name": "cost",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "help_text": "Enter amount in USD",
+          "validation": {
+            "min": 0,
+            "message": "Cost must be a positive number"
+          },
+          "placeholder": "0.00"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "calories",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "allergens",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "prep_time_min",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "is_available",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean_badge"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "category_id",
+            "price",
+            "prep_time_min",
+            "is_available"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No MenuItems yet",
+            "subtext": "Create your first menuitem",
+            "action_label": "Add MenuItem"
+          },
+          "views": [
+            "table",
+            "cards"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "category_id",
+            "price",
+            "cost",
+            "description",
+            "calories",
+            "allergens",
+            "prep_time_min",
+            "is_available"
+          ],
+          "required_fields": [
+            "name",
+            "category_id",
+            "price"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "category_id",
+            "price",
+            "cost",
+            "description",
+            "calories",
+            "allergens",
+            "prep_time_min",
+            "is_available"
+          ],
+          "required_fields": [
+            "name",
+            "category_id",
+            "price"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/menu_items/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "category_id",
+            "price",
+            "prep_time_min"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "category_id",
+                "price",
+                "prep_time_min"
+              ]
+            },
+            {
+              "name": "OrderItems",
+              "type": "related_list",
+              "entity": "OrderItem",
+              "fk_field": "menu_item_id"
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Table",
+      "table": "tables",
+      "description": "Restaurant table",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "number",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "capacity",
+          "db_type": "INTEGER NOT NULL DEFAULT 4",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "validation": {
+            "min": 1,
+            "message": "Capacity must be at least 1"
+          }
+        },
+        {
+          "name": "section",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "main",
+            "patio",
+            "bar",
+            "private",
+            "vip"
+          ],
+          "badge_colors": {
+            "main": "blue",
+            "patio": "green",
+            "bar": "amber",
+            "private": "purple",
+            "vip": "pink"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "available",
+            "occupied",
+            "reserved",
+            "cleaning"
+          ],
+          "badge_colors": {
+            "available": "green",
+            "occupied": "red",
+            "reserved": "amber",
+            "cleaning": "blue"
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "number",
+            "capacity",
+            "section",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Tables yet",
+            "subtext": "Create your first table",
+            "action_label": "Add Table"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Available",
+              "filter": {
+                "field": "status",
+                "value": "available"
+              }
+            },
+            {
+              "label": "Occupied",
+              "filter": {
+                "field": "status",
+                "value": "occupied"
+              }
+            },
+            {
+              "label": "Reserved",
+              "filter": {
+                "field": "status",
+                "value": "reserved"
+              }
+            },
+            {
+              "label": "Cleaning",
+              "filter": {
+                "field": "status",
+                "value": "cleaning"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "section",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "number",
+            "capacity",
+            "section",
+            "status"
+          ],
+          "required_fields": [
+            "number",
+            "capacity",
+            "section"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "number",
+            "capacity",
+            "section",
+            "status"
+          ],
+          "required_fields": [
+            "number",
+            "capacity",
+            "section"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/tables/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "number"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "number",
+            "capacity",
+            "section",
+            "status"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "number",
+                "capacity",
+                "section",
+                "status"
+              ]
+            },
+            {
+              "name": "Reservations",
+              "type": "related_list",
+              "entity": "Reservation",
+              "fk_field": "table_id"
+            },
+            {
+              "name": "Orders",
+              "type": "related_list",
+              "entity": "Order",
+              "fk_field": "table_id"
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Reservation",
+      "table": "reservations",
+      "description": "Reservation",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "guest_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Full name"
+        },
+        {
+          "name": "guest_phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "(555) 123-4567"
+        },
+        {
+          "name": "party_size",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "validation": {
+            "min": 1,
+            "message": "Party size must be at least 1"
+          }
+        },
+        {
+          "name": "table_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Table"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "special_requests",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "confirmed",
+            "seated",
+            "completed",
+            "no_show",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "confirmed": "blue",
+            "seated": "green",
+            "completed": "slate",
+            "no_show": "red",
+            "cancelled": "amber"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "guest_name",
+            "guest_phone",
+            "party_size",
+            "table_id",
+            "date",
+            "time"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Reservations yet",
+            "subtext": "Create your first reservation",
+            "action_label": "Add Reservation"
+          },
+          "views": [
+            "table",
+            "kanban",
+            "calendar"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Confirmed",
+              "filter": {
+                "field": "status",
+                "value": "confirmed"
+              }
+            },
+            {
+              "label": "Seated",
+              "filter": {
+                "field": "status",
+                "value": "seated"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "guest_name",
+            "guest_phone",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "guest_name",
+            "guest_phone",
+            "party_size",
+            "table_id",
+            "date",
+            "time",
+            "special_requests",
+            "status"
+          ],
+          "required_fields": [
+            "guest_name",
+            "guest_phone",
+            "party_size"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "guest_name",
+            "guest_phone",
+            "party_size",
+            "table_id",
+            "date",
+            "time",
+            "special_requests",
+            "status"
+          ],
+          "required_fields": [
+            "guest_name",
+            "guest_phone",
+            "party_size"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/reservations/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "guest_name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "guest_name",
+            "guest_phone",
+            "party_size",
+            "table_id"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "guest_name",
+                "guest_phone",
+                "party_size",
+                "table_id"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Staff",
+      "table": "staff",
+      "description": "Staff member",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Full name",
+          "help_text": "Full name"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications",
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Enter a valid email address"
+          }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "(555) 123-4567",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "help_text": "Contact phone number"
+        },
+        {
+          "name": "role",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "manager",
+            "chef",
+            "sous_chef",
+            "waiter",
+            "bartender",
+            "host",
+            "busser"
+          ],
+          "badge_colors": {
+            "manager": "purple",
+            "chef": "red",
+            "sous_chef": "amber",
+            "waiter": "blue",
+            "bartender": "amber",
+            "host": "green",
+            "busser": "slate"
+          }
+        },
+        {
+          "name": "hourly_rate",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "on_leave",
+            "terminated"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "on_leave": "amber",
+            "terminated": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "phone",
+            "role",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Staffs yet",
+            "subtext": "Create your first staff",
+            "action_label": "Add Staff"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "On Leave",
+              "filter": {
+                "field": "status",
+                "value": "on_leave"
+              }
+            },
+            {
+              "label": "Terminated",
+              "filter": {
+                "field": "status",
+                "value": "terminated"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "role"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "role",
+            "hourly_rate",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "role",
+                "hourly_rate"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "role",
+            "hourly_rate",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "role",
+                "hourly_rate"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
+        },
+        "detail_view": {
+          "route": "/staff/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "role"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "role"
+              ]
+            },
+            {
+              "name": "Orders",
+              "type": "related_list",
+              "entity": "Order",
+              "fk_field": "server_id"
+            },
+            {
+              "name": "Shifts",
+              "type": "related_list",
+              "entity": "Shift",
+              "fk_field": "staff_id"
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Order",
+      "table": "orders",
+      "description": "Customer order",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "order_number",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "table_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Table"
+        },
+        {
+          "name": "server_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Staff"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "dine_in",
+            "takeout",
+            "delivery"
+          ],
+          "badge_colors": {
+            "dine_in": "blue",
+            "takeout": "amber",
+            "delivery": "purple"
+          }
+        },
+        {
+          "name": "subtotal",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "tax",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "tip",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "total",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "computed": "subtotal + tax + tip",
+          "help_text": "Enter amount in USD",
+          "validation": {
+            "min": 0,
+            "message": "Total must be a positive number"
+          },
+          "placeholder": "0.00"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "pending",
+            "preparing",
+            "ready",
+            "served",
+            "paid",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "pending": "amber",
+            "preparing": "blue",
+            "ready": "green",
+            "served": "slate",
+            "paid": "green",
+            "cancelled": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "order_number",
+            "table_id",
+            "server_id",
+            "type",
+            "subtotal",
+            "tax"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Orders yet",
+            "subtext": "Create your first order",
+            "action_label": "Add Order"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Preparing",
+              "filter": {
+                "field": "status",
+                "value": "preparing"
+              }
+            },
+            {
+              "label": "Ready",
+              "filter": {
+                "field": "status",
+                "value": "ready"
+              }
+            },
+            {
+              "label": "Served",
+              "filter": {
+                "field": "status",
+                "value": "served"
+              }
+            },
+            {
+              "label": "Paid",
+              "filter": {
+                "field": "status",
+                "value": "paid"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "order_number",
+            "type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Paid",
+              "action": "update_status",
+              "value": "paid"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "order_number",
+            "table_id",
+            "server_id",
+            "type",
+            "subtotal",
+            "tax",
+            "tip",
+            "total",
+            "status"
+          ],
+          "required_fields": [
+            "order_number",
+            "table_id",
+            "server_id"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "order_number",
+            "table_id",
+            "server_id",
+            "type",
+            "subtotal",
+            "tax",
+            "tip",
+            "total",
+            "status"
+          ],
+          "required_fields": [
+            "order_number",
+            "table_id",
+            "server_id"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/orders/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "order_number"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "order_number",
+            "table_id",
+            "server_id",
+            "type"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "order_number",
+                "table_id",
+                "server_id",
+                "type"
+              ]
+            },
+            {
+              "name": "OrderItems",
+              "type": "related_list",
+              "entity": "OrderItem",
+              "fk_field": "order_id"
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "OrderItem",
+      "table": "order_items",
+      "description": "Line item",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "order_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Order"
+        },
+        {
+          "name": "menu_item_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "MenuItem"
+        },
+        {
+          "name": "quantity",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Quantity must be a positive number"
+          },
+          "placeholder": "1",
+          "help_text": "Number of units"
+        },
+        {
+          "name": "unit_price",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "modifications",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "total",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "computed": "quantity * unit_price",
+          "help_text": "Enter amount in USD",
+          "validation": {
+            "min": 0,
+            "message": "Total must be a positive number"
+          },
+          "placeholder": "0.00"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "ordered",
+            "preparing",
+            "ready",
+            "served"
+          ],
+          "badge_colors": {
+            "ordered": "amber",
+            "preparing": "blue",
+            "ready": "green",
+            "served": "slate"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "order_id",
+            "menu_item_id",
+            "quantity",
+            "unit_price",
+            "total",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No OrderItems yet",
+            "subtext": "Create your first orderitem",
+            "action_label": "Add OrderItem"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Ordered",
+              "filter": {
+                "field": "status",
+                "value": "ordered"
+              }
+            },
+            {
+              "label": "Preparing",
+              "filter": {
+                "field": "status",
+                "value": "preparing"
+              }
+            },
+            {
+              "label": "Ready",
+              "filter": {
+                "field": "status",
+                "value": "ready"
+              }
+            },
+            {
+              "label": "Served",
+              "filter": {
+                "field": "status",
+                "value": "served"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "order_id",
+            "menu_item_id",
+            "quantity",
+            "unit_price",
+            "modifications",
+            "total",
+            "status"
+          ],
+          "required_fields": [
+            "order_id",
+            "menu_item_id",
+            "quantity"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "order_id",
+            "menu_item_id",
+            "quantity",
+            "unit_price",
+            "modifications",
+            "total",
+            "status"
+          ],
+          "required_fields": [
+            "order_id",
+            "menu_item_id",
+            "quantity"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/order_items/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "order_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "order_id",
+            "menu_item_id",
+            "quantity",
+            "unit_price"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "order_id",
+                "menu_item_id",
+                "quantity",
+                "unit_price"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Shift",
+      "table": "shifts",
+      "description": "Staff shift",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "staff_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Staff"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "start_time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "end_time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "role",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "server",
+            "kitchen",
+            "bar",
+            "host"
+          ],
+          "badge_colors": {
+            "server": "blue",
+            "kitchen": "red",
+            "bar": "amber",
+            "host": "green"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "scheduled",
+            "clocked_in",
+            "clocked_out",
+            "no_show"
+          ],
+          "badge_colors": {
+            "scheduled": "blue",
+            "clocked_in": "green",
+            "clocked_out": "slate",
+            "no_show": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "staff_id",
+            "date",
+            "start_time",
+            "end_time",
+            "role",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Shifts yet",
+            "subtext": "Create your first shift",
+            "action_label": "Add Shift"
+          },
+          "views": [
+            "table",
+            "kanban",
+            "calendar"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "Clocked In",
+              "filter": {
+                "field": "status",
+                "value": "clocked_in"
+              }
+            },
+            {
+              "label": "Clocked Out",
+              "filter": {
+                "field": "status",
+                "value": "clocked_out"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "role",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "staff_id",
+            "date",
+            "start_time",
+            "end_time",
+            "role",
+            "status"
+          ],
+          "required_fields": [
+            "staff_id",
+            "date",
+            "start_time"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "staff_id",
+            "date",
+            "start_time",
+            "end_time",
+            "role",
+            "status"
+          ],
+          "required_fields": [
+            "staff_id",
+            "date",
+            "start_time"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/shifts/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "staff_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "staff_id",
+            "date",
+            "start_time",
+            "end_time"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "staff_id",
+                "date",
+                "start_time",
+                "end_time"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "modules": [
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "component": "DashboardPage",
+      "layout": "app",
+      "sidebar_order": 1,
+      "sidebar_icon": "LayoutDashboard"
+    },
+    {
+      "name": "MenuCategorys",
+      "route": "/menu_categories",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 2,
+      "sidebar_icon": "LayoutList",
+      "entity": "MenuCategory"
+    },
+    {
+      "name": "MenuItems",
+      "route": "/menu_items",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 3,
+      "sidebar_icon": "UtensilsCrossed",
+      "entity": "MenuItem"
+    },
+    {
+      "name": "Tables",
+      "route": "/tables",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 4,
+      "sidebar_icon": "LayoutGrid",
+      "entity": "Table"
+    },
+    {
+      "name": "Reservations",
+      "route": "/reservations",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 5,
+      "sidebar_icon": "CalendarDays",
+      "entity": "Reservation"
+    },
+    {
+      "name": "Staffs",
+      "route": "/staff",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 6,
+      "sidebar_icon": "Users",
+      "entity": "Staff"
+    },
+    {
+      "name": "Orders",
+      "route": "/orders",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 7,
+      "sidebar_icon": "ClipboardList",
+      "entity": "Order"
+    },
+    {
+      "name": "OrderItems",
+      "route": "/order_items",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 8,
+      "sidebar_icon": "List",
+      "entity": "OrderItem"
+    },
+    {
+      "name": "Shifts",
+      "route": "/shifts",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 9,
+      "sidebar_icon": "Clock",
+      "entity": "Shift"
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total MenuCategorys",
+        "entity": "MenuCategory",
+        "method": "count",
+        "icon": "FolderTree",
+        "color": "blue"
+      },
+      {
+        "label": "Total MenuItems",
+        "entity": "MenuItem",
+        "method": "count",
+        "icon": "UtensilsCrossed",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Tables",
+        "entity": "Table",
+        "method": "count",
+        "icon": "FileText",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "MenuItem",
+        "method": "sum",
+        "field": "price",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Staffs",
+        "entity": "Staff",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  },
+  "design_system": {
+    "theme": "light",
+    "colors": {
+      "primary": "#ec4899",
+      "secondary": "#64748b",
+      "background": "#ffffff",
+      "surface": "#f8fafc",
+      "text": "#0f172a",
+      "muted": "#94a3b8"
+    },
+    "spacing": {
+      "page_padding": "24px",
+      "card_padding": "16px",
+      "gap": "16px"
+    },
+    "buttons": {
+      "primary": {
+        "bg": "bg-pink-500",
+        "text": "text-white",
+        "hover": "hover:bg-pink-600"
+      }
+    },
+    "table": {
+      "header_bg": "bg-gray-50",
+      "row_hover": "hover:bg-gray-50",
+      "border": "border-gray-200"
+    },
+    "typography": {
+      "heading": "text-gray-900 font-semibold",
+      "body": "text-gray-700",
+      "muted": "text-gray-400"
+    }
+  },
+  "pagination": {
+    "type": "cursor",
+    "default_page_size": 25,
+    "max_page_size": 100
+  }
+}

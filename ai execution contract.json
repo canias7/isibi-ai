@@ -1,0 +1,753 @@
+{
+  "ai_execution_contract": {
+    "_version": "1.0",
+    "_purpose": "Binding rules for any AI system that consumes crm_spec.json. These rules override any default AI behavior. Non-compliance produces an invalid implementation.",
+    "rule_1_deterministic_generation": {
+      "name": "Deterministic Generation",
+      "description": "Every generated artifact must trace back to an explicit source in this schema. No assumptions or interpolation allowed.",
+      "bindings": [
+        {
+          "source": "entities[].ui_config.list_view",
+          "generates": "Page list view layout, columns, filters, bulk actions, empty state"
+        },
+        {
+          "source": "entities[].ui_config.detail_view",
+          "generates": "Page detail route, tab list, tab components, header fields"
+        },
+        {
+          "source": "entities[].ui_config.create_form",
+          "generates": "SlideOverForm or Modal with exact field_order, required_fields, submit_action"
+        },
+        {
+          "source": "entities[].fields[]",
+          "generates": "DB column + TypeScript interface field + form input component + display component"
+        },
+        {
+          "source": "components.shared[]",
+          "generates": "One .tsx file per entry in src/components/shared/"
+        },
+        {
+          "source": "modules[]",
+          "generates": "One page route + one page component file per entry"
+        },
+        {
+          "source": "api.endpoints.*[]",
+          "generates": "One service function in src/api/*.ts + one React Query hook in src/hooks/*.ts per entry"
+        },
+        {
+          "source": "state_management.zustand_stores.*",
+          "generates": "One Zustand store file in src/stores/*.ts per key"
+        },
+        {
+          "source": "flows[].steps[]",
+          "generates": "Exact ordered implementation in the relevant page component and mutation hooks"
+        },
+        {
+          "source": "permissions.matrix.*",
+          "generates": "One roleGuard() call per UI element + one middleware check per API endpoint"
+        },
+        {
+          "source": "websocket.events[]",
+          "generates": "One event handler case in useWebSocket.ts per entry"
+        },
+        {
+          "source": "design_system.colors.*",
+          "generates": "Tailwind class usage in every styled component — no hardcoded hex values"
+        }
+      ]
+    },
+    "rule_2_strict_field_mapping": {
+      "name": "Strict Field Mapping",
+      "description": "Every entity field must produce exactly the artifacts listed below. Missing any artifact for a defined field is a violation.",
+      "per_field_artifacts": [
+        {
+          "artifact": "DB column",
+          "source": "field.db_type",
+          "file": "schema.sql or migration file",
+          "rule": "Use exact db_type string. Apply DEFAULT if field.default is set. Apply NOT NULL if field.nullable = false."
+        },
+        {
+          "artifact": "TypeScript interface field",
+          "source": "field.ts_type",
+          "file": "src/types/I{Entity}.ts",
+          "rule": "Use exact ts_type. Append | null if field.nullable = true and not already present."
+        },
+        {
+          "artifact": "Table column",
+          "source": "field.show_in_table = true",
+          "file": "Page component ColumnDef array",
+          "rule": "Generate column only if show_in_table is true. Use display_component to render cell. Apply display_align if present."
+        },
+        {
+          "artifact": "Form field",
+          "source": "field.show_in_form = true",
+          "file": "SlideOverForm or Modal component",
+          "rule": "Render input_component. Apply validation rules from field.validation. Mark required if validation.required = true."
+        },
+        {
+          "artifact": "Filter control",
+          "source": "field.filterable = true",
+          "file": "FilterPanel config",
+          "rule": "Add to FilterPanel using filter_type to determine control type. Map to URL query param."
+        },
+        {
+          "artifact": "Sort toggle",
+          "source": "field.sortable = true",
+          "file": "DataTable column header",
+          "rule": "Enable click-to-sort on column header. Pass sort_by param to API."
+        },
+        {
+          "artifact": "Zod schema rule",
+          "source": "field.validation object",
+          "file": "src/schemas/{entity}Schema.ts",
+          "rule": "Convert every validation key to a Zod chain: required→.min(1), max_length→.max(N), format:email→.email(), min→.min(N), max→.max(N), positive→.positive()."
+        }
+      ]
+    },
+    "rule_3_no_invention": {
+      "name": "No Invention Rule",
+      "description": "The AI must not create anything not defined in this schema. Violations produce an out-of-spec implementation.",
+      "forbidden_actions": [
+        {
+          "action": "Create a page route not in modules[].route",
+          "consequence": "Routing conflict. Silently broken navigation."
+        },
+        {
+          "action": "Add a form field not in entities[].fields[] with show_in_form: true",
+          "consequence": "Sends undefined data to API. Breaks validation."
+        },
+        {
+          "action": "Call an API endpoint not in api.endpoints.*",
+          "consequence": "404 at runtime. Broken feature."
+        },
+        {
+          "action": "Create a new shared component not in components.shared[]",
+          "consequence": "Style inconsistency. Duplicated logic."
+        },
+        {
+          "action": "Add a sidebar tab not in modules[]",
+          "consequence": "Broken navigation. Permission system mismatch."
+        },
+        {
+          "action": "Add a tab on a detail page not defined in ui_config.detail_view.tabs[]",
+          "consequence": "Undefined data query. Empty or broken tab."
+        },
+        {
+          "action": "Use a Tailwind class not traceable to design_system tokens",
+          "consequence": "Visual inconsistency. Breaks dark theme."
+        },
+        {
+          "action": "Create a database table not in entities[].table",
+          "consequence": "Schema drift. Undefined foreign key targets."
+        },
+        {
+          "action": "Invent a WebSocket event not in websocket.events[]",
+          "consequence": "Unhandled events. Silently ignored at runtime."
+        },
+        {
+          "action": "Add automation logic not in entities[].automations[]",
+          "consequence": "Unspecified side effects. Unpredictable state."
+        }
+      ]
+    },
+    "rule_4_full_implementation": {
+      "name": "Full Implementation Requirement",
+      "description": "Every layer must be implemented completely. Partial implementations are not acceptable. Use this checklist.",
+      "required_output_checklist": {
+        "database": [
+          "CREATE TYPE for every enum defined in entities[].fields[].enum_values",
+          "CREATE TABLE for every entity in entities[]",
+          "All columns from entities[].fields[] with correct db_type, nullable, default",
+          "All foreign key constraints from entities[].relationships[]",
+          "All indexes from entities[].indexes[]",
+          "Soft delete (deleted_at TIMESTAMPTZ) on all entities that have a deleted_at field",
+          "updated_at trigger function and trigger on all tables with updated_at field",
+          "Multi-tenant org_id column on every table (scoped from JWT)",
+          "notifications table",
+          "audit_logs table",
+          "automation_rules table"
+        ],
+        "backend_api": [
+          "One Express/FastAPI router file per api.endpoints key (leads, tasks, deals, etc.)",
+          "One handler function per endpoint entry in api.endpoints.*[]",
+          "Auth middleware: validate JWT, extract org_id and user_id, attach to request",
+          "Role middleware: check permissions.matrix for each route using role from JWT",
+          "Pagination middleware: apply page/limit/sort_by/sort_order from global_query_params",
+          "Soft delete filter: all list queries enforce WHERE deleted_at IS NULL by default",
+          "Org scoping filter: all queries enforce WHERE org_id = :orgId from JWT",
+          "Overdue task cron job at schedule defined in entities[Task].overdue_job.schedule",
+          "WebSocket server: emit all events defined in websocket.events[]",
+          "Automation engine: evaluate entities[].automations[] rules on trigger events"
+        ],
+        "frontend": [
+          "One page file per entry in folder_structure['src/pages']",
+          "One shared component file per entry in folder_structure['src/components/shared']",
+          "One hook file per entry in folder_structure['src/hooks']",
+          "One mutation file per entry in folder_structure['src/mutations']",
+          "One store file per entry in folder_structure['src/stores']",
+          "One API service file per entry in folder_structure['src/api']",
+          "One type file per entry in folder_structure['src/types']",
+          "One constants file per entry in folder_structure['src/constants']",
+          "One lib utility per entry in folder_structure['src/lib']",
+          "One Zod schema file per entry in folder_structure['src/schemas']",
+          "App router with all routes from modules[].route and detail_route",
+          "AuthGuard wrapping all authenticated routes",
+          "Role-based conditional render on every element in permissions.matrix",
+          "useWebSocket hook handling all events in websocket.events[]"
+        ]
+      },
+      "zero_placeholder_rule": "No file may contain: TODO, FIXME, placeholder, not implemented, coming soon, pseudo-code comments, or empty function bodies. Every function must have a working implementation."
+    },
+    "rule_5_state_synchronization": {
+      "name": "State Synchronization",
+      "description": "After every mutation, the React Query cache and UI must update as specified. This table is the authoritative sync contract.",
+      "mutation_sync_table": [
+        {
+          "mutation_hook": "useCreateLead",
+          "optimistic": false,
+          "invalidate_on_success": [
+            [
+              "leads",
+              "orgId"
+            ],
+            [
+              "dashboard",
+              "stats"
+            ]
+          ],
+          "ui_effect": "Close SlideOver. Toast success. Scroll to new row."
+        },
+        {
+          "mutation_hook": "useUpdateLead",
+          "optimistic": true,
+          "optimistic_target": [
+            "leads",
+            "orgId"
+          ],
+          "invalidate_on_success": [
+            [
+              "lead",
+              "id"
+            ],
+            [
+              "leads",
+              "orgId"
+            ]
+          ],
+          "rollback_on_error": "Revert row. Toast error."
+        },
+        {
+          "mutation_hook": "useDeleteLead",
+          "optimistic": true,
+          "optimistic_target": [
+            "leads",
+            "orgId"
+          ],
+          "invalidate_on_success": [
+            [
+              "leads",
+              "orgId"
+            ],
+            [
+              "dashboard",
+              "stats"
+            ]
+          ],
+          "ui_effect": "Row fades out. Toast with Undo (5s).",
+          "rollback_on_error": "Re-add row."
+        },
+        {
+          "mutation_hook": "useConvertLead",
+          "optimistic": false,
+          "invalidate_on_success": [
+            [
+              "leads",
+              "orgId"
+            ],
+            [
+              "deals",
+              "orgId"
+            ],
+            [
+              "dashboard",
+              "stats"
+            ]
+          ],
+          "ui_effect": "Toast with link to new deal. Lead status → converted."
+        },
+        {
+          "mutation_hook": "useCreateTask",
+          "optimistic": false,
+          "invalidate_on_success": [
+            [
+              "tasks",
+              "orgId"
+            ]
+          ],
+          "ui_effect": "Close SlideOver. Toast success."
+        },
+        {
+          "mutation_hook": "useCompleteTask",
+          "optimistic": true,
+          "optimistic_target": [
+            "tasks",
+            "orgId"
+          ],
+          "invalidate_on_success": [
+            [
+              "tasks",
+              "orgId"
+            ],
+            [
+              "dashboard",
+              "stats"
+            ]
+          ],
+          "ui_effect": "Checkbox checked. Title strikethrough. Row fades to Completed.",
+          "rollback_on_error": "Uncheck. Toast error."
+        },
+        {
+          "mutation_hook": "useCreateDeal",
+          "optimistic": false,
+          "invalidate_on_success": [
+            [
+              "deals",
+              "orgId"
+            ],
+            [
+              "dashboard",
+              "stats"
+            ]
+          ],
+          "ui_effect": "Card appears in target stage column."
+        },
+        {
+          "mutation_hook": "useMoveDeal",
+          "optimistic": true,
+          "optimistic_target": [
+            "deals",
+            "orgId"
+          ],
+          "invalidate_on_success": [
+            [
+              "deals",
+              "orgId"
+            ]
+          ],
+          "ui_effect": "Card moves to new column immediately.",
+          "rollback_on_error": "Snap card back. Toast error."
+        },
+        {
+          "mutation_hook": "useWinDeal",
+          "optimistic": true,
+          "optimistic_target": [
+            "deals",
+            "orgId"
+          ],
+          "invalidate_on_success": [
+            [
+              "deals",
+              "orgId"
+            ],
+            [
+              "leads",
+              "orgId"
+            ],
+            [
+              "dashboard",
+              "stats"
+            ],
+            [
+              "analytics"
+            ]
+          ],
+          "ui_effect": "Confetti (if deal owner). Card → Won column. Lead status → converted. Team toast."
+        },
+        {
+          "mutation_hook": "useLoseDeal",
+          "optimistic": true,
+          "optimistic_target": [
+            "deals",
+            "orgId"
+          ],
+          "invalidate_on_success": [
+            [
+              "deals",
+              "orgId"
+            ],
+            [
+              "dashboard",
+              "stats"
+            ]
+          ],
+          "ui_effect": "Card → Lost column (greyed + strikethrough)."
+        },
+        {
+          "mutation_hook": "useSendMessage",
+          "optimistic": true,
+          "optimistic_target": [
+            "messages",
+            "convId"
+          ],
+          "invalidate_on_success": [
+            [
+              "messages",
+              "convId"
+            ],
+            [
+              "conversations",
+              "orgId"
+            ]
+          ],
+          "ui_effect": "Bubble appears immediately (greyed → solid on confirm).",
+          "rollback_on_error": "Bubble shows red error + Retry."
+        },
+        {
+          "mutation_hook": "useMarkRead",
+          "optimistic": true,
+          "optimistic_target": [
+            "notifications",
+            "unread-count"
+          ],
+          "invalidate_on_success": [
+            [
+              "notifications",
+              "unread-count"
+            ],
+            [
+              "conversations",
+              "orgId"
+            ]
+          ],
+          "ui_effect": "Unread badge decrements. Row bold removed."
+        },
+        {
+          "mutation_hook": "useInviteAgent",
+          "optimistic": false,
+          "invalidate_on_success": [
+            [
+              "agents",
+              "orgId"
+            ]
+          ],
+          "ui_effect": "Close modal. Toast. New row with PendingBadge."
+        },
+        {
+          "mutation_hook": "useDeactivateAgent",
+          "optimistic": false,
+          "invalidate_on_success": [
+            [
+              "agents",
+              "orgId"
+            ]
+          ],
+          "ui_effect": "Row status → Inactive. Toast."
+        },
+        {
+          "mutation_hook": "useDeleteStage",
+          "optimistic": false,
+          "invalidate_on_success": [
+            [
+              "pipeline",
+              "stages"
+            ],
+            [
+              "deals",
+              "orgId"
+            ]
+          ],
+          "ui_effect": "Stage column removed. Deals migrated to target stage."
+        }
+      ],
+      "websocket_sync_rules": [
+        {
+          "event": "notification.new",
+          "cache_action": "prepend_to(['notifications','userId'])",
+          "badge_action": "increment(['notifications','unread-count'])",
+          "ui_action": "Show in-app toast 5s. Animate NotificationBell."
+        },
+        {
+          "event": "lead.created",
+          "cache_action": "prepend_to(['leads','orgId']) if no active filters exclude it",
+          "badge_action": "increment new_leads_today in ['dashboard','stats']",
+          "ui_action": "None beyond badge."
+        },
+        {
+          "event": "task.overdue",
+          "cache_action": "invalidate(['tasks','orgId'])",
+          "badge_action": "increment sidebar Tasks badge",
+          "ui_action": "Highlight row red on TasksPage."
+        },
+        {
+          "event": "message.received",
+          "cache_action": "append_to(['messages',conversation_id]) if thread open",
+          "badge_action": "increment unread on ConversationList row + sidebar Messages badge",
+          "ui_action": "Toast if MessagesPage not active."
+        },
+        {
+          "event": "deal.stage_changed",
+          "cache_action": "update deal in ['deals','orgId'] cache",
+          "badge_action": "None",
+          "ui_action": "Move card in PipelineBoard."
+        },
+        {
+          "event": "deal.won",
+          "cache_action": "invalidate(['deals','orgId'],['dashboard','stats'])",
+          "badge_action": "None",
+          "ui_action": "Confetti for deal owner. Toast to team."
+        },
+        {
+          "event": "ws.reconnected",
+          "cache_action": "invalidateQueries() on all active queries",
+          "badge_action": "Recompute all badges",
+          "ui_action": "None — silent resync."
+        }
+      ]
+    },
+    "rule_6_permission_enforcement": {
+      "name": "Permission Enforcement",
+      "description": "Every UI element and API route must enforce the permissions.matrix. Use this as the implementation contract.",
+      "ui_enforcement_pattern": {
+        "function": "roleGuard(permission: string, userRole: UserRole): boolean",
+        "file": "src/lib/roleGuard.ts",
+        "implementation_note": "Import permissions.matrix from src/constants/permissions.ts. Look up permissions[permission][userRole]. Return true if value is true or a non-false string. Return false if value is false.",
+        "usage_pattern": "{ roleGuard('leads.delete', user.role) && <DeleteButton /> }",
+        "never_do": "Do NOT use inline role string comparison: user.role === 'admin'. Always use roleGuard()."
+      },
+      "api_enforcement_pattern": {
+        "middleware": "requirePermission(permission: string)",
+        "implementation_note": "Extract role from JWT. Look up permissions.matrix[permission][role]. If false: return 403 FORBIDDEN. If 'own_only': add WHERE assigned_to = userId to query. If 'hard_delete' vs 'soft_delete': apply correct delete behavior.",
+        "special_values": {
+          "own_only": "Add WHERE assigned_to = :currentUserId to all queries",
+          "hard_delete": "Permanently delete record (DELETE FROM)",
+          "soft_delete": "Set deleted_at = NOW()",
+          "read_only": "Allow GET. Reject PATCH/POST/DELETE with 403",
+          "team": "Scope query to users in same org only (default behavior)",
+          "all": "No additional scoping — return all org records"
+        }
+      },
+      "route_guard_pattern": {
+        "component": "AuthGuard",
+        "file": "src/components/layout/AuthGuard.tsx",
+        "logic": "1. Check token exists in authStore. 2. Validate token not expired. 3. If module has visible_to_roles: check user.role is in array. 4. If check fails: navigate('/dashboard') + toast 'Access denied'."
+      }
+    },
+    "rule_7_automation_binding": {
+      "name": "Automation Binding",
+      "description": "All automations defined in entities[].automations[] must fire server-side and produce UI updates. This is the binding contract.",
+      "automation_engine_contract": {
+        "location": "Backend service: src/services/automationEngine.ts (or equivalent)",
+        "trigger_events_to_handle": [
+          "lead_created",
+          "lead_status_changed",
+          "lead_assigned",
+          "task_overdue",
+          "task_completed",
+          "deal_created",
+          "deal_stage_changed",
+          "deal_won",
+          "deal_lost"
+        ],
+        "evaluation_steps": [
+          "1. On trigger event: fetch all active automation_rules WHERE org_id = :orgId AND trigger_event = :event AND is_active = true",
+          "2. For each rule: evaluate conditions[] — ALL conditions must match (AND logic)",
+          "3. If all conditions match: execute actions[] in order",
+          "4. Log result to automation_logs table: { rule_id, entity_id, success, error_message, executed_at }",
+          "5. If any action fails: log failure, continue remaining actions, send notification to Admin"
+        ],
+        "action_types": {
+          "create_task": "INSERT into tasks with title, assigned_to from rule params, due_date = NOW() + due_in_hours",
+          "send_email": "Call email service with template name and lead/deal data as variables",
+          "send_sms": "Call Twilio with phone from lead record and template",
+          "change_status": "PATCH entity status field",
+          "create_notification": "INSERT into notifications for specified user",
+          "push_webhook": "POST to configured webhook URL with entity payload"
+        }
+      },
+      "ui_automation_effects": [
+        {
+          "automation_action": "create_task",
+          "ui_effect": "WebSocket push notification.new to assigned agent. Invalidate ['tasks','orgId'] via WS-triggered cache invalidation."
+        },
+        {
+          "automation_action": "send_email",
+          "ui_effect": "None — background action. Audit log entry created."
+        },
+        {
+          "automation_action": "change_status",
+          "ui_effect": "WebSocket push lead.updated. Frontend invalidates ['lead',id] and ['leads','orgId']."
+        },
+        {
+          "automation_action": "create_notification",
+          "ui_effect": "WebSocket push notification.new. NotificationBell animates. Badge increments."
+        }
+      ]
+    },
+    "rule_8_error_handling": {
+      "name": "Error Handling",
+      "description": "Every async operation must implement all four error states. Missing any state is a violation.",
+      "required_states_per_component": {
+        "loading": {
+          "rule": "Show LoadingSkeleton with correct variant before first data arrives",
+          "variant_mapping": {
+            "DashboardPage": "stat-cards",
+            "DataTable (any)": "table-rows",
+            "PipelineBoard": "pipeline",
+            "ConversationList": "messages",
+            "MessageThread": "messages",
+            "LeadDetailPage / AgentDetailPage": "detail-page",
+            "ReportChart": "chart",
+            "SettingsPage sections": "settings-form"
+          },
+          "never_do": "Never render an empty container while loading. Never show partial data without skeleton."
+        },
+        "empty": {
+          "rule": "Show EmptyState component with icon, heading, subtext, and action from ui_config.*.empty_state",
+          "never_do": "Never render an empty table, empty board, or empty list without EmptyState."
+        },
+        "error": {
+          "rule": "Show toast notification matching api.error_codes for the HTTP status received. For list pages: show inline error banner with retry button.",
+          "toast_map": {
+            "400": "Inline field errors in form + banner at top",
+            "401": "Redirect to /login + toast 'Session expired'",
+            "403": "Toast 'You don't have permission to do this'",
+            "404": "Toast 'Record not found' + redirect to list page",
+            "409": "Conflict modal or inline field error",
+            "429": "Toast with retry countdown timer",
+            "500": "Toast 'Something went wrong' + Retry button"
+          },
+          "never_do": "Never swallow errors silently. Never console.error in production without user notification."
+        },
+        "validation": {
+          "rule": "Zod parses form on submit. On error: display message below each invalid field using error.message. Do not clear valid fields on resubmit.",
+          "field_error_style": "text-xs text-red-400 mt-1 flex items-center gap-1 — with AlertCircle icon",
+          "timing": "Validate on blur (per field) AND on submit (all fields)",
+          "never_do": "Never show a generic 'form is invalid' message without specifying which fields. Never clear all fields on validation failure."
+        }
+      }
+    },
+    "rule_9_design_system_enforcement": {
+      "name": "Design System Enforcement",
+      "description": "Every styled element must use Tailwind classes traceable to design_system tokens. No arbitrary values, no hardcoded colors.",
+      "color_usage_rules": [
+        {
+          "token": "design_system.colors.background.base",
+          "tailwind": "bg-slate-950",
+          "use_for": "App root background, sidebar, topnav"
+        },
+        {
+          "token": "design_system.colors.background.surface",
+          "tailwind": "bg-slate-900",
+          "use_for": "Cards, panels, tables, slide-overs"
+        },
+        {
+          "token": "design_system.colors.background.surface_2",
+          "tailwind": "bg-slate-800",
+          "use_for": "Table alternate rows, input backgrounds, table headers"
+        },
+        {
+          "token": "design_system.colors.accent.default",
+          "tailwind": "bg-blue-600",
+          "use_for": "Primary buttons, active nav items, focus rings"
+        },
+        {
+          "token": "design_system.colors.success.default",
+          "tailwind": "bg-green-600",
+          "use_for": "Won deals, completed tasks, success toasts"
+        },
+        {
+          "token": "design_system.colors.danger.default",
+          "tailwind": "bg-red-600",
+          "use_for": "Delete buttons, overdue rows, error states"
+        },
+        {
+          "token": "design_system.colors.warning.default",
+          "tailwind": "bg-amber-500",
+          "use_for": "Stalled deals, pending badges, warning toasts"
+        },
+        {
+          "token": "design_system.colors.border.default",
+          "tailwind": "border-slate-700",
+          "use_for": "All card, table, and input borders"
+        }
+      ],
+      "badge_color_enforcement": {
+        "rule": "Badge colors for each status/priority/role value must come from entities[].fields[].badge_colors. Never invent badge colors.",
+        "implementation": "Create statusColors.ts in src/constants/. Export a map: { lead: { new: 'bg-blue-950 text-blue-400', ... }, task: {...}, deal: {...} }. Import in StatusBadge component."
+      },
+      "spacing_rules": [
+        "Page containers: p-6",
+        "Cards and panels: p-4",
+        "Form fields: gap-y-4 between fields, gap-y-6 between sections",
+        "Table cells: px-4 py-3",
+        "Primary buttons: px-4 py-2",
+        "Badges: px-2 py-0.5"
+      ],
+      "forbidden_patterns": [
+        "style={{ color: '#...' }} — use Tailwind class",
+        "className='p-[18px]' — use defined spacing tokens",
+        "bg-[#1a1a2e] — use design_system color tokens",
+        "text-[14px] — use Tailwind text-sm / text-base etc.",
+        "Mixing light and dark mode classes — this is a dark-only UI"
+      ]
+    },
+    "rule_10_output_format": {
+      "name": "Output Format",
+      "description": "The final generated codebase must meet these quality gates before delivery.",
+      "quality_gates": [
+        {
+          "gate": "TypeScript compilation",
+          "command": "tsc --strict --noEmit",
+          "required_result": "Zero errors"
+        },
+        {
+          "gate": "No placeholder content",
+          "check": "grep -r 'TODO\\|FIXME\\|placeholder\\|coming soon\\|not implemented' src/",
+          "required_result": "Zero matches"
+        },
+        {
+          "gate": "No raw fetch calls in components",
+          "check": "grep -r \"fetch('\" src/pages/ src/components/",
+          "required_result": "Zero matches"
+        },
+        {
+          "gate": "No inline role checks",
+          "check": "grep -r \"role === 'admin'\\|role === 'manager'\\|role === 'agent'\" src/pages/ src/components/",
+          "required_result": "Zero matches — use roleGuard() only"
+        },
+        {
+          "gate": "No magic route strings",
+          "check": "grep -r \"navigate('/\" src/pages/ src/components/",
+          "required_result": "Zero matches — use ROUTES constants"
+        },
+        {
+          "gate": "All pages have EmptyState",
+          "check": "Every DataTable, board, and list must pass emptyState prop",
+          "required_result": "Every list renders EmptyState when data is empty"
+        },
+        {
+          "gate": "All async components have loading state",
+          "check": "Every useQuery call must have isLoading handled with LoadingSkeleton",
+          "required_result": "No blank sections during data fetch"
+        },
+        {
+          "gate": "All mutations have error handling",
+          "check": "Every useMutation must have onError handler with toast",
+          "required_result": "No silent failures"
+        },
+        {
+          "gate": "Folder structure matches spec",
+          "check": "All files listed in folder_structure must exist",
+          "required_result": "No missing files"
+        },
+        {
+          "gate": "All Zod schemas present",
+          "check": "All files in src/schemas/ must exist and export a schema",
+          "required_result": "No missing schema files"
+        }
+      ],
+      "file_header_requirement": "Every generated .tsx and .ts file must begin with a comment: // Generated from crm_spec.json v3.0 — do not edit manually",
+      "index_exports_requirement": "Every src/components/shared/, src/hooks/, src/stores/, src/api/, src/types/ directory must have an index.ts that re-exports all named exports from all files in that directory."
+    }
+  }
+}

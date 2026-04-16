@@ -1,0 +1,2928 @@
+{
+  "_meta": {
+    "app_name": "Healthcare Clinic",
+    "description": "Complete clinic management"
+  },
+  "entities": [
+    {
+      "name": "Doctor",
+      "table": "doctors",
+      "description": "Doctor",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Full name",
+          "help_text": "Full name"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email"
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "(555) 123-4567",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "help_text": "Contact phone number"
+        },
+        {
+          "name": "license_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "specialty",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "general",
+            "cardiology",
+            "dermatology",
+            "pediatrics",
+            "orthopedics",
+            "neurology",
+            "psychiatry"
+          ],
+          "badge_colors": {
+            "general": "blue",
+            "cardiology": "red",
+            "dermatology": "pink",
+            "pediatrics": "green",
+            "orthopedics": "amber",
+            "neurology": "purple",
+            "psychiatry": "purple"
+          }
+        },
+        {
+          "name": "consultation_fee",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "on_leave",
+            "retired"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "on_leave": "amber",
+            "retired": "slate"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "specialty",
+            "consultation_fee"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Doctors yet",
+            "subtext": "Create your first doctor",
+            "action_label": "Add Doctor"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "On Leave",
+              "filter": {
+                "field": "status",
+                "value": "on_leave"
+              }
+            },
+            {
+              "label": "Retired",
+              "filter": {
+                "field": "status",
+                "value": "retired"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "license_number"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "specialty",
+            "consultation_fee",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "license_number",
+                "specialty",
+                "consultation_fee"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "specialty",
+            "consultation_fee",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "license_number",
+                "specialty",
+                "consultation_fee"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
+        },
+        "detail_view": {
+          "route": "/doctors/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "license_number"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "license_number"
+              ]
+            },
+            {
+              "name": "Patients",
+              "type": "related_list",
+              "entity": "Patient",
+              "fk_field": "primary_doctor_id"
+            },
+            {
+              "name": "Appointments",
+              "type": "related_list",
+              "entity": "Appointment",
+              "fk_field": "doctor_id"
+            },
+            {
+              "name": "MedicalRecords",
+              "type": "related_list",
+              "entity": "MedicalRecord",
+              "fk_field": "doctor_id"
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Patient",
+      "table": "patients",
+      "description": "Patient",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Full name",
+          "help_text": "Full name"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email"
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "(555) 123-4567",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "help_text": "Contact phone number"
+        },
+        {
+          "name": "date_of_birth",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "gender",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "male",
+            "female",
+            "other"
+          ],
+          "badge_colors": {
+            "male": "blue",
+            "female": "pink",
+            "other": "purple"
+          }
+        },
+        {
+          "name": "blood_type",
+          "db_type": "VARCHAR(5)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "allergies",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "insurance_provider",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "primary_doctor_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Doctor"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "inactive"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "slate"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "phone",
+            "date_of_birth",
+            "gender",
+            "blood_type"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Patients yet",
+            "subtext": "Create your first patient",
+            "action_label": "Add Patient"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "date_of_birth",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "gender"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "date_of_birth",
+            "gender",
+            "blood_type",
+            "allergies",
+            "insurance_provider",
+            "primary_doctor_id",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "date_of_birth",
+                "gender",
+                "allergies",
+                "insurance_provider",
+                "primary_doctor_id"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "blood_type",
+                "status"
+              ]
+            }
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "date_of_birth",
+            "gender",
+            "blood_type",
+            "allergies",
+            "insurance_provider",
+            "primary_doctor_id",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "date_of_birth",
+                "gender",
+                "allergies",
+                "insurance_provider",
+                "primary_doctor_id"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "blood_type",
+                "status"
+              ]
+            }
+          ]
+        },
+        "detail_view": {
+          "route": "/patients/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "date_of_birth"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "date_of_birth"
+              ]
+            },
+            {
+              "name": "Appointments",
+              "type": "related_list",
+              "entity": "Appointment",
+              "fk_field": "patient_id"
+            },
+            {
+              "name": "MedicalRecords",
+              "type": "related_list",
+              "entity": "MedicalRecord",
+              "fk_field": "patient_id"
+            },
+            {
+              "name": "Prescriptions",
+              "type": "related_list",
+              "entity": "Prescription",
+              "fk_field": "patient_id"
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Appointment",
+      "table": "appointments",
+      "description": "Appointment",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "patient_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Patient"
+        },
+        {
+          "name": "doctor_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Doctor"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "consultation",
+            "follow_up",
+            "checkup",
+            "emergency",
+            "procedure",
+            "lab_work"
+          ],
+          "badge_colors": {
+            "consultation": "blue",
+            "follow_up": "green",
+            "checkup": "amber",
+            "emergency": "red",
+            "procedure": "purple",
+            "lab_work": "pink"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Add details...",
+          "help_text": "Internal notes (not visible to customers)"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "scheduled",
+            "checked_in",
+            "in_progress",
+            "completed",
+            "cancelled",
+            "no_show"
+          ],
+          "badge_colors": {
+            "scheduled": "blue",
+            "checked_in": "green",
+            "in_progress": "amber",
+            "completed": "slate",
+            "cancelled": "red",
+            "no_show": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "patient_id",
+            "doctor_id",
+            "date",
+            "time",
+            "type",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Appointments yet",
+            "subtext": "Create your first appointment",
+            "action_label": "Add Appointment"
+          },
+          "views": [
+            "table",
+            "kanban",
+            "calendar"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "Checked In",
+              "filter": {
+                "field": "status",
+                "value": "checked_in"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "patient_id",
+            "doctor_id",
+            "date",
+            "time",
+            "type",
+            "notes",
+            "status"
+          ],
+          "required_fields": [
+            "patient_id",
+            "doctor_id",
+            "date"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "patient_id",
+            "doctor_id",
+            "date",
+            "time",
+            "type",
+            "notes",
+            "status"
+          ],
+          "required_fields": [
+            "patient_id",
+            "doctor_id",
+            "date"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/appointments/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "patient_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "patient_id",
+            "doctor_id",
+            "date",
+            "time"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "patient_id",
+                "doctor_id",
+                "date",
+                "time"
+              ]
+            },
+            {
+              "name": "MedicalRecords",
+              "type": "related_list",
+              "entity": "MedicalRecord",
+              "fk_field": "appointment_id"
+            },
+            {
+              "name": "Billings",
+              "type": "related_list",
+              "entity": "Billing",
+              "fk_field": "appointment_id"
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "MedicalRecord",
+      "table": "medical_records",
+      "description": "Medical record",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "patient_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Patient"
+        },
+        {
+          "name": "doctor_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Doctor"
+        },
+        {
+          "name": "appointment_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Appointment"
+        },
+        {
+          "name": "diagnosis",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "treatment",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "follow_up_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "patient_id",
+            "doctor_id",
+            "appointment_id",
+            "diagnosis",
+            "treatment",
+            "follow_up_date"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No MedicalRecords yet",
+            "subtext": "Create your first medicalrecord",
+            "action_label": "Add MedicalRecord"
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "follow_up_date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "diagnosis"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "patient_id",
+            "doctor_id",
+            "appointment_id",
+            "diagnosis",
+            "treatment",
+            "follow_up_date"
+          ],
+          "required_fields": [
+            "patient_id",
+            "doctor_id",
+            "appointment_id"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "patient_id",
+            "doctor_id",
+            "appointment_id",
+            "diagnosis",
+            "treatment",
+            "follow_up_date"
+          ],
+          "required_fields": [
+            "patient_id",
+            "doctor_id",
+            "appointment_id"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/medical_records/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "patient_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "patient_id",
+            "doctor_id",
+            "appointment_id",
+            "diagnosis"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "patient_id",
+                "doctor_id",
+                "appointment_id",
+                "diagnosis"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Prescription",
+      "table": "prescriptions",
+      "description": "Prescription",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "patient_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Patient"
+        },
+        {
+          "name": "doctor_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Doctor"
+        },
+        {
+          "name": "medication",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "dosage",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "frequency",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "refills",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "completed",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "completed": "slate",
+            "cancelled": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "patient_id",
+            "doctor_id",
+            "medication",
+            "dosage",
+            "frequency",
+            "refills"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Prescriptions yet",
+            "subtext": "Create your first prescription",
+            "action_label": "Add Prescription"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "medication",
+            "dosage",
+            "frequency",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "patient_id",
+            "doctor_id",
+            "medication",
+            "dosage",
+            "frequency",
+            "refills",
+            "status"
+          ],
+          "required_fields": [
+            "patient_id",
+            "doctor_id",
+            "medication"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "patient_id",
+            "doctor_id",
+            "medication",
+            "dosage",
+            "frequency",
+            "refills",
+            "status"
+          ],
+          "required_fields": [
+            "patient_id",
+            "doctor_id",
+            "medication"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/prescriptions/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "patient_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "patient_id",
+            "doctor_id",
+            "medication",
+            "dosage"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "patient_id",
+                "doctor_id",
+                "medication",
+                "dosage"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "LabResult",
+      "table": "lab_results",
+      "description": "Lab result",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "patient_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Patient"
+        },
+        {
+          "name": "doctor_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Doctor"
+        },
+        {
+          "name": "test_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "blood",
+            "urine",
+            "imaging",
+            "pathology"
+          ],
+          "badge_colors": {
+            "blood": "red",
+            "urine": "amber",
+            "imaging": "blue",
+            "pathology": "purple"
+          }
+        },
+        {
+          "name": "result",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "is_abnormal",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean_badge"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "pending",
+            "completed",
+            "reviewed"
+          ],
+          "badge_colors": {
+            "pending": "amber",
+            "completed": "blue",
+            "reviewed": "green"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "patient_id",
+            "doctor_id",
+            "test_name",
+            "category",
+            "result",
+            "is_abnormal"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No LabResults yet",
+            "subtext": "Create your first labresult",
+            "action_label": "Add LabResult"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Reviewed",
+              "filter": {
+                "field": "status",
+                "value": "reviewed"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "test_name",
+            "category",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "patient_id",
+            "doctor_id",
+            "test_name",
+            "category",
+            "result",
+            "is_abnormal",
+            "status"
+          ],
+          "required_fields": [
+            "patient_id",
+            "doctor_id",
+            "test_name"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "patient_id",
+            "doctor_id",
+            "test_name",
+            "category",
+            "result",
+            "is_abnormal",
+            "status"
+          ],
+          "required_fields": [
+            "patient_id",
+            "doctor_id",
+            "test_name"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/lab_results/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "patient_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "patient_id",
+            "doctor_id",
+            "test_name",
+            "category"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "patient_id",
+                "doctor_id",
+                "test_name",
+                "category"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Billing",
+      "table": "billings",
+      "description": "Billing",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "patient_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Patient"
+        },
+        {
+          "name": "appointment_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Appointment"
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "help_text": "Enter amount in USD",
+          "validation": {
+            "min": 0,
+            "message": "Amount must be a positive number"
+          },
+          "placeholder": "0.00"
+        },
+        {
+          "name": "insurance_covered",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "patient_owes",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "computed": "amount - insurance_covered"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "pending",
+            "submitted_to_insurance",
+            "paid",
+            "overdue"
+          ],
+          "badge_colors": {
+            "pending": "amber",
+            "submitted_to_insurance": "blue",
+            "paid": "green",
+            "overdue": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "patient_id",
+            "appointment_id",
+            "amount",
+            "insurance_covered",
+            "patient_owes",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Billings yet",
+            "subtext": "Create your first billing",
+            "action_label": "Add Billing"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Submitted To Insurance",
+              "filter": {
+                "field": "status",
+                "value": "submitted_to_insurance"
+              }
+            },
+            {
+              "label": "Paid",
+              "filter": {
+                "field": "status",
+                "value": "paid"
+              }
+            },
+            {
+              "label": "Overdue",
+              "filter": {
+                "field": "status",
+                "value": "overdue"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Paid",
+              "action": "update_status",
+              "value": "paid"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "patient_id",
+            "appointment_id",
+            "amount",
+            "insurance_covered",
+            "patient_owes",
+            "status"
+          ],
+          "required_fields": [
+            "patient_id",
+            "appointment_id",
+            "amount"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "patient_id",
+            "appointment_id",
+            "amount",
+            "insurance_covered",
+            "patient_owes",
+            "status"
+          ],
+          "required_fields": [
+            "patient_id",
+            "appointment_id",
+            "amount"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/billings/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "patient_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "patient_id",
+            "appointment_id",
+            "amount",
+            "insurance_covered"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "patient_id",
+                "appointment_id",
+                "amount",
+                "insurance_covered"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "MedicalSupply",
+      "table": "medical_supplies",
+      "description": "Supply",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Full name",
+          "help_text": "Full name"
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "medication",
+            "surgical",
+            "diagnostic",
+            "ppe",
+            "office"
+          ],
+          "badge_colors": {
+            "medication": "blue",
+            "surgical": "red",
+            "diagnostic": "purple",
+            "ppe": "green",
+            "office": "slate"
+          }
+        },
+        {
+          "name": "quantity",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Quantity must be a positive number"
+          },
+          "placeholder": "1",
+          "help_text": "Number of units"
+        },
+        {
+          "name": "reorder_level",
+          "db_type": "INTEGER NOT NULL DEFAULT 10",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "supplier",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "expiry_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "in_stock",
+            "low_stock",
+            "out_of_stock",
+            "expired"
+          ],
+          "badge_colors": {
+            "in_stock": "green",
+            "low_stock": "amber",
+            "out_of_stock": "red",
+            "expired": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "category",
+            "quantity",
+            "reorder_level",
+            "supplier",
+            "expiry_date"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No MedicalSupplys yet",
+            "subtext": "Create your first medicalsupply",
+            "action_label": "Add MedicalSupply"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "In Stock",
+              "filter": {
+                "field": "status",
+                "value": "in_stock"
+              }
+            },
+            {
+              "label": "Low Stock",
+              "filter": {
+                "field": "status",
+                "value": "low_stock"
+              }
+            },
+            {
+              "label": "Out Of Stock",
+              "filter": {
+                "field": "status",
+                "value": "out_of_stock"
+              }
+            },
+            {
+              "label": "Expired",
+              "filter": {
+                "field": "status",
+                "value": "expired"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "expiry_date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "category",
+            "supplier",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "category",
+            "quantity",
+            "reorder_level",
+            "supplier",
+            "expiry_date",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "category",
+            "quantity"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "category",
+            "quantity",
+            "reorder_level",
+            "supplier",
+            "expiry_date",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "category",
+            "quantity"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/medical_supplies/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "category",
+            "quantity",
+            "reorder_level"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "category",
+                "quantity",
+                "reorder_level"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "modules": [
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "component": "DashboardPage",
+      "layout": "app",
+      "sidebar_order": 1,
+      "sidebar_icon": "LayoutDashboard"
+    },
+    {
+      "name": "Doctors",
+      "route": "/doctors",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 2,
+      "sidebar_icon": "Stethoscope",
+      "entity": "Doctor"
+    },
+    {
+      "name": "Patients",
+      "route": "/patients",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 3,
+      "sidebar_icon": "Users",
+      "entity": "Patient"
+    },
+    {
+      "name": "Appointments",
+      "route": "/appointments",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 4,
+      "sidebar_icon": "CalendarDays",
+      "entity": "Appointment"
+    },
+    {
+      "name": "MedicalRecords",
+      "route": "/medical_records",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 5,
+      "sidebar_icon": "FileText",
+      "entity": "MedicalRecord"
+    },
+    {
+      "name": "Prescriptions",
+      "route": "/prescriptions",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 6,
+      "sidebar_icon": "Pill",
+      "entity": "Prescription"
+    },
+    {
+      "name": "LabResults",
+      "route": "/lab_results",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 7,
+      "sidebar_icon": "TestTube",
+      "entity": "LabResult"
+    },
+    {
+      "name": "Billings",
+      "route": "/billings",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 8,
+      "sidebar_icon": "DollarSign",
+      "entity": "Billing"
+    },
+    {
+      "name": "MedicalSupplys",
+      "route": "/medical_supplies",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 9,
+      "sidebar_icon": "Package",
+      "entity": "MedicalSupply"
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Doctors",
+        "entity": "Doctor",
+        "method": "count",
+        "icon": "FileText",
+        "color": "blue"
+      },
+      {
+        "label": "Total Patients",
+        "entity": "Patient",
+        "method": "count",
+        "icon": "Users",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Appointments",
+        "entity": "Appointment",
+        "method": "count",
+        "icon": "Calendar",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Billing",
+        "method": "sum",
+        "field": "amount",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Doctors",
+        "entity": "Doctor",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  },
+  "design_system": {
+    "theme": "light",
+    "colors": {
+      "primary": "#ec4899",
+      "secondary": "#64748b",
+      "background": "#ffffff",
+      "surface": "#f8fafc",
+      "text": "#0f172a",
+      "muted": "#94a3b8"
+    },
+    "spacing": {
+      "page_padding": "24px",
+      "card_padding": "16px",
+      "gap": "16px"
+    },
+    "buttons": {
+      "primary": {
+        "bg": "bg-pink-500",
+        "text": "text-white",
+        "hover": "hover:bg-pink-600"
+      }
+    },
+    "table": {
+      "header_bg": "bg-gray-50",
+      "row_hover": "hover:bg-gray-50",
+      "border": "border-gray-200"
+    },
+    "typography": {
+      "heading": "text-gray-900 font-semibold",
+      "body": "text-gray-700",
+      "muted": "text-gray-400"
+    }
+  },
+  "pagination": {
+    "type": "cursor",
+    "default_page_size": 25,
+    "max_page_size": 100
+  }
+}

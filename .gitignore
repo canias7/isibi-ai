@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+
+# Environment
+.env
+backend/.env
+
+# Build
+frontend/dist/
+agent/dist/
+agent/release/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Generated
+backend/generated_projects/

@@ -1,0 +1,2980 @@
+{
+  "_meta": {
+    "app_name": "Law Firm Management",
+    "description": "Legal practice management system"
+  },
+  "entities": [
+    {
+      "name": "Client",
+      "table": "clients",
+      "description": "Law firm client",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Full name",
+          "help_text": "Full name"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          },
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
+        },
+        {
+          "name": "company",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Company name",
+          "help_text": "Organization or company name"
+        },
+        {
+          "name": "address",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Street address",
+          "help_text": "Full mailing address"
+        },
+        {
+          "name": "client_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "individual",
+            "corporate",
+            "government",
+            "nonprofit"
+          ],
+          "badge_colors": {
+            "individual": "blue",
+            "corporate": "green",
+            "government": "purple",
+            "nonprofit": "teal"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "inactive",
+            "prospective",
+            "archived"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "gray",
+            "prospective": "yellow",
+            "archived": "blue"
+          }
+        },
+        {
+          "name": "retainer_amount",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "client_type",
+            "operator": "equals",
+            "value": "corporate"
+          },
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "phone",
+            "company",
+            "client_type",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Clients yet",
+            "subtext": "Create your first client",
+            "action_label": "Add Client"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            },
+            {
+              "label": "Prospective",
+              "filter": {
+                "field": "status",
+                "value": "prospective"
+              }
+            },
+            {
+              "label": "Archived",
+              "filter": {
+                "field": "status",
+                "value": "archived"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "company"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "company",
+            "address",
+            "client_type",
+            "status",
+            "retainer_amount"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone",
+            "client_type",
+            "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "company",
+                "retainer_amount"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "client_type",
+                "status"
+              ]
+            }
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "company",
+            "address",
+            "client_type",
+            "status",
+            "retainer_amount"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone",
+            "client_type",
+            "status"
+          ],
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "company",
+                "retainer_amount"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "client_type",
+                "status"
+              ]
+            }
+          ]
+        },
+        "detail_view": {
+          "route": "/clients/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "company"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "company"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Attorney",
+      "table": "attorneys",
+      "description": "Lawyer / attorney",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Full name",
+          "help_text": "Full name"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          },
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
+        },
+        {
+          "name": "bar_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "practice_area",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "corporate",
+            "criminal",
+            "family",
+            "real_estate",
+            "immigration",
+            "tax",
+            "ip",
+            "litigation"
+          ],
+          "badge_colors": {
+            "corporate": "blue",
+            "criminal": "red",
+            "family": "pink",
+            "real_estate": "green",
+            "immigration": "purple",
+            "tax": "orange",
+            "ip": "teal",
+            "litigation": "yellow"
+          }
+        },
+        {
+          "name": "billing_rate",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          },
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "seniority",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "associate",
+            "senior_associate",
+            "partner",
+            "managing_partner",
+            "of_counsel"
+          ],
+          "badge_colors": {
+            "associate": "gray",
+            "senior_associate": "blue",
+            "partner": "green",
+            "managing_partner": "gold",
+            "of_counsel": "purple"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "on_leave",
+            "retired"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "on_leave": "yellow",
+            "retired": "blue"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "phone",
+            "bar_number",
+            "practice_area",
+            "billing_rate"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Attorneys yet",
+            "subtext": "Create your first attorney",
+            "action_label": "Add Attorney"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "On Leave",
+              "filter": {
+                "field": "status",
+                "value": "on_leave"
+              }
+            },
+            {
+              "label": "Retired",
+              "filter": {
+                "field": "status",
+                "value": "retired"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "bar_number"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "bar_number",
+            "practice_area",
+            "billing_rate",
+            "seniority",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone",
+            "bar_number",
+            "practice_area",
+            "billing_rate",
+            "seniority",
+            "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "bar_number",
+                "practice_area",
+                "billing_rate",
+                "seniority"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "bar_number",
+            "practice_area",
+            "billing_rate",
+            "seniority",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone",
+            "bar_number",
+            "practice_area",
+            "billing_rate",
+            "seniority",
+            "status"
+          ],
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "bar_number",
+                "practice_area",
+                "billing_rate",
+                "seniority"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
+        },
+        "detail_view": {
+          "route": "/attorneys/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "bar_number"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "bar_number"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Case",
+      "table": "cases",
+      "description": "Legal case / matter",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "case_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
+        },
+        {
+          "name": "client_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "clients",
+          "fk_display": "name"
+        },
+        {
+          "name": "attorney_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "attorneys",
+          "fk_display": "name"
+        },
+        {
+          "name": "case_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "civil",
+            "criminal",
+            "family",
+            "corporate",
+            "real_estate",
+            "immigration",
+            "bankruptcy"
+          ],
+          "badge_colors": {
+            "civil": "blue",
+            "criminal": "red",
+            "family": "pink",
+            "corporate": "green",
+            "real_estate": "orange",
+            "immigration": "purple",
+            "bankruptcy": "gray"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'open'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "open",
+          "enum_values": [
+            "open",
+            "discovery",
+            "trial",
+            "appeal",
+            "settled",
+            "closed",
+            "dismissed"
+          ],
+          "badge_colors": {
+            "open": "blue",
+            "discovery": "purple",
+            "trial": "red",
+            "appeal": "orange",
+            "settled": "green",
+            "closed": "gray",
+            "dismissed": "yellow"
+          }
+        },
+        {
+          "name": "priority",
+          "db_type": "VARCHAR(10) NOT NULL DEFAULT 'normal'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "normal",
+          "enum_values": [
+            "low",
+            "normal",
+            "high",
+            "urgent"
+          ],
+          "badge_colors": {
+            "low": "gray",
+            "normal": "blue",
+            "high": "orange",
+            "urgent": "red"
+          }
+        },
+        {
+          "name": "filing_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "settlement_amount",
+          "db_type": "NUMERIC(14,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "settled"
+          },
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "case_number",
+            "title",
+            "client_id",
+            "attorney_id",
+            "case_type",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Cases yet",
+            "subtext": "Create your first case",
+            "action_label": "Add Case"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Open",
+              "filter": {
+                "field": "status",
+                "value": "open"
+              }
+            },
+            {
+              "label": "Discovery",
+              "filter": {
+                "field": "status",
+                "value": "discovery"
+              }
+            },
+            {
+              "label": "Trial",
+              "filter": {
+                "field": "status",
+                "value": "trial"
+              }
+            },
+            {
+              "label": "Appeal",
+              "filter": {
+                "field": "status",
+                "value": "appeal"
+              }
+            },
+            {
+              "label": "Settled",
+              "filter": {
+                "field": "status",
+                "value": "settled"
+              }
+            },
+            {
+              "label": "Closed",
+              "filter": {
+                "field": "status",
+                "value": "closed"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "case_number",
+            "title",
+            "case_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "case_number",
+            "title",
+            "client_id",
+            "attorney_id",
+            "case_type",
+            "status",
+            "priority",
+            "filing_date",
+            "description",
+            "settlement_amount"
+          ],
+          "required_fields": [
+            "case_number",
+            "title",
+            "client_id",
+            "attorney_id",
+            "case_type",
+            "status",
+            "priority",
+            "filing_date"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "case_number",
+            "title",
+            "client_id",
+            "attorney_id",
+            "case_type",
+            "status",
+            "priority",
+            "filing_date",
+            "description",
+            "settlement_amount"
+          ],
+          "required_fields": [
+            "case_number",
+            "title",
+            "client_id",
+            "attorney_id",
+            "case_type",
+            "status",
+            "priority",
+            "filing_date"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/cases/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "case_number"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "case_number",
+            "title",
+            "client_id",
+            "attorney_id"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "case_number",
+                "title",
+                "client_id",
+                "attorney_id"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "client_id",
+          "references": {
+            "table": "clients",
+            "column": "id"
+          }
+        },
+        {
+          "column": "attorney_id",
+          "references": {
+            "table": "attorneys",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimeEntry",
+      "table": "time_entries",
+      "description": "Billable time entry",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "case_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "cases",
+          "fk_display": "title"
+        },
+        {
+          "name": "attorney_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "attorneys",
+          "fk_display": "name"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "hours",
+          "db_type": "NUMERIC(5,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0.1,
+            "max": 24
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "billing_type",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'billable'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "billable",
+          "enum_values": [
+            "billable",
+            "non_billable",
+            "pro_bono",
+            "contingency"
+          ],
+          "badge_colors": {
+            "billable": "green",
+            "non_billable": "gray",
+            "pro_bono": "blue",
+            "contingency": "orange"
+          }
+        },
+        {
+          "name": "rate_override",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "billing_type",
+            "operator": "equals",
+            "value": "billable"
+          },
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "is_approved",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "case_id",
+            "attorney_id",
+            "date",
+            "hours",
+            "description",
+            "billing_type"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No TimeEntrys yet",
+            "subtext": "Create your first timeentry",
+            "action_label": "Add TimeEntry"
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "billing_type"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "case_id",
+            "attorney_id",
+            "date",
+            "hours",
+            "description",
+            "billing_type",
+            "rate_override",
+            "is_approved"
+          ],
+          "required_fields": [
+            "case_id",
+            "attorney_id",
+            "date",
+            "hours",
+            "description",
+            "billing_type",
+            "is_approved"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "case_id",
+            "attorney_id",
+            "date",
+            "hours",
+            "description",
+            "billing_type",
+            "rate_override",
+            "is_approved"
+          ],
+          "required_fields": [
+            "case_id",
+            "attorney_id",
+            "date",
+            "hours",
+            "description",
+            "billing_type",
+            "is_approved"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/time_entries/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "case_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "case_id",
+            "attorney_id",
+            "date",
+            "hours"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "case_id",
+                "attorney_id",
+                "date",
+                "hours"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "case_id",
+          "references": {
+            "table": "cases",
+            "column": "id"
+          }
+        },
+        {
+          "column": "attorney_id",
+          "references": {
+            "table": "attorneys",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "amount",
+          "expression": "hours * COALESCE(rate_override, (SELECT billing_rate FROM attorneys WHERE id = attorney_id))",
+          "ts_expression": "hours * (rate_override || 0)"
+        }
+      ]
+    },
+    {
+      "name": "Document",
+      "table": "documents",
+      "description": "Legal document",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "case_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "cases",
+          "fk_display": "title"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
+        },
+        {
+          "name": "document_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "contract",
+            "brief",
+            "motion",
+            "affidavit",
+            "deposition",
+            "evidence",
+            "correspondence",
+            "memo"
+          ],
+          "badge_colors": {
+            "contract": "blue",
+            "brief": "green",
+            "motion": "purple",
+            "affidavit": "orange",
+            "deposition": "teal",
+            "evidence": "red",
+            "correspondence": "gray",
+            "memo": "yellow"
+          }
+        },
+        {
+          "name": "file_url",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "placeholder": "https://..."
+        },
+        {
+          "name": "file_size_kb",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'draft'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "draft",
+          "enum_values": [
+            "draft",
+            "review",
+            "final",
+            "filed",
+            "archived"
+          ],
+          "badge_colors": {
+            "draft": "yellow",
+            "review": "blue",
+            "final": "green",
+            "filed": "teal",
+            "archived": "gray"
+          }
+        },
+        {
+          "name": "confidentiality",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'standard'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "standard",
+          "enum_values": [
+            "public",
+            "standard",
+            "confidential",
+            "privileged"
+          ],
+          "badge_colors": {
+            "public": "green",
+            "standard": "blue",
+            "confidential": "orange",
+            "privileged": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "case_id",
+            "title",
+            "document_type",
+            "file_size_kb",
+            "status",
+            "confidentiality"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Documents yet",
+            "subtext": "Create your first document",
+            "action_label": "Add Document"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Draft",
+              "filter": {
+                "field": "status",
+                "value": "draft"
+              }
+            },
+            {
+              "label": "Review",
+              "filter": {
+                "field": "status",
+                "value": "review"
+              }
+            },
+            {
+              "label": "Final",
+              "filter": {
+                "field": "status",
+                "value": "final"
+              }
+            },
+            {
+              "label": "Filed",
+              "filter": {
+                "field": "status",
+                "value": "filed"
+              }
+            },
+            {
+              "label": "Archived",
+              "filter": {
+                "field": "status",
+                "value": "archived"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "title",
+            "document_type",
+            "status",
+            "confidentiality"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "case_id",
+            "title",
+            "document_type",
+            "file_url",
+            "status",
+            "confidentiality"
+          ],
+          "required_fields": [
+            "case_id",
+            "title",
+            "document_type",
+            "file_url",
+            "status",
+            "confidentiality"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "case_id",
+            "title",
+            "document_type",
+            "file_url",
+            "status",
+            "confidentiality"
+          ],
+          "required_fields": [
+            "case_id",
+            "title",
+            "document_type",
+            "file_url",
+            "status",
+            "confidentiality"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/documents/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "case_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "case_id",
+            "title",
+            "document_type",
+            "file_size_kb"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "case_id",
+                "title",
+                "document_type",
+                "file_size_kb"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "case_id",
+          "references": {
+            "table": "cases",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invoice",
+      "table": "invoices",
+      "description": "Client billing invoice",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "case_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "cases",
+          "fk_display": "title"
+        },
+        {
+          "name": "client_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "clients",
+          "fk_display": "name"
+        },
+        {
+          "name": "invoice_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "issue_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "total_hours",
+          "db_type": "NUMERIC(8,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(12,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          },
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'draft'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "draft",
+          "enum_values": [
+            "draft",
+            "sent",
+            "paid",
+            "overdue",
+            "void",
+            "write_off"
+          ],
+          "badge_colors": {
+            "draft": "gray",
+            "sent": "blue",
+            "paid": "green",
+            "overdue": "red",
+            "void": "gray",
+            "write_off": "orange"
+          }
+        },
+        {
+          "name": "payment_received",
+          "db_type": "NUMERIC(12,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "case_id",
+            "client_id",
+            "invoice_number",
+            "issue_date",
+            "due_date",
+            "total_hours"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Invoices yet",
+            "subtext": "Create your first invoice",
+            "action_label": "Add Invoice"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Draft",
+              "filter": {
+                "field": "status",
+                "value": "draft"
+              }
+            },
+            {
+              "label": "Sent",
+              "filter": {
+                "field": "status",
+                "value": "sent"
+              }
+            },
+            {
+              "label": "Paid",
+              "filter": {
+                "field": "status",
+                "value": "paid"
+              }
+            },
+            {
+              "label": "Overdue",
+              "filter": {
+                "field": "status",
+                "value": "overdue"
+              }
+            },
+            {
+              "label": "Void",
+              "filter": {
+                "field": "status",
+                "value": "void"
+              }
+            },
+            {
+              "label": "Write Off",
+              "filter": {
+                "field": "status",
+                "value": "write_off"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "invoice_number",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Paid",
+              "action": "update_status",
+              "value": "paid"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "case_id",
+            "client_id",
+            "invoice_number",
+            "issue_date",
+            "due_date",
+            "amount",
+            "status",
+            "payment_received"
+          ],
+          "required_fields": [
+            "case_id",
+            "client_id",
+            "invoice_number",
+            "issue_date",
+            "due_date",
+            "amount",
+            "status",
+            "payment_received"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "case_id",
+            "client_id",
+            "invoice_number",
+            "issue_date",
+            "due_date",
+            "amount",
+            "status",
+            "payment_received"
+          ],
+          "required_fields": [
+            "case_id",
+            "client_id",
+            "invoice_number",
+            "issue_date",
+            "due_date",
+            "amount",
+            "status",
+            "payment_received"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/invoices/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "case_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "case_id",
+            "client_id",
+            "invoice_number",
+            "issue_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "case_id",
+                "client_id",
+                "invoice_number",
+                "issue_date"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "case_id",
+          "references": {
+            "table": "cases",
+            "column": "id"
+          }
+        },
+        {
+          "column": "client_id",
+          "references": {
+            "table": "clients",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "balance_due",
+          "expression": "amount - payment_received",
+          "ts_expression": "amount - payment_received"
+        }
+      ]
+    },
+    {
+      "name": "CourtDate",
+      "table": "court_dates",
+      "description": "Scheduled court appearance",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "case_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "cases",
+          "fk_display": "title"
+        },
+        {
+          "name": "attorney_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "attorneys",
+          "fk_display": "name"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "time_picker",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "court_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "hearing_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "arraignment",
+            "preliminary",
+            "motion",
+            "trial",
+            "sentencing",
+            "appeal",
+            "mediation"
+          ],
+          "badge_colors": {
+            "arraignment": "blue",
+            "preliminary": "teal",
+            "motion": "purple",
+            "trial": "red",
+            "sentencing": "orange",
+            "appeal": "yellow",
+            "mediation": "green"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'scheduled'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "scheduled",
+          "enum_values": [
+            "scheduled",
+            "continued",
+            "completed",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "scheduled": "blue",
+            "continued": "yellow",
+            "completed": "green",
+            "cancelled": "red"
+          }
+        },
+        {
+          "name": "outcome",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "completed"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "case_id",
+            "attorney_id",
+            "date",
+            "time",
+            "court_name",
+            "hearing_type"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No CourtDates yet",
+            "subtext": "Create your first courtdate",
+            "action_label": "Add CourtDate"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "Continued",
+              "filter": {
+                "field": "status",
+                "value": "continued"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "court_name",
+            "hearing_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "case_id",
+            "attorney_id",
+            "date",
+            "time",
+            "court_name",
+            "hearing_type",
+            "status",
+            "outcome"
+          ],
+          "required_fields": [
+            "case_id",
+            "attorney_id",
+            "date",
+            "time",
+            "court_name",
+            "hearing_type",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "case_id",
+            "attorney_id",
+            "date",
+            "time",
+            "court_name",
+            "hearing_type",
+            "status",
+            "outcome"
+          ],
+          "required_fields": [
+            "case_id",
+            "attorney_id",
+            "date",
+            "time",
+            "court_name",
+            "hearing_type",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/court_dates/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "case_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "case_id",
+            "attorney_id",
+            "date",
+            "time"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "case_id",
+                "attorney_id",
+                "date",
+                "time"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "case_id",
+          "references": {
+            "table": "cases",
+            "column": "id"
+          }
+        },
+        {
+          "column": "attorney_id",
+          "references": {
+            "table": "attorneys",
+            "column": "id"
+          }
+        }
+      ]
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Clients",
+        "entity": "Client",
+        "method": "count",
+        "icon": "Users",
+        "color": "blue"
+      },
+      {
+        "label": "Total Attorneys",
+        "entity": "Attorney",
+        "method": "count",
+        "icon": "FileText",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Cases",
+        "entity": "Case",
+        "method": "count",
+        "icon": "Briefcase",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Invoice",
+        "method": "sum",
+        "field": "amount",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Clients",
+        "entity": "Client",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
+}

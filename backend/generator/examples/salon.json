@@ -1,0 +1,144 @@
+{
+  "app_name": "Blush & Bloom Salon",
+  "entities": [
+    {
+      "name": "Client",
+      "table": "client",
+      "description": "Salon clients with contact and preference information",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "first_name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 1, "max_length": 100}},
+        {"name": "last_name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 1, "max_length": 100}},
+        {"name": "phone", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "PhoneInput", "display_component": "Text", "validation": {"required": true, "pattern": "^\\+?[1-9]\\d{6,14}$"}},
+        {"name": "email", "db_type": "VARCHAR(255)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "EmailInput", "display_component": "Text", "validation": {"pattern": "^[^@]+@[^@]+\\.[^@]+$"}},
+        {"name": "preferred_stylist", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "notes", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "last_visit", "db_type": "DATE", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "DateTime"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "last_name", "default_sort_order": "asc", "page_size": 25, "columns": ["first_name", "last_name", "phone", "email", "preferred_stylist", "last_visit", "created_at"], "filters": ["preferred_stylist"], "empty_state": {"icon": "heart", "heading": "No clients yet", "subtext": "Add your first salon client to get started", "action_label": "Add Client"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Client", "required_fields": ["first_name", "last_name", "phone"], "field_order": ["first_name", "last_name", "phone", "email", "preferred_stylist", "last_visit", "notes"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Stylist",
+      "table": "stylist",
+      "description": "Beauty professionals and their specializations",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "first_name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 1, "max_length": 100}},
+        {"name": "last_name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 1, "max_length": 100}},
+        {"name": "specialization", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "cuts", "label": "Cuts", "badge_color": "blue"}, {"value": "color", "label": "Color", "badge_color": "purple"}, {"value": "styling", "label": "Styling", "badge_color": "pink"}, {"value": "nails", "label": "Nails", "badge_color": "red"}, {"value": "spa", "label": "Spa", "badge_color": "green"}], "validation": {"required": true}},
+        {"name": "experience_years", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 0, "max": 50}},
+        {"name": "hourly_rate", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "active", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "active", "label": "Active", "badge_color": "green"}, {"value": "on_leave", "label": "On Leave", "badge_color": "yellow"}, {"value": "inactive", "label": "Inactive", "badge_color": "gray"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "last_name", "default_sort_order": "asc", "page_size": 25, "columns": ["first_name", "last_name", "specialization", "experience_years", "hourly_rate", "status", "created_at"], "filters": ["specialization", "status"], "empty_state": {"icon": "scissors", "heading": "No stylists on staff", "subtext": "Add your first stylist or beautician", "action_label": "Add Stylist"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Stylist", "required_fields": ["first_name", "last_name", "specialization", "experience_years", "hourly_rate"], "field_order": ["first_name", "last_name", "specialization", "experience_years", "hourly_rate", "status"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Service",
+      "table": "service",
+      "description": "Beauty and wellness services offered by the salon",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2, "max_length": 150}},
+        {"name": "description", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "duration_minutes", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 5, "max": 480}},
+        {"name": "price", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "category", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "haircut", "label": "Haircut", "badge_color": "blue"}, {"value": "color", "label": "Color", "badge_color": "purple"}, {"value": "treatment", "label": "Treatment", "badge_color": "green"}, {"value": "nails", "label": "Nails", "badge_color": "red"}, {"value": "facial", "label": "Facial", "badge_color": "pink"}, {"value": "massage", "label": "Massage", "badge_color": "indigo"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "name", "default_sort_order": "asc", "page_size": 25, "columns": ["name", "duration_minutes", "price", "category", "created_at"], "filters": ["category"], "empty_state": {"icon": "sparkles", "heading": "No services listed", "subtext": "Add your salon services and pricing", "action_label": "Add Service"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Service", "required_fields": ["name", "duration_minutes", "price", "category"], "field_order": ["name", "description", "duration_minutes", "price", "category"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Appointment",
+      "table": "appointment",
+      "description": "Booked appointments for salon services",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "client_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Client", "validation": {"required": true}},
+        {"name": "stylist_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Stylist", "validation": {"required": true}},
+        {"name": "service_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Service", "validation": {"required": true}},
+        {"name": "appointment_date", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "DatePicker", "display_component": "DateTime", "validation": {"required": true}},
+        {"name": "appointment_time", "db_type": "TIME", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "booked", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "booked", "label": "Booked", "badge_color": "blue"}, {"value": "confirmed", "label": "Confirmed", "badge_color": "indigo"}, {"value": "in_progress", "label": "In Progress", "badge_color": "yellow"}, {"value": "completed", "label": "Completed", "badge_color": "green"}, {"value": "cancelled", "label": "Cancelled", "badge_color": "red"}, {"value": "no_show", "label": "No Show", "badge_color": "gray"}], "validation": {"required": true}},
+        {"name": "notes", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "appointment_date", "default_sort_order": "desc", "page_size": 25, "columns": ["client_id", "stylist_id", "service_id", "appointment_date", "appointment_time", "status", "created_at"], "filters": ["stylist_id", "service_id", "status", "appointment_date"], "empty_state": {"icon": "calendar-heart", "heading": "No appointments booked", "subtext": "Book your first client appointment", "action_label": "Book Appointment"}},
+        "create_form": {"type": "SlideOverForm", "title": "Book Appointment", "required_fields": ["client_id", "stylist_id", "service_id", "appointment_date", "appointment_time"], "field_order": ["client_id", "stylist_id", "service_id", "appointment_date", "appointment_time", "status", "notes"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Product",
+      "table": "product",
+      "description": "Retail products sold at the salon",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2, "max_length": 150}},
+        {"name": "brand", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "price", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "stock_quantity", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 0, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 0}},
+        {"name": "category", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "shampoo", "label": "Shampoo", "badge_color": "blue"}, {"value": "conditioner", "label": "Conditioner", "badge_color": "green"}, {"value": "styling", "label": "Styling", "badge_color": "purple"}, {"value": "tools", "label": "Tools", "badge_color": "gray"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "name", "default_sort_order": "asc", "page_size": 25, "columns": ["name", "brand", "price", "stock_quantity", "category", "created_at"], "filters": ["category", "brand"], "empty_state": {"icon": "shopping-bag", "heading": "No products in inventory", "subtext": "Add retail products for your salon", "action_label": "Add Product"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Product", "required_fields": ["name", "brand", "price", "stock_quantity", "category"], "field_order": ["name", "brand", "price", "stock_quantity", "category"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    }
+  ],
+  "modules": [
+    {"name": "Dashboard", "route": "/", "component": "Dashboard", "layout": "dashboard", "sidebar_order": 0, "sidebar_icon": "LayoutDashboard", "entity": null},
+    {"name": "Clients", "route": "/clients", "component": "EntityList", "layout": "table", "sidebar_order": 1, "sidebar_icon": "Heart", "entity": "Client"},
+    {"name": "Stylists", "route": "/stylists", "component": "EntityList", "layout": "table", "sidebar_order": 2, "sidebar_icon": "Scissors", "entity": "Stylist"},
+    {"name": "Services", "route": "/services", "component": "EntityList", "layout": "table", "sidebar_order": 3, "sidebar_icon": "Sparkles", "entity": "Service"},
+    {"name": "Appointments", "route": "/appointments", "component": "EntityList", "layout": "table", "sidebar_order": 4, "sidebar_icon": "CalendarHeart", "entity": "Appointment"},
+    {"name": "Products", "route": "/products", "component": "EntityList", "layout": "table", "sidebar_order": 5, "sidebar_icon": "ShoppingBag", "entity": "Product"}
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {"label": "Total Clients", "entity": "Client", "icon": "Heart", "color": "pink"},
+      {"label": "Active Stylists", "entity": "Stylist", "icon": "Scissors", "color": "purple"},
+      {"label": "Services Offered", "entity": "Service", "icon": "Sparkles", "color": "blue"},
+      {"label": "Today's Appointments", "entity": "Appointment", "icon": "CalendarHeart", "color": "rose"}
+    ]
+  },
+  "design_system": {
+    "colors": {"primary": "#be185d", "secondary": "#db2777", "sidebar_bg": "#fdf2f8", "sidebar_text": "#831843"},
+    "spacing": {"page_padding": "24px", "card_padding": "16px", "gap": "16px"},
+    "buttons": {"primary_bg": "#be185d", "primary_text": "white"},
+    "table": {"striped": true, "hover": true},
+    "typography": {"font": "Playfair Display"}
+  },
+  "pagination": {"default_page_size": 25, "max_page_size": 100}
+}

@@ -1,0 +1,2728 @@
+{
+  "_meta": {
+    "app_name": "Real Estate",
+    "description": "Complete real estate management"
+  },
+  "entities": [
+    {
+      "name": "Agent",
+      "table": "agents",
+      "description": "Agent",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Full name"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email"
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "(555) 123-4567"
+        },
+        {
+          "name": "license_number",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "brokerage",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "commission_pct",
+          "db_type": "NUMERIC(5,2) NOT NULL DEFAULT 3",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "inactive"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "brokerage",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Agents yet",
+            "subtext": "Create your first agent",
+            "action_label": "Add Agent"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "license_number"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "brokerage",
+            "commission_pct",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "license_number",
+                "brokerage",
+                "commission_pct"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "brokerage",
+            "commission_pct",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "license_number",
+                "brokerage",
+                "commission_pct"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
+        },
+        "detail_view": {
+          "route": "/agents/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "license_number"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "license_number"
+              ]
+            },
+            {
+              "name": "Propertys",
+              "type": "related_list",
+              "entity": "Property",
+              "fk_field": "agent_id"
+            },
+            {
+              "name": "Leads",
+              "type": "related_list",
+              "entity": "Lead",
+              "fk_field": "agent_id"
+            },
+            {
+              "name": "Showings",
+              "type": "related_list",
+              "entity": "Showing",
+              "fk_field": "agent_id"
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Property",
+      "table": "properties",
+      "description": "Property",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "address",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Street address"
+        },
+        {
+          "name": "city",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "house",
+            "apartment",
+            "condo",
+            "townhouse",
+            "land",
+            "commercial"
+          ],
+          "badge_colors": {
+            "house": "blue",
+            "apartment": "pink",
+            "condo": "purple",
+            "townhouse": "green",
+            "land": "amber",
+            "commercial": "slate"
+          }
+        },
+        {
+          "name": "price",
+          "db_type": "NUMERIC(14,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "bedrooms",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "bathrooms",
+          "db_type": "NUMERIC(3,1)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "sqft",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Add details..."
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
+        },
+        {
+          "name": "mls_number",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "pending",
+            "under_contract",
+            "sold",
+            "withdrawn"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "pending": "amber",
+            "under_contract": "blue",
+            "sold": "slate",
+            "withdrawn": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "address",
+            "city",
+            "type",
+            "price",
+            "bedrooms",
+            "bathrooms"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Propertys yet",
+            "subtext": "Create your first property",
+            "action_label": "Add Property"
+          },
+          "views": [
+            "table",
+            "kanban",
+            "cards"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Under Contract",
+              "filter": {
+                "field": "status",
+                "value": "under_contract"
+              }
+            },
+            {
+              "label": "Sold",
+              "filter": {
+                "field": "status",
+                "value": "sold"
+              }
+            },
+            {
+              "label": "Withdrawn",
+              "filter": {
+                "field": "status",
+                "value": "withdrawn"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "address",
+            "city",
+            "type",
+            "mls_number"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "address",
+            "city",
+            "type",
+            "price",
+            "bedrooms",
+            "bathrooms",
+            "sqft",
+            "description",
+            "agent_id",
+            "mls_number",
+            "status"
+          ],
+          "required_fields": [
+            "address",
+            "city",
+            "type"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "address",
+            "city",
+            "type",
+            "price",
+            "bedrooms",
+            "bathrooms",
+            "sqft",
+            "description",
+            "agent_id",
+            "mls_number",
+            "status"
+          ],
+          "required_fields": [
+            "address",
+            "city",
+            "type"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/properties/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "address"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "address",
+            "city",
+            "type",
+            "price"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "address",
+                "city",
+                "type",
+                "price"
+              ]
+            },
+            {
+              "name": "Showings",
+              "type": "related_list",
+              "entity": "Showing",
+              "fk_field": "property_id"
+            },
+            {
+              "name": "Offers",
+              "type": "related_list",
+              "entity": "Offer",
+              "fk_field": "property_id"
+            },
+            {
+              "name": "OpenHouses",
+              "type": "related_list",
+              "entity": "OpenHouse",
+              "fk_field": "property_id"
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Lead",
+      "table": "leads",
+      "description": "Buyer/renter lead",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Full name"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email"
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "(555) 123-4567"
+        },
+        {
+          "name": "budget_max",
+          "db_type": "NUMERIC(14,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "preferred_type",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "house",
+            "apartment",
+            "condo",
+            "any"
+          ],
+          "badge_colors": {
+            "house": "blue",
+            "apartment": "pink",
+            "condo": "purple",
+            "any": "slate"
+          }
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
+        },
+        {
+          "name": "source",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "website",
+            "referral",
+            "zillow",
+            "social",
+            "walk_in",
+            "open_house"
+          ],
+          "badge_colors": {
+            "website": "blue",
+            "referral": "green",
+            "zillow": "purple",
+            "social": "pink",
+            "walk_in": "amber",
+            "open_house": "green"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "new",
+            "contacted",
+            "qualified",
+            "showing",
+            "offer",
+            "closed",
+            "lost"
+          ],
+          "badge_colors": {
+            "new": "blue",
+            "contacted": "amber",
+            "qualified": "green",
+            "showing": "purple",
+            "offer": "pink",
+            "closed": "slate",
+            "lost": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "phone",
+            "budget_max",
+            "preferred_type",
+            "agent_id"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Leads yet",
+            "subtext": "Create your first lead",
+            "action_label": "Add Lead"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "New",
+              "filter": {
+                "field": "status",
+                "value": "new"
+              }
+            },
+            {
+              "label": "Contacted",
+              "filter": {
+                "field": "status",
+                "value": "contacted"
+              }
+            },
+            {
+              "label": "Qualified",
+              "filter": {
+                "field": "status",
+                "value": "qualified"
+              }
+            },
+            {
+              "label": "Showing",
+              "filter": {
+                "field": "status",
+                "value": "showing"
+              }
+            },
+            {
+              "label": "Offer",
+              "filter": {
+                "field": "status",
+                "value": "offer"
+              }
+            },
+            {
+              "label": "Closed",
+              "filter": {
+                "field": "status",
+                "value": "closed"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "preferred_type"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "budget_max",
+            "preferred_type",
+            "agent_id",
+            "source",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "budget_max",
+                "agent_id",
+                "source"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "preferred_type",
+                "status"
+              ]
+            }
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "budget_max",
+            "preferred_type",
+            "agent_id",
+            "source",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "budget_max",
+                "agent_id",
+                "source"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "preferred_type",
+                "status"
+              ]
+            }
+          ]
+        },
+        "detail_view": {
+          "route": "/leads/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "budget_max"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "budget_max"
+              ]
+            },
+            {
+              "name": "Showings",
+              "type": "related_list",
+              "entity": "Showing",
+              "fk_field": "lead_id"
+            },
+            {
+              "name": "Offers",
+              "type": "related_list",
+              "entity": "Offer",
+              "fk_field": "lead_id"
+            },
+            {
+              "name": "Transactions",
+              "type": "related_list",
+              "entity": "Transaction",
+              "fk_field": "buyer_id"
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Showing",
+      "table": "showings",
+      "description": "Property showing",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "property_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Property"
+        },
+        {
+          "name": "lead_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Lead"
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "feedback",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "interest_level",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "very_interested",
+            "interested",
+            "neutral",
+            "not_interested"
+          ],
+          "badge_colors": {
+            "very_interested": "green",
+            "interested": "blue",
+            "neutral": "amber",
+            "not_interested": "red"
+          },
+          "visible_when": {
+            "field": "status",
+            "operator": "eq",
+            "value": "completed"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "scheduled",
+            "confirmed",
+            "completed",
+            "cancelled",
+            "no_show"
+          ],
+          "badge_colors": {
+            "scheduled": "blue",
+            "confirmed": "green",
+            "completed": "slate",
+            "cancelled": "red",
+            "no_show": "amber"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "property_id",
+            "lead_id",
+            "agent_id",
+            "date",
+            "time",
+            "interest_level"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Showings yet",
+            "subtext": "Create your first showing",
+            "action_label": "Add Showing"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "Confirmed",
+              "filter": {
+                "field": "status",
+                "value": "confirmed"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "interest_level",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "lead_id",
+            "agent_id",
+            "date",
+            "time",
+            "feedback",
+            "interest_level",
+            "status"
+          ],
+          "required_fields": [
+            "property_id",
+            "lead_id",
+            "agent_id"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "lead_id",
+            "agent_id",
+            "date",
+            "time",
+            "feedback",
+            "interest_level",
+            "status"
+          ],
+          "required_fields": [
+            "property_id",
+            "lead_id",
+            "agent_id"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/showings/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "property_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "property_id",
+            "lead_id",
+            "agent_id",
+            "date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "property_id",
+                "lead_id",
+                "agent_id",
+                "date"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Offer",
+      "table": "offers",
+      "description": "Purchase offer",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "property_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Property"
+        },
+        {
+          "name": "lead_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Lead"
+        },
+        {
+          "name": "offer_price",
+          "db_type": "NUMERIC(14,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "financing_type",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "conventional",
+            "fha",
+            "va",
+            "cash"
+          ],
+          "badge_colors": {
+            "conventional": "blue",
+            "fha": "green",
+            "va": "purple",
+            "cash": "pink"
+          }
+        },
+        {
+          "name": "closing_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "submitted",
+            "countered",
+            "accepted",
+            "rejected",
+            "withdrawn"
+          ],
+          "badge_colors": {
+            "submitted": "blue",
+            "countered": "amber",
+            "accepted": "green",
+            "rejected": "red",
+            "withdrawn": "slate"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "property_id",
+            "lead_id",
+            "offer_price",
+            "financing_type",
+            "closing_date",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Offers yet",
+            "subtext": "Create your first offer",
+            "action_label": "Add Offer"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Submitted",
+              "filter": {
+                "field": "status",
+                "value": "submitted"
+              }
+            },
+            {
+              "label": "Countered",
+              "filter": {
+                "field": "status",
+                "value": "countered"
+              }
+            },
+            {
+              "label": "Accepted",
+              "filter": {
+                "field": "status",
+                "value": "accepted"
+              }
+            },
+            {
+              "label": "Rejected",
+              "filter": {
+                "field": "status",
+                "value": "rejected"
+              }
+            },
+            {
+              "label": "Withdrawn",
+              "filter": {
+                "field": "status",
+                "value": "withdrawn"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "closing_date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "financing_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "lead_id",
+            "offer_price",
+            "financing_type",
+            "closing_date",
+            "status"
+          ],
+          "required_fields": [
+            "property_id",
+            "lead_id",
+            "offer_price"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "lead_id",
+            "offer_price",
+            "financing_type",
+            "closing_date",
+            "status"
+          ],
+          "required_fields": [
+            "property_id",
+            "lead_id",
+            "offer_price"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/offers/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "property_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "property_id",
+            "lead_id",
+            "offer_price",
+            "financing_type"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "property_id",
+                "lead_id",
+                "offer_price",
+                "financing_type"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "OpenHouse",
+      "table": "open_houses",
+      "description": "Open house",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "property_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Property"
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "start_time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "end_time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "visitors",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "scheduled",
+            "active",
+            "completed",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "scheduled": "blue",
+            "active": "green",
+            "completed": "slate",
+            "cancelled": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "property_id",
+            "agent_id",
+            "date",
+            "start_time",
+            "end_time",
+            "visitors"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No OpenHouses yet",
+            "subtext": "Create your first openhouse",
+            "action_label": "Add OpenHouse"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "agent_id",
+            "date",
+            "start_time",
+            "end_time",
+            "visitors",
+            "status"
+          ],
+          "required_fields": [
+            "property_id",
+            "agent_id",
+            "date"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "agent_id",
+            "date",
+            "start_time",
+            "end_time",
+            "visitors",
+            "status"
+          ],
+          "required_fields": [
+            "property_id",
+            "agent_id",
+            "date"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/open_houses/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "property_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "property_id",
+            "agent_id",
+            "date",
+            "start_time"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "property_id",
+                "agent_id",
+                "date",
+                "start_time"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Transaction",
+      "table": "transactions",
+      "description": "Closed deal",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "property_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Property"
+        },
+        {
+          "name": "buyer_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Lead"
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
+        },
+        {
+          "name": "sale_price",
+          "db_type": "NUMERIC(14,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
+        },
+        {
+          "name": "commission",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "computed": "sale_price * 0.03"
+        },
+        {
+          "name": "closing_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "pending",
+            "in_escrow",
+            "closed",
+            "fell_through"
+          ],
+          "badge_colors": {
+            "pending": "amber",
+            "in_escrow": "blue",
+            "closed": "green",
+            "fell_through": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "property_id",
+            "buyer_id",
+            "agent_id",
+            "sale_price",
+            "commission",
+            "closing_date"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Transactions yet",
+            "subtext": "Create your first transaction",
+            "action_label": "Add Transaction"
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "In Escrow",
+              "filter": {
+                "field": "status",
+                "value": "in_escrow"
+              }
+            },
+            {
+              "label": "Closed",
+              "filter": {
+                "field": "status",
+                "value": "closed"
+              }
+            },
+            {
+              "label": "Fell Through",
+              "filter": {
+                "field": "status",
+                "value": "fell_through"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "closing_date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "buyer_id",
+            "agent_id",
+            "sale_price",
+            "commission",
+            "closing_date",
+            "status"
+          ],
+          "required_fields": [
+            "property_id",
+            "buyer_id",
+            "agent_id"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "buyer_id",
+            "agent_id",
+            "sale_price",
+            "commission",
+            "closing_date",
+            "status"
+          ],
+          "required_fields": [
+            "property_id",
+            "buyer_id",
+            "agent_id"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/transactions/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "property_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "property_id",
+            "buyer_id",
+            "agent_id",
+            "sale_price"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "property_id",
+                "buyer_id",
+                "agent_id",
+                "sale_price"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "modules": [
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "component": "DashboardPage",
+      "layout": "app",
+      "sidebar_order": 1,
+      "sidebar_icon": "LayoutDashboard"
+    },
+    {
+      "name": "Agents",
+      "route": "/agents",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 2,
+      "sidebar_icon": "Briefcase",
+      "entity": "Agent"
+    },
+    {
+      "name": "Propertys",
+      "route": "/properties",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 3,
+      "sidebar_icon": "Building2",
+      "entity": "Property"
+    },
+    {
+      "name": "Leads",
+      "route": "/leads",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 4,
+      "sidebar_icon": "UserPlus",
+      "entity": "Lead"
+    },
+    {
+      "name": "Showings",
+      "route": "/showings",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 5,
+      "sidebar_icon": "CalendarDays",
+      "entity": "Showing"
+    },
+    {
+      "name": "Offers",
+      "route": "/offers",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 6,
+      "sidebar_icon": "FileCheck",
+      "entity": "Offer"
+    },
+    {
+      "name": "OpenHouses",
+      "route": "/open_houses",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 7,
+      "sidebar_icon": "Home",
+      "entity": "OpenHouse"
+    },
+    {
+      "name": "Transactions",
+      "route": "/transactions",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 8,
+      "sidebar_icon": "Receipt",
+      "entity": "Transaction"
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Agents",
+        "entity": "Agent",
+        "method": "count",
+        "icon": "FileText",
+        "color": "blue"
+      },
+      {
+        "label": "Total Propertys",
+        "entity": "Property",
+        "method": "count",
+        "icon": "Building",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Leads",
+        "entity": "Lead",
+        "method": "count",
+        "icon": "FileText",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Property",
+        "method": "sum",
+        "field": "price",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Agents",
+        "entity": "Agent",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  },
+  "design_system": {
+    "theme": "light",
+    "colors": {
+      "primary": "#ec4899",
+      "secondary": "#64748b",
+      "background": "#ffffff",
+      "surface": "#f8fafc",
+      "text": "#0f172a",
+      "muted": "#94a3b8"
+    },
+    "spacing": {
+      "page_padding": "24px",
+      "card_padding": "16px",
+      "gap": "16px"
+    },
+    "buttons": {
+      "primary": {
+        "bg": "bg-pink-500",
+        "text": "text-white",
+        "hover": "hover:bg-pink-600"
+      }
+    },
+    "table": {
+      "header_bg": "bg-gray-50",
+      "row_hover": "hover:bg-gray-50",
+      "border": "border-gray-200"
+    },
+    "typography": {
+      "heading": "text-gray-900 font-semibold",
+      "body": "text-gray-700",
+      "muted": "text-gray-400"
+    }
+  },
+  "pagination": {
+    "type": "cursor",
+    "default_page_size": 25,
+    "max_page_size": 100
+  }
+}

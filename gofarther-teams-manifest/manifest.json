@@ -1,0 +1,38 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "0b6d3c47-b01a-4c6d-8c8f-dfbeff95e075",
+  "developer": {
+    "name": "GoFarther",
+    "websiteUrl": "https://gofarther.ai",
+    "privacyUrl": "https://gofarther.ai/privacy",
+    "termsOfUseUrl": "https://gofarther.ai/terms"
+  },
+  "name": { "short": "GoFarther AI", "full": "GoFarther AI Assistant" },
+  "description": {
+    "short": "AI assistant that creates files, searches web, runs code",
+    "full": "GoFarther AI is your team's AI assistant. Mention @GoFarther AI to create PDFs, search the web, run code, translate text, and more."
+  },
+  "icons": { "outline": "outline.png", "color": "color.png" },
+  "accentColor": "#1a1a1a",
+  "bots": [
+    {
+      "botId": "0b6d3c47-b01a-4c6d-8c8f-dfbeff95e075",
+      "scopes": ["team", "personal", "groupChat"],
+      "commandLists": [
+        {
+          "scopes": ["team", "personal", "groupChat"],
+          "commands": [
+            { "title": "create a pdf", "description": "Create a PDF document" },
+            { "title": "search the web", "description": "Search for anything" },
+            { "title": "run code", "description": "Execute Python code" },
+            { "title": "translate", "description": "Translate text to any language" }
+          ]
+        }
+      ]
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": ["isibi-backend.onrender.com"]
+}

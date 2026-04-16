@@ -1,0 +1,177 @@
+{
+  "app_name": "Gustoso Restaurant Manager",
+  "entities": [
+    {
+      "name": "MenuCategory",
+      "table": "menu_category",
+      "description": "Categories for organizing menu items (Appetizers, Mains, Desserts, etc.)",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2, "max_length": 100}},
+        {"name": "description", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "display_order", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 0, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min": 0}},
+        {"name": "is_active", "db_type": "BOOLEAN", "ts_type": "boolean", "nullable": false, "default": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Toggle", "display_component": "Badge", "enum_values": [{"value": true, "label": "Active", "badge_color": "green"}, {"value": false, "label": "Inactive", "badge_color": "gray"}]},
+        {"name": "image_url", "db_type": "VARCHAR(500)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "item_count", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 0, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "display_order", "default_sort_order": "asc", "page_size": 25, "columns": ["name", "item_count", "is_active", "display_order", "created_at"], "filters": ["is_active"], "empty_state": {"icon": "utensils", "heading": "No menu categories", "subtext": "Create your first menu category to start organizing your dishes", "action_label": "Add Category"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Menu Category", "required_fields": ["name", "display_order"], "field_order": ["name", "description", "display_order", "is_active", "image_url"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "MenuItem",
+      "table": "menu_item",
+      "description": "Individual dishes and beverages available on the menu",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2, "max_length": 150}},
+        {"name": "category_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "MenuCategory", "validation": {"required": true}},
+        {"name": "description", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "price", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0.01}},
+        {"name": "prep_time_minutes", "db_type": "INTEGER", "ts_type": "number", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"min": 1, "max": 180}},
+        {"name": "calories", "db_type": "INTEGER", "ts_type": "number", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "dietary_tags", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "vegetarian", "label": "Vegetarian", "badge_color": "green"}, {"value": "vegan", "label": "Vegan", "badge_color": "emerald"}, {"value": "gluten_free", "label": "Gluten Free", "badge_color": "yellow"}, {"value": "dairy_free", "label": "Dairy Free", "badge_color": "blue"}, {"value": "nut_free", "label": "Nut Free", "badge_color": "orange"}]},
+        {"name": "is_available", "db_type": "BOOLEAN", "ts_type": "boolean", "nullable": false, "default": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Toggle", "display_component": "Badge", "enum_values": [{"value": true, "label": "Available", "badge_color": "green"}, {"value": false, "label": "Unavailable", "badge_color": "red"}]},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "name", "default_sort_order": "asc", "page_size": 25, "columns": ["name", "category_id", "price", "prep_time_minutes", "dietary_tags", "is_available", "created_at"], "filters": ["category_id", "dietary_tags", "is_available"], "empty_state": {"icon": "chef-hat", "heading": "No menu items", "subtext": "Add dishes and beverages to your menu", "action_label": "Add Item"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Menu Item", "required_fields": ["name", "category_id", "price"], "field_order": ["name", "category_id", "description", "price", "prep_time_minutes", "calories", "dietary_tags", "is_available"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Table",
+      "table": "restaurant_table",
+      "description": "Physical tables in the restaurant with seating capacity",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "table_number", "db_type": "VARCHAR(10)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "section", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "main_hall", "label": "Main Hall", "badge_color": "blue"}, {"value": "patio", "label": "Patio", "badge_color": "green"}, {"value": "bar", "label": "Bar Area", "badge_color": "purple"}, {"value": "private", "label": "Private Room", "badge_color": "gold"}], "validation": {"required": true}},
+        {"name": "seats", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min": 1, "max": 20}},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "available", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "available", "label": "Available", "badge_color": "green"}, {"value": "occupied", "label": "Occupied", "badge_color": "red"}, {"value": "reserved", "label": "Reserved", "badge_color": "yellow"}, {"value": "cleaning", "label": "Cleaning", "badge_color": "gray"}], "validation": {"required": true}},
+        {"name": "is_accessible", "db_type": "BOOLEAN", "ts_type": "boolean", "nullable": false, "default": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Toggle", "display_component": "Badge", "enum_values": [{"value": true, "label": "Accessible", "badge_color": "blue"}, {"value": false, "label": "Standard", "badge_color": "gray"}]},
+        {"name": "notes", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "table_number", "default_sort_order": "asc", "page_size": 25, "columns": ["table_number", "section", "seats", "status", "is_accessible", "created_at"], "filters": ["section", "status", "is_accessible"], "empty_state": {"icon": "armchair", "heading": "No tables configured", "subtext": "Set up your restaurant tables and seating layout", "action_label": "Add Table"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Table", "required_fields": ["table_number", "section", "seats"], "field_order": ["table_number", "section", "seats", "status", "is_accessible", "notes"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Reservation",
+      "table": "reservation",
+      "description": "Guest reservations for tables at specific dates and times",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "guest_name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "guest_phone", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "PhoneInput", "display_component": "Text", "validation": {"required": true, "pattern": "^\\+?[1-9]\\d{6,14}$"}},
+        {"name": "guest_email", "db_type": "VARCHAR(255)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "EmailInput", "display_component": "Text", "validation": {"pattern": "^[^@]+@[^@]+\\.[^@]+$"}},
+        {"name": "table_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Table", "validation": {"required": true}},
+        {"name": "party_size", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min": 1, "max": 20}},
+        {"name": "reservation_date", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "DatePicker", "display_component": "DateTime", "validation": {"required": true}},
+        {"name": "reservation_time", "db_type": "TIME", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "confirmed", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "confirmed", "label": "Confirmed", "badge_color": "green"}, {"value": "pending", "label": "Pending", "badge_color": "yellow"}, {"value": "seated", "label": "Seated", "badge_color": "blue"}, {"value": "completed", "label": "Completed", "badge_color": "gray"}, {"value": "no_show", "label": "No Show", "badge_color": "red"}, {"value": "cancelled", "label": "Cancelled", "badge_color": "red"}], "validation": {"required": true}},
+        {"name": "special_requests", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "reservation_date", "default_sort_order": "desc", "page_size": 25, "columns": ["guest_name", "guest_phone", "table_id", "party_size", "reservation_date", "reservation_time", "status", "created_at"], "filters": ["status", "table_id", "reservation_date"], "empty_state": {"icon": "calendar-check", "heading": "No reservations", "subtext": "Book your first guest reservation", "action_label": "Add Reservation"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Reservation", "required_fields": ["guest_name", "guest_phone", "table_id", "party_size", "reservation_date", "reservation_time"], "field_order": ["guest_name", "guest_phone", "guest_email", "table_id", "party_size", "reservation_date", "reservation_time", "status", "special_requests"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Order",
+      "table": "restaurant_order",
+      "description": "Customer orders linked to tables with itemized totals",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "order_number", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": true, "input_component": null, "display_component": "Text"},
+        {"name": "table_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Table", "validation": {"required": true}},
+        {"name": "staff_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Staff", "validation": {"required": true}},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "open", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "open", "label": "Open", "badge_color": "blue"}, {"value": "in_progress", "label": "In Progress", "badge_color": "yellow"}, {"value": "ready", "label": "Ready", "badge_color": "orange"}, {"value": "served", "label": "Served", "badge_color": "green"}, {"value": "paid", "label": "Paid", "badge_color": "gray"}, {"value": "cancelled", "label": "Cancelled", "badge_color": "red"}], "validation": {"required": true}},
+        {"name": "subtotal", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "default": 0, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "Currency"},
+        {"name": "tax", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "default": 0, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": "Currency"},
+        {"name": "total", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "default": 0, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "Currency"},
+        {"name": "notes", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "created_at", "default_sort_order": "desc", "page_size": 25, "columns": ["order_number", "table_id", "staff_id", "status", "subtotal", "total", "created_at"], "filters": ["status", "table_id", "staff_id"], "empty_state": {"icon": "receipt", "heading": "No orders", "subtext": "Orders will appear here as guests place them", "action_label": "Create Order"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Order", "required_fields": ["table_id", "staff_id"], "field_order": ["table_id", "staff_id", "status", "notes"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Staff",
+      "table": "staff",
+      "description": "Restaurant employees including servers, cooks, and managers",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "full_name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "email", "db_type": "VARCHAR(255)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "EmailInput", "display_component": "Text", "validation": {"required": true, "pattern": "^[^@]+@[^@]+\\.[^@]+$"}},
+        {"name": "phone", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "PhoneInput", "display_component": "Text", "validation": {"required": true, "pattern": "^\\+?[1-9]\\d{6,14}$"}},
+        {"name": "role", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "server", "label": "Server", "badge_color": "blue"}, {"value": "cook", "label": "Cook", "badge_color": "orange"}, {"value": "head_chef", "label": "Head Chef", "badge_color": "red"}, {"value": "bartender", "label": "Bartender", "badge_color": "purple"}, {"value": "host", "label": "Host", "badge_color": "green"}, {"value": "manager", "label": "Manager", "badge_color": "gold"}], "validation": {"required": true}},
+        {"name": "hourly_rate", "db_type": "DECIMAL(8,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "hire_date", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "DateTime", "validation": {"required": true}},
+        {"name": "is_active", "db_type": "BOOLEAN", "ts_type": "boolean", "nullable": false, "default": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Toggle", "display_component": "Badge", "enum_values": [{"value": true, "label": "Active", "badge_color": "green"}, {"value": false, "label": "Inactive", "badge_color": "gray"}]},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "full_name", "default_sort_order": "asc", "page_size": 25, "columns": ["full_name", "email", "phone", "role", "hourly_rate", "hire_date", "is_active", "created_at"], "filters": ["role", "is_active"], "empty_state": {"icon": "users", "heading": "No staff members", "subtext": "Add your restaurant team members", "action_label": "Add Staff"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Staff Member", "required_fields": ["full_name", "email", "phone", "role", "hourly_rate", "hire_date"], "field_order": ["full_name", "email", "phone", "role", "hourly_rate", "hire_date", "is_active"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    }
+  ],
+  "modules": [
+    {"name": "Dashboard", "route": "/", "component": "Dashboard", "layout": "dashboard", "sidebar_order": 0, "sidebar_icon": "LayoutDashboard", "entity": null},
+    {"name": "Menu Categories", "route": "/menu-categories", "component": "EntityList", "layout": "table", "sidebar_order": 1, "sidebar_icon": "BookOpen", "entity": "MenuCategory"},
+    {"name": "Menu Items", "route": "/menu-items", "component": "EntityList", "layout": "table", "sidebar_order": 2, "sidebar_icon": "UtensilsCrossed", "entity": "MenuItem"},
+    {"name": "Tables", "route": "/tables", "component": "EntityList", "layout": "table", "sidebar_order": 3, "sidebar_icon": "Armchair", "entity": "Table"},
+    {"name": "Reservations", "route": "/reservations", "component": "EntityList", "layout": "table", "sidebar_order": 4, "sidebar_icon": "CalendarCheck", "entity": "Reservation"},
+    {"name": "Orders", "route": "/orders", "component": "EntityList", "layout": "table", "sidebar_order": 5, "sidebar_icon": "Receipt", "entity": "Order"},
+    {"name": "Staff", "route": "/staff", "component": "EntityList", "layout": "table", "sidebar_order": 6, "sidebar_icon": "Users", "entity": "Staff"}
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {"label": "Total Menu Items", "entity": "MenuItem", "icon": "UtensilsCrossed", "color": "orange"},
+      {"label": "Tables", "entity": "Table", "icon": "Armchair", "color": "red"},
+      {"label": "Today's Reservations", "entity": "Reservation", "icon": "CalendarCheck", "color": "yellow"},
+      {"label": "Active Orders", "entity": "Order", "icon": "Receipt", "color": "green"},
+      {"label": "Staff Members", "entity": "Staff", "icon": "Users", "color": "blue"}
+    ]
+  },
+  "design_system": {
+    "colors": {"primary": "#E85D2C", "secondary": "#F4A236", "sidebar_bg": "#2D1810", "sidebar_text": "#F5E6DC"},
+    "spacing": {"page_padding": "24px", "card_padding": "16px", "gap": "16px"},
+    "buttons": {"primary_bg": "#E85D2C", "primary_text": "white"},
+    "table": {"striped": false, "hover": true},
+    "typography": {"font": "Poppins"}
+  },
+  "pagination": {"default_page_size": 25, "max_page_size": 100}
+}

@@ -1,0 +1,589 @@
+{
+  "_meta": {
+    "app_name": "Inventory Spreadsheet",
+    "description": "Spreadsheet-style inventory and stock management"
+  },
+  "entities": [
+    {
+      "name": "Item",
+      "table": "items",
+      "description": "Inventory item",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "sku",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "SKU-001",
+          "help_text": "Unique stock keeping unit"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Item name",
+          "help_text": "Product or item name"
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "electronics",
+            "furniture",
+            "supplies",
+            "raw_materials",
+            "finished_goods",
+            "packaging",
+            "tools",
+            "other"
+          ],
+          "badge_colors": {
+            "electronics": "blue",
+            "furniture": "amber",
+            "supplies": "green",
+            "raw_materials": "purple",
+            "finished_goods": "cyan",
+            "packaging": "pink",
+            "tools": "indigo",
+            "other": "gray"
+          }
+        },
+        {
+          "name": "quantity",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "0",
+          "help_text": "Current stock quantity"
+        },
+        {
+          "name": "unit_cost",
+          "db_type": "NUMERIC(12,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Cost per unit"
+        },
+        {
+          "name": "total_value",
+          "db_type": "NUMERIC(14,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "currency",
+          "computed": "quantity * unit_cost",
+          "help_text": "Calculated: quantity x unit_cost"
+        },
+        {
+          "name": "reorder_level",
+          "db_type": "INTEGER DEFAULT 10",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "10",
+          "help_text": "Reorder when quantity falls below this"
+        },
+        {
+          "name": "supplier",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Supplier name"
+        },
+        {
+          "name": "location",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Warehouse / shelf",
+          "help_text": "Storage location"
+        },
+        {
+          "name": "last_counted",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "help_text": "Last physical count date"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) DEFAULT 'in_stock'",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "in_stock",
+            "low_stock",
+            "out_of_stock",
+            "discontinued"
+          ],
+          "badge_colors": {
+            "in_stock": "green",
+            "low_stock": "amber",
+            "out_of_stock": "red",
+            "discontinued": "gray"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": ["sku", "name", "category", "quantity", "unit_cost", "total_value", "reorder_level", "supplier", "location", "status"],
+          "filters": [],
+          "empty_state": {
+            "icon": "Package",
+            "heading": "No items yet",
+            "subtext": "Add your first inventory item",
+            "action_label": "Add Item"
+          },
+          "views": [
+            {"name": "Spreadsheet", "layout": "spreadsheet"},
+            {"name": "Table", "layout": "table"}
+          ],
+          "quick_filters": [
+            {
+              "field": "category",
+              "label": "Category",
+              "options": ["electronics", "furniture", "supplies", "raw_materials", "finished_goods", "packaging", "tools", "other"]
+            },
+            {
+              "field": "status",
+              "label": "Status",
+              "options": ["in_stock", "low_stock", "out_of_stock", "discontinued"]
+            }
+          ],
+          "default_sort": {"field": "name", "direction": "asc"},
+          "searchable_fields": ["sku", "name", "supplier", "location"],
+          "row_actions": [
+            {"name": "Edit", "icon": "Pencil", "action": "edit"},
+            {"name": "View", "icon": "Eye", "action": "view"},
+            {"name": "Delete", "icon": "Trash2", "action": "delete", "confirm": true}
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": ["sku", "name", "category", "quantity", "unit_cost", "reorder_level", "supplier", "location", "last_counted", "status"],
+          "required_fields": ["sku", "name", "quantity", "unit_cost"]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": ["sku", "name", "category", "quantity", "unit_cost", "reorder_level", "supplier", "location", "last_counted", "status"],
+          "required_fields": ["sku", "name", "quantity", "unit_cost"],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/items/:id",
+          "layout": "tabbed",
+          "header": {"title_fields": ["name"], "badge_fields": ["status"]},
+          "primary_fields": ["sku", "name", "category", "quantity", "unit_cost", "total_value"],
+          "tabs": [
+            {
+              "name": "Details",
+              "fields": ["sku", "name", "category", "quantity", "unit_cost", "total_value", "reorder_level", "supplier", "location", "last_counted", "status"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "StockMovement",
+      "table": "stock_movements",
+      "description": "Stock in/out movement record",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "item_id",
+          "db_type": "UUID NOT NULL REFERENCES items(id)",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Item",
+          "fk_display_field": "name"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": ["in", "out", "adjustment", "return"],
+          "badge_colors": {
+            "in": "green",
+            "out": "red",
+            "adjustment": "amber",
+            "return": "blue"
+          }
+        },
+        {
+          "name": "quantity",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "placeholder": "0"
+        },
+        {
+          "name": "reason",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Reason for movement"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL DEFAULT CURRENT_DATE",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": ["item_id", "type", "quantity", "reason", "date"],
+          "filters": [],
+          "empty_state": {
+            "icon": "ArrowUpDown",
+            "heading": "No movements yet",
+            "subtext": "Record stock movements",
+            "action_label": "Add Movement"
+          },
+          "views": [{"name": "Table", "layout": "table"}],
+          "quick_filters": [
+            {"field": "type", "label": "Type", "options": ["in", "out", "adjustment", "return"]}
+          ],
+          "default_sort": {"field": "date", "direction": "desc"},
+          "searchable_fields": ["reason"],
+          "row_actions": [
+            {"name": "Edit", "icon": "Pencil", "action": "edit"},
+            {"name": "Delete", "icon": "Trash2", "action": "delete", "confirm": true}
+          ]
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": ["item_id", "type", "quantity", "reason", "date"],
+          "required_fields": ["item_id", "type", "quantity", "date"]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": ["item_id", "type", "quantity", "reason", "date"],
+          "required_fields": ["item_id", "type", "quantity", "date"],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/stock-movements/:id",
+          "layout": "tabbed",
+          "header": {"title_fields": ["type"], "badge_fields": ["type"]},
+          "primary_fields": ["item_id", "type", "quantity", "reason", "date"],
+          "tabs": [{"name": "Overview", "fields": ["item_id", "type", "quantity", "reason", "date"]}]
+        }
+      }
+    }
+  ],
+  "modules": [
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "component": "DashboardPage",
+      "layout": "app",
+      "sidebar_order": 1,
+      "sidebar_icon": "LayoutDashboard"
+    },
+    {
+      "name": "Inventory",
+      "route": "/items",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 2,
+      "sidebar_icon": "Package",
+      "entity": "Item"
+    },
+    {
+      "name": "Stock Movements",
+      "route": "/stock-movements",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 3,
+      "sidebar_icon": "ArrowUpDown",
+      "entity": "StockMovement"
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Items",
+        "entity": "Item",
+        "method": "count",
+        "icon": "Package",
+        "color": "blue"
+      },
+      {
+        "label": "Total Value",
+        "entity": "Item",
+        "method": "sum",
+        "field": "total_value",
+        "icon": "DollarSign",
+        "color": "green"
+      },
+      {
+        "label": "Low Stock",
+        "entity": "Item",
+        "method": "count",
+        "filter": {"field": "status", "value": "low_stock"},
+        "icon": "AlertTriangle",
+        "color": "amber"
+      },
+      {
+        "label": "Movements",
+        "entity": "StockMovement",
+        "method": "count",
+        "icon": "ArrowUpDown",
+        "color": "purple"
+      }
+    ]
+  },
+  "design_system": {
+    "theme": "light",
+    "colors": {
+      "primary": "#059669",
+      "secondary": "#64748b",
+      "background": "#ffffff",
+      "surface": "#f8fafc",
+      "text": "#0f172a",
+      "muted": "#94a3b8"
+    },
+    "spacing": {
+      "page_padding": "24px",
+      "card_padding": "16px",
+      "gap": "16px"
+    },
+    "buttons": {
+      "primary": {
+        "bg": "bg-emerald-600",
+        "text": "text-white",
+        "hover": "hover:bg-emerald-700"
+      }
+    },
+    "table": {
+      "header_bg": "bg-gray-50",
+      "row_hover": "hover:bg-gray-50",
+      "border": "border-gray-200"
+    },
+    "typography": {
+      "heading": "text-gray-900 font-semibold",
+      "body": "text-gray-700",
+      "muted": "text-gray-400"
+    }
+  },
+  "pagination": {
+    "type": "cursor",
+    "default_page_size": 25,
+    "max_page_size": 100
+  }
+}

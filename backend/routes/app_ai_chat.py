@@ -1,0 +1,722 @@
+from __future__ import annotations
+"""
+App AI Chat — natural language queries for generated app data.
+
+End-users of generated apps can ask questions about their data in plain
+English and get conversational answers powered by Claude.
+
+Routes:
+  POST /api/apps/{project_id}/ai/query — ask a question about app data
+"""
+
+import json
+import logging
+import os
+import re
+import uuid as _uuid
+from typing import Any, Optional
+
+import anthropic
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db import DATABASE_URL, get_db
+from generator.app_db import (
+    get_schema_name,
+    list_schema_tables,
+    get_table_columns,
+    _get_raw_connection,
+)
+from models.project import Project
+from routes.app_auth import get_current_app_user
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/apps", tags=["App AI Chat"])
+
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+AI_MODEL = os.getenv("AI_MODEL", "claude-sonnet-4-20250514")
+
+MAX_ROWS = 200  # cap rows sent to the model to control token usage
+
+
+# ── Request / Response schemas ───────────────────────────────────────
+
+class AiQueryRequest(BaseModel):
+    question: str
+
+class AiQueryResponse(BaseModel):
+    answer: str
+    data: list[dict[str, Any]]
+
+
+# ── Helpers ──────────────────────────────────────────────────────────
+
+def _fuzzy_table(requested: str, available: list[str]) -> str | None:
+    """Fuzzy match table name: contacts→contact, MenuCategory→menucategory."""
+    req = requested.lower().replace("_", "").replace(" ", "")
+    for t in available:
+        if t.lower() == requested.lower():
+            return t
+    for t in available:
+        t_clean = t.lower().replace("_", "")
+        if t_clean == req or t_clean == req.rstrip("s") or t_clean + "s" == req:
+            return t
+    for t in available:
+        if req.rstrip("s") in t.lower() or t.lower() in req:
+            return t
+    return None
+
+
+def _pick_table(question: str, tables: list[str]) -> str | None:
+    """
+    Simple heuristic: find the table whose name best matches the question.
+
+    Checks for exact table name mentions first, then falls back to singular
+    forms and partial matches.
+    """
+    q = question.lower()
+
+    # Exact table name mentioned
+    for t in tables:
+        if t in q:
+            return t
+
+    # Singular form match (e.g. "lead" matches "leads")
+    for t in tables:
+        singular = t.rstrip("s")
+        if singular and singular in q:
+            return t
+
+    # If only one table, use it
+    if len(tables) == 1:
+        return tables[0]
+
+    return None
+
+
+def _build_schema_description(
+    entity: dict,
+) -> str:
+    """Build a human-readable schema description from a spec entity."""
+    fields = entity.get("fields", [])
+    lines = [f"Table: {entity.get('name', 'unknown')}"]
+    for f in fields:
+        if not isinstance(f, dict):
+            continue
+        name = f.get("name", "?")
+        db_type = f.get("db_type", "TEXT")
+        label = f.get("label", name)
+        lines.append(f"  - {name} ({db_type}) — {label}")
+    return "\n".join(lines)
+
+
+async def _fetch_table_data(
+    project_id: str,
+    table_name: str,
+    limit: int = MAX_ROWS,
+) -> list[dict[str, Any]]:
+    """Fetch rows from the app's schema table."""
+    schema = get_schema_name(project_id)
+    conn = await _get_raw_connection(DATABASE_URL)
+    try:
+        rows = await conn.fetch(
+            f'SELECT * FROM "{schema}"."{table_name}" '
+            f'WHERE "deleted_at" IS NULL '
+            f"LIMIT {limit}"
+        )
+        return [dict(r) for r in rows]
+    finally:
+        await conn.close()
+
+
+def _serialize_row(row: dict) -> dict:
+    """Make a row JSON-serializable (dates, UUIDs, etc.)."""
+    out: dict[str, Any] = {}
+    for k, v in row.items():
+        if isinstance(v, _uuid.UUID):
+            out[k] = str(v)
+        elif hasattr(v, "isoformat"):
+            out[k] = v.isoformat()
+        elif isinstance(v, (bytes, bytearray)):
+            out[k] = v.hex()
+        else:
+            out[k] = v
+    return out
+
+
+# ── Route ────────────────────────────────────────────────────────────
+
+@router.post("/{project_id}/ai/query")
+async def ai_query(
+    project_id: _uuid.UUID,
+    body: AiQueryRequest,
+    claims: dict = Depends(get_current_app_user),
+    db: AsyncSession = Depends(get_db),
+) -> AiQueryResponse:
+    """
+    Ask a natural language question about the app's data.
+
+    Requires an app-user JWT (type=app_user).
+    """
+    # Verify token matches this project
+    if claims["project_id"] != project_id:
+        raise HTTPException(status_code=403, detail="Token does not match this app.")
+
+    if not body.question.strip():
+        raise HTTPException(status_code=400, detail="Question cannot be empty.")
+
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=503, detail="AI service not configured.")
+
+    # Fetch the project spec to understand entity schemas
+    result = await db.execute(
+        select(Project).where(
+            Project.id == project_id,
+            Project.deleted_at.is_(None),
+        )
+    )
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found.")
+
+    spec = project.spec or {}
+    entities = spec.get("entities", [])
+
+    # List actual tables in the schema
+    pid_str = str(project_id)
+    tables = await list_schema_tables(pid_str, DATABASE_URL)
+    if not tables:
+        raise HTTPException(
+            status_code=404,
+            detail="No data tables found for this app.",
+        )
+
+    # Pick the most relevant table
+    target_table = _pick_table(body.question, tables)
+    if not target_table:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not determine which table to query. "
+                   f"Available tables: {', '.join(tables)}. "
+                   f"Try mentioning a table name in your question.",
+        )
+
+    # Get schema description from spec entities
+    schema_desc = ""
+    for entity in entities:
+        if not isinstance(entity, dict):
+            continue
+        entity_name = entity.get("name", "").lower().replace(" ", "_")
+        if entity_name == target_table:
+            schema_desc = _build_schema_description(entity)
+            break
+
+    # If we didn't find it in spec entities, build from DB columns
+    if not schema_desc:
+        columns = await get_table_columns(pid_str, target_table, DATABASE_URL)
+        lines = [f"Table: {target_table}"]
+        for col in columns:
+            lines.append(f"  - {col['column_name']} ({col['data_type']})")
+        schema_desc = "\n".join(lines)
+
+    # Fetch actual data
+    rows = await _fetch_table_data(pid_str, target_table)
+    serialized_rows = [_serialize_row(r) for r in rows]
+
+    # Build Claude prompt
+    data_json = json.dumps(serialized_rows[:MAX_ROWS], indent=2, default=str)
+
+    system_prompt = (
+        "You are a helpful data assistant for a business application. "
+        "Answer the user's question based on the data provided. "
+        "Be conversational, include specific numbers, names, and dates. "
+        "If the data doesn't contain enough information to answer, say so clearly. "
+        "Keep your answer concise but informative."
+    )
+
+    user_prompt = (
+        f"Here is the schema of the data:\n\n{schema_desc}\n\n"
+        f"Here is the current data ({len(serialized_rows)} rows):\n\n{data_json}\n\n"
+        f"User question: {body.question}"
+    )
+
+    # Call Claude
+    try:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        message = client.messages.create(
+            model=AI_MODEL,
+            max_tokens=1024,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+        answer = message.content[0].text
+    except Exception as e:
+        logger.error("Claude API error: %s", e)
+        raise HTTPException(
+            status_code=502,
+            detail="Failed to get AI response. Please try again.",
+        )
+
+    return AiQueryResponse(answer=answer, data=serialized_rows)
+
+
+# ── AI Command — natural language CRUD + conversation ────────────────
+
+class AiHistoryMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
+class AiCommandRequest(BaseModel):
+    text: str
+    history: Optional[list[AiHistoryMessage]] = None
+
+class GhostData(BaseModel):
+    entity: str = ""
+    table: str = ""
+    fields: dict[str, Any] = {}
+
+class AiCommandResponse(BaseModel):
+    message: str
+    action: Optional[str] = None  # "created", "deleted", "listed", "chat"
+    data: Optional[list[dict[str, Any]]] = None
+    ghost: Optional[GhostData] = None
+
+# In-memory ghost animation queue: project_id → list of pending animations
+_ghost_queue: dict[str, list[GhostData]] = {}
+
+
+@router.post("/{project_id}/ai/command")
+async def ai_command(
+    project_id: _uuid.UUID,
+    body: AiCommandRequest,
+    db: AsyncSession = Depends(get_db),
+) -> AiCommandResponse:
+    """
+    Process a natural language voice command — conversational AI with CRUD capabilities.
+
+    Accepts plain text (from voice or typing) and uses Claude to:
+    - Understand intent (create, list, delete, or just chat)
+    - Execute CRUD operations if needed
+    - Respond conversationally
+    """
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Text cannot be empty.")
+
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=503, detail="AI service not configured.")
+
+    # Fetch project spec
+    result = await db.execute(
+        select(Project).where(
+            Project.id == project_id,
+            Project.deleted_at.is_(None),
+        )
+    )
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found.")
+
+    spec = project.spec or {}
+    entities = spec.get("entities", [])
+    app_name = spec.get("app_name", project.name or "App")
+    project_org_id = str(project.org_id) if project.org_id else None
+
+    # Build entity schema summary for Claude with required field info
+    entity_summaries = []
+    entity_map = {}  # name -> table_name
+    skip_fields = {"id", "org_id", "created_at", "updated_at", "deleted_at", "version"}
+    for entity in entities:
+        if not isinstance(entity, dict):
+            continue
+        name = entity.get("name", "")
+        table = entity.get("table", name.lower().replace(" ", "_"))
+        entity_map[name.lower()] = table
+        fields = entity.get("fields", [])
+        field_details = []
+        for f in fields:
+            if not isinstance(f, dict):
+                continue
+            fname = f.get("name", "")
+            if fname in skip_fields:
+                continue
+            nullable = f.get("nullable", True)
+            has_validation = f.get("validation", {}).get("rule") == "required"
+            required = not nullable or has_validation
+            enum_values = f.get("enum_values", [])
+            detail = fname
+            if required:
+                detail += " (REQUIRED)"
+            if enum_values:
+                detail += f" [options: {', '.join(str(v) for v in enum_values[:8])}]"
+            field_details.append(detail)
+        entity_summaries.append(f"- {name} (table: {table}):\n  Fields: {', '.join(field_details)}")
+
+    schema_text = "\n".join(entity_summaries) if entity_summaries else "No entities defined."
+
+    # System prompt for Claude
+    system_prompt = f"""You are a helpful voice assistant for "{app_name}". You help users manage their data through natural conversation.
+
+Available entities and their fields:
+{schema_text}
+
+IMPORTANT: You must respond with a JSON object in this exact format:
+{{
+  "intent": "create" | "list" | "delete" | "count" | "chat",
+  "entity": "EntityName" (only for create/list/delete/count),
+  "data": {{ "field": "value", ... }} (only for create, include ALL required fields),
+  "filter": "search term" (optional, for list/delete),
+  "message": "Your conversational response to the user"
+}}
+
+Rules:
+- For casual conversation (hello, hi, how are you, thanks, etc.), use intent "chat" and respond friendly and brief
+- IMPORTANT: When the user wants to create a record but has NOT provided all REQUIRED fields, DO NOT use intent "create". Instead use intent "chat" and ASK them for the missing required information. For example if they say "create a lead", ask "Sure! What's the lead's name?" or list what info you need.
+- Only use intent "create" when you have enough data to fill at least the required fields
+- For creating records, extract ALL field values mentioned and map them to the correct field names
+- For fields with options/enums, pick the best matching option from the list
+- For listing/showing records, use intent "list"
+- For counting, use intent "count"
+- For deleting, use intent "delete" and include a filter to identify the record
+- Always be conversational, friendly, and brief in your message (this is voice, keep it short)
+- If you're not sure what entity they mean, ask them in your message with intent "chat"
+- Only use entity names from the available list above"""
+
+    # Build messages with conversation history
+    messages = []
+    if body.history:
+        for h in body.history[-10:]:  # Keep last 10 messages for context
+            messages.append({"role": h.role, "content": h.content})
+    messages.append({"role": "user", "content": text})
+
+    # Call Claude
+    try:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        message = client.messages.create(
+            model=AI_MODEL,
+            max_tokens=512,
+            system=system_prompt,
+            messages=messages,
+        )
+        raw = message.content[0].text
+    except Exception as e:
+        logger.error("Claude API error in ai_command: %s", e)
+        raise HTTPException(status_code=502, detail="AI service unavailable.")
+
+    # Parse Claude's response
+    try:
+        # Extract JSON from response (Claude sometimes wraps in markdown)
+        json_match = re.search(r"\{[\s\S]*\}", raw)
+        if not json_match:
+            return AiCommandResponse(message=raw, action="chat")
+        parsed = json.loads(json_match.group())
+    except (json.JSONDecodeError, AttributeError):
+        return AiCommandResponse(message=raw, action="chat")
+
+    intent = parsed.get("intent", "chat")
+    entity_name = parsed.get("entity", "")
+    ai_message = parsed.get("message", raw)
+    pid_str = str(project_id)
+
+    # Find the actual table name — try spec first, then fuzzy match against DB
+    table_name = None
+    for ent in entities:
+        if not isinstance(ent, dict):
+            continue
+        if ent.get("name", "").lower() == entity_name.lower():
+            table_name = ent.get("table", entity_name.lower().replace(" ", "_"))
+            break
+    if not table_name and entity_name:
+        table_name = entity_name.lower().replace(" ", "_")
+
+    # Resolve against actual DB tables (fuzzy: contacts→contact, etc.)
+    if table_name:
+        try:
+            actual_tables = await list_schema_tables(pid_str, DATABASE_URL)
+            resolved = _fuzzy_table(table_name, actual_tables)
+            if resolved:
+                table_name = resolved
+        except Exception:
+            pass
+
+    # Execute the action
+    if intent == "create" and table_name:
+        try:
+            data = parsed.get("data", {})
+            if not data:
+                return AiCommandResponse(message=ai_message, action="chat")
+
+            # Use the app data API internally (handles validation, defaults, fuzzy matching)
+            from routes.app_data import _ensure_table_exists, _ensure_schema_or_create
+            resolved_table = await _ensure_table_exists(pid_str, table_name)
+
+            schema = get_schema_name(pid_str)
+            conn = await _get_raw_connection(DATABASE_URL)
+            try:
+                # Get columns to do fuzzy field matching
+                columns = await get_table_columns(pid_str, resolved_table, DATABASE_URL)
+                col_info = {}
+                skip_cols = {"id", "org_id", "created_at", "updated_at", "deleted_at", "version"}
+                for c in columns:
+                    cn = c["column_name"]
+                    if cn not in skip_cols:
+                        col_info[cn] = c
+
+                # Fuzzy field matching
+                valid_data = {}
+                for k, v in data.items():
+                    k_low = k.lower().replace(" ", "_")
+                    # Exact match
+                    if k_low in col_info:
+                        valid_data[k_low] = str(v)
+                        continue
+                    # Partial match
+                    matched = False
+                    for col in col_info:
+                        if k_low in col or col in k_low or k_low.replace("_", "") == col.replace("_", ""):
+                            valid_data[col] = str(v)
+                            matched = True
+                            break
+                    # "name" → try "first_name" or "customer_name"
+                    if not matched and k_low == "name":
+                        for col in col_info:
+                            if "name" in col and col != "last_name":
+                                valid_data[col] = str(v)
+                                break
+
+                if not valid_data:
+                    editable = sorted(col_info.keys())
+                    return AiCommandResponse(message=f"I couldn't map the fields. Available fields: {', '.join(editable)}", action="chat")
+
+                # Always include org_id
+                all_col_names = {c["column_name"] for c in columns}
+                if project_org_id and "org_id" in all_col_names:
+                    valid_data["org_id"] = project_org_id
+
+                # Fill NOT NULL columns with defaults if not provided
+                for col, info in col_info.items():
+                    if col in valid_data:
+                        continue
+                    is_nullable = info.get("is_nullable", "YES") == "YES"
+                    has_default = info.get("column_default") is not None
+                    if not is_nullable and not has_default:
+                        # Provide a sensible default based on type
+                        dt = info.get("data_type", "text").lower()
+                        if "int" in dt:
+                            valid_data[col] = "0"
+                        elif "numeric" in dt or "decimal" in dt or "float" in dt or "double" in dt:
+                            valid_data[col] = "0"
+                        elif "bool" in dt:
+                            valid_data[col] = "true"
+                        elif "date" in dt or "time" in dt:
+                            pass  # Let DB handle with NOW() default
+                        else:
+                            valid_data[col] = ""
+
+                cols = ", ".join(f'"{k}"' for k in valid_data.keys())
+                placeholders = ", ".join(f"${i+1}" for i in range(len(valid_data)))
+                values = list(valid_data.values())
+
+                await conn.execute(
+                    f'INSERT INTO "{schema}"."{resolved_table}" ({cols}) VALUES ({placeholders})',
+                    *values,
+                )
+
+                # Queue ghost animation for desktop app
+                # Only include user-provided fields (not auto-filled defaults)
+                user_fields = {k: v for k, v in data.items()}
+                ghost = GhostData(entity=entity_name, table=resolved_table, fields=user_fields)
+                pid_key = pid_str
+                if pid_key not in _ghost_queue:
+                    _ghost_queue[pid_key] = []
+                _ghost_queue[pid_key].append(ghost)
+
+                return AiCommandResponse(message=ai_message, action="created", ghost=ghost)
+            finally:
+                await conn.close()
+        except Exception as e:
+            logger.error("AI create error: %s", e)
+            return AiCommandResponse(message=f"I tried to create the record but got an error: {str(e)}", action="chat")
+
+    elif intent == "list" and table_name:
+        try:
+            rows = await _fetch_table_data(pid_str, table_name, limit=20)
+            serialized = [_serialize_row(r) for r in rows]
+            return AiCommandResponse(message=ai_message, action="listed", data=serialized)
+        except Exception as e:
+            logger.error("AI list error: %s", e)
+            return AiCommandResponse(message=f"I couldn't fetch the data: {str(e)}", action="chat")
+
+    elif intent == "count" and table_name:
+        try:
+            rows = await _fetch_table_data(pid_str, table_name, limit=10000)
+            count = len(rows)
+            return AiCommandResponse(message=ai_message or f"You have {count} {entity_name}(s).", action="listed")
+        except Exception as e:
+            return AiCommandResponse(message=f"I couldn't count: {str(e)}", action="chat")
+
+    elif intent == "delete" and table_name:
+        try:
+            filter_text = parsed.get("filter", "")
+            if not filter_text:
+                return AiCommandResponse(message="I need to know which record to delete. Can you be more specific?", action="chat")
+
+            schema = get_schema_name(pid_str)
+            conn = await _get_raw_connection(DATABASE_URL)
+            try:
+                # Soft delete by name/title match
+                name_col = None
+                columns = await get_table_columns(pid_str, table_name, DATABASE_URL)
+                for c in columns:
+                    if c["column_name"] in ("name", "title", "first_name", "customer_name"):
+                        name_col = c["column_name"]
+                        break
+
+                if not name_col:
+                    return AiCommandResponse(message="I couldn't find a name field to match against.", action="chat")
+
+                result = await conn.execute(
+                    f'UPDATE "{schema}"."{table_name}" SET "deleted_at" = NOW() '
+                    f'WHERE LOWER("{name_col}") LIKE $1 AND "deleted_at" IS NULL',
+                    f"%{filter_text.lower()}%",
+                )
+                deleted = result.split()[-1] if isinstance(result, str) else "0"
+                return AiCommandResponse(message=ai_message, action="deleted")
+            finally:
+                await conn.close()
+        except Exception as e:
+            logger.error("AI delete error: %s", e)
+            return AiCommandResponse(message=f"I couldn't delete: {str(e)}", action="chat")
+
+    # Default: conversational response
+    return AiCommandResponse(message=ai_message, action="chat")
+
+
+# ── Ghost animation queue endpoints ──────────────────────────────────
+
+@router.get("/{project_id}/ghost-queue")
+async def get_ghost_queue(project_id: _uuid.UUID):
+    """Poll for pending ghost animations. Desktop app calls this."""
+    pid = str(project_id)
+    items = _ghost_queue.pop(pid, [])
+    # Also include live streaming fields
+    live = _ghost_live.pop(pid, None)
+    result = {"items": [g.model_dump() for g in items]}
+    if live:
+        result["live"] = live
+    return result
+
+
+# ── Live ghost streaming — fields extracted in real-time while speaking ──
+
+# In-memory live state: project_id → {entity, table, fields so far, open: bool}
+_ghost_live: dict[str, dict] = {}
+
+
+class GhostStreamRequest(BaseModel):
+    text: str  # Current interim transcript
+    is_final: bool = False
+
+
+@router.post("/{project_id}/ghost-stream")
+async def ghost_stream(
+    project_id: _uuid.UUID,
+    body: GhostStreamRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Stream speech transcript to extract fields in real-time.
+    Called repeatedly with interim transcripts while user speaks.
+    When is_final=True, triggers the actual record creation.
+    """
+    pid = str(project_id)
+    text = body.text.strip()
+    if not text:
+        return {"status": "waiting"}
+
+    if not ANTHROPIC_API_KEY:
+        return {"status": "no_ai"}
+
+    # Detect if this looks like a create command
+    lower = text.lower()
+    is_create = any(lower.startswith(w) for w in ("create", "add", "new", "make"))
+    if not is_create:
+        # Not a create command — skip streaming, let normal flow handle it
+        return {"status": "skip"}
+
+    # Fetch project spec for entity info
+    result = await db.execute(
+        select(Project).where(Project.id == project_id, Project.deleted_at.is_(None))
+    )
+    project = result.scalar_one_or_none()
+    if not project:
+        return {"status": "error", "message": "Project not found"}
+
+    spec = project.spec or {}
+    entities = spec.get("entities", [])
+
+    # Build entity summary for Claude
+    skip_fields = {"id", "org_id", "created_at", "updated_at", "deleted_at", "version"}
+    entity_info = []
+    for ent in entities:
+        if not isinstance(ent, dict):
+            continue
+        name = ent.get("name", "")
+        table = ent.get("table", name.lower().replace(" ", "_"))
+        fields = [f.get("name", "") for f in ent.get("fields", []) if isinstance(f, dict) and f.get("name") not in skip_fields]
+        entity_info.append(f"- {name} (table: {table}): {', '.join(fields)}")
+
+    schema_text = "\n".join(entity_info)
+
+    # Ask Claude to extract fields from the partial transcript
+    system_prompt = f"""Extract fields from this partial voice command for a business app.
+Available entities:
+{schema_text}
+
+Respond with JSON only:
+{{"entity": "EntityName", "table": "table_name", "fields": {{"field_name": "value"}}}}
+
+Only include fields where you're confident about the value from what was said so far.
+If you can't determine the entity yet, respond: {{"entity": "", "fields": {{}}}}"""
+
+    try:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        message = client.messages.create(
+            model=AI_MODEL,
+            max_tokens=256,
+            system=system_prompt,
+            messages=[{"role": "user", "content": text}],
+        )
+        raw = message.content[0].text
+        json_match = re.search(r"\{[\s\S]*\}", raw)
+        if not json_match:
+            return {"status": "parsing"}
+        parsed = json.loads(json_match.group())
+    except Exception as e:
+        logger.debug("Ghost stream parse error: %s", e)
+        return {"status": "parsing"}
+
+    entity = parsed.get("entity", "")
+    table = parsed.get("table", "")
+    fields = parsed.get("fields", {})
+
+    if entity and fields:
+        # Queue live ghost data for the desktop app
+        _ghost_live[pid] = {
+            "entity": entity,
+            "table": table,
+            "fields": fields,
+            "is_final": body.is_final,
+        }
+
+        # If this is the final transcript, also trigger the full create
+        if body.is_final:
+            ghost = GhostData(entity=entity, table=table, fields=fields)
+            if pid not in _ghost_queue:
+                _ghost_queue[pid] = []
+            _ghost_queue[pid].append(ghost)
+
+    return {"status": "ok", "entity": entity, "fields": fields}
