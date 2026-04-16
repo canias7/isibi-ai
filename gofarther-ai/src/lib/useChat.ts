@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Alert, AppState } from 'react-native';
 import { ChatMsg, genId, parseAction, actionLabel } from './types';
 import { chatStream, Message, generateImage, analyzeImage, createFile, modifyFile, webSearch, readURL, runCode, translateText, youtubeSearch, deepResearch, generateQR, cryptoPortfolio, createInvoice, createCalendarEvent, socialPost, compareURLs, createMeme, barcodeLookup, runConnectorAction, runConnectorPlan, processCallRecording } from './ai';
+import { getToken } from './api';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
@@ -339,9 +340,12 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         createFile(finalAction.target || '', finalAction.text || 'pdf', finalAction.key || 'standard').then(async (result) => {
           if (cancelRef.current) { setIsCreating(false); return; }
           const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
-          // Download file locally
+          // Download file locally — must include auth header
           const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
-          const dlResult = await FileSystem.downloadAsync(downloadUrl, filePath);
+          const token = await getToken();
+          const dlResult = await FileSystem.downloadAsync(downloadUrl, filePath, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
           if (dlResult.status !== 200) throw new Error(`Download failed (HTTP ${dlResult.status})`);
 
           updateAndPersist(aiMsgIdStream, {
@@ -383,7 +387,10 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           if (cancelRef.current) { setIsCreating(false); return; }
           const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
           const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
-          const dlResult = await FileSystem.downloadAsync(downloadUrl, filePath);
+          const dlToken = await getToken();
+          const dlResult = await FileSystem.downloadAsync(downloadUrl, filePath, {
+            headers: { Authorization: `Bearer ${dlToken}` },
+          });
           if (dlResult.status !== 200) throw new Error(`Download failed (HTTP ${dlResult.status})`);
           updateAndPersist(aiMsgIdStream, {
             content: `${finalText || 'Your modified file is ready!'}\n\n**${result.filename}**`,
@@ -662,8 +669,11 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           if (cancelRef.current) { setIsCreating(false); return; }
           const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
           const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
-          const dlResult = await FileSystem.downloadAsync(downloadUrl, filePath);
-          if (dlResult.status !== 200) throw new Error(`Download failed`);
+          const dlToken = await getToken();
+          const dlResult = await FileSystem.downloadAsync(downloadUrl, filePath, {
+            headers: { Authorization: `Bearer ${dlToken}` },
+          });
+          if (dlResult.status !== 200) throw new Error(`Download failed (HTTP ${dlResult.status})`);
           updateAndPersist(aiMsgIdStream, { content: `${finalText || 'Your document is ready!'}\n\n**${result.filename}**`, fileUrl: filePath, isCreatingFile: false });
           setIsCreating(false);
           notify('Document Ready', `${result.filename} has been created`, 1);
@@ -763,7 +773,10 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
             (async () => {
               try {
                 const localPath = `${FileSystem.cacheDirectory}${Date.now()}-${fileNameFromResult}`;
-                const dl = await FileSystem.downloadAsync(fileUrlFromResult, localPath);
+                const dlToken = await getToken();
+                const dlHeaders: Record<string, string> = {};
+                if (fileUrlFromResult.includes('isibi-backend')) dlHeaders.Authorization = `Bearer ${dlToken}`;
+                const dl = await FileSystem.downloadAsync(fileUrlFromResult, localPath, { headers: dlHeaders });
                 if (dl.status === 200) {
                   updateAndPersist(aiMsgIdStream, {
                     content: (finalText ? finalText + '\n\n' : '') + formatted.trim() + `\n\n**${fileNameFromResult}**`,
