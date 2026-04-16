@@ -215,7 +215,6 @@ OTHER TOOLS:
 {"type":"research","target":"topic","text":"general/academic/patent/legal"}
 {"type":"generate_qr","target":"URL or text for QR code"}
 {"type":"create_event","target":"event title","text":"YYYY-MM-DD"}
-{"type":"create_invoice","target":"client name","text":"items and amounts"}
 {"type":"crypto_portfolio","target":"BTC,ETH,SOL"}
 {"type":"social_post","target":"post content","text":"twitter/instagram/linkedin"}
 {"type":"compare_urls","target":"url1,url2","text":"comparison question"}

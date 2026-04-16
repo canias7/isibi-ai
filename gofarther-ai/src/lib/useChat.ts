@@ -534,17 +534,6 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         return;
       }
 
-      // Handle invoice
-      if (finalAction?.type === 'create_invoice') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
-        setLoading(false);
-        trackAsync(createInvoice(finalAction.target || '', finalAction.text || '')).then(r => {
-          const url = `https://isibi-backend.onrender.com${r.download_url}`;
-          setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `${r.content}\n\n[Download Invoice](${url})` } : m));
-        }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Invoice failed: ' + e.message } : m)); });
-        return;
-      }
-
       // Handle crypto portfolio
       if (finalAction?.type === 'crypto_portfolio') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
