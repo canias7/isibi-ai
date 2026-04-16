@@ -147,6 +147,34 @@ class CreateFileRequest(BaseModel):
 async def create_file(req: CreateFileRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     payload = _verify_auth(authorization)
 
+    # ── Check if this is a structured document type (invoice, resume, etc.) ──
+    if req.file_type == "pdf":
+        from lib.pdf_document_templates import detect_document_type, get_structured_prompt, render_structured_pdf
+        doc_type = detect_document_type(req.description)
+        if doc_type:
+            structured_prompt = get_structured_prompt(doc_type)
+            raw_json = await _ask_claude(req.description, structured_prompt)
+            # Strip markdown fences if Claude wraps in ```json
+            clean = raw_json.strip()
+            if clean.startswith('```'):
+                clean = clean.split('\n', 1)[1] if '\n' in clean else clean[3:]
+                if clean.endswith('```'):
+                    clean = clean[:-3]
+                clean = clean.strip()
+            try:
+                data = json.loads(clean)
+                file_bytes = render_structured_pdf(doc_type, data)
+                file_id = str(uuid.uuid4())
+                filename = req.filename or f"{doc_type}_{file_id[:8]}"
+                filename += ".pdf"
+                mime = "application/pdf"
+                await _store_file(file_id, filename, mime, file_bytes)
+                await _audit_log_lazy()(db, payload.get("email", ""), "tool_create_file", f"Structured {doc_type} PDF")
+                await db.commit()
+                return {"file_id": str(file_id), "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}"}
+            except (json.JSONDecodeError, Exception) as e:
+                logger.warning("[create-file] Structured %s failed (%s), falling back to generic", doc_type, e)
+
     # Ask AI to generate the content with professional quality
     format_instructions = {
         "csv": "Return raw CSV data with headers. Use proper column names. Include realistic, detailed data.",
@@ -313,6 +341,35 @@ async def create_file_async(req: CreateFileRequest, authorization: str = Header(
         t0 = _time.time()
         logger.info("[create-file-async] job=%s started type=%s desc='%s'", job_id, req.file_type, req.description[:100])
         try:
+            # ── Check for structured document templates ──
+            if req.file_type == "pdf":
+                from lib.pdf_document_templates import detect_document_type, get_structured_prompt, render_structured_pdf
+                doc_type = detect_document_type(req.description)
+                if doc_type:
+                    logger.info("[create-file-async] job=%s detected structured type=%s", job_id, doc_type)
+                    structured_prompt = get_structured_prompt(doc_type)
+                    raw_json = await _ask_claude(req.description, structured_prompt)
+                    clean = raw_json.strip()
+                    if clean.startswith('```'):
+                        clean = clean.split('\n', 1)[1] if '\n' in clean else clean[3:]
+                        if clean.endswith('```'):
+                            clean = clean[:-3]
+                        clean = clean.strip()
+                    try:
+                        data = json.loads(clean)
+                        file_bytes = render_structured_pdf(doc_type, data)
+                        file_id = str(uuid.uuid4())[:8]
+                        filename = req.filename or f"{doc_type}_{file_id}"
+                        filename += ".pdf"
+                        mime = "application/pdf"
+                        await _store_file(file_id, filename, mime, file_bytes)
+                        elapsed = _time.time() - t0
+                        logger.info("[create-file-async] job=%s DONE structured %s file=%s elapsed=%.1fs", job_id, doc_type, filename, elapsed)
+                        JOB_STORE[job_id] = {"status": "done", "file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes), "error": None}
+                        return
+                    except (json.JSONDecodeError, Exception) as e:
+                        logger.warning("[create-file-async] job=%s structured %s failed (%s), falling back", job_id, doc_type, e)
+
             # Reuse the same logic as create_file
             format_instructions = {
                 "csv": "Return raw CSV data with headers.",
