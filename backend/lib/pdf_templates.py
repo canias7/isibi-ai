@@ -71,6 +71,8 @@ def _header_footer(canvas_obj, doc):
 
 def _fmt(text: str) -> str:
     """Convert markdown inline to reportlab XML."""
+    # Escape XML-special characters BEFORE inserting tags
+    text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
     text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
     text = re.sub(r'\*(.+?)\*', r'<i>\1</i>', text)
     text = re.sub(r'`(.+?)`', r'<font face="Courier" size="9" color="#c7254e">\1</font>', text)
