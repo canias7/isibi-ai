@@ -542,6 +542,7 @@ IMPORTANT:
 - Return ONLY valid JSON, no explanations."""
                     prompt = f"Current spreadsheet data:\n{text_content}\n\nModifications: {req.instructions}"
                     modified_content = await _ask_claude(prompt, system)
+                    modified_content = await _validate_and_fix_spreadsheet_json(modified_content, prompt)
                     _fname = _smart_filename("", "edited", "xlsx", original_filename)
                     file_bytes, filename, mime = _content_to_xlsx_with_formulas(modified_content, _fname.rsplit('.', 1)[0])
                 else:
@@ -839,6 +840,7 @@ Return ONLY valid JSON."""
                         clean_summary = parsed.get("cleaned_summary", "")
                     except Exception:
                         clean_summary = ""
+                    cleaned = await _validate_and_fix_spreadsheet_json(cleaned)
                     _fname = _smart_filename("", "cleaned", "xlsx", original_filename)
                     file_bytes, filename, mime = _content_to_xlsx_with_formulas(cleaned, _fname.rsplit('.', 1)[0])
                 else:
@@ -903,6 +905,7 @@ Return a JSON object: {"headers": [...new header names...], "rows": [[...], ...]
 Return ONLY valid JSON."""
                     prompt = f"Current data:\n{text_content}\n\nRename instructions: {req.instructions}"
                     renamed = await _ask_claude(prompt, system)
+                    renamed = await _validate_and_fix_spreadsheet_json(renamed, prompt)
                     _fname = _smart_filename("", "renamed", "xlsx", original_filename)
                     file_bytes, filename, mime = _content_to_xlsx_with_formulas(renamed, _fname.rsplit('.', 1)[0])
                 else:
@@ -1021,7 +1024,32 @@ Return ONLY valid JSON."""
                         results.append({"file_id": new_id, "filename": fn, "download_url": f"/api/ghost/tools/download/{new_id}"})
                     except Exception as e:
                         results.append({"file_id": fid, "error": str(e)})
-                JOB_STORE[job_id] = {"status": "done", "file_id": None, "filename": None, "download_url": None, "batch_results": results, "error": None}
+                # Create a zip of all successful files for one-click download
+                zip_id = None
+                zip_filename = None
+                zip_url = None
+                successful = [r for r in results if "filename" in r and "file_id" in r]
+                if len(successful) > 1:
+                    try:
+                        import zipfile
+                        zip_buf = io.BytesIO()
+                        with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+                            for r in successful:
+                                f_data = await _get_file(r["file_id"])
+                                if f_data:
+                                    zf.writestr(r["filename"], base64.b64decode(f_data["data"]))
+                        zip_bytes = zip_buf.getvalue()
+                        zip_id = str(uuid.uuid4())[:8]
+                        zip_filename = _smart_filename("batch_results", "batch", "zip")
+                        zip_url = f"/api/ghost/tools/download/{zip_id}"
+                        await _store_file(zip_id, zip_filename, "application/zip", zip_bytes, owner)
+                    except Exception as ze:
+                        logger.warning("Failed to create batch zip: %s", ze)
+
+                JOB_STORE[job_id] = {
+                    "status": "done", "file_id": zip_id, "filename": zip_filename,
+                    "download_url": zip_url, "batch_results": results, "error": None,
+                }
                 return
 
             # ── CHAIN — run multiple operations sequentially on the same file ──
@@ -1381,6 +1409,42 @@ def _extract_json_from_content(content: str):
 
     json_str = cleaned[start:end + 1]
     return _json.loads(json_str)
+
+
+async def _validate_and_fix_spreadsheet_json(content: str, original_prompt: str = "") -> str:
+    """Validate spreadsheet JSON structure. If invalid, ask Claude to fix it once."""
+    try:
+        data = _extract_json_from_content(content)
+        # Valid structures: list of dicts, or dict with headers+rows
+        if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict):
+            return content  # Valid: [{col: val}, ...]
+        if isinstance(data, dict):
+            if "headers" in data and "rows" in data:
+                return content  # Valid: {headers: [], rows: []}
+            # Has data but wrong keys — try to salvage
+            if "data" in data and isinstance(data["data"], list):
+                # Common mistake: {"data": [{...}]} instead of [{...}]
+                import json as _fix_json
+                return _fix_json.dumps(data["data"])
+        # Structure is wrong — ask Claude to fix
+        fix_result = await _ask_claude(
+            f"Your JSON response has the wrong structure. Convert it to this format:\n"
+            f'{{"headers": ["col1", "col2"], "rows": [["val1", "val2"]], "formulas": {{}}}}\n\n'
+            f"Your response was:\n{content[:2000]}\n\nReturn ONLY valid JSON in the correct format.",
+            "You are a JSON repair assistant. Fix the structure. Output ONLY valid JSON.",
+            retries=0
+        )
+        return fix_result
+    except (ValueError, json.JSONDecodeError):
+        # JSON itself is broken — ask Claude to regenerate
+        fix_result = await _ask_claude(
+            f"Your previous response was not valid JSON. Regenerate as:\n"
+            f'{{"headers": ["col1", "col2"], "rows": [["val1", "val2"]], "formulas": {{}}}}\n\n'
+            f"Original request: {original_prompt[:500] if original_prompt else 'spreadsheet data'}\n\nReturn ONLY valid JSON.",
+            "You are a JSON repair assistant. Output ONLY valid JSON.",
+            retries=0
+        )
+        return fix_result
 
 
 def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:

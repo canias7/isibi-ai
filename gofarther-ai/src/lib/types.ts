@@ -19,6 +19,7 @@ export interface ChatMsg {
   fileUrl?: string;
   fileMimeType?: string;
   isCreatingFile?: boolean;
+  isProcessing?: boolean; // Read/analysis ops — shows "Reading file..." instead of file spinner
   timestamp?: number;
   stats?: { tokens: number; durationMs: number };
   reaction?: 'up' | 'down';
