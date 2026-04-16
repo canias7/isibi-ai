@@ -248,10 +248,6 @@ SCHEDULING & REMINDERS:
 {"type":"daily_briefing","target":"morning"}
 
 TRACKING & INFO:
-{"type":"flight_status","target":"flight number (e.g. AA1234)"}
-{"type":"package_tracking","target":"tracking number"}
-{"type":"currency_convert","target":"amount and currencies (e.g. 500 EUR to USD)"}
-{"type":"time_zone","target":"city or timezone"}
 
 DOCUMENTS (advanced):
 {"type":"create_proposal","target":"client name and project","text":"pdf"}
