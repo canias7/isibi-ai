@@ -244,8 +244,8 @@ export async function createFile(description: string, fileType: string = 'pdf', 
   throw new Error('File creation timed out');
 }
 
-/** Modify an existing file (edit, chart, convert, merge, filter) */
-export async function modifyFile(operation: string, instructions: string, fileId?: string, targetFormat?: string): Promise<{ file_id: string; filename: string; download_url: string }> {
+/** Modify an existing file (edit, chart, convert, merge, filter, clean, split, rename) or read it (summarize, analyze, find, extract, answer) */
+export async function modifyFile(operation: string, instructions: string, fileId?: string, targetFormat?: string): Promise<{ file_id: string; filename: string; download_url: string; result_text?: string }> {
   await checkNetwork();
   const headers = await authHeaders();
 
@@ -264,7 +264,7 @@ export async function modifyFile(operation: string, instructions: string, fileId
       }, 10000);
       if (!pollRes.ok) continue;
       const job = await pollRes.json();
-      if (job.status === 'done') return { file_id: job.file_id, filename: job.filename, download_url: job.download_url };
+      if (job.status === 'done') return { file_id: job.file_id, filename: job.filename, download_url: job.download_url, result_text: job.result_text };
       if (job.status === 'failed') throw new Error(job.error || 'File modification failed');
     } catch (e: any) {
       if (e.message?.includes('failed')) throw e;
