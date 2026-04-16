@@ -153,7 +153,20 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
     await authLog(`rebuildPrompt: ${connectedApps?.length || 0} connected apps: ${(connectedApps || []).map((a: any) => `${a.name}[${(a.actions||[]).join(',')}]`).join(', ') || 'none'}`);
       setUserNickname(nick || '');
       const langMap: Record<string, string> = { en: '', es: '\n\nIMPORTANT: Always respond in Spanish.', fr: '\n\nIMPORTANT: Always respond in French.', pt: '\n\nIMPORTANT: Always respond in Portuguese.', de: '\n\nIMPORTANT: Always respond in German.' };
-      const memoryStr = memory.length > 0 ? '\n\nYou remember these facts about the user:\n' + memory.map((m: any) => '- ' + m.fact).join('\n') : '';
+      const memoryStr = memory.length > 0 ? (() => {
+        const grouped: Record<string, string[]> = {};
+        for (const m of memory) {
+          const cat = m.category || 'facts';
+          if (!grouped[cat]) grouped[cat] = [];
+          grouped[cat].push(m.fact);
+        }
+        let out = '\n\n=== SAVED MEMORY ===';
+        const labels: Record<string, string> = { facts: 'Facts', preferences: 'Preferences', templates: 'Templates', instructions: 'Instructions' };
+        for (const [cat, items] of Object.entries(grouped)) {
+          out += `\n${labels[cat] || cat}:\n` + items.map(f => '- ' + f).join('\n');
+        }
+        return out;
+      })() : '';
       const prefsStr = learnedPrefs.length > 0 ? '\n\nLEARNED PREFERENCES (from user feedback — follow these):\n' + learnedPrefs.map((p: any) => '- ' + p.rule).join('\n') : '';
       const customStr = custom ? '\n\nCustom instructions from user: ' + custom : '';
       const base = `You are GoFarther AI, a mobile AI assistant with personality. Talk like a real person — casual, warm, witty, and natural.

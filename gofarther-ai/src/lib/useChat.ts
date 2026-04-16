@@ -215,9 +215,21 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
       // Store stats on all AI responses
       const msgStats = { tokens, durationMs };
 
-      // Handle memory
+      // Handle memory — supports "category:fact" format (e.g. "preferences:always use bullet points")
       if (finalAction?.type === 'remember') {
-        await addMemoryFact(finalAction.target || '');
+        const raw = finalAction.target || '';
+        const colonIdx = raw.indexOf(':');
+        const validCategories = ['facts', 'preferences', 'templates', 'instructions'];
+        let category: 'facts' | 'preferences' | 'templates' | 'instructions' = 'facts';
+        let fact = raw;
+        if (colonIdx > 0) {
+          const prefix = raw.slice(0, colonIdx).trim().toLowerCase();
+          if (validCategories.includes(prefix)) {
+            category = prefix as typeof category;
+            fact = raw.slice(colonIdx + 1).trim();
+          }
+        }
+        await addMemoryFact(fact, category);
         finalAction = null;
         if (!finalText) finalText = "Got it, I'll remember that!";
       }
