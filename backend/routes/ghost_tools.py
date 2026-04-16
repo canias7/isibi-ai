@@ -505,8 +505,11 @@ async def modify_file_async(req: ModifyFileRequest, authorization: str = Header(
                 raise ValueError("File not found")
 
             file_id = str(uuid.uuid4())[:8]
-            # Keep original name with "modified_" prefix
+            # Strip previous operation suffixes to prevent name stacking
             base_name = original_filename.rsplit('.', 1)[0] if '.' in original_filename else original_filename
+            for _suffix in ('_modified', '_converted', '_filtered', '_merged', '_chart', '_comparison'):
+                while base_name.endswith(_suffix):
+                    base_name = base_name[:-len(_suffix)]
             ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'txt'
 
             if req.operation == "edit":
