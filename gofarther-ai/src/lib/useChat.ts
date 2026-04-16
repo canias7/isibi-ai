@@ -616,50 +616,6 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         return;
       }
 
-      // Handle flight status
-      if (finalAction?.type === 'flight_status') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
-        setLoading(false);
-        trackAsync(webSearch(`flight status ${finalAction.target}`)).then(r => {
-          const formatted = r.results.slice(0, 3).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
-          updateAndPersist(aiMsgIdStream, { content: formatted || 'Could not find flight info.' });
-        }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Flight check failed: ' + e.message }); });
-        return;
-      }
-
-      // Handle package tracking
-      if (finalAction?.type === 'package_tracking') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
-        setLoading(false);
-        trackAsync(webSearch(`package tracking ${finalAction.target}`)).then(r => {
-          const formatted = r.results.slice(0, 3).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
-          updateAndPersist(aiMsgIdStream, { content: formatted || 'Could not find tracking info.' });
-        }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Tracking failed: ' + e.message }); });
-        return;
-      }
-
-      // Handle currency conversion
-      if (finalAction?.type === 'currency_convert') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
-        setLoading(false);
-        trackAsync(webSearch(`${finalAction.target} exchange rate conversion`)).then(r => {
-          const formatted = r.results.slice(0, 2).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
-          updateAndPersist(aiMsgIdStream, { content: formatted || 'Conversion unavailable.' });
-        }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Conversion failed: ' + e.message }); });
-        return;
-      }
-
-      // Handle timezone
-      if (finalAction?.type === 'time_zone') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
-        setLoading(false);
-        trackAsync(webSearch(`current time in ${finalAction.target}`)).then(r => {
-          const formatted = r.results.slice(0, 2).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
-          updateAndPersist(aiMsgIdStream, { content: formatted || 'Could not determine time.' });
-        }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Timezone check failed: ' + e.message }); });
-        return;
-      }
-
       // Handle proposals, contracts, presentations (route to create_file)
       if (finalAction?.type === 'create_proposal' || finalAction?.type === 'create_contract' || finalAction?.type === 'create_presentation') {
         const fileType = finalAction.type === 'create_presentation' ? 'xlsx' : 'pdf';
