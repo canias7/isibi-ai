@@ -274,12 +274,13 @@ For read operations use: {"type":"modify_file","target":"summarize|analyze|find|
 
 BATCH — run the same operation on multiple files at once:
 {"type":"modify_file","target":"batch","text":"convert:","key":"pdf","file_ids":["id1","id2","id3"]}
-The text field format is "operation:instructions". The key field is target_format (for convert). Requires file_ids[] array.
-Example: user says "convert all 5 files to PDF" → {"type":"modify_file","target":"batch","text":"convert:","key":"pdf"}
+The text field format is "operation:instructions". The key field is target_format (for convert). file_ids is an array of file IDs.
+Example: user says "convert all 5 files to PDF" → include file_ids from their uploaded files.
 
 CHAIN — run multiple operations sequentially on the same file:
-{"type":"modify_file","target":"chain","text":"chain_ops","key":"[{\"operation\":\"clean\"},{\"operation\":\"filter\",\"instructions\":\"only rows where status=active\"},{\"operation\":\"convert\",\"target_format\":\"pdf\"}]"}
-Each step feeds its output into the next. If any step fails, delivers what was completed so far.
+{"type":"modify_file","target":"chain","chain_ops":[{"operation":"clean"},{"operation":"filter","instructions":"only rows where status=active"},{"operation":"convert","target_format":"pdf"}]}
+chain_ops is a JSON array of steps. Each step feeds its output into the next. If any step fails, delivers what was completed so far and reports which step failed.
+Supported chain steps: edit, clean, filter, convert, rename, chart, split.
 Example: user says "clean this spreadsheet, filter active rows, then export as PDF" → chain with 3 steps.
 
 CHAINED MODIFICATIONS: if user wants multiple changes, execute in exact order. Confirm plan in one sentence. If any step fails, stop and deliver completed steps.

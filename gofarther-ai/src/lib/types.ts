@@ -31,6 +31,10 @@ export interface ActionPayload {
   target?: string;
   text?: string;
   key?: string;
+  file_ids?: string[];
+  chain_ops?: { operation: string; instructions?: string; target_format?: string }[];
+  save_contact?: { label: string; name?: string; email?: string; phone?: string };
+  [extra: string]: any; // Allow additional fields from AI without dropping them
 }
 
 /** Parse action JSON from AI response text */

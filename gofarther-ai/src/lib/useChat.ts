@@ -456,11 +456,13 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         const opLabels: Record<string, string> = {
           edit: 'Editing file', chart: 'Creating chart', convert: 'Converting file',
           merge: 'Merging files', filter: 'Filtering data', clean: 'Cleaning data',
-          split: 'Splitting file', rename: 'Renaming columns',
-          summarize: 'Analyzing file', analyze: 'Analyzing file',
+          split: 'Splitting file', rename: 'Renaming columns', ocr: 'Reading image',
+          summarize: 'Reading file', analyze: 'Analyzing file',
           find: 'Searching file', extract: 'Extracting data', answer: 'Reading file',
+          batch: 'Processing files', chain: 'Running operations',
         };
-        updateAndPersist(aiMsgIdStream, { content: finalText || (opLabels[operation] || 'Processing file') + '...', isCreatingFile: true });
+        const loadingLabel = isReadOp ? (opLabels[operation] || 'Reading file') + '...' : (opLabels[operation] || 'Processing file') + '...';
+        updateAndPersist(aiMsgIdStream, { content: finalText || loadingLabel, isCreatingFile: !isReadOp, isProcessing: isReadOp });
         setLoading(false);
         setIsCreating(true);
         cancelRef.current = false;
@@ -469,37 +471,52 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         for (let i = messagesRef.current.length - 1; i >= 0; i--) {
           const m = messagesRef.current[i];
           if (m.fileUrl && m.content.includes('**')) {
-            // Extract file_id from the download URL pattern
             const match = m.fileUrl.match(/([a-f0-9-]{8})/);
             if (match) { lastFileId = match[1]; break; }
           }
         }
-        // Parse chain_ops from key field if this is a chain operation
-        let chainOps: any[] | undefined;
-        if (operation === 'chain' && finalAction.key) {
-          try { chainOps = JSON.parse(finalAction.key); } catch { /* ignore parse error */ }
-        }
-        modifyFile(operation, finalAction.text || '', lastFileId, finalAction.key || undefined, undefined, chainOps).then(async (result) => {
+        // Get chain_ops and file_ids directly from the parsed action (not from key)
+        const chainOps = finalAction.chain_ops;
+        const fileIds = finalAction.file_ids;
+        // For non-chain/batch ops, don't pass key as target_format if it's not a convert
+        const targetFormat = operation === 'convert' || operation === 'batch' ? (finalAction.key || undefined) : undefined;
+        modifyFile(operation, finalAction.text || '', lastFileId, targetFormat, fileIds, chainOps).then(async (result) => {
           if (cancelRef.current) { setIsCreating(false); return; }
           // Read operations return text instead of a file
           if (isReadOp && result.result_text) {
             updateAndPersist(aiMsgIdStream, {
               content: `${finalText ? finalText + '\n\n' : ''}${result.result_text}`,
               isCreatingFile: false,
+              isProcessing: false,
             });
             setIsCreating(false);
             return;
           }
-          // Batch operations return multiple results
+          // Batch operations — download each file and list them
           if (result.batch_results) {
-            const successful = result.batch_results.filter((r: any) => r.filename);
+            const successful = result.batch_results.filter((r: any) => r.filename && r.download_url);
             const failed = result.batch_results.filter((r: any) => r.error);
+            // Download the first successful file for immediate access
+            let firstFilePath: string | undefined;
+            if (successful.length > 0) {
+              try {
+                const dlUrl = `https://isibi-backend.onrender.com${successful[0].download_url}`;
+                firstFilePath = `${FileSystem.cacheDirectory}${successful[0].filename}`;
+                await FileSystem.downloadAsync(dlUrl, firstFilePath);
+              } catch { firstFilePath = undefined; }
+            }
             let batchMsg = `${finalText || 'Batch complete!'}\n\n`;
             batchMsg += `**${successful.length} files processed**${failed.length > 0 ? `, ${failed.length} failed` : ''}:\n`;
-            for (const r of successful) batchMsg += `- ${r.filename}\n`;
-            for (const r of failed) batchMsg += `- Failed: ${r.error}\n`;
-            updateAndPersist(aiMsgIdStream, { content: batchMsg, isCreatingFile: false });
+            for (const r of successful) batchMsg += `- **${r.filename}**\n`;
+            for (const r of failed) batchMsg += `- ❌ ${r.error}\n`;
+            if (successful.length > 1) batchMsg += `\n_Showing first file. Ask me to send any of these or download individually._`;
+            updateAndPersist(aiMsgIdStream, {
+              content: batchMsg,
+              fileUrl: firstFilePath,
+              isCreatingFile: false,
+            });
             setIsCreating(false);
+            notify('Batch Complete', `${successful.length} files processed`, 1);
             return;
           }
           // File operations — download the result
@@ -507,8 +524,14 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
           const dlResult = await FileSystem.downloadAsync(downloadUrl, filePath);
           if (dlResult.status !== 200) throw new Error(`Download failed (HTTP ${dlResult.status})`);
+          // Include chain step info if available
+          let successMsg = `${finalText || 'Your modified file is ready!'}\n\n**${result.filename}**`;
+          if ((result as any).completed_steps) {
+            successMsg += `\n_Steps completed: ${(result as any).completed_steps.join(' → ')}_`;
+            if ((result as any).failed_step) successMsg += `\n_⚠️ Failed at: ${(result as any).failed_step}_`;
+          }
           updateAndPersist(aiMsgIdStream, {
-            content: `${finalText || 'Your modified file is ready!'}\n\n**${result.filename}**`,
+            content: successMsg,
             fileUrl: filePath,
             isCreatingFile: false,
           });
@@ -517,7 +540,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         }).catch(e => {
           setIsCreating(false);
           if (cancelRef.current) return;
-          updateAndPersist(aiMsgIdStream, { content: 'File operation failed: ' + (e.message || 'Unknown error'), isCreatingFile: false });
+          updateAndPersist(aiMsgIdStream, { content: 'File operation failed: ' + (e.message || 'Unknown error'), isCreatingFile: false, isProcessing: false });
         });
         return;
       }
