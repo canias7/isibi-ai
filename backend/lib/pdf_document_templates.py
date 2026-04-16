@@ -539,6 +539,328 @@ def create_resume_pdf(data: dict) -> bytes:
 
 
 # ══════════════════════════════════════════════════════════════════════════
+#  PROPOSAL TEMPLATE
+# ══════════════════════════════════════════════════════════════════════════
+
+PROPOSAL_PROMPT = """You generate structured business proposal data. Return ONLY a valid JSON object with this EXACT structure — no markdown, no explanation, no commentary:
+
+{
+  "title": "Project Proposal Title",
+  "subtitle": "Prepared for Client Name",
+  "prepared_by": {
+    "company": "Your Company Name",
+    "contact": "Your Name, Title",
+    "email": "you@company.com",
+    "phone": "(555) 123-4567"
+  },
+  "prepared_for": {
+    "company": "Client Company",
+    "contact": "Client Name, Title",
+    "email": "client@company.com"
+  },
+  "date": "April 16, 2026",
+  "executive_summary": "2-3 paragraph executive summary explaining the opportunity, proposed solution, and expected outcomes. Be specific with numbers and impact.",
+  "problem_statement": "1-2 paragraphs clearly defining the problem or opportunity the client faces.",
+  "proposed_solution": [
+    {
+      "title": "Phase 1: Discovery & Planning",
+      "description": "Detailed description of what this phase involves and what it delivers."
+    },
+    {
+      "title": "Phase 2: Development",
+      "description": "Detailed description of the main work phase."
+    },
+    {
+      "title": "Phase 3: Testing & Launch",
+      "description": "Description of QA, deployment, and go-live."
+    }
+  ],
+  "timeline": [
+    {"phase": "Discovery & Planning", "duration": "2 weeks", "dates": "May 1 — May 14"},
+    {"phase": "Development", "duration": "6 weeks", "dates": "May 15 — Jun 25"},
+    {"phase": "Testing & Launch", "duration": "2 weeks", "dates": "Jun 26 — Jul 9"}
+  ],
+  "pricing": [
+    {"item": "Discovery & Planning", "description": "Requirements, research, architecture", "amount": 5000},
+    {"item": "Development", "description": "Core build, integrations, UI/UX", "amount": 25000},
+    {"item": "Testing & Launch", "description": "QA, deployment, training", "amount": 5000},
+    {"item": "Project Management", "description": "Coordination, status updates, documentation", "amount": 3000}
+  ],
+  "total": 38000,
+  "currency": "USD",
+  "deliverables": [
+    "Fully functional platform deployed to production",
+    "Technical documentation and admin guide",
+    "30 days post-launch support",
+    "Training session for client team"
+  ],
+  "terms": [
+    "50% deposit upon signing, 25% at midpoint, 25% on delivery",
+    "Proposal valid for 30 days from date above",
+    "Changes in scope will be quoted separately",
+    "All intellectual property transfers to client upon final payment"
+  ],
+  "why_us": "2-3 sentences about why your company is the best fit. Include relevant experience, team expertise, or unique advantages."
+}
+
+RULES:
+- Generate realistic, detailed content tailored to the user's description
+- Executive summary should be compelling and specific — include numbers
+- Proposed solution should have 3-5 phases with clear descriptions
+- Timeline must be realistic for the scope
+- Pricing should include 3-6 line items that add up to the total
+- Include at least 4 deliverables and 3-4 terms
+- Currency defaults to USD unless specified
+- Return ONLY the JSON. No text before or after."""
+
+
+def create_proposal_pdf(data: dict) -> bytes:
+    """Create a professional proposal PDF from structured data."""
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=letter,
+        leftMargin=0.6 * inch, rightMargin=0.6 * inch,
+        topMargin=0.5 * inch, bottomMargin=0.6 * inch,
+    )
+
+    s = getSampleStyleSheet()
+    s.add(ParagraphStyle('PropTitle', fontSize=26, leading=32, textColor=DARK, fontName='Helvetica-Bold', alignment=TA_CENTER))
+    s.add(ParagraphStyle('PropSubtitle', fontSize=12, leading=16, textColor=ACCENT_BLUE, fontName='Helvetica', alignment=TA_CENTER))
+    s.add(ParagraphStyle('PropDate', fontSize=10, leading=13, textColor=MID, fontName='Helvetica', alignment=TA_CENTER))
+    s.add(ParagraphStyle('PropSection', fontSize=14, leading=18, textColor=DARK, fontName='Helvetica-Bold', spaceBefore=16, spaceAfter=4))
+    s.add(ParagraphStyle('PropBody', fontSize=10, leading=15, textColor=DARK, fontName='Helvetica', spaceAfter=6))
+    s.add(ParagraphStyle('PropBodyBold', fontSize=10, leading=15, textColor=DARK, fontName='Helvetica-Bold', spaceAfter=2))
+    s.add(ParagraphStyle('PropBullet', fontSize=10, leading=14, textColor=DARK, fontName='Helvetica', leftIndent=16, bulletIndent=6, spaceAfter=3))
+    s.add(ParagraphStyle('PropLabel', fontSize=8, leading=10, textColor=LIGHT, fontName='Helvetica-Bold'))
+    s.add(ParagraphStyle('PropSmall', fontSize=9, leading=12, textColor=MID, fontName='Helvetica'))
+    s.add(ParagraphStyle('PropTotalLabel', fontSize=11, leading=14, textColor=DARK, fontName='Helvetica-Bold'))
+    s.add(ParagraphStyle('PropTotalValue', fontSize=16, leading=20, textColor=ACCENT_BLUE, fontName='Helvetica-Bold'))
+    s.add(ParagraphStyle('PropFooter', fontSize=7.5, leading=10, textColor=LIGHT, fontName='Helvetica', alignment=TA_CENTER))
+
+    story = []
+    currency = data.get('currency', 'USD')
+    sym = {'USD': '$', 'EUR': '€', 'GBP': '£', 'CAD': 'C$', 'AUD': 'A$'}.get(currency, '$')
+
+    # ── Cover section ─────────────────────────────────────────────────
+    story.append(Spacer(1, 40))
+    story.append(Paragraph(data.get('title', 'Project Proposal'), s['PropTitle']))
+    story.append(Spacer(1, 8))
+    subtitle = data.get('subtitle', '')
+    if subtitle:
+        story.append(Paragraph(subtitle, s['PropSubtitle']))
+    story.append(Spacer(1, 12))
+    story.append(HRFlowable(width="30%", thickness=3, color=ACCENT_BLUE, spaceAfter=12))
+    story.append(Paragraph(data.get('date', datetime.now().strftime('%B %d, %Y')), s['PropDate']))
+    story.append(Spacer(1, 24))
+
+    # Prepared by / for blocks
+    prep_by = data.get('prepared_by', {})
+    prep_for = data.get('prepared_for', {})
+
+    def _prep_block(label, info):
+        lines = []
+        lines.append(Paragraph(label, s['PropLabel']))
+        lines.append(Spacer(1, 3))
+        if info.get('company'):
+            lines.append(Paragraph(f"<b>{info['company']}</b>", s['PropBody']))
+        if info.get('contact'):
+            lines.append(Paragraph(info['contact'], s['PropSmall']))
+        if info.get('email'):
+            lines.append(Paragraph(info['email'], s['PropSmall']))
+        if info.get('phone'):
+            lines.append(Paragraph(info['phone'], s['PropSmall']))
+        return lines
+
+    prep_table = Table(
+        [[_prep_block('PREPARED BY', prep_by), _prep_block('PREPARED FOR', prep_for)]],
+        colWidths=[3.5 * inch, 3.5 * inch]
+    )
+    prep_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    story.append(prep_table)
+    story.append(Spacer(1, 16))
+    story.append(HRFlowable(width="100%", thickness=1, color=BORDER, spaceAfter=16))
+
+    # ── Executive Summary ─────────────────────────────────────────────
+    exec_summary = data.get('executive_summary', '')
+    if exec_summary:
+        story.append(Paragraph('Executive Summary', s['PropSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=8))
+        # Highlight box
+        box_data = [[Paragraph(exec_summary, s['PropBody'])]]
+        box = Table(box_data, colWidths=[6.3 * inch])
+        box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), HexColor('#f0f7ff')),
+            ('ROUNDEDCORNERS', [6, 6, 6, 6]),
+            ('TOPPADDING', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('LEFTPADDING', (0, 0), (-1, -1), 14),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 14),
+        ]))
+        story.append(box)
+        story.append(Spacer(1, 8))
+
+    # ── Problem Statement ─────────────────────────────────────────────
+    problem = data.get('problem_statement', '')
+    if problem:
+        story.append(Paragraph('The Challenge', s['PropSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=8))
+        story.append(Paragraph(problem, s['PropBody']))
+
+    # ── Proposed Solution ─────────────────────────────────────────────
+    solution = data.get('proposed_solution', [])
+    if solution:
+        story.append(Paragraph('Proposed Solution', s['PropSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=8))
+        for i, phase in enumerate(solution):
+            story.append(Paragraph(f"{i+1}. {phase.get('title', '')}", s['PropBodyBold']))
+            story.append(Paragraph(phase.get('description', ''), s['PropBody']))
+
+    # ── Timeline ──────────────────────────────────────────────────────
+    timeline = data.get('timeline', [])
+    if timeline:
+        story.append(Paragraph('Timeline', s['PropSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=8))
+
+        tl_header = ['PHASE', 'DURATION', 'DATES']
+        tl_data = [tl_header]
+        for item in timeline:
+            tl_data.append([item.get('phase', ''), item.get('duration', ''), item.get('dates', '')])
+
+        tl_table = Table(tl_data, colWidths=[2.8 * inch, 1.5 * inch, 2.5 * inch])
+        tl_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), DARK),
+            ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9.5),
+            ('TOPPADDING', (0, 0), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [WHITE, LIGHT_BG]),
+            ('GRID', (0, 0), (-1, -1), 0.5, BORDER),
+        ]))
+        story.append(tl_table)
+        story.append(Spacer(1, 8))
+
+    # ── Pricing ───────────────────────────────────────────────────────
+    pricing = data.get('pricing', [])
+    if pricing:
+        story.append(Paragraph('Investment', s['PropSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=8))
+
+        pr_header = ['ITEM', 'DESCRIPTION', 'AMOUNT']
+        pr_data = [pr_header]
+        for item in pricing:
+            pr_data.append([
+                item.get('item', ''),
+                item.get('description', ''),
+                f"{sym}{item.get('amount', 0):,.2f}"
+            ])
+
+        pr_table = Table(pr_data, colWidths=[2.0 * inch, 3.3 * inch, 1.5 * inch])
+        pr_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), DARK),
+            ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9.5),
+            ('TOPPADDING', (0, 0), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [WHITE, LIGHT_BG]),
+            ('GRID', (0, 0), (-1, -1), 0.5, BORDER),
+        ]))
+        story.append(pr_table)
+
+        # Total
+        total = data.get('total', 0)
+        total_row = Table(
+            [['', 'TOTAL', f"{sym}{total:,.2f}"]],
+            colWidths=[2.0 * inch, 3.3 * inch, 1.5 * inch]
+        )
+        total_row.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (1, 0), (1, 0), 10),
+            ('FONTSIZE', (2, 0), (2, 0), 13),
+            ('TEXTCOLOR', (2, 0), (2, 0), ACCENT_BLUE),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('LINEABOVE', (1, 0), (-1, 0), 1.5, DARK),
+        ]))
+        story.append(total_row)
+        story.append(Spacer(1, 8))
+
+    # ── Deliverables ──────────────────────────────────────────────────
+    deliverables = data.get('deliverables', [])
+    if deliverables:
+        story.append(Paragraph('Deliverables', s['PropSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=8))
+        for d in deliverables:
+            story.append(Paragraph(f"✓  {d}", s['PropBullet']))
+        story.append(Spacer(1, 4))
+
+    # ── Why Us ────────────────────────────────────────────────────────
+    why_us = data.get('why_us', '')
+    if why_us:
+        story.append(Paragraph('Why Choose Us', s['PropSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=8))
+        box_data = [[Paragraph(why_us, s['PropBody'])]]
+        box = Table(box_data, colWidths=[6.3 * inch])
+        box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), HexColor('#f0fdf4')),
+            ('ROUNDEDCORNERS', [6, 6, 6, 6]),
+            ('TOPPADDING', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('LEFTPADDING', (0, 0), (-1, -1), 14),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 14),
+        ]))
+        story.append(box)
+        story.append(Spacer(1, 8))
+
+    # ── Terms ─────────────────────────────────────────────────────────
+    terms = data.get('terms', [])
+    if terms:
+        story.append(Paragraph('Terms & Conditions', s['PropSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=8))
+        for i, term in enumerate(terms):
+            story.append(Paragraph(f"{i+1}.  {term}", s['PropBullet']))
+        story.append(Spacer(1, 12))
+
+    # ── Signature block ───────────────────────────────────────────────
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=16))
+    sig_table = Table(
+        [
+            [Paragraph('ACCEPTED BY', s['PropLabel']), '', Paragraph('DATE', s['PropLabel'])],
+            ['_' * 35, '', '_' * 25],
+            [Paragraph('Signature', s['PropSmall']), '', Paragraph('Date', s['PropSmall'])],
+        ],
+        colWidths=[3.2 * inch, 0.6 * inch, 3.0 * inch]
+    )
+    sig_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    story.append(sig_table)
+
+    # ── Footer ────────────────────────────────────────────────────────
+    story.append(Spacer(1, 16))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+    story.append(Paragraph('Generated by GoFarther AI', s['PropFooter']))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
+# ══════════════════════════════════════════════════════════════════════════
 #  DOCUMENT TYPE DETECTION + ROUTING
 # ══════════════════════════════════════════════════════════════════════════
 
@@ -555,6 +877,8 @@ def detect_document_type(description: str) -> str | None:
         return 'invoice'
     if any(kw in desc for kw in RESUME_KEYWORDS):
         return 'resume'
+    if any(kw in desc for kw in PROPOSAL_KEYWORDS):
+        return 'proposal'
     return None
 
 
@@ -564,6 +888,8 @@ def get_structured_prompt(doc_type: str) -> str:
         return INVOICE_PROMPT
     if doc_type == 'resume':
         return RESUME_PROMPT
+    if doc_type == 'proposal':
+        return PROPOSAL_PROMPT
     return ""
 
 
@@ -573,4 +899,6 @@ def render_structured_pdf(doc_type: str, data: dict) -> bytes:
         return create_invoice_pdf(data)
     if doc_type == 'resume':
         return create_resume_pdf(data)
+    if doc_type == 'proposal':
+        return create_proposal_pdf(data)
     raise ValueError(f"Unknown document type: {doc_type}")
