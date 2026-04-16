@@ -244,14 +244,21 @@ export async function createFile(description: string, fileType: string = 'pdf', 
   throw new Error('File creation timed out');
 }
 
-/** Modify an existing file (edit, chart, convert, merge, filter, clean, split, rename) or read it (summarize, analyze, find, extract, answer) */
-export async function modifyFile(operation: string, instructions: string, fileId?: string, targetFormat?: string): Promise<{ file_id: string; filename: string; download_url: string; result_text?: string }> {
+/** Modify an existing file (edit, chart, convert, merge, filter, clean, split, rename, ocr, batch, chain) or read it (summarize, analyze, find, extract, answer) */
+export async function modifyFile(
+  operation: string, instructions: string, fileId?: string, targetFormat?: string,
+  fileIds?: string[], chainOps?: { operation: string; instructions?: string; target_format?: string }[]
+): Promise<{ file_id: string; filename: string; download_url: string; result_text?: string; batch_results?: any[] }> {
   await checkNetwork();
   const headers = await authHeaders();
 
+  const body: any = { operation, instructions, file_id: fileId, target_format: targetFormat };
+  if (fileIds) body.file_ids = fileIds;
+  if (chainOps) body.chain_ops = chainOps;
+
   const startRes = await fetchWithTimeout(`${TOOLS_BASE}/modify-file-async`, {
     method: 'POST', headers,
-    body: JSON.stringify({ operation, instructions, file_id: fileId, target_format: targetFormat }),
+    body: JSON.stringify(body),
   }, 30000);
   if (!startRes.ok) throw new Error('File modification failed to start');
   const { job_id } = await startRes.json();
@@ -264,7 +271,7 @@ export async function modifyFile(operation: string, instructions: string, fileId
       }, 10000);
       if (!pollRes.ok) continue;
       const job = await pollRes.json();
-      if (job.status === 'done') return { file_id: job.file_id, filename: job.filename, download_url: job.download_url, result_text: job.result_text };
+      if (job.status === 'done') return { file_id: job.file_id, filename: job.filename, download_url: job.download_url, result_text: job.result_text, batch_results: job.batch_results };
       if (job.status === 'failed') throw new Error(job.error || 'File modification failed');
     } catch (e: any) {
       if (e.message?.includes('failed')) throw e;

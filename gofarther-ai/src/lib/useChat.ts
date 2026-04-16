@@ -448,10 +448,10 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         return;
       }
 
-      // Handle file modification (edit, chart, convert, merge, filter, clean, split, rename) and reading (summarize, analyze, find, extract, answer)
+      // Handle file modification (edit, chart, convert, merge, filter, clean, split, rename, ocr, batch, chain) and reading (summarize, analyze, find, extract, answer)
       if (finalAction?.type === 'modify_file') {
         const operation = finalAction.target || 'edit';
-        const readOps = ['summarize', 'analyze', 'find', 'extract', 'answer'];
+        const readOps = ['summarize', 'analyze', 'find', 'extract', 'answer', 'ocr'];
         const isReadOp = readOps.includes(operation);
         const opLabels: Record<string, string> = {
           edit: 'Editing file', chart: 'Creating chart', convert: 'Converting file',
@@ -474,7 +474,12 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
             if (match) { lastFileId = match[1]; break; }
           }
         }
-        modifyFile(operation, finalAction.text || '', lastFileId, finalAction.key || undefined).then(async (result) => {
+        // Parse chain_ops from key field if this is a chain operation
+        let chainOps: any[] | undefined;
+        if (operation === 'chain' && finalAction.key) {
+          try { chainOps = JSON.parse(finalAction.key); } catch { /* ignore parse error */ }
+        }
+        modifyFile(operation, finalAction.text || '', lastFileId, finalAction.key || undefined, undefined, chainOps).then(async (result) => {
           if (cancelRef.current) { setIsCreating(false); return; }
           // Read operations return text instead of a file
           if (isReadOp && result.result_text) {
@@ -482,6 +487,18 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
               content: `${finalText ? finalText + '\n\n' : ''}${result.result_text}`,
               isCreatingFile: false,
             });
+            setIsCreating(false);
+            return;
+          }
+          // Batch operations return multiple results
+          if (result.batch_results) {
+            const successful = result.batch_results.filter((r: any) => r.filename);
+            const failed = result.batch_results.filter((r: any) => r.error);
+            let batchMsg = `${finalText || 'Batch complete!'}\n\n`;
+            batchMsg += `**${successful.length} files processed**${failed.length > 0 ? `, ${failed.length} failed` : ''}:\n`;
+            for (const r of successful) batchMsg += `- ${r.filename}\n`;
+            for (const r of failed) batchMsg += `- Failed: ${r.error}\n`;
+            updateAndPersist(aiMsgIdStream, { content: batchMsg, isCreatingFile: false });
             setIsCreating(false);
             return;
           }
