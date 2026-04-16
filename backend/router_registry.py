@@ -102,7 +102,7 @@ def _register_app_feature_routers(app):
     from routes.ghost_push import router as ghost_push_router
     from routes.ghost_digest import router as ghost_digest_router
     from routes.ghost_agents import router as ghost_agents_router
-    from routes.ghost_invoices import router as ghost_invoices_router
+    from routes.ghost_invoices import router as ghost_invoices_router, dashboard_router as ghost_invoices_dashboard
     from routes.ghost_tools_v4 import router as ghost_tools_v4_router
     from routes.teams_bot import router as teams_bot_router
     from routes.admin_dashboard import router as admin_dashboard_router
@@ -154,6 +154,7 @@ def _register_app_feature_routers(app):
     app.include_router(ghost_invoices_router, prefix="/api")
     app.include_router(ghost_tools_v4_router, prefix="/api")
     app.include_router(teams_bot_router, prefix="/api")
+    app.include_router(ghost_invoices_dashboard)  # No prefix — serves at /invoices directly
     app.include_router(admin_dashboard_router)  # No prefix — serves at /admin directly
 
 

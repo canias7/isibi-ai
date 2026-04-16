@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bill Catcher — Invoice Dashboard</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#f0f2f5; color:#1a1a2e; min-height:100vh; }
+
+/* ── Sidebar ── */
+.sidebar { position:fixed; left:0; top:0; bottom:0; width:240px; background:#1a1a2e; color:#fff; padding:24px 0; display:flex; flex-direction:column; z-index:100; }
+.sidebar-logo { padding:0 24px 24px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; gap:10px; }
+.sidebar-logo .icon { width:36px; height:36px; background:#2563eb; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+.sidebar-logo h1 { font-size:16px; font-weight:600; }
+.sidebar-logo span { font-size:11px; color:rgba(255,255,255,0.5); display:block; }
+.sidebar-nav { flex:1; padding:16px 0; }
+.sidebar-nav a { display:flex; align-items:center; gap:12px; padding:10px 24px; color:rgba(255,255,255,0.6); text-decoration:none; font-size:14px; transition:all 0.15s; }
+.sidebar-nav a:hover { color:#fff; background:rgba(255,255,255,0.05); }
+.sidebar-nav a.active { color:#fff; background:rgba(37,99,235,0.2); border-right:3px solid #2563eb; }
+.sidebar-nav a .nav-icon { width:20px; text-align:center; font-size:16px; }
+.sidebar-footer { padding:16px 24px; border-top:1px solid rgba(255,255,255,0.08); font-size:12px; color:rgba(255,255,255,0.3); }
+
+/* ── Main ── */
+.main { margin-left:240px; padding:32px; }
+
+/* ── Login ── */
+.login-overlay { position:fixed; inset:0; background:#1a1a2e; display:flex; align-items:center; justify-content:center; z-index:999; }
+.login-overlay.hidden { display:none; }
+.login-box { background:#fff; border-radius:16px; padding:40px; width:380px; text-align:center; }
+.login-box .icon { width:56px; height:56px; background:#2563eb; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 16px; }
+.login-box h2 { font-size:20px; margin-bottom:4px; }
+.login-box p { font-size:13px; color:#666; margin-bottom:24px; }
+.login-box input { width:100%; padding:12px 16px; border:1px solid #ddd; border-radius:10px; font-size:14px; margin-bottom:12px; outline:none; }
+.login-box input:focus { border-color:#2563eb; }
+.login-box button { width:100%; padding:12px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; }
+.login-box button:hover { background:#1d4ed8; }
+.login-error { color:#ef4444; font-size:12px; margin-bottom:8px; display:none; }
+
+/* ── Stats Cards ── */
+.stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:28px; }
+.stat-card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+.stat-card .label { font-size:12px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+.stat-card .value { font-size:28px; font-weight:700; }
+.stat-card .sub { font-size:13px; color:#888; margin-top:2px; }
+.stat-card.pending .value { color:#f59e0b; }
+.stat-card.approved .value { color:#2563eb; }
+.stat-card.paid .value { color:#10b981; }
+.stat-card.overdue .value { color:#ef4444; }
+.stat-card.total .value { color:#1a1a2e; }
+
+/* ── Toolbar ── */
+.toolbar { display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.tabs { display:flex; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+.tabs button { padding:10px 20px; border:none; background:transparent; font-size:13px; font-weight:500; color:#666; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+.tabs button:hover { color:#1a1a2e; }
+.tabs button.active { background:#2563eb; color:#fff; }
+.search-box { flex:1; min-width:200px; position:relative; }
+.search-box input { width:100%; padding:10px 16px 10px 40px; border:1px solid #e0e0e0; border-radius:10px; font-size:13px; background:#fff; outline:none; }
+.search-box input:focus { border-color:#2563eb; }
+.search-box::before { content:"🔍"; position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:14px; }
+.sort-select { padding:10px 16px; border:1px solid #e0e0e0; border-radius:10px; font-size:13px; background:#fff; outline:none; cursor:pointer; }
+
+/* ── Table ── */
+.invoice-table { width:100%; background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); overflow:hidden; }
+.invoice-table table { width:100%; border-collapse:collapse; }
+.invoice-table th { padding:14px 16px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#888; background:#fafafa; border-bottom:1px solid #eee; font-weight:600; }
+.invoice-table td { padding:14px 16px; font-size:14px; border-bottom:1px solid #f0f0f0; }
+.invoice-table tr:last-child td { border-bottom:none; }
+.invoice-table tbody tr { cursor:pointer; transition:background 0.1s; }
+.invoice-table tbody tr:hover { background:#f8faff; }
+
+.status-pill { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; display:inline-block; }
+.status-pill.pending { background:#fef3c7; color:#92400e; }
+.status-pill.approved { background:#dbeafe; color:#1e40af; }
+.status-pill.paid { background:#d1fae5; color:#065f46; }
+.status-pill.rejected { background:#fee2e2; color:#991b1b; }
+
+.amount-cell { font-weight:600; font-variant-numeric:tabular-nums; }
+.vendor-cell { font-weight:500; }
+.date-cell { color:#666; font-size:13px; }
+.email-cell { color:#888; font-size:12px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.empty-state { text-align:center; padding:80px 20px; color:#888; }
+.empty-state .empty-icon { font-size:48px; margin-bottom:12px; }
+.empty-state h3 { font-size:18px; color:#333; margin-bottom:4px; }
+
+.pagination { display:flex; align-items:center; justify-content:space-between; padding:16px; background:#fff; border-top:1px solid #eee; }
+.pagination .info { font-size:13px; color:#888; }
+.pagination .btns { display:flex; gap:8px; }
+.pagination button { padding:8px 16px; border:1px solid #ddd; border-radius:8px; background:#fff; font-size:13px; cursor:pointer; }
+.pagination button:hover { background:#f5f5f5; }
+.pagination button:disabled { opacity:0.4; cursor:default; }
+
+/* ── Detail Panel ── */
+.detail-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:200; display:none; }
+.detail-overlay.open { display:block; }
+.detail-panel { position:fixed; right:0; top:0; bottom:0; width:520px; background:#fff; z-index:201; box-shadow:-4px 0 24px rgba(0,0,0,0.1); display:none; flex-direction:column; overflow-y:auto; }
+.detail-panel.open { display:flex; }
+.detail-header { padding:24px; border-bottom:1px solid #eee; display:flex; align-items:flex-start; justify-content:space-between; }
+.detail-header h2 { font-size:18px; }
+.detail-header .close-btn { width:32px; height:32px; border:none; background:#f0f0f0; border-radius:8px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.detail-header .close-btn:hover { background:#e0e0e0; }
+.detail-body { padding:24px; flex:1; }
+.detail-row { display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #f0f0f0; }
+.detail-row .label { font-size:13px; color:#888; }
+.detail-row .val { font-size:14px; font-weight:500; text-align:right; }
+.detail-notes { margin-top:20px; }
+.detail-notes textarea { width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; font-size:13px; min-height:80px; resize:vertical; outline:none; font-family:inherit; }
+.detail-notes textarea:focus { border-color:#2563eb; }
+.detail-actions { padding:20px 24px; border-top:1px solid #eee; display:flex; gap:10px; flex-wrap:wrap; }
+.detail-actions button { padding:10px 20px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.15s; }
+.btn-approve { background:#2563eb; color:#fff; }
+.btn-approve:hover { background:#1d4ed8; }
+.btn-paid { background:#10b981; color:#fff; }
+.btn-paid:hover { background:#059669; }
+.btn-reject { background:#fee2e2; color:#991b1b; }
+.btn-reject:hover { background:#fecaca; }
+.btn-delete { background:#f5f5f5; color:#ef4444; }
+.btn-delete:hover { background:#fee2e2; }
+.btn-save-notes { background:#f5f5f5; color:#333; }
+.btn-save-notes:hover { background:#e5e5e5; }
+
+/* ── Toast ── */
+.toast { position:fixed; bottom:32px; right:32px; background:#1a1a2e; color:#fff; padding:14px 24px; border-radius:10px; font-size:14px; z-index:300; opacity:0; transform:translateY(10px); transition:all 0.3s; pointer-events:none; }
+.toast.show { opacity:1; transform:translateY(0); }
+
+/* ── Responsive ── */
+@media (max-width:1100px) { .stats-row { grid-template-columns:repeat(3,1fr); } }
+@media (max-width:768px) {
+  .sidebar { display:none; }
+  .main { margin-left:0; padding:16px; }
+  .stats-row { grid-template-columns:repeat(2,1fr); }
+  .detail-panel { width:100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="icon">🧾</div>
+    <h2>Bill Catcher</h2>
+    <p>Enter your access token to view your invoice dashboard</p>
+    <div class="login-error" id="loginError">Invalid token</div>
+    <input type="password" id="tokenInput" placeholder="Paste your access token..." />
+    <button onclick="doLogin()">Open Dashboard</button>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="icon">🧾</div>
+    <div><h1>Bill Catcher</h1><span>Invoice Management</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="#" class="active"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="#" onclick="setFilter('pending')"><span class="nav-icon">⏳</span> Pending</a>
+    <a href="#" onclick="setFilter('approved')"><span class="nav-icon">✅</span> Approved</a>
+    <a href="#" onclick="setFilter('paid')"><span class="nav-icon">💰</span> Paid</a>
+    <a href="#" onclick="setFilter('rejected')"><span class="nav-icon">❌</span> Rejected</a>
+  </nav>
+  <div class="sidebar-footer">Powered by GoFarther AI</div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+  <!-- Stats -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card total"><div class="label">Total Invoices</div><div class="value" id="statTotal">—</div><div class="sub" id="statTotalAmt"></div></div>
+    <div class="stat-card pending"><div class="label">Pending Review</div><div class="value" id="statPending">—</div><div class="sub" id="statPendingAmt"></div></div>
+    <div class="stat-card approved"><div class="label">Approved</div><div class="value" id="statApproved">—</div><div class="sub" id="statApprovedAmt"></div></div>
+    <div class="stat-card paid"><div class="label">Paid</div><div class="value" id="statPaid">—</div><div class="sub" id="statPaidAmt"></div></div>
+    <div class="stat-card overdue"><div class="label">Overdue</div><div class="value" id="statOverdue">—</div><div class="sub">need attention</div></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="tabs" id="tabsBar">
+      <button class="active" data-status="">All</button>
+      <button data-status="pending">Pending</button>
+      <button data-status="approved">Approved</button>
+      <button data-status="paid">Paid</button>
+      <button data-status="rejected">Rejected</button>
+    </div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search vendor, invoice #, email..." />
+    </div>
+    <select class="sort-select" id="sortSelect">
+      <option value="newest">Newest First</option>
+      <option value="oldest">Oldest First</option>
+      <option value="amount_high">Amount: High → Low</option>
+      <option value="amount_low">Amount: Low → High</option>
+      <option value="due_date">Due Date</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="invoice-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Vendor</th>
+          <th>Invoice #</th>
+          <th>Amount</th>
+          <th>Due Date</th>
+          <th>Source</th>
+          <th>Status</th>
+          <th>Received</th>
+        </tr>
+      </thead>
+      <tbody id="invoiceBody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <div class="empty-icon">🧾</div>
+      <h3>No invoices yet</h3>
+      <p>When Bill Catcher captures invoices from your email, they'll appear here.</p>
+    </div>
+    <div class="pagination" id="paginationBar">
+      <div class="info" id="pageInfo">—</div>
+      <div class="btns">
+        <button id="prevBtn" onclick="prevPage()" disabled>← Previous</button>
+        <button id="nextBtn" onclick="nextPage()">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-header">
+    <div>
+      <h2 id="detailVendor">—</h2>
+      <span id="detailStatus" class="status-pill" style="margin-top:8px;"></span>
+    </div>
+    <button class="close-btn" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="detail-body">
+    <div class="detail-row"><span class="label">Invoice #</span><span class="val" id="detailInvNum">—</span></div>
+    <div class="detail-row"><span class="label">Amount</span><span class="val" id="detailAmount">—</span></div>
+    <div class="detail-row"><span class="label">Currency</span><span class="val" id="detailCurrency">—</span></div>
+    <div class="detail-row"><span class="label">Due Date</span><span class="val" id="detailDue">—</span></div>
+    <div class="detail-row"><span class="label">From Email</span><span class="val" id="detailFrom">—</span></div>
+    <div class="detail-row"><span class="label">Email Subject</span><span class="val" id="detailSubject">—</span></div>
+    <div class="detail-row"><span class="label">Received</span><span class="val" id="detailReceived">—</span></div>
+    <div class="detail-row"><span class="label">Approved At</span><span class="val" id="detailApprovedAt">—</span></div>
+    <div class="detail-row"><span class="label">Paid At</span><span class="val" id="detailPaidAt">—</span></div>
+    <div id="detailItemsSection" style="margin-top:16px;">
+      <div class="label" style="margin-bottom:8px; font-size:13px; color:#888;">Line Items</div>
+      <div id="detailItems" style="font-size:13px; color:#333;"></div>
+    </div>
+    <div class="detail-notes">
+      <div class="label" style="margin-bottom:8px; font-size:13px; color:#888;">Notes</div>
+      <textarea id="detailNotes" placeholder="Add notes about this invoice..."></textarea>
+    </div>
+  </div>
+  <div class="detail-actions" id="detailActions"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- JAVASCRIPT PLACEHOLDER -->
+<script>
+// ── State ──
+let TOKEN = '';
+let currentFilter = '';
+let currentSearch = '';
+let currentSort = 'newest';
+let currentOffset = 0;
+const PAGE_SIZE = 25;
+let totalCount = 0;
+let currentInvoice = null;
+
+// ── Init ──
+(function init() {
+  const params = new URLSearchParams(window.location.search);
+  const urlToken = params.get('token');
+  if (urlToken) {
+    TOKEN = urlToken;
+    sessionStorage.setItem('ghost_token', urlToken);
+    window.history.replaceState({}, '', window.location.pathname);
+  } else {
+    TOKEN = sessionStorage.getItem('ghost_token') || '';
+  }
+  if (TOKEN) {
+    hideLogin();
+    loadDashboard();
+  }
+
+  // Tab clicks
+  document.querySelectorAll('#tabsBar button').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('#tabsBar button').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentFilter = btn.dataset.status;
+      currentOffset = 0;
+      loadInvoices();
+    });
+  });
+
+  // Search debounce
+  var searchTimer = null;
+  document.getElementById('searchInput').addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function() {
+      currentSearch = document.getElementById('searchInput').value;
+      currentOffset = 0;
+      loadInvoices();
+    }, 300);
+  });
+
+  // Sort
+  document.getElementById('sortSelect').addEventListener('change', function() {
+    currentSort = this.value;
+    currentOffset = 0;
+    loadInvoices();
+  });
+})();
+
+// ── Login ──
+function doLogin() {
+  var val = document.getElementById('tokenInput').value.trim();
+  if (!val) return;
+  TOKEN = val;
+  sessionStorage.setItem('ghost_token', val);
+  // Test the token
+  apiFetch('/api/ghost/invoices/stats').then(function(data) {
+    if (data.error) {
+      document.getElementById('loginError').style.display = 'block';
+      TOKEN = '';
+      sessionStorage.removeItem('ghost_token');
+    } else {
+      hideLogin();
+      loadDashboard();
+    }
+  }).catch(function() {
+    document.getElementById('loginError').style.display = 'block';
+    TOKEN = '';
+    sessionStorage.removeItem('ghost_token');
+  });
+}
+
+function hideLogin() {
+  document.getElementById('loginOverlay').classList.add('hidden');
+}
+
+// ── API ──
+function apiFetch(url, opts) {
+  opts = opts || {};
+  var headers = { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
+  return fetch(url, Object.assign({ headers: headers }, opts))
+    .then(function(r) {
+      if (r.status === 401) {
+        sessionStorage.removeItem('ghost_token');
+        TOKEN = '';
+        document.getElementById('loginOverlay').classList.remove('hidden');
+        throw new Error('Unauthorized');
+      }
+      return r.json();
+    });
+}
+
+// ── Load ──
+function loadDashboard() {
+  loadStats();
+  loadInvoices();
+}
+
+function loadStats() {
+  apiFetch('/api/ghost/invoices/stats').then(function(s) {
+    document.getElementById('statTotal').textContent = s.total;
+    document.getElementById('statTotalAmt').textContent = '$' + fmtMoney(s.total_amount);
+    document.getElementById('statPending').textContent = s.pending;
+    document.getElementById('statPendingAmt').textContent = '$' + fmtMoney(s.pending_amount);
+    document.getElementById('statApproved').textContent = s.approved;
+    document.getElementById('statApprovedAmt').textContent = '$' + fmtMoney(s.approved_amount);
+    document.getElementById('statPaid').textContent = s.paid;
+    document.getElementById('statPaidAmt').textContent = '$' + fmtMoney(s.paid_amount);
+    document.getElementById('statOverdue').textContent = s.overdue;
+  }).catch(function() {});
+}
+
+function loadInvoices() {
+  var url = '/api/ghost/invoices?limit=' + PAGE_SIZE + '&offset=' + currentOffset + '&sort=' + currentSort;
+  if (currentFilter) url += '&status=' + currentFilter;
+  if (currentSearch) url += '&search=' + encodeURIComponent(currentSearch);
+
+  apiFetch(url).then(function(data) {
+    totalCount = data.total;
+    renderTable(data.invoices);
+    renderPagination();
+  }).catch(function() {});
+}
+
+// ── Render table ──
+function renderTable(invoices) {
+  var tbody = document.getElementById('invoiceBody');
+  var empty = document.getElementById('emptyState');
+
+  if (!invoices || invoices.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  var html = '';
+  for (var i = 0; i < invoices.length; i++) {
+    var inv = invoices[i];
+    var sym = { USD:'$', EUR:'€', GBP:'£' }[inv.currency] || '$';
+    html += '<tr onclick="openDetail(\'' + inv.id + '\')">'
+      + '<td class="vendor-cell">' + esc(inv.vendor_name) + '</td>'
+      + '<td>' + esc(inv.invoice_number || '—') + '</td>'
+      + '<td class="amount-cell">' + (inv.amount != null ? sym + fmtMoney(inv.amount) : '—') + '</td>'
+      + '<td class="date-cell">' + fmtDate(inv.due_date) + '</td>'
+      + '<td class="email-cell" title="' + esc(inv.source_email_from || '') + '">' + esc(inv.source_email_from || '—') + '</td>'
+      + '<td><span class="status-pill ' + inv.status + '">' + inv.status + '</span></td>'
+      + '<td class="date-cell">' + fmtDateTime(inv.created_at) + '</td>'
+      + '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+// ── Pagination ──
+function renderPagination() {
+  var start = totalCount === 0 ? 0 : currentOffset + 1;
+  var end = Math.min(currentOffset + PAGE_SIZE, totalCount);
+  document.getElementById('pageInfo').textContent = start + '–' + end + ' of ' + totalCount;
+  document.getElementById('prevBtn').disabled = currentOffset === 0;
+  document.getElementById('nextBtn').disabled = (currentOffset + PAGE_SIZE) >= totalCount;
+}
+
+function prevPage() { currentOffset = Math.max(0, currentOffset - PAGE_SIZE); loadInvoices(); }
+function nextPage() { currentOffset += PAGE_SIZE; loadInvoices(); }
+
+// ── Detail panel ──
+function openDetail(id) {
+  apiFetch('/api/ghost/invoices/' + id).then(function(inv) {
+    currentInvoice = inv;
+    var sym = { USD:'$', EUR:'€', GBP:'£' }[inv.currency] || '$';
+
+    document.getElementById('detailVendor').textContent = inv.vendor_name;
+    var pill = document.getElementById('detailStatus');
+    pill.textContent = inv.status;
+    pill.className = 'status-pill ' + inv.status;
+    document.getElementById('detailInvNum').textContent = inv.invoice_number || '—';
+    document.getElementById('detailAmount').textContent = inv.amount != null ? sym + fmtMoney(inv.amount) : '—';
+    document.getElementById('detailCurrency').textContent = inv.currency || 'USD';
+    document.getElementById('detailDue').textContent = fmtDate(inv.due_date);
+    document.getElementById('detailFrom').textContent = inv.source_email_from || '—';
+    document.getElementById('detailSubject').textContent = inv.source_email_subject || '—';
+    document.getElementById('detailReceived').textContent = fmtDateTime(inv.source_email_date);
+    document.getElementById('detailApprovedAt').textContent = fmtDateTime(inv.approved_at);
+    document.getElementById('detailPaidAt').textContent = fmtDateTime(inv.paid_at);
+    document.getElementById('detailNotes').value = inv.notes || '';
+
+    // Items
+    var itemsHtml = '';
+    var items = inv.items || [];
+    if (items.length > 0) {
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        if (typeof it === 'string') { itemsHtml += '<div>• ' + esc(it) + '</div>'; }
+        else if (it.description) { itemsHtml += '<div>• ' + esc(it.description) + '</div>'; }
+      }
+    }
+    document.getElementById('detailItems').innerHTML = itemsHtml || '<span style="color:#aaa">No items extracted</span>';
+
+    // Action buttons based on status
+    var actionsHtml = '';
+    if (inv.status === 'pending') {
+      actionsHtml = '<button class="btn-approve" onclick="updateStatus(\'approved\')">Approve</button>'
+        + '<button class="btn-reject" onclick="updateStatus(\'rejected\')">Reject</button>';
+    } else if (inv.status === 'approved') {
+      actionsHtml = '<button class="btn-paid" onclick="updateStatus(\'paid\')">Mark as Paid</button>'
+        + '<button class="btn-reject" onclick="updateStatus(\'rejected\')">Reject</button>';
+    } else if (inv.status === 'rejected') {
+      actionsHtml = '<button class="btn-approve" onclick="updateStatus(\'pending\')">Move to Pending</button>';
+    } else if (inv.status === 'paid') {
+      actionsHtml = '<span style="color:#10b981; font-size:14px; font-weight:600;">✓ Paid</span>';
+    }
+    actionsHtml += '<button class="btn-save-notes" onclick="saveNotes()">Save Notes</button>';
+    actionsHtml += '<button class="btn-delete" onclick="deleteInvoice()">Delete</button>';
+    document.getElementById('detailActions').innerHTML = actionsHtml;
+
+    document.getElementById('detailOverlay').classList.add('open');
+    document.getElementById('detailPanel').classList.add('open');
+  }).catch(function() { toast('Failed to load invoice'); });
+}
+
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.remove('open');
+  document.getElementById('detailPanel').classList.remove('open');
+  currentInvoice = null;
+}
+
+// ── Actions ──
+function updateStatus(status) {
+  if (!currentInvoice) return;
+  apiFetch('/api/ghost/invoices/' + currentInvoice.id, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: status })
+  }).then(function() {
+    toast('Invoice ' + status);
+    closeDetail();
+    loadDashboard();
+  }).catch(function() { toast('Failed to update'); });
+}
+
+function saveNotes() {
+  if (!currentInvoice) return;
+  var notes = document.getElementById('detailNotes').value;
+  apiFetch('/api/ghost/invoices/' + currentInvoice.id, {
+    method: 'PATCH',
+    body: JSON.stringify({ notes: notes })
+  }).then(function() {
+    toast('Notes saved');
+  }).catch(function() { toast('Failed to save notes'); });
+}
+
+function deleteInvoice() {
+  if (!currentInvoice) return;
+  if (!confirm('Delete this invoice permanently?')) return;
+  apiFetch('/api/ghost/invoices/' + currentInvoice.id, {
+    method: 'DELETE'
+  }).then(function() {
+    toast('Invoice deleted');
+    closeDetail();
+    loadDashboard();
+  }).catch(function() { toast('Failed to delete'); });
+}
+
+// ── Sidebar filter shortcut ──
+function setFilter(status) {
+  currentFilter = status;
+  currentOffset = 0;
+  // Update tabs
+  document.querySelectorAll('#tabsBar button').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.status === status);
+  });
+  loadInvoices();
+}
+
+// ── Helpers ──
+function fmtMoney(n) {
+  if (n == null) return '0.00';
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); }
+  catch(e) { return d; }
+}
+
+function fmtDateTime(d) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }); }
+  catch(e) { return d; }
+}
+
+function esc(s) {
+  if (!s) return '';
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+</script>
+</body>
+</html>

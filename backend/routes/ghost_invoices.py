@@ -7,17 +7,21 @@ Endpoints:
   PATCH  /ghost/invoices/{id}     — update status (approve / reject / mark paid), add notes
   DELETE /ghost/invoices/{id}     — hard delete an invoice
 
+  GET    /invoices                — serves the web dashboard HTML (no /api prefix)
+
 All endpoints require the same ghost JWT token as ghost_agents.
 """
 
 from __future__ import annotations
 
 import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Header, Query
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy import text as sql_text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +32,25 @@ from fastapi import Depends
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ghost/invoices", tags=["ghost-invoices"])
+
+# Dashboard HTML page router (served without /api prefix)
+dashboard_router = APIRouter(tags=["ghost-invoices-dashboard"])
+
+_DASHBOARD_HTML: str | None = None
+
+
+def _load_dashboard_html() -> str:
+    global _DASHBOARD_HTML
+    if _DASHBOARD_HTML is None:
+        tpl_path = os.path.join(os.path.dirname(__file__), "..", "templates", "invoice_dashboard.html")
+        with open(tpl_path, "r") as f:
+            _DASHBOARD_HTML = f.read()
+    return _DASHBOARD_HTML
+
+
+@dashboard_router.get("/invoices", response_class=HTMLResponse)
+async def invoice_dashboard_page():
+    return HTMLResponse(content=_load_dashboard_html())
 
 
 # ── Auth (same as ghost_agents) ──────────────────────────────────────
