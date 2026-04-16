@@ -351,6 +351,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           updateAndPersist(aiMsgIdStream, {
             content: `${finalText || 'Your file is ready!'}\n\n**${result.filename}**`,
             fileUrl: filePath,
+            fileId: result.file_id,
             isCreatingFile: false,
           });
           setIsCreating(false);
@@ -377,11 +378,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         let lastFileId: string | undefined;
         for (let i = messagesRef.current.length - 1; i >= 0; i--) {
           const m = messagesRef.current[i];
-          if (m.fileUrl && m.content.includes('**')) {
-            // Extract file_id from the download URL pattern
-            const match = m.fileUrl.match(/([a-f0-9-]{8})/);
-            if (match) { lastFileId = match[1]; break; }
-          }
+          if (m.fileId) { lastFileId = m.fileId; break; }
         }
         modifyFile(operation, finalAction.text || '', lastFileId, finalAction.key || undefined).then(async (result) => {
           if (cancelRef.current) { setIsCreating(false); return; }
@@ -395,6 +392,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           updateAndPersist(aiMsgIdStream, {
             content: `${finalText || 'Your modified file is ready!'}\n\n**${result.filename}**`,
             fileUrl: filePath,
+            fileId: result.file_id,
             isCreatingFile: false,
           });
           setIsCreating(false);
@@ -674,7 +672,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
             headers: { Authorization: `Bearer ${dlToken}` },
           });
           if (dlResult.status !== 200) throw new Error(`Download failed (HTTP ${dlResult.status})`);
-          updateAndPersist(aiMsgIdStream, { content: `${finalText || 'Your document is ready!'}\n\n**${result.filename}**`, fileUrl: filePath, isCreatingFile: false });
+          updateAndPersist(aiMsgIdStream, { content: `${finalText || 'Your document is ready!'}\n\n**${result.filename}**`, fileUrl: filePath, fileId: result.file_id, isCreatingFile: false });
           setIsCreating(false);
           notify('Document Ready', `${result.filename} has been created`, 1);
         }).catch(e => {
