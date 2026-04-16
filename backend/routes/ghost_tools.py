@@ -1143,8 +1143,20 @@ Return ONLY valid JSON."""
             elif req.operation == "batch":
                 if not req.file_ids or len(req.file_ids) < 2:
                     raise ValueError("Batch requires multiple file IDs in file_ids[]")
-                batch_op = req.instructions.split(":")[0].strip() if req.instructions and ":" in req.instructions else req.target_format or "convert"
-                batch_instructions = req.instructions.split(":", 1)[1].strip() if req.instructions and ":" in req.instructions else req.instructions or ""
+                # Parse "operation:instructions" from text field
+                if req.instructions and ":" in req.instructions:
+                    batch_op = req.instructions.split(":")[0].strip()
+                    batch_instructions = req.instructions.split(":", 1)[1].strip()
+                elif req.instructions and req.instructions.strip():
+                    # No colon — treat entire text as the operation name
+                    batch_op = req.instructions.strip()
+                    batch_instructions = ""
+                else:
+                    batch_op = "convert"  # Default only when no instructions at all
+                    batch_instructions = ""
+                valid_batch_ops = ("convert", "clean", "edit", "filter", "translate")
+                if batch_op not in valid_batch_ops:
+                    raise ValueError(f"Unsupported batch operation: '{batch_op}'. Supported: {', '.join(valid_batch_ops)}")
                 target_fmt = req.target_format or "pdf"
                 results = []
                 for fid in req.file_ids:
@@ -2051,6 +2063,27 @@ def _content_to_file(content: str, ext: str, base_name: str) -> tuple:
             return content.encode('utf-8'), f"{base_name}.txt", "text/plain"
     elif ext == "csv":
         return content.encode('utf-8'), f"{base_name}.csv", "text/csv"
+    elif ext == "pptx":
+        try:
+            from pptx import Presentation
+            from pptx.util import Inches, Pt
+            prs = Presentation()
+            # Parse content as slides — split on "---" or "# " headings
+            slides_raw = re.split(r'\n---\n|\n(?=# )', content.strip())
+            for slide_text in slides_raw:
+                lines = [l.strip() for l in slide_text.strip().split('\n') if l.strip()]
+                if not lines:
+                    continue
+                slide = prs.slides.add_slide(prs.slide_layouts[1])  # Title + Content
+                title_text = lines[0].lstrip('# ').strip()
+                slide.shapes.title.text = title_text
+                body = slide.placeholders[1]
+                body.text = '\n'.join(lines[1:])
+            buf = io.BytesIO()
+            prs.save(buf)
+            return buf.getvalue(), f"{base_name}.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        except Exception:
+            return content.encode('utf-8'), f"{base_name}.txt", "text/plain"
     elif ext == "json":
         # Pretty-print if it's valid JSON, otherwise save as-is
         try:
