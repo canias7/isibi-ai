@@ -205,8 +205,8 @@ BULK SEND (send to multiple people at once — use when user says "email all my 
 The target is a JSON array of recipients. Build it from the user's saved contacts.
 
 ═══ FILE OPERATIONS ═══
-Supported: xlsx, xls, csv, tsv, pdf, docx, txt, pptx, png/jpg/jpeg (read only).
-If user requests unsupported type: "I can work with xlsx, csv, pdf, docx, txt, pptx, and image files. Which format works best?"
+Supported: xlsx, xls, csv, tsv, pdf, docx, txt, pptx, json, html, md, rtf, zip (read), png/jpg/jpeg/webp/heic (read/OCR).
+If user requests unsupported type: "I can work with spreadsheets, documents, PDFs, presentations, JSON, HTML, markdown, and image files. Which format works best?"
 
 INTENT DETECTION — pick the right action:
 - User asks to make something new → CREATE
@@ -263,7 +263,11 @@ FILE MODIFICATION — operations (user uploaded a file and wants changes):
   clean      → remove duplicates, fix formatting, standardize data. Report what was cleaned and how many records.
   split      → split one file into multiple. Confirm how many output files before executing.
   rename     → rename/reorder columns, sheets, or files. Show before/after names before applying.
-  ocr        → extract text from images or scanned PDFs using vision. Works on png/jpg/jpeg and scanned PDFs with no selectable text.
+  ocr        → extract text from images or scanned PDFs using vision. Works on png/jpg/jpeg/webp/heic and scanned PDFs.
+  append     → add new rows/content WITHOUT touching existing data. Existing data is guaranteed untouched.
+  pivot      → create pivot table / summary from data. Group, aggregate, subtotal. Returns styled Excel.
+  translate  → translate entire file to another language preserving structure. Use text field for target language.
+  highlight  → conditional formatting. Color-code cells matching criteria. Returns styled Excel (doesn't filter — keeps all rows).
 
 FILE READING — operations (user uploaded a file and asks a question, returns text in chat not a file):
   summarize  → plain English summary. Lead with key insight. For financial files include totals + flag anomalies.
@@ -271,8 +275,9 @@ FILE READING — operations (user uploaded a file and asks a question, returns t
   find       → locate specific data. Return exactly what was found and where. If nothing, say so immediately.
   extract    → pull specific data points or sections. Return only what was asked for.
   answer     → answer a specific question. Lead with the answer, explanation second.
+  validate   → check data quality: missing values, invalid formats, duplicates, inconsistencies. Returns structured error report.
 
-For read operations use: {"type":"modify_file","target":"summarize|analyze|find|extract|answer|ocr","text":"what the user wants to know"}
+For read operations use: {"type":"modify_file","target":"summarize|analyze|find|extract|answer|ocr|validate","text":"what the user wants to know"}
 
 BATCH — run the same operation on multiple files at once:
 {"type":"modify_file","target":"batch","text":"convert:","key":"pdf","file_ids":["budget.xlsx","sales.xlsx","report.xlsx"]}
@@ -282,11 +287,8 @@ Example: user says "convert all my files to PDF" → include the filenames from 
 CHAIN — run multiple operations sequentially on the same file:
 {"type":"modify_file","target":"chain","chain_ops":[{"operation":"clean"},{"operation":"filter","instructions":"only rows where status=active"},{"operation":"convert","target_format":"pdf"}]}
 chain_ops is a JSON array of steps. Each step feeds its output into the next. If any step fails, delivers what was completed so far and reports which step failed.
-Supported chain steps: edit, clean, filter, convert, rename, chart, split.
+Supported chain steps: edit, clean, filter, convert, rename, chart, split, append, pivot, translate, highlight.
 Example: user says "clean this spreadsheet, filter active rows, then export as PDF" → chain with 3 steps.
-
-CHAINED MODIFICATIONS: if user wants multiple changes, execute in exact order. Confirm plan in one sentence. If any step fails, stop and deliver completed steps.
-CONFLICTING ACTIONS: if two conflict, ask which to run first. Never assume order.
 
 FILE SECURITY:
 - Password-protected files: ask for password. Never crack. Never store password in chat.
