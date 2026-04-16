@@ -1619,34 +1619,85 @@ Return ONLY valid JSON."""
 
 # ─── WEB SEARCH ───────────────────────────────────────────────────────────
 
+BRAVE_API_KEY = os.getenv("BRAVE_SEARCH_API_KEY", "")
+
+
 class WebSearchRequest(BaseModel):
     query: str
+    count: Optional[int] = 8
 
 
 @router.post("/web-search")
 async def web_search(req: WebSearchRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     payload = _verify_auth(authorization)
-
-    # Use DuckDuckGo instant answer API (free, no key needed)
-    async with httpx.AsyncClient(timeout=15) as client:
-        from urllib.parse import quote
-        res = await client.get(f"https://api.duckduckgo.com/?q={quote(req.query)}&format=json&no_html=1")
-        data = res.json()
-
     results = []
 
-    # Abstract (main answer)
-    if data.get("Abstract"):
-        results.append({"title": data.get("Heading", "Answer"), "snippet": data["Abstract"], "url": data.get("AbstractURL", "")})
+    if BRAVE_API_KEY:
+        # ── Brave Search API ──
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                res = await client.get(
+                    "https://api.search.brave.com/res/v1/web/search",
+                    params={"q": req.query, "count": min(req.count or 8, 20)},
+                    headers={"X-Subscription-Token": BRAVE_API_KEY, "Accept": "application/json"},
+                )
+                if res.status_code == 200:
+                    data = res.json()
 
-    # Related topics
-    for topic in data.get("RelatedTopics", [])[:5]:
-        if isinstance(topic, dict) and topic.get("Text"):
-            results.append({"title": topic.get("Text", "")[:80], "snippet": topic.get("Text", ""), "url": topic.get("FirstURL", "")})
+                    # Web results
+                    for item in data.get("web", {}).get("results", [])[:8]:
+                        results.append({
+                            "title": item.get("title", ""),
+                            "snippet": item.get("description", ""),
+                            "url": item.get("url", ""),
+                            "age": item.get("age", ""),
+                        })
+
+                    # Infobox (Wikipedia-style knowledge panel)
+                    infobox = data.get("infobox", {})
+                    if infobox and infobox.get("results"):
+                        for info in infobox["results"][:1]:
+                            results.insert(0, {
+                                "title": info.get("title", "Knowledge Panel"),
+                                "snippet": info.get("long_desc") or info.get("description", ""),
+                                "url": info.get("url", ""),
+                                "type": "infobox",
+                            })
+
+                    # News results if available
+                    for item in data.get("news", {}).get("results", [])[:3]:
+                        results.append({
+                            "title": f"📰 {item.get('title', '')}",
+                            "snippet": item.get("description", ""),
+                            "url": item.get("url", ""),
+                            "age": item.get("age", ""),
+                            "type": "news",
+                        })
+
+                    logger.info("[web-search] Brave returned %d results for '%s'", len(results), req.query[:60])
+                else:
+                    logger.warning("[web-search] Brave API returned %d: %s", res.status_code, res.text[:200])
+        except Exception as e:
+            logger.error("[web-search] Brave search failed: %s", e)
 
     if not results:
-        # Fallback: ask AI to answer based on its knowledge
-        answer = await _ask_claude(f"Answer this search query concisely: {req.query}")
+        # Fallback: DuckDuckGo instant answers (no key needed)
+        try:
+            from urllib.parse import quote
+            async with httpx.AsyncClient(timeout=10) as client:
+                res = await client.get(f"https://api.duckduckgo.com/?q={quote(req.query)}&format=json&no_html=1")
+                data = res.json()
+            if data.get("Abstract"):
+                results.append({"title": data.get("Heading", "Answer"), "snippet": data["Abstract"], "url": data.get("AbstractURL", "")})
+            for topic in data.get("RelatedTopics", [])[:5]:
+                if isinstance(topic, dict) and topic.get("Text"):
+                    results.append({"title": topic.get("Text", "")[:80], "snippet": topic.get("Text", ""), "url": topic.get("FirstURL", "")})
+        except Exception:
+            pass
+
+    if not results:
+        # Last resort: AI answer from training data
+        answer = await _ask_claude(f"Answer this search query concisely with up-to-date information: {req.query}")
         results.append({"title": "AI Answer", "snippet": answer, "url": ""})
 
     await _audit_log_lazy()(db, payload.get("email", ""), "tool_web_search", f"Query: {req.query[:100]}")

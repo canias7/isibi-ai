@@ -408,15 +408,45 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         return;
       }
 
-      // Handle web search
+      // Handle web search — fetch results then synthesize with AI
       if (finalAction?.type === 'web_search') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
-        setLoading(false);
-        trackAsync(webSearch(finalAction.target || '')).then(result => {
-          const formatted = result.results.map((r: any) => `**${r.title}**\n${r.snippet}${r.url ? `\n[Link](${r.url})` : ''}`).join('\n\n');
-          setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: formatted || 'No results found.' } : m));
+        const searchQuery = finalAction.target || '';
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `🔍 Searching: "${searchQuery}"...` } : m));
+        setLoading(true);
+        trackAsync(webSearch(searchQuery)).then(async result => {
+          if (!result.results?.length) {
+            setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'No results found.' } : m));
+            setLoading(false);
+            return;
+          }
+          // Build context from search results
+          const context = result.results.map((r: any, i: number) =>
+            `[${i + 1}] ${r.title}\n${r.snippet}${r.url ? `\nSource: ${r.url}` : ''}${r.age ? ` (${r.age})` : ''}`
+          ).join('\n\n');
+          const sources = result.results.filter((r: any) => r.url).map((r: any) => r.url);
+
+          // Ask Claude to synthesize
+          setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: '🔍 Reading results...' } : m));
+          try {
+            const synthesis = await chatStream(
+              [{ role: 'user', content: `The user asked: "${searchQuery}"\n\nHere are live web search results:\n\n${context}\n\nSynthesize a clear, helpful answer based on these search results. Be concise and factual. Include relevant details. At the end, list 2-3 key sources as markdown links.` }],
+              'You are a search assistant. Answer based ONLY on the provided search results. Be concise, accurate, and cite sources.',
+              (chunk) => {
+                setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: chunk } : m));
+              },
+              undefined,
+              { fast: true },
+            );
+            setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: synthesis.text } : m));
+          } catch {
+            // Fallback to raw results if synthesis fails
+            const formatted = result.results.map((r: any) => `**${r.title}**\n${r.snippet}${r.url ? `\n[Link](${r.url})` : ''}`).join('\n\n');
+            setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: formatted } : m));
+          }
+          setLoading(false);
         }).catch(e => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Search failed: ' + e.message } : m));
+          setLoading(false);
         });
         return;
       }
