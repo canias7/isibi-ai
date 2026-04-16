@@ -37,9 +37,10 @@ ACCENT_GREEN = HexColor('#16a34a')
 #  INVOICE TEMPLATE
 # ══════════════════════════════════════════════════════════════════════════
 
-INVOICE_PROMPT = """You generate structured invoice data. Return ONLY a valid JSON object with this EXACT structure — no markdown, no explanation, no commentary:
+INVOICE_PROMPT = """You generate structured invoice or estimate data. Return ONLY a valid JSON object with this EXACT structure — no markdown, no explanation, no commentary:
 
 {
+  "document_type": "invoice",
   "invoice_number": "INV-0001",
   "date": "2024-03-15",
   "due_date": "2024-04-14",
@@ -70,12 +71,13 @@ INVOICE_PROMPT = """You generate structured invoice data. Return ONLY a valid JS
 }
 
 RULES:
+- Set document_type to "invoice" for invoices/bills, "estimate" for estimates/quotes
+- For estimates: use number like EST-0001, no due_date needed, notes should say "This estimate is valid for 30 days"
 - Generate realistic, detailed line items based on the user's description
 - Include at least 3-5 line items unless the user specifies fewer
 - Calculate subtotal, tax, and total correctly
 - Use the user's company/client info if provided, otherwise generate realistic ones
 - Currency defaults to USD unless specified
-- Invoice number should be realistic (INV-0001 or similar)
 - Return ONLY the JSON. No text before or after."""
 
 
@@ -105,21 +107,23 @@ def create_invoice_pdf(data: dict) -> bytes:
     story = []
     currency = data.get('currency', 'USD')
     sym = {'USD': '$', 'EUR': '€', 'GBP': '£', 'CAD': 'C$', 'AUD': 'A$'}.get(currency, '$')
+    is_estimate = data.get('document_type', 'invoice').lower() in ('estimate', 'quote')
+    doc_label = 'ESTIMATE' if is_estimate else 'INVOICE'
+    num_label = 'ESTIMATE NO.' if is_estimate else 'INVOICE NO.'
 
-    # ── Header: INVOICE title + invoice details ───────────────────────
-    inv_number = data.get('invoice_number', 'INV-0001')
+    # ── Header: title + details ───────────────────────────────────────
+    inv_number = data.get('invoice_number', 'EST-0001' if is_estimate else 'INV-0001')
     inv_date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
     due_date = data.get('due_date', '')
 
-    header_left = [
-        [Paragraph('INVOICE', s['InvTitle'])],
-    ]
     header_right_data = [
-        [Paragraph('INVOICE NO.', s['InvLabel']), Paragraph(inv_number, s['InvValueBold'])],
+        [Paragraph(num_label, s['InvLabel']), Paragraph(inv_number, s['InvValueBold'])],
         [Paragraph('DATE', s['InvLabel']), Paragraph(inv_date, s['InvValue'])],
     ]
-    if due_date:
+    if due_date and not is_estimate:
         header_right_data.append([Paragraph('DUE DATE', s['InvLabel']), Paragraph(due_date, s['InvValue'])])
+    if is_estimate:
+        header_right_data.append([Paragraph('VALID FOR', s['InvLabel']), Paragraph('30 days', s['InvValue'])])
 
     header_right = Table(header_right_data, colWidths=[1.0 * inch, 1.8 * inch])
     header_right.setStyle(TableStyle([
@@ -130,7 +134,7 @@ def create_invoice_pdf(data: dict) -> bytes:
     ]))
 
     header_table = Table(
-        [[Paragraph('INVOICE', s['InvTitle']), header_right]],
+        [[Paragraph(doc_label, s['InvTitle']), header_right]],
         colWidths=[4.0 * inch, 3.0 * inch]
     )
     header_table.setStyle(TableStyle([
@@ -235,7 +239,7 @@ def create_invoice_pdf(data: dict) -> bytes:
     if discount:
         totals_data.append(['Discount', f"-{sym}{discount:,.2f}"])
     totals_data.append(['', ''])  # spacer row
-    totals_data.append(['TOTAL DUE', f"{sym}{total:,.2f}"])
+    totals_data.append(['ESTIMATED TOTAL' if is_estimate else 'TOTAL DUE', f"{sym}{total:,.2f}"])
 
     totals_table = Table(totals_data, colWidths=[1.5 * inch, 1.5 * inch])
     totals_style = [
@@ -541,7 +545,7 @@ def create_resume_pdf(data: dict) -> bytes:
 #  PROPOSAL TEMPLATE
 # ══════════════════════════════════════════════════════════════════════════
 
-PROPOSAL_PROMPT = """You generate structured business proposal data. Return ONLY a valid JSON object with this EXACT structure — no markdown, no explanation, no commentary:
+PROPOSAL_PROMPT = """You generate structured business proposal or statement of work (SOW) data. Return ONLY a valid JSON object with this EXACT structure — no markdown, no explanation, no commentary:
 
 {
   "title": "Project Proposal Title",
@@ -894,6 +898,8 @@ RULES:
 - body is an array of paragraphs (3-5 paragraphs)
 - Use the user's details if provided, otherwise generate realistic ones
 - Match the tone to the letter type (formal, friendly, urgent, etc.)
+- For OFFER LETTERS: include compensation details (salary, start date, benefits, equity) in the body paragraphs. Subject should be "Employment Offer — [Role]"
+- For COVER LETTERS: tailor to the job/company. Subject can be omitted.
 - Return ONLY the JSON."""
 
 
@@ -1498,25 +1504,612 @@ def create_nda_pdf(data: dict) -> bytes:
 
 
 # ══════════════════════════════════════════════════════════════════════════
+#  REPORT TEMPLATE
+# ══════════════════════════════════════════════════════════════════════════
+
+REPORT_PROMPT = """You generate structured report data. Return ONLY a valid JSON object — no markdown, no explanation:
+
+{
+  "title": "Report Title",
+  "subtitle": "Q1 2026 Performance Review",
+  "prepared_by": "Your Name / Department",
+  "date": "April 16, 2026",
+  "executive_summary": "2-3 sentence overview of key findings.",
+  "key_metrics": [
+    {"value": "$1.2M", "label": "Revenue"},
+    {"value": "24%", "label": "Growth"},
+    {"value": "92%", "label": "Retention"},
+    {"value": "4.8/5", "label": "CSAT"}
+  ],
+  "sections": [
+    {
+      "title": "Section Title",
+      "content": "Paragraph of analysis and findings.",
+      "data_table": {
+        "headers": ["Category", "Q1", "Q2", "Change"],
+        "rows": [["Sales", "$500K", "$620K", "+24%"]]
+      }
+    }
+  ],
+  "recommendations": ["Recommendation 1", "Recommendation 2", "Recommendation 3"],
+  "conclusion": "Summary paragraph wrapping up the report."
+}
+
+RULES:
+- Include 3-4 key metrics with impactful numbers
+- Include 3-5 sections with detailed analysis
+- Include data tables where relevant (not every section needs one)
+- Recommendations should be actionable and specific
+- Tailor everything to the user's description
+- Return ONLY the JSON."""
+
+
+def create_report_pdf(data: dict) -> bytes:
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=0.5*inch, bottomMargin=0.6*inch)
+    s = getSampleStyleSheet()
+    s.add(ParagraphStyle('RptTitle', fontSize=22, leading=28, textColor=DARK, fontName='Helvetica-Bold', alignment=TA_CENTER))
+    s.add(ParagraphStyle('RptSub', fontSize=11, leading=14, textColor=ACCENT_BLUE, fontName='Helvetica', alignment=TA_CENTER))
+    s.add(ParagraphStyle('RptMeta', fontSize=9, leading=12, textColor=MID, fontName='Helvetica', alignment=TA_CENTER))
+    s.add(ParagraphStyle('RptSection', fontSize=13, leading=17, textColor=DARK, fontName='Helvetica-Bold', spaceBefore=14, spaceAfter=4))
+    s.add(ParagraphStyle('RptBody', fontSize=10, leading=15, textColor=DARK, fontName='Helvetica', spaceAfter=6))
+    s.add(ParagraphStyle('RptBullet', fontSize=10, leading=14, textColor=DARK, fontName='Helvetica', leftIndent=14, spaceAfter=3))
+    s.add(ParagraphStyle('RptMetricVal', fontSize=20, leading=24, textColor=ACCENT_BLUE, fontName='Helvetica-Bold', alignment=TA_CENTER))
+    s.add(ParagraphStyle('RptMetricLbl', fontSize=8, leading=10, textColor=MID, fontName='Helvetica', alignment=TA_CENTER))
+    s.add(ParagraphStyle('RptFooter', fontSize=7.5, leading=10, textColor=LIGHT, fontName='Helvetica', alignment=TA_CENTER))
+    story = []
+
+    # Title
+    story.append(Spacer(1, 10))
+    story.append(Paragraph(data.get('title', 'Report'), s['RptTitle']))
+    sub = data.get('subtitle', '')
+    if sub:
+        story.append(Paragraph(sub, s['RptSub']))
+    story.append(Spacer(1, 4))
+    meta_parts = []
+    if data.get('prepared_by'):
+        meta_parts.append(f"Prepared by {data['prepared_by']}")
+    if data.get('date'):
+        meta_parts.append(data['date'])
+    if meta_parts:
+        story.append(Paragraph('  |  '.join(meta_parts), s['RptMeta']))
+    story.append(Spacer(1, 4))
+    story.append(HRFlowable(width="25%", thickness=2, color=ACCENT_BLUE, spaceAfter=14))
+
+    # Key metrics cards
+    metrics = data.get('key_metrics', [])
+    if metrics:
+        cells = []
+        for m in metrics[:4]:
+            cells.append([
+                Paragraph(str(m.get('value', '')), s['RptMetricVal']),
+                Paragraph(str(m.get('label', '')), s['RptMetricLbl']),
+            ])
+        col_w = 6.8 * inch / max(len(cells), 1)
+        mt = Table([cells], colWidths=[col_w] * len(cells))
+        mt.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), LIGHT_BG),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 14),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 14),
+            ('GRID', (0, 0), (-1, -1), 0.5, BORDER),
+            ('ROUNDEDCORNERS', [4, 4, 4, 4]),
+        ]))
+        story.append(mt)
+        story.append(Spacer(1, 8))
+
+    # Executive summary
+    exec_sum = data.get('executive_summary', '')
+    if exec_sum:
+        story.append(Paragraph('Executive Summary', s['RptSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        box = Table([[Paragraph(exec_sum, s['RptBody'])]], colWidths=[6.6*inch])
+        box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), HexColor('#f0f7ff')),
+            ('ROUNDEDCORNERS', [4, 4, 4, 4]),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+        ]))
+        story.append(box)
+
+    # Sections
+    for section in data.get('sections', []):
+        story.append(Paragraph(section.get('title', ''), s['RptSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(Paragraph(section.get('content', ''), s['RptBody']))
+        dt = section.get('data_table')
+        if dt and dt.get('headers') and dt.get('rows'):
+            headers = dt['headers']
+            rows = dt['rows']
+            t_data = [headers] + rows
+            col_w = 6.6 * inch / max(len(headers), 1)
+            t = Table(t_data, colWidths=[col_w] * len(headers))
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), DARK),
+                ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 8),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 9.5),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [WHITE, LIGHT_BG]),
+                ('GRID', (0, 0), (-1, -1), 0.5, BORDER),
+            ]))
+            story.append(Spacer(1, 4))
+            story.append(t)
+            story.append(Spacer(1, 4))
+
+    # Recommendations
+    recs = data.get('recommendations', [])
+    if recs:
+        story.append(Paragraph('Recommendations', s['RptSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        for i, r in enumerate(recs, 1):
+            story.append(Paragraph(f"{i}.  {r}", s['RptBullet']))
+
+    # Conclusion
+    conclusion = data.get('conclusion', '')
+    if conclusion:
+        story.append(Paragraph('Conclusion', s['RptSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(Paragraph(conclusion, s['RptBody']))
+
+    story.append(Spacer(1, 16))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+    story.append(Paragraph('Generated by GoFarther AI', s['RptFooter']))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  BUSINESS PLAN TEMPLATE
+# ══════════════════════════════════════════════════════════════════════════
+
+BUSINESS_PLAN_PROMPT = """You generate structured business plan data. Return ONLY a valid JSON object — no markdown, no explanation:
+
+{
+  "company_name": "Company Name",
+  "tagline": "One-line description of what the company does",
+  "date": "April 2026",
+  "prepared_by": "Founder Name",
+  "executive_summary": "2-3 paragraph overview of the business, market opportunity, and vision.",
+  "problem": "What problem does this business solve? Be specific with market pain points.",
+  "solution": "How does the product/service solve it? Key differentiators.",
+  "market_analysis": {
+    "tam": "$10B",
+    "sam": "$2B",
+    "som": "$200M",
+    "description": "Brief market analysis paragraph."
+  },
+  "business_model": "How the company makes money. Pricing, revenue streams.",
+  "competitive_landscape": [
+    {"competitor": "Competitor A", "strength": "Large user base", "weakness": "Slow innovation"},
+    {"competitor": "Competitor B", "strength": "Low price", "weakness": "Poor UX"}
+  ],
+  "go_to_market": "Marketing and sales strategy. Channels, partnerships, growth plan.",
+  "team": [
+    {"name": "Person Name", "role": "CEO", "background": "Brief relevant background"}
+  ],
+  "financials": {
+    "headers": ["", "Year 1", "Year 2", "Year 3"],
+    "rows": [
+      ["Revenue", "$100K", "$500K", "$2M"],
+      ["Expenses", "$250K", "$400K", "$1.2M"],
+      ["Net", "-$150K", "$100K", "$800K"]
+    ]
+  },
+  "funding": "How much funding is needed, what it will be used for.",
+  "milestones": [
+    {"milestone": "MVP Launch", "date": "Q2 2026"},
+    {"milestone": "1,000 users", "date": "Q4 2026"},
+    {"milestone": "Series A", "date": "Q2 2027"}
+  ]
+}
+
+RULES:
+- Generate realistic, compelling content tailored to the user's business idea
+- Financial projections should be realistic for the stage
+- Include 2-4 competitors in competitive landscape
+- Include 2-4 team members
+- Include 3-5 milestones
+- Return ONLY the JSON."""
+
+
+def create_business_plan_pdf(data: dict) -> bytes:
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=0.5*inch, bottomMargin=0.6*inch)
+    s = getSampleStyleSheet()
+    s.add(ParagraphStyle('BpTitle', fontSize=24, leading=30, textColor=DARK, fontName='Helvetica-Bold', alignment=TA_CENTER))
+    s.add(ParagraphStyle('BpTagline', fontSize=11, leading=14, textColor=ACCENT_BLUE, fontName='Helvetica-Oblique', alignment=TA_CENTER))
+    s.add(ParagraphStyle('BpMeta', fontSize=9, leading=12, textColor=MID, fontName='Helvetica', alignment=TA_CENTER))
+    s.add(ParagraphStyle('BpSection', fontSize=13, leading=17, textColor=DARK, fontName='Helvetica-Bold', spaceBefore=14, spaceAfter=4))
+    s.add(ParagraphStyle('BpBody', fontSize=10, leading=15, textColor=DARK, fontName='Helvetica', spaceAfter=6))
+    s.add(ParagraphStyle('BpBullet', fontSize=10, leading=14, textColor=DARK, fontName='Helvetica', leftIndent=14, spaceAfter=3))
+    s.add(ParagraphStyle('BpLabel', fontSize=8, leading=10, textColor=LIGHT, fontName='Helvetica-Bold'))
+    s.add(ParagraphStyle('BpMetricVal', fontSize=18, leading=22, textColor=ACCENT_BLUE, fontName='Helvetica-Bold', alignment=TA_CENTER))
+    s.add(ParagraphStyle('BpMetricLbl', fontSize=8, leading=10, textColor=MID, fontName='Helvetica', alignment=TA_CENTER))
+    s.add(ParagraphStyle('BpFooter', fontSize=7.5, leading=10, textColor=LIGHT, fontName='Helvetica', alignment=TA_CENTER))
+    story = []
+
+    # Cover
+    story.append(Spacer(1, 30))
+    story.append(Paragraph(data.get('company_name', 'Business Plan'), s['BpTitle']))
+    tagline = data.get('tagline', '')
+    if tagline:
+        story.append(Spacer(1, 4))
+        story.append(Paragraph(tagline, s['BpTagline']))
+    story.append(Spacer(1, 8))
+    story.append(HRFlowable(width="25%", thickness=2, color=ACCENT_BLUE, spaceAfter=8))
+    meta = []
+    if data.get('prepared_by'):
+        meta.append(f"Prepared by {data['prepared_by']}")
+    if data.get('date'):
+        meta.append(data['date'])
+    if meta:
+        story.append(Paragraph('  |  '.join(meta), s['BpMeta']))
+    story.append(Spacer(1, 16))
+
+    # Executive Summary
+    es = data.get('executive_summary', '')
+    if es:
+        story.append(Paragraph('Executive Summary', s['BpSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        box = Table([[Paragraph(es, s['BpBody'])]], colWidths=[6.6*inch])
+        box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), HexColor('#f0f7ff')),
+            ('ROUNDEDCORNERS', [4, 4, 4, 4]),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+        ]))
+        story.append(box)
+
+    # Problem
+    problem = data.get('problem', '')
+    if problem:
+        story.append(Paragraph('The Problem', s['BpSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(Paragraph(problem, s['BpBody']))
+
+    # Solution
+    solution = data.get('solution', '')
+    if solution:
+        story.append(Paragraph('Our Solution', s['BpSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(Paragraph(solution, s['BpBody']))
+
+    # Market Analysis with TAM/SAM/SOM cards
+    ma = data.get('market_analysis', {})
+    if ma:
+        story.append(Paragraph('Market Analysis', s['BpSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        if ma.get('tam') or ma.get('sam') or ma.get('som'):
+            cards = []
+            for key, label in [('tam', 'TAM'), ('sam', 'SAM'), ('som', 'SOM')]:
+                if ma.get(key):
+                    cards.append([
+                        Paragraph(str(ma[key]), s['BpMetricVal']),
+                        Paragraph(label, s['BpMetricLbl']),
+                    ])
+            if cards:
+                col_w = 6.6 * inch / len(cards)
+                mt = Table([cards], colWidths=[col_w] * len(cards))
+                mt.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), LIGHT_BG),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 12),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                    ('GRID', (0, 0), (-1, -1), 0.5, BORDER),
+                ]))
+                story.append(mt)
+                story.append(Spacer(1, 6))
+        if ma.get('description'):
+            story.append(Paragraph(ma['description'], s['BpBody']))
+
+    # Business Model
+    bm = data.get('business_model', '')
+    if bm:
+        story.append(Paragraph('Business Model', s['BpSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(Paragraph(bm, s['BpBody']))
+
+    # Competitive Landscape
+    comp = data.get('competitive_landscape', [])
+    if comp:
+        story.append(Paragraph('Competitive Landscape', s['BpSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        c_data = [['COMPETITOR', 'STRENGTH', 'WEAKNESS']]
+        for c in comp:
+            c_data.append([c.get('competitor', ''), c.get('strength', ''), c.get('weakness', '')])
+        ct = Table(c_data, colWidths=[2.2*inch, 2.2*inch, 2.2*inch])
+        ct.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), DARK),
+            ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9.5),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [WHITE, LIGHT_BG]),
+            ('GRID', (0, 0), (-1, -1), 0.5, BORDER),
+        ]))
+        story.append(ct)
+
+    # Go to Market
+    gtm = data.get('go_to_market', '')
+    if gtm:
+        story.append(Paragraph('Go-to-Market Strategy', s['BpSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(Paragraph(gtm, s['BpBody']))
+
+    # Team
+    team = data.get('team', [])
+    if team:
+        story.append(Paragraph('Team', s['BpSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        for member in team:
+            story.append(Paragraph(f"<b>{member.get('name', '')}</b> — {member.get('role', '')}", s['BpBody']))
+            if member.get('background'):
+                story.append(Paragraph(member['background'], s['BpBullet']))
+
+    # Financial Projections
+    fin = data.get('financials', {})
+    if fin and fin.get('headers') and fin.get('rows'):
+        story.append(Paragraph('Financial Projections', s['BpSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        f_data = [fin['headers']] + fin['rows']
+        col_w = 6.6 * inch / len(fin['headers'])
+        ft = Table(f_data, colWidths=[col_w] * len(fin['headers']))
+        ft.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), DARK),
+            ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [WHITE, LIGHT_BG]),
+            ('GRID', (0, 0), (-1, -1), 0.5, BORDER),
+            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+        ]))
+        story.append(ft)
+
+    # Funding
+    funding = data.get('funding', '')
+    if funding:
+        story.append(Paragraph('Funding', s['BpSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(Paragraph(funding, s['BpBody']))
+
+    # Milestones
+    milestones = data.get('milestones', [])
+    if milestones:
+        story.append(Paragraph('Milestones', s['BpSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        m_data = [['MILESTONE', 'TARGET DATE']]
+        for m in milestones:
+            m_data.append([m.get('milestone', ''), m.get('date', '')])
+        mt = Table(m_data, colWidths=[4.4*inch, 2.2*inch])
+        mt.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), DARK),
+            ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [WHITE, LIGHT_BG]),
+            ('GRID', (0, 0), (-1, -1), 0.5, BORDER),
+        ]))
+        story.append(mt)
+
+    story.append(Spacer(1, 16))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+    story.append(Paragraph('Generated by GoFarther AI', s['BpFooter']))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  LEASE AGREEMENT TEMPLATE
+# ══════════════════════════════════════════════════════════════════════════
+
+LEASE_PROMPT = """You generate structured lease/rental agreement data. Return ONLY a valid JSON object — no markdown, no explanation:
+
+{
+  "title": "Residential Lease Agreement",
+  "effective_date": "May 1, 2026",
+  "landlord": {
+    "name": "Landlord Name / Property Management Co",
+    "address": "123 Main St, City, State 12345",
+    "phone": "(555) 123-4567",
+    "email": "landlord@email.com"
+  },
+  "tenant": {
+    "name": "Tenant Name",
+    "phone": "(555) 987-6543",
+    "email": "tenant@email.com"
+  },
+  "property": {
+    "address": "456 Oak Ave, Apt 2B, City, State 67890",
+    "type": "Apartment",
+    "bedrooms": 2,
+    "bathrooms": 1
+  },
+  "lease_term": {
+    "start_date": "May 1, 2026",
+    "end_date": "April 30, 2027",
+    "duration": "12 months"
+  },
+  "rent": {
+    "monthly_amount": 1800,
+    "due_day": 1,
+    "late_fee": 75,
+    "grace_period_days": 5
+  },
+  "security_deposit": 1800,
+  "currency": "USD",
+  "sections": [
+    {"title": "Use of Premises", "content": "The premises shall be used solely as a private residence."},
+    {"title": "Maintenance and Repairs", "content": "Tenant responsible for minor maintenance. Landlord responsible for structural repairs."},
+    {"title": "Utilities", "content": "Tenant is responsible for electricity, gas, water, internet, and cable."},
+    {"title": "Pets", "content": "No pets allowed without prior written consent. Pet deposit of $500 required."},
+    {"title": "Termination", "content": "Either party may terminate with 60 days written notice. Early termination requires 2 months rent penalty."},
+    {"title": "Governing Law", "content": "This agreement is governed by the laws of the State."}
+  ],
+  "signatures": [
+    {"party": "Landlord", "name": "Landlord Name"},
+    {"party": "Tenant", "name": "Tenant Name"}
+  ]
+}
+
+RULES:
+- Generate realistic lease terms based on the user's description
+- Include standard lease clauses (use, maintenance, utilities, pets, termination, governing law)
+- Monthly rent and deposit should be realistic for the property type and location
+- Return ONLY the JSON."""
+
+
+def create_lease_pdf(data: dict) -> bytes:
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=letter, leftMargin=0.7*inch, rightMargin=0.7*inch, topMargin=0.6*inch, bottomMargin=0.6*inch)
+    s = getSampleStyleSheet()
+    s.add(ParagraphStyle('LsTitle', fontSize=20, leading=26, textColor=DARK, fontName='Helvetica-Bold', alignment=TA_CENTER))
+    s.add(ParagraphStyle('LsDate', fontSize=10, leading=13, textColor=MID, fontName='Helvetica', alignment=TA_CENTER, spaceAfter=12))
+    s.add(ParagraphStyle('LsSection', fontSize=11, leading=15, textColor=DARK, fontName='Helvetica-Bold', spaceBefore=12, spaceAfter=4))
+    s.add(ParagraphStyle('LsBody', fontSize=10, leading=15, textColor=DARK, fontName='Helvetica', spaceAfter=6))
+    s.add(ParagraphStyle('LsLabel', fontSize=8, leading=10, textColor=LIGHT, fontName='Helvetica-Bold'))
+    s.add(ParagraphStyle('LsSmall', fontSize=9, leading=12, textColor=MID, fontName='Helvetica'))
+    s.add(ParagraphStyle('LsFooter', fontSize=7.5, leading=10, textColor=LIGHT, fontName='Helvetica', alignment=TA_CENTER))
+    story = []
+    sym = {'USD': '$', 'EUR': '€', 'GBP': '£'}.get(data.get('currency', 'USD'), '$')
+
+    # Title
+    story.append(Spacer(1, 10))
+    story.append(Paragraph(data.get('title', 'Lease Agreement'), s['LsTitle']))
+    story.append(Spacer(1, 4))
+    story.append(HRFlowable(width="30%", thickness=2, color=DARK, spaceAfter=8))
+    story.append(Paragraph(f"Effective Date: {data.get('effective_date', '')}", s['LsDate']))
+
+    # Parties
+    ll = data.get('landlord', {})
+    tn = data.get('tenant', {})
+    parties = Table([[
+        [Paragraph('LANDLORD', s['LsLabel']), Spacer(1, 3),
+         Paragraph(f"<b>{ll.get('name', '')}</b>", s['LsBody']),
+         Paragraph(ll.get('address', ''), s['LsSmall']),
+         Paragraph(f"{ll.get('email', '')}  |  {ll.get('phone', '')}", s['LsSmall'])],
+        [Paragraph('TENANT', s['LsLabel']), Spacer(1, 3),
+         Paragraph(f"<b>{tn.get('name', '')}</b>", s['LsBody']),
+         Paragraph(f"{tn.get('email', '')}  |  {tn.get('phone', '')}", s['LsSmall'])]
+    ]], colWidths=[3.4*inch, 3.4*inch])
+    parties.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BACKGROUND', (0, 0), (-1, -1), LIGHT_BG),
+        ('ROUNDEDCORNERS', [4, 4, 4, 4]),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('LEFTPADDING', (0, 0), (-1, -1), 12),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+    ]))
+    story.append(parties)
+
+    # Property details
+    prop = data.get('property', {})
+    term = data.get('lease_term', {})
+    rent = data.get('rent', {})
+    deposit = data.get('security_deposit', 0)
+
+    story.append(Paragraph('Property Details', s['LsSection']))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+    details = [
+        ['ADDRESS', prop.get('address', '')],
+        ['TYPE', f"{prop.get('type', '')} — {prop.get('bedrooms', '')} bed / {prop.get('bathrooms', '')} bath"],
+        ['LEASE TERM', f"{term.get('start_date', '')} to {term.get('end_date', '')} ({term.get('duration', '')})"],
+        ['MONTHLY RENT', f"{sym}{rent.get('monthly_amount', 0):,.2f} due on the {rent.get('due_day', 1)}st of each month"],
+        ['LATE FEE', f"{sym}{rent.get('late_fee', 0):,.2f} after {rent.get('grace_period_days', 5)} day grace period"],
+        ['SECURITY DEPOSIT', f"{sym}{deposit:,.2f}"],
+    ]
+    for label, value in details:
+        row = Table([[Paragraph(label, s['LsLabel']), Paragraph(value, s['LsBody'])]], colWidths=[1.5*inch, 5.3*inch])
+        row.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        story.append(row)
+
+    # Sections
+    for i, section in enumerate(data.get('sections', []), 1):
+        story.append(Paragraph(f"{i}. {section.get('title', '')}", s['LsSection']))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+        story.append(Paragraph(section.get('content', ''), s['LsBody']))
+
+    # Signatures
+    story.append(Spacer(1, 20))
+    story.append(HRFlowable(width="100%", thickness=1, color=DARK, spaceAfter=16))
+    story.append(Paragraph('IN WITNESS WHEREOF, the parties have executed this Lease Agreement as of the Effective Date.', s['LsBody']))
+    story.append(Spacer(1, 16))
+
+    for sig in data.get('signatures', []):
+        story.append(Paragraph(sig.get('party', ''), s['LsLabel']))
+        story.append(Spacer(1, 20))
+        story.append(Paragraph('_' * 40, s['LsBody']))
+        story.append(Paragraph(sig.get('name', ''), s['LsSmall']))
+        story.append(Paragraph('Date: _______________', s['LsSmall']))
+        story.append(Spacer(1, 12))
+
+    story.append(Spacer(1, 10))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
+    story.append(Paragraph('Generated by GoFarther AI', s['LsFooter']))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
+# ══════════════════════════════════════════════════════════════════════════
 #  DOCUMENT TYPE DETECTION + ROUTING
 # ══════════════════════════════════════════════════════════════════════════
 
-INVOICE_KEYWORDS = ['invoice', 'bill', 'billing', 'factura', 'facture']
+INVOICE_KEYWORDS = ['invoice', 'bill', 'billing', 'factura', 'facture', 'estimate', 'quote', 'quotation']
 RESUME_KEYWORDS = ['resume', 'cv', 'curriculum vitae']
-PROPOSAL_KEYWORDS = ['proposal', 'pitch', 'bid']
-LETTER_KEYWORDS = ['letter', 'formal letter', 'business letter', 'cover letter']
+PROPOSAL_KEYWORDS = ['proposal', 'pitch', 'bid', 'sow', 'statement of work']
+LETTER_KEYWORDS = ['letter', 'formal letter', 'business letter', 'cover letter', 'offer letter']
 CONTRACT_KEYWORDS = ['contract', 'agreement', 'service agreement']
 RECEIPT_KEYWORDS = ['receipt', 'payment receipt', 'payment confirmation']
 MEETING_KEYWORDS = ['meeting notes', 'meeting minutes', 'meeting summary']
 NDA_KEYWORDS = ['nda', 'non-disclosure', 'non disclosure', 'confidentiality agreement']
+REPORT_KEYWORDS = ['report', 'analysis', 'findings', 'quarterly report', 'annual report', 'performance review']
+BUSINESS_PLAN_KEYWORDS = ['business plan', 'startup plan', 'venture plan', 'pitch deck']
+LEASE_KEYWORDS = ['lease', 'rental agreement', 'tenancy agreement', 'rent agreement']
 
 
 def detect_document_type(description: str) -> str | None:
     desc = description.lower()
     if any(kw in desc for kw in NDA_KEYWORDS):
         return 'nda'
+    if any(kw in desc for kw in LEASE_KEYWORDS):
+        return 'lease'
     if any(kw in desc for kw in CONTRACT_KEYWORDS):
         return 'contract'
+    if any(kw in desc for kw in BUSINESS_PLAN_KEYWORDS):
+        return 'business_plan'
     if any(kw in desc for kw in INVOICE_KEYWORDS):
         return 'invoice'
     if any(kw in desc for kw in RESUME_KEYWORDS):
@@ -1527,6 +2120,8 @@ def detect_document_type(description: str) -> str | None:
         return 'receipt'
     if any(kw in desc for kw in MEETING_KEYWORDS):
         return 'meeting_notes'
+    if any(kw in desc for kw in REPORT_KEYWORDS):
+        return 'report'
     if any(kw in desc for kw in LETTER_KEYWORDS):
         return 'letter'
     return None
@@ -1542,6 +2137,9 @@ def get_structured_prompt(doc_type: str) -> str:
         'receipt': RECEIPT_PROMPT,
         'meeting_notes': MEETING_NOTES_PROMPT,
         'nda': NDA_PROMPT,
+        'report': REPORT_PROMPT,
+        'business_plan': BUSINESS_PLAN_PROMPT,
+        'lease': LEASE_PROMPT,
     }
     return prompts.get(doc_type, '')
 
@@ -1556,6 +2154,9 @@ def render_structured_pdf(doc_type: str, data: dict) -> bytes:
         'receipt': create_receipt_pdf,
         'meeting_notes': create_meeting_notes_pdf,
         'nda': create_nda_pdf,
+        'report': create_report_pdf,
+        'business_plan': create_business_plan_pdf,
+        'lease': create_lease_pdf,
     }
     renderer = renderers.get(doc_type)
     if not renderer:
