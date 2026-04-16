@@ -210,18 +210,24 @@ const TOOLS_BASE = 'https://isibi-backend.onrender.com/api/ghost/tools';
 export async function createFile(description: string, fileType: string = 'pdf', quality: string = 'standard'): Promise<{ file_id: string; filename: string; download_url: string }> {
   await checkNetwork();
   const headers = await authHeaders();
+  const t0 = Date.now();
+  console.log(`[createFile] starting type=${fileType} quality=${quality} desc="${description.slice(0, 80)}"`);
 
   // Start async job (fast — returns immediately)
   const startRes = await fetchWithTimeout(`${TOOLS_BASE}/create-file-async`, {
     method: 'POST', headers,
     body: JSON.stringify({ description, file_type: fileType, quality }),
   }, 90000);
-  if (!startRes.ok) throw new Error('File creation failed to start');
+  if (!startRes.ok) {
+    const body = await startRes.text().catch(() => '');
+    throw new Error(`File creation failed to start (HTTP ${startRes.status}) [${((Date.now() - t0) / 1000).toFixed(1)}s] ${body.slice(0, 200)}`);
+  }
   const { job_id } = await startRes.json();
+  console.log(`[createFile] job=${job_id} started in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
   // Poll for result — works even if app was backgrounded
   for (let i = 0; i < 90; i++) {
-    await new Promise(r => setTimeout(r, 2000)); // Wait 2 seconds between polls
+    await new Promise(r => setTimeout(r, 2000));
     try {
       const pollRes = await fetchWithTimeout(`${TOOLS_BASE}/job-status/${job_id}`, {
         method: 'GET', headers,
@@ -229,32 +235,37 @@ export async function createFile(description: string, fileType: string = 'pdf', 
       if (!pollRes.ok) continue;
       const job = await pollRes.json();
       if (job.status === 'done') {
+        console.log(`[createFile] job=${job_id} DONE in ${((Date.now() - t0) / 1000).toFixed(1)}s file=${job.filename}`);
         return { file_id: job.file_id, filename: job.filename, download_url: job.download_url };
       }
       if (job.status === 'failed') {
-        throw new Error(job.error || 'File creation failed');
+        throw new Error(`File creation failed [${((Date.now() - t0) / 1000).toFixed(1)}s] job=${job_id}: ${job.error || 'Unknown error'}`);
       }
-      // Still processing — continue polling
     } catch (e: any) {
       if (e.message?.includes('File creation failed')) throw e;
-      // Network error during poll — keep trying
       continue;
     }
   }
-  throw new Error('File creation timed out');
+  throw new Error(`File creation timed out after ${((Date.now() - t0) / 1000).toFixed(1)}s (job=${job_id}, polled 90 times)`);
 }
 
 /** Modify an existing file (edit, chart, convert, merge, filter) */
 export async function modifyFile(operation: string, instructions: string, fileId?: string, targetFormat?: string): Promise<{ file_id: string; filename: string; download_url: string }> {
   await checkNetwork();
   const headers = await authHeaders();
+  const t0 = Date.now();
+  console.log(`[modifyFile] starting op=${operation} fileId=${fileId} instructions="${(instructions || '').slice(0, 80)}"`);
 
   const startRes = await fetchWithTimeout(`${TOOLS_BASE}/modify-file-async`, {
     method: 'POST', headers,
     body: JSON.stringify({ operation, instructions, file_id: fileId, target_format: targetFormat }),
   }, 90000);
-  if (!startRes.ok) throw new Error('File modification failed to start');
+  if (!startRes.ok) {
+    const body = await startRes.text().catch(() => '');
+    throw new Error(`File modify failed to start (HTTP ${startRes.status}) [${((Date.now() - t0) / 1000).toFixed(1)}s] ${body.slice(0, 200)}`);
+  }
   const { job_id } = await startRes.json();
+  console.log(`[modifyFile] job=${job_id} started in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
   for (let i = 0; i < 90; i++) {
     await new Promise(r => setTimeout(r, 2000));
@@ -264,14 +275,19 @@ export async function modifyFile(operation: string, instructions: string, fileId
       }, 10000);
       if (!pollRes.ok) continue;
       const job = await pollRes.json();
-      if (job.status === 'done') return { file_id: job.file_id, filename: job.filename, download_url: job.download_url };
-      if (job.status === 'failed') throw new Error(job.error || 'File modification failed');
+      if (job.status === 'done') {
+        console.log(`[modifyFile] job=${job_id} DONE in ${((Date.now() - t0) / 1000).toFixed(1)}s file=${job.filename}`);
+        return { file_id: job.file_id, filename: job.filename, download_url: job.download_url };
+      }
+      if (job.status === 'failed') {
+        throw new Error(`File modify failed [${((Date.now() - t0) / 1000).toFixed(1)}s] job=${job_id}: ${job.error || 'Unknown error'}`);
+      }
     } catch (e: any) {
       if (e.message?.includes('failed')) throw e;
       continue;
     }
   }
-  throw new Error('File modification timed out');
+  throw new Error(`File modify timed out after ${((Date.now() - t0) / 1000).toFixed(1)}s (job=${job_id}, polled 90 times)`);
 }
 
 /** Search the web */
