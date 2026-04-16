@@ -110,7 +110,6 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
   const isUser = item.role === 'user';
 
   return (
-    <View>
     <TouchableOpacity activeOpacity={0.8} onLongPress={onLongPress} delayLongPress={400} accessibilityLabel={`${isUser ? 'You' : aiName}: ${item.content.slice(0, 50)}`} accessibilityRole="text">
       <View style={[s.msgRow, isUser && s.msgRowUser]}>
         <View style={isUser ? { maxWidth: '82%' } : { flex: 1 }}>
@@ -178,6 +177,12 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               )}
             </View>
           )}
+          {item.imageUrl ? (
+            <View>
+              <Image source={{ uri: item.imageUrl }} style={{ width: 240, height: 240, borderRadius: 16, marginTop: 8 }} resizeMode="cover" />
+              <Text style={{ fontSize: 9, color: '#aaa', marginTop: 4 }} selectable>{item.imageUrl.substring(0, 90)}</Text>
+            </View>
+          ) : null}
           {renderAction()}
           {item.stats && (
             <Text style={[s.statsText, { color: colors.textDim }]}>
@@ -201,75 +206,9 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               <Text style={[s.timestampText, { color: colors.textDim }]}>{item.queued ? 'Queued' : formatTime(item.timestamp)}</Text>
             </View>
           )}
-          {item.imageUrl && (
-            <>
-              <Text style={{ fontSize: 10, color: '#999', marginTop: 4 }} selectable numberOfLines={1}>
-                {item.imageUrl.substring(0, 80)}
-              </Text>
-              <Pressable onPress={() => setImageViewerOpen(true)} style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
-                <Image
-                  source={{ uri: item.imageUrl }}
-                  style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]}
-                  resizeMode="cover"
-                  onError={(e) => Alert.alert('Image Error', e.nativeEvent.error || 'Failed to load image')}
-                />
-              </Pressable>
-            </>
-          )}
         </View>
       </View>
     </TouchableOpacity>
-    {/* Fullscreen image viewer modal — rendered outside bubble */}
-    {item.imageUrl && imageViewerOpen && (
-      <Modal visible={true} transparent animationType="fade" onRequestClose={() => setImageViewerOpen(false)}>
-        <View style={s.imgvOverlay}>
-          <View style={s.imgvTopBar}>
-            <TouchableOpacity style={s.imgvTopBtn} onPress={() => setImageViewerOpen(false)}>
-              <Ionicons name="close" size={22} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ flex: 1 }} />
-            <TouchableOpacity style={s.imgvTopBtn} onPress={() => Alert.alert('Image Info', 'Generated with GPT-4o\nSize: 1024×1024')}>
-              <Ionicons name="information-circle-outline" size={22} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity style={s.imgvPillBtn} onPress={async () => {
-              try {
-                const { status } = await MediaLibrary.requestPermissionsAsync();
-                if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to save.'); return; }
-                const fileUri = FileSystem.cacheDirectory + `image_${Date.now()}.png`;
-                await FileSystem.downloadAsync(item.imageUrl!, fileUri);
-                await MediaLibrary.saveToLibraryAsync(fileUri);
-                successHaptic();
-                Alert.alert('Saved', 'Image saved to your photo library.');
-              } catch (e: any) { Alert.alert('Error', e.message || 'Could not save'); }
-            }}>
-              <Text style={s.imgvPillText}>Save</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.imgvPillBtn, s.imgvPillWhite]} onPress={async () => {
-              try {
-                const fileUri = FileSystem.cacheDirectory + `share_${Date.now()}.png`;
-                await FileSystem.downloadAsync(item.imageUrl!, fileUri);
-                if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(fileUri);
-              } catch (e: any) { Alert.alert('Error', e.message || 'Could not share'); }
-            }}>
-              <Text style={[s.imgvPillText, { color: '#000' }]}>Share</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={s.imgvCenter}>
-            <Image source={{ uri: item.imageUrl }} style={s.imgvImage} resizeMode="contain" />
-          </View>
-          <View style={s.imgvBottomBar}>
-            <TouchableOpacity style={s.imgvEditIcon}>
-              <Ionicons name="options-outline" size={20} color="#999" />
-            </TouchableOpacity>
-            <TextInput style={s.imgvEditInput} placeholder="Describe edits" placeholderTextColor="#666" returnKeyType="send" onSubmitEditing={() => Alert.alert('Coming Soon', 'Image editing will be available soon.')} />
-            <TouchableOpacity style={s.imgvMicBtn}>
-              <Ionicons name="mic-outline" size={20} color="#999" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    )}
-    </View>
   );
 }
 
