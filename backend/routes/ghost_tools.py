@@ -93,15 +93,29 @@ def _verify_auth(authorization: str):
 async def _ask_claude(prompt: str, system: str = "You are a helpful assistant.") -> str:
     if not ANTHROPIC_KEY:
         raise HTTPException(500, "API key not configured")
-    async with httpx.AsyncClient(timeout=60) as client:
-        res = await client.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01"},
-            json={"model": "claude-sonnet-4-20250514", "max_tokens": 4096, "system": system, "messages": [{"role": "user", "content": prompt}]},
-        )
-        if res.status_code != 200:
-            raise HTTPException(res.status_code, "AI error")
-        return res.json().get("content", [{}])[0].get("text", "")
+    for attempt in range(2):
+        try:
+            async with httpx.AsyncClient(timeout=120) as client:
+                res = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01"},
+                    json={"model": "claude-sonnet-4-20250514", "max_tokens": 4096, "system": system, "messages": [{"role": "user", "content": prompt}]},
+                )
+                if res.status_code == 529 or res.status_code == 529:
+                    # API overloaded — retry once after short wait
+                    if attempt == 0:
+                        import asyncio
+                        await asyncio.sleep(3)
+                        continue
+                if res.status_code != 200:
+                    raise HTTPException(res.status_code, "AI error")
+                return res.json().get("content", [{}])[0].get("text", "")
+        except httpx.TimeoutException:
+            if attempt == 0:
+                logger.warning("Claude API timeout, retrying...")
+                continue
+            raise HTTPException(504, "AI request timed out")
+    raise HTTPException(500, "AI request failed")
 
 
 # ─── FILE CREATION ────────────────────────────────────────────────────────
