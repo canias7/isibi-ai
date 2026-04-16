@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Alert, AppState } from 'react-native';
 import { ChatMsg, genId, parseAction, actionLabel } from './types';
-import { chatStream, Message, generateImage, analyzeImage, createFile, modifyFile, webSearch, readURL, runCode, translateText, youtubeSearch, deepResearch, generateQR, cryptoPortfolio, createInvoice, createCalendarEvent, socialPost, compareURLs, createMeme, barcodeLookup, runConnectorAction, runConnectorPlan, processCallRecording } from './ai';
+import { chatStream, Message, generateImage, analyzeImage, createFile, modifyFile, uploadFile, webSearch, readURL, runCode, translateText, youtubeSearch, deepResearch, generateQR, cryptoPortfolio, createInvoice, createCalendarEvent, socialPost, compareURLs, createMeme, barcodeLookup, runConnectorAction, runConnectorPlan, processCallRecording } from './ai';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
@@ -567,13 +567,31 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           if (finalAction.file_ids?.[0]) {
             resolvedFileId = resolveFileId(finalAction.file_ids[0]);
           }
-          // Fall back to most recent file in chat
+          // Fall back to most recent file in chat (server-created files have hex IDs in the URL)
           if (!resolvedFileId) {
             for (let i = messagesRef.current.length - 1; i >= 0; i--) {
               const m = messagesRef.current[i];
               if (m.fileUrl && m.content.includes('**')) {
                 const match = m.fileUrl.match(/([a-f0-9-]{8})/);
                 if (match) { resolvedFileId = match[1]; break; }
+              }
+            }
+          }
+          // If still no file_id, check for user-uploaded local attachment and upload it
+          if (!resolvedFileId) {
+            for (let i = messagesRef.current.length - 1; i >= 0; i--) {
+              const m = messagesRef.current[i];
+              if (m.fileUrl && m.fileMimeType && !m.fileUrl.includes('/api/ghost/')) {
+                // This is a local file attachment — upload to backend first
+                try {
+                  const name = m.fileUrl.split('/').pop() || 'upload';
+                  const uploaded = await uploadFile(m.fileUrl, name, m.fileMimeType);
+                  resolvedFileId = uploaded.file_id;
+                  registerFile(uploaded.filename, uploaded.file_id);
+                } catch (uploadErr: any) {
+                  console.warn('Auto-upload failed:', uploadErr.message);
+                }
+                break;
               }
             }
           }

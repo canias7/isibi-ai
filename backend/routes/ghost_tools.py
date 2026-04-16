@@ -429,13 +429,30 @@ Return ONLY the document content, no explanations."""
                 filename += ".txt"
                 mime = "text/plain"
 
-            await _store_file(file_id, filename, mime, file_bytes)
+            await _store_file(file_id, filename, mime, file_bytes, owner_email=payload.get("email", ""))
             JOB_STORE[job_id] = {"status": "done", "file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes), "error": None}
         except Exception as e:
             JOB_STORE[job_id] = {"status": "failed", "file_id": None, "error": str(e)}
 
     asyncio.create_task(_background_create())
     return {"job_id": job_id, "status": "processing"}
+
+
+@router.post("/upload-file")
+async def upload_file(file: UploadFile = File(...), authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Upload a user file to FILE_STORE so it can be used with modify operations."""
+    payload = _verify_auth(authorization)
+    owner = payload.get("email", "")
+    file_bytes = await file.read()
+    if len(file_bytes) > 50 * 1024 * 1024:  # 50MB limit
+        raise HTTPException(413, "File too large (max 50MB)")
+    file_id = str(uuid.uuid4())[:8]
+    filename = file.filename or f"upload_{file_id}"
+    mime = file.content_type or "application/octet-stream"
+    await _store_file(file_id, filename, mime, file_bytes, owner_email=owner)
+    await _audit_log_lazy()(db, owner, "tool_upload_file", f"Uploaded {filename} ({len(file_bytes)} bytes)")
+    await db.commit()
+    return {"file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes)}
 
 
 @router.get("/job-status/{job_id}")
