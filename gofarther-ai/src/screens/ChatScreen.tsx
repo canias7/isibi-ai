@@ -261,6 +261,7 @@ FILE MODIFICATION — operations (user uploaded a file and wants changes):
   clean      → remove duplicates, fix formatting, standardize data. Report what was cleaned and how many records.
   split      → split one file into multiple. Confirm how many output files before executing.
   rename     → rename/reorder columns, sheets, or files. Show before/after names before applying.
+  ocr        → extract text from images or scanned PDFs using vision. Works on png/jpg/jpeg and scanned PDFs with no selectable text.
 
 FILE READING — operations (user uploaded a file and asks a question, returns text in chat not a file):
   summarize  → plain English summary. Lead with key insight. For financial files include totals + flag anomalies.
@@ -269,7 +270,17 @@ FILE READING — operations (user uploaded a file and asks a question, returns t
   extract    → pull specific data points or sections. Return only what was asked for.
   answer     → answer a specific question. Lead with the answer, explanation second.
 
-For read operations use: {"type":"modify_file","target":"summarize|analyze|find|extract|answer","text":"what the user wants to know"}
+For read operations use: {"type":"modify_file","target":"summarize|analyze|find|extract|answer|ocr","text":"what the user wants to know"}
+
+BATCH — run the same operation on multiple files at once:
+{"type":"modify_file","target":"batch","text":"convert:","key":"pdf","file_ids":["id1","id2","id3"]}
+The text field format is "operation:instructions". The key field is target_format (for convert). Requires file_ids[] array.
+Example: user says "convert all 5 files to PDF" → {"type":"modify_file","target":"batch","text":"convert:","key":"pdf"}
+
+CHAIN — run multiple operations sequentially on the same file:
+{"type":"modify_file","target":"chain","text":"chain_ops","key":"[{\"operation\":\"clean\"},{\"operation\":\"filter\",\"instructions\":\"only rows where status=active\"},{\"operation\":\"convert\",\"target_format\":\"pdf\"}]"}
+Each step feeds its output into the next. If any step fails, delivers what was completed so far.
+Example: user says "clean this spreadsheet, filter active rows, then export as PDF" → chain with 3 steps.
 
 CHAINED MODIFICATIONS: if user wants multiple changes, execute in exact order. Confirm plan in one sentence. If any step fails, stop and deliver completed steps.
 CONFLICTING ACTIONS: if two conflict, ask which to run first. Never assume order.

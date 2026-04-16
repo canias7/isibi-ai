@@ -49,6 +49,24 @@ FILE_STORE: dict[str, dict] = {}
 _FILE_STORE_MAX = 500  # max files in memory
 
 
+def _smart_filename(description: str, operation: str, ext: str, original_name: str = "") -> str:
+    """Generate a clean filename: description_YYYY-MM-DD.ext or original_action_YYYY-MM-DD.ext"""
+    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    if original_name and operation:
+        # Modified file: originalname_action_date.ext
+        base = original_name.rsplit('.', 1)[0] if '.' in original_name else original_name
+        # Clean the base name
+        base = re.sub(r'[^a-zA-Z0-9_\- ]', '', base).strip().replace(' ', '_')[:50]
+        return f"{base}_{operation}_{date_str}.{ext}"
+    elif description:
+        # New file: description_date.ext
+        slug = re.sub(r'[^a-zA-Z0-9 ]', '', description).strip().lower()
+        slug = re.sub(r'\s+', '_', slug)[:50]
+        return f"{slug}_{date_str}.{ext}"
+    else:
+        return f"file_{date_str}.{ext}"
+
+
 async def _store_file(file_id: str, filename: str, mime: str, file_bytes: bytes, owner_email: str = ""):
     """Store file in memory cache AND upload to R2 for persistence."""
     # Evict oldest files if cache is full
@@ -417,11 +435,12 @@ async def download_file(file_id: str, authorization: str = Header(...), db: Asyn
 # ─── FILE MODIFICATION (edit, chart, convert, merge, filter, clean, split, rename, summarize, analyze, find, extract, answer) ──
 
 class ModifyFileRequest(BaseModel):
-    operation: str  # edit, chart, convert, merge, filter, compare, reconcile, clean, split, rename, summarize, analyze, find, extract, answer
+    operation: str  # edit, chart, convert, merge, filter, compare, reconcile, clean, split, rename, summarize, analyze, find, extract, answer, ocr, batch, chain
     file_id: Optional[str] = None
     file_ids: Optional[list[str]] = None
     instructions: Optional[str] = ""
     target_format: Optional[str] = None  # for convert: pdf, xlsx, docx, csv, txt
+    chain_ops: Optional[list[dict]] = None  # for chain: [{"operation": "clean"}, {"operation": "filter", "instructions": "..."}]
 
 
 @router.post("/modify-file-async")
@@ -481,13 +500,15 @@ IMPORTANT:
 - Return ONLY valid JSON, no explanations."""
                     prompt = f"Current spreadsheet data:\n{text_content}\n\nModifications: {req.instructions}"
                     modified_content = await _ask_claude(prompt, system)
-                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(modified_content, f"modified_{file_id}")
+                    _fname = _smart_filename("", "edited", "xlsx", original_filename)
+                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(modified_content, _fname.rsplit('.', 1)[0])
                 else:
                     system = """You are a document editor. The user has an existing document and wants modifications.
 Return ONLY the complete modified document content. Keep the same format and structure unless told otherwise."""
                     prompt = f"Original document content:\n\n{text_content}\n\nModifications requested: {req.instructions}\n\nReturn the complete modified document."
                     modified_content = await _ask_claude(prompt, system)
-                    file_bytes, filename, mime = _content_to_file(modified_content, ext, f"modified_{file_id}")
+                    _fname = _smart_filename("", "edited", ext, original_filename)
+                    file_bytes, filename, mime = _content_to_file(modified_content, ext, _fname.rsplit('.', 1)[0])
 
             elif req.operation == "chart":
                 text_content = _extract_text(original_bytes, original_mime)
@@ -560,13 +581,14 @@ Return ONLY the Python code, no explanations."""
                     import os as _os
                     _os.unlink(tmp_path)
 
-                filename = f"chart_{file_id}.png"
+                filename = _smart_filename("", "chart", "png", original_filename)
                 mime = "image/png"
 
             elif req.operation == "convert":
                 target = req.target_format or "pdf"
                 text_content = _extract_text(original_bytes, original_mime)
-                file_bytes, filename, mime = _content_to_file(text_content, target, f"converted_{file_id}")
+                _fname = _smart_filename("", "converted", target, original_filename)
+                file_bytes, filename, mime = _content_to_file(text_content, target, _fname.rsplit('.', 1)[0])
 
             elif req.operation == "merge":
                 combined_text = ""
@@ -575,7 +597,8 @@ Return ONLY the Python code, no explanations."""
                     combined_text += f"\n\n--- {src['filename']} ---\n\n{text}"
                 # Determine output format from first file
                 ext = sources[0]["filename"].rsplit('.', 1)[-1] if '.' in sources[0]["filename"] else 'txt'
-                file_bytes, filename, mime = _content_to_file(combined_text, ext, f"merged_{file_id}")
+                _fname = _smart_filename("merged", "merged", ext)
+                file_bytes, filename, mime = _content_to_file(combined_text, ext, _fname.rsplit('.', 1)[0])
 
             elif req.operation == "filter":
                 text_content = _extract_text(original_bytes, original_mime)
@@ -584,7 +607,8 @@ Return ONLY the filtered data in the same format (CSV for CSV, JSON array for XL
                 prompt = f"Data:\n{text_content}\n\nFilter criteria: {req.instructions}"
                 filtered = await _ask_claude(prompt, system)
                 ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'csv'
-                file_bytes, filename, mime = _content_to_file(filtered, ext, f"filtered_{file_id}")
+                _fname = _smart_filename("", "filtered", ext, original_filename)
+                file_bytes, filename, mime = _content_to_file(filtered, ext, _fname.rsplit('.', 1)[0])
 
             elif req.operation == "compare":
                 if not req.file_ids or len(req.file_ids) < 2:
@@ -609,7 +633,7 @@ Use markdown formatting with tables where appropriate. Be thorough but concise."
                     file_bytes = create_professional_pdf(comparison, title=f"Comparison Report")
                 except Exception:
                     file_bytes = comparison.encode('utf-8')
-                filename = f"comparison_{file_id}.pdf"
+                filename = _smart_filename("comparison_report", "compared", "pdf")
                 mime = "application/pdf"
 
             elif req.operation == "reconcile":
@@ -739,7 +763,7 @@ Be thorough. Match fuzzy descriptions. Return ONLY valid JSON."""
                     buf = io.BytesIO()
                     wb.save(buf)
                     file_bytes = buf.getvalue()
-                    filename = f"reconciliation_{file_id}.xlsx"
+                    filename = _smart_filename("reconciliation", "reconciled", "xlsx")
                     mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 except Exception:
                     # Fallback to PDF
@@ -748,7 +772,7 @@ Be thorough. Match fuzzy descriptions. Return ONLY valid JSON."""
                         file_bytes = create_professional_pdf(result_json, title="Reconciliation Report")
                     except Exception:
                         file_bytes = result_json.encode('utf-8')
-                    filename = f"reconciliation_{file_id}.pdf"
+                    filename = _smart_filename("reconciliation", "reconciled", "pdf")
                     mime = "application/pdf"
 
             elif req.operation == "clean":
@@ -773,12 +797,14 @@ Return ONLY valid JSON."""
                         clean_summary = parsed.get("cleaned_summary", "")
                     except Exception:
                         clean_summary = ""
-                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(cleaned, f"cleaned_{file_id}")
+                    _fname = _smart_filename("", "cleaned", "xlsx", original_filename)
+                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(cleaned, _fname.rsplit('.', 1)[0])
                 else:
                     system = """You are a text editor. Clean the document: remove duplicate paragraphs, fix formatting, standardize structure. Return ONLY the cleaned content."""
                     prompt = f"Document to clean:\n{text_content}\n\n{req.instructions or 'Clean this document.'}"
                     cleaned = await _ask_claude(prompt, system)
-                    file_bytes, filename, mime = _content_to_file(cleaned, ext, f"cleaned_{file_id}")
+                    _fname = _smart_filename("", "cleaned", ext, original_filename)
+                    file_bytes, filename, mime = _content_to_file(cleaned, ext, _fname.rsplit('.', 1)[0])
 
             elif req.operation == "split":
                 text_content = _extract_text(original_bytes, original_mime)
@@ -822,7 +848,7 @@ Return ONLY valid JSON."""
                     file_bytes = buf.getvalue()
                 except Exception:
                     file_bytes = split_result.encode('utf-8')
-                filename = f"split_{file_id}.xlsx"
+                filename = _smart_filename("", "split", "xlsx", original_filename)
                 mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
             elif req.operation == "rename":
@@ -835,12 +861,14 @@ Return a JSON object: {"headers": [...new header names...], "rows": [[...], ...]
 Return ONLY valid JSON."""
                     prompt = f"Current data:\n{text_content}\n\nRename instructions: {req.instructions}"
                     renamed = await _ask_claude(prompt, system)
-                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(renamed, f"renamed_{file_id}")
+                    _fname = _smart_filename("", "renamed", "xlsx", original_filename)
+                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(renamed, _fname.rsplit('.', 1)[0])
                 else:
                     system = """You are a document editor. Rename or restructure sections as instructed. Return ONLY the modified content."""
                     prompt = f"Document:\n{text_content}\n\nRename instructions: {req.instructions}"
                     renamed = await _ask_claude(prompt, system)
-                    file_bytes, filename, mime = _content_to_file(renamed, ext, f"renamed_{file_id}")
+                    _fname = _smart_filename("", "renamed", ext, original_filename)
+                    file_bytes, filename, mime = _content_to_file(renamed, ext, _fname.rsplit('.', 1)[0])
 
             # ── READ OPERATIONS — return text, not a file ──
             elif req.operation in ("summarize", "analyze", "find", "extract", "answer"):
@@ -858,10 +886,171 @@ Return ONLY valid JSON."""
                 JOB_STORE[job_id] = {"status": "done", "file_id": None, "filename": None, "download_url": None, "result_text": result_text, "error": None}
                 return  # Skip file storage — this is a text response
 
+            # ── OCR — extract text from images/scanned PDFs using Claude Vision ──
+            elif req.operation == "ocr":
+                # For images: send directly to Claude Vision
+                # For PDFs: extract pages as images, send each to Vision
+                is_image = original_mime.startswith("image/")
+                is_pdf = original_mime == "application/pdf"
+
+                if is_image:
+                    img_b64 = base64.b64encode(original_bytes).decode()
+                    media_type = original_mime
+                    async with httpx.AsyncClient(timeout=60) as client:
+                        res = await client.post(
+                            "https://api.anthropic.com/v1/messages",
+                            headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01"},
+                            json={"model": "claude-sonnet-4-20250514", "max_tokens": 4096, "messages": [{"role": "user", "content": [
+                                {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": img_b64}},
+                                {"type": "text", "text": req.instructions or "Extract ALL text from this image. Preserve structure, tables, and formatting as much as possible. Return the full extracted text."},
+                            ]}]},
+                        )
+                        result_text = res.json().get("content", [{}])[0].get("text", "")
+                elif is_pdf:
+                    # Extract text normally first — if it has text, use that
+                    text_content = _extract_text(original_bytes, original_mime)
+                    if text_content and len(text_content.strip()) > 50:
+                        result_text = text_content
+                    else:
+                        # Scanned PDF — convert first page to image via fitz, send to Vision
+                        try:
+                            import fitz
+                            doc = fitz.open(stream=original_bytes, filetype="pdf")
+                            pages_text = []
+                            for page_num in range(min(len(doc), 10)):  # Max 10 pages
+                                page = doc[page_num]
+                                pix = page.get_pixmap(dpi=200)
+                                img_bytes = pix.tobytes("png")
+                                img_b64 = base64.b64encode(img_bytes).decode()
+                                async with httpx.AsyncClient(timeout=60) as client:
+                                    res = await client.post(
+                                        "https://api.anthropic.com/v1/messages",
+                                        headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01"},
+                                        json={"model": "claude-sonnet-4-20250514", "max_tokens": 4096, "messages": [{"role": "user", "content": [
+                                            {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": img_b64}},
+                                            {"type": "text", "text": f"Extract ALL text from this scanned document page ({page_num + 1}). Preserve structure, tables, and formatting."},
+                                        ]}]},
+                                    )
+                                    page_text = res.json().get("content", [{}])[0].get("text", "")
+                                    pages_text.append(f"--- Page {page_num + 1} ---\n{page_text}")
+                            result_text = "\n\n".join(pages_text)
+                        except ImportError:
+                            result_text = "OCR requires PyMuPDF for scanned PDFs. The PDF has no extractable text."
+                else:
+                    # Not an image or PDF — just extract text normally
+                    result_text = _extract_text(original_bytes, original_mime)
+
+                JOB_STORE[job_id] = {"status": "done", "file_id": None, "filename": None, "download_url": None, "result_text": result_text, "error": None}
+                return
+
+            # ── BATCH — run the same operation on multiple files ──
+            elif req.operation == "batch":
+                if not req.file_ids or len(req.file_ids) < 2:
+                    raise ValueError("Batch requires multiple file IDs in file_ids[]")
+                batch_op = req.instructions.split(":")[0].strip() if req.instructions and ":" in req.instructions else req.target_format or "convert"
+                batch_instructions = req.instructions.split(":", 1)[1].strip() if req.instructions and ":" in req.instructions else req.instructions or ""
+                target_fmt = req.target_format or "pdf"
+                results = []
+                for fid in req.file_ids:
+                    f = await _get_file(fid)
+                    if not f:
+                        results.append({"file_id": fid, "error": "File not found"})
+                        continue
+                    if f.get("owner_email") and f["owner_email"] != owner:
+                        results.append({"file_id": fid, "error": "Access denied"})
+                        continue
+                    try:
+                        content = base64.b64decode(f["data"])
+                        text = _extract_text(content, f["mime"])
+                        new_id = str(uuid.uuid4())[:8]
+                        if batch_op == "convert":
+                            _fname = _smart_filename("", "converted", target_fmt, f["filename"])
+                            fb, fn, mi = _content_to_file(text, target_fmt, _fname.rsplit('.', 1)[0])
+                        elif batch_op == "clean":
+                            system = "You are a data cleaning expert. Clean: remove duplicates, standardize formatting, trim whitespace. Return cleaned content as plain text."
+                            cleaned = await _ask_claude(f"Data:\n{text}\n\n{batch_instructions or 'Clean this data.'}", system)
+                            ext = f["filename"].rsplit('.', 1)[-1] if '.' in f["filename"] else 'txt'
+                            _fname = _smart_filename("", "cleaned", ext, f["filename"])
+                            fb, fn, mi = _content_to_file(cleaned, ext, _fname.rsplit('.', 1)[0])
+                        else:
+                            _fname = _smart_filename("", batch_op, target_fmt, f["filename"])
+                            fb, fn, mi = _content_to_file(text, target_fmt, _fname.rsplit('.', 1)[0])
+                        await _store_file(new_id, fn, mi, fb, owner)
+                        results.append({"file_id": new_id, "filename": fn, "download_url": f"/api/ghost/tools/download/{new_id}"})
+                    except Exception as e:
+                        results.append({"file_id": fid, "error": str(e)})
+                JOB_STORE[job_id] = {"status": "done", "file_id": None, "filename": None, "download_url": None, "batch_results": results, "error": None}
+                return
+
+            # ── CHAIN — run multiple operations sequentially on the same file ──
+            elif req.operation == "chain":
+                if not req.chain_ops or len(req.chain_ops) < 2:
+                    raise ValueError("Chain requires at least 2 operations in chain_ops[]")
+                current_bytes = original_bytes
+                current_mime = original_mime
+                current_filename = original_filename
+                completed_steps = []
+                for step_idx, step in enumerate(req.chain_ops):
+                    step_op = step.get("operation", "")
+                    step_instructions = step.get("instructions", "")
+                    step_target = step.get("target_format", "")
+                    try:
+                        text = _extract_text(current_bytes, current_mime)
+                        ext = current_filename.rsplit('.', 1)[-1] if '.' in current_filename else 'txt'
+                        is_spreadsheet = ext in ('xlsx', 'xls', 'csv')
+
+                        if step_op == "edit":
+                            if is_spreadsheet:
+                                system = "You are an Excel expert. Modify the spreadsheet as instructed.\nReturn JSON: {\"headers\": [...], \"rows\": [[...]], \"formulas\": {}}\nReturn ONLY valid JSON."
+                                result = await _ask_claude(f"Data:\n{text}\n\nModify: {step_instructions}", system)
+                                fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            else:
+                                result = await _ask_claude(f"Document:\n{text}\n\nModify: {step_instructions}", "You are a document editor. Return ONLY the modified content.")
+                                fb, fn, mi = _content_to_file(result, ext, f"step{step_idx}")
+                        elif step_op == "clean":
+                            if is_spreadsheet:
+                                system = "You are a data cleaning expert. Clean: dedup, standardize, trim. Return JSON: {\"headers\":[...],\"rows\":[...],\"formulas\":{}}\nReturn ONLY valid JSON."
+                                result = await _ask_claude(f"Data:\n{text}\n\n{step_instructions or 'Clean this data.'}", system)
+                                fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            else:
+                                result = await _ask_claude(f"Document:\n{text}\n\n{step_instructions or 'Clean.'}", "You are a text editor. Clean the document. Return ONLY the cleaned content.")
+                                fb, fn, mi = _content_to_file(result, ext, f"step{step_idx}")
+                        elif step_op == "filter":
+                            result = await _ask_claude(f"Data:\n{text}\n\nFilter: {step_instructions}", "You are a data processor. Filter as instructed. Return ONLY the filtered data.")
+                            fb, fn, mi = _content_to_file(result, ext, f"step{step_idx}")
+                        elif step_op == "convert":
+                            t = step_target or "pdf"
+                            fb, fn, mi = _content_to_file(text, t, f"step{step_idx}")
+                            ext = t
+                        elif step_op == "rename":
+                            if is_spreadsheet:
+                                result = await _ask_claude(f"Data:\n{text}\n\nRename: {step_instructions}", "You are a spreadsheet editor. Rename columns as instructed. Return JSON: {\"headers\":[...],\"rows\":[...],\"formulas\":{}}\nReturn ONLY valid JSON.")
+                                fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            else:
+                                result = await _ask_claude(f"Document:\n{text}\n\nRename: {step_instructions}", "You are a document editor. Rename sections as instructed. Return ONLY the modified content.")
+                                fb, fn, mi = _content_to_file(result, ext, f"step{step_idx}")
+                        else:
+                            raise ValueError(f"Unsupported chain step: {step_op}")
+
+                        current_bytes = fb
+                        current_mime = mi
+                        current_filename = fn
+                        completed_steps.append(step_op)
+                    except Exception as e:
+                        # Stop on failure — save what we have so far
+                        logger.warning("Chain step %d (%s) failed: %s — delivering partial result", step_idx, step_op, e)
+                        break
+
+                # Save the final result
+                _fname = _smart_filename("", "_".join(completed_steps), ext, original_filename)
+                filename = _fname
+                file_bytes = current_bytes
+                mime = current_mime
+
             else:
                 raise ValueError(f"Unknown operation: {req.operation}")
 
-            await _store_file(file_id, filename, mime, file_bytes)
+            await _store_file(file_id, filename, mime, file_bytes, owner)
             JOB_STORE[job_id] = {"status": "done", "file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes), "error": None}
         except Exception as e:
             JOB_STORE[job_id] = {"status": "failed", "file_id": None, "error": str(e)}
