@@ -1711,12 +1711,57 @@ class ReadURLRequest(BaseModel):
     question: Optional[str] = "Summarize this page."
 
 
+def _extract_youtube_id(url: str) -> str | None:
+    m = re.search(r'(?:v=|youtu\.be/|/shorts/|/embed/)([\w-]{11})', url)
+    return m.group(1) if m else None
+
+
+def _is_video_url(url: str) -> bool:
+    return any(domain in url.lower() for domain in ['youtube.com', 'youtu.be', 'tiktok.com', 'vimeo.com', 'instagram.com/reel', 'facebook.com/watch', 'twitter.com', 'x.com'])
+
+
 @router.post("/read-url")
 async def read_url(req: ReadURLRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     payload = _verify_auth(authorization)
     from routes.ghost_tools_v2 import _validate_external_url
     _validate_external_url(req.url)
 
+    page_title = ''
+    text = ''
+
+    # ── YouTube: pull actual transcript ──
+    yt_id = _extract_youtube_id(req.url)
+    if yt_id:
+        try:
+            from youtube_transcript_api import YouTubeTranscriptApi
+            ytt = YouTubeTranscriptApi()
+            transcript = ytt.fetch(yt_id)
+            text = ' '.join(snippet.text for snippet in transcript)
+            logger.info("[read-url] YouTube transcript fetched: %d chars for %s", len(text), yt_id)
+        except Exception as e:
+            logger.warning("[read-url] YouTube transcript failed for %s: %s", yt_id, e)
+
+        # Get video title from page
+        try:
+            async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+                res = await client.get(f"https://www.youtube.com/watch?v={yt_id}", headers={"User-Agent": "Mozilla/5.0"})
+                title_match = re.search(r'<title>(.*?)</title>', res.text[:5000])
+                page_title = title_match.group(1).replace(' - YouTube', '').strip() if title_match else ''
+        except Exception:
+            pass
+
+        if text:
+            text = text[:20000]
+            prompt = f"Based on this YouTube video transcript, {req.question}"
+            if page_title:
+                prompt += f"\n\nVideo title: {page_title}"
+            prompt += f"\n\nTranscript:\n{text}"
+            summary = await _ask_claude(prompt)
+            await _audit_log_lazy()(db, payload.get("email", ""), "tool_read_url", f"YouTube: {req.url[:80]}")
+            await db.commit()
+            return {"url": req.url, "summary": summary, "type": "video", "title": page_title}
+
+    # ── Standard webpage ──
     async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
         res = await client.get(req.url, headers={
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
@@ -1728,30 +1773,30 @@ async def read_url(req: ReadURLRequest, authorization: str = Header(...), db: As
         html = res.text[:100000]
 
     # Extract clean text with BeautifulSoup
+    is_video = _is_video_url(req.url)
     try:
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(html, 'html.parser')
         for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'noscript', 'iframe', 'svg']):
             tag.decompose()
-        # Try to find main content area first
         main = soup.find('article') or soup.find('main') or soup.find(attrs={"role": "main"}) or soup.find('div', class_=re.compile(r'content|article|post|entry', re.I))
         target = main if main else soup.body if soup.body else soup
-        # Get title
         page_title = soup.title.get_text(strip=True) if soup.title else ''
         text = target.get_text(separator='\n', strip=True)
-        # Collapse excessive blank lines
         text = re.sub(r'\n{3,}', '\n\n', text)
     except Exception:
         text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
         text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL)
         text = re.sub(r'<[^>]+>', ' ', text)
         text = re.sub(r'\s+', ' ', text).strip()
-        page_title = ''
 
     text = text[:20000]
     logger.info("[read-url] extracted %d chars from %s", len(text), req.url[:80])
 
-    prompt = f"Based on this webpage content, {req.question}"
+    if is_video:
+        prompt = f"This is a video page. Based on whatever information is available (title, description, comments), {req.question}"
+    else:
+        prompt = f"Based on this webpage content, {req.question}"
     if page_title:
         prompt += f"\n\nPage title: {page_title}"
     prompt += f"\n\nContent:\n{text}"
@@ -1760,7 +1805,7 @@ async def read_url(req: ReadURLRequest, authorization: str = Header(...), db: As
 
     await _audit_log_lazy()(db, payload.get("email", ""), "tool_read_url", f"URL: {req.url[:100]}")
     await db.commit()
-    return {"url": req.url, "summary": summary}
+    return {"url": req.url, "summary": summary, "type": "video" if is_video else "webpage", "title": page_title}
 
 
 # ─── PDF READER ───────────────────────────────────────────────────────────

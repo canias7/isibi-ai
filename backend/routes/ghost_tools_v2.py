@@ -515,24 +515,49 @@ class YouTubeRequest(BaseModel):
 
 @router.post("/youtube-summary")
 async def youtube_summary(req: YouTubeRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    """Summarize a YouTube video by reading its page."""
+    """Summarize a YouTube video using its transcript."""
     payload = _verify_auth(authorization)
-    # Extract video ID
-    vid_match = re.search(r'(?:v=|youtu\.be/)([\w-]+)', req.url)
+    vid_match = re.search(r'(?:v=|youtu\.be/|/shorts/)([\w-]{11})', req.url)
     if not vid_match:
         raise HTTPException(400, "Invalid YouTube URL")
     vid = vid_match.group(1)
 
-    # Fetch page content for context
-    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-        res = await client.get(f"https://www.youtube.com/watch?v={vid}", headers={"User-Agent": "Mozilla/5.0"})
-        html = res.text[:30000]
+    # Get title
+    title = "Video"
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            res = await client.get(f"https://www.youtube.com/watch?v={vid}", headers={"User-Agent": "Mozilla/5.0"})
+            tm = re.search(r'<title>(.*?)</title>', res.text[:5000])
+            if tm:
+                title = tm.group(1).replace(" - YouTube", "").strip()
+    except Exception:
+        pass
 
-    # Extract title
-    title_match = re.search(r'<title>(.*?)</title>', html)
-    title = title_match.group(1).replace(" - YouTube", "") if title_match else "Video"
+    # Try to get real transcript
+    transcript_text = ""
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        ytt = YouTubeTranscriptApi()
+        transcript = ytt.fetch(vid)
+        transcript_text = ' '.join(snippet.text for snippet in transcript)[:20000]
+    except Exception as e:
+        logger.warning("[youtube-summary] transcript failed for %s: %s", vid, e)
 
-    summary = await _ask_claude(f"Based on the YouTube page content, summarize this video: {title}\n\nPage content excerpt:\n{html[:5000]}")
+    if transcript_text:
+        summary = await _ask_claude(
+            f"Summarize this YouTube video based on its transcript.\n\nTitle: {title}\n\nTranscript:\n{transcript_text}",
+            system="You are a video summarizer. Give a clear, detailed summary with key points and takeaways. Use bullet points for main topics."
+        )
+    else:
+        # Fallback to page scraping
+        try:
+            async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+                res = await client.get(f"https://www.youtube.com/watch?v={vid}", headers={"User-Agent": "Mozilla/5.0"})
+                html = res.text[:30000]
+            summary = await _ask_claude(f"Based on the YouTube page content, summarize this video: {title}\n\nPage content:\n{html[:5000]}")
+        except Exception:
+            summary = await _ask_claude(f"The user wants a summary of a YouTube video titled '{title}'. The transcript is not available. Explain that and provide any context you can based on the title.")
+
     await _audit_log_lazy()(db, payload.get("email", ""), "tool_youtube_summary", f"URL: {req.url[:80]}")
     await db.commit()
     return {"title": title, "video_id": vid, "summary": summary}
