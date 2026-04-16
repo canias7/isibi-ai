@@ -1,7 +1,7 @@
 /** Memoized chat message bubble — prevents unnecessary re-renders in FlatList */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Platform, ActionSheetIOS, Alert, Animated, Modal, Dimensions, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, Pressable, Image, StyleSheet, Platform, ActionSheetIOS, Alert, Animated, Modal, Dimensions, ActivityIndicator, TextInput } from 'react-native';
 import FileViewer from 'react-native-file-viewer';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
@@ -110,6 +110,7 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
   const isUser = item.role === 'user';
 
   return (
+    <View>
     <TouchableOpacity activeOpacity={0.8} onLongPress={onLongPress} delayLongPress={400} accessibilityLabel={`${isUser ? 'You' : aiName}: ${item.content.slice(0, 50)}`} accessibilityRole="text">
       <View style={[s.msgRow, isUser && s.msgRowUser]}>
         <View style={isUser ? { maxWidth: '82%' } : { flex: 1 }}>
@@ -177,97 +178,6 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               )}
             </View>
           )}
-          {item.imageUrl && (
-            <>
-              <TouchableOpacity activeOpacity={0.9} onPress={() => setImageViewerOpen(true)}>
-                <Image source={{ uri: item.imageUrl }} style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]} resizeMode="cover" />
-              </TouchableOpacity>
-              <View style={s.imageBtns}>
-                <TouchableOpacity style={s.imageBtn} activeOpacity={0.7} onPress={async () => {
-                  try {
-                    setImageSaving(true);
-                    const { status } = await MediaLibrary.requestPermissionsAsync();
-                    if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to save images.'); return; }
-                    const fileUri = FileSystem.cacheDirectory + `image_${Date.now()}.png`;
-                    await FileSystem.downloadAsync(item.imageUrl!, fileUri);
-                    await MediaLibrary.saveToLibraryAsync(fileUri);
-                    successHaptic();
-                    Alert.alert('Saved', 'Image saved to your photo library.');
-                  } catch (e: any) {
-                    Alert.alert('Error', e.message || 'Could not save image');
-                  } finally { setImageSaving(false); }
-                }}>
-                  {imageSaving ? <ActivityIndicator size="small" color={colors.text} /> : <Ionicons name="download-outline" size={16} color={colors.text} />}
-                  <Text style={[s.imageBtnText, { color: colors.text }]}>Save</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.imageBtn} activeOpacity={0.7} onPress={async () => {
-                  try {
-                    const fileUri = FileSystem.cacheDirectory + `share_${Date.now()}.png`;
-                    await FileSystem.downloadAsync(item.imageUrl!, fileUri);
-                    if (await Sharing.isAvailableAsync()) { await Sharing.shareAsync(fileUri); }
-                  } catch (e: any) { Alert.alert('Error', e.message || 'Could not share'); }
-                }}>
-                  <Ionicons name="share-outline" size={16} color={colors.text} />
-                  <Text style={[s.imageBtnText, { color: colors.text }]}>Share</Text>
-                </TouchableOpacity>
-              </View>
-              <Modal visible={imageViewerOpen} transparent animationType="fade" onRequestClose={() => setImageViewerOpen(false)}>
-                <View style={s.imgvOverlay}>
-                  <View style={s.imgvTopBar}>
-                    <TouchableOpacity style={s.imgvTopBtn} onPress={() => setImageViewerOpen(false)}>
-                      <Ionicons name="close" size={22} color="#fff" />
-                    </TouchableOpacity>
-                    <View style={{ flex: 1 }} />
-                    <TouchableOpacity style={s.imgvTopBtn} onPress={() => Alert.alert('Image Info', 'Generated with GPT-4o\nSize: 1024×1024')}>
-                      <Ionicons name="information-circle-outline" size={22} color="#fff" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={s.imgvPillBtn} onPress={async () => {
-                      try {
-                        const { status } = await MediaLibrary.requestPermissionsAsync();
-                        if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to save.'); return; }
-                        const fileUri = FileSystem.cacheDirectory + `image_${Date.now()}.png`;
-                        await FileSystem.downloadAsync(item.imageUrl!, fileUri);
-                        await MediaLibrary.saveToLibraryAsync(fileUri);
-                        successHaptic();
-                        Alert.alert('Saved', 'Image saved to your photo library.');
-                      } catch (e: any) { Alert.alert('Error', e.message || 'Could not save'); }
-                    }}>
-                      <Text style={s.imgvPillText}>Save</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[s.imgvPillBtn, s.imgvPillWhite]} onPress={async () => {
-                      try {
-                        const fileUri = FileSystem.cacheDirectory + `share_${Date.now()}.png`;
-                        await FileSystem.downloadAsync(item.imageUrl!, fileUri);
-                        if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(fileUri);
-                      } catch (e: any) { Alert.alert('Error', e.message || 'Could not share'); }
-                    }}>
-                      <Text style={[s.imgvPillText, { color: '#000' }]}>Share</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View style={s.imgvCenter}>
-                    <Image source={{ uri: item.imageUrl }} style={s.imgvImage} resizeMode="contain" />
-                  </View>
-                  <View style={s.imgvBottomBar}>
-                    <TouchableOpacity style={s.imgvEditIcon}>
-                      <Ionicons name="options-outline" size={20} color="#999" />
-                    </TouchableOpacity>
-                    <TextInput
-                      style={s.imgvEditInput}
-                      placeholder="Describe edits"
-                      placeholderTextColor="#666"
-                      returnKeyType="send"
-                      onSubmitEditing={() => {
-                        Alert.alert('Coming Soon', 'Image editing will be available soon.');
-                      }}
-                    />
-                    <TouchableOpacity style={s.imgvMicBtn}>
-                      <Ionicons name="mic-outline" size={20} color="#999" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </Modal>
-            </>
-          )}
           {renderAction()}
           {item.stats && (
             <Text style={[s.statsText, { color: colors.textDim }]}>
@@ -275,7 +185,6 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               {item.stats.tokens > 0 ? ` · \u2193 ${item.stats.tokens >= 1000 ? `${(item.stats.tokens / 1000).toFixed(1)}k` : item.stats.tokens} tokens` : ''}
             </Text>
           )}
-          {/* Reactions — AI messages only */}
           {!isUser && item.content && !isAnimating && onReaction && (
             <View style={s.reactionRow}>
               <TouchableOpacity onPress={() => onReaction(item.id, item.reaction === 'up' ? undefined : 'up')} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
@@ -286,7 +195,6 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               </TouchableOpacity>
             </View>
           )}
-          {/* Timestamp + queued indicator */}
           {item.timestamp && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3, justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
               {item.queued && <Ionicons name="time-outline" size={10} color={colors.textDim} />}
@@ -296,6 +204,69 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
         </View>
       </View>
     </TouchableOpacity>
+    {item.imageUrl && (
+      <>
+        <Pressable onPress={() => setImageViewerOpen(true)} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1, marginLeft: isUser ? undefined : 0, marginBottom: 20 }]}>
+          <Image source={{ uri: item.imageUrl }} style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]} resizeMode="cover" />
+        </Pressable>
+        <Modal visible={imageViewerOpen} transparent animationType="fade" onRequestClose={() => setImageViewerOpen(false)}>
+          <View style={s.imgvOverlay}>
+            <View style={s.imgvTopBar}>
+              <TouchableOpacity style={s.imgvTopBtn} onPress={() => setImageViewerOpen(false)}>
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
+              <View style={{ flex: 1 }} />
+              <TouchableOpacity style={s.imgvTopBtn} onPress={() => Alert.alert('Image Info', 'Generated with GPT-4o\nSize: 1024×1024')}>
+                <Ionicons name="information-circle-outline" size={22} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={s.imgvPillBtn} onPress={async () => {
+                try {
+                  const { status } = await MediaLibrary.requestPermissionsAsync();
+                  if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to save.'); return; }
+                  const fileUri = FileSystem.cacheDirectory + `image_${Date.now()}.png`;
+                  await FileSystem.downloadAsync(item.imageUrl!, fileUri);
+                  await MediaLibrary.saveToLibraryAsync(fileUri);
+                  successHaptic();
+                  Alert.alert('Saved', 'Image saved to your photo library.');
+                } catch (e: any) { Alert.alert('Error', e.message || 'Could not save'); }
+              }}>
+                <Text style={s.imgvPillText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.imgvPillBtn, s.imgvPillWhite]} onPress={async () => {
+                try {
+                  const fileUri = FileSystem.cacheDirectory + `share_${Date.now()}.png`;
+                  await FileSystem.downloadAsync(item.imageUrl!, fileUri);
+                  if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(fileUri);
+                } catch (e: any) { Alert.alert('Error', e.message || 'Could not share'); }
+              }}>
+                <Text style={[s.imgvPillText, { color: '#000' }]}>Share</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={s.imgvCenter}>
+              <Image source={{ uri: item.imageUrl }} style={s.imgvImage} resizeMode="contain" />
+            </View>
+            <View style={s.imgvBottomBar}>
+              <TouchableOpacity style={s.imgvEditIcon}>
+                <Ionicons name="options-outline" size={20} color="#999" />
+              </TouchableOpacity>
+              <TextInput
+                style={s.imgvEditInput}
+                placeholder="Describe edits"
+                placeholderTextColor="#666"
+                returnKeyType="send"
+                onSubmitEditing={() => {
+                  Alert.alert('Coming Soon', 'Image editing will be available soon.');
+                }}
+              />
+              <TouchableOpacity style={s.imgvMicBtn}>
+                <Ionicons name="mic-outline" size={20} color="#999" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </>
+    )}
+    </View>
   );
 }
 
