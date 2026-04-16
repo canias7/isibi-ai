@@ -3,147 +3,341 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bill Catcher — Invoice Dashboard</title>
+<title>Bill Catcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+:root {
+  --bg: #0f0f14;
+  --surface: #1a1a24;
+  --surface2: #22222e;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --text: #f0f0f5;
+  --text2: rgba(255,255,255,0.55);
+  --text3: rgba(255,255,255,0.3);
+  --blue: #3b82f6;
+  --blue2: #2563eb;
+  --green: #22c55e;
+  --green-bg: rgba(34,197,94,0.12);
+  --yellow: #eab308;
+  --yellow-bg: rgba(234,179,8,0.12);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.1);
+  --purple: #a78bfa;
+  --radius: 14px;
+  --radius-sm: 10px;
+}
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#f0f2f5; color:#1a1a2e; min-height:100vh; }
+body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; }
 
 /* ── Sidebar ── */
-.sidebar { position:fixed; left:0; top:0; bottom:0; width:240px; background:#1a1a2e; color:#fff; padding:24px 0; display:flex; flex-direction:column; z-index:100; }
-.sidebar-logo { padding:0 24px 24px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; gap:10px; }
-.sidebar-logo .icon { width:36px; height:36px; background:#2563eb; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; }
-.sidebar-logo h1 { font-size:16px; font-weight:600; }
-.sidebar-logo span { font-size:11px; color:rgba(255,255,255,0.5); display:block; }
-.sidebar-nav { flex:1; padding:16px 0; }
-.sidebar-nav a { display:flex; align-items:center; gap:12px; padding:10px 24px; color:rgba(255,255,255,0.6); text-decoration:none; font-size:14px; transition:all 0.15s; }
-.sidebar-nav a:hover { color:#fff; background:rgba(255,255,255,0.05); }
-.sidebar-nav a.active { color:#fff; background:rgba(37,99,235,0.2); border-right:3px solid #2563eb; }
-.sidebar-nav a .nav-icon { width:20px; text-align:center; font-size:16px; }
-.sidebar-footer { padding:16px 24px; border-top:1px solid rgba(255,255,255,0.08); font-size:12px; color:rgba(255,255,255,0.3); }
+.sidebar {
+  position:fixed; left:0; top:0; bottom:0; width:260px;
+  background:var(--surface); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; z-index:100;
+  padding:0;
+}
+.sidebar-brand {
+  padding:28px 24px 24px;
+  border-bottom:1px solid var(--border);
+}
+.sidebar-brand .logo-row { display:flex; align-items:center; gap:12px; }
+.sidebar-brand .logo-icon {
+  width:42px; height:42px; border-radius:12px;
+  background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
+}
+.sidebar-brand h1 { font-size:18px; font-weight:700; letter-spacing:-0.3px; }
+.sidebar-brand .tagline { font-size:12px; color:var(--text3); margin-top:2px; }
+
+.sidebar-nav { flex:1; padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+.sidebar-nav a {
+  display:flex; align-items:center; gap:12px;
+  padding:11px 14px; border-radius:var(--radius-sm);
+  color:var(--text2); text-decoration:none; font-size:13.5px; font-weight:500;
+  transition:all 0.15s;
+}
+.sidebar-nav a:hover { color:var(--text); background:rgba(255,255,255,0.04); }
+.sidebar-nav a.active { color:#fff; background:rgba(59,130,246,0.15); }
+.sidebar-nav a .ic { width:22px; font-size:16px; text-align:center; }
+.nav-badge {
+  margin-left:auto; background:var(--red); color:#fff;
+  font-size:11px; font-weight:700; padding:2px 7px; border-radius:10px;
+  min-width:20px; text-align:center;
+}
+
+/* ── Software Switcher ── */
+.switcher {
+  position:relative; margin:0 12px 8px;
+}
+.switcher-btn {
+  width:100%; display:flex; align-items:center; gap:10px;
+  padding:10px 14px; background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--radius-sm); cursor:pointer; color:var(--text); font-family:inherit;
+  transition:all 0.15s;
+}
+.switcher-btn:hover { border-color:var(--border2); }
+.switcher-btn .sw-icon {
+  width:28px; height:28px; border-radius:8px; display:flex; align-items:center;
+  justify-content:center; font-size:14px; flex-shrink:0;
+}
+.switcher-btn .sw-name { font-size:13px; font-weight:600; flex:1; text-align:left; }
+.switcher-btn .sw-arrow { color:var(--text3); font-size:12px; transition:transform 0.2s; }
+.switcher-btn.open .sw-arrow { transform:rotate(180deg); }
+.switcher-menu {
+  position:absolute; left:0; right:0; top:calc(100% + 6px);
+  background:var(--surface2); border:1px solid var(--border2);
+  border-radius:var(--radius-sm); overflow:hidden; z-index:50;
+  display:none; box-shadow:0 8px 24px rgba(0,0,0,0.3);
+}
+.switcher-menu.open { display:block; }
+.switcher-menu a {
+  display:flex; align-items:center; gap:10px;
+  padding:11px 14px; color:var(--text2); text-decoration:none;
+  font-size:13px; font-weight:500; transition:all 0.12s;
+}
+.switcher-menu a:hover { background:rgba(255,255,255,0.04); color:var(--text); }
+.switcher-menu a.current { color:var(--blue); background:rgba(59,130,246,0.08); }
+.switcher-menu .sw-icon { width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px; }
+.switcher-menu .coming { margin-left:auto; font-size:10px; color:var(--text3); background:var(--surface); padding:2px 8px; border-radius:6px; }
+
+.sidebar-footer {
+  padding:16px 24px; border-top:1px solid var(--border);
+  font-size:11px; color:var(--text3);
+}
 
 /* ── Main ── */
-.main { margin-left:240px; padding:32px; }
+.main { margin-left:260px; padding:32px 36px; min-height:100vh; }
+.page-header { margin-bottom:28px; }
+.page-header h2 { font-size:24px; font-weight:700; letter-spacing:-0.5px; }
+.page-header p { font-size:14px; color:var(--text2); margin-top:4px; }
 
-/* ── Login ── */
-.login-overlay { position:fixed; inset:0; background:#1a1a2e; display:flex; align-items:center; justify-content:center; z-index:999; }
-.login-overlay.hidden { display:none; }
-.login-box { background:#fff; border-radius:16px; padding:40px; width:380px; text-align:center; }
-.login-box .icon { width:56px; height:56px; background:#2563eb; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 16px; }
-.login-box h2 { font-size:20px; margin-bottom:4px; }
-.login-box p { font-size:13px; color:#666; margin-bottom:24px; }
-.login-box input { width:100%; padding:12px 16px; border:1px solid #ddd; border-radius:10px; font-size:14px; margin-bottom:12px; outline:none; }
-.login-box input:focus { border-color:#2563eb; }
-.login-box button { width:100%; padding:12px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; }
-.login-box button:hover { background:#1d4ed8; }
-.login-error { color:#ef4444; font-size:12px; margin-bottom:8px; display:none; }
-
-/* ── Stats Cards ── */
-.stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:28px; }
-.stat-card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
-.stat-card .label { font-size:12px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
-.stat-card .value { font-size:28px; font-weight:700; }
-.stat-card .sub { font-size:13px; color:#888; margin-top:2px; }
-.stat-card.pending .value { color:#f59e0b; }
-.stat-card.approved .value { color:#2563eb; }
-.stat-card.paid .value { color:#10b981; }
-.stat-card.overdue .value { color:#ef4444; }
-.stat-card.total .value { color:#1a1a2e; }
+/* ── Stats ── */
+.stats-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:28px; }
+.stat-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:20px 22px;
+  transition:border-color 0.2s;
+}
+.stat-card:hover { border-color:var(--border2); }
+.stat-label { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:8px; }
+.stat-value { font-size:30px; font-weight:800; letter-spacing:-1px; line-height:1; }
+.stat-sub { font-size:13px; color:var(--text3); margin-top:6px; font-variant-numeric:tabular-nums; }
+.stat-card.pending .stat-value { color:var(--yellow); }
+.stat-card.approved .stat-value { color:var(--blue); }
+.stat-card.paid .stat-value { color:var(--green); }
+.stat-card.overdue .stat-value { color:var(--red); }
 
 /* ── Toolbar ── */
-.toolbar { display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
-.tabs { display:flex; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
-.tabs button { padding:10px 20px; border:none; background:transparent; font-size:13px; font-weight:500; color:#666; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
-.tabs button:hover { color:#1a1a2e; }
-.tabs button.active { background:#2563eb; color:#fff; }
-.search-box { flex:1; min-width:200px; position:relative; }
-.search-box input { width:100%; padding:10px 16px 10px 40px; border:1px solid #e0e0e0; border-radius:10px; font-size:13px; background:#fff; outline:none; }
-.search-box input:focus { border-color:#2563eb; }
-.search-box::before { content:"🔍"; position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:14px; }
-.sort-select { padding:10px 16px; border:1px solid #e0e0e0; border-radius:10px; font-size:13px; background:#fff; outline:none; cursor:pointer; }
+.toolbar { display:flex; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+.tab-group {
+  display:flex; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-sm); overflow:hidden;
+}
+.tab-group button {
+  padding:9px 18px; border:none; background:transparent;
+  font-size:13px; font-weight:500; color:var(--text2); cursor:pointer;
+  transition:all 0.15s; font-family:inherit;
+}
+.tab-group button:hover { color:var(--text); }
+.tab-group button.active { background:var(--blue); color:#fff; }
+.search-wrap {
+  flex:1; min-width:220px; position:relative;
+}
+.search-wrap input {
+  width:100%; padding:10px 16px 10px 42px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-sm); color:var(--text); font-size:13px;
+  font-family:inherit; outline:none; transition:border-color 0.15s;
+}
+.search-wrap input::placeholder { color:var(--text3); }
+.search-wrap input:focus { border-color:var(--blue); }
+.search-wrap .search-ic { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text3); font-size:15px; }
+.sort-sel {
+  padding:10px 16px; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-sm); color:var(--text2); font-size:13px;
+  font-family:inherit; outline:none; cursor:pointer;
+}
 
 /* ── Table ── */
-.invoice-table { width:100%; background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); overflow:hidden; }
-.invoice-table table { width:100%; border-collapse:collapse; }
-.invoice-table th { padding:14px 16px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#888; background:#fafafa; border-bottom:1px solid #eee; font-weight:600; }
-.invoice-table td { padding:14px 16px; font-size:14px; border-bottom:1px solid #f0f0f0; }
-.invoice-table tr:last-child td { border-bottom:none; }
-.invoice-table tbody tr { cursor:pointer; transition:background 0.1s; }
-.invoice-table tbody tr:hover { background:#f8faff; }
+.table-wrap {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); overflow:hidden;
+}
+.table-wrap table { width:100%; border-collapse:collapse; }
+.table-wrap th {
+  padding:13px 18px; text-align:left; font-size:11px; font-weight:600;
+  text-transform:uppercase; letter-spacing:0.6px; color:var(--text3);
+  background:var(--surface2); border-bottom:1px solid var(--border);
+}
+.table-wrap td { padding:15px 18px; font-size:14px; border-bottom:1px solid var(--border); }
+.table-wrap tr:last-child td { border-bottom:none; }
+.table-wrap tbody tr { cursor:pointer; transition:background 0.12s; }
+.table-wrap tbody tr:hover { background:rgba(59,130,246,0.04); }
 
-.status-pill { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; display:inline-block; }
-.status-pill.pending { background:#fef3c7; color:#92400e; }
-.status-pill.approved { background:#dbeafe; color:#1e40af; }
-.status-pill.paid { background:#d1fae5; color:#065f46; }
-.status-pill.rejected { background:#fee2e2; color:#991b1b; }
+.vendor-cell { font-weight:600; }
+.amount-cell { font-weight:700; font-variant-numeric:tabular-nums; color:var(--text); }
+.date-cell { color:var(--text2); font-size:13px; }
+.email-cell { color:var(--text3); font-size:12px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-.amount-cell { font-weight:600; font-variant-numeric:tabular-nums; }
-.vendor-cell { font-weight:500; }
-.date-cell { color:#666; font-size:13px; }
-.email-cell { color:#888; font-size:12px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pill {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600;
+}
+.pill.pending { background:var(--yellow-bg); color:var(--yellow); }
+.pill.approved { background:rgba(59,130,246,0.12); color:var(--blue); }
+.pill.paid { background:var(--green-bg); color:var(--green); }
+.pill.rejected { background:var(--red-bg); color:var(--red); }
+.pill .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
 
-.empty-state { text-align:center; padding:80px 20px; color:#888; }
-.empty-state .empty-icon { font-size:48px; margin-bottom:12px; }
-.empty-state h3 { font-size:18px; color:#333; margin-bottom:4px; }
+.empty-state {
+  text-align:center; padding:80px 20px; color:var(--text3);
+}
+.empty-state .empty-ic { font-size:52px; margin-bottom:16px; opacity:0.5; }
+.empty-state h3 { font-size:17px; color:var(--text2); margin-bottom:6px; font-weight:600; }
+.empty-state p { font-size:14px; }
 
-.pagination { display:flex; align-items:center; justify-content:space-between; padding:16px; background:#fff; border-top:1px solid #eee; }
-.pagination .info { font-size:13px; color:#888; }
-.pagination .btns { display:flex; gap:8px; }
-.pagination button { padding:8px 16px; border:1px solid #ddd; border-radius:8px; background:#fff; font-size:13px; cursor:pointer; }
-.pagination button:hover { background:#f5f5f5; }
-.pagination button:disabled { opacity:0.4; cursor:default; }
+.pager {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 18px; border-top:1px solid var(--border);
+}
+.pager .info { font-size:13px; color:var(--text3); }
+.pager .btns { display:flex; gap:8px; }
+.pager button {
+  padding:7px 16px; border:1px solid var(--border); border-radius:8px;
+  background:transparent; color:var(--text2); font-size:13px; cursor:pointer;
+  font-family:inherit; transition:all 0.15s;
+}
+.pager button:hover { background:var(--surface2); color:var(--text); }
+.pager button:disabled { opacity:0.3; cursor:default; }
 
 /* ── Detail Panel ── */
-.detail-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:200; display:none; }
-.detail-overlay.open { display:block; }
-.detail-panel { position:fixed; right:0; top:0; bottom:0; width:520px; background:#fff; z-index:201; box-shadow:-4px 0 24px rgba(0,0,0,0.1); display:none; flex-direction:column; overflow-y:auto; }
-.detail-panel.open { display:flex; }
-.detail-header { padding:24px; border-bottom:1px solid #eee; display:flex; align-items:flex-start; justify-content:space-between; }
-.detail-header h2 { font-size:18px; }
-.detail-header .close-btn { width:32px; height:32px; border:none; background:#f0f0f0; border-radius:8px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-.detail-header .close-btn:hover { background:#e0e0e0; }
-.detail-body { padding:24px; flex:1; }
-.detail-row { display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #f0f0f0; }
-.detail-row .label { font-size:13px; color:#888; }
-.detail-row .val { font-size:14px; font-weight:500; text-align:right; }
-.detail-notes { margin-top:20px; }
-.detail-notes textarea { width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; font-size:13px; min-height:80px; resize:vertical; outline:none; font-family:inherit; }
-.detail-notes textarea:focus { border-color:#2563eb; }
-.detail-actions { padding:20px 24px; border-top:1px solid #eee; display:flex; gap:10px; flex-wrap:wrap; }
-.detail-actions button { padding:10px 20px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.15s; }
-.btn-approve { background:#2563eb; color:#fff; }
-.btn-approve:hover { background:#1d4ed8; }
-.btn-paid { background:#10b981; color:#fff; }
-.btn-paid:hover { background:#059669; }
-.btn-reject { background:#fee2e2; color:#991b1b; }
-.btn-reject:hover { background:#fecaca; }
-.btn-delete { background:#f5f5f5; color:#ef4444; }
-.btn-delete:hover { background:#fee2e2; }
-.btn-save-notes { background:#f5f5f5; color:#333; }
-.btn-save-notes:hover { background:#e5e5e5; }
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); z-index:200; opacity:0; pointer-events:none; transition:opacity 0.25s; }
+.overlay.open { opacity:1; pointer-events:auto; }
+.panel {
+  position:fixed; right:-540px; top:0; bottom:0; width:520px;
+  background:var(--surface); border-left:1px solid var(--border);
+  z-index:201; display:flex; flex-direction:column;
+  transition:right 0.3s cubic-bezier(0.16,1,0.3,1);
+  overflow-y:auto;
+}
+.panel.open { right:0; }
+.panel-head {
+  padding:24px 28px; border-bottom:1px solid var(--border);
+  display:flex; align-items:flex-start; justify-content:space-between;
+}
+.panel-head h2 { font-size:20px; font-weight:700; letter-spacing:-0.3px; }
+.close-x {
+  width:34px; height:34px; border:1px solid var(--border); border-radius:9px;
+  background:transparent; color:var(--text2); font-size:18px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:all 0.15s;
+}
+.close-x:hover { background:var(--surface2); color:var(--text); }
+.panel-body { padding:24px 28px; flex:1; }
+.detail-field { display:flex; justify-content:space-between; padding:13px 0; border-bottom:1px solid var(--border); }
+.detail-field .lbl { font-size:13px; color:var(--text3); }
+.detail-field .val { font-size:14px; font-weight:500; text-align:right; max-width:280px; word-break:break-word; }
+
+.items-section { margin-top:20px; }
+.items-label { font-size:12px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+.items-list { font-size:13px; color:var(--text2); line-height:1.7; }
+
+.notes-section { margin-top:20px; }
+.notes-section textarea {
+  width:100%; padding:14px; background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--radius-sm); color:var(--text); font-size:13px; font-family:inherit;
+  min-height:80px; resize:vertical; outline:none; transition:border-color 0.15s;
+}
+.notes-section textarea:focus { border-color:var(--blue); }
+
+.panel-actions {
+  padding:20px 28px; border-top:1px solid var(--border);
+  display:flex; gap:10px; flex-wrap:wrap;
+}
+.panel-actions button {
+  padding:10px 22px; border-radius:var(--radius-sm); font-size:13px;
+  font-weight:600; cursor:pointer; border:none; font-family:inherit;
+  transition:all 0.15s;
+}
+.btn-approve { background:var(--blue); color:#fff; }
+.btn-approve:hover { background:var(--blue2); }
+.btn-paid { background:var(--green); color:#fff; }
+.btn-paid:hover { filter:brightness(0.9); }
+.btn-reject { background:var(--red-bg); color:var(--red); }
+.btn-reject:hover { background:rgba(239,68,68,0.18); }
+.btn-delete { background:transparent; border:1px solid var(--border)!important; color:var(--red); }
+.btn-delete:hover { background:var(--red-bg); }
+.btn-notes { background:var(--surface2); color:var(--text2); }
+.btn-notes:hover { color:var(--text); background:rgba(255,255,255,0.08); }
+.btn-reopen { background:rgba(59,130,246,0.12); color:var(--blue); }
+.btn-reopen:hover { background:rgba(59,130,246,0.2); }
+.paid-badge { color:var(--green); font-size:14px; font-weight:700; display:flex; align-items:center; gap:6px; }
+
+/* ── Login ── */
+.login-screen {
+  position:fixed; inset:0; background:var(--bg);
+  display:flex; align-items:center; justify-content:center; z-index:999;
+}
+.login-screen.hidden { display:none; }
+.login-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:20px; padding:44px; width:400px; text-align:center;
+}
+.login-card .card-icon {
+  width:64px; height:64px; border-radius:18px;
+  background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+  display:flex; align-items:center; justify-content:center;
+  font-size:30px; margin:0 auto 20px;
+}
+.login-card h2 { font-size:22px; font-weight:700; margin-bottom:4px; }
+.login-card p { font-size:13.5px; color:var(--text2); margin-bottom:28px; }
+.login-card input {
+  width:100%; padding:13px 18px; background:var(--surface2);
+  border:1px solid var(--border); border-radius:var(--radius-sm);
+  color:var(--text); font-size:14px; font-family:inherit;
+  outline:none; margin-bottom:14px; transition:border-color 0.15s;
+}
+.login-card input:focus { border-color:var(--blue); }
+.login-card button {
+  width:100%; padding:13px; background:linear-gradient(135deg,#3b82f6,#7c3aed);
+  color:#fff; border:none; border-radius:var(--radius-sm);
+  font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;
+  transition:opacity 0.15s;
+}
+.login-card button:hover { opacity:0.9; }
+.login-err { color:var(--red); font-size:12px; margin-bottom:10px; display:none; }
 
 /* ── Toast ── */
-.toast { position:fixed; bottom:32px; right:32px; background:#1a1a2e; color:#fff; padding:14px 24px; border-radius:10px; font-size:14px; z-index:300; opacity:0; transform:translateY(10px); transition:all 0.3s; pointer-events:none; }
+.toast {
+  position:fixed; bottom:32px; right:32px;
+  background:var(--surface2); border:1px solid var(--border);
+  color:var(--text); padding:14px 24px; border-radius:var(--radius-sm);
+  font-size:14px; z-index:300; opacity:0; transform:translateY(10px);
+  transition:all 0.3s; pointer-events:none;
+}
 .toast.show { opacity:1; transform:translateY(0); }
 
 /* ── Responsive ── */
-@media (max-width:1100px) { .stats-row { grid-template-columns:repeat(3,1fr); } }
+@media (max-width:1200px) { .stats-grid { grid-template-columns:repeat(3,1fr); } }
 @media (max-width:768px) {
   .sidebar { display:none; }
-  .main { margin-left:0; padding:16px; }
-  .stats-row { grid-template-columns:repeat(2,1fr); }
-  .detail-panel { width:100%; }
+  .main { margin-left:0; padding:20px; }
+  .stats-grid { grid-template-columns:repeat(2,1fr); }
+  .panel { width:100%; right:-100%; }
 }
 </style>
 </head>
 <body>
 
 <!-- Login -->
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-box">
-    <div class="icon">🧾</div>
+<div class="login-screen" id="loginOverlay">
+  <div class="login-card">
+    <div class="card-icon">🧾</div>
     <h2>Bill Catcher</h2>
-    <p>Enter your access token to view your invoice dashboard</p>
-    <div class="login-error" id="loginError">Invalid token</div>
+    <p>Enter your access token to open the dashboard</p>
+    <div class="login-err" id="loginError">Invalid or expired token</div>
     <input type="password" id="tokenInput" placeholder="Paste your access token..." />
     <button onclick="doLogin()">Open Dashboard</button>
   </div>
@@ -151,54 +345,81 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 
 <!-- Sidebar -->
 <div class="sidebar">
-  <div class="sidebar-logo">
-    <div class="icon">🧾</div>
-    <div><h1>Bill Catcher</h1><span>Invoice Management</span></div>
+  <div class="sidebar-brand">
+    <div class="logo-row">
+      <div class="logo-icon">🧾</div>
+      <div>
+        <h1>Bill Catcher</h1>
+        <div class="tagline">Invoice Management</div>
+      </div>
+    </div>
   </div>
+  <!-- Software Switcher -->
+  <div class="switcher">
+    <button class="switcher-btn" onclick="toggleSwitcher()">
+      <span class="sw-icon" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);">🧾</span>
+      <span class="sw-name">Bill Catcher</span>
+      <span class="sw-arrow">▼</span>
+    </button>
+    <div class="switcher-menu" id="switcherMenu">
+      <a href="#" class="current"><span class="sw-icon" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);">🧾</span> Bill Catcher</a>
+      <a href="#"><span class="sw-icon" style="background:linear-gradient(135deg,#f59e0b,#ef4444);">🔥</span> Lead Alert <span class="coming">Soon</span></a>
+      <a href="#"><span class="sw-icon" style="background:linear-gradient(135deg,#10b981,#06b6d4);">📦</span> Order Tracker <span class="coming">Soon</span></a>
+      <a href="#"><span class="sw-icon" style="background:linear-gradient(135deg,#ec4899,#a855f7);">📬</span> Inbox Digest <span class="coming">Soon</span></a>
+      <a href="#"><span class="sw-icon" style="background:linear-gradient(135deg,#6366f1,#3b82f6);">📅</span> Meeting Prep <span class="coming">Soon</span></a>
+    </div>
+  </div>
+
   <nav class="sidebar-nav">
-    <a href="#" class="active"><span class="nav-icon">📊</span> Dashboard</a>
-    <a href="#" onclick="setFilter('pending')"><span class="nav-icon">⏳</span> Pending</a>
-    <a href="#" onclick="setFilter('approved')"><span class="nav-icon">✅</span> Approved</a>
-    <a href="#" onclick="setFilter('paid')"><span class="nav-icon">💰</span> Paid</a>
-    <a href="#" onclick="setFilter('rejected')"><span class="nav-icon">❌</span> Rejected</a>
+    <a href="#" class="active" onclick="setFilter('')"><span class="ic">📊</span> Dashboard</a>
+    <a href="#" onclick="setFilter('pending')"><span class="ic">⏳</span> Pending <span class="nav-badge" id="navPending" style="display:none"></span></a>
+    <a href="#" onclick="setFilter('approved')"><span class="ic">✅</span> Approved</a>
+    <a href="#" onclick="setFilter('paid')"><span class="ic">💰</span> Paid</a>
+    <a href="#" onclick="setFilter('rejected')"><span class="ic">🚫</span> Rejected</a>
   </nav>
   <div class="sidebar-footer">Powered by GoFarther AI</div>
 </div>
 
-<!-- Main Content -->
+<!-- Main -->
 <div class="main">
+  <div class="page-header">
+    <h2>Invoice Dashboard</h2>
+    <p>All invoices captured by Bill Catcher from your email</p>
+  </div>
+
   <!-- Stats -->
-  <div class="stats-row" id="statsRow">
-    <div class="stat-card total"><div class="label">Total Invoices</div><div class="value" id="statTotal">—</div><div class="sub" id="statTotalAmt"></div></div>
-    <div class="stat-card pending"><div class="label">Pending Review</div><div class="value" id="statPending">—</div><div class="sub" id="statPendingAmt"></div></div>
-    <div class="stat-card approved"><div class="label">Approved</div><div class="value" id="statApproved">—</div><div class="sub" id="statApprovedAmt"></div></div>
-    <div class="stat-card paid"><div class="label">Paid</div><div class="value" id="statPaid">—</div><div class="sub" id="statPaidAmt"></div></div>
-    <div class="stat-card overdue"><div class="label">Overdue</div><div class="value" id="statOverdue">—</div><div class="sub">need attention</div></div>
+  <div class="stats-grid" id="statsRow">
+    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value" id="statTotal">—</div><div class="stat-sub" id="statTotalAmt"></div></div>
+    <div class="stat-card pending"><div class="stat-label">Pending</div><div class="stat-value" id="statPending">—</div><div class="stat-sub" id="statPendingAmt"></div></div>
+    <div class="stat-card approved"><div class="stat-label">Approved</div><div class="stat-value" id="statApproved">—</div><div class="stat-sub" id="statApprovedAmt"></div></div>
+    <div class="stat-card paid"><div class="stat-label">Paid</div><div class="stat-value" id="statPaid">—</div><div class="stat-sub" id="statPaidAmt"></div></div>
+    <div class="stat-card overdue"><div class="stat-label">Overdue</div><div class="stat-value" id="statOverdue">—</div><div class="stat-sub">needs attention</div></div>
   </div>
 
   <!-- Toolbar -->
   <div class="toolbar">
-    <div class="tabs" id="tabsBar">
+    <div class="tab-group" id="tabsBar">
       <button class="active" data-status="">All</button>
       <button data-status="pending">Pending</button>
       <button data-status="approved">Approved</button>
       <button data-status="paid">Paid</button>
       <button data-status="rejected">Rejected</button>
     </div>
-    <div class="search-box">
+    <div class="search-wrap">
+      <span class="search-ic">⌕</span>
       <input type="text" id="searchInput" placeholder="Search vendor, invoice #, email..." />
     </div>
-    <select class="sort-select" id="sortSelect">
-      <option value="newest">Newest First</option>
-      <option value="oldest">Oldest First</option>
-      <option value="amount_high">Amount: High → Low</option>
-      <option value="amount_low">Amount: Low → High</option>
+    <select class="sort-sel" id="sortSelect">
+      <option value="newest">Newest</option>
+      <option value="oldest">Oldest</option>
+      <option value="amount_high">Amount ↓</option>
+      <option value="amount_low">Amount ↑</option>
       <option value="due_date">Due Date</option>
     </select>
   </div>
 
   <!-- Table -->
-  <div class="invoice-table">
+  <div class="table-wrap">
     <table>
       <thead>
         <tr>
@@ -214,14 +435,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
       <tbody id="invoiceBody"></tbody>
     </table>
     <div class="empty-state" id="emptyState" style="display:none;">
-      <div class="empty-icon">🧾</div>
+      <div class="empty-ic">🧾</div>
       <h3>No invoices yet</h3>
-      <p>When Bill Catcher captures invoices from your email, they'll appear here.</p>
+      <p>When Bill Catcher captures invoices from your email, they'll show up here.</p>
     </div>
-    <div class="pagination" id="paginationBar">
+    <div class="pager" id="paginationBar">
       <div class="info" id="pageInfo">—</div>
       <div class="btns">
-        <button id="prevBtn" onclick="prevPage()" disabled>← Previous</button>
+        <button id="prevBtn" onclick="prevPage()" disabled>← Prev</button>
         <button id="nextBtn" onclick="nextPage()">Next →</button>
       </div>
     </div>
@@ -229,353 +450,225 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 </div>
 
 <!-- Detail Panel -->
-<div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
-<div class="detail-panel" id="detailPanel">
-  <div class="detail-header">
+<div class="overlay" id="detailOverlay" onclick="closeDetail()"></div>
+<div class="panel" id="detailPanel">
+  <div class="panel-head">
     <div>
       <h2 id="detailVendor">—</h2>
-      <span id="detailStatus" class="status-pill" style="margin-top:8px;"></span>
+      <div style="margin-top:10px;" id="detailStatusWrap"></div>
     </div>
-    <button class="close-btn" onclick="closeDetail()">✕</button>
+    <button class="close-x" onclick="closeDetail()">✕</button>
   </div>
-  <div class="detail-body">
-    <div class="detail-row"><span class="label">Invoice #</span><span class="val" id="detailInvNum">—</span></div>
-    <div class="detail-row"><span class="label">Amount</span><span class="val" id="detailAmount">—</span></div>
-    <div class="detail-row"><span class="label">Currency</span><span class="val" id="detailCurrency">—</span></div>
-    <div class="detail-row"><span class="label">Due Date</span><span class="val" id="detailDue">—</span></div>
-    <div class="detail-row"><span class="label">From Email</span><span class="val" id="detailFrom">—</span></div>
-    <div class="detail-row"><span class="label">Email Subject</span><span class="val" id="detailSubject">—</span></div>
-    <div class="detail-row"><span class="label">Received</span><span class="val" id="detailReceived">—</span></div>
-    <div class="detail-row"><span class="label">Approved At</span><span class="val" id="detailApprovedAt">—</span></div>
-    <div class="detail-row"><span class="label">Paid At</span><span class="val" id="detailPaidAt">—</span></div>
-    <div id="detailItemsSection" style="margin-top:16px;">
-      <div class="label" style="margin-bottom:8px; font-size:13px; color:#888;">Line Items</div>
-      <div id="detailItems" style="font-size:13px; color:#333;"></div>
+  <div class="panel-body">
+    <div class="detail-field"><span class="lbl">Invoice #</span><span class="val" id="detailInvNum">—</span></div>
+    <div class="detail-field"><span class="lbl">Amount</span><span class="val" id="detailAmount">—</span></div>
+    <div class="detail-field"><span class="lbl">Currency</span><span class="val" id="detailCurrency">—</span></div>
+    <div class="detail-field"><span class="lbl">Due Date</span><span class="val" id="detailDue">—</span></div>
+    <div class="detail-field"><span class="lbl">From</span><span class="val" id="detailFrom">—</span></div>
+    <div class="detail-field"><span class="lbl">Subject</span><span class="val" id="detailSubject">—</span></div>
+    <div class="detail-field"><span class="lbl">Received</span><span class="val" id="detailReceived">—</span></div>
+    <div class="detail-field"><span class="lbl">Approved</span><span class="val" id="detailApprovedAt">—</span></div>
+    <div class="detail-field"><span class="lbl">Paid</span><span class="val" id="detailPaidAt">—</span></div>
+    <div class="items-section" id="detailItemsSection">
+      <div class="items-label">Line Items</div>
+      <div class="items-list" id="detailItems"></div>
     </div>
-    <div class="detail-notes">
-      <div class="label" style="margin-bottom:8px; font-size:13px; color:#888;">Notes</div>
-      <textarea id="detailNotes" placeholder="Add notes about this invoice..."></textarea>
+    <div class="notes-section">
+      <div class="items-label">Notes</div>
+      <textarea id="detailNotes" placeholder="Add a note about this invoice..."></textarea>
     </div>
   </div>
-  <div class="detail-actions" id="detailActions"></div>
+  <div class="panel-actions" id="detailActions"></div>
 </div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- JAVASCRIPT PLACEHOLDER -->
 <script>
-// ── State ──
-let TOKEN = '';
-let currentFilter = '';
-let currentSearch = '';
-let currentSort = 'newest';
-let currentOffset = 0;
-const PAGE_SIZE = 25;
-let totalCount = 0;
-let currentInvoice = null;
+let TOKEN='',currentFilter='',currentSearch='',currentSort='newest',currentOffset=0,totalCount=0,currentInvoice=null;
+const PAGE_SIZE=25;
 
-// ── Init ──
-(function init() {
-  const params = new URLSearchParams(window.location.search);
-  const urlToken = params.get('token');
-  if (urlToken) {
-    TOKEN = urlToken;
-    sessionStorage.setItem('ghost_token', urlToken);
-    window.history.replaceState({}, '', window.location.pathname);
-  } else {
-    TOKEN = sessionStorage.getItem('ghost_token') || '';
-  }
-  if (TOKEN) {
-    hideLogin();
-    loadDashboard();
-  }
-
-  // Tab clicks
-  document.querySelectorAll('#tabsBar button').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('#tabsBar button').forEach(function(b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-      currentFilter = btn.dataset.status;
-      currentOffset = 0;
-      loadInvoices();
+(function(){
+  var p=new URLSearchParams(location.search),t=p.get('token');
+  if(t){TOKEN=t;sessionStorage.setItem('gt',t);history.replaceState({},'',location.pathname);}
+  else{TOKEN=sessionStorage.getItem('gt')||'';}
+  if(TOKEN){hideLogin();loadDashboard();}
+  document.querySelectorAll('#tabsBar button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#tabsBar button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');currentFilter=b.dataset.status;currentOffset=0;loadInvoices();
     });
   });
-
-  // Search debounce
-  var searchTimer = null;
-  document.getElementById('searchInput').addEventListener('input', function() {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(function() {
-      currentSearch = document.getElementById('searchInput').value;
-      currentOffset = 0;
-      loadInvoices();
-    }, 300);
+  var st=null;
+  document.getElementById('searchInput').addEventListener('input',function(){
+    clearTimeout(st);st=setTimeout(function(){currentSearch=document.getElementById('searchInput').value;currentOffset=0;loadInvoices();},300);
   });
-
-  // Sort
-  document.getElementById('sortSelect').addEventListener('change', function() {
-    currentSort = this.value;
-    currentOffset = 0;
-    loadInvoices();
-  });
+  document.getElementById('sortSelect').addEventListener('change',function(){currentSort=this.value;currentOffset=0;loadInvoices();});
 })();
 
-// ── Login ──
-function doLogin() {
-  var val = document.getElementById('tokenInput').value.trim();
-  if (!val) return;
-  TOKEN = val;
-  sessionStorage.setItem('ghost_token', val);
-  // Test the token
-  apiFetch('/api/ghost/invoices/stats').then(function(data) {
-    if (data.error) {
-      document.getElementById('loginError').style.display = 'block';
-      TOKEN = '';
-      sessionStorage.removeItem('ghost_token');
-    } else {
-      hideLogin();
-      loadDashboard();
-    }
-  }).catch(function() {
-    document.getElementById('loginError').style.display = 'block';
-    TOKEN = '';
-    sessionStorage.removeItem('ghost_token');
+function doLogin(){
+  var v=document.getElementById('tokenInput').value.trim();if(!v)return;
+  TOKEN=v;sessionStorage.setItem('gt',v);
+  apiFetch('/api/ghost/invoices/stats').then(function(d){
+    if(d.error){document.getElementById('loginError').style.display='block';TOKEN='';sessionStorage.removeItem('gt');}
+    else{hideLogin();loadDashboard();}
+  }).catch(function(){document.getElementById('loginError').style.display='block';TOKEN='';sessionStorage.removeItem('gt');});
+}
+function hideLogin(){document.getElementById('loginOverlay').classList.add('hidden');}
+
+function apiFetch(url,opts){
+  opts=opts||{};var h={'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'};
+  return fetch(url,Object.assign({headers:h},opts)).then(function(r){
+    if(r.status===401){sessionStorage.removeItem('gt');TOKEN='';document.getElementById('loginOverlay').classList.remove('hidden');throw new Error('Unauthorized');}
+    return r.json();
   });
 }
 
-function hideLogin() {
-  document.getElementById('loginOverlay').classList.add('hidden');
+function loadDashboard(){loadStats();loadInvoices();}
+
+function loadStats(){
+  apiFetch('/api/ghost/invoices/stats').then(function(s){
+    document.getElementById('statTotal').textContent=s.total;
+    document.getElementById('statTotalAmt').textContent='$'+fm(s.total_amount);
+    document.getElementById('statPending').textContent=s.pending;
+    document.getElementById('statPendingAmt').textContent='$'+fm(s.pending_amount);
+    document.getElementById('statApproved').textContent=s.approved;
+    document.getElementById('statApprovedAmt').textContent='$'+fm(s.approved_amount);
+    document.getElementById('statPaid').textContent=s.paid;
+    document.getElementById('statPaidAmt').textContent='$'+fm(s.paid_amount);
+    document.getElementById('statOverdue').textContent=s.overdue;
+    var nb=document.getElementById('navPending');
+    if(s.pending>0){nb.textContent=s.pending;nb.style.display='inline';}else{nb.style.display='none';}
+  }).catch(function(){});
 }
 
-// ── API ──
-function apiFetch(url, opts) {
-  opts = opts || {};
-  var headers = { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
-  return fetch(url, Object.assign({ headers: headers }, opts))
-    .then(function(r) {
-      if (r.status === 401) {
-        sessionStorage.removeItem('ghost_token');
-        TOKEN = '';
-        document.getElementById('loginOverlay').classList.remove('hidden');
-        throw new Error('Unauthorized');
-      }
-      return r.json();
-    });
+function loadInvoices(){
+  var u='/api/ghost/invoices?limit='+PAGE_SIZE+'&offset='+currentOffset+'&sort='+currentSort;
+  if(currentFilter)u+='&status='+currentFilter;
+  if(currentSearch)u+='&search='+encodeURIComponent(currentSearch);
+  apiFetch(u).then(function(d){totalCount=d.total;renderTable(d.invoices);renderPager();}).catch(function(){});
 }
 
-// ── Load ──
-function loadDashboard() {
-  loadStats();
-  loadInvoices();
-}
-
-function loadStats() {
-  apiFetch('/api/ghost/invoices/stats').then(function(s) {
-    document.getElementById('statTotal').textContent = s.total;
-    document.getElementById('statTotalAmt').textContent = '$' + fmtMoney(s.total_amount);
-    document.getElementById('statPending').textContent = s.pending;
-    document.getElementById('statPendingAmt').textContent = '$' + fmtMoney(s.pending_amount);
-    document.getElementById('statApproved').textContent = s.approved;
-    document.getElementById('statApprovedAmt').textContent = '$' + fmtMoney(s.approved_amount);
-    document.getElementById('statPaid').textContent = s.paid;
-    document.getElementById('statPaidAmt').textContent = '$' + fmtMoney(s.paid_amount);
-    document.getElementById('statOverdue').textContent = s.overdue;
-  }).catch(function() {});
-}
-
-function loadInvoices() {
-  var url = '/api/ghost/invoices?limit=' + PAGE_SIZE + '&offset=' + currentOffset + '&sort=' + currentSort;
-  if (currentFilter) url += '&status=' + currentFilter;
-  if (currentSearch) url += '&search=' + encodeURIComponent(currentSearch);
-
-  apiFetch(url).then(function(data) {
-    totalCount = data.total;
-    renderTable(data.invoices);
-    renderPagination();
-  }).catch(function() {});
-}
-
-// ── Render table ──
-function renderTable(invoices) {
-  var tbody = document.getElementById('invoiceBody');
-  var empty = document.getElementById('emptyState');
-
-  if (!invoices || invoices.length === 0) {
-    tbody.innerHTML = '';
-    empty.style.display = 'block';
-    return;
+function renderTable(inv){
+  var tb=document.getElementById('invoiceBody'),em=document.getElementById('emptyState');
+  if(!inv||!inv.length){tb.innerHTML='';em.style.display='block';return;}
+  em.style.display='none';
+  var h='';
+  for(var i=0;i<inv.length;i++){
+    var v=inv[i],sy={USD:'$',EUR:'€',GBP:'£'}[v.currency]||'$';
+    h+='<tr onclick="openDetail(\''+v.id+'\')">'
+      +'<td class="vendor-cell">'+esc(v.vendor_name)+'</td>'
+      +'<td>'+esc(v.invoice_number||'—')+'</td>'
+      +'<td class="amount-cell">'+(v.amount!=null?sy+fm(v.amount):'—')+'</td>'
+      +'<td class="date-cell">'+fd(v.due_date)+'</td>'
+      +'<td class="email-cell" title="'+esc(v.source_email_from||'')+'">'+esc(v.source_email_from||'—')+'</td>'
+      +'<td><span class="pill '+v.status+'"><span class="dot"></span>'+v.status+'</span></td>'
+      +'<td class="date-cell">'+fdt(v.created_at)+'</td>'
+      +'</tr>';
   }
-  empty.style.display = 'none';
-
-  var html = '';
-  for (var i = 0; i < invoices.length; i++) {
-    var inv = invoices[i];
-    var sym = { USD:'$', EUR:'€', GBP:'£' }[inv.currency] || '$';
-    html += '<tr onclick="openDetail(\'' + inv.id + '\')">'
-      + '<td class="vendor-cell">' + esc(inv.vendor_name) + '</td>'
-      + '<td>' + esc(inv.invoice_number || '—') + '</td>'
-      + '<td class="amount-cell">' + (inv.amount != null ? sym + fmtMoney(inv.amount) : '—') + '</td>'
-      + '<td class="date-cell">' + fmtDate(inv.due_date) + '</td>'
-      + '<td class="email-cell" title="' + esc(inv.source_email_from || '') + '">' + esc(inv.source_email_from || '—') + '</td>'
-      + '<td><span class="status-pill ' + inv.status + '">' + inv.status + '</span></td>'
-      + '<td class="date-cell">' + fmtDateTime(inv.created_at) + '</td>'
-      + '</tr>';
-  }
-  tbody.innerHTML = html;
+  tb.innerHTML=h;
 }
 
-// ── Pagination ──
-function renderPagination() {
-  var start = totalCount === 0 ? 0 : currentOffset + 1;
-  var end = Math.min(currentOffset + PAGE_SIZE, totalCount);
-  document.getElementById('pageInfo').textContent = start + '–' + end + ' of ' + totalCount;
-  document.getElementById('prevBtn').disabled = currentOffset === 0;
-  document.getElementById('nextBtn').disabled = (currentOffset + PAGE_SIZE) >= totalCount;
+function renderPager(){
+  var s=totalCount===0?0:currentOffset+1,e=Math.min(currentOffset+PAGE_SIZE,totalCount);
+  document.getElementById('pageInfo').textContent=s+'–'+e+' of '+totalCount;
+  document.getElementById('prevBtn').disabled=currentOffset===0;
+  document.getElementById('nextBtn').disabled=(currentOffset+PAGE_SIZE)>=totalCount;
 }
+function prevPage(){currentOffset=Math.max(0,currentOffset-PAGE_SIZE);loadInvoices();}
+function nextPage(){currentOffset+=PAGE_SIZE;loadInvoices();}
 
-function prevPage() { currentOffset = Math.max(0, currentOffset - PAGE_SIZE); loadInvoices(); }
-function nextPage() { currentOffset += PAGE_SIZE; loadInvoices(); }
-
-// ── Detail panel ──
-function openDetail(id) {
-  apiFetch('/api/ghost/invoices/' + id).then(function(inv) {
-    currentInvoice = inv;
-    var sym = { USD:'$', EUR:'€', GBP:'£' }[inv.currency] || '$';
-
-    document.getElementById('detailVendor').textContent = inv.vendor_name;
-    var pill = document.getElementById('detailStatus');
-    pill.textContent = inv.status;
-    pill.className = 'status-pill ' + inv.status;
-    document.getElementById('detailInvNum').textContent = inv.invoice_number || '—';
-    document.getElementById('detailAmount').textContent = inv.amount != null ? sym + fmtMoney(inv.amount) : '—';
-    document.getElementById('detailCurrency').textContent = inv.currency || 'USD';
-    document.getElementById('detailDue').textContent = fmtDate(inv.due_date);
-    document.getElementById('detailFrom').textContent = inv.source_email_from || '—';
-    document.getElementById('detailSubject').textContent = inv.source_email_subject || '—';
-    document.getElementById('detailReceived').textContent = fmtDateTime(inv.source_email_date);
-    document.getElementById('detailApprovedAt').textContent = fmtDateTime(inv.approved_at);
-    document.getElementById('detailPaidAt').textContent = fmtDateTime(inv.paid_at);
-    document.getElementById('detailNotes').value = inv.notes || '';
-
-    // Items
-    var itemsHtml = '';
-    var items = inv.items || [];
-    if (items.length > 0) {
-      for (var i = 0; i < items.length; i++) {
-        var it = items[i];
-        if (typeof it === 'string') { itemsHtml += '<div>• ' + esc(it) + '</div>'; }
-        else if (it.description) { itemsHtml += '<div>• ' + esc(it.description) + '</div>'; }
-      }
+function openDetail(id){
+  apiFetch('/api/ghost/invoices/'+id).then(function(v){
+    currentInvoice=v;
+    var sy={USD:'$',EUR:'€',GBP:'£'}[v.currency]||'$';
+    document.getElementById('detailVendor').textContent=v.vendor_name;
+    document.getElementById('detailStatusWrap').innerHTML='<span class="pill '+v.status+'"><span class="dot"></span>'+v.status+'</span>';
+    document.getElementById('detailInvNum').textContent=v.invoice_number||'—';
+    document.getElementById('detailAmount').textContent=v.amount!=null?sy+fm(v.amount):'—';
+    document.getElementById('detailCurrency').textContent=v.currency||'USD';
+    document.getElementById('detailDue').textContent=fd(v.due_date);
+    document.getElementById('detailFrom').textContent=v.source_email_from||'—';
+    document.getElementById('detailSubject').textContent=v.source_email_subject||'—';
+    document.getElementById('detailReceived').textContent=fdt(v.source_email_date);
+    document.getElementById('detailApprovedAt').textContent=fdt(v.approved_at);
+    document.getElementById('detailPaidAt').textContent=fdt(v.paid_at);
+    document.getElementById('detailNotes').value=v.notes||'';
+    var ih='',items=v.items||[];
+    for(var i=0;i<items.length;i++){
+      var it=items[i];
+      if(typeof it==='string')ih+='<div>• '+esc(it)+'</div>';
+      else if(it.description)ih+='<div>• '+esc(it.description)+'</div>';
     }
-    document.getElementById('detailItems').innerHTML = itemsHtml || '<span style="color:#aaa">No items extracted</span>';
-
-    // Action buttons based on status
-    var actionsHtml = '';
-    if (inv.status === 'pending') {
-      actionsHtml = '<button class="btn-approve" onclick="updateStatus(\'approved\')">Approve</button>'
-        + '<button class="btn-reject" onclick="updateStatus(\'rejected\')">Reject</button>';
-    } else if (inv.status === 'approved') {
-      actionsHtml = '<button class="btn-paid" onclick="updateStatus(\'paid\')">Mark as Paid</button>'
-        + '<button class="btn-reject" onclick="updateStatus(\'rejected\')">Reject</button>';
-    } else if (inv.status === 'rejected') {
-      actionsHtml = '<button class="btn-approve" onclick="updateStatus(\'pending\')">Move to Pending</button>';
-    } else if (inv.status === 'paid') {
-      actionsHtml = '<span style="color:#10b981; font-size:14px; font-weight:600;">✓ Paid</span>';
+    document.getElementById('detailItems').innerHTML=ih||'<span style="color:var(--text3)">No items extracted</span>';
+    var a='';
+    if(v.status==='pending'){
+      a='<button class="btn-approve" onclick="doAction(\'approved\')">✓ Approve</button>'
+       +'<button class="btn-reject" onclick="doAction(\'rejected\')">✗ Reject</button>';
+    }else if(v.status==='approved'){
+      a='<button class="btn-paid" onclick="doAction(\'paid\')">💰 Mark Paid</button>'
+       +'<button class="btn-reject" onclick="doAction(\'rejected\')">✗ Reject</button>';
+    }else if(v.status==='rejected'){
+      a='<button class="btn-reopen" onclick="doAction(\'pending\')">↩ Reopen</button>';
+    }else if(v.status==='paid'){
+      a='<span class="paid-badge">✓ Paid</span>';
     }
-    actionsHtml += '<button class="btn-save-notes" onclick="saveNotes()">Save Notes</button>';
-    actionsHtml += '<button class="btn-delete" onclick="deleteInvoice()">Delete</button>';
-    document.getElementById('detailActions').innerHTML = actionsHtml;
-
+    a+='<button class="btn-notes" onclick="saveNotes()">Save Notes</button>';
+    a+='<button class="btn-delete" onclick="deleteInv()">Delete</button>';
+    document.getElementById('detailActions').innerHTML=a;
     document.getElementById('detailOverlay').classList.add('open');
     document.getElementById('detailPanel').classList.add('open');
-  }).catch(function() { toast('Failed to load invoice'); });
+  }).catch(function(){toast('Failed to load');});
 }
 
-function closeDetail() {
+function closeDetail(){
   document.getElementById('detailOverlay').classList.remove('open');
   document.getElementById('detailPanel').classList.remove('open');
-  currentInvoice = null;
+  currentInvoice=null;
 }
 
-// ── Actions ──
-function updateStatus(status) {
-  if (!currentInvoice) return;
-  apiFetch('/api/ghost/invoices/' + currentInvoice.id, {
-    method: 'PATCH',
-    body: JSON.stringify({ status: status })
-  }).then(function() {
-    toast('Invoice ' + status);
-    closeDetail();
-    loadDashboard();
-  }).catch(function() { toast('Failed to update'); });
+function doAction(st){
+  if(!currentInvoice)return;
+  apiFetch('/api/ghost/invoices/'+currentInvoice.id,{method:'PATCH',body:JSON.stringify({status:st})})
+  .then(function(){toast('Invoice '+st);closeDetail();loadDashboard();}).catch(function(){toast('Failed');});
+}
+function saveNotes(){
+  if(!currentInvoice)return;
+  apiFetch('/api/ghost/invoices/'+currentInvoice.id,{method:'PATCH',body:JSON.stringify({notes:document.getElementById('detailNotes').value})})
+  .then(function(){toast('Notes saved');}).catch(function(){toast('Failed');});
+}
+function deleteInv(){
+  if(!currentInvoice||!confirm('Delete this invoice permanently?'))return;
+  apiFetch('/api/ghost/invoices/'+currentInvoice.id,{method:'DELETE'})
+  .then(function(){toast('Deleted');closeDetail();loadDashboard();}).catch(function(){toast('Failed');});
 }
 
-function saveNotes() {
-  if (!currentInvoice) return;
-  var notes = document.getElementById('detailNotes').value;
-  apiFetch('/api/ghost/invoices/' + currentInvoice.id, {
-    method: 'PATCH',
-    body: JSON.stringify({ notes: notes })
-  }).then(function() {
-    toast('Notes saved');
-  }).catch(function() { toast('Failed to save notes'); });
-}
-
-function deleteInvoice() {
-  if (!currentInvoice) return;
-  if (!confirm('Delete this invoice permanently?')) return;
-  apiFetch('/api/ghost/invoices/' + currentInvoice.id, {
-    method: 'DELETE'
-  }).then(function() {
-    toast('Invoice deleted');
-    closeDetail();
-    loadDashboard();
-  }).catch(function() { toast('Failed to delete'); });
-}
-
-// ── Sidebar filter shortcut ──
-function setFilter(status) {
-  currentFilter = status;
-  currentOffset = 0;
-  // Update tabs
-  document.querySelectorAll('#tabsBar button').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.status === status);
-  });
+function setFilter(s){
+  currentFilter=s;currentOffset=0;
+  document.querySelectorAll('#tabsBar button').forEach(function(b){b.classList.toggle('active',b.dataset.status===s);});
+  document.querySelectorAll('.sidebar-nav a').forEach(function(a,i){a.classList.remove('active');});
   loadInvoices();
 }
 
-// ── Helpers ──
-function fmtMoney(n) {
-  if (n == null) return '0.00';
-  return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function toggleSwitcher(){
+  var m=document.getElementById('switcherMenu'),b=document.querySelector('.switcher-btn');
+  var open=m.classList.toggle('open');b.classList.toggle('open',open);
+  if(open){document.addEventListener('click',closeSwitcherOutside,true);}
+}
+function closeSwitcherOutside(e){
+  var s=document.querySelector('.switcher');
+  if(!s.contains(e.target)){
+    document.getElementById('switcherMenu').classList.remove('open');
+    document.querySelector('.switcher-btn').classList.remove('open');
+    document.removeEventListener('click',closeSwitcherOutside,true);
+  }
 }
 
-function fmtDate(d) {
-  if (!d) return '—';
-  try { return new Date(d).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); }
-  catch(e) { return d; }
-}
-
-function fmtDateTime(d) {
-  if (!d) return '—';
-  try { return new Date(d).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }); }
-  catch(e) { return d; }
-}
-
-function esc(s) {
-  if (!s) return '';
-  var d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-
-function toast(msg) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 2500);
-}
+function fm(n){if(n==null)return'0.00';return Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fd(d){if(!d)return'—';try{return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch(e){return d;}}
+function fdt(d){if(!d)return'—';try{return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});}catch(e){return d;}}
+function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
 </script>
 </body>
 </html>
