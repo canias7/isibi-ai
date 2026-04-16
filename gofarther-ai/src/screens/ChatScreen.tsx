@@ -216,7 +216,6 @@ OTHER TOOLS:
 {"type":"generate_qr","target":"URL or text for QR code"}
 {"type":"create_event","target":"event title","text":"YYYY-MM-DD"}
 {"type":"crypto_portfolio","target":"BTC,ETH,SOL"}
-{"type":"social_post","target":"post content","text":"twitter/instagram/linkedin"}
 {"type":"compare_urls","target":"url1,url2","text":"comparison question"}
 {"type":"create_meme","target":"top text","text":"bottom text"}
 {"type":"barcode_lookup","target":"barcode number"}

@@ -545,16 +545,6 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         return;
       }
 
-      // Handle social post
-      if (finalAction?.type === 'social_post') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
-        setLoading(false);
-        trackAsync(socialPost(finalAction.text || 'twitter', finalAction.target || '')).then(r => {
-          setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `**${r.platform} post:**\n\n${r.post}` } : m));
-        }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Post failed: ' + e.message } : m)); });
-        return;
-      }
-
       // Handle URL comparison
       if (finalAction?.type === 'compare_urls') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
