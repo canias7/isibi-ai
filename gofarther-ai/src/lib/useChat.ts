@@ -7,7 +7,7 @@ import { chatStream, Message, generateImage, analyzeImage, createFile, modifyFil
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
-import { getChatHistory, saveChatHistory, addMemoryFact, addSavedContact, addEmailTemplate, addCallRecording, trackEvent, addToOfflineQueue } from './storage';
+import { getChatHistory, saveChatHistory, addMemoryFact, deleteMemoryFact, deleteMemoryByCategory, clearMemory, getMemory, getMemoryByCategory, getSavedContacts, addSavedContact, addEmailTemplate, addCallRecording, trackEvent, addToOfflineQueue } from './storage';
 import { pushSession } from './chatSync';
 import { incrementReactionCount } from './storage';
 import { runAnalysisIfNeeded } from './preferenceAnalysis';
@@ -232,6 +232,81 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         await addMemoryFact(fact, category);
         finalAction = null;
         if (!finalText) finalText = "Got it, I'll remember that!";
+      }
+
+      // Handle forget_memory — delete specific memory, a category, or everything
+      if (finalAction?.type === 'forget_memory') {
+        const target = (finalAction.target || '').trim();
+        const validCats = ['facts', 'preferences', 'templates', 'instructions'];
+        if (target === 'all') {
+          await clearMemory();
+          if (!finalText) finalText = "Done — all memory cleared.";
+        } else if (target.endsWith(':all')) {
+          const cat = target.split(':')[0].toLowerCase();
+          if (validCats.includes(cat)) {
+            await deleteMemoryByCategory(cat as any);
+            if (!finalText) finalText = `Got it, I've cleared all ${cat}.`;
+          } else if (cat === 'contacts') {
+            // Contacts are stored separately — not in ai_memory
+            if (!finalText) finalText = "Contact deletion isn't supported through this action yet. You can manage contacts in Settings.";
+          }
+        } else {
+          // Find and delete by matching fact text
+          const mem = await getMemory();
+          const match = mem.find(m => m.fact.toLowerCase().includes(target.toLowerCase()));
+          if (match) {
+            await deleteMemoryFact(match.id);
+            if (!finalText) finalText = "Got it, I've forgotten that.";
+          } else {
+            if (!finalText) finalText = "I couldn't find that in my memory. Want me to show you what I remember?";
+          }
+        }
+        finalAction = null;
+      }
+
+      // Handle show_memory — display saved memory organized by category
+      if (finalAction?.type === 'show_memory') {
+        const target = (finalAction.target || 'all').trim().toLowerCase();
+        const mem = await getMemory();
+        const contacts = await getSavedContacts();
+        const validCats = ['facts', 'preferences', 'templates', 'instructions'];
+        let memoryDisplay = '';
+
+        if (target === 'all' || !validCats.includes(target)) {
+          // Show everything
+          const grouped: Record<string, string[]> = {};
+          for (const m of mem) {
+            const cat = m.category || 'facts';
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push(m.fact + (m.version ? ` (v${m.version})` : ''));
+          }
+          const labels: Record<string, string> = { facts: '📋 Facts', preferences: '⚙️ Preferences', templates: '📝 Templates', instructions: '🎯 Instructions' };
+          for (const [cat, items] of Object.entries(grouped)) {
+            memoryDisplay += `\n**${labels[cat] || cat}:**\n${items.map(f => `- ${f}`).join('\n')}\n`;
+          }
+          if (contacts.length > 0) {
+            memoryDisplay += `\n**👤 Contacts:**\n${contacts.map((c: any) => `- ${c.label} = ${c.name}${c.email ? ` (${c.email})` : ''}${c.phone ? ` (${c.phone})` : ''}`).join('\n')}\n`;
+          }
+          if (!memoryDisplay) memoryDisplay = "I don't have anything saved yet.";
+          else memoryDisplay = "Here's everything I remember:\n" + memoryDisplay + "\nWant to update or delete anything?";
+        } else if (target === 'contacts') {
+          if (contacts.length > 0) {
+            memoryDisplay = `**👤 Saved Contacts:**\n${contacts.map((c: any) => `- ${c.label} = ${c.name}${c.email ? ` (${c.email})` : ''}${c.phone ? ` (${c.phone})` : ''}`).join('\n')}`;
+          } else {
+            memoryDisplay = "No saved contacts yet.";
+          }
+        } else {
+          const catMem = mem.filter(m => (m.category || 'facts') === target);
+          const labels: Record<string, string> = { facts: 'Facts', preferences: 'Preferences', templates: 'Templates', instructions: 'Instructions' };
+          if (catMem.length > 0) {
+            memoryDisplay = `**${labels[target] || target}:**\n${catMem.map(m => `- ${m.fact}${m.version ? ` (v${m.version})` : ''}`).join('\n')}`;
+          } else {
+            memoryDisplay = `No saved ${target} yet.`;
+          }
+        }
+
+        finalText = memoryDisplay;
+        finalAction = null;
       }
 
       // Sidecar: any action can carry a save_contact hint so the LLM can
