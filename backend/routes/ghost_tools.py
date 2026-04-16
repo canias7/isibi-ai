@@ -1619,7 +1619,7 @@ Return ONLY valid JSON."""
 
 # ─── WEB SEARCH ───────────────────────────────────────────────────────────
 
-BRAVE_API_KEY = os.getenv("BRAVE_SEARCH_API_KEY", "")
+SERPER_API_KEY = os.getenv("SERPER_API_KEY", "")
 
 
 class WebSearchRequest(BaseModel):
@@ -1632,53 +1632,52 @@ async def web_search(req: WebSearchRequest, authorization: str = Header(...), db
     payload = _verify_auth(authorization)
     results = []
 
-    if BRAVE_API_KEY:
-        # ── Brave Search API ──
+    if SERPER_API_KEY:
+        # ── Serper.dev — Google Search Results ──
         try:
             async with httpx.AsyncClient(timeout=15) as client:
-                res = await client.get(
-                    "https://api.search.brave.com/res/v1/web/search",
-                    params={"q": req.query, "count": min(req.count or 8, 20)},
-                    headers={"X-Subscription-Token": BRAVE_API_KEY, "Accept": "application/json"},
+                res = await client.post(
+                    "https://google.serper.dev/search",
+                    json={"q": req.query, "num": min(req.count or 8, 20)},
+                    headers={"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"},
                 )
                 if res.status_code == 200:
                     data = res.json()
 
-                    # Web results
-                    for item in data.get("web", {}).get("results", [])[:8]:
+                    # Knowledge graph (instant answer)
+                    kg = data.get("knowledgeGraph", {})
+                    if kg and kg.get("description"):
+                        results.append({
+                            "title": kg.get("title", "Knowledge Panel"),
+                            "snippet": kg.get("description", ""),
+                            "url": kg.get("descriptionLink") or kg.get("website", ""),
+                            "type": "infobox",
+                        })
+
+                    # Organic results
+                    for item in data.get("organic", [])[:8]:
                         results.append({
                             "title": item.get("title", ""),
-                            "snippet": item.get("description", ""),
-                            "url": item.get("url", ""),
-                            "age": item.get("age", ""),
+                            "snippet": item.get("snippet", ""),
+                            "url": item.get("link", ""),
+                            "position": item.get("position", 0),
                         })
 
-                    # Infobox (Wikipedia-style knowledge panel)
-                    infobox = data.get("infobox", {})
-                    if infobox and infobox.get("results"):
-                        for info in infobox["results"][:1]:
-                            results.insert(0, {
-                                "title": info.get("title", "Knowledge Panel"),
-                                "snippet": info.get("long_desc") or info.get("description", ""),
-                                "url": info.get("url", ""),
-                                "type": "infobox",
+                    # People also ask
+                    for item in data.get("peopleAlsoAsk", [])[:2]:
+                        if item.get("snippet"):
+                            results.append({
+                                "title": item.get("question", ""),
+                                "snippet": item.get("snippet", ""),
+                                "url": item.get("link", ""),
+                                "type": "related",
                             })
 
-                    # News results if available
-                    for item in data.get("news", {}).get("results", [])[:3]:
-                        results.append({
-                            "title": f"📰 {item.get('title', '')}",
-                            "snippet": item.get("description", ""),
-                            "url": item.get("url", ""),
-                            "age": item.get("age", ""),
-                            "type": "news",
-                        })
-
-                    logger.info("[web-search] Brave returned %d results for '%s'", len(results), req.query[:60])
+                    logger.info("[web-search] Serper returned %d results for '%s'", len(results), req.query[:60])
                 else:
-                    logger.warning("[web-search] Brave API returned %d: %s", res.status_code, res.text[:200])
+                    logger.warning("[web-search] Serper API returned %d: %s", res.status_code, res.text[:200])
         except Exception as e:
-            logger.error("[web-search] Brave search failed: %s", e)
+            logger.error("[web-search] Serper search failed: %s", e)
 
     if not results:
         # Fallback: DuckDuckGo instant answers (no key needed)
