@@ -505,13 +505,40 @@ async def modify_file_async(req: ModifyFileRequest, authorization: str = Header(
                 raise ValueError("File not found")
 
             file_id = str(uuid.uuid4())[:8]
+            # Keep original name with "modified_" prefix
+            base_name = original_filename.rsplit('.', 1)[0] if '.' in original_filename else original_filename
+            ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'txt'
 
             if req.operation == "edit":
-                text_content = _extract_text(original_bytes, original_mime)
-                ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'txt'
                 is_spreadsheet = ext in ('xlsx', 'xls', 'csv')
+                is_pdf = ext == 'pdf'
 
-                if is_spreadsheet:
+                # PDF page-level operations (delete, remove, reorder pages)
+                if is_pdf and req.instructions and any(kw in req.instructions.lower() for kw in ['delete page', 'remove page', 'delete a page', 'remove a page', 'delete one page', 'remove one page', 'delete 1 page', 'remove 1 page']):
+                    try:
+                        import fitz  # PyMuPDF
+                        pdf_doc = fitz.open(stream=original_bytes, filetype="pdf")
+                        total_pages = len(pdf_doc)
+                        if total_pages <= 1:
+                            raise ValueError("Cannot delete — PDF only has 1 page")
+                        # Find which page to delete (default: last page)
+                        import re as _re
+                        page_match = _re.search(r'page\s*(\d+)', req.instructions.lower())
+                        if page_match:
+                            page_num = int(page_match.group(1)) - 1  # 0-indexed
+                        else:
+                            page_num = total_pages - 1  # default: last page
+                        page_num = max(0, min(page_num, total_pages - 1))
+                        pdf_doc.delete_page(page_num)
+                        buf = io.BytesIO()
+                        pdf_doc.save(buf)
+                        pdf_doc.close()
+                        file_bytes = buf.getvalue()
+                        filename = f"{base_name}_modified.pdf"
+                        mime = "application/pdf"
+                    except ImportError:
+                        raise ValueError("PDF manipulation not available")
+                elif is_spreadsheet:
                     # For spreadsheets: ask Claude to return JSON with formulas
                     system = """You are an Excel expert. The user has a spreadsheet and wants modifications.
 Return a JSON object with this structure:
@@ -523,15 +550,17 @@ IMPORTANT:
 - Use real Excel formulas (=SUM, =AVERAGE, =IF, =VLOOKUP, etc.) wherever appropriate
 - For totals rows, running balances, calculated columns — ALWAYS use formulas, never static values
 - Return ONLY valid JSON, no explanations."""
+                    text_content = _extract_text(original_bytes, original_mime)
                     prompt = f"Current spreadsheet data:\n{text_content}\n\nModifications: {req.instructions}"
                     modified_content = await _ask_claude(prompt, system)
-                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(modified_content, f"modified_{file_id}")
+                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(modified_content, f"{base_name}_modified")
                 else:
+                    text_content = _extract_text(original_bytes, original_mime)
                     system = """You are a document editor. The user has an existing document and wants modifications.
 Return ONLY the complete modified document content. Keep the same format and structure unless told otherwise."""
                     prompt = f"Original document content:\n\n{text_content}\n\nModifications requested: {req.instructions}\n\nReturn the complete modified document."
                     modified_content = await _ask_claude(prompt, system)
-                    file_bytes, filename, mime = _content_to_file(modified_content, ext, f"modified_{file_id}")
+                    file_bytes, filename, mime = _content_to_file(modified_content, ext, f"{base_name}_modified")
 
             elif req.operation == "chart":
                 text_content = _extract_text(original_bytes, original_mime)
@@ -604,13 +633,13 @@ Return ONLY the Python code, no explanations."""
                     import os as _os
                     _os.unlink(tmp_path)
 
-                filename = f"chart_{file_id}.png"
+                filename = f"{base_name}_chart.png"
                 mime = "image/png"
 
             elif req.operation == "convert":
                 target = req.target_format or "pdf"
                 text_content = _extract_text(original_bytes, original_mime)
-                file_bytes, filename, mime = _content_to_file(text_content, target, f"converted_{file_id}")
+                file_bytes, filename, mime = _content_to_file(text_content, target, f"{base_name}_converted")
 
             elif req.operation == "merge":
                 combined_text = ""
@@ -619,7 +648,7 @@ Return ONLY the Python code, no explanations."""
                     combined_text += f"\n\n--- {src['filename']} ---\n\n{text}"
                 # Determine output format from first file
                 ext = sources[0]["filename"].rsplit('.', 1)[-1] if '.' in sources[0]["filename"] else 'txt'
-                file_bytes, filename, mime = _content_to_file(combined_text, ext, f"merged_{file_id}")
+                file_bytes, filename, mime = _content_to_file(combined_text, ext, f"{base_name}_merged")
 
             elif req.operation == "filter":
                 text_content = _extract_text(original_bytes, original_mime)
@@ -628,7 +657,7 @@ Return ONLY the filtered data in the same format (CSV for CSV, JSON array for XL
                 prompt = f"Data:\n{text_content}\n\nFilter criteria: {req.instructions}"
                 filtered = await _ask_claude(prompt, system)
                 ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'csv'
-                file_bytes, filename, mime = _content_to_file(filtered, ext, f"filtered_{file_id}")
+                file_bytes, filename, mime = _content_to_file(filtered, ext, f"{base_name}_filtered")
 
             elif req.operation == "compare":
                 if not req.file_ids or len(req.file_ids) < 2:
@@ -653,7 +682,7 @@ Use markdown formatting with tables where appropriate. Be thorough but concise."
                     file_bytes = create_professional_pdf(comparison, title=f"Comparison Report")
                 except Exception:
                     file_bytes = comparison.encode('utf-8')
-                filename = f"comparison_{file_id}.pdf"
+                filename = f"{base_name}_comparison.pdf"
                 mime = "application/pdf"
 
             elif req.operation == "reconcile":
