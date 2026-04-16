@@ -164,6 +164,44 @@ async def ensure_agents_schema(db: AsyncSession) -> None:
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_ghost_saved_contacts "
             "ON ghost_saved_contacts (user_id, workspace_id, label)"
         ))
+        # Invoices captured by Bill Catcher (and future agents)
+        await db.execute(sql_text("""
+            CREATE TABLE IF NOT EXISTS ghost_invoices (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                user_id UUID NOT NULL,
+                workspace_id VARCHAR(100) NOT NULL DEFAULT 'personal',
+                agent_client_id VARCHAR(100),
+                vendor_name VARCHAR(300) NOT NULL,
+                invoice_number VARCHAR(120),
+                amount NUMERIC(15,2),
+                currency VARCHAR(10) NOT NULL DEFAULT 'USD',
+                due_date DATE,
+                status VARCHAR(30) NOT NULL DEFAULT 'pending',
+                items JSONB NOT NULL DEFAULT '[]'::jsonb,
+                source_email_from VARCHAR(300),
+                source_email_subject VARCHAR(500),
+                source_email_date TIMESTAMPTZ,
+                raw_extraction JSONB NOT NULL DEFAULT '{}'::jsonb,
+                notes TEXT,
+                approved_by UUID,
+                approved_at TIMESTAMPTZ,
+                paid_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """))
+        await db.execute(sql_text(
+            "CREATE INDEX IF NOT EXISTS ix_ghost_invoices_user_ws "
+            "ON ghost_invoices (user_id, workspace_id)"
+        ))
+        await db.execute(sql_text(
+            "CREATE INDEX IF NOT EXISTS ix_ghost_invoices_status "
+            "ON ghost_invoices (user_id, workspace_id, status)"
+        ))
+        await db.execute(sql_text(
+            "CREATE INDEX IF NOT EXISTS ix_ghost_invoices_due "
+            "ON ghost_invoices (user_id, workspace_id, due_date)"
+        ))
         await db.commit()
         _schema_checked = True
         logger.info("ghost_agents: tables ensured")

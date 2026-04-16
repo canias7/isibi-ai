@@ -689,7 +689,6 @@ async def poll_email_triggers_for_all_users(cap_messages_per_user: int = 10) -> 
                                         inv_adapter, inv_creds, matched_msg,
                                     )
                                     if invoice_data:
-                                        # Override the agent's generic response with structured invoice data
                                         vendor = invoice_data.get("vendor", "Unknown")
                                         amount = invoice_data.get("amount", "?")
                                         currency = invoice_data.get("currency", "USD")
@@ -697,6 +696,63 @@ async def poll_email_triggers_for_all_users(cap_messages_per_user: int = 10) -> 
                                         inv_num = invoice_data.get("invoice_number", "")
                                         status = invoice_data.get("status", "new")
                                         items = invoice_data.get("items_summary", "")
+
+                                        # Persist to ghost_invoices table
+                                        try:
+                                            import json as _json
+                                            amount_num = None
+                                            if amount and amount != "?":
+                                                try:
+                                                    amount_num = float(str(amount).replace(",", ""))
+                                                except (ValueError, TypeError):
+                                                    pass
+                                            due_date_val = None
+                                            if due and due not in ("Not specified", "null", "None", ""):
+                                                due_date_val = due
+                                            email_date_val = None
+                                            raw_date = matched_msg.get("date") or matched_msg.get("received_at")
+                                            if raw_date:
+                                                email_date_val = str(raw_date)
+
+                                            await db.execute(sql_text("""
+                                                INSERT INTO ghost_invoices
+                                                    (user_id, workspace_id, agent_client_id,
+                                                     vendor_name, invoice_number, amount, currency,
+                                                     due_date, status, items,
+                                                     source_email_from, source_email_subject,
+                                                     source_email_date, raw_extraction)
+                                                VALUES
+                                                    (:uid, :ws, :acid,
+                                                     :vendor, :inv_num, :amount, :currency,
+                                                     :due_date, :status, :items::jsonb,
+                                                     :email_from, :email_subject,
+                                                     :email_date, :raw::jsonb)
+                                            """), {
+                                                "uid": str(user_id),
+                                                "ws": ws,
+                                                "acid": agent["client_id"],
+                                                "vendor": vendor[:300],
+                                                "inv_num": (inv_num or None),
+                                                "amount": amount_num,
+                                                "currency": (currency or "USD")[:10],
+                                                "due_date": due_date_val,
+                                                "status": "pending",
+                                                "items": _json.dumps(
+                                                    invoice_data.get("items") if isinstance(invoice_data.get("items"), list)
+                                                    else [{"description": items}] if items else []
+                                                ),
+                                                "email_from": (matched_msg.get("from_name") or matched_msg.get("from") or "")[:300],
+                                                "email_subject": (matched_msg.get("subject") or "")[:500],
+                                                "email_date": email_date_val,
+                                                "raw": _json.dumps(invoice_data),
+                                            })
+                                            await db.commit()
+                                            logger.info(
+                                                f"agent_trigger_poller: invoice stored user={user_id} "
+                                                f"vendor={vendor} amount={amount}"
+                                            )
+                                        except Exception as store_err:
+                                            logger.warning(f"agent_trigger_poller: invoice store failed: {store_err}")
 
                                         sym = {"USD": "$", "EUR": "€", "GBP": "£"}.get(currency, "$")
                                         status_icon = {"urgent": "🔴", "overdue": "🔴", "new": "🟢"}.get(status, "🟡")
@@ -716,12 +772,7 @@ async def poll_email_triggers_for_all_users(cap_messages_per_user: int = 10) -> 
                                         body = "\n".join(body_parts)
 
                                         invoice_status = " [invoice extracted]"
-                                        logger.info(
-                                            f"agent_trigger_poller: invoice extracted user={user_id} "
-                                            f"vendor={vendor} amount={amount}"
-                                        )
                                     elif invoice_data is None:
-                                        # Not an actual invoice — skip notification entirely
                                         headline = "skip"
                                 else:
                                     invoice_status = " [no mail adapter for extraction]"
