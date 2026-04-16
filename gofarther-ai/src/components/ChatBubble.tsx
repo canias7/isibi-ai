@@ -206,8 +206,16 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
     </TouchableOpacity>
     {item.imageUrl && (
       <>
-        <Pressable onPress={() => setImageViewerOpen(true)} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1, marginLeft: isUser ? undefined : 0, marginBottom: 20 }]}>
-          <Image source={{ uri: item.imageUrl }} style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]} resizeMode="cover" />
+        <Text style={{ fontSize: 10, color: '#999', marginTop: 4, marginBottom: 2 }} selectable>
+          {item.imageUrl.substring(0, 80)}...
+        </Text>
+        <Pressable onPress={() => setImageViewerOpen(true)} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1, marginBottom: 20 }]}>
+          <Image
+            source={{ uri: item.imageUrl }}
+            style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]}
+            resizeMode="cover"
+            onError={(e) => Alert.alert('Image Load Error', e.nativeEvent.error || 'Unknown error')}
+          />
         </Pressable>
         <Modal visible={imageViewerOpen} transparent animationType="fade" onRequestClose={() => setImageViewerOpen(false)}>
           <View style={s.imgvOverlay}>
