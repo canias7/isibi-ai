@@ -337,6 +337,107 @@ async def _send_auto_reply(
         return False, str(e)[:200]
 
 
+# ── Invoice extraction action ─────────────────────────────────────────
+
+
+async def _extract_invoice_from_email(
+    adapter,
+    creds: dict,
+    email_msg: dict,
+) -> dict | None:
+    """Read the full email body + attachments and extract structured invoice data.
+    Returns a dict with vendor, amount, due_date, items, etc. or None on failure."""
+    try:
+        from anthropic import AsyncAnthropic
+        api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return None
+        client = AsyncAnthropic(api_key=api_key, timeout=60.0)
+
+        # Try to get full email body
+        full_body = ""
+        message_id = str(email_msg.get("id") or "")
+        if message_id and adapter:
+            try:
+                detail = await adapter("get_email", {"message_id": message_id}, creds)
+                if isinstance(detail, dict):
+                    full_body = detail.get("body_text") or detail.get("body") or detail.get("snippet") or ""
+            except Exception as e:
+                logger.warning(f"extract_invoice: get_email failed: {e}")
+
+        if not full_body:
+            full_body = email_msg.get("snippet") or email_msg.get("preview") or ""
+
+        # Try to get PDF attachment content
+        attachment_text = ""
+        try:
+            attachments = await adapter("list_attachments", {"message_id": message_id}, creds)
+            if isinstance(attachments, dict):
+                att_list = attachments.get("attachments", [])
+                for att in att_list[:3]:
+                    fname = (att.get("filename") or "").lower()
+                    if fname.endswith(".pdf"):
+                        try:
+                            att_data = await adapter("download_attachment", {
+                                "message_id": message_id,
+                                "attachment_id": att.get("id", ""),
+                            }, creds)
+                            if isinstance(att_data, dict) and att_data.get("data"):
+                                import base64, fitz
+                                pdf_bytes = base64.b64decode(att_data["data"])
+                                doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+                                for page in doc:
+                                    attachment_text += page.get_text() + "\n"
+                                doc.close()
+                                attachment_text = attachment_text[:10000]
+                                logger.info("extract_invoice: extracted %d chars from PDF attachment", len(attachment_text))
+                        except Exception as pdf_err:
+                            logger.warning(f"extract_invoice: PDF extraction failed: {pdf_err}")
+        except Exception as att_err:
+            logger.debug(f"extract_invoice: attachment listing not supported: {att_err}")
+
+        from_display = email_msg.get("from_name") or email_msg.get("from") or "unknown"
+        subject = email_msg.get("subject") or "(no subject)"
+
+        content = f"From: {from_display}\nSubject: {subject}\n\nEmail body:\n{full_body[:5000]}"
+        if attachment_text:
+            content += f"\n\nPDF attachment content:\n{attachment_text}"
+
+        msg = await client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1024,
+            system=(
+                "You extract invoice/bill data from emails. Return ONLY a JSON object with these fields:\n"
+                '{"vendor": "company name", "invoice_number": "INV-XXX or null", "amount": 123.45, '
+                '"currency": "USD", "due_date": "2024-03-15 or null", "status": "new/urgent/overdue", '
+                '"items_summary": "brief description of line items", "payment_link": "URL if found or null"}\n'
+                "If the email is NOT actually an invoice/bill (marketing, newsletter, etc.), return: "
+                '{"skip": true}\n'
+                "Return ONLY the JSON. No markdown, no explanation."
+            ),
+            messages=[{"role": "user", "content": content}],
+        )
+        text = "".join(b.text for b in msg.content if hasattr(b, "text")).strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+            if text.endswith("```"):
+                text = text[:-3]
+            text = text.strip()
+
+        import json
+        data = json.loads(text)
+        if data.get("skip"):
+            return None
+        data["_source_email_id"] = message_id
+        data["_from"] = from_display
+        data["_subject"] = subject
+        return data
+
+    except Exception as e:
+        logger.warning(f"extract_invoice: failed: {e}")
+        return None
+
+
 # ── Trigger matching helpers ───────────────────────────────────────────
 
 
@@ -578,11 +679,65 @@ async def poll_email_triggers_for_all_users(cap_messages_per_user: int = 10) -> 
                                             f"agent_trigger_poller: auto_reply failed user={user_id} "
                                             f"agent={agent['client_id']} detail={detail}"
                                         )
-                            if reply_status:
-                                # Append the reply outcome to the notification
-                                # body so the user can see it on the lock screen.
-                                combined = (body or "") + reply_status
-                                body = combined[:180]
+                            # Invoice extraction action — Bill Catcher and similar agents
+                            invoice_status = ""
+                            if "extract_invoice" in trigger_actions:
+                                adapter_creds = adapter_by_workspace.get(ws)
+                                if adapter_creds:
+                                    inv_adapter, inv_creds = adapter_creds
+                                    invoice_data = await _extract_invoice_from_email(
+                                        inv_adapter, inv_creds, matched_msg,
+                                    )
+                                    if invoice_data:
+                                        # Override the agent's generic response with structured invoice data
+                                        vendor = invoice_data.get("vendor", "Unknown")
+                                        amount = invoice_data.get("amount", "?")
+                                        currency = invoice_data.get("currency", "USD")
+                                        due = invoice_data.get("due_date", "Not specified")
+                                        inv_num = invoice_data.get("invoice_number", "")
+                                        status = invoice_data.get("status", "new")
+                                        items = invoice_data.get("items_summary", "")
+
+                                        sym = {"USD": "$", "EUR": "€", "GBP": "£"}.get(currency, "$")
+                                        status_icon = {"urgent": "🔴", "overdue": "🔴", "new": "🟢"}.get(status, "🟡")
+
+                                        headline = f"{vendor} — {sym}{amount}"
+                                        body_parts = [
+                                            f"{status_icon} Invoice from {vendor}",
+                                            f"• Amount: {sym}{amount}",
+                                        ]
+                                        if inv_num:
+                                            body_parts.append(f"• Invoice #: {inv_num}")
+                                        body_parts.append(f"• Due: {due}")
+                                        if status in ("urgent", "overdue"):
+                                            body_parts.append(f"• ⚠️ {status.upper()}")
+                                        if items:
+                                            body_parts.append(f"• Items: {items[:80]}")
+                                        body = "\n".join(body_parts)
+
+                                        invoice_status = " [invoice extracted]"
+                                        logger.info(
+                                            f"agent_trigger_poller: invoice extracted user={user_id} "
+                                            f"vendor={vendor} amount={amount}"
+                                        )
+                                    elif invoice_data is None:
+                                        # Not an actual invoice — skip notification entirely
+                                        headline = "skip"
+                                else:
+                                    invoice_status = " [no mail adapter for extraction]"
+
+                            if reply_status or invoice_status:
+                                combined = (body or "") + reply_status + invoice_status
+                                body = combined[:200]
+
+                            # Skip notification if agent said to skip (not a real invoice)
+                            if headline.strip().lower() == "skip":
+                                logger.info(
+                                    f"agent_trigger_poller: skipping non-invoice email user={user_id} "
+                                    f"agent={agent['client_id']}"
+                                )
+                                continue
+
                             push_result = await send_push_to_user(
                                 user_id,
                                 db,

@@ -425,6 +425,52 @@ def _row_to_dict(row: GhostAgent) -> dict:
 # ── Endpoints ──────────────────────────────────────────────────────────
 
 
+@router.get("/prebuilt")
+async def list_prebuilt_agents_endpoint(authorization: str = Header(...)):
+    """List all available pre-built agent templates."""
+    _verify_auth(authorization)
+    from lib.prebuilt_agents import list_prebuilt_agents
+    return {"agents": list_prebuilt_agents()}
+
+
+@router.post("/prebuilt/{template_id}/activate")
+async def activate_prebuilt_agent(
+    template_id: str,
+    authorization: str = Header(...),
+    x_workspace_id: Optional[str] = Header(default=None, alias="X-Workspace-Id"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Activate a pre-built agent for the user."""
+    from lib.prebuilt_agents import get_prebuilt_agent
+    payload = _verify_auth(authorization)
+    user_id = payload.get("sub")
+    workspace_id = _normalize_workspace(x_workspace_id)
+    await ensure_agents_schema(db)
+
+    template = get_prebuilt_agent(template_id)
+    if not template:
+        raise HTTPException(404, f"Unknown template: {template_id}")
+
+    client_id = f"prebuilt_{template_id}_{str(uuid.uuid4())[:6]}"
+
+    agent = GhostAgent(
+        id=uuid.uuid4(),
+        user_id=user_id,
+        workspace_id=workspace_id,
+        client_id=client_id,
+        name=template["name"],
+        role=template["role"],
+        instructions=template["instructions"],
+        triggers=template["triggers"],
+        enabled=True,
+    )
+    db.add(agent)
+    await db.commit()
+    await db.refresh(agent)
+    logger.info("Activated prebuilt agent '%s' for user=%s", template_id, user_id)
+    return {"status": "ok", "agent": _row_to_dict(agent)}
+
+
 @router.get("")
 async def list_agents(
     authorization: str = Header(...),
