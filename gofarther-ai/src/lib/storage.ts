@@ -564,21 +564,51 @@ export async function saveSelectedVoice(voiceId: string) {
   await save('selected_voice', voiceId);
 }
 
-// Memory — AI remembers facts across chats
+// Memory — AI remembers facts across chats, organized by category
+export type MemoryCategory = 'facts' | 'preferences' | 'templates' | 'instructions';
+
 export interface MemoryFact {
   id: string;
   fact: string;
+  category: MemoryCategory;
+  version?: number;       // for templates: v1, v2, etc.
   createdAt: number;
 }
 
 export async function getMemory(): Promise<MemoryFact[]> {
-  return load('ai_memory', []);
+  const mem: MemoryFact[] = await load('ai_memory', []);
+  // Migrate old entries that have no category
+  return mem.map(m => ({ ...m, category: m.category || 'facts' }));
 }
 
-export async function addMemoryFact(fact: string) {
+export async function getMemoryByCategory(category: MemoryCategory): Promise<MemoryFact[]> {
   const mem = await getMemory();
-  mem.push({ id: Date.now().toString(), fact, createdAt: Date.now() });
-  await save('ai_memory', mem.slice(-100)); // Keep last 100 facts
+  return mem.filter(m => m.category === category);
+}
+
+export async function addMemoryFact(fact: string, category: MemoryCategory = 'facts') {
+  const mem = await getMemory();
+  // For templates: auto-version if same name exists
+  let version: number | undefined;
+  if (category === 'templates') {
+    const templateName = fact.split(':')[0]?.trim().toLowerCase() || '';
+    const existing = mem.filter(m => m.category === 'templates' && m.fact.toLowerCase().startsWith(templateName));
+    version = existing.length + 1;
+  }
+  mem.push({ id: Date.now().toString(), fact, category, version, createdAt: Date.now() });
+  await save('ai_memory', mem.slice(-200)); // Keep last 200 memories
+}
+
+export async function deleteMemoryFact(id: string) {
+  const mem = await getMemory();
+  const filtered = mem.filter(m => m.id !== id);
+  await save('ai_memory', filtered);
+}
+
+export async function deleteMemoryByCategory(category: MemoryCategory) {
+  const mem = await getMemory();
+  const filtered = mem.filter(m => m.category !== category);
+  await save('ai_memory', filtered);
 }
 
 export async function clearMemory() {
