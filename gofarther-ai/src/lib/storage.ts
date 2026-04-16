@@ -615,13 +615,15 @@ export async function clearMemory() {
   await save('ai_memory', []);
 }
 
-// File Registry — maps filenames to file_ids for multi-file operations
-export async function getFileRegistry(): Promise<Record<string, string>> {
-  return load('file_registry', {});
+// File Registry — maps filenames to file_ids for multi-file operations (scoped per session)
+export async function getFileRegistry(sessionId?: string): Promise<Record<string, string>> {
+  const key = sessionId ? `file_registry_${sessionId}` : 'file_registry';
+  return load(key, {});
 }
 
-export async function saveFileRegistry(registry: Record<string, string>) {
-  await save('file_registry', registry);
+export async function saveFileRegistry(registry: Record<string, string>, sessionId?: string) {
+  const key = sessionId ? `file_registry_${sessionId}` : 'file_registry';
+  await save(key, registry);
 }
 
 // Custom instructions — global system prompt

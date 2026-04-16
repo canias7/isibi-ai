@@ -54,10 +54,10 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
     if (base !== filename.toLowerCase()) {
       fileRegistryRef.current.set(base, fileId);
     }
-    // Persist to AsyncStorage (best-effort, don't await)
+    // Persist to AsyncStorage scoped by session (best-effort, don't await)
     const obj: Record<string, string> = {};
     fileRegistryRef.current.forEach((v, k) => { obj[k] = v; });
-    saveFileRegistry(obj).catch(() => {});
+    saveFileRegistry(obj, currentSessionId.current || undefined).catch(() => {});
   };
 
   /** Resolve a filename (or partial name) to a file_id */
@@ -101,8 +101,8 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
     currentSessionId.current = sessionId;
     fileRegistryRef.current.clear();
     if (sessionId) {
-      // Restore persisted file registry first
-      getFileRegistry().then(stored => {
+      // Restore persisted file registry scoped to this session
+      getFileRegistry(sessionId).then(stored => {
         for (const [k, v] of Object.entries(stored)) {
           fileRegistryRef.current.set(k, v);
         }
@@ -581,7 +581,10 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
 
         const chainOps = finalAction.chain_ops;
         const targetFormat = operation === 'convert' || operation === 'batch' ? (finalAction.key || undefined) : undefined;
-        modifyFile(operation, finalAction.text || '', resolvedFileId, targetFormat, resolvedFileIds, chainOps).then(async (result) => {
+        const progressCallback = (progress: string) => {
+          updateAndPersist(aiMsgIdStream, { content: `${finalText || loadingLabel}\n\n_${progress}_` });
+        };
+        modifyFile(operation, finalAction.text || '', resolvedFileId, targetFormat, resolvedFileIds, chainOps, progressCallback).then(async (result) => {
           if (cancelRef.current) { setIsCreating(false); return; }
           // Read operations return text instead of a file
           if (isReadOp && result.result_text) {
