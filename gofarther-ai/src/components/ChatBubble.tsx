@@ -179,7 +179,10 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
           )}
           {item.imageUrl ? (
             <View>
-              <Image source={{ uri: item.imageUrl }} style={{ width: 240, height: 240, borderRadius: 16, marginTop: 8 }} resizeMode="cover" />
+              <Text style={{ fontSize: 11, color: 'blue', padding: 4, backgroundColor: 'yellow' }} selectable numberOfLines={3}>
+                DEBUG URL: {item.imageUrl}
+              </Text>
+              <Image source={{ uri: item.imageUrl }} style={{ width: 240, height: 240, borderRadius: 16, marginTop: 8, backgroundColor: '#eee' }} resizeMode="cover" onError={(e) => Alert.alert('Image Error', e.nativeEvent.error || 'Failed to load')} onLoad={() => console.log('Image loaded:', item.imageUrl)} />
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                 <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
                   try {
