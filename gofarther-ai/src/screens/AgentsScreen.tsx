@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { genId } from '../lib/types';
 import { useChat } from '../lib/useChat';
 import { getAgents, saveAgents, deleteAgent as deleteAgentBoth, Agent, AgentTrigger, getSavedContacts, saveSavedContacts, save as rawSave } from '../lib/storage';
-import { upsertServerAgent } from '../lib/api';
+import { upsertServerAgent, listPrebuiltAgents, activatePrebuiltAgent, PrebuiltAgent } from '../lib/api';
 import { buildUserContextPrompt } from '../lib/promptContext';
 import { onWorkspaceChange } from '../lib/workspaces';
 
@@ -38,6 +38,9 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
   const [role, setRole] = useState('');
   const [instructions, setInstructions] = useState('');
   const [triggers, setTriggers] = useState<AgentTrigger[]>([]);
+
+  const [templates, setTemplates] = useState<PrebuiltAgent[]>([]);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
 
   const [input, setInput] = useState('');
   const flatList = useRef<FlatList>(null);
@@ -83,6 +86,52 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
     }
   }, []);
   useEffect(() => { load(); }, []);
+
+  // Fetch pre-built agent templates once on mount — they're server-defined
+  // and show up as a "Templates" section at the top of the agent dropdown.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const tpls = await listPrebuiltAgents();
+        if (!cancelled) setTemplates(tpls);
+      } catch {
+        // Non-fatal — user just won't see the Templates section
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Activate a pre-built template: backend clones it into a GhostAgent row
+  // with a fresh client_id + the template's triggers. We mirror the same
+  // agent into local storage so it shows up immediately without waiting
+  // for a full resync.
+  const activateTemplate = async (tpl: PrebuiltAgent) => {
+    if (activatingId) return;
+    setActivatingId(tpl.id);
+    try {
+      const serverAgent = await activatePrebuiltAgent(tpl.id);
+      const local: Agent = {
+        id: serverAgent.client_id,
+        name: serverAgent.name,
+        emoji: '',
+        role: serverAgent.role || tpl.role,
+        instructions: serverAgent.instructions || '',
+        isActive: true,
+        color: tpl.color || DEFAULT_AGENT_COLOR,
+        triggers: (serverAgent.triggers || []) as AgentTrigger[],
+      };
+      const next = agents.some(a => a.id === local.id) ? agents : [...agents, local];
+      setAgents(next);
+      setSelectedAgent(local);
+      setShowDropdown(false);
+      try { await saveAgents(next); } catch {}
+    } catch (e: any) {
+      Alert.alert('Could not activate', e?.message || 'Please try again.');
+    } finally {
+      setActivatingId(null);
+    }
+  };
   // Re-fetch agents whenever the active workspace changes so the list
   // reflects the new workspace's agents, not the one we were viewing
   // when the user switched.
@@ -295,22 +344,55 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
 
         {/* Dropdown */}
         {showDropdown && (
-          <View style={[s.dropdown, { backgroundColor: tc.bg, borderColor: tc.border }]}>
+          <ScrollView style={[s.dropdown, { backgroundColor: tc.bg, borderColor: tc.border, maxHeight: 460 }]} keyboardShouldPersistTaps="handled">
+            {/* Templates section — tap to activate a pre-built agent */}
+            {templates.length > 0 && (() => {
+              const activeNames = new Set(agents.map(a => a.name.toLowerCase()));
+              const available = templates.filter(t => !activeNames.has(t.name.toLowerCase()));
+              if (available.length === 0) return null;
+              return (
+                <View>
+                  <Text style={[s.dropSectionLabel, { color: tc.textDim }]}>TEMPLATES</Text>
+                  {available.map(t => (
+                    <TouchableOpacity key={t.id} style={s.dropItem} onPress={() => activateTemplate(t)} activeOpacity={0.6} disabled={activatingId !== null}>
+                      <View style={[s.templateIcon, { backgroundColor: t.color + '22' }]}>
+                        <Ionicons name={t.icon as any} size={18} color={t.color} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.dropItemName, { color: tc.text }]}>{t.name}</Text>
+                        <Text style={[s.dropItemRole, { color: tc.textDim }]} numberOfLines={1}>{t.description || t.role}</Text>
+                      </View>
+                      {activatingId === t.id ? (
+                        <ActivityIndicator size="small" color={tc.textDim} />
+                      ) : (
+                        <Text style={[s.templateAdd, { color: tc.textDim }]}>＋</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                  <View style={[s.dropDivider, { backgroundColor: tc.border }]} />
+                </View>
+              );
+            })()}
+
+            {/* User's own agents */}
             {agents.length === 0 ? (
               <View style={s.dropEmpty}>
-                <Text style={s.dropEmptyText}>No agents — tap + to create one</Text>
+                <Text style={s.dropEmptyText}>No agents — tap + to create one, or pick a template above</Text>
               </View>
             ) : (
-              agents.map(a => (
-                <TouchableOpacity key={a.id} style={[s.dropItem, selectedAgent?.id === a.id && s.dropItemActive]} onPress={() => { setSelectedAgent(a); setShowDropdown(false); }} activeOpacity={0.6}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[s.dropItemName, { color: tc.text }]}>{a.name}</Text>
-                    <Text style={[s.dropItemRole, { color: tc.textDim }]}>{a.role || 'No role'}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))
+              <View>
+                <Text style={[s.dropSectionLabel, { color: tc.textDim }]}>YOUR AGENTS</Text>
+                {agents.map(a => (
+                  <TouchableOpacity key={a.id} style={[s.dropItem, selectedAgent?.id === a.id && s.dropItemActive]} onPress={() => { setSelectedAgent(a); setShowDropdown(false); }} activeOpacity={0.6}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.dropItemName, { color: tc.text }]}>{a.name}</Text>
+                      <Text style={[s.dropItemRole, { color: tc.textDim }]}>{a.role || 'No role'}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
             )}
-          </View>
+          </ScrollView>
         )}
 
         {/* Chat area */}
@@ -406,6 +488,10 @@ const s = StyleSheet.create({
   dropItemName: { fontSize: 15, fontWeight: '600', color: '#1a1a1a' },
   dropItemRole: { fontSize: 12, color: '#999' },
   dropEmpty: { padding: 20, alignItems: 'center' },
+  dropSectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 6 },
+  dropDivider: { height: StyleSheet.hairlineWidth, marginVertical: 4, marginHorizontal: 12 },
+  templateIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  templateAdd: { fontSize: 22, fontWeight: '300', paddingHorizontal: 4 },
   dropEmptyText: { fontSize: 13, color: '#999' },
 
   // Empty
