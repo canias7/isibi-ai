@@ -326,9 +326,21 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
       if (finalAction?.type === 'generate_image') {
         updateAndPersist(aiMsgIdStream, { content: 'Generating image...' });
         setLoading(false);
-        trackAsync(generateImage(finalAction.target || '', finalAction.key || '1024x1024')).then(imageUrl => {
-          updateAndPersist(aiMsgIdStream, { content: 'Here\'s your image:', imageUrl: imageUrl || undefined });
-          if (imageUrl) notify('Image Ready', 'Your AI-generated image is ready', 1);
+        trackAsync(generateImage(finalAction.target || '', finalAction.key || '1024x1024')).then(async (remoteUrl) => {
+          if (!remoteUrl) {
+            updateAndPersist(aiMsgIdStream, { content: 'Image generation returned empty URL.' });
+            return;
+          }
+          // Download to local file first — React Native Image loads local files more reliably
+          try {
+            const localPath = FileSystem.cacheDirectory + `gen_${Date.now()}.png`;
+            const dl = await FileSystem.downloadAsync(remoteUrl, localPath);
+            updateAndPersist(aiMsgIdStream, { content: 'Here\'s your image:', imageUrl: dl.uri });
+          } catch {
+            // Fallback to remote URL if download fails
+            updateAndPersist(aiMsgIdStream, { content: 'Here\'s your image:', imageUrl: remoteUrl });
+          }
+          notify('Image Ready', 'Your AI-generated image is ready', 1);
         }).catch((e: any) => {
           updateAndPersist(aiMsgIdStream, { content: 'Image generation failed: ' + e.message });
         });
