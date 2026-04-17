@@ -177,35 +177,37 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               )}
             </View>
           )}
-          {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={{ width: 260, height: 260, borderRadius: 16, marginTop: 8, borderWidth: 2, borderColor: 'red' }} resizeMode="cover" />}
-          {item.imageUrl && (
-            <View style={s.fileBtns}>
-              <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
-                try {
-                  const { status } = await MediaLibrary.requestPermissionsAsync();
-                  if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to save.'); return; }
-                  const uri = FileSystem.cacheDirectory + `img_${Date.now()}.png`;
-                  await FileSystem.downloadAsync(item.imageUrl!, uri);
-                  await MediaLibrary.saveToLibraryAsync(uri);
-                  successHaptic();
-                  Alert.alert('Saved', 'Image saved to your photo library.');
-                } catch (e: any) { Alert.alert('Error', e.message || 'Could not save'); }
-              }}>
-                <Ionicons name="download-outline" size={18} color={colors.text} />
-                <Text style={[s.fileBtnText, { color: colors.text }]}>Save</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
-                try {
-                  const uri = FileSystem.cacheDirectory + `share_${Date.now()}.png`;
-                  await FileSystem.downloadAsync(item.imageUrl!, uri);
-                  if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
-                } catch (e: any) { Alert.alert('Error', e.message || 'Could not share'); }
-              }}>
-                <Ionicons name="share-outline" size={18} color={colors.text} />
-                <Text style={[s.fileBtnText, { color: colors.text }]}>Share</Text>
-              </TouchableOpacity>
+          {item.imageUrl ? (
+            <View>
+              <Image source={{ uri: item.imageUrl }} style={{ width: 240, height: 240, borderRadius: 16, marginTop: 8 }} resizeMode="cover" />
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
+                  try {
+                    const { status } = await MediaLibrary.requestPermissionsAsync();
+                    if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to save.'); return; }
+                    const uri = FileSystem.cacheDirectory + `img_${Date.now()}.png`;
+                    await FileSystem.downloadAsync(item.imageUrl!, uri);
+                    await MediaLibrary.saveToLibraryAsync(uri);
+                    successHaptic();
+                    Alert.alert('Saved', 'Image saved to your photo library.');
+                  } catch (e: any) { Alert.alert('Error', e.message || 'Could not save'); }
+                }}>
+                  <Ionicons name="download-outline" size={18} color={colors.text} />
+                  <Text style={[s.fileBtnText, { color: colors.text }]}>Save</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
+                  try {
+                    const uri = FileSystem.cacheDirectory + `share_${Date.now()}.png`;
+                    await FileSystem.downloadAsync(item.imageUrl!, uri);
+                    if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
+                  } catch (e: any) { Alert.alert('Error', e.message || 'Could not share'); }
+                }}>
+                  <Ionicons name="share-outline" size={18} color={colors.text} />
+                  <Text style={[s.fileBtnText, { color: colors.text }]}>Share</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
+          ) : null}
           {renderAction()}
           {item.stats && (
             <Text style={[s.statsText, { color: colors.textDim }]}>
