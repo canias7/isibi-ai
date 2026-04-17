@@ -177,7 +177,7 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               )}
             </View>
           )}
-          {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={s.chatImage} resizeMode="cover" />}
+          {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={{ width: 260, height: 260, borderRadius: 16, marginTop: 8, borderWidth: 2, borderColor: 'red' }} resizeMode="cover" />}
           {item.imageUrl && (
             <View style={s.fileBtns}>
               <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
