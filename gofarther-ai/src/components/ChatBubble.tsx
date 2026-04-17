@@ -179,8 +179,44 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
           )}
           {item.imageUrl ? (
             <View>
-              <Image source={{ uri: item.imageUrl }} style={{ width: 240, height: 240, borderRadius: 16, marginTop: 8 }} resizeMode="cover" />
-              <Text style={{ fontSize: 9, color: '#aaa', marginTop: 4 }} selectable>{item.imageUrl.substring(0, 90)}</Text>
+              <Pressable onPress={() => setImageViewerOpen(true)} style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
+                <Image source={{ uri: item.imageUrl }} style={s.chatImage} resizeMode="cover" />
+              </Pressable>
+              <Modal visible={imageViewerOpen} transparent animationType="fade" onRequestClose={() => setImageViewerOpen(false)}>
+                <View style={s.imgvOverlay}>
+                  <View style={s.imgvTopBar}>
+                    <TouchableOpacity style={s.imgvTopBtn} onPress={() => setImageViewerOpen(false)}>
+                      <Ionicons name="close" size={22} color="#fff" />
+                    </TouchableOpacity>
+                    <View style={{ flex: 1 }} />
+                    <TouchableOpacity style={s.imgvPillBtn} onPress={async () => {
+                      try {
+                        const { status } = await MediaLibrary.requestPermissionsAsync();
+                        if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to save.'); return; }
+                        const fileUri = FileSystem.cacheDirectory + `image_${Date.now()}.png`;
+                        await FileSystem.downloadAsync(item.imageUrl!, fileUri);
+                        await MediaLibrary.saveToLibraryAsync(fileUri);
+                        successHaptic();
+                        Alert.alert('Saved', 'Image saved to your photo library.');
+                      } catch (e: any) { Alert.alert('Error', e.message || 'Could not save'); }
+                    }}>
+                      <Text style={s.imgvPillText}>Save</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[s.imgvPillBtn, s.imgvPillWhite]} onPress={async () => {
+                      try {
+                        const fileUri = FileSystem.cacheDirectory + `share_${Date.now()}.png`;
+                        await FileSystem.downloadAsync(item.imageUrl!, fileUri);
+                        if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(fileUri);
+                      } catch (e: any) { Alert.alert('Error', e.message || 'Could not share'); }
+                    }}>
+                      <Text style={[s.imgvPillText, { color: '#000' }]}>Share</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={s.imgvCenter}>
+                    <Image source={{ uri: item.imageUrl }} style={s.imgvImage} resizeMode="contain" />
+                  </View>
+                </View>
+              </Modal>
             </View>
           ) : null}
           {renderAction()}

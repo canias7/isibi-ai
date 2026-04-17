@@ -212,9 +212,6 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
       const { cleanText, action } = streamedAction ? { cleanText: responseText, action: streamedAction } : parseAction(responseText);
       let finalAction = action;
       let finalText = cleanText;
-      // Temporary debug — remove after testing
-      const _dbg = `\n\n[dbg] action: ${finalAction?.type || 'NONE'} | target: ${(finalAction?.target || '-').substring(0, 50)}`;
-      updateAndPersist(aiMsgIdStream, { content: (finalText || '') + _dbg });
 
       // Store stats on all AI responses
       const msgStats = { tokens, durationMs };
@@ -326,11 +323,10 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         updateAndPersist(aiMsgIdStream, { content: 'Generating image...' });
         setLoading(false);
         trackAsync(generateImage(finalAction.target || '')).then(imageUrl => {
-          const dbgUrl = imageUrl ? imageUrl.substring(0, 100) : 'EMPTY';
-          updateAndPersist(aiMsgIdStream, { content: `Here's your image:\n\n[dbg url: ${dbgUrl}]`, imageUrl: imageUrl || undefined });
+          updateAndPersist(aiMsgIdStream, { content: 'Here\'s your image:', imageUrl: imageUrl || undefined });
           if (imageUrl) notify('Image Ready', 'Your AI-generated image is ready', 1);
         }).catch((e: any) => {
-          updateAndPersist(aiMsgIdStream, { content: `Image generation failed:\n${e.message}` });
+          updateAndPersist(aiMsgIdStream, { content: 'Image generation failed: ' + e.message });
         });
         return;
       }
