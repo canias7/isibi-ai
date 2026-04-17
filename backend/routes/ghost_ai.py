@@ -403,11 +403,12 @@ async def image_proxy(req: ImageRequest, authorization: str = Header(...)):
             img_bytes = dl.content
 
         # Store in ghost_tools FILE_STORE (in-memory + R2 when available).
-        # Always return an HTTP URL — never a data URL.
+        # Always return an ABSOLUTE URL — old client bundles can't resolve
+        # relative URLs, so give them a fully-qualified one they can load directly.
         from routes.ghost_tools import _store_file
         await _store_file(file_id, f"generated_{file_id}.png", "image/png", img_bytes)
         logger.info(f"[image_proxy] stored image {file_id} ({len(img_bytes)} bytes)")
-        return {"url": f"/api/ghost/ai/images/{file_id}"}
+        return {"url": f"https://isibi-backend.onrender.com/api/ghost/ai/images/{file_id}"}
 
 
 @router.get("/images/{file_id}")
