@@ -91,6 +91,7 @@
         }
       ],
       "expo-audio",
+      "./plugins/withAdiRegistration",
       [
         "@sentry/react-native",
         {
