@@ -110,7 +110,7 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
   const isUser = item.role === 'user';
 
   return (<>
-    <TouchableOpacity activeOpacity={0.8} onLongPress={onLongPress} delayLongPress={400} accessibilityLabel={`${isUser ? 'You' : aiName}: ${item.content.slice(0, 50)}`} accessibilityRole="text">
+    <TouchableOpacity activeOpacity={0.8} onLongPress={onLongPress} delayLongPress={400} onPress={item.imageUrl ? () => setImageViewerOpen(true) : undefined} accessibilityLabel={`${isUser ? 'You' : aiName}: ${item.content.slice(0, 50)}`} accessibilityRole="text">
       <View style={[s.msgRow, isUser && s.msgRowUser]}>
         <View style={isUser ? { maxWidth: '82%' } : { flex: 1 }}>
           {item.role === 'assistant' ? (
@@ -177,11 +177,7 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               )}
             </View>
           )}
-          {item.imageUrl && (
-            <TouchableOpacity activeOpacity={0.9} onPress={() => setImageViewerOpen(true)}>
-              <Image source={{ uri: item.imageUrl }} style={s.chatImage} resizeMode="cover" />
-            </TouchableOpacity>
-          )}
+          {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={s.chatImage} resizeMode="cover" />}
           {renderAction()}
           {item.stats && (
             <Text style={[s.statsText, { color: colors.textDim }]}>
