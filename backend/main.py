@@ -386,6 +386,28 @@ class CustomDomainMiddleware:
 app.add_middleware(CustomDomainMiddleware)
 
 
+class LegacyGhostPathRewriteMiddleware:
+    """Older client bundles in the wild sometimes emit doubled-up paths like
+    /api/ghost/ghost/push/register-device because an old PUSH constant had a
+    leading /ghost already. Collapse it so those requests don't 404 while
+    users are still on the stale bundle. Safe to remove once everyone is on
+    a build with the fixed client."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            path = scope.get("path", "")
+            if path.startswith("/api/ghost/ghost/"):
+                new_path = "/api/ghost/" + path[len("/api/ghost/ghost/"):]
+                scope = {**scope, "path": new_path, "raw_path": new_path.encode()}
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(LegacyGhostPathRewriteMiddleware)
+
+
 # ── Register all routers via the registry ──
 register_all_routers(app)
 
