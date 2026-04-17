@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Alert, AppState } from 'react-native';
 import { ChatMsg, genId, parseAction, actionLabel } from './types';
-import { chatStream, Message, generateImage, analyzeImage, createFile, modifyFile, webSearch, readURL, runCode, translateText, youtubeSearch, deepResearch, generateQR, cryptoPortfolio, createInvoice, createCalendarEvent, socialPost, compareURLs, createMeme, barcodeLookup, runConnectorAction, runConnectorPlan, processCallRecording } from './ai';
+import { chatStream, Message, generateImage, editImage, analyzeImage, createFile, modifyFile, webSearch, readURL, runCode, translateText, youtubeSearch, deepResearch, generateQR, cryptoPortfolio, createInvoice, createCalendarEvent, socialPost, compareURLs, createMeme, barcodeLookup, runConnectorAction, runConnectorPlan, processCallRecording } from './ai';
 import { getToken } from './api';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -91,7 +91,11 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
 
     const userMsg: ChatMsg = {
       id: genId(), role: 'user', content: text, timestamp: Date.now(),
-      ...(fileAttachment ? { fileUrl: fileAttachment.uri || fileAttachment.name, fileMimeType: fileAttachment.mimeType } : {}),
+      ...(fileAttachment ? {
+        fileUrl: fileAttachment.uri || fileAttachment.name,
+        fileMimeType: fileAttachment.mimeType,
+        ...(fileAttachment.mimeType.startsWith('image/') ? { imageBase64: fileAttachment.base64 } : {}),
+      } : {}),
     };
     setMessages(prev => [...prev, userMsg]);
     messagesRef.current = [...messagesRef.current, userMsg];
@@ -327,6 +331,25 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           if (imageUrl) notify('Image Ready', 'Your AI-generated image is ready', 1);
         }).catch((e: any) => {
           updateAndPersist(aiMsgIdStream, { content: 'Image generation failed: ' + e.message });
+        });
+        return;
+      }
+
+      // Handle image editing — find the last image the user sent and edit it
+      if (finalAction?.type === 'edit_image') {
+        updateAndPersist(aiMsgIdStream, { content: 'Editing image...' });
+        setLoading(false);
+        // Find the most recent user message with an image (base64 attachment)
+        const lastImageMsg = [...messages].reverse().find(m => m.role === 'user' && m.imageBase64);
+        if (!lastImageMsg?.imageBase64) {
+          updateAndPersist(aiMsgIdStream, { content: 'No image found to edit. Please send a photo first, then tell me what to change.' });
+          return;
+        }
+        trackAsync(editImage(lastImageMsg.imageBase64, finalAction.target || '')).then(imageUrl => {
+          updateAndPersist(aiMsgIdStream, { content: 'Here\'s your edited image:', imageUrl: imageUrl || undefined });
+          if (imageUrl) notify('Image Edited', 'Your edited image is ready', 1);
+        }).catch((e: any) => {
+          updateAndPersist(aiMsgIdStream, { content: 'Image editing failed: ' + e.message });
         });
         return;
       }
