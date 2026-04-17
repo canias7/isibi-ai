@@ -94,14 +94,14 @@ function ChatImage({ uri }: { uri: string }) {
 
   return (
     <>
-      <Pressable onPress={() => setOpen(true)} hitSlop={0}>
+      <TouchableOpacity onPress={() => setOpen(true)} activeOpacity={0.85} accessibilityLabel="Open image" accessibilityRole="imagebutton">
         <Image
           source={{ uri }}
           style={{ width: 240, height: 240, borderRadius: 16, marginTop: 8, backgroundColor: '#eee' }}
           resizeMode="cover"
           onError={(e) => Alert.alert('Image Error', e.nativeEvent?.error || 'Failed to load')}
         />
-      </Pressable>
+      </TouchableOpacity>
       <Modal visible={open} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setOpen(false)}>
         <View style={s.viewerRoot}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setOpen(false)} />
