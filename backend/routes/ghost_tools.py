@@ -49,6 +49,28 @@ FILE_STORE: dict[str, dict] = {}
 _FILE_STORE_MAX = 500  # max files in memory
 
 
+def _smart_filename(description: str, operation: str, ext: str, original_name: str = "") -> str:
+    """Generate a clean filename: description_YYYY-MM-DD.ext or original_action_YYYY-MM-DD.ext"""
+    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    if original_name and operation:
+        # Modified file: originalname_action_date.ext
+        base = original_name.rsplit('.', 1)[0] if '.' in original_name else original_name
+        # Clean the base name
+        base = re.sub(r'[^a-zA-Z0-9_\- ]', '', base).strip().replace(' ', '_')[:50]
+        if not base:
+            base = "file"
+        return f"{base}_{operation}_{date_str}.{ext}"
+    elif description:
+        # New file: description_date.ext
+        slug = re.sub(r'[^a-zA-Z0-9 ]', '', description).strip().lower()
+        slug = re.sub(r'\s+', '_', slug)[:50]
+        if not slug:
+            slug = "file"
+        return f"{slug}_{date_str}.{ext}"
+    else:
+        return f"file_{date_str}.{ext}"
+
+
 async def _store_file(file_id: str, filename: str, mime: str, file_bytes: bytes, owner_email: str = ""):
     """Store file in memory cache AND upload to R2 for persistence."""
     # Evict oldest files if cache is full
@@ -90,11 +112,13 @@ def _verify_auth(authorization: str):
     return verify_ghost_token(token)
 
 
-async def _ask_claude(prompt: str, system: str = "You are a helpful assistant.") -> str:
+async def _ask_claude(prompt: str, system: str = "You are a helpful assistant.", retries: int = 2) -> str:
     if not ANTHROPIC_KEY:
         raise HTTPException(500, "API key not configured")
     import time as _time
-    for attempt in range(2):
+    import asyncio as _aio
+    last_error = None
+    for attempt in range(1 + retries):
         t0 = _time.time()
         logger.info("[_ask_claude] attempt=%d prompt_len=%d system_len=%d", attempt, len(prompt), len(system))
         try:
@@ -107,31 +131,44 @@ async def _ask_claude(prompt: str, system: str = "You are a helpful assistant.")
                 elapsed = _time.time() - t0
                 logger.info("[_ask_claude] attempt=%d status=%d elapsed=%.1fs", attempt, res.status_code, elapsed)
                 if res.status_code == 529:
-                    logger.warning("[_ask_claude] API overloaded (529), retrying in 3s...")
-                    if attempt == 0:
-                        import asyncio
-                        await asyncio.sleep(3)
+                    last_error = "AI overloaded"
+                    logger.warning("[_ask_claude] API overloaded (529), retrying...")
+                    if attempt < retries:
+                        await _aio.sleep(3)
                         continue
+                    raise HTTPException(529, last_error)
                 if res.status_code != 200:
                     body = res.text[:500]
+                    last_error = f"AI error (HTTP {res.status_code})"
                     logger.error("[_ask_claude] API error %d: %s", res.status_code, body)
-                    raise HTTPException(res.status_code, f"AI error: {res.status_code}")
-                result = res.json().get("content", [{}])[0].get("text", "")
-                logger.info("[_ask_claude] success, response_len=%d elapsed=%.1fs", len(result), elapsed)
-                return result
+                    if attempt < retries:
+                        await _aio.sleep(2 ** attempt)
+                        continue
+                    raise HTTPException(res.status_code, last_error)
+                text = res.json().get("content", [{}])[0].get("text", "")
+                if not text.strip():
+                    last_error = "Empty response from AI"
+                    if attempt < retries:
+                        continue
+                logger.info("[_ask_claude] success, response_len=%d elapsed=%.1fs", len(text), elapsed)
+                return text
         except httpx.TimeoutException:
             elapsed = _time.time() - t0
+            last_error = "AI request timed out"
             logger.error("[_ask_claude] TIMEOUT after %.1fs attempt=%d", elapsed, attempt)
-            if attempt == 0:
+            if attempt < retries:
+                await _aio.sleep(2 ** attempt)
                 continue
-            raise HTTPException(504, "AI request timed out after 120s")
         except HTTPException:
             raise
         except Exception as e:
             elapsed = _time.time() - t0
+            last_error = str(e)
             logger.error("[_ask_claude] unexpected error after %.1fs: %s", elapsed, str(e))
-            raise
-    raise HTTPException(500, "AI request failed after retries")
+            if attempt < retries:
+                await _aio.sleep(2 ** attempt)
+                continue
+    raise HTTPException(500, f"AI failed after {retries + 1} attempts: {last_error}")
 
 
 # ─── FILE CREATION ────────────────────────────────────────────────────────
@@ -208,16 +245,18 @@ Return ONLY the document content. No explanations, no preamble, no "here is your
     content = await _ask_claude(req.description, system)
 
     file_id = str(uuid.uuid4())
-    filename = req.filename or f"document_{file_id[:8]}"
+    # Use custom filename if provided, otherwise generate a descriptive one
+    _has_custom_name = bool(req.filename)
+    filename = req.filename or _smart_filename(req.description, "", req.file_type or "pdf").rsplit('.', 1)[0]
 
     if req.file_type == "csv":
         file_bytes = content.encode('utf-8')
-        filename += ".csv"
+        if not _has_custom_name or not filename.endswith('.csv'): filename += ".csv"
         mime = "text/csv"
 
     elif req.file_type == "txt":
         file_bytes = content.encode('utf-8')
-        filename += ".txt"
+        if not _has_custom_name or not filename.endswith('.txt'): filename += ".txt"
         mime = "text/plain"
 
     elif req.file_type == "xlsx":
@@ -386,6 +425,7 @@ TOTAL,6800,6800,0
 
 IMPORTANT: Return ONLY the CSV data. No markdown fences. No explanations.""",
                 "pdf": "Return well-structured text using markdown-style headings (# ## ###). Use - for bullet points. Use **bold** for emphasis. For financial documents, include tables using | pipes.",
+                "pptx": "Return presentation content as slides separated by --- on its own line. Each slide starts with a # heading (the slide title) followed by bullet points. Include at least 5 slides: title slide, 3+ content slides, and a closing slide.",
                 "docx": "Return well-structured text using markdown-style headings.",
             }
 
@@ -412,14 +452,15 @@ Return ONLY the document content, no explanations."""
             content = await _ask_claude(req.description, system)
             logger.info("[create-file-async] job=%s Claude done, content_len=%d elapsed=%.1fs", job_id, len(content), _time.time() - t0)
             file_id = str(uuid.uuid4())[:8]
-            filename = req.filename or f"document_{file_id}"
+            _has_custom = bool(req.filename)
+            filename = req.filename or _smart_filename(req.description, "", req.file_type or "pdf").rsplit('.', 1)[0]
 
             # Generate file bytes (same as sync endpoint)
             if req.file_type == "pdf":
                 try:
                     from lib.pdf_templates import create_professional_pdf
                     file_bytes = create_professional_pdf(content, title=filename)
-                    filename += ".pdf"
+                    if not _has_custom or not filename.endswith('.pdf'): filename += ".pdf"
                     mime = "application/pdf"
                     logger.info("[create-file-async] job=%s PDF built, size=%d", job_id, len(file_bytes))
                 except Exception as pdf_err:
@@ -465,12 +506,15 @@ Return ONLY the document content, no explanations."""
                 file_bytes = content.encode('utf-8')
                 filename += ".csv"
                 mime = "text/csv"
+            elif req.file_type == "pptx":
+                file_bytes, fname, mime = _content_to_file(content, "pptx", filename)
+                filename = fname
             else:
                 file_bytes = content.encode('utf-8')
                 filename += ".txt"
                 mime = "text/plain"
 
-            await _store_file(file_id, filename, mime, file_bytes)
+            await _store_file(file_id, filename, mime, file_bytes, owner_email=payload.get("email", ""))
             elapsed = _time.time() - t0
             logger.info("[create-file-async] job=%s DONE file=%s size=%d elapsed=%.1fs", job_id, filename, len(file_bytes), elapsed)
             JOB_STORE[job_id] = {"status": "done", "file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes), "error": None}
@@ -481,6 +525,23 @@ Return ONLY the document content, no explanations."""
 
     asyncio.create_task(_background_create())
     return {"job_id": job_id, "status": "processing"}
+
+
+@router.post("/upload-file")
+async def upload_file(file: UploadFile = File(...), authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Upload a user file to FILE_STORE so it can be used with modify operations."""
+    payload = _verify_auth(authorization)
+    owner = payload.get("email", "")
+    file_bytes = await file.read()
+    if len(file_bytes) > 50 * 1024 * 1024:  # 50MB limit
+        raise HTTPException(413, "File too large (max 50MB)")
+    file_id = str(uuid.uuid4())[:8]
+    filename = file.filename or f"upload_{file_id}"
+    mime = file.content_type or "application/octet-stream"
+    await _store_file(file_id, filename, mime, file_bytes, owner_email=owner)
+    await _audit_log_lazy()(db, owner, "tool_upload_file", f"Uploaded {filename} ({len(file_bytes)} bytes)")
+    await db.commit()
+    return {"file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes)}
 
 
 @router.get("/job-status/{job_id}")
@@ -512,14 +573,15 @@ async def download_file(file_id: str, authorization: str = Header(...), db: Asyn
     return Response(content=base64.b64decode(f["data"]), media_type=f["mime"], headers={"Content-Disposition": f'attachment; filename="{f["filename"]}"'})
 
 
-# ─── FILE MODIFICATION (edit, chart, convert, merge, filter) ──────────────
+# ─── FILE MODIFICATION (edit, chart, convert, merge, filter, clean, split, rename, summarize, analyze, find, extract, answer) ──
 
 class ModifyFileRequest(BaseModel):
-    operation: str  # edit, chart, convert, merge, filter, compare
+    operation: str  # edit, chart, convert, merge, filter, compare, reconcile, clean, split, rename, ocr, batch, chain, validate, append, pivot, translate, highlight, summarize, analyze, find, extract, answer
     file_id: Optional[str] = None
     file_ids: Optional[list[str]] = None
     instructions: Optional[str] = ""
     target_format: Optional[str] = None  # for convert: pdf, xlsx, docx, csv, txt
+    chain_ops: Optional[list[dict]] = None  # for chain: [{"operation": "clean"}, {"operation": "filter", "instructions": "..."}]
 
 
 @router.post("/modify-file-async")
@@ -539,6 +601,8 @@ async def modify_file_async(req: ModifyFileRequest, authorization: str = Header(
         try:
             # Load original file(s) — check cache then R2
             owner = payload.get("email", "")
+            # Operations that load their own files from file_ids
+            _self_loading_ops = ("compare", "reconcile", "batch")
             if req.operation == "merge" and req.file_ids:
                 sources = []
                 for fid in req.file_ids:
@@ -549,6 +613,11 @@ async def modify_file_async(req: ModifyFileRequest, authorization: str = Header(
                         raise ValueError(f"File {fid} not found")
                     content = base64.b64decode(f["data"])
                     sources.append({"filename": f["filename"], "content": content, "mime": f["mime"]})
+            elif req.operation in _self_loading_ops and req.file_ids:
+                # These operations handle their own file loading below
+                original_bytes = b""
+                original_filename = ""
+                original_mime = ""
             elif req.file_id:
                 f = await _get_file(req.file_id)
                 if not f:
@@ -613,14 +682,17 @@ IMPORTANT:
                     text_content = _extract_text(original_bytes, original_mime)
                     prompt = f"Current spreadsheet data:\n{text_content}\n\nModifications: {req.instructions}"
                     modified_content = await _ask_claude(prompt, system)
-                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(modified_content, f"{base_name}_modified")
+                    modified_content = await _validate_and_fix_spreadsheet_json(modified_content, prompt)
+                    _fname = _smart_filename("", "edited", "xlsx", original_filename)
+                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(modified_content, _fname.rsplit('.', 1)[0])
                 else:
                     text_content = _extract_text(original_bytes, original_mime)
                     system = """You are a document editor. The user has an existing document and wants modifications.
 Return ONLY the complete modified document content. Keep the same format and structure unless told otherwise."""
                     prompt = f"Original document content:\n\n{text_content}\n\nModifications requested: {req.instructions}\n\nReturn the complete modified document."
                     modified_content = await _ask_claude(prompt, system)
-                    file_bytes, filename, mime = _content_to_file(modified_content, ext, f"{base_name}_modified")
+                    _fname = _smart_filename("", "edited", ext, original_filename)
+                    file_bytes, filename, mime = _content_to_file(modified_content, ext, _fname.rsplit('.', 1)[0])
 
             elif req.operation == "chart":
                 text_content = _extract_text(original_bytes, original_mime)
@@ -693,12 +765,13 @@ Return ONLY the Python code, no explanations."""
                     import os as _os
                     _os.unlink(tmp_path)
 
-                filename = f"{base_name}_chart.png"
+                filename = _smart_filename("", "chart", "png", original_filename)
                 mime = "image/png"
 
             elif req.operation == "convert":
                 target = req.target_format or "pdf"
-                file_bytes, filename, mime = _convert_file(original_bytes, original_mime, ext, target, f"{base_name}_converted")
+                _fname = _smart_filename("", "converted", target, original_filename)
+                file_bytes, filename, mime = _convert_file(original_bytes, original_mime, ext, target, _fname.rsplit('.', 1)[0])
 
             elif req.operation == "merge":
                 combined_text = ""
@@ -707,7 +780,8 @@ Return ONLY the Python code, no explanations."""
                     combined_text += f"\n\n--- {src['filename']} ---\n\n{text}"
                 # Determine output format from first file
                 ext = sources[0]["filename"].rsplit('.', 1)[-1] if '.' in sources[0]["filename"] else 'txt'
-                file_bytes, filename, mime = _content_to_file(combined_text, ext, f"{base_name}_merged")
+                _fname = _smart_filename("merged", "merged", ext)
+                file_bytes, filename, mime = _content_to_file(combined_text, ext, _fname.rsplit('.', 1)[0])
 
             elif req.operation == "filter":
                 text_content = _extract_text(original_bytes, original_mime)
@@ -716,7 +790,8 @@ Return ONLY the filtered data in the same format (CSV for CSV, JSON array for XL
                 prompt = f"Data:\n{text_content}\n\nFilter criteria: {req.instructions}"
                 filtered = await _ask_claude(prompt, system)
                 ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'csv'
-                file_bytes, filename, mime = _content_to_file(filtered, ext, f"{base_name}_filtered")
+                _fname = _smart_filename("", "filtered", ext, original_filename)
+                file_bytes, filename, mime = _content_to_file(filtered, ext, _fname.rsplit('.', 1)[0])
 
             elif req.operation == "compare":
                 if not req.file_ids or len(req.file_ids) < 2:
@@ -741,7 +816,7 @@ Use markdown formatting with tables where appropriate. Be thorough but concise."
                     file_bytes = create_professional_pdf(comparison, title=f"Comparison Report")
                 except Exception:
                     file_bytes = comparison.encode('utf-8')
-                filename = f"{base_name}_comparison.pdf"
+                filename = _smart_filename("comparison_report", "compared", "pdf")
                 mime = "application/pdf"
 
             elif req.operation == "reconcile":
@@ -871,7 +946,7 @@ Be thorough. Match fuzzy descriptions. Return ONLY valid JSON."""
                     buf = io.BytesIO()
                     wb.save(buf)
                     file_bytes = buf.getvalue()
-                    filename = f"reconciliation_{file_id}.xlsx"
+                    filename = _smart_filename("reconciliation", "reconciled", "xlsx")
                     mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 except Exception:
                     # Fallback to PDF
@@ -880,13 +955,547 @@ Be thorough. Match fuzzy descriptions. Return ONLY valid JSON."""
                         file_bytes = create_professional_pdf(result_json, title="Reconciliation Report")
                     except Exception:
                         file_bytes = result_json.encode('utf-8')
-                    filename = f"reconciliation_{file_id}.pdf"
+                    filename = _smart_filename("reconciliation", "reconciled", "pdf")
                     mime = "application/pdf"
+
+            elif req.operation == "clean":
+                text_content = _extract_text(original_bytes, original_mime)
+                ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'csv'
+                is_spreadsheet = ext in ('xlsx', 'xls', 'csv')
+                if is_spreadsheet:
+                    system = """You are a data cleaning expert. Clean the spreadsheet data:
+- Remove exact duplicate rows
+- Standardize formatting (dates, phone numbers, capitalization)
+- Fix obvious typos in repeated values
+- Remove empty/blank rows
+- Trim whitespace
+Return a JSON object: {"headers": [...], "rows": [[...], ...], "formulas": {}, "cleaned_summary": "Removed X duplicates, standardized Y dates, fixed Z formatting issues"}
+Return ONLY valid JSON."""
+                    prompt = f"Data to clean:\n{text_content}\n\n{req.instructions or 'Clean this data: remove duplicates, standardize formatting, fix obvious issues.'}"
+                    cleaned = await _ask_claude(prompt, system)
+                    # Extract summary before building file
+                    try:
+                        import json as _cjson
+                        parsed = _cjson.loads(cleaned.strip().strip('`').replace('```json', '').replace('```', ''))
+                        clean_summary = parsed.get("cleaned_summary", "")
+                    except Exception:
+                        clean_summary = ""
+                    cleaned = await _validate_and_fix_spreadsheet_json(cleaned)
+                    _fname = _smart_filename("", "cleaned", "xlsx", original_filename)
+                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(cleaned, _fname.rsplit('.', 1)[0])
+                else:
+                    system = """You are a text editor. Clean the document: remove duplicate paragraphs, fix formatting, standardize structure. Return ONLY the cleaned content."""
+                    prompt = f"Document to clean:\n{text_content}\n\n{req.instructions or 'Clean this document.'}"
+                    cleaned = await _ask_claude(prompt, system)
+                    _fname = _smart_filename("", "cleaned", ext, original_filename)
+                    file_bytes, filename, mime = _content_to_file(cleaned, ext, _fname.rsplit('.', 1)[0])
+
+            elif req.operation == "split":
+                text_content = _extract_text(original_bytes, original_mime)
+                ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'csv'
+                system = """You are a data processor. Split this data into logical groups based on the user's criteria.
+Return a JSON array of groups: [{"group_name": "name", "headers": [...], "rows": [[...], ...]}, ...]
+Each group becomes a separate sheet in the output Excel file.
+Return ONLY valid JSON."""
+                prompt = f"Data:\n{text_content}\n\nSplit criteria: {req.instructions or 'Split into logical groups based on categories or types found in the data.'}"
+                split_result = await _ask_claude(prompt, system)
+                # Build multi-sheet Excel
+                try:
+                    import json as _sjson
+                    from openpyxl import Workbook as _SplitWB
+                    from openpyxl.styles import Font as _SFont, PatternFill as _SFill, Border as _SBorder, Side as _SSide
+                    groups = _sjson.loads(split_result.strip().strip('`').replace('```json', '').replace('```', ''))
+                    if not isinstance(groups, list):
+                        groups = [groups]
+                    wb = _SplitWB()
+                    wb.remove(wb.active)
+                    header_font = _SFont(bold=True, color="FFFFFF", size=11)
+                    header_fill = _SFill(start_color="2B579A", end_color="2B579A", fill_type="solid")
+                    thin_border = _SBorder(
+                        left=_SSide(style='thin', color='D9D9D9'), right=_SSide(style='thin', color='D9D9D9'),
+                        top=_SSide(style='thin', color='D9D9D9'), bottom=_SSide(style='thin', color='D9D9D9'),
+                    )
+                    for g in groups:
+                        name = str(g.get("group_name", "Sheet"))[:31]
+                        ws = wb.create_sheet(title=name)
+                        headers = g.get("headers", [])
+                        for c, h in enumerate(headers, 1):
+                            cell = ws.cell(row=1, column=c, value=h)
+                            cell.font = header_font
+                            cell.fill = header_fill
+                            cell.border = thin_border
+                        for r, row in enumerate(g.get("rows", []), 2):
+                            for c, val in enumerate(row, 1):
+                                ws.cell(row=r, column=c, value=val).border = thin_border
+                    buf = io.BytesIO()
+                    wb.save(buf)
+                    file_bytes = buf.getvalue()
+                except Exception:
+                    file_bytes = split_result.encode('utf-8')
+                filename = _smart_filename("", "split", "xlsx", original_filename)
+                mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+            elif req.operation == "rename":
+                text_content = _extract_text(original_bytes, original_mime)
+                ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'csv'
+                is_spreadsheet = ext in ('xlsx', 'xls', 'csv')
+                if is_spreadsheet:
+                    system = """You are a spreadsheet editor. Rename or reorder columns as instructed.
+Return a JSON object: {"headers": [...new header names...], "rows": [[...], ...], "formulas": {}}
+Return ONLY valid JSON."""
+                    prompt = f"Current data:\n{text_content}\n\nRename instructions: {req.instructions}"
+                    renamed = await _ask_claude(prompt, system)
+                    renamed = await _validate_and_fix_spreadsheet_json(renamed, prompt)
+                    _fname = _smart_filename("", "renamed", "xlsx", original_filename)
+                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(renamed, _fname.rsplit('.', 1)[0])
+                else:
+                    system = """You are a document editor. Rename or restructure sections as instructed. Return ONLY the modified content."""
+                    prompt = f"Document:\n{text_content}\n\nRename instructions: {req.instructions}"
+                    renamed = await _ask_claude(prompt, system)
+                    _fname = _smart_filename("", "renamed", ext, original_filename)
+                    file_bytes, filename, mime = _content_to_file(renamed, ext, _fname.rsplit('.', 1)[0])
+
+            # ── VALIDATE — check data quality, find errors ──
+            elif req.operation == "validate":
+                text_content = _extract_text(original_bytes, original_mime)
+                system = """You are a data quality auditor. Check this data for:
+- Missing/empty required values
+- Invalid formats (emails, phones, dates, URLs)
+- Duplicate rows or IDs
+- Inconsistent formatting (mixed date formats, inconsistent capitalization)
+- Values outside expected ranges (negative prices, future dates for past events)
+- Referential integrity issues (IDs that don't match across columns)
+
+Return a structured report:
+SUMMARY: X errors found across Y categories.
+CRITICAL: [list of data-breaking issues]
+WARNINGS: [list of quality issues]
+INFO: [list of minor inconsistencies]
+For each issue: row number, column, current value, what's wrong, suggested fix."""
+                prompt = f"File: {original_filename}\n\nData:\n{text_content}\n\n{req.instructions or 'Validate this data — find all errors, inconsistencies, and quality issues.'}"
+                result_text = await _ask_claude(prompt, system)
+                JOB_STORE[job_id] = {"status": "done", "file_id": None, "filename": None, "download_url": None, "result_text": result_text, "error": None}
+                return
+
+            # ── APPEND — add rows without touching existing data ──
+            elif req.operation == "append":
+                text_content = _extract_text(original_bytes, original_mime)
+                ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'csv'
+                is_spreadsheet = ext in ('xlsx', 'xls', 'csv')
+                if is_spreadsheet:
+                    system = """You are a spreadsheet editor. The user wants to ADD new rows to existing data.
+CRITICAL: Do NOT modify, reorder, or delete ANY existing rows. Only append new rows at the bottom.
+Return the COMPLETE data (existing + new rows) as JSON:
+{"headers": [...], "rows": [[...existing rows...], [...new rows...]], "formulas": {}}
+Return ONLY valid JSON."""
+                    prompt = f"Existing data:\n{text_content}\n\nAppend these rows: {req.instructions}"
+                    appended = await _ask_claude(prompt, system)
+                    appended = await _validate_and_fix_spreadsheet_json(appended, prompt)
+                    _fname = _smart_filename("", "appended", "xlsx", original_filename)
+                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(appended, _fname.rsplit('.', 1)[0])
+                else:
+                    system = "You are a document editor. Append the new content at the END of the document. Do NOT modify existing content. Return the COMPLETE document."
+                    prompt = f"Existing document:\n{text_content}\n\nAppend this content: {req.instructions}"
+                    appended = await _ask_claude(prompt, system)
+                    _fname = _smart_filename("", "appended", ext, original_filename)
+                    file_bytes, filename, mime = _content_to_file(appended, ext, _fname.rsplit('.', 1)[0])
+
+            # ── PIVOT — create pivot table / summary ──
+            elif req.operation == "pivot":
+                text_content = _extract_text(original_bytes, original_mime)
+                system = """You are a data analyst creating a pivot table. Aggregate the data as instructed.
+Return JSON: {"headers": ["Group", "Metric1", "Metric2", ...], "rows": [["Group1", 100, 200], ...], "formulas": {"B_LAST": "=SUM(B2:B_N)"}}
+Include subtotals and grand totals with formulas. Format numbers properly.
+Return ONLY valid JSON."""
+                pivot_instructions = req.instructions or "Create a pivot table summarizing this data by the most logical grouping. Include counts, sums, and averages where applicable."
+                prompt = f"Data:\n{text_content}\n\nPivot request: {pivot_instructions}"
+                pivoted = await _ask_claude(prompt, system)
+                pivoted = await _validate_and_fix_spreadsheet_json(pivoted, prompt)
+                _fname = _smart_filename("", "pivot", "xlsx", original_filename)
+                file_bytes, filename, mime = _content_to_xlsx_with_formulas(pivoted, _fname.rsplit('.', 1)[0])
+
+            # ── TRANSLATE — translate file content preserving structure ──
+            elif req.operation == "translate":
+                text_content = _extract_text(original_bytes, original_mime)
+                ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'txt'
+                is_spreadsheet = ext in ('xlsx', 'xls', 'csv')
+                target_lang = req.instructions or "English"
+                if is_spreadsheet:
+                    system = f"""You are a professional translator. Translate ALL text content to {target_lang}.
+- Translate headers, cell values, and labels
+- Do NOT translate numbers, dates, formulas, or codes/IDs
+- Preserve the data structure exactly
+Return JSON: {{"headers": [...translated headers...], "rows": [[...translated values...]], "formulas": {{}}}}
+Return ONLY valid JSON."""
+                    prompt = f"Translate this spreadsheet to {target_lang}:\n{text_content}"
+                    translated = await _ask_claude(prompt, system)
+                    translated = await _validate_and_fix_spreadsheet_json(translated)
+                    _fname = _smart_filename("", f"translated_{target_lang.lower()[:2]}", "xlsx", original_filename)
+                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(translated, _fname.rsplit('.', 1)[0])
+                else:
+                    system = f"You are a professional translator. Translate this document to {target_lang}. Preserve all formatting, headings, and structure. Translate naturally — not word-for-word. Return ONLY the translated content."
+                    prompt = f"Translate to {target_lang}:\n{text_content}"
+                    translated = await _ask_claude(prompt, system)
+                    _fname = _smart_filename("", f"translated_{target_lang.lower()[:2]}", ext, original_filename)
+                    file_bytes, filename, mime = _content_to_file(translated, ext, _fname.rsplit('.', 1)[0])
+
+            # ── HIGHLIGHT — conditional formatting, returns styled Excel ──
+            elif req.operation == "highlight":
+                text_content = _extract_text(original_bytes, original_mime)
+                system = """You are a spreadsheet formatting expert. Apply conditional highlighting to the data.
+Return JSON with an extra "highlights" key:
+{"headers": [...], "rows": [[...]], "formulas": {}, "highlights": {"A5": "red", "B3": "green", "C7": "yellow"}}
+Colors: red (critical/negative), green (good/positive), yellow (warning/attention), blue (info/neutral), orange (caution).
+Highlight cells that match the user's criteria. Include ALL data rows — don't filter, just color.
+Return ONLY valid JSON."""
+                prompt = f"Data:\n{text_content}\n\nHighlight criteria: {req.instructions or 'Highlight anomalies, outliers, and values that need attention.'}"
+                highlighted = await _ask_claude(prompt, system)
+                try:
+                    _fname = _smart_filename("", "highlighted", "xlsx", original_filename)
+                    file_bytes, filename, mime = _build_highlighted_xlsx(highlighted, _fname.rsplit('.', 1)[0])
+                except Exception:
+                    file_bytes = highlighted.encode('utf-8')
+                    filename = _smart_filename("", "highlighted", "xlsx", original_filename)
+                    mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+            # ── READ OPERATIONS — return text, not a file ──
+            elif req.operation in ("summarize", "analyze", "find", "extract", "answer"):
+                text_content = _extract_text(original_bytes, original_mime)
+                system_map = {
+                    "summarize": "You are a data analyst. Provide a concise plain-English summary of this file. Lead with the key insight. For financial files, always include totals and flag anomalies. Keep it short unless asked for detail.",
+                    "analyze": "You are a data analyst. Provide deep analysis: trends, patterns, outliers, and actionable insights. Lead with the most significant finding. Include min, max, and average where relevant. Provide insight, not just description.",
+                    "find": "You are a search assistant. Find exactly what the user is looking for in this data. Return exactly what was found and where (row/column/section). If nothing matches, say so immediately and suggest similar terms.",
+                    "extract": "You are a data extraction assistant. Pull exactly the data points or sections the user asked for. Return only what was requested — nothing more. If the requested data isn't in the file, say so immediately.",
+                    "answer": "You are a data assistant. Answer the user's specific question about this file. Lead with the answer first, explanation second. Show calculation results before formulas if math is involved. If the data needed isn't in the file, say so immediately.",
+                }
+                prompt = f"File: {original_filename}\n\nContent:\n{text_content}\n\nUser request: {req.instructions or 'Summarize this file.'}"
+                result_text = await _ask_claude(prompt, system_map[req.operation])
+                # Read operations return text, not a file — store in job result directly
+                JOB_STORE[job_id] = {"status": "done", "file_id": None, "filename": None, "download_url": None, "result_text": result_text, "error": None}
+                return  # Skip file storage — this is a text response
+
+            # ── OCR — extract text from images/scanned PDFs using Claude Vision ──
+            elif req.operation == "ocr":
+                # For images: send directly to Claude Vision
+                # For PDFs: extract pages as images, send each to Vision
+                is_image = original_mime.startswith("image/")
+                is_pdf = original_mime == "application/pdf"
+
+                if is_image:
+                    # Convert HEIC/unsupported formats to PNG for Vision API
+                    img_bytes = original_bytes
+                    media_type = original_mime
+                    if original_mime in ("image/heic", "image/heif"):
+                        try:
+                            from PIL import Image as _PILImage
+                            img = _PILImage.open(io.BytesIO(original_bytes))
+                            buf = io.BytesIO()
+                            img.save(buf, format="PNG")
+                            img_bytes = buf.getvalue()
+                            media_type = "image/png"
+                        except Exception:
+                            pass  # Send as-is and let the API try
+                    img_b64 = base64.b64encode(img_bytes).decode()
+                    async with httpx.AsyncClient(timeout=60) as client:
+                        res = await client.post(
+                            "https://api.anthropic.com/v1/messages",
+                            headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01"},
+                            json={"model": "claude-sonnet-4-20250514", "max_tokens": 4096, "messages": [{"role": "user", "content": [
+                                {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": img_b64}},
+                                {"type": "text", "text": req.instructions or "Extract ALL text from this image. Preserve structure, tables, and formatting as much as possible. Return the full extracted text."},
+                            ]}]},
+                        )
+                        result_text = res.json().get("content", [{}])[0].get("text", "")
+                elif is_pdf:
+                    # Extract text normally first — if it has text, use that
+                    text_content = _extract_text(original_bytes, original_mime)
+                    if text_content and len(text_content.strip()) > 50:
+                        result_text = text_content
+                    else:
+                        # Scanned PDF — convert first page to image via fitz, send to Vision
+                        try:
+                            import fitz
+                            import asyncio as _ocr_aio
+                            doc = fitz.open(stream=original_bytes, filetype="pdf")
+                            num_pages = min(len(doc), 10)
+
+                            # Convert all pages to PNG first
+                            page_images = []
+                            for page_num in range(num_pages):
+                                page = doc[page_num]
+                                pix = page.get_pixmap(dpi=200)
+                                img_b64 = base64.b64encode(pix.tobytes("png")).decode()
+                                page_images.append((page_num, img_b64))
+
+                            # OCR all pages in parallel (batches of 3 to avoid rate limits)
+                            async def _ocr_page(pnum: int, b64: str) -> str:
+                                async with httpx.AsyncClient(timeout=60) as client:
+                                    res = await client.post(
+                                        "https://api.anthropic.com/v1/messages",
+                                        headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01"},
+                                        json={"model": "claude-sonnet-4-20250514", "max_tokens": 4096, "messages": [{"role": "user", "content": [
+                                            {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64}},
+                                            {"type": "text", "text": f"Extract ALL text from this scanned document page ({pnum + 1}). Preserve structure, tables, and formatting."},
+                                        ]}]},
+                                    )
+                                    return res.json().get("content", [{}])[0].get("text", "")
+
+                            pages_text = [""] * num_pages
+                            # Process in batches of 3 for rate limit safety
+                            for batch_start in range(0, len(page_images), 3):
+                                batch = page_images[batch_start:batch_start + 3]
+                                batch_results = await _ocr_aio.gather(
+                                    *[_ocr_page(pnum, b64) for pnum, b64 in batch]
+                                )
+                                for i, (pnum, _) in enumerate(batch):
+                                    pages_text[pnum] = f"--- Page {pnum + 1} ---\n{batch_results[i]}"
+                                # Update progress
+                                JOB_STORE[job_id]["progress"] = f"OCR: {min(batch_start + 3, num_pages)}/{num_pages} pages"
+
+                            result_text = "\n\n".join(pages_text)
+                        except ImportError:
+                            result_text = "OCR requires PyMuPDF for scanned PDFs. The PDF has no extractable text."
+                else:
+                    # Not an image or PDF — just extract text normally
+                    result_text = _extract_text(original_bytes, original_mime)
+
+                JOB_STORE[job_id] = {"status": "done", "file_id": None, "filename": None, "download_url": None, "result_text": result_text, "error": None}
+                return
+
+            # ── BATCH — run the same operation on multiple files ──
+            elif req.operation == "batch":
+                if not req.file_ids or len(req.file_ids) < 2:
+                    raise ValueError("Batch requires multiple file IDs in file_ids[]")
+                # Parse "operation:instructions" from text field
+                if req.instructions and ":" in req.instructions:
+                    batch_op = req.instructions.split(":")[0].strip()
+                    batch_instructions = req.instructions.split(":", 1)[1].strip()
+                elif req.instructions and req.instructions.strip():
+                    # No colon — treat entire text as the operation name
+                    batch_op = req.instructions.strip()
+                    batch_instructions = ""
+                else:
+                    batch_op = "convert"  # Default only when no instructions at all
+                    batch_instructions = ""
+                valid_batch_ops = ("convert", "clean", "edit", "filter", "translate")
+                if batch_op not in valid_batch_ops:
+                    raise ValueError(f"Unsupported batch operation: '{batch_op}'. Supported: {', '.join(valid_batch_ops)}")
+                target_fmt = req.target_format or "pdf"
+                results = []
+                for fid in req.file_ids:
+                    f = await _get_file(fid)
+                    if not f:
+                        results.append({"file_id": fid, "error": "File not found"})
+                        continue
+                    if f.get("owner_email") and f["owner_email"] != owner:
+                        results.append({"file_id": fid, "error": "Access denied"})
+                        continue
+                    try:
+                        content = base64.b64decode(f["data"])
+                        text = _extract_text(content, f["mime"])
+                        new_id = str(uuid.uuid4())[:8]
+                        if batch_op == "convert":
+                            _fname = _smart_filename("", "converted", target_fmt, f["filename"])
+                            fb, fn, mi = _content_to_file(text, target_fmt, _fname.rsplit('.', 1)[0])
+                        elif batch_op == "clean":
+                            system = "You are a data cleaning expert. Clean: remove duplicates, standardize formatting, trim whitespace. Return cleaned content as plain text."
+                            cleaned = await _ask_claude(f"Data:\n{text}\n\n{batch_instructions or 'Clean this data.'}", system)
+                            ext = f["filename"].rsplit('.', 1)[-1] if '.' in f["filename"] else 'txt'
+                            _fname = _smart_filename("", "cleaned", ext, f["filename"])
+                            fb, fn, mi = _content_to_file(cleaned, ext, _fname.rsplit('.', 1)[0])
+                        else:
+                            _fname = _smart_filename("", batch_op, target_fmt, f["filename"])
+                            fb, fn, mi = _content_to_file(text, target_fmt, _fname.rsplit('.', 1)[0])
+                        await _store_file(new_id, fn, mi, fb, owner)
+                        results.append({"file_id": new_id, "filename": fn, "download_url": f"/api/ghost/tools/download/{new_id}"})
+                        JOB_STORE[job_id]["progress"] = f"Batch: {len(results)}/{len(req.file_ids)} files"
+                    except Exception as e:
+                        results.append({"file_id": fid, "error": str(e)})
+                # Create a zip of all successful files for one-click download
+                zip_id = None
+                zip_filename = None
+                zip_url = None
+                successful = [r for r in results if "filename" in r and "file_id" in r]
+                if len(successful) > 1:
+                    try:
+                        import zipfile
+                        zip_buf = io.BytesIO()
+                        with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+                            for r in successful:
+                                f_data = await _get_file(r["file_id"])
+                                if f_data:
+                                    zf.writestr(r["filename"], base64.b64decode(f_data["data"]))
+                        zip_bytes = zip_buf.getvalue()
+                        zip_id = str(uuid.uuid4())[:8]
+                        zip_filename = _smart_filename("batch_results", "batch", "zip")
+                        zip_url = f"/api/ghost/tools/download/{zip_id}"
+                        await _store_file(zip_id, zip_filename, "application/zip", zip_bytes, owner)
+                    except Exception as ze:
+                        logger.warning("Failed to create batch zip: %s", ze)
+
+                JOB_STORE[job_id] = {
+                    "status": "done", "file_id": zip_id, "filename": zip_filename,
+                    "download_url": zip_url, "batch_results": results, "error": None,
+                }
+                return
+
+            # ── CHAIN — run multiple operations sequentially on the same file ──
+            elif req.operation == "chain":
+                if not req.chain_ops or len(req.chain_ops) < 2:
+                    raise ValueError("Chain requires at least 2 operations in chain_ops[]")
+                current_bytes = original_bytes
+                current_mime = original_mime
+                current_filename = original_filename
+                completed_steps = []
+                failed_step = None
+                for step_idx, step in enumerate(req.chain_ops):
+                    step_op = step.get("operation", "")
+                    step_instructions = step.get("instructions", "")
+                    step_target = step.get("target_format", "")
+                    try:
+                        text = _extract_text(current_bytes, current_mime)
+                        ext = current_filename.rsplit('.', 1)[-1] if '.' in current_filename else 'txt'
+                        is_spreadsheet = ext in ('xlsx', 'xls', 'csv')
+
+                        if step_op == "edit":
+                            if is_spreadsheet:
+                                system = "You are an Excel expert. Modify the spreadsheet as instructed.\nReturn JSON: {\"headers\": [...], \"rows\": [[...]], \"formulas\": {}}\nReturn ONLY valid JSON."
+                                result = await _ask_claude(f"Data:\n{text}\n\nModify: {step_instructions}", system)
+                                fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            else:
+                                result = await _ask_claude(f"Document:\n{text}\n\nModify: {step_instructions}", "You are a document editor. Return ONLY the modified content.")
+                                fb, fn, mi = _content_to_file(result, ext, f"step{step_idx}")
+                        elif step_op == "clean":
+                            if is_spreadsheet:
+                                system = "You are a data cleaning expert. Clean: dedup, standardize, trim. Return JSON: {\"headers\":[...],\"rows\":[...],\"formulas\":{}}\nReturn ONLY valid JSON."
+                                result = await _ask_claude(f"Data:\n{text}\n\n{step_instructions or 'Clean this data.'}", system)
+                                fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            else:
+                                result = await _ask_claude(f"Document:\n{text}\n\n{step_instructions or 'Clean.'}", "You are a text editor. Clean the document. Return ONLY the cleaned content.")
+                                fb, fn, mi = _content_to_file(result, ext, f"step{step_idx}")
+                        elif step_op == "filter":
+                            result = await _ask_claude(f"Data:\n{text}\n\nFilter: {step_instructions}", "You are a data processor. Filter as instructed. Return ONLY the filtered data.")
+                            fb, fn, mi = _content_to_file(result, ext, f"step{step_idx}")
+                        elif step_op == "convert":
+                            t = step_target or "pdf"
+                            fb, fn, mi = _content_to_file(text, t, f"step{step_idx}")
+                            ext = t
+                        elif step_op == "rename":
+                            if is_spreadsheet:
+                                result = await _ask_claude(f"Data:\n{text}\n\nRename: {step_instructions}", "You are a spreadsheet editor. Rename columns as instructed. Return JSON: {\"headers\":[...],\"rows\":[...],\"formulas\":{}}\nReturn ONLY valid JSON.")
+                                fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            else:
+                                result = await _ask_claude(f"Document:\n{text}\n\nRename: {step_instructions}", "You are a document editor. Rename sections as instructed. Return ONLY the modified content.")
+                                fb, fn, mi = _content_to_file(result, ext, f"step{step_idx}")
+                        elif step_op == "chart":
+                            import subprocess as _chain_sp
+                            system = "You are a data analyst. Generate matplotlib Python code to create the requested chart.\nThe code must: parse data from a DATA variable, create chart, save to BytesIO buf.\nReturn ONLY Python code."
+                            code = await _ask_claude(f"Data:\n{text}\n\nChart: {step_instructions or 'Create an appropriate chart'}", system)
+                            clean_code = code.replace("```python", "").replace("```", "").strip()
+                            with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as tmp:
+                                tmp.write("import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\nimport io, sys\n")
+                                tmp.write(f"DATA = {repr(text)}\nbuf = io.BytesIO()\n")
+                                tmp.write(clean_code + "\nbuf.seek(0)\nsys.stdout.buffer.write(buf.getvalue())\n")
+                                tmp_path = tmp.name
+                            try:
+                                r = _chain_sp.run(["python3", tmp_path], capture_output=True, timeout=15, env={"PATH": "/usr/bin:/usr/local/bin", "HOME": "/tmp"})
+                                if r.returncode != 0 or not r.stdout:
+                                    raise ValueError(f"Chart failed: {r.stderr.decode()[:200]}")
+                                fb = r.stdout
+                            finally:
+                                os.unlink(tmp_path)
+                            fn = f"step{step_idx}.png"
+                            mi = "image/png"
+                            ext = "png"
+                        elif step_op == "split":
+                            # In a chain, split converts to multi-sheet xlsx
+                            system = "You are a data processor. Split data into groups.\nReturn JSON array: [{\"group_name\":\"...\",\"headers\":[...],\"rows\":[[...]]}]\nReturn ONLY valid JSON."
+                            split_json = await _ask_claude(f"Data:\n{text}\n\nSplit: {step_instructions or 'Split into logical groups.'}", system)
+                            try:
+                                import json as _chain_json
+                                from openpyxl import Workbook as _ChainWB
+                                groups = _chain_json.loads(split_json.strip().strip('`').replace('```json', '').replace('```', ''))
+                                if not isinstance(groups, list):
+                                    groups = [groups]
+                                wb = _ChainWB()
+                                wb.remove(wb.active)
+                                for g in groups:
+                                    ws = wb.create_sheet(title=str(g.get("group_name", "Sheet"))[:31])
+                                    for c, h in enumerate(g.get("headers", []), 1):
+                                        ws.cell(row=1, column=c, value=h)
+                                    for r, row in enumerate(g.get("rows", []), 2):
+                                        for c, val in enumerate(row, 1):
+                                            ws.cell(row=r, column=c, value=val)
+                                buf = io.BytesIO()
+                                wb.save(buf)
+                                fb = buf.getvalue()
+                            except Exception:
+                                fb = split_json.encode('utf-8')
+                            fn = f"step{step_idx}.xlsx"
+                            mi = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            ext = "xlsx"
+                        elif step_op == "append":
+                            if is_spreadsheet:
+                                system = "You are a spreadsheet editor. ONLY append new rows at the bottom. Do NOT modify existing rows.\nReturn JSON: {\"headers\":[...],\"rows\":[...all existing + new rows...],\"formulas\":{}}\nReturn ONLY valid JSON."
+                                result = await _ask_claude(f"Data:\n{text}\n\nAppend: {step_instructions}", system)
+                                fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            else:
+                                result = await _ask_claude(f"Document:\n{text}\n\nAppend: {step_instructions}", "You are a document editor. Append content at the END. Do NOT modify existing content. Return the COMPLETE document.")
+                                fb, fn, mi = _content_to_file(result, ext, f"step{step_idx}")
+                        elif step_op == "pivot":
+                            system = "You are a data analyst. Create a pivot table. Return JSON: {\"headers\":[...],\"rows\":[...],\"formulas\":{}}\nReturn ONLY valid JSON."
+                            result = await _ask_claude(f"Data:\n{text}\n\nPivot: {step_instructions or 'Summarize by logical grouping.'}", system)
+                            fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            ext = "xlsx"
+                        elif step_op == "translate":
+                            target_lang = step_instructions or "English"
+                            if is_spreadsheet:
+                                system = f"You are a translator. Translate to {target_lang}. Keep numbers/dates/formulas. Return JSON: {{\"headers\":[...],\"rows\":[...],\"formulas\":{{}}}}\nReturn ONLY valid JSON."
+                                result = await _ask_claude(f"Translate to {target_lang}:\n{text}", system)
+                                fb, fn, mi = _content_to_xlsx_with_formulas(result, f"step{step_idx}")
+                            else:
+                                result = await _ask_claude(f"Translate to {target_lang}:\n{text}", f"You are a translator. Translate to {target_lang}. Preserve formatting. Return ONLY the translated content.")
+                                fb, fn, mi = _content_to_file(result, ext, f"step{step_idx}")
+                        elif step_op == "highlight":
+                            system = "You are a formatting expert. Return JSON with highlights: {\"headers\":[...],\"rows\":[...],\"formulas\":{},\"highlights\":{\"A5\":\"red\",\"B3\":\"green\"}}\nReturn ONLY valid JSON."
+                            result = await _ask_claude(f"Data:\n{text}\n\nHighlight: {step_instructions or 'Highlight anomalies.'}", system)
+                            fb, fn, mi = _build_highlighted_xlsx(result, f"step{step_idx}")
+                            ext = "xlsx"
+                        else:
+                            raise ValueError(f"Unsupported chain step: {step_op}")
+
+                        current_bytes = fb
+                        current_mime = mi
+                        current_filename = fn
+                        completed_steps.append(step_op)
+                        JOB_STORE[job_id]["progress"] = f"Chain: {len(completed_steps)}/{len(req.chain_ops)} steps ({' → '.join(completed_steps)})"
+                    except Exception as e:
+                        failed_step = f"{step_op}: {str(e)[:100]}"
+                        logger.warning("Chain step %d (%s) failed: %s — delivering partial result", step_idx, step_op, e)
+                        break
+
+                # Save the final result with step metadata
+                _fname = _smart_filename("", "_".join(completed_steps), ext, original_filename)
+                filename = _fname
+                file_bytes = current_bytes
+                mime = current_mime
+                # Store step info in job for frontend display
+                await _store_file(file_id, filename, mime, file_bytes, owner)
+                job_result = {
+                    "status": "done", "file_id": file_id, "filename": filename,
+                    "download_url": f"/api/ghost/tools/download/{file_id}",
+                    "size": len(file_bytes), "error": None,
+                    "completed_steps": completed_steps,
+                }
+                if failed_step:
+                    job_result["failed_step"] = failed_step
+                JOB_STORE[job_id] = job_result
+                return
 
             else:
                 raise ValueError(f"Unknown operation: {req.operation}")
 
-            await _store_file(file_id, filename, mime, file_bytes)
+            await _store_file(file_id, filename, mime, file_bytes, owner)
             elapsed = _time.time() - t0
             logger.info("[modify-file-async] job=%s DONE file=%s size=%d elapsed=%.1fs", job_id, filename, len(file_bytes), elapsed)
             JOB_STORE[job_id] = {"status": "done", "file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes), "error": None}
@@ -1119,6 +1728,95 @@ def _extract_json_from_content(content: str):
 
     json_str = cleaned[start:end + 1]
     return _json.loads(json_str)
+
+
+async def _validate_and_fix_spreadsheet_json(content: str, original_prompt: str = "") -> str:
+    """Validate spreadsheet JSON structure. If invalid, ask Claude to fix it once."""
+    try:
+        data = _extract_json_from_content(content)
+        # Valid structures: list of dicts, or dict with headers+rows
+        if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict):
+            return content  # Valid: [{col: val}, ...]
+        if isinstance(data, dict):
+            if "headers" in data and "rows" in data:
+                return content  # Valid: {headers: [], rows: []}
+            # Has data but wrong keys — try to salvage
+            if "data" in data and isinstance(data["data"], list):
+                # Common mistake: {"data": [{...}]} instead of [{...}]
+                import json as _fix_json
+                return _fix_json.dumps(data["data"])
+        # Structure is wrong — ask Claude to fix
+        fix_result = await _ask_claude(
+            f"Your JSON response has the wrong structure. Convert it to this format:\n"
+            f'{{"headers": ["col1", "col2"], "rows": [["val1", "val2"]], "formulas": {{}}}}\n\n'
+            f"Your response was:\n{content[:2000]}\n\nReturn ONLY valid JSON in the correct format.",
+            "You are a JSON repair assistant. Fix the structure. Output ONLY valid JSON.",
+            retries=0
+        )
+        return fix_result
+    except (ValueError, json.JSONDecodeError):
+        # JSON itself is broken — ask Claude to regenerate
+        fix_result = await _ask_claude(
+            f"Your previous response was not valid JSON. Regenerate as:\n"
+            f'{{"headers": ["col1", "col2"], "rows": [["val1", "val2"]], "formulas": {{}}}}\n\n'
+            f"Original request: {original_prompt[:500] if original_prompt else 'spreadsheet data'}\n\nReturn ONLY valid JSON.",
+            "You are a JSON repair assistant. Output ONLY valid JSON.",
+            retries=0
+        )
+        return fix_result
+
+
+def _build_highlighted_xlsx(content: str, base_name: str) -> tuple:
+    """Build an Excel file with conditional highlighting colors applied."""
+    from openpyxl import Workbook as _HWB
+    from openpyxl.styles import Font as _HF, PatternFill as _HP, Border as _HB, Side as _HS
+
+    data = _extract_json_from_content(content)
+    if not isinstance(data, dict):
+        data = {"headers": [], "rows": [], "formulas": {}, "highlights": {}}
+
+    color_map = {
+        "red": "FFCCCC", "green": "CCFFCC", "yellow": "FFFFCC",
+        "blue": "CCE5FF", "orange": "FFE0CC",
+    }
+    wb = _HWB()
+    ws = wb.active
+    ws.title = "Highlighted"
+    headers = data.get("headers", [])
+    rows = data.get("rows", [])
+    highlights = data.get("highlights", {})
+    formulas = data.get("formulas", {})
+
+    hdr_font = _HF(bold=True, color="FFFFFF", size=11)
+    hdr_fill = _HP(start_color="2B579A", end_color="2B579A", fill_type="solid")
+    border = _HB(left=_HS(style='thin', color='D9D9D9'), right=_HS(style='thin', color='D9D9D9'),
+                 top=_HS(style='thin', color='D9D9D9'), bottom=_HS(style='thin', color='D9D9D9'))
+    for c, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=c, value=h)
+        cell.font = hdr_font
+        cell.fill = hdr_fill
+        cell.border = border
+    for r, row in enumerate(rows, 2):
+        for c, val in enumerate(row, 1):
+            cell = ws.cell(row=r, column=c, value=val)
+            cell.border = border
+    for cell_ref, color in highlights.items():
+        try:
+            fc = color_map.get(color.lower(), "FFFFCC")
+            ws[cell_ref].fill = _HP(start_color=fc, end_color=fc, fill_type="solid")
+        except Exception:
+            pass
+    for cell_ref, formula in formulas.items():
+        try:
+            ws[cell_ref] = formula
+        except Exception:
+            pass
+    for col in ws.columns:
+        ws.column_dimensions[col[0].column_letter].width = 18
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue(), f"{base_name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
 def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
@@ -1493,6 +2191,64 @@ def _extract_text(file_bytes: bytes, mime: str) -> str:
             return "\n".join(p.text for p in doc.paragraphs)
         except Exception:
             return file_bytes.decode('utf-8', errors='ignore')
+    elif mime == "application/json":
+        try:
+            data = json.loads(file_bytes.decode('utf-8'))
+            return json.dumps(data, indent=2)
+        except Exception:
+            return file_bytes.decode('utf-8', errors='ignore')
+    elif mime in ("text/html", "application/xhtml+xml"):
+        try:
+            text = file_bytes.decode('utf-8', errors='ignore')
+            # Strip HTML tags for plain text extraction
+            text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.DOTALL)
+            text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL)
+            text = re.sub(r'<[^>]+>', ' ', text)
+            text = re.sub(r'\s+', ' ', text).strip()
+            return text
+        except Exception:
+            return file_bytes.decode('utf-8', errors='ignore')
+    elif mime == "application/zip":
+        try:
+            import zipfile
+            contents = []
+            with zipfile.ZipFile(io.BytesIO(file_bytes)) as zf:
+                for name in zf.namelist()[:20]:  # Max 20 files
+                    contents.append(f"--- {name} ---")
+                    try:
+                        data = zf.read(name)
+                        if len(data) < 50000:  # Skip large files
+                            contents.append(data.decode('utf-8', errors='ignore')[:5000])
+                    except Exception:
+                        contents.append("(binary file)")
+            return "\n".join(contents)
+        except Exception:
+            return "(could not read zip archive)"
+    elif mime in ("text/markdown", "text/x-markdown"):
+        return file_bytes.decode('utf-8', errors='ignore')
+    elif mime in ("application/rtf", "text/rtf"):
+        try:
+            text = file_bytes.decode('utf-8', errors='ignore')
+            # Strip RTF control words for basic text extraction
+            text = re.sub(r'\\[a-z]+\d*\s?', '', text)
+            text = re.sub(r'[{}]', '', text)
+            return text.strip()
+        except Exception:
+            return file_bytes.decode('utf-8', errors='ignore')
+    elif mime == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        try:
+            from pptx import Presentation
+            prs = Presentation(io.BytesIO(file_bytes))
+            slides = []
+            for i, slide in enumerate(prs.slides, 1):
+                texts = []
+                for shape in slide.shapes:
+                    if hasattr(shape, "text") and shape.text:
+                        texts.append(shape.text)
+                slides.append(f"--- Slide {i} ---\n" + "\n".join(texts))
+            return "\n\n".join(slides)
+        except Exception:
+            return file_bytes.decode('utf-8', errors='ignore')
     else:
         return file_bytes.decode('utf-8', errors='ignore')
 
@@ -1566,6 +2322,48 @@ def _content_to_file(content: str, ext: str, base_name: str) -> tuple:
             return content.encode('utf-8'), f"{base_name}.txt", "text/plain"
     elif ext == "csv":
         return content.encode('utf-8'), f"{base_name}.csv", "text/csv"
+    elif ext == "pptx":
+        try:
+            from pptx import Presentation
+            from pptx.util import Inches, Pt
+            prs = Presentation()
+            # Parse content as slides — split on "---" or "# " headings
+            slides_raw = re.split(r'\n---\n|\n(?=# )', content.strip())
+            for slide_text in slides_raw:
+                lines = [l.strip() for l in slide_text.strip().split('\n') if l.strip()]
+                if not lines:
+                    continue
+                slide = prs.slides.add_slide(prs.slide_layouts[1])  # Title + Content
+                title_text = lines[0].lstrip('# ').strip()
+                slide.shapes.title.text = title_text
+                body = slide.placeholders[1]
+                body.text = '\n'.join(lines[1:])
+            buf = io.BytesIO()
+            prs.save(buf)
+            return buf.getvalue(), f"{base_name}.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        except Exception:
+            return content.encode('utf-8'), f"{base_name}.txt", "text/plain"
+    elif ext == "json":
+        # Pretty-print if it's valid JSON, otherwise save as-is
+        try:
+            data = json.loads(content)
+            formatted = json.dumps(data, indent=2, ensure_ascii=False)
+            return formatted.encode('utf-8'), f"{base_name}.json", "application/json"
+        except Exception:
+            return content.encode('utf-8'), f"{base_name}.json", "application/json"
+    elif ext in ("html", "htm"):
+        # Wrap in basic HTML structure if it doesn't have one
+        if not content.strip().lower().startswith("<!doctype") and not content.strip().lower().startswith("<html"):
+            html_content = f"<!DOCTYPE html>\n<html>\n<head><meta charset=\"utf-8\"><title>{base_name}</title></head>\n<body>\n{content}\n</body>\n</html>"
+        else:
+            html_content = content
+        return html_content.encode('utf-8'), f"{base_name}.html", "text/html"
+    elif ext == "md":
+        return content.encode('utf-8'), f"{base_name}.md", "text/markdown"
+    elif ext == "rtf":
+        # Wrap in minimal RTF structure
+        rtf_content = r"{\rtf1\ansi " + content.replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}") + "}"
+        return rtf_content.encode('utf-8'), f"{base_name}.rtf", "application/rtf"
     else:
         return content.encode('utf-8'), f"{base_name}.txt", "text/plain"
 

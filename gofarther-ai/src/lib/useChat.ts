@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Alert, AppState } from 'react-native';
 import { ChatMsg, genId, parseAction, actionLabel } from './types';
-import { chatStream, Message, generateImage, editImage, analyzeImage, createFile, modifyFile, webSearch, readURL, runCode, translateText, youtubeSearch, deepResearch, generateQR, cryptoPortfolio, createInvoice, createCalendarEvent, socialPost, compareURLs, createMeme, barcodeLookup, runConnectorAction, runConnectorPlan, processCallRecording } from './ai';
+import { chatStream, Message, generateImage, editImage, analyzeImage, createFile, modifyFile, uploadFile, webSearch, readURL, runCode, translateText, youtubeSearch, deepResearch, generateQR, cryptoPortfolio, createInvoice, createCalendarEvent, socialPost, compareURLs, createMeme, barcodeLookup, runConnectorAction, runConnectorPlan, processCallRecording } from './ai';
 import { getToken } from './api';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
-import { getChatHistory, saveChatHistory, addMemoryFact, addSavedContact, addEmailTemplate, addCallRecording, trackEvent, addToOfflineQueue } from './storage';
+import { getChatHistory, saveChatHistory, addMemoryFact, deleteMemoryFact, deleteMemoryByCategory, clearMemory, getMemory, getMemoryByCategory, getSavedContacts, addSavedContact, addEmailTemplate, addCallRecording, trackEvent, addToOfflineQueue, getFileRegistry, saveFileRegistry } from './storage';
 import { pushSession } from './chatSync';
 import { incrementReactionCount } from './storage';
 import { runAnalysisIfNeeded } from './preferenceAnalysis';
@@ -44,17 +44,86 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
   const currentSessionId = useRef<string | null>(sessionId);
   const systemPromptRef = useRef(systemPrompt);
 
+  // ── File Registry — maps filenames to file_ids for multi-file operations ──
+  const fileRegistryRef = useRef<Map<string, string>>(new Map());
+
+  /** Register a file so future operations can reference it by name */
+  const registerFile = (filename: string, fileId: string) => {
+    fileRegistryRef.current.set(filename.toLowerCase(), fileId);
+    // Also register without extension for fuzzy matching
+    const base = filename.replace(/\.[^.]+$/, '').toLowerCase();
+    if (base !== filename.toLowerCase()) {
+      fileRegistryRef.current.set(base, fileId);
+    }
+    // Persist to AsyncStorage scoped by session (best-effort, don't await)
+    const obj: Record<string, string> = {};
+    fileRegistryRef.current.forEach((v, k) => { obj[k] = v; });
+    saveFileRegistry(obj, currentSessionId.current || undefined).catch(() => {});
+  };
+
+  /** Resolve a filename (or partial name) to a file_id */
+  const resolveFileId = (name: string): string | undefined => {
+    const lower = name.toLowerCase().trim();
+    // 1. Exact match
+    if (fileRegistryRef.current.has(lower)) return fileRegistryRef.current.get(lower);
+    // 2. Without extension
+    const base = lower.replace(/\.[^.]+$/, '');
+    if (fileRegistryRef.current.has(base)) return fileRegistryRef.current.get(base);
+    // 3. Partial match — compare both full name and base name against keys
+    //    This handles: model says "budget.xlsx", registry has "budget_edited_2026-04-16.xlsx"
+    //    because base "budget" is contained in key "budget_edited_2026-04-16"
+    for (const [key, id] of fileRegistryRef.current) {
+      const keyBase = key.replace(/\.[^.]+$/, '');
+      if (key.includes(lower) || lower.includes(key) ||
+          key.includes(base) || base.includes(keyBase) ||
+          keyBase.includes(base)) return id;
+    }
+    return undefined;
+  };
+
+  /** Resolve an array of filenames to file_ids */
+  const resolveFileIds = (names: string[]): string[] => {
+    const ids: string[] = [];
+    for (const name of names) {
+      const id = resolveFileId(name);
+      if (id) ids.push(id);
+    }
+    return ids;
+  };
+
   // Keep system prompt ref in sync
   useEffect(() => { systemPromptRef.current = systemPrompt; }, [systemPrompt]);
 
   // Keep ref in sync
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
-  // Load history when session changes
+  // Load history when session changes — also restore file registry
   useEffect(() => {
     currentSessionId.current = sessionId;
+    fileRegistryRef.current.clear();
     if (sessionId) {
-      getChatHistory(sessionId).then(h => setMessages(h.map((m, i) => ({ ...m, id: `${sessionId}_${i}`, reaction: m.reaction }))));
+      // Restore persisted file registry scoped to this session
+      getFileRegistry(sessionId).then(stored => {
+        for (const [k, v] of Object.entries(stored)) {
+          fileRegistryRef.current.set(k, v);
+        }
+      }).catch(() => {});
+      getChatHistory(sessionId).then(h => {
+        const msgs = h.map((m, i) => ({ ...m, id: `${sessionId}_${i}`, reaction: m.reaction }));
+        setMessages(msgs);
+        // Augment registry from message history (catches any files not yet persisted)
+        for (const m of msgs) {
+          if (m.fileUrl && m.content) {
+            const nameMatch = m.content.match(/\*\*([^*]+\.\w+)\*\*/);
+            const idMatch = m.fileUrl.match(/([a-f0-9-]{8})/);
+            if (nameMatch && idMatch) {
+              fileRegistryRef.current.set(nameMatch[1].toLowerCase(), idMatch[1]);
+              const base = nameMatch[1].replace(/\.[^.]+$/, '').toLowerCase();
+              fileRegistryRef.current.set(base, idMatch[1]);
+            }
+          }
+        }
+      });
     } else {
       setMessages([]);
     }
@@ -220,11 +289,98 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
       // Store stats on all AI responses
       const msgStats = { tokens, durationMs };
 
-      // Handle memory
+      // Handle memory — supports "category:fact" format (e.g. "preferences:always use bullet points")
       if (finalAction?.type === 'remember') {
-        await addMemoryFact(finalAction.target || '');
+        const raw = finalAction.target || '';
+        const colonIdx = raw.indexOf(':');
+        const validCategories = ['facts', 'preferences', 'templates', 'instructions'];
+        let category: 'facts' | 'preferences' | 'templates' | 'instructions' = 'facts';
+        let fact = raw;
+        if (colonIdx > 0) {
+          const prefix = raw.slice(0, colonIdx).trim().toLowerCase();
+          if (validCategories.includes(prefix)) {
+            category = prefix as typeof category;
+            fact = raw.slice(colonIdx + 1).trim();
+          }
+        }
+        await addMemoryFact(fact, category);
         finalAction = null;
         if (!finalText) finalText = "Got it, I'll remember that!";
+      }
+
+      // Handle forget_memory — delete specific memory, a category, or everything
+      if (finalAction?.type === 'forget_memory') {
+        const target = (finalAction.target || '').trim();
+        const validCats = ['facts', 'preferences', 'templates', 'instructions'];
+        if (target === 'all') {
+          await clearMemory();
+          if (!finalText) finalText = "Done — all memory cleared.";
+        } else if (target.endsWith(':all')) {
+          const cat = target.split(':')[0].toLowerCase();
+          if (validCats.includes(cat)) {
+            await deleteMemoryByCategory(cat as any);
+            if (!finalText) finalText = `Got it, I've cleared all ${cat}.`;
+          } else if (cat === 'contacts') {
+            // Contacts are stored separately — not in ai_memory
+            if (!finalText) finalText = "Contact deletion isn't supported through this action yet. You can manage contacts in Settings.";
+          }
+        } else {
+          // Find and delete by matching fact text
+          const mem = await getMemory();
+          const match = mem.find(m => m.fact.toLowerCase().includes(target.toLowerCase()));
+          if (match) {
+            await deleteMemoryFact(match.id);
+            if (!finalText) finalText = "Got it, I've forgotten that.";
+          } else {
+            if (!finalText) finalText = "I couldn't find that in my memory. Want me to show you what I remember?";
+          }
+        }
+        finalAction = null;
+      }
+
+      // Handle show_memory — display saved memory organized by category
+      if (finalAction?.type === 'show_memory') {
+        const target = (finalAction.target || 'all').trim().toLowerCase();
+        const mem = await getMemory();
+        const contacts = await getSavedContacts();
+        const validCats = ['facts', 'preferences', 'templates', 'instructions'];
+        let memoryDisplay = '';
+
+        if (target === 'all' || !validCats.includes(target)) {
+          // Show everything
+          const grouped: Record<string, string[]> = {};
+          for (const m of mem) {
+            const cat = m.category || 'facts';
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push(m.fact + (m.version ? ` (v${m.version})` : ''));
+          }
+          const labels: Record<string, string> = { facts: '📋 Facts', preferences: '⚙️ Preferences', templates: '📝 Templates', instructions: '🎯 Instructions' };
+          for (const [cat, items] of Object.entries(grouped)) {
+            memoryDisplay += `\n**${labels[cat] || cat}:**\n${items.map(f => `- ${f}`).join('\n')}\n`;
+          }
+          if (contacts.length > 0) {
+            memoryDisplay += `\n**👤 Contacts:**\n${contacts.map((c: any) => `- ${c.label} = ${c.name}${c.email ? ` (${c.email})` : ''}${c.phone ? ` (${c.phone})` : ''}`).join('\n')}\n`;
+          }
+          if (!memoryDisplay) memoryDisplay = "I don't have anything saved yet.";
+          else memoryDisplay = "Here's everything I remember:\n" + memoryDisplay + "\nWant to update or delete anything?";
+        } else if (target === 'contacts') {
+          if (contacts.length > 0) {
+            memoryDisplay = `**👤 Saved Contacts:**\n${contacts.map((c: any) => `- ${c.label} = ${c.name}${c.email ? ` (${c.email})` : ''}${c.phone ? ` (${c.phone})` : ''}`).join('\n')}`;
+          } else {
+            memoryDisplay = "No saved contacts yet.";
+          }
+        } else {
+          const catMem = mem.filter(m => (m.category || 'facts') === target);
+          const labels: Record<string, string> = { facts: 'Facts', preferences: 'Preferences', templates: 'Templates', instructions: 'Instructions' };
+          if (catMem.length > 0) {
+            memoryDisplay = `**${labels[target] || target}:**\n${catMem.map(m => `- ${m.fact}${m.version ? ` (v${m.version})` : ''}`).join('\n')}`;
+          } else {
+            memoryDisplay = `No saved ${target} yet.`;
+          }
+        }
+
+        finalText = memoryDisplay;
+        finalAction = null;
       }
 
       // Sidecar: any action can carry a save_contact hint so the LLM can
@@ -383,6 +539,9 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           });
           if (dlResult.status !== 200) throw new Error(`Download failed (HTTP ${dlResult.status})`);
 
+          // Register in file registry for future multi-file operations
+          registerFile(result.filename, result.file_id);
+
           updateAndPersist(aiMsgIdStream, {
             content: `${finalText || 'Your file is ready!'}\n\n**${result.filename}**`,
             fileUrl: filePath,
@@ -401,22 +560,185 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         return;
       }
 
-      // Handle file modification (edit, chart, convert, merge, filter)
+      // Handle file modification (edit, chart, convert, merge, filter, clean, split, rename, ocr, batch, chain) and reading (summarize, analyze, find, extract, answer)
       if (finalAction?.type === 'modify_file') {
         const operation = finalAction.target || 'edit';
-        const opLabels: Record<string, string> = { edit: 'Editing file', chart: 'Creating chart', convert: 'Converting file', merge: 'Merging files', filter: 'Filtering data' };
-        updateAndPersist(aiMsgIdStream, { content: finalText || '', isCreatingFile: true });
+        const readOps = ['summarize', 'analyze', 'find', 'extract', 'answer', 'ocr', 'validate'];
+        const isReadOp = readOps.includes(operation);
+        const opLabels: Record<string, string> = {
+          edit: 'Editing file', chart: 'Creating chart', convert: 'Converting file',
+          merge: 'Merging files', filter: 'Filtering data', clean: 'Cleaning data',
+          split: 'Splitting file', rename: 'Renaming columns', ocr: 'Reading image',
+          append: 'Adding rows', pivot: 'Creating pivot table', translate: 'Translating file',
+          highlight: 'Highlighting data', validate: 'Validating data',
+          summarize: 'Reading file', analyze: 'Analyzing file',
+          find: 'Searching file', extract: 'Extracting data', answer: 'Reading file',
+          batch: 'Processing files', chain: 'Running operations',
+        };
+        const loadingLabel = isReadOp ? (opLabels[operation] || 'Reading file') + '...' : (opLabels[operation] || 'Processing file') + '...';
+        updateAndPersist(aiMsgIdStream, { content: finalText || loadingLabel, isCreatingFile: !isReadOp, isProcessing: isReadOp });
         setLoading(false);
         setIsCreating(true);
         cancelRef.current = false;
-        // Find the most recent file_id from messages
-        let lastFileId: string | undefined;
-        for (let i = messagesRef.current.length - 1; i >= 0; i--) {
-          const m = messagesRef.current[i];
-          if (m.fileId) { lastFileId = m.fileId; break; }
+        // ── File ID Resolution via registry ──
+        // Multi-file ops: resolve file_ids from the action (model provides filenames, we resolve to IDs)
+        const multiFileOps = ['merge', 'compare', 'reconcile', 'batch'];
+        let resolvedFileId: string | undefined;
+        let resolvedFileIds: string[] | undefined;
+
+        if (multiFileOps.includes(operation) && finalAction.file_ids && finalAction.file_ids.length > 0) {
+          // Model provided file references — resolve names to IDs via registry
+          resolvedFileIds = [];
+          const unresolvedNames: string[] = [];
+          for (const ref of finalAction.file_ids) {
+            const id = resolveFileId(ref);
+            if (id) {
+              resolvedFileIds.push(id);
+            } else {
+              unresolvedNames.push(ref);
+            }
+          }
+          // If any filenames couldn't be resolved, tell the user
+          if (unresolvedNames.length > 0) {
+            const knownFiles = Array.from(fileRegistryRef.current.keys()).filter(k => k.includes('.')).slice(0, 10);
+            updateAndPersist(aiMsgIdStream, {
+              content: `Could not find: ${unresolvedNames.join(', ')}${knownFiles.length > 0 ? `\n\nFiles I know about:\n${knownFiles.map(f => `- ${f}`).join('\n')}` : '\n\nNo files in this session yet. Create or upload files first.'}`,
+              isCreatingFile: false,
+            });
+            setIsCreating(false);
+            return;
+          }
+        } else if (multiFileOps.includes(operation) && finalAction.text) {
+          // Fallback: try to extract filenames from the instructions text
+          const nameMatches = finalAction.text.match(/[\w\-. ]+\.\w{2,5}/g);
+          if (nameMatches && nameMatches.length >= 2) {
+            resolvedFileIds = resolveFileIds(nameMatches);
+          }
         }
-        modifyFile(operation, finalAction.text || '', lastFileId, finalAction.key || undefined).then(async (result) => {
+        // Multi-file ops with no resolved file_ids — tell user
+        if (multiFileOps.includes(operation) && (!resolvedFileIds || resolvedFileIds.length < 2)) {
+          const minFiles = operation === 'batch' ? 2 : 2;
+          updateAndPersist(aiMsgIdStream, {
+            content: `${operation} requires at least ${minFiles} files. Please specify which files to use.`,
+            isCreatingFile: false,
+          });
+          setIsCreating(false);
+          return;
+        }
+
+        // Single-file ops: resolve from registry first, fall back to message history scan
+        if (!multiFileOps.includes(operation)) {
+          // Try to find a specific file reference in the action
+          if (finalAction.file_ids?.[0]) {
+            resolvedFileId = resolveFileId(finalAction.file_ids[0]);
+          }
+          // Fall back to most recent file in chat — resolve filename from message content via registry
+          if (!resolvedFileId) {
+            for (let i = messagesRef.current.length - 1; i >= 0; i--) {
+              const m = messagesRef.current[i];
+              if (!m.fileUrl || !m.content) continue;
+              const nameMatch = m.content.match(/\*\*([^*]+\.\w+)\*\*/);
+              if (nameMatch) {
+                const regId = resolveFileId(nameMatch[1]);
+                if (regId) { resolvedFileId = regId; break; }
+              }
+            }
+          }
+          // If still no server file_id, check for user-uploaded local attachment and upload it
+          if (!resolvedFileId) {
+            for (let i = messagesRef.current.length - 1; i >= 0; i--) {
+              const m = messagesRef.current[i];
+              if (m.fileUrl && m.fileMimeType && !m.fileUrl.includes('/api/ghost/')) {
+                // This is a local file attachment — upload to backend first
+                try {
+                  updateAndPersist(aiMsgIdStream, { content: `${finalText || loadingLabel}\n\n_Uploading file..._` });
+                  const name = m.fileUrl.split('/').pop() || 'upload';
+                  const uploaded = await uploadFile(m.fileUrl, name, m.fileMimeType);
+                  resolvedFileId = uploaded.file_id;
+                  registerFile(uploaded.filename, uploaded.file_id);
+                } catch (uploadErr: any) {
+                  console.warn('Auto-upload failed:', uploadErr.message);
+                  updateAndPersist(aiMsgIdStream, {
+                    content: `File upload failed: ${uploadErr.message || 'Unknown error'}. Try again or attach the file again.`,
+                    isCreatingFile: false, isProcessing: false,
+                  });
+                  setIsCreating(false);
+                  return;
+                }
+                break;
+              }
+            }
+          }
+        }
+
+        // Validate chain_ops if present
+        let chainOps = finalAction.chain_ops;
+        if (operation === 'chain' && chainOps) {
+          // Ensure every step has an operation field
+          chainOps = chainOps.filter((step: any) => step && typeof step.operation === 'string' && step.operation.trim());
+          if (chainOps.length < 2) {
+            updateAndPersist(aiMsgIdStream, { content: 'Chain requires at least 2 valid steps.', isCreatingFile: false });
+            setIsCreating(false);
+            return;
+          }
+        }
+        const targetFormat = operation === 'convert' || operation === 'batch' ? (finalAction.key || undefined) : undefined;
+        const progressCallback = (progress: string) => {
+          updateAndPersist(aiMsgIdStream, { content: `${finalText || loadingLabel}\n\n_${progress}_` });
+        };
+        modifyFile(operation, finalAction.text || '', resolvedFileId, targetFormat, resolvedFileIds, chainOps, progressCallback).then(async (result) => {
           if (cancelRef.current) { setIsCreating(false); return; }
+          // Read operations return text instead of a file
+          if (isReadOp && result.result_text) {
+            updateAndPersist(aiMsgIdStream, {
+              content: `${finalText ? finalText + '\n\n' : ''}${result.result_text}`,
+              isCreatingFile: false,
+              isProcessing: false,
+            });
+            setIsCreating(false);
+            return;
+          }
+          // Batch operations — download zip of all files
+          if (result.batch_results) {
+            const successful = result.batch_results.filter((r: any) => r.filename && r.download_url);
+            const failed = result.batch_results.filter((r: any) => r.error);
+            // Register all successful files in the registry
+            for (const r of successful) {
+              if (r.file_id && r.filename) registerFile(r.filename, r.file_id);
+            }
+            // Download the zip file if available, otherwise first individual file
+            let downloadFilePath: string | undefined;
+            if (result.download_url && result.filename) {
+              // Zip of all files
+              try {
+                const zipUrl = `https://isibi-backend.onrender.com${result.download_url}`;
+                downloadFilePath = `${FileSystem.cacheDirectory}${result.filename}`;
+                await FileSystem.downloadAsync(zipUrl, downloadFilePath);
+                registerFile(result.filename, result.file_id);
+              } catch { downloadFilePath = undefined; }
+            } else if (successful.length > 0) {
+              // Fallback: download first file
+              try {
+                const dlUrl = `https://isibi-backend.onrender.com${successful[0].download_url}`;
+                downloadFilePath = `${FileSystem.cacheDirectory}${successful[0].filename}`;
+                await FileSystem.downloadAsync(dlUrl, downloadFilePath);
+              } catch { downloadFilePath = undefined; }
+            }
+            let batchMsg = `${finalText || 'Batch complete!'}\n\n`;
+            batchMsg += `**${successful.length} files processed**${failed.length > 0 ? `, ${failed.length} failed` : ''}:\n`;
+            for (const r of successful) batchMsg += `- **${r.filename}**\n`;
+            for (const r of failed) batchMsg += `- ❌ ${r.error}\n`;
+            if (result.filename?.endsWith('.zip')) batchMsg += `\n📦 **${result.filename}** — all files zipped for download.`;
+            updateAndPersist(aiMsgIdStream, {
+              content: batchMsg,
+              fileUrl: downloadFilePath,
+              isCreatingFile: false,
+            });
+            setIsCreating(false);
+            notify('Batch Complete', `${successful.length} files processed`, 1);
+            return;
+          }
+          // File operations — download the result
           const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
           // Ensure filename has an extension so FileViewer can identify the type
           let fname = result.filename;
@@ -427,8 +749,16 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
             headers: { Authorization: `Bearer ${dlToken}` },
           });
           if (dlResult.status !== 200) throw new Error(`Download failed (HTTP ${dlResult.status})`);
+          // Register in file registry for future multi-file operations
+          if (result.file_id && result.filename) registerFile(result.filename, result.file_id);
+          // Include chain step info if available
+          let successMsg = `${finalText || 'Your modified file is ready!'}\n\n**${result.filename}**`;
+          if ((result as any).completed_steps) {
+            successMsg += `\n_Steps completed: ${(result as any).completed_steps.join(' → ')}_`;
+            if ((result as any).failed_step) successMsg += `\n_⚠️ Failed at: ${(result as any).failed_step}_`;
+          }
           updateAndPersist(aiMsgIdStream, {
-            content: `${finalText || 'Your modified file is ready!'}\n\n**${fname}**`,
+            content: successMsg,
             fileUrl: filePath,
             fileId: result.file_id,
             isCreatingFile: false,
@@ -438,7 +768,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         }).catch(e => {
           setIsCreating(false);
           if (cancelRef.current) return;
-          updateAndPersist(aiMsgIdStream, { content: 'File modification failed: ' + (e.message || 'Unknown error'), isCreatingFile: false });
+          updateAndPersist(aiMsgIdStream, { content: 'File operation failed: ' + (e.message || 'Unknown error'), isCreatingFile: false, isProcessing: false });
         });
         return;
       }

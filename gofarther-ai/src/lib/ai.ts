@@ -274,20 +274,44 @@ export async function createFile(description: string, fileType: string = 'pdf', 
   throw new Error(`File creation timed out after ${((Date.now() - t0) / 1000).toFixed(1)}s (job=${job_id}, polled 90 times)`);
 }
 
-/** Modify an existing file (edit, chart, convert, merge, filter) */
-export async function modifyFile(operation: string, instructions: string, fileId?: string, targetFormat?: string): Promise<{ file_id: string; filename: string; download_url: string }> {
+/** Upload a local file to the backend so it gets a file_id for modify operations */
+export async function uploadFile(fileUri: string, filename: string, mimeType: string): Promise<{ file_id: string; filename: string; download_url: string }> {
+  await checkNetwork();
+  const headers = await authHeaders();
+  const form = new FormData();
+  form.append('file', { uri: fileUri, name: filename, type: mimeType } as any);
+  const h: any = { ...headers };
+  delete h['Content-Type'];
+  delete h['content-type'];
+  const res = await fetchWithTimeout(`${TOOLS_BASE}/upload-file`, {
+    method: 'POST', headers: h, body: form as any,
+  }, 60000);
+  if (!res.ok) throw new Error('File upload failed');
+  return res.json();
+}
+
+/** Modify an existing file (edit, chart, convert, merge, filter, clean, split, rename, ocr, batch, chain) or read it (summarize, analyze, find, extract, answer) */
+export async function modifyFile(
+  operation: string, instructions: string, fileId?: string, targetFormat?: string,
+  fileIds?: string[], chainOps?: { operation: string; instructions?: string; target_format?: string }[],
+  onProgress?: (progress: string) => void
+): Promise<{ file_id: string; filename: string; download_url: string; result_text?: string; batch_results?: any[]; completed_steps?: string[]; failed_step?: string }> {
   await checkNetwork();
   const headers = await authHeaders();
   const t0 = Date.now();
   console.log(`[modifyFile] starting op=${operation} fileId=${fileId} instructions="${(instructions || '').slice(0, 80)}"`);
 
+  const body: any = { operation, instructions, file_id: fileId, target_format: targetFormat };
+  if (fileIds) body.file_ids = fileIds;
+  if (chainOps) body.chain_ops = chainOps;
+
   const startRes = await fetchWithTimeout(`${TOOLS_BASE}/modify-file-async`, {
     method: 'POST', headers,
-    body: JSON.stringify({ operation, instructions, file_id: fileId, target_format: targetFormat }),
+    body: JSON.stringify(body),
   }, 90000);
   if (!startRes.ok) {
-    const body = await startRes.text().catch(() => '');
-    throw new Error(`File modify failed to start (HTTP ${startRes.status}) [${((Date.now() - t0) / 1000).toFixed(1)}s] ${body.slice(0, 200)}`);
+    const errBody = await startRes.text().catch(() => '');
+    throw new Error(`File modify failed to start (HTTP ${startRes.status}) [${((Date.now() - t0) / 1000).toFixed(1)}s] ${errBody.slice(0, 200)}`);
   }
   const { job_id } = await startRes.json();
   console.log(`[modifyFile] job=${job_id} started in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
@@ -300,12 +324,13 @@ export async function modifyFile(operation: string, instructions: string, fileId
       }, 10000);
       if (!pollRes.ok) continue;
       const job = await pollRes.json();
+      if (job.progress && onProgress) onProgress(job.progress);
       if (job.status === 'done') {
         console.log(`[modifyFile] job=${job_id} DONE in ${((Date.now() - t0) / 1000).toFixed(1)}s file=${job.filename}`);
-        return { file_id: job.file_id, filename: job.filename, download_url: job.download_url };
+        return { file_id: job.file_id, filename: job.filename, download_url: job.download_url, result_text: job.result_text, batch_results: job.batch_results, completed_steps: job.completed_steps, failed_step: job.failed_step };
       }
       if (job.status === 'failed') {
-        throw new Error(`File modify failed [${((Date.now() - t0) / 1000).toFixed(1)}s] job=${job_id}: ${job.error || 'Unknown error'}`);
+        throw new Error(`File modify failed [${((Date.now() - t0) / 1000).toFixed(1)}s] job=${job_id}: ${job.error || 'File modification failed'}`);
       }
     } catch (e: any) {
       if (e.message?.includes('failed')) throw e;
