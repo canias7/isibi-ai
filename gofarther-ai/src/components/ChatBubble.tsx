@@ -51,6 +51,80 @@ function PulsingText({ text }: { text: string }) {
   );
 }
 
+/** Generated-image thumbnail with tap-to-fullscreen viewer + Save/Share. */
+function ChatImage({ uri }: { uri: string }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<'save' | 'share' | null>(null);
+
+  const toLocalFile = async (): Promise<string> => {
+    if (uri.startsWith('file://')) return uri;
+    const path = FileSystem.cacheDirectory + `img_${Date.now()}.png`;
+    const dl = await FileSystem.downloadAsync(uri, path);
+    return dl.uri;
+  };
+
+  const onSave = async () => {
+    setBusy('save');
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to save.'); return; }
+      const localUri = await toLocalFile();
+      await MediaLibrary.saveToLibraryAsync(localUri);
+      successHaptic();
+      Alert.alert('Saved', 'Image saved to your photo library.');
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not save');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onShare = async () => {
+    setBusy('share');
+    try {
+      if (!(await Sharing.isAvailableAsync())) { Alert.alert('Not available', 'Sharing is not available on this device.'); return; }
+      const localUri = await toLocalFile();
+      await Sharing.shareAsync(localUri);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not share');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <>
+      <Pressable onPress={() => setOpen(true)} hitSlop={0}>
+        <Image
+          source={{ uri }}
+          style={{ width: 240, height: 240, borderRadius: 16, marginTop: 8, backgroundColor: '#eee' }}
+          resizeMode="cover"
+          onError={(e) => Alert.alert('Image Error', e.nativeEvent?.error || 'Failed to load')}
+        />
+      </Pressable>
+      <Modal visible={open} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setOpen(false)}>
+        <View style={s.viewerRoot}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setOpen(false)} />
+          <TouchableOpacity onPress={() => setOpen(false)} style={s.viewerClose} hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }} accessibilityLabel="Close image" accessibilityRole="button">
+            <Ionicons name="close" size={30} color="#fff" />
+          </TouchableOpacity>
+          <Image source={{ uri }} style={s.viewerImage} resizeMode="contain" />
+          <View style={s.viewerBtns} pointerEvents="box-none">
+            <TouchableOpacity style={s.viewerBtn} activeOpacity={0.7} onPress={onSave} disabled={busy !== null} accessibilityLabel="Save image" accessibilityRole="button">
+              {busy === 'save' ? <ActivityIndicator color="#fff" /> : <Ionicons name="download-outline" size={20} color="#fff" />}
+              <Text style={s.viewerBtnText}>Save</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.viewerBtn} activeOpacity={0.7} onPress={onShare} disabled={busy !== null} accessibilityLabel="Share image" accessibilityRole="button">
+              {busy === 'share' ? <ActivityIndicator color="#fff" /> : <Ionicons name="share-outline" size={20} color="#fff" />}
+              <Text style={s.viewerBtnText}>Share</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+}
+
 /** Format timestamp as "2:30 PM" */
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -177,33 +251,7 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               )}
             </View>
           )}
-          {item.imageUrl ? (
-            <>
-              <Text style={{ fontSize: 11, color: 'blue', padding: 4, backgroundColor: 'yellow', marginTop: 6 }} selectable numberOfLines={3}>
-                URL: {item.imageUrl}
-              </Text>
-              <Image
-                source={{ uri: item.imageUrl }}
-                style={{ width: 240, height: 240, borderRadius: 16, marginTop: 8, backgroundColor: '#eee' }}
-                resizeMode="cover"
-                onError={(e) => Alert.alert('Image Error', e.nativeEvent.error || 'Failed to load')}
-              />
-              <TouchableOpacity style={[s.fileBtn, { alignSelf: 'flex-start', marginTop: 8 }]} activeOpacity={0.7} onPress={async () => {
-                try {
-                  const { status } = await MediaLibrary.requestPermissionsAsync();
-                  if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to save.'); return; }
-                  const uri = FileSystem.cacheDirectory + `img_${Date.now()}.png`;
-                  await FileSystem.downloadAsync(item.imageUrl!, uri);
-                  await MediaLibrary.saveToLibraryAsync(uri);
-                  successHaptic();
-                  Alert.alert('Saved', 'Image saved to your photo library.');
-                } catch (e: any) { Alert.alert('Error', e.message || 'Could not save'); }
-              }}>
-                <Ionicons name="download-outline" size={18} color={colors.text} />
-                <Text style={[s.fileBtnText, { color: colors.text }]}>Save</Text>
-              </TouchableOpacity>
-            </>
-          ) : null}
+          {item.imageUrl ? <ChatImage uri={item.imageUrl} /> : null}
           {renderAction()}
           {item.stats && (
             <Text style={[s.statsText, { color: colors.textDim }]}>
@@ -252,6 +300,12 @@ const s = StyleSheet.create({
   fileViewerTitle: { fontSize: 16, fontWeight: '600', flex: 1 },
   fileViewerClose: { fontSize: 17, fontWeight: '600', color: '#007AFF', marginLeft: 16 },
   chatImage: { width: 240, height: 240, borderRadius: 16, marginTop: 8 },
+  viewerRoot: { flex: 1, backgroundColor: 'rgba(0,0,0,0.96)', justifyContent: 'center', alignItems: 'center' },
+  viewerClose: { position: 'absolute', top: Platform.OS === 'ios' ? 56 : 28, left: 18, zIndex: 10, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
+  viewerImage: { width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.75 },
+  viewerBtns: { position: 'absolute', bottom: Platform.OS === 'ios' ? 54 : 36, flexDirection: 'row', gap: 14 },
+  viewerBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 22, paddingVertical: 12, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.15)' },
+  viewerBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   imageBtns: { flexDirection: 'row', gap: 8, marginTop: 8 },
   imageBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: '#f0f0f0' },
   imageBtnText: { fontSize: 13, fontWeight: '600' },
