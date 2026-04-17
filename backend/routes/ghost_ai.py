@@ -38,7 +38,8 @@ CLAUDE_TOOLS = [
     {"name": "read_url", "description": "Read and summarize a webpage", "input_schema": {"type": "object", "properties": {"url": {"type": "string"}, "question": {"type": "string", "description": "What to look for on the page"}}, "required": ["url"]}},
     {"name": "run_code", "description": "Write and execute Python code", "input_schema": {"type": "object", "properties": {"description": {"type": "string", "description": "What the code should do"}}, "required": ["description"]}},
     {"name": "translate", "description": "Translate text to another language", "input_schema": {"type": "object", "properties": {"text": {"type": "string"}, "target_language": {"type": "string"}}, "required": ["text", "target_language"]}},
-    {"name": "generate_image", "description": "Generate an image with DALL-E", "input_schema": {"type": "object", "properties": {"description": {"type": "string"}}, "required": ["description"]}},
+    {"name": "generate_image", "description": "Generate a new image from a text description", "input_schema": {"type": "object", "properties": {"description": {"type": "string"}}, "required": ["description"]}},
+    {"name": "edit_image", "description": "Edit or modify an image the user has sent. Use when the user uploads/sends a photo and asks to change it (remove background, change colors, add effects, style transfer, etc.)", "input_schema": {"type": "object", "properties": {"edit_prompt": {"type": "string", "description": "What to change about the image"}}, "required": ["edit_prompt"]}},
     {"name": "call", "description": "Make a phone call", "input_schema": {"type": "object", "properties": {"target": {"type": "string", "description": "Phone number or contact name"}}, "required": ["target"]}},
     {"name": "sms", "description": "Send a text message", "input_schema": {"type": "object", "properties": {"target": {"type": "string", "description": "Phone number or contact name"}, "text": {"type": "string", "description": "Message body"}}, "required": ["target", "text"]}},
     {"name": "email", "description": "Send an email", "input_schema": {"type": "object", "properties": {"target": {"type": "string", "description": "Email address"}, "subject": {"type": "string"}, "body": {"type": "string"}}, "required": ["target", "subject", "body"]}},
@@ -75,6 +76,12 @@ class VisionRequest(BaseModel):
 
 
 class ImageRequest(BaseModel):
+    prompt: str
+    size: Optional[str] = "1024x1024"
+
+
+class ImageEditRequest(BaseModel):
+    image_base64: str
     prompt: str
     size: Optional[str] = "1024x1024"
 
@@ -156,6 +163,7 @@ async def chat_proxy(
             "run_code": {"type": "run_code", "target": inp.get("description", "")},
             "translate": {"type": "translate", "target": inp.get("text", ""), "text": inp.get("target_language", "")},
             "generate_image": {"type": "generate_image", "target": inp.get("description", "")},
+            "edit_image": {"type": "edit_image", "target": inp.get("edit_prompt", "")},
             "call": {"type": "call", "target": inp.get("target", "")},
             "sms": {"type": "sms", "target": inp.get("target", ""), "text": inp.get("text", "")},
             "email": {"type": "email", "target": inp.get("target", ""), "key": inp.get("subject", ""), "text": inp.get("body", "")},
@@ -289,6 +297,7 @@ async def chat_stream_proxy(
                                 "run_code": {"type": "run_code", "target": inp.get("description", "")},
                                 "translate": {"type": "translate", "target": inp.get("text", ""), "text": inp.get("target_language", "")},
                                 "generate_image": {"type": "generate_image", "target": inp.get("description", "")},
+                                "edit_image": {"type": "edit_image", "target": inp.get("edit_prompt", "")},
                                 "call": {"type": "call", "target": inp.get("target", "")},
                                 "sms": {"type": "sms", "target": inp.get("target", ""), "text": inp.get("text", "")},
                                 "email": {"type": "email", "target": inp.get("target", ""), "key": inp.get("subject", ""), "text": inp.get("body", "")},
@@ -424,6 +433,75 @@ async def serve_generated_image(file_id: str):
     except Exception as e:
         logger.warning(f"Image serve failed: {e}")
     raise HTTPException(404, "Image not found")
+
+
+@router.post("/image/edit")
+async def image_edit_proxy(req: ImageEditRequest, authorization: str = Header(...)):
+    """Edit an image using GPT-4o image editing."""
+    _verify_auth(authorization)
+    if not OPENAI_KEY:
+        raise HTTPException(500, "OpenAI API key not configured on server")
+
+    import base64 as _b64, uuid as _uuid
+
+    try:
+        img_bytes = _b64.b64decode(req.image_base64)
+    except Exception:
+        raise HTTPException(400, "Invalid base64 image data")
+
+    async with httpx.AsyncClient(timeout=180) as client:
+        files = {
+            "image": ("image.png", img_bytes, "image/png"),
+        }
+        data = {
+            "model": "gpt-image-1",
+            "prompt": req.prompt,
+            "size": req.size if req.size in ("1024x1024", "1536x1024", "1024x1536", "auto") else "auto",
+        }
+        res = await client.post(
+            "https://api.openai.com/v1/images/edits",
+            headers={"Authorization": f"Bearer {OPENAI_KEY}"},
+            files=files,
+            data=data,
+            timeout=180,
+        )
+        if res.status_code != 200:
+            detail = "Image edit error"
+            try:
+                detail = res.json().get("error", {}).get("message", detail)
+            except Exception:
+                pass
+            raise HTTPException(res.status_code, detail)
+
+        resp_data = res.json()
+        img_data = (resp_data.get("data") or [{}])[0]
+        b64_result = img_data.get("b64_json", "")
+        url_result = img_data.get("url", "")
+
+        if not b64_result and not url_result:
+            raise HTTPException(500, "No edited image returned")
+
+        if b64_result:
+            result_bytes = _b64.b64decode(b64_result)
+        elif url_result:
+            dl = await client.get(url_result, timeout=30)
+            if dl.status_code == 200:
+                result_bytes = dl.content
+            else:
+                return {"url": url_result}
+
+        file_id = str(_uuid.uuid4())
+        try:
+            from utils.file_storage import upload_to_r2, USE_CLOUD
+            if USE_CLOUD:
+                await upload_to_r2(f"ghost-images/{file_id}.png", result_bytes, content_type="image/png")
+                return {"url": f"/api/ghost/ai/images/{file_id}"}
+        except Exception as upload_err:
+            logger.warning(f"R2 edited image upload failed: {upload_err}")
+
+        if url_result:
+            return {"url": url_result}
+        return {"url": f"data:image/png;base64,{b64_result}"}
 
 
 @router.post("/tts")

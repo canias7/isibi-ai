@@ -188,6 +188,27 @@ export async function generateImage(prompt: string): Promise<string> {
   return url;
 }
 
+/** Edit an image using GPT-4o. Takes base64 image + edit prompt, returns URL. */
+export async function editImage(imageBase64: string, prompt: string): Promise<string> {
+  await checkNetwork();
+  const headers = await authHeaders();
+  const res = await fetchWithTimeout(`${BASE}/image/edit`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ image_base64: imageBase64, prompt, size: '1024x1024' }),
+  }, 180000);
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.detail || `Image edit error (${res.status})`);
+  }
+  const data = await res.json();
+  let url = data.url || '';
+  if (url.startsWith('/api/')) {
+    url = 'https://isibi-backend.onrender.com' + url;
+  }
+  return url;
+}
+
 /** Text-to-speech via OpenAI TTS API. Returns {audio_base64, format}. */
 export async function textToSpeech(text: string, voice: string = 'nova'): Promise<{ audio_base64: string; format: string }> {
   const headers = await authHeaders();

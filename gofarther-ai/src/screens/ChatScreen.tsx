@@ -207,6 +207,7 @@ All Excel files include real formulas (SUM, AVERAGE, etc.), not static values.
 OTHER TOOLS:
 {"type":"remember","target":"fact to remember"}
 {"type":"generate_image","target":"image description"}
+{"type":"edit_image","target":"what to change about the image"}
 {"type":"web_search","target":"search query"}
 {"type":"read_url","target":"https://url","text":"question about the page"}
 {"type":"translate","target":"text to translate","text":"target language"}

@@ -16,6 +16,7 @@ export interface ChatMsg {
   action?: ActionPayload;
   actionStatus?: 'confirm' | 'running' | 'done' | 'failed' | 'cancelled';
   imageUrl?: string;
+  imageBase64?: string;
   fileUrl?: string;
   fileId?: string;  // backend file_id for modify operations
   fileMimeType?: string;
