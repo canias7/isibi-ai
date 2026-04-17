@@ -37,3 +37,4 @@ Pillow==11.1.0
 botbuilder-core>=4.16.0
 botbuilder-integration-aiohttp>=4.16.0
 botbuilder-schema>=4.16.0
+pytz>=2024.1

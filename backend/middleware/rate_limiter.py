@@ -175,6 +175,21 @@ class RateLimiterMiddleware:
             await self.app(scope, receive, send)
             return
 
+        # Owner bypass — the support@isibi.ai account never gets rate-limited.
+        # We peek at the Bearer token; if it decodes to the owner email, skip.
+        headers = dict(scope.get("headers", []))
+        auth = headers.get(b"authorization", b"")
+        if auth.startswith(b"Bearer "):
+            token = auth[7:].decode("utf-8", errors="ignore")
+            try:
+                from routes.ghost_auth import verify_ghost_token
+                payload = verify_ghost_token(token)
+                if payload.get("email", "").lower() == "support@isibi.ai":
+                    await self.app(scope, receive, send)
+                    return
+            except Exception:
+                pass  # fall through to normal rate limiting
+
         path = scope.get("path", "/")
         ip = _get_client_ip(scope)
         now = time.time()
