@@ -392,35 +392,42 @@ async def image_proxy(req: ImageRequest, authorization: str = Header(...)):
         if not url and not b64:
             raise HTTPException(500, "No image returned")
 
-        # Upload to R2 so we serve a real URL (not a huge base64 blob)
         import uuid as _uuid, base64 as _b64
         file_id = str(_uuid.uuid4())
         if b64:
             img_bytes = _b64.b64decode(b64)
-        elif url:
+        else:
             dl = await client.get(url, timeout=30)
-            if dl.status_code == 200:
-                img_bytes = dl.content
-            else:
-                return {"url": url}
+            if dl.status_code != 200:
+                raise HTTPException(502, "Failed to fetch generated image")
+            img_bytes = dl.content
 
-        try:
-            from utils.file_storage import upload_to_r2, USE_CLOUD
-            if USE_CLOUD:
-                await upload_to_r2(f"ghost-images/{file_id}.png", img_bytes, content_type="image/png")
-                return {"url": f"/api/ghost/ai/images/{file_id}"}
-        except Exception as upload_err:
-            logger.warning(f"R2 image upload failed: {upload_err}")
-
-        if url:
-            return {"url": url}
-        return {"url": f"data:image/png;base64,{b64}"}
+        # Store in ghost_tools FILE_STORE (in-memory + R2 when available).
+        # Always return an HTTP URL — never a data URL.
+        from routes.ghost_tools import _store_file
+        await _store_file(file_id, f"generated_{file_id}.png", "image/png", img_bytes)
+        logger.info(f"[image_proxy] stored image {file_id} ({len(img_bytes)} bytes)")
+        return {"url": f"/api/ghost/ai/images/{file_id}"}
 
 
 @router.get("/images/{file_id}")
 async def serve_generated_image(file_id: str):
-    """Serve a generated image from R2 storage."""
+    """Serve a generated image — checks in-memory FILE_STORE first, then R2."""
     from fastapi.responses import Response
+    # Try FILE_STORE (memory cache + R2 fallback via _get_file)
+    try:
+        from routes.ghost_tools import _get_file
+        f = await _get_file(file_id)
+        if f and f.get("data"):
+            import base64 as _b64
+            return Response(
+                content=_b64.b64decode(f["data"]),
+                media_type=f.get("mime", "image/png"),
+                headers={"Cache-Control": "public, max-age=604800"},
+            )
+    except Exception as e:
+        logger.warning(f"FILE_STORE image lookup failed for {file_id}: {e}")
+    # Legacy fallback: direct R2 lookup under the old ghost-images/ prefix
     try:
         from utils.file_storage import download_from_r2
         result = await download_from_r2(f"ghost-images/{file_id}.png")
