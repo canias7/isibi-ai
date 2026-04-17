@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 import time
 
 logger = logging.getLogger("request_logger")
@@ -42,10 +43,8 @@ class RequestLoggerMiddleware:
         duration_ms = int((time.perf_counter() - start) * 1000)
         method = scope.get("method", "?")
 
-        logger.info(
-            "%s %s %s %dms",
-            method,
-            path,
-            status_code,
-            duration_ms,
-        )
+        # Log via standard logger AND raw stdout — belt-and-braces so Render
+        # always surfaces the line regardless of logging config.
+        line = f"[req] {method} {path} {status_code} {duration_ms}ms"
+        logger.info(line)
+        print(line, file=sys.stdout, flush=True)
