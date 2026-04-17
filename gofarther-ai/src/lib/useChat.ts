@@ -483,6 +483,8 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         updateAndPersist(aiMsgIdStream, { content: 'Generating image...' });
         setLoading(false);
         trackAsync(generateImage(finalAction.target || '', finalAction.key || '1024x1024')).then(async (remoteUrl) => {
+          // DIAGNOSTIC: show what the backend returned
+          Alert.alert('DIAG 1: backend returned', `remoteUrl = ${JSON.stringify(remoteUrl)?.slice(0, 300)}`);
           if (!remoteUrl) {
             updateAndPersist(aiMsgIdStream, { content: 'Image generation returned empty URL.' });
             return;
@@ -491,13 +493,17 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           try {
             const localPath = FileSystem.cacheDirectory + `gen_${Date.now()}.png`;
             const dl = await FileSystem.downloadAsync(remoteUrl, localPath);
+            // DIAGNOSTIC: show download result
+            Alert.alert('DIAG 2: download OK', `status=${dl?.status}\nuri=${dl?.uri?.slice(0, 200)}`);
             updateAndPersist(aiMsgIdStream, { content: 'Here\'s your image:', imageUrl: dl.uri });
-          } catch {
-            // Fallback to remote URL if download fails
+          } catch (dlErr: any) {
+            // DIAGNOSTIC: show download failure + remote URL fallback
+            Alert.alert('DIAG 2: download FAILED', `err=${dlErr?.message || 'unknown'}\n\nfalling back to remote URL:\n${remoteUrl.slice(0, 200)}`);
             updateAndPersist(aiMsgIdStream, { content: 'Here\'s your image:', imageUrl: remoteUrl });
           }
           notify('Image Ready', 'Your AI-generated image is ready', 1);
         }).catch((e: any) => {
+          Alert.alert('DIAG 0: generateImage threw', e?.message || String(e));
           updateAndPersist(aiMsgIdStream, { content: 'Image generation failed: ' + e.message });
         });
         return;
