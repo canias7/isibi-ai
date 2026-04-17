@@ -109,7 +109,7 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
 
   const isUser = item.role === 'user';
 
-  return (
+  return (<>
     <TouchableOpacity activeOpacity={0.8} onLongPress={onLongPress} delayLongPress={400} accessibilityLabel={`${isUser ? 'You' : aiName}: ${item.content.slice(0, 50)}`} accessibilityRole="text">
       <View style={[s.msgRow, isUser && s.msgRowUser]}>
         <View style={isUser ? { maxWidth: '82%' } : { flex: 1 }}>
@@ -177,7 +177,11 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               )}
             </View>
           )}
-          {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={s.chatImage} resizeMode="cover" />}
+          {item.imageUrl && (
+            <TouchableOpacity activeOpacity={0.9} onPress={() => setImageViewerOpen(true)}>
+              <Image source={{ uri: item.imageUrl }} style={s.chatImage} resizeMode="cover" />
+            </TouchableOpacity>
+          )}
           {renderAction()}
           {item.stats && (
             <Text style={[s.statsText, { color: colors.textDim }]}>
@@ -204,7 +208,44 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
         </View>
       </View>
     </TouchableOpacity>
-  );
+    {item.imageUrl && imageViewerOpen && (
+      <Modal visible transparent animationType="fade" onRequestClose={() => setImageViewerOpen(false)}>
+        <View style={s.imgvOverlay}>
+          <View style={s.imgvTopBar}>
+            <TouchableOpacity style={s.imgvTopBtn} onPress={() => setImageViewerOpen(false)}>
+              <Ionicons name="close" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity style={s.imgvPillBtn} onPress={async () => {
+              try {
+                const { status } = await MediaLibrary.requestPermissionsAsync();
+                if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to save.'); return; }
+                const uri = FileSystem.cacheDirectory + `img_${Date.now()}.png`;
+                await FileSystem.downloadAsync(item.imageUrl!, uri);
+                await MediaLibrary.saveToLibraryAsync(uri);
+                successHaptic();
+                Alert.alert('Saved', 'Image saved to your photo library.');
+              } catch (e: any) { Alert.alert('Error', e.message || 'Could not save'); }
+            }}>
+              <Text style={s.imgvPillText}>Save</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.imgvPillBtn, s.imgvPillWhite]} onPress={async () => {
+              try {
+                const uri = FileSystem.cacheDirectory + `share_${Date.now()}.png`;
+                await FileSystem.downloadAsync(item.imageUrl!, uri);
+                if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
+              } catch (e: any) { Alert.alert('Error', e.message || 'Could not share'); }
+            }}>
+              <Text style={[s.imgvPillText, { color: '#000' }]}>Share</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={s.imgvCenter}>
+            <Image source={{ uri: item.imageUrl }} style={s.imgvImage} resizeMode="contain" />
+          </View>
+        </View>
+      </Modal>
+    )}
+  </>);
 }
 
 export default React.memo(ChatBubble);
