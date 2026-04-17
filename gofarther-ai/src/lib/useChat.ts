@@ -326,7 +326,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
       if (finalAction?.type === 'generate_image') {
         updateAndPersist(aiMsgIdStream, { content: 'Generating image...' });
         setLoading(false);
-        trackAsync(generateImage(finalAction.target || '')).then(imageUrl => {
+        trackAsync(generateImage(finalAction.target || '', finalAction.key || '1024x1024')).then(imageUrl => {
           updateAndPersist(aiMsgIdStream, { content: 'Here\'s your image:', imageUrl: imageUrl || undefined });
           if (imageUrl) notify('Image Ready', 'Your AI-generated image is ready', 1);
         }).catch((e: any) => {
