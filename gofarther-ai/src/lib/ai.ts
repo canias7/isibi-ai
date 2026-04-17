@@ -167,14 +167,14 @@ export async function analyzeImage(base64: string, prompt: string = 'What do you
   return data.text || 'Could not analyze image';
 }
 
-/** Generate an image with DALL-E via backend proxy */
-export async function generateImage(prompt: string): Promise<string> {
+/** Generate an image with GPT-4o via backend proxy */
+export async function generateImage(prompt: string, size: string = '1024x1024'): Promise<string> {
   await checkNetwork();
   const headers = await authHeaders();
   const res = await fetchWithTimeout(`${BASE}/image`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ prompt, size: '1024x1024' }),
+    body: JSON.stringify({ prompt, size }),
   }, 120000);
   if (!res.ok) {
     const err = await res.json().catch(() => null);
