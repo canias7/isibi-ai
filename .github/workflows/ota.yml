@@ -1,0 +1,69 @@
+name: OTA Update (Expo Updates on GitHub Pages)
+
+# Publishes an over-the-air JS/asset update — replaces EAS Update.
+# `expo export` produces the bundle + assets; we generate static per-platform
+# manifests and publish everything to GitHub Pages. Installed apps poll the
+# Pages manifest (see plugins/withGithubUpdates.js) and self-update on launch.
+#
+# One-time setup: repo Settings -> Pages -> Source = "GitHub Actions".
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'App.tsx'
+      - 'index.ts'
+      - 'assets/**'
+      - 'app.json'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Don't cancel an in-progress publish; let updates finish deploying.
+concurrency:
+  group: github-pages-ota
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Export update bundle
+        env:
+          OTA_SITE_URL: ${{ steps.pages.outputs.base_url }}
+        run: npx expo export --output-dir dist
+
+      - name: Generate static manifests
+        env:
+          OTA_SITE_URL: ${{ steps.pages.outputs.base_url }}
+        run: node scripts/generate-static-manifest.mjs
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

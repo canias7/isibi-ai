@@ -1,1 +1,29 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
 dist/
+web-build/
+expo-env.d.ts
+
+# Native projects — generated on demand by `expo prebuild` (CI builds from app.json)
+/ios/
+/android/
+
+# Build / signing artifacts
+*.ipa
+*.apk
+*.aab
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+
+# Logs & OS cruft
+*.log
+.DS_Store
+
+# Local env
+.env
+.env*.local
