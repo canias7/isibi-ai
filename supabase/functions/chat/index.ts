@@ -99,10 +99,12 @@ Deno.serve(async (req: Request) => {
 
   let messages: Msg[];
   let requestedApps: string[] | undefined;
+  let tz = "UTC";
   try {
     const body = await req.json();
     messages = body.messages;
     if (Array.isArray(body.apps)) requestedApps = body.apps; // per-session connector ids
+    if (typeof body.tz === "string" && body.tz) tz = body.tz; // device timezone
     if (!Array.isArray(messages) || messages.length === 0) throw new Error("bad body");
   } catch {
     return new Response("Invalid request body — expected { messages: [...] }.", { status: 400, headers: cors });
@@ -129,11 +131,18 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  const nowUtc = new Date().toISOString().replace("T", " ").slice(0, 16) + " UTC";
+  // Current time in the user's local timezone (falls back to UTC if tz is bad).
+  let nowLocal: string;
+  try {
+    nowLocal = new Intl.DateTimeFormat("en-US", { timeZone: tz, dateStyle: "full", timeStyle: "short" }).format(new Date());
+  } catch {
+    tz = "UTC";
+    nowLocal = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", dateStyle: "full", timeStyle: "short" }).format(new Date());
+  }
   const reqBody: Record<string, unknown> = {
     model: "claude-sonnet-4-6",
     max_tokens: 8192,
-    system: `You are Go Farther, a helpful, friendly assistant inside a mobile app. The current date and time is ${nowUtc}; use it for anything time-related (e.g. calendar date ranges) instead of guessing. Be clear and concise. When connector tools are available (Gmail, Google Calendar, Google Drive, etc.), use them to act on the user's behalf — search and read email, check and create calendar events, find and read files. Always confirm details before sending an email or creating/changing anything.`,
+    system: `You are Go Farther, a helpful, friendly assistant inside a mobile app. It is currently ${nowLocal} in the user's timezone (${tz}); use this for anything time-related (e.g. calendar date ranges) instead of guessing, and ALWAYS show times to the user in their local timezone (${tz}) — never UTC. You're on a narrow phone screen: keep formatting simple. Be clear and concise. When connector tools are available (Gmail, Google Calendar, Google Drive, etc.), use them to act on the user's behalf — search and read email, check and create calendar events, find and read files. Always confirm details before sending an email or creating/changing anything.`,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     stream: true,
   };

@@ -11,6 +11,12 @@ export default function Markdown({ text }: { text: string }) {
         components={{
           // Open links in the system browser, safely.
           a: ({ node: _n, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+          // Let wide tables scroll horizontally instead of crushing columns.
+          table: ({ node: _n, ...props }) => (
+            <div className="md-table-wrap">
+              <table {...props} />
+            </div>
+          ),
         }}
       >
         {text}

@@ -27,6 +27,14 @@ export async function streamChat(
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token ?? SUPABASE_ANON_KEY;
 
+  // Device timezone so the assistant shows times in the user's local time.
+  let tz = 'UTC';
+  try {
+    tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    /* keep UTC */
+  }
+
   const res = await fetch(CHAT_API, {
     method: 'POST',
     headers: {
@@ -35,7 +43,7 @@ export async function streamChat(
       apikey: SUPABASE_ANON_KEY,
     },
     // `apps` = connector ids enabled for this session (undefined = use all connected).
-    body: JSON.stringify(apps ? { messages, apps } : { messages }),
+    body: JSON.stringify({ messages, tz, ...(apps ? { apps } : {}) }),
     signal,
   });
 
