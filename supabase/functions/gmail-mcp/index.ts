@@ -69,39 +69,71 @@ const ALLOWED: Record<string, string[]> = {
 type Tool = { name: string; description: string; inputSchema: unknown };
 const cache: Record<string, Tool[]> = {}; // per-toolkit, across warm invocations
 
-async function toolsForToolkit(toolkit: string): Promise<Tool[]> {
-  if (cache[toolkit]) return cache[toolkit];
-  const allow = new Set(ALLOWED[toolkit] ?? []);
-  if (allow.size === 0) return [];
-  const u = new URL(`${BASE}/v3.1/tools`);
-  u.searchParams.set("toolkit_slug", toolkit);
-  u.searchParams.set("limit", "500");
-  const res = await fetch(u.toString(), { headers: { "x-api-key": API_KEY } });
-  if (!res.ok) throw new Error(`Composio tools ${res.status}: ${await res.text()}`);
-  const body = await res.json();
-  const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
-  const found = items
-    .filter((t) => allow.has(t.slug))
-    .map((t) => ({
-      name: t.slug,
-      description: t.description ?? t.name ?? t.slug,
-      inputSchema: t.input_parameters ?? { type: "object", properties: {} },
-    }));
-  // Preserve our preferred order; only cache once we got results.
-  const ordered = (ALLOWED[toolkit] ?? []).map((s) => found.find((t) => t.name === s)).filter(Boolean) as Tool[];
-  if (ordered.length) cache[toolkit] = ordered;
-  return ordered;
+// Cap per toolkit so a multi-app connection doesn't flood the model with
+// hundreds of tools (which degrades tool selection + bloats every request).
+const MAX_PER_TOOLKIT = 40;
+
+function toMcp(t: any): Tool {
+  return {
+    name: t.slug,
+    description: t.description ?? t.name ?? t.slug,
+    inputSchema: t.input_parameters ?? { type: "object", properties: {} },
+  };
 }
 
-// Discover ALL tool slugs for a toolkit (used to verify/curate allowlists).
-async function discover(toolkit: string): Promise<{ slug: string; name: string }[]> {
+async function fetchTools(params: Record<string, string>): Promise<any[]> {
   const u = new URL(`${BASE}/v3.1/tools`);
-  u.searchParams.set("toolkit_slug", toolkit);
-  u.searchParams.set("limit", "500");
+  for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
   const res = await fetch(u.toString(), { headers: { "x-api-key": API_KEY } });
   if (!res.ok) throw new Error(`Composio tools ${res.status}: ${await res.text()}`);
   const body = await res.json();
-  const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
+  return body.items ?? body.data ?? (Array.isArray(body) ? body : []);
+}
+
+// Tools for a toolkit = our curated must-haves (first, in order) UNION
+// Composio's "important"/featured tools — capped. Schemas come from Composio.
+async function toolsForToolkit(toolkit: string): Promise<Tool[]> {
+  if (cache[toolkit]) return cache[toolkit];
+  const curated = ALLOWED[toolkit] ?? [];
+
+  const bySlug = new Map<string, any>();
+  // Composio's featured set for this toolkit.
+  try {
+    for (const t of await fetchTools({ toolkit_slug: toolkit, important: "true", limit: "100" })) {
+      if (t.slug && !t.is_deprecated) bySlug.set(t.slug, t);
+    }
+  } catch { /* fall back to curated only */ }
+  // Guarantee our curated must-haves are present (fetch any missing by slug).
+  const missing = curated.filter((s) => !bySlug.has(s));
+  if (missing.length) {
+    try {
+      for (const t of await fetchTools({ tool_slugs: missing.join(","), limit: String(missing.length) })) {
+        if (t.slug) bySlug.set(t.slug, t);
+      }
+    } catch { /* ignore */ }
+  }
+
+  // Order: curated first (our priority), then the rest of the important set.
+  const ordered: any[] = [];
+  const seen = new Set<string>();
+  for (const s of curated) {
+    if (bySlug.has(s)) { ordered.push(bySlug.get(s)); seen.add(s); }
+  }
+  for (const [slug, t] of bySlug) {
+    if (!seen.has(slug)) { ordered.push(t); seen.add(slug); }
+  }
+
+  const tools = ordered.slice(0, MAX_PER_TOOLKIT).map(toMcp);
+  if (tools.length) cache[toolkit] = tools;
+  return tools;
+}
+
+// Discover tool slugs for a toolkit (verification/curation helper).
+// params.discover = toolkit; params.important = "true" to count featured only.
+async function discover(toolkit: string, important?: boolean): Promise<{ slug: string; name: string }[]> {
+  const p: Record<string, string> = { toolkit_slug: toolkit, limit: "500" };
+  if (important) p.important = "true";
+  const items = await fetchTools(p);
   return items.map((t) => ({ slug: t.slug, name: t.name ?? "" }));
 }
 
@@ -159,9 +191,9 @@ Deno.serve(async (req: Request) => {
   if (typeof method === "string" && method.startsWith("notifications/")) return new Response(null, { status: 202 });
   if (method === "tools/list") {
     try {
-      // Discovery escape hatch: {method:"tools/list", params:{discover:"googlecalendar"}}
+      // Discovery escape hatch: {method:"tools/list", params:{discover:"googlecalendar", important:true}}
       const d = msg.params?.discover;
-      if (d) return J({ jsonrpc: "2.0", id, result: { tools: [], _discover: await discover(String(d)) } });
+      if (d) return J({ jsonrpc: "2.0", id, result: { tools: [], _discover: await discover(String(d), !!msg.params?.important) } });
       return J({ jsonrpc: "2.0", id, result: { tools: await listTools(apps) } });
     } catch (e) {
       return J({ jsonrpc: "2.0", id, error: { code: -32000, message: e instanceof Error ? e.message : String(e) } });
