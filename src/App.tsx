@@ -5,7 +5,7 @@ import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API, byId } from './connectorData';
 import Connectors from './Connectors';
 import Login from './Login';
-import Markdown from './Markdown';
+import AssistantMessage from './AssistantMessage';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -396,7 +396,7 @@ export default function App() {
                   return (
                     <div key={i} className={`msg ${m.role}`}>
                       <div className="bubble">
-                        {m.role === 'assistant' ? <Markdown text={m.content} /> : m.content}
+                        {m.role === 'assistant' ? <AssistantMessage text={m.content} streaming={streamingHere} /> : m.content}
                         {streamingHere && <span className="cursor" />}
                       </div>
                     </div>

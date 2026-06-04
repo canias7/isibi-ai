@@ -158,6 +158,7 @@ Deno.serve(async (req: Request) => {
   // tools as this same user id (passed in the URL) so users only touch their own data.
   let mcpServers: unknown[] | undefined;
   let mcpTools: unknown[] | undefined;
+  let emailUI = false; // expose the rich inbox-card format only when an email app is in scope
   const extraHeaders: Record<string, string> = {};
   const appUser = userFromJwt(req);
   if (appUser) {
@@ -170,6 +171,7 @@ Deno.serve(async (req: Request) => {
       apps = connected.filter((s) => wanted.has(s));
     }
     if (apps.length) {
+      emailUI = apps.includes("gmail") || apps.includes("outlook");
       const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}`;
       mcpServers = [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }];
       // Current MCP connector format (mcp-client-2025-11-20): the toolset lives
@@ -191,10 +193,14 @@ Deno.serve(async (req: Request) => {
     tz = "UTC";
     nowLocal = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", dateStyle: "full", timeStyle: "short" }).format(new Date());
   }
+  const baseSystem = `You are Go Farther, a helpful, friendly assistant inside a mobile app. It is currently ${nowLocal} in the user's timezone (${tz}); use this for anything time-related (e.g. calendar date ranges) instead of guessing, and ALWAYS show times to the user in their local timezone (${tz}) — never UTC. You're on a narrow phone screen: keep formatting simple. Be clear and concise. When connector tools are available (Gmail, Google Calendar, Google Drive, etc.), use them to act on the user's behalf — search and read email, check and create calendar events, find and read files. Always confirm details before sending an email or creating/changing anything.`;
+  // When an email app is in scope, render inbox listings as rich cards: the app
+  // turns a ```gf-emails JSON block into a styled email list.
+  const emailCardsSystem = `\n\nWhen the user asks to see, list, check, browse, or show their emails or inbox (a list of multiple messages), first fetch them with the email tool, then reply with at most one short intro sentence followed by a fenced code block tagged gf-emails containing ONLY a JSON array — one object per email — each with: "from" (sender display name), "email" (sender address), "subject", "snippet" (≤ 12 words), "time" (short label in the user's timezone, e.g. "9:41 AM", "Yesterday", "May 19"), "unread" (boolean), "starred" (boolean), and "category" (exactly one of: Lead, Finance, Security, Calendar, Promo, Personal, Update, Newsletter, Social, Other). Put nothing after the block. Do NOT use the gf-emails block when the user asks to read, summarize, draft, reply to, or send a single email — answer those normally.`;
   const reqBody: Record<string, unknown> = {
     model: "claude-sonnet-4-6",
     max_tokens: 8192,
-    system: `You are Go Farther, a helpful, friendly assistant inside a mobile app. It is currently ${nowLocal} in the user's timezone (${tz}); use this for anything time-related (e.g. calendar date ranges) instead of guessing, and ALWAYS show times to the user in their local timezone (${tz}) — never UTC. You're on a narrow phone screen: keep formatting simple. Be clear and concise. When connector tools are available (Gmail, Google Calendar, Google Drive, etc.), use them to act on the user's behalf — search and read email, check and create calendar events, find and read files. Always confirm details before sending an email or creating/changing anything.`,
+    system: baseSystem + (emailUI ? emailCardsSystem : ""),
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     stream: true,
   };
