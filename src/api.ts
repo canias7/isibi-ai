@@ -34,11 +34,12 @@ export async function fetchEmailHtml(
 
 // Fetch one attachment's bytes (base64) or hosted URL — for inline images,
 // preview, and download.
-export async function fetchAttachment(mid: string, aid: string): Promise<{ b64?: string; url?: string }> {
+export async function fetchAttachment(mid: string, aid: string, name = 'file'): Promise<{ b64?: string; url?: string }> {
   const token = await authToken();
-  const res = await fetch(`${CONNECT_API}/attachment?mid=${encodeURIComponent(mid)}&aid=${encodeURIComponent(aid)}`, {
-    headers: { authorization: `Bearer ${token}` },
-  });
+  const res = await fetch(
+    `${CONNECT_API}/attachment?mid=${encodeURIComponent(mid)}&aid=${encodeURIComponent(aid)}&name=${encodeURIComponent(name)}`,
+    { headers: { authorization: `Bearer ${token}` } },
+  );
   if (!res.ok) throw new Error(`Attachment fetch failed: ${res.status}`);
   const j = await res.json();
   if (j.error) throw new Error(j.error);

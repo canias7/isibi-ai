@@ -206,33 +206,36 @@ function EmailBody({ id, fallback }: { id: string; fallback: string }) {
   const [hasImages, setHasImages] = useState(false); // remote http images
   const [showImages, setShowImages] = useState(false);
   const [atts, setAtts] = useState<MsgAttachment[]>([]);
+  const [cidMap, setCidMap] = useState<Record<string, string>>({});
   const [lightbox, setLightbox] = useState<string | null>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     let alive = true;
-    setStatus('loading'); setShowImages(false); setHtml(''); setAtts([]);
+    setStatus('loading'); setShowImages(false); setHtml(''); setAtts([]); setCidMap({});
     (async () => {
       try {
         const r = await fetchEmailHtml(id);
         if (!alive) return;
         setAtts(r.attachments);
         setHasImages(r.hasImages);
-        // Resolve inline cid: images from the user's own attachments (safe).
-        let resolved = r.html;
+        setHtml(r.html);
+        setStatus(r.html ? 'ok' : 'fail');
+        // Resolve inline cid: images from the user's own attachments (safe — no
+        // tracking). Built as a map and applied at render, AFTER remote-image
+        // blocking, so these resolved URLs aren't treated as remote/blocked.
         const cids = [...new Set([...r.html.matchAll(/cid:([^"')\s>]+)/gi)].map((m) => m[1]))];
+        const map: Record<string, string> = {};
         for (const cid of cids) {
           const att = r.attachments.find((a) => a.contentId && (a.contentId === cid || cid.includes(a.contentId)));
           if (!att) continue;
           try {
-            const { b64, url } = await fetchAttachment(id, att.attachmentId);
+            const { b64, url } = await fetchAttachment(id, att.attachmentId, att.name);
             const src = url || (b64 ? `data:${att.mimeType || 'image/png'};base64,${b64}` : '');
-            if (src) resolved = resolved.split('cid:' + cid).join(src);
-          } catch { /* leave this one unresolved */ }
+            if (src) map[cid] = src;
+          } catch { /* leave unresolved */ }
         }
-        if (!alive) return;
-        setHtml(resolved);
-        setStatus(resolved ? 'ok' : 'fail');
+        if (alive && Object.keys(map).length) setCidMap(map);
       } catch {
         if (alive) setStatus('fail');
       }
@@ -253,7 +256,7 @@ function EmailBody({ id, fallback }: { id: string; fallback: string }) {
     const att = atts[i];
     if (!att) return;
     try {
-      const { b64, url } = await fetchAttachment(id, att.attachmentId);
+      const { b64, url } = await fetchAttachment(id, att.attachmentId, att.name);
       const src = url || (b64 ? `data:${att.mimeType || 'application/octet-stream'};base64,${b64}` : '');
       if (!src) return;
       if (mode === 'preview' && (att.mimeType || '').startsWith('image/')) {
@@ -274,6 +277,9 @@ function EmailBody({ id, fallback }: { id: string; fallback: string }) {
   if (status === 'loading') return <div className="gf-msg-body gf-body-loading">Loading email…</div>;
   if (status === 'fail') return <div className="gf-msg-body">{fallback}</div>;
 
+  let doc = showImages ? html : stripRemoteImages(html);
+  for (const [cid, src] of Object.entries(cidMap)) doc = doc.split('cid:' + cid).join(src);
+
   return (
     <>
       <div className="gf-body-wrap">
@@ -285,7 +291,7 @@ function EmailBody({ id, fallback }: { id: string; fallback: string }) {
           className="gf-body-frame"
           title="Email"
           sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-          srcDoc={FRAME_HEAD + (showImages ? html : stripRemoteImages(html)) + FRAME_FOOT}
+          srcDoc={FRAME_HEAD + doc + FRAME_FOOT}
           onLoad={() => { fit(); setTimeout(fit, 500); }}
         />
       </div>

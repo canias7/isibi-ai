@@ -241,18 +241,21 @@ async function fetchMessageHtml(uid: string, messageId: string): Promise<{ html:
   return { html, hasImages, attachments };
 }
 // Fetch one attachment's bytes (base64) or a hosted URL, for preview/download.
-async function getAttachment(uid: string, mid: string, aid: string): Promise<{ b64: string | null; url: string | null; mimeType: string | null }> {
+// GMAIL_GET_ATTACHMENT requires file_name and returns a temporary hosted URL
+// (data.file.s3url) rather than base64.
+async function getAttachment(uid: string, mid: string, aid: string, fileName: string): Promise<{ b64: string | null; url: string | null; mimeType: string | null }> {
   const res = await fetch(`${COMPOSIO_EXEC}/GMAIL_GET_ATTACHMENT`, {
     method: "POST",
     headers: { "x-api-key": API_KEY, "content-type": "application/json" },
-    body: JSON.stringify({ user_id: uid, arguments: { message_id: mid, attachment_id: aid, user_id: "me" } }),
+    body: JSON.stringify({ user_id: uid, arguments: { message_id: mid, attachment_id: aid, file_name: fileName, user_id: "me" } }),
   });
   const body = await res.json().catch(() => ({}));
-  const d = body?.data ?? body;
-  const rawB64 = d?.data?.data ?? (typeof d?.data === "string" ? d.data : null) ?? d?.attachmentData ?? d?.base64 ?? (typeof d === "string" ? d : null);
+  const d = body?.data ?? {};
+  const f = (d && typeof d.file === "object") ? d.file : d;
+  const url = f?.s3url ?? f?.url ?? f?.download_url ?? null;
+  const mimeType = f?.mimetype ?? f?.mimeType ?? null;
+  const rawB64 = typeof f?.data === "string" ? f.data : (typeof d?.data === "string" ? d.data : null);
   const b64 = typeof rawB64 === "string" ? rawB64.replace(/-/g, "+").replace(/_/g, "/") : null;
-  const url = d?.file ?? d?.s3url ?? d?.url ?? d?.download_url ?? d?.file_url ?? null;
-  const mimeType = d?.mimeType ?? d?.mime_type ?? null;
   return { b64, url, mimeType };
 }
 
@@ -356,9 +359,10 @@ Deno.serve(async (req: Request) => {
     const uid = await verifyUser(token);
     const mid = url.searchParams.get("mid");
     const aid = url.searchParams.get("aid");
+    const name = url.searchParams.get("name") ?? "file";
     if (!uid || !mid || !aid) return json(req, { error: "unauthorized" });
     try {
-      return json(req, await getAttachment(uid, mid, aid));
+      return json(req, await getAttachment(uid, mid, aid, name));
     } catch (e) {
       return json(req, { error: e instanceof Error ? e.message : String(e) });
     }
