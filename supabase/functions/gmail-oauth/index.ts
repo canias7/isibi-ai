@@ -164,6 +164,61 @@ async function ensureAuthConfig(toolkit: string): Promise<string> {
   return id;
 }
 
+// ---- Email HTML (for the in-app reader's real-HTML view) ----
+const COMPOSIO_EXEC = "https://backend.composio.dev/api/v3/tools/execute";
+
+function b64urlDecode(s: string): string {
+  try {
+    const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/"));
+    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return "";
+  }
+}
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+// Walk a Gmail payload tree for the first part of a given mime type (base64url).
+function findPart(node: any, mime: string): string | null {
+  if (!node || typeof node !== "object") return null;
+  if ((node.mimeType ?? "") === mime && node.body?.data) return node.body.data as string;
+  for (const p of node.parts ?? []) {
+    const f = findPart(p, mime);
+    if (f) return f;
+  }
+  return null;
+}
+// Turn a Composio GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID result into renderable HTML.
+function extractHtml(data: any): { html: string; hasImages: boolean } {
+  const payload = data?.payload ?? data?.message?.payload ?? data?.data?.payload ?? (data?.mimeType ? data : null);
+  let html = "";
+  const h = payload ? findPart(payload, "text/html") : null;
+  if (h) {
+    html = b64urlDecode(h);
+  } else {
+    const p = payload ? findPart(payload, "text/plain") : null;
+    const text = p
+      ? b64urlDecode(p)
+      : typeof data?.messageText === "string" ? data.messageText
+      : typeof data?.text === "string" ? data.text
+      : typeof data?.preview?.body === "string" ? data.preview.body
+      : "";
+    html = text ? `<pre style="white-space:pre-wrap;font-family:inherit;margin:0">${escapeHtml(text)}</pre>` : "";
+  }
+  const hasImages = /<img[^>]+src=["']?http/i.test(html) || /url\(["']?http/i.test(html);
+  return { html, hasImages };
+}
+async function fetchMessageHtml(uid: string, messageId: string): Promise<{ html: string; hasImages: boolean }> {
+  const res = await fetch(`${COMPOSIO_EXEC}/GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID`, {
+    method: "POST",
+    headers: { "x-api-key": API_KEY, "content-type": "application/json" },
+    body: JSON.stringify({ user_id: uid, arguments: { message_id: messageId, user_id: "me", format: "full" } }),
+  });
+  const body = await res.json().catch(() => ({}));
+  return extractHtml(body?.data ?? body);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
 
@@ -240,6 +295,20 @@ Deno.serve(async (req: Request) => {
       return json(req, { connected });
     } catch {
       return json(req, { connected: {} });
+    }
+  }
+
+  // 3c) Raw email HTML for the in-app reader (real-HTML view). Bearer + ?id=.
+  if (path === "message") {
+    const auth = req.headers.get("authorization") || "";
+    const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
+    const uid = await verifyUser(token);
+    const id = url.searchParams.get("id");
+    if (!uid || !id) return json(req, { error: "unauthorized" });
+    try {
+      return json(req, await fetchMessageHtml(uid, id));
+    } catch (e) {
+      return json(req, { error: e instanceof Error ? e.message : String(e) });
     }
   }
 

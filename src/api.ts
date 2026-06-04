@@ -1,4 +1,20 @@
 import { supabase, SUPABASE_ANON_KEY } from './supabase';
+import { CONNECT_API } from './connectorData';
+
+// Fetch one email's real HTML (for the reader's true-to-life view), straight
+// from the connector backend by message id — out-of-band from the chat model.
+export async function fetchEmailHtml(id: string): Promise<{ html: string; hasImages: boolean }> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error('Not signed in');
+  const res = await fetch(`${CONNECT_API}/message?id=${encodeURIComponent(id)}`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`Message fetch failed: ${res.status}`);
+  const j = await res.json();
+  if (j.error || typeof j.html !== 'string') throw new Error(j.error || 'No HTML');
+  return { html: j.html, hasImages: !!j.hasImages };
+}
 
 export type Role = 'user' | 'assistant';
 export interface ChatMessage {

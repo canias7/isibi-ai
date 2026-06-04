@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { fetchEmailHtml } from './api';
 
 // Rich email rendering for chat replies. The assistant emits a fenced JSON block
 // — ```gf-emails for an inbox list, ```gf-message for a single opened email —
@@ -21,6 +22,7 @@ export interface Attachment {
 }
 
 export interface EmailMessage {
+  id?: string;
   from: string;
   email?: string;
   to?: string;
@@ -147,6 +149,64 @@ const EyeIcon = () => (
   </svg>
 );
 
+// Renders the email's real HTML inside a sandboxed iframe. Images are blocked
+// until the user taps "Show images" (privacy — remote images track opens).
+function stripImages(html: string): string {
+  return html.replace(/<img\b[^>]*>/gi, (tag) => tag.replace(/\s(src|srcset)=/gi, ' data-blk-$1='));
+}
+const FRAME_HEAD =
+  '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">' +
+  '<base target="_blank"><style>html,body{margin:0}body{padding:12px;background:#fff;color:#111;' +
+  'font:14px/1.55 -apple-system,system-ui,sans-serif;word-break:break-word;overflow-x:hidden}' +
+  'img{max-width:100%!important;height:auto}a{color:#1a73e8}table{max-width:100%!important}</style></head><body>';
+const FRAME_FOOT = '</body></html>';
+
+function EmailBody({ id, fallback }: { id: string; fallback: string }) {
+  const [status, setStatus] = useState<'loading' | 'ok' | 'fail'>('loading');
+  const [html, setHtml] = useState('');
+  const [hasImages, setHasImages] = useState(false);
+  const [showImages, setShowImages] = useState(false);
+  const frameRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setStatus('loading');
+    setShowImages(false);
+    fetchEmailHtml(id)
+      .then((r) => { if (alive) { setHtml(r.html); setHasImages(r.hasImages); setStatus(r.html ? 'ok' : 'fail'); } })
+      .catch(() => { if (alive) setStatus('fail'); });
+    return () => { alive = false; };
+  }, [id]);
+
+  // Size the frame to its content (sandbox allows same-origin reads; no scripts run).
+  function fit() {
+    const f = frameRef.current;
+    try {
+      const h = f?.contentWindow?.document?.body?.scrollHeight;
+      if (f && h) f.style.height = Math.min(h + 8, 5000) + 'px';
+    } catch { /* opaque — keep default height */ }
+  }
+
+  if (status === 'loading') return <div className="gf-msg-body gf-body-loading">Loading email…</div>;
+  if (status === 'fail') return <div className="gf-msg-body">{fallback}</div>;
+
+  return (
+    <div className="gf-body-wrap">
+      {hasImages && !showImages && (
+        <button className="gf-show-images" onClick={() => setShowImages(true)}>🖼 Show images</button>
+      )}
+      <iframe
+        ref={frameRef}
+        className="gf-body-frame"
+        title="Email"
+        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        srcDoc={FRAME_HEAD + (showImages ? html : stripImages(html)) + FRAME_FOOT}
+        onLoad={() => { fit(); setTimeout(fit, 500); }}
+      />
+    </div>
+  );
+}
+
 export function EmailDetail({ msg }: { msg: EmailMessage }) {
   return (
     <div className="gf-msg">
@@ -164,7 +224,9 @@ export function EmailDetail({ msg }: { msg: EmailMessage }) {
       </div>
 
       <div className="gf-msg-subject">{msg.subject}</div>
-      <div className="gf-msg-body">{msg.body}</div>
+      {msg.id
+        ? <EmailBody id={msg.id} fallback={msg.body} />
+        : <div className="gf-msg-body">{msg.body}</div>}
 
       {msg.attachments && msg.attachments.length > 0 && (
         <div className="gf-att-wrap">
