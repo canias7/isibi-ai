@@ -19,7 +19,8 @@ name: iOS Build
 # config, dependencies), or when triggered manually (use this for releases).
 #
 # Rebuild: bake in the Supabase-Storage-aware OTA (src/ota.ts) so installed
-# apps switch to the reliable Storage host immediately.
+# apps switch to the reliable Storage host immediately. (Retry after a
+# filename-casing fix that broke the macOS tsc build.)
 on:
   push:
     branches: [claude/zealous-sagan-TA5qG]

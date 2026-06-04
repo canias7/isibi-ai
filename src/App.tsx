@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { streamChat, type ChatMessage } from './api';
 import { supabase } from './supabase';
-import { CONNECTORS, CONNECT_API, byId } from './connectors';
+import { CONNECTORS, CONNECT_API, byId } from './connectorData';
 import Connectors from './Connectors';
 import Login from './Login';
 import Markdown from './Markdown';

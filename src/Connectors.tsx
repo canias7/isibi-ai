@@ -3,7 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { supabase } from './supabase';
-import { CONNECTORS, CONNECT_API, type Connector } from './connectors';
+import { CONNECTORS, CONNECT_API, type Connector } from './connectorData';
 
 type Status = { connected: boolean; email?: string | null };
 
