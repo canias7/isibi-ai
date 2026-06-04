@@ -85,9 +85,12 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
         ) : (
           <>
             <p className="tm-sub">
-              Choose which tools Go Farther may use for {connector.name}. Only what's on counts toward cost — and
-              actions that change or send things start off until you enable them.
+              Pick the tools Go Farther may use for {connector.name}. Nothing is on until you turn it on —
+              and only what's on counts toward cost. Actions that change or send things are grouped on their own.
             </p>
+            {enabled.size === 0 && (
+              <div className="tm-empty">No tools enabled yet — turn on what you want Go Farther to do here.</div>
+            )}
             {groups.map((g) => g.items.length > 0 && (
               <div className="tm-group" key={g.label}>
                 <div className="tm-group-head">{g.label} <span className="tm-count">{g.items.length}</span></div>

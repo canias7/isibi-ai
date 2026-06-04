@@ -261,7 +261,6 @@ async function getAttachment(uid: string, mid: string, aid: string, fileName: st
 
 // ---- Manage Tools (per-user tool selection) ----
 const SR = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const MCP_BASE = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-mcp";
 
 // Classify a tool as read-only vs a write/action. The verb is the first token
 // after the toolkit prefix (GMAIL_*GET*_DRAFT) — keying off a small closed set
@@ -293,17 +292,6 @@ async function toolkitCatalog(toolkit: string): Promise<{ slug: string; name: st
   const b = await res.json();
   const items: any[] = b.items ?? b.data ?? [];
   return items.map((t) => ({ slug: t.slug, name: t.name || prettyName(t.slug), desc: t.description || "" }));
-}
-// The curated defaults (owned by gmail-mcp), so the UI can pre-check them.
-async function toolkitDefaults(toolkit: string): Promise<string[]> {
-  try {
-    const res = await fetch(`${MCP_BASE}?defaults=${encodeURIComponent(toolkit)}`);
-    if (!res.ok) return [];
-    const j = await res.json();
-    return Array.isArray(j.slugs) ? j.slugs : [];
-  } catch {
-    return [];
-  }
 }
 async function getPrefs(uid: string, toolkit: string): Promise<string[] | null> {
   if (!SR) return null;
@@ -468,15 +456,16 @@ Deno.serve(async (req: Request) => {
       const enabled = Array.isArray(body.enabled) ? body.enabled.filter((s: unknown) => typeof s === "string") : [];
       return json(req, { ok: await setPrefs(uid, toolkit, enabled) });
     }
-    const [catalog, defaults, saved] = await Promise.all([
+    const [catalog, saved] = await Promise.all([
       toolkitCatalog(toolkit),
-      toolkitDefaults(toolkit),
       getPrefs(uid, toolkit),
     ]);
+    // Nothing is enabled by default — only the user's saved selection counts.
+    // Surface any saved slug that isn't in the catalog so it stays toggleable.
     const have = new Set(catalog.map((t) => t.slug));
-    for (const s of defaults) if (!have.has(s)) catalog.push({ slug: s, name: prettyName(s), desc: "" });
+    for (const s of (saved ?? [])) if (!have.has(s)) catalog.push({ slug: s, name: prettyName(s), desc: "" });
     const tools = catalog.map((t) => ({ slug: t.slug, name: t.name, desc: t.desc, write: isWrite(t.slug) }));
-    return json(req, { tools, enabled: saved ?? defaults, customized: saved !== null });
+    return json(req, { tools, enabled: saved ?? [], customized: saved !== null });
   }
 
   // 3) The app polls this to show connection state (verified via Bearer token).

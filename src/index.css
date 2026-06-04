@@ -732,6 +732,15 @@ body { background: var(--bg); color: var(--text); }
 }
 .tm-msg { color: var(--text-dim); text-align: center; padding: 48px 16px; font-size: 14px; }
 .tm-sub { color: var(--text-dim); font-size: 13px; line-height: 1.55; margin: 0 0 20px; }
+.tm-empty {
+  background: #ffffff0d;
+  border: 1px solid #ffffff1a;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin: 0 0 18px;
+}
 .tm-group { margin-bottom: 22px; }
 .tm-group-head {
   display: flex;

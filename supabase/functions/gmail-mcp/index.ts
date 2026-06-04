@@ -24,10 +24,10 @@ async function mcpToken(): Promise<string> {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// The "most-used" tools per toolkit (~6 each). Tight on purpose: a small,
-// well-chosen set makes the model pick correctly and keeps every request lean.
-// Slugs that don't exist are silently dropped. (Usage is logged to tool_usage,
-// so this list can later be re-ranked from REAL data instead of estimates.)
+// RECOMMENDED tools per toolkit (~6 each) — a suggested starting set, NOT
+// auto-enabled. Nothing is served until the user opts in (see listTools); this
+// list just powers the optional "recommended" hint exposed at ?defaults and can
+// later be re-ranked from REAL usage in tool_usage. Unknown slugs are dropped.
 const ALLOWED: Record<string, string[]> = {
   gmail: [
     "GMAIL_FETCH_EMAILS",
@@ -207,8 +207,8 @@ async function discover(toolkit: string, important?: boolean): Promise<{ slug: s
   return items.map((t) => ({ slug: t.slug, name: t.name ?? "" }));
 }
 
-// A user's per-toolkit tool selection (overrides the curated defaults). Read with
-// the service role; absence of a row means "use the curated defaults".
+// A user's per-toolkit tool selection. Read with the service role; absence of a
+// row means NO tools are enabled for that app (the user hasn't opted in yet).
 async function userToolPrefs(uid: string): Promise<Record<string, string[]>> {
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -231,7 +231,9 @@ async function listTools(apps: string[], prefs: Record<string, string[]>): Promi
   const toolkits = apps.length ? apps : Object.keys(ALLOWED);
   const out: Tool[] = [];
   for (const tk of toolkits) {
-    const enabled = prefs[tk] ?? ALLOWED[tk] ?? []; // user selection or curated default
+    // ONLY what the user explicitly enabled. No row / empty selection = no tools
+    // for that app (nothing is on by default; the user opts in per tool).
+    const enabled = prefs[tk] ?? [];
     out.push(...(await toolsForToolkit(tk, enabled)));
   }
   return out;
@@ -252,8 +254,8 @@ async function execTool(name: string, args: unknown, userId: string): Promise<st
 
 Deno.serve(async (req: Request) => {
   if (req.method === "GET") {
-    // Non-sensitive: expose the curated default tool slugs for a toolkit so the
-    // connector function can pre-check them in the Manage Tools UI.
+    // Non-sensitive: expose the RECOMMENDED tool slugs for a toolkit (optional
+    // hint for the Manage Tools UI — these are NOT auto-enabled).
     const dflt = new URL(req.url).searchParams.get("defaults");
     if (dflt) {
       return new Response(JSON.stringify({ slugs: ALLOWED[dflt] ?? [] }), { headers: { "content-type": "application/json" } });
