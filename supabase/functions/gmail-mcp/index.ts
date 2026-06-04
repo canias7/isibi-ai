@@ -172,14 +172,14 @@ async function fetchTools(params: Record<string, string>): Promise<any[]> {
 
 // Expose exactly our most-used allowlist for a toolkit (schemas from Composio,
 // kept in our preferred order).
-async function toolsForToolkit(toolkit: string): Promise<Tool[]> {
-  if (cache[toolkit]) return cache[toolkit];
-  const slugs = ALLOWED[toolkit] ?? [];
+async function toolsForToolkit(toolkit: string, slugs: string[]): Promise<Tool[]> {
   if (!slugs.length) return [];
+  const cacheKey = toolkit + ":" + slugs.join(",");
+  if (cache[cacheKey]) return cache[cacheKey];
   const items = await fetchTools({ tool_slugs: slugs.join(","), limit: String(slugs.length) });
   const bySlug = new Map<string, any>(items.map((t) => [t.slug, t]));
   const tools = slugs.map((s) => bySlug.get(s)).filter(Boolean).map(toMcp);
-  if (tools.length) cache[toolkit] = tools;
+  if (tools.length) cache[cacheKey] = tools;
   return tools;
 }
 
@@ -207,10 +207,33 @@ async function discover(toolkit: string, important?: boolean): Promise<{ slug: s
   return items.map((t) => ({ slug: t.slug, name: t.name ?? "" }));
 }
 
-async function listTools(apps: string[]): Promise<Tool[]> {
-  const slugs = apps.length ? apps : Object.keys(ALLOWED);
+// A user's per-toolkit tool selection (overrides the curated defaults). Read with
+// the service role; absence of a row means "use the curated defaults".
+async function userToolPrefs(uid: string): Promise<Record<string, string[]>> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key || !uid) return {};
+  try {
+    const r = await fetch(`${url}/rest/v1/tool_prefs?user_id=eq.${encodeURIComponent(uid)}&select=toolkit,slugs`, {
+      headers: { apikey: key, authorization: `Bearer ${key}` },
+    });
+    if (!r.ok) return {};
+    const rows = await r.json();
+    const map: Record<string, string[]> = {};
+    for (const row of rows ?? []) if (row?.toolkit && Array.isArray(row.slugs)) map[row.toolkit] = row.slugs;
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+async function listTools(apps: string[], prefs: Record<string, string[]>): Promise<Tool[]> {
+  const toolkits = apps.length ? apps : Object.keys(ALLOWED);
   const out: Tool[] = [];
-  for (const s of slugs) out.push(...(await toolsForToolkit(s)));
+  for (const tk of toolkits) {
+    const enabled = prefs[tk] ?? ALLOWED[tk] ?? []; // user selection or curated default
+    out.push(...(await toolsForToolkit(tk, enabled)));
+  }
   return out;
 }
 
@@ -228,7 +251,15 @@ async function execTool(name: string, args: unknown, userId: string): Promise<st
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "GET") return new Response("Go Farther MCP (Composio-backed)", { status: 200 });
+  if (req.method === "GET") {
+    // Non-sensitive: expose the curated default tool slugs for a toolkit so the
+    // connector function can pre-check them in the Manage Tools UI.
+    const dflt = new URL(req.url).searchParams.get("defaults");
+    if (dflt) {
+      return new Response(JSON.stringify({ slugs: ALLOWED[dflt] ?? [] }), { headers: { "content-type": "application/json" } });
+    }
+    return new Response("Go Farther MCP (Composio-backed)", { status: 200 });
+  }
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
   const auth = req.headers.get("authorization") || "";
@@ -266,7 +297,8 @@ Deno.serve(async (req: Request) => {
       // Discovery escape hatch: {method:"tools/list", params:{discover:"googlecalendar", important:true}}
       const d = msg.params?.discover;
       if (d) return J({ jsonrpc: "2.0", id, result: { tools: [], _discover: await discover(String(d), !!msg.params?.important) } });
-      return J({ jsonrpc: "2.0", id, result: { tools: await listTools(apps) } });
+      const prefs = await userToolPrefs(reqUser);
+      return J({ jsonrpc: "2.0", id, result: { tools: await listTools(apps, prefs) } });
     } catch (e) {
       return J({ jsonrpc: "2.0", id, error: { code: -32000, message: e instanceof Error ? e.message : String(e) } });
     }

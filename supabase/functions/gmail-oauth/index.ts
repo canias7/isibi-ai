@@ -259,6 +259,70 @@ async function getAttachment(uid: string, mid: string, aid: string, fileName: st
   return { b64, url, mimeType };
 }
 
+// ---- Manage Tools (per-user tool selection) ----
+const SR = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const MCP_BASE = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-mcp";
+
+// Classify a tool as a write/action (vs read-only) from its slug verbs.
+const WRITE_RE = /(CREATE|SEND|UPDATE|DELETE|ADD|REMOVE|MOVE|REPLY|POST|ARCHIVE|TRASH|MODIFY|INSERT|UPLOAD|CANCEL|EDIT|WRITE|PATCH|DRAFT|MARK|STAR|LABEL|IMPORT|MERGE|DUPLICATE|APPROVE|ASSIGN|ENABLE|DISABLE|CLOSE|SCHEDULE|INVITE|CLEAR|PUBLISH|FORWARD|RENAME|REGISTER)/;
+function isWrite(slug: string): boolean {
+  return WRITE_RE.test(slug.toUpperCase());
+}
+function prettyName(slug: string): string {
+  const parts = slug.split("_");
+  const rest = parts.length > 1 ? parts.slice(1) : parts; // drop toolkit prefix
+  return rest.map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(" ");
+}
+// The toolkit's selectable tools (Composio's "important" set).
+async function toolkitCatalog(toolkit: string): Promise<{ slug: string; name: string; desc: string }[]> {
+  const u = new URL(`${BASE}/tools`);
+  u.searchParams.set("toolkit_slug", toolkit);
+  u.searchParams.set("important", "true");
+  u.searchParams.set("limit", "120");
+  const res = await fetch(u.toString(), { headers: { "x-api-key": API_KEY } });
+  if (!res.ok) return [];
+  const b = await res.json();
+  const items: any[] = b.items ?? b.data ?? [];
+  return items.map((t) => ({ slug: t.slug, name: t.name || prettyName(t.slug), desc: t.description || "" }));
+}
+// The curated defaults (owned by gmail-mcp), so the UI can pre-check them.
+async function toolkitDefaults(toolkit: string): Promise<string[]> {
+  try {
+    const res = await fetch(`${MCP_BASE}?defaults=${encodeURIComponent(toolkit)}`);
+    if (!res.ok) return [];
+    const j = await res.json();
+    return Array.isArray(j.slugs) ? j.slugs : [];
+  } catch {
+    return [];
+  }
+}
+async function getPrefs(uid: string, toolkit: string): Promise<string[] | null> {
+  if (!SR) return null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/tool_prefs?user_id=eq.${encodeURIComponent(uid)}&toolkit=eq.${encodeURIComponent(toolkit)}&select=slugs`, {
+      headers: { apikey: SR, authorization: `Bearer ${SR}` },
+    });
+    if (!r.ok) return null;
+    const rows = await r.json();
+    return Array.isArray(rows) && rows[0] ? (rows[0].slugs ?? []) : null;
+  } catch {
+    return null;
+  }
+}
+async function setPrefs(uid: string, toolkit: string, slugs: string[]): Promise<boolean> {
+  if (!SR) return false;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/tool_prefs`, {
+      method: "POST",
+      headers: { apikey: SR, authorization: `Bearer ${SR}`, "content-type": "application/json", prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify({ user_id: uid, toolkit, slugs, updated_at: new Date().toISOString() }),
+    });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
 
@@ -366,6 +430,28 @@ Deno.serve(async (req: Request) => {
     } catch (e) {
       return json(req, { error: e instanceof Error ? e.message : String(e) });
     }
+  }
+
+  // 3e) Manage Tools: GET = catalog + current selection; POST = save selection.
+  if (path === "tools") {
+    const auth = req.headers.get("authorization") || "";
+    const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
+    const uid = await verifyUser(token);
+    if (!uid || !toolkit) return json(req, { error: "unauthorized" });
+    if (req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const enabled = Array.isArray(body.enabled) ? body.enabled.filter((s: unknown) => typeof s === "string") : [];
+      return json(req, { ok: await setPrefs(uid, toolkit, enabled) });
+    }
+    const [catalog, defaults, saved] = await Promise.all([
+      toolkitCatalog(toolkit),
+      toolkitDefaults(toolkit),
+      getPrefs(uid, toolkit),
+    ]);
+    const have = new Set(catalog.map((t) => t.slug));
+    for (const s of defaults) if (!have.has(s)) catalog.push({ slug: s, name: prettyName(s), desc: "" });
+    const tools = catalog.map((t) => ({ slug: t.slug, name: t.name, desc: t.desc, write: isWrite(t.slug) }));
+    return json(req, { tools, enabled: saved ?? defaults, customized: saved !== null });
   }
 
   // 3) The app polls this to show connection state (verified via Bearer token).

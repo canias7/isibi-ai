@@ -4,6 +4,7 @@ import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API, type Connector } from './connectorData';
+import ToolManager from './ToolManager';
 
 type Status = { connected: boolean; email?: string | null };
 
@@ -25,6 +26,7 @@ function Logo({ c }: { c: Connector }) {
 
 export default function Connectors() {
   const [status, setStatus] = useState<Record<string, Status>>({});
+  const [manage, setManage] = useState<Connector | null>(null);
 
   async function token(): Promise<string | null> {
     const { data } = await supabase.auth.getSession();
@@ -113,18 +115,39 @@ export default function Connectors() {
                   <div className="conn-name">{c.name}</div>
                   <div className="conn-desc">{desc}</div>
                 </div>
-                <button
-                  className={`conn-btn ${on ? 'on' : ''}`}
-                  onClick={() => connect(c.id)}
-                  aria-pressed={on}
-                >
-                  {on ? 'Connected' : 'Connect'}
-                </button>
+                <div className="conn-actions">
+                  {on && (
+                    <button
+                      className="conn-tools"
+                      onClick={() => setManage(c)}
+                      aria-label={`Manage ${c.name} tools`}
+                      title="Choose tools"
+                    >
+                      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                        <path
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          d="M4 7h10M18 7h2M4 17h2M10 17h10M14 7a2 2 0 104 0 2 2 0 10-4 0M6 17a2 2 0 104 0 2 2 0 10-4 0"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                  <button
+                    className={`conn-btn ${on ? 'on' : ''}`}
+                    onClick={() => connect(c.id)}
+                    aria-pressed={on}
+                  >
+                    {on ? 'Connected' : 'Connect'}
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
       </div>
+      {manage && <ToolManager connector={manage} onClose={() => setManage(null)} />}
     </div>
   );
 }
