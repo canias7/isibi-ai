@@ -26,10 +26,15 @@ const CONNECTORS: Connector[] = [
   { id: 'hubspot', name: 'HubSpot', logo: si('hubspot'), color: '#FF7A59', desc: 'Contacts, deals & CRM' },
 ];
 
-// Gmail is wired for real (OAuth + MCP); the rest are placeholders for now.
-const GMAIL_OAUTH = 'https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-oauth';
+// These connectors are wired for real via Composio (OAuth + MCP); the rest are
+// placeholders for now. The endpoint slug is historical (`gmail-oauth`) but it
+// now connects any app via ?app=<id>.
+const CONNECT_API = 'https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-oauth';
+const REAL = new Set(['gmail', 'gcal', 'gdrive']);
 const USER = 'primary';
 const STORAGE_KEY = 'gf_connectors';
+
+type Status = { connected: boolean; email?: string | null };
 
 function loadLocal(): Record<string, boolean> {
   try {
@@ -57,36 +62,40 @@ function Logo({ c }: { c: Connector }) {
 
 export default function Connectors() {
   const [local, setLocal] = useState<Record<string, boolean>>(loadLocal);
-  const [gmail, setGmail] = useState<{ connected: boolean; email?: string | null }>({ connected: false });
+  const [status, setStatus] = useState<Record<string, Status>>({});
 
-  async function refreshGmail() {
+  async function refreshOne(id: string) {
     try {
-      const r = await fetch(`${GMAIL_OAUTH}/status?u=${USER}`);
+      const r = await fetch(`${CONNECT_API}/status?u=${USER}&app=${id}`);
       if (r.ok) {
         const j = await r.json();
-        setGmail({ connected: !!j.connected, email: j.email });
+        setStatus((s) => ({ ...s, [id]: { connected: !!j.connected, email: j.email } }));
       }
     } catch {
       /* offline — leave state as-is */
     }
   }
 
+  function refreshAll() {
+    REAL.forEach((id) => void refreshOne(id));
+  }
+
   useEffect(() => {
-    refreshGmail();
+    refreshAll();
     const onVisible = () => {
-      if (document.visibilityState === 'visible') refreshGmail();
+      if (document.visibilityState === 'visible') refreshAll();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
-  function connectGmail() {
-    window.open(`${GMAIL_OAUTH}/start?u=${USER}`, '_blank');
+  function connect(id: string) {
+    window.open(`${CONNECT_API}/start?u=${USER}&app=${id}`, '_blank');
     // Poll briefly so the card flips to "Connected" when they return.
     let n = 0;
     const iv = setInterval(async () => {
       n += 1;
-      await refreshGmail();
+      await refreshOne(id);
       if (n >= 20) clearInterval(iv);
     }, 3000);
   }
@@ -103,7 +112,8 @@ export default function Connectors() {
     });
   }
 
-  const count = CONNECTORS.filter((c) => (c.id === 'gmail' ? gmail.connected : !!local[c.id])).length;
+  const isOn = (id: string) => (REAL.has(id) ? !!status[id]?.connected : !!local[id]);
+  const count = CONNECTORS.filter((c) => isOn(c.id)).length;
 
   return (
     <div className="page">
@@ -116,9 +126,10 @@ export default function Connectors() {
 
         <div className="conn-list">
           {CONNECTORS.map((c) => {
-            const isGmail = c.id === 'gmail';
-            const on = isGmail ? gmail.connected : !!local[c.id];
-            const desc = isGmail && gmail.connected && gmail.email ? `Connected as ${gmail.email}` : c.desc;
+            const real = REAL.has(c.id);
+            const on = isOn(c.id);
+            const email = status[c.id]?.email;
+            const desc = real && on && email ? `Connected as ${email}` : c.desc;
             return (
               <div className="conn-card" key={c.id}>
                 <Logo c={c} />
@@ -128,7 +139,7 @@ export default function Connectors() {
                 </div>
                 <button
                   className={`conn-btn ${on ? 'on' : ''}`}
-                  onClick={() => (isGmail ? connectGmail() : toggleLocal(c.id))}
+                  onClick={() => (real ? connect(c.id) : toggleLocal(c.id))}
                   aria-pressed={on}
                 >
                   {on ? 'Connected' : 'Connect'}

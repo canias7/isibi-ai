@@ -1,9 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SHARED_SECRET = "717fa3c352eda109dcda2451e97f1254a62c244e526eccbb";
-const GMAIL_MCP_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-mcp";
+const MCP_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-mcp";
 const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
-const GMAIL_AUTH_CONFIG_ID = "ac_LFQFgSsYOYA5";
 
 const cors: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -13,22 +12,25 @@ const cors: Record<string, string> = {
 
 interface Msg { role: string; content: string }
 
-// Is Gmail connected for this user? Ask Composio (the source of truth) rather
-// than a local token table — Composio owns the connection + tokens now.
-async function gmailConnected(userId: string): Promise<boolean> {
-  if (!COMPOSIO_API_KEY) return false;
+// Which toolkits has this user connected? Ask Composio (the source of truth).
+// Returns the toolkit slugs (e.g. ["gmail","googlecalendar"]) of ACTIVE accounts.
+async function connectedToolkits(userId: string): Promise<string[]> {
+  if (!COMPOSIO_API_KEY) return [];
   try {
     const u = new URL("https://backend.composio.dev/api/v3.1/connected_accounts");
     u.searchParams.set("user_ids", userId);
-    u.searchParams.set("auth_config_ids", GMAIL_AUTH_CONFIG_ID);
     u.searchParams.set("statuses", "ACTIVE");
     const res = await fetch(u.toString(), { headers: { "x-api-key": COMPOSIO_API_KEY } });
-    if (!res.ok) return false;
+    if (!res.ok) return [];
     const body = await res.json();
     const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
-    return items.some((x) => (x.status ?? "").toUpperCase() === "ACTIVE") || items.length > 0;
+    const slugs = items
+      .filter((x) => (x.status ?? "ACTIVE").toUpperCase() === "ACTIVE")
+      .map((x) => x.toolkit?.slug ?? x.toolkit_slug ?? (typeof x.toolkit === "string" ? x.toolkit : null))
+      .filter((s): s is string => !!s);
+    return [...new Set(slugs)];
   } catch {
-    return false;
+    return [];
   }
 }
 
@@ -50,18 +52,20 @@ Deno.serve(async (req: Request) => {
     return new Response("Invalid request body — expected { messages: [...] }.", { status: 400, headers: cors });
   }
 
-  // Attach the Gmail MCP server when the user has connected Gmail via Composio.
+  // Attach the MCP server, scoped to whichever apps the user has connected.
   let mcpServers: unknown[] | undefined;
   const extraHeaders: Record<string, string> = {};
-  if (await gmailConnected("primary")) {
-    mcpServers = [{ type: "url", url: GMAIL_MCP_URL, name: "gmail", authorization_token: SHARED_SECRET }];
+  const apps = await connectedToolkits("primary");
+  if (apps.length) {
+    const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}`;
+    mcpServers = [{ type: "url", url, name: "connectors", authorization_token: SHARED_SECRET }];
     extraHeaders["anthropic-beta"] = "mcp-client-2025-04-04";
   }
 
   const reqBody: Record<string, unknown> = {
     model: "claude-sonnet-4-6",
     max_tokens: 4096,
-    system: "You are Go Farther, a helpful, friendly assistant inside a mobile app. Be clear and concise. When Gmail tools are available, use them to search, read, and send email on the user's behalf when they ask. Always confirm details before sending an email.",
+    system: "You are Go Farther, a helpful, friendly assistant inside a mobile app. Be clear and concise. When connector tools are available (Gmail, Google Calendar, Google Drive, etc.), use them to act on the user's behalf — search and read email, check and create calendar events, find and read files. Always confirm details before sending an email or creating/changing anything.",
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     stream: true,
   };

@@ -1,46 +1,84 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// MCP server that Claude connects to (via the chat function's mcp_servers).
+// Generic MCP server Claude connects to (via the chat function's mcp_servers).
+// NOTE: the function slug is still `gmail-mcp` for historical reasons, but it
+// now proxies MULTIPLE Composio toolkits (Gmail, Calendar, Drive, ...).
+//
 // It's a THIN PROXY: Claude talks to us over MCP (Bearer SHARED_SECRET, which
 // is all Anthropic's native MCP connector supports), and we forward tool calls
-// to Composio (which needs x-api-key). Composio owns the Gmail OAuth, tokens,
-// refresh, and the actual Gmail API calls — we just translate the protocol.
+// to Composio (which needs x-api-key). Composio owns OAuth, tokens, refresh,
+// and the real provider API calls. We just translate the protocol and expose a
+// curated, per-toolkit allowlist of tools.
+//
+// Which toolkits to expose is passed by the chat function as ?apps=slug1,slug2
+// (the toolkit slugs of the user's currently-connected apps).
 
 const SHARED_SECRET = "717fa3c352eda109dcda2451e97f1254a62c244e526eccbb";
 const API_KEY = Deno.env.get("COMPOSIO_API_KEY")!;
 const USER_ID = "primary";
+const BASE = "https://backend.composio.dev/api";
 
-// The Composio Gmail tools we expose. Schemas/descriptions are pulled live
-// from Composio so we never hardcode (and drift from) their argument shapes.
-const ALLOWED = ["GMAIL_FETCH_EMAILS", "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID", "GMAIL_SEND_EMAIL"];
+// Curated tools per toolkit. Slugs that don't exist are silently dropped.
+const ALLOWED: Record<string, string[]> = {
+  gmail: ["GMAIL_FETCH_EMAILS", "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID", "GMAIL_SEND_EMAIL"],
+  googlecalendar: [
+    "GOOGLECALENDAR_FIND_EVENT",
+    "GOOGLECALENDAR_CREATE_EVENT",
+    "GOOGLECALENDAR_LIST_CALENDARS",
+    "GOOGLECALENDAR_GET_CURRENT_DATE_TIME",
+    "GOOGLECALENDAR_FIND_FREE_SLOTS",
+  ],
+  googledrive: ["GOOGLEDRIVE_FIND_FILE", "GOOGLEDRIVE_DOWNLOAD_FILE", "GOOGLEDRIVE_FIND_FOLDER"],
+};
 
-// Cache the converted tool list across warm invocations.
-let toolCache: { name: string; description: string; inputSchema: unknown }[] | null = null;
+type Tool = { name: string; description: string; inputSchema: unknown };
+const cache: Record<string, Tool[]> = {}; // per-toolkit, across warm invocations
 
-async function listTools() {
-  if (toolCache) return toolCache;
-  const u = new URL("https://backend.composio.dev/api/v3.1/tools");
-  u.searchParams.set("toolkit_slug", "gmail");
-  u.searchParams.set("limit", "200");
+async function toolsForToolkit(toolkit: string): Promise<Tool[]> {
+  if (cache[toolkit]) return cache[toolkit];
+  const allow = new Set(ALLOWED[toolkit] ?? []);
+  if (allow.size === 0) return [];
+  const u = new URL(`${BASE}/v3.1/tools`);
+  u.searchParams.set("toolkit_slug", toolkit);
+  u.searchParams.set("limit", "500");
   const res = await fetch(u.toString(), { headers: { "x-api-key": API_KEY } });
   if (!res.ok) throw new Error(`Composio tools ${res.status}: ${await res.text()}`);
   const body = await res.json();
   const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
-  const allow = new Set(ALLOWED);
-  const tools = items
+  const found = items
     .filter((t) => allow.has(t.slug))
     .map((t) => ({
       name: t.slug,
       description: t.description ?? t.name ?? t.slug,
       inputSchema: t.input_parameters ?? { type: "object", properties: {} },
     }));
-  // Keep our preferred order; only cache once we actually got them.
-  if (tools.length) toolCache = ALLOWED.map((s) => tools.find((t) => t.name === s)).filter(Boolean) as typeof tools;
-  return toolCache ?? tools;
+  // Preserve our preferred order; only cache once we got results.
+  const ordered = (ALLOWED[toolkit] ?? []).map((s) => found.find((t) => t.name === s)).filter(Boolean) as Tool[];
+  if (ordered.length) cache[toolkit] = ordered;
+  return ordered;
+}
+
+// Discover ALL tool slugs for a toolkit (used to verify/curate allowlists).
+async function discover(toolkit: string): Promise<{ slug: string; name: string }[]> {
+  const u = new URL(`${BASE}/v3.1/tools`);
+  u.searchParams.set("toolkit_slug", toolkit);
+  u.searchParams.set("limit", "500");
+  const res = await fetch(u.toString(), { headers: { "x-api-key": API_KEY } });
+  if (!res.ok) throw new Error(`Composio tools ${res.status}: ${await res.text()}`);
+  const body = await res.json();
+  const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
+  return items.map((t) => ({ slug: t.slug, name: t.name ?? "" }));
+}
+
+async function listTools(apps: string[]): Promise<Tool[]> {
+  const slugs = apps.length ? apps : Object.keys(ALLOWED);
+  const out: Tool[] = [];
+  for (const s of slugs) out.push(...(await toolsForToolkit(s)));
+  return out;
 }
 
 async function execTool(name: string, args: unknown): Promise<string> {
-  const res = await fetch(`https://backend.composio.dev/api/v3/tools/execute/${encodeURIComponent(name)}`, {
+  const res = await fetch(`${BASE}/v3/tools/execute/${encodeURIComponent(name)}`, {
     method: "POST",
     headers: { "x-api-key": API_KEY, "content-type": "application/json" },
     body: JSON.stringify({ user_id: USER_ID, arguments: args ?? {} }),
@@ -53,7 +91,7 @@ async function execTool(name: string, args: unknown): Promise<string> {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "GET") return new Response("Go Farther Gmail MCP (Composio-backed)", { status: 200 });
+  if (req.method === "GET") return new Response("Go Farther MCP (Composio-backed)", { status: 200 });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
   const auth = req.headers.get("authorization") || "";
@@ -63,6 +101,8 @@ Deno.serve(async (req: Request) => {
       headers: { "content-type": "application/json" },
     });
   }
+
+  const apps = (new URL(req.url).searchParams.get("apps") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
   let msg: any;
   try { msg = await req.json(); } catch { return new Response("bad json", { status: 400 }); }
@@ -77,14 +117,17 @@ Deno.serve(async (req: Request) => {
       result: {
         protocolVersion: (msg.params && msg.params.protocolVersion) || "2024-11-05",
         capabilities: { tools: {} },
-        serverInfo: { name: "gofarther-gmail", version: "2.0.0" },
+        serverInfo: { name: "gofarther", version: "3.0.0" },
       },
     });
   }
   if (typeof method === "string" && method.startsWith("notifications/")) return new Response(null, { status: 202 });
   if (method === "tools/list") {
     try {
-      return J({ jsonrpc: "2.0", id, result: { tools: await listTools() } });
+      // Discovery escape hatch: {method:"tools/list", params:{discover:"googlecalendar"}}
+      const d = msg.params?.discover;
+      if (d) return J({ jsonrpc: "2.0", id, result: { tools: [], _discover: await discover(String(d)) } });
+      return J({ jsonrpc: "2.0", id, result: { tools: await listTools(apps) } });
     } catch (e) {
       return J({ jsonrpc: "2.0", id, error: { code: -32000, message: e instanceof Error ? e.message : String(e) } });
     }
