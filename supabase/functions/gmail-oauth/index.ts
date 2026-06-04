@@ -56,11 +56,11 @@ function corsFor(req: Request): Record<string, string> {
   };
 }
 
+// Supabase Edge Functions force `text/plain` + a sandbox CSP on responses
+// (so *.supabase.co can't host rendered web pages). HTML therefore shows up as
+// raw source in the browser — so these consent-return pages are plain text.
 function page(body: string): Response {
-  return new Response(
-    `<!doctype html><meta name=viewport content="width=device-width,initial-scale=1"><body style="font-family:system-ui;background:#212121;color:#ececec;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center;padding:24px"><div>${body}</div></body>`,
-    { headers: { "content-type": "text/html; charset=utf-8" } },
-  );
+  return new Response(body, { headers: { "content-type": "text/plain; charset=utf-8" } });
 }
 
 function json(req: Request, obj: unknown): Response {
@@ -155,7 +155,7 @@ Deno.serve(async (req: Request) => {
   if (path === "callback") {
     const err = url.searchParams.get("error");
     if (err) return page(`❌ ${err}`);
-    return page("✅ <h2>Connected!</h2><p>You can close this tab and return to Go Farther.</p>");
+    return page("✅ Connected!\n\nYou can close this tab and return to Go Farther.");
   }
 
   // 3b) Batched: every connected app for this user in ONE call (Bearer token).
