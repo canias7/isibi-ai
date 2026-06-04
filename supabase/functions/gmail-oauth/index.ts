@@ -263,10 +263,19 @@ async function getAttachment(uid: string, mid: string, aid: string, fileName: st
 const SR = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const MCP_BASE = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-mcp";
 
-// Classify a tool as a write/action (vs read-only) from its slug verbs.
-const WRITE_RE = /(CREATE|SEND|UPDATE|DELETE|ADD|REMOVE|MOVE|REPLY|POST|ARCHIVE|TRASH|MODIFY|INSERT|UPLOAD|CANCEL|EDIT|WRITE|PATCH|DRAFT|MARK|STAR|LABEL|IMPORT|MERGE|DUPLICATE|APPROVE|ASSIGN|ENABLE|DISABLE|CLOSE|SCHEDULE|INVITE|CLEAR|PUBLISH|FORWARD|RENAME|REGISTER)/;
+// Classify a tool as read-only vs a write/action. The verb is the first token
+// after the toolkit prefix (GMAIL_*GET*_DRAFT) — keying off a small closed set
+// of read verbs is far more reliable than enumerating write verbs (which caused
+// false positives like GET_DRAFT/LIST_DRAFTS matching the word "DRAFT"). When in
+// doubt we treat a tool as a write, so it stays opt-in.
+const READ_VERBS = new Set([
+  "GET", "LIST", "FETCH", "SEARCH", "READ", "FIND", "EXPORT", "DOWNLOAD",
+  "RETRIEVE", "CHECK", "COUNT", "VIEW", "LOOKUP", "DESCRIBE", "RESOLVE", "PREVIEW",
+]);
 function isWrite(slug: string): boolean {
-  return WRITE_RE.test(slug.toUpperCase());
+  let rest = slug.toUpperCase().split("_").slice(1); // drop toolkit prefix
+  while (rest[0] === "BATCH" || rest[0] === "BULK") rest = rest.slice(1);
+  return !READ_VERBS.has(rest[0] ?? "");
 }
 function prettyName(slug: string): string {
   const parts = slug.split("_");
@@ -332,6 +341,22 @@ Deno.serve(async (req: Request) => {
   const toolkit = TOOLKIT[app];
 
   if (!API_KEY) return path === "status" ? json(req, { connected: false }) : page("⚠️ COMPOSIO_API_KEY is not set on the server.");
+
+  // 0) Public, non-sensitive: how many selectable tools an app exposes. Mirrors
+  // gmail-mcp's ?defaults — used by the Manage Tools UI (counts) and diagnostics.
+  const catalogParam = url.searchParams.get("catalog");
+  if (catalogParam !== null) {
+    const tk = TOOLKIT[catalogParam] ?? catalogParam;
+    const items = await toolkitCatalog(tk);
+    const write = items.filter((t) => isWrite(t.slug));
+    return json(req, {
+      toolkit: tk,
+      total: items.length,
+      read: items.length - write.length,
+      write: write.length,
+      slugs: items.map((t) => t.slug),
+    });
+  }
 
   // 1) Kick off the provider's hosted consent (verified via the ?t= token).
   if (path === "start") {
