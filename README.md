@@ -35,8 +35,21 @@ npm run build && npx cap sync android
 npx cap open android        # or: cd android && ./gradlew assembleDebug
 ```
 
-> iOS is a quick follow-up (`npx cap add ios` + a macOS workflow) and needs an
-> Apple Developer account for signing.
+## Mobile (iOS, built on GitHub)
+
+Native iOS from the same Capacitor project, signed on a macOS runner
+(`.github/workflows/ios.yml`). Add three repository secrets:
+
+| Secret | How to get it |
+|---|---|
+| `APPLE_CERTIFICATE_BASE64` | `base64 -i dist.p12 \| pbcopy` (your distribution cert) |
+| `APPLE_CERTIFICATE_PASSWORD` | the password set when exporting the `.p12` |
+| `APPLE_PROVISIONING_PROFILE_BASE64` | `base64 -i profile.mobileprovision \| pbcopy` |
+
+Team ID, bundle ID and profile name are read from the profile automatically.
+Optionally set the `IOS_EXPORT_METHOD` repo variable to `app-store` (default,
+for TestFlight), `ad-hoc`, or `development`. The signed IPA is published to the
+`ios-latest` Release.
 
 ## Connect a real model
 
