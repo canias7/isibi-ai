@@ -110,14 +110,24 @@ jobs:
             <key>stripSwiftSymbols</key><true/>
           </dict></plist>
           EOF
-          xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
-            -exportPath "$RUNNER_TEMP/export" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "${{ steps.asc.outputs.key_path }}" \
-            -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-            -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}"
+          # Retry: export talks to Apple's servers to mint the distribution
+          # cert/profile and can hit transient "network connection was lost".
+          n=0
+          until [ "$n" -ge 3 ]; do
+            rm -rf "$RUNNER_TEMP/export"
+            xcodebuild -exportArchive \
+              -archivePath "$RUNNER_TEMP/App.xcarchive" \
+              -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+              -exportPath "$RUNNER_TEMP/export" \
+              -allowProvisioningUpdates \
+              -authenticationKeyPath "${{ steps.asc.outputs.key_path }}" \
+              -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+              -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" && break
+            n=$((n + 1))
+            echo "::warning::export failed (attempt $n) — retrying in 20s"
+            sleep 20
+          done
+          [ "$n" -lt 3 ] || { echo "::error::exportArchive failed after 3 attempts"; exit 1; }
           ls -la "$RUNNER_TEMP/export"
           echo "ipa=$(ls "$RUNNER_TEMP/export/"*.ipa | head -1)" >> "$GITHUB_OUTPUT"
 

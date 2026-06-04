@@ -204,7 +204,18 @@ body { background: var(--bg); color: var(--text); }
   border-radius: 14px;
   padding: 14px 16px;
 }
-.conn-ico { font-size: 26px; width: 32px; text-align: center; flex-shrink: 0; }
+.conn-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #fff;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.conn-logo img { width: 26px; height: 26px; object-fit: contain; }
+.conn-mono { color: #fff; font-weight: 700; font-size: 18px; text-transform: uppercase; }
 .conn-meta { flex: 1; min-width: 0; }
 .conn-name { font-weight: 600; font-size: 15px; }
 .conn-desc { color: var(--text-dim); font-size: 13px; margin-top: 2px; }

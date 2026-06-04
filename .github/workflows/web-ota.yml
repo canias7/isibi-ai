@@ -1,0 +1,49 @@
+name: Web OTA bundle
+
+# Builds the web app and publishes it (plus a version manifest) to the
+# `web-latest` GitHub Release on every push. The native app downloads this on
+# launch (see src/ota.ts), so UI/web changes ship over-the-air — no new
+# App Store / TestFlight or Android build needed.
+on:
+  push:
+    branches: [claude/zealous-sagan-TA5qG]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ota:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web bundle
+        run: npm run build
+
+      - name: Package bundle + manifest
+        run: |
+          VERSION="${GITHUB_RUN_NUMBER}"
+          ( cd dist && zip -qr "../dist-${VERSION}.zip" . )
+          cat > manifest.json <<EOF
+          { "version": "${VERSION}", "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/web-latest/dist-${VERSION}.zip" }
+          EOF
+          echo "Published version ${VERSION}"; cat manifest.json
+
+      - name: Publish OTA bundle to a GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: web-latest
+          name: Go Farther — Web OTA bundle
+          prerelease: true
+          files: |
+            dist-*.zip
+            manifest.json
