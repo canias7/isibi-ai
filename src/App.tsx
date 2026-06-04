@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { streamChat, type ChatMessage } from './api';
+import { supabase } from './supabase';
 import Connectors from './Connectors';
+import Login from './Login';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -11,23 +14,23 @@ interface Conversation {
   updatedAt: number;
 }
 
-const CHATS_KEY = 'gf_chats';
 const MAX_CHATS = 50;
+const chatsKey = (uid: string) => `gf_chats_${uid}`;
 
-function loadChats(): Conversation[] {
+function loadChats(uid: string): Conversation[] {
   try {
-    const v = JSON.parse(localStorage.getItem(CHATS_KEY) || '[]');
+    const v = JSON.parse(localStorage.getItem(chatsKey(uid)) || '[]');
     return Array.isArray(v) ? v : [];
   } catch {
     return [];
   }
 }
 
-function saveChats(chats: Conversation[]) {
+function saveChats(uid: string, chats: Conversation[]) {
   try {
-    localStorage.setItem(CHATS_KEY, JSON.stringify(chats.slice(0, MAX_CHATS)));
+    localStorage.setItem(chatsKey(uid), JSON.stringify(chats.slice(0, MAX_CHATS)));
   } catch {
-    /* storage full / unavailable — keep running in memory */
+    /* storage full / unavailable */
   }
 }
 
@@ -37,20 +40,53 @@ function titleFrom(messages: ChatMessage[]): string {
   return t ? (t.length > 42 ? t.slice(0, 42) + '…' : t) : 'New chat';
 }
 
-function uid(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+function cid(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
 }
 
 export default function App() {
-  const [chats, setChats] = useState<Conversation[]>(loadChats);
-  const [currentId, setCurrentId] = useState<string>(() => loadChats()[0]?.id ?? uid());
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadChats()[0]?.messages ?? []);
+  const [session, setSession] = useState<Session | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  // ---- Auth bootstrap ----
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthReady(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const uid = session?.user.id ?? null;
+
+  const [chats, setChats] = useState<Conversation[]>([]);
+  const [currentId, setCurrentId] = useState<string>(cid);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [view, setView] = useState<View>('chat');
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // Load this user's chats on login (and clear on logout).
+  useEffect(() => {
+    if (!uid) {
+      setChats([]);
+      setMessages([]);
+      setCurrentId(cid());
+      return;
+    }
+    const loaded = loadChats(uid);
+    setChats(loaded);
+    setCurrentId(loaded[0]?.id ?? cid());
+    setMessages(loaded[0]?.messages ?? []);
+  }, [uid]);
 
   // Auto-scroll to the latest message.
   useEffect(() => {
@@ -67,14 +103,14 @@ export default function App() {
 
   // Persist the active conversation once a turn finishes (not on every token).
   useEffect(() => {
-    if (busy || messages.length === 0) return;
+    if (!uid || busy || messages.length === 0) return;
     setChats((prev) => {
       const convo: Conversation = { id: currentId, title: titleFrom(messages), messages, updatedAt: Date.now() };
       const next = [convo, ...prev.filter((c) => c.id !== currentId)];
-      saveChats(next);
+      saveChats(uid, next);
       return next;
     });
-  }, [messages, busy, currentId]);
+  }, [messages, busy, currentId, uid]);
 
   async function send() {
     const text = input.trim();
@@ -119,8 +155,7 @@ export default function App() {
   }
 
   function newChat() {
-    // The current thread is already saved by the persist effect; just start fresh.
-    setCurrentId(uid());
+    setCurrentId(cid());
     setMessages([]);
     go('chat');
   }
@@ -137,14 +172,29 @@ export default function App() {
     e.stopPropagation();
     setChats((prev) => {
       const next = prev.filter((c) => c.id !== id);
-      saveChats(next);
+      if (uid) saveChats(uid, next);
       return next;
     });
     if (id === currentId) {
-      setCurrentId(uid());
+      setCurrentId(cid());
       setMessages([]);
     }
   }
+
+  async function signOut() {
+    setSidebarOpen(false);
+    await supabase.auth.signOut();
+  }
+
+  // ---- Gate on auth ----
+  if (!authReady) {
+    return (
+      <div className="auth">
+        <div className="auth-brand">Go Farther</div>
+      </div>
+    );
+  }
+  if (!session) return <Login />;
 
   const title = view === 'connectors' ? 'Connectors' : view === 'settings' ? 'Settings' : 'Go Farther';
 
@@ -179,18 +229,20 @@ export default function App() {
                 onClick={() => selectChat(c.id)}
               >
                 <span className="chat-title">{c.title || 'New chat'}</span>
-                <span
-                  className="chat-del"
-                  role="button"
-                  aria-label="Delete chat"
-                  onClick={(e) => deleteChat(c.id, e)}
-                >
+                <span className="chat-del" role="button" aria-label="Delete chat" onClick={(e) => deleteChat(c.id, e)}>
                   ×
                 </span>
               </button>
             ))}
           </div>
         )}
+
+        <div className="side-foot">
+          <div className="side-user" title={session.user.email ?? ''}>{session.user.email}</div>
+          <button className="side-item" onClick={signOut}>
+            <span className="ico">⏏</span> Sign out
+          </button>
+        </div>
       </aside>
 
       <header className="topbar">
@@ -200,12 +252,13 @@ export default function App() {
       </header>
 
       {view === 'connectors' ? (
-        <Connectors />
+        <Connectors userId={session.user.id} />
       ) : view === 'settings' ? (
         <div className="page">
           <div className="page-inner">
             <h1 className="page-title">Settings</h1>
-            <p className="page-sub">More options coming soon.</p>
+            <p className="page-sub">Signed in as {session.user.email}.</p>
+            <button className="conn-btn" onClick={signOut}>Sign out</button>
           </div>
         </div>
       ) : (

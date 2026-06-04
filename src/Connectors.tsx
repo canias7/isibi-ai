@@ -31,7 +31,6 @@ const CONNECTORS: Connector[] = [
 // now connects any app via ?app=<id>.
 const CONNECT_API = 'https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-oauth';
 const REAL = new Set(['gmail', 'gcal', 'gdrive', 'canva', 'figma', 'notion', 'atlassian', 'm365', 'slack', 'hubspot']);
-const USER = 'primary';
 const STORAGE_KEY = 'gf_connectors';
 
 type Status = { connected: boolean; email?: string | null };
@@ -60,9 +59,10 @@ function Logo({ c }: { c: Connector }) {
   );
 }
 
-export default function Connectors() {
+export default function Connectors({ userId }: { userId: string }) {
   const [local, setLocal] = useState<Record<string, boolean>>(loadLocal);
   const [status, setStatus] = useState<Record<string, Status>>({});
+  const USER = encodeURIComponent(userId);
 
   async function refreshOne(id: string) {
     try {
@@ -87,7 +87,7 @@ export default function Connectors() {
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, []);
+  }, [userId]);
 
   function connect(id: string) {
     window.open(`${CONNECT_API}/start?u=${USER}&app=${id}`, '_blank');

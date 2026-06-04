@@ -12,6 +12,22 @@ const cors: Record<string, string> = {
 
 interface Msg { role: string; content: string }
 
+// Identify the caller from their Supabase JWT (the `sub` claim = user id).
+// A plain anon key has no `sub`, so anonymous callers get no connected apps —
+// they can chat, but can't touch anyone's data.
+function userFromJwt(req: Request): string | null {
+  try {
+    const auth = req.headers.get("authorization") || "";
+    const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    return json.role === "authenticated" && typeof json.sub === "string" ? json.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 // Which toolkits has this user connected? Ask Composio (the source of truth).
 // Returns the toolkit slugs (e.g. ["gmail","googlecalendar"]) of ACTIVE accounts.
 async function connectedToolkits(userId: string): Promise<string[]> {
@@ -52,14 +68,18 @@ Deno.serve(async (req: Request) => {
     return new Response("Invalid request body — expected { messages: [...] }.", { status: 400, headers: cors });
   }
 
-  // Attach the MCP server, scoped to whichever apps the user has connected.
+  // Attach the MCP server, scoped to THIS user's connected apps. The proxy runs
+  // tools as this same user id (passed in the URL) so users only touch their own data.
   let mcpServers: unknown[] | undefined;
   const extraHeaders: Record<string, string> = {};
-  const apps = await connectedToolkits("primary");
-  if (apps.length) {
-    const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}`;
-    mcpServers = [{ type: "url", url, name: "connectors", authorization_token: SHARED_SECRET }];
-    extraHeaders["anthropic-beta"] = "mcp-client-2025-04-04";
+  const appUser = userFromJwt(req);
+  if (appUser) {
+    const apps = await connectedToolkits(appUser);
+    if (apps.length) {
+      const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}`;
+      mcpServers = [{ type: "url", url, name: "connectors", authorization_token: SHARED_SECRET }];
+      extraHeaders["anthropic-beta"] = "mcp-client-2025-04-04";
+    }
   }
 
   const reqBody: Record<string, unknown> = {

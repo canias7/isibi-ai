@@ -15,7 +15,6 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SHARED_SECRET = "717fa3c352eda109dcda2451e97f1254a62c244e526eccbb";
 const API_KEY = Deno.env.get("COMPOSIO_API_KEY")!;
-const USER_ID = "primary";
 const BASE = "https://backend.composio.dev/api";
 
 // The "most-used" tools per toolkit (~6 each). Tight on purpose: a small,
@@ -136,7 +135,7 @@ async function toolsForToolkit(toolkit: string): Promise<Tool[]> {
 
 // Fire-and-forget: record each tool call so we can later rank tools by REAL
 // usage. Writes to public.tool_usage via PostgREST with the service role.
-async function logUsage(tool: string, ok: boolean): Promise<void> {
+async function logUsage(tool: string, ok: boolean, userId: string): Promise<void> {
   try {
     const url = Deno.env.get("SUPABASE_URL");
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -144,7 +143,7 @@ async function logUsage(tool: string, ok: boolean): Promise<void> {
     await fetch(`${url}/rest/v1/tool_usage`, {
       method: "POST",
       headers: { "content-type": "application/json", apikey: key, authorization: `Bearer ${key}`, prefer: "return=minimal" },
-      body: JSON.stringify({ tool, user_id: USER_ID, success: ok }),
+      body: JSON.stringify({ tool, user_id: userId, success: ok }),
     });
   } catch { /* never let logging break a tool call */ }
 }
@@ -165,11 +164,11 @@ async function listTools(apps: string[]): Promise<Tool[]> {
   return out;
 }
 
-async function execTool(name: string, args: unknown): Promise<string> {
+async function execTool(name: string, args: unknown, userId: string): Promise<string> {
   const res = await fetch(`${BASE}/v3/tools/execute/${encodeURIComponent(name)}`, {
     method: "POST",
     headers: { "x-api-key": API_KEY, "content-type": "application/json" },
-    body: JSON.stringify({ user_id: USER_ID, arguments: args ?? {} }),
+    body: JSON.stringify({ user_id: userId, arguments: args ?? {} }),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`Composio execute ${res.status}: ${JSON.stringify(body)}`);
@@ -190,7 +189,9 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const apps = (new URL(req.url).searchParams.get("apps") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const reqUrl = new URL(req.url);
+  const apps = (reqUrl.searchParams.get("apps") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const reqUser = reqUrl.searchParams.get("user") || "";
 
   let msg: any;
   try { msg = await req.json(); } catch { return new Response("bad json", { status: 400 }); }
@@ -222,12 +223,15 @@ Deno.serve(async (req: Request) => {
   }
   if (method === "tools/call") {
     const p = msg.params || {};
+    if (!reqUser) {
+      return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "Error: no user context" }], isError: true } });
+    }
     try {
-      const text = await execTool(p.name, p.arguments || {});
-      await logUsage(p.name, true);
+      const text = await execTool(p.name, p.arguments || {}, reqUser);
+      await logUsage(p.name, true, reqUser);
       return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
     } catch (e) {
-      await logUsage(p.name, false);
+      await logUsage(p.name, false, reqUser);
       return J({
         jsonrpc: "2.0",
         id,

@@ -1,3 +1,5 @@
+import { supabase, SUPABASE_ANON_KEY } from './supabase';
+
 export type Role = 'user' | 'assistant';
 export interface ChatMessage {
   role: Role;
@@ -10,10 +12,6 @@ const CHAT_API =
   (import.meta.env.VITE_CHAT_API as string | undefined) ??
   'https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/chat';
 
-// Public anon key — safe to ship in the client; required to reach the function.
-const SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrcGZlcXJlbHZ6aWx0ZndwdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1Mjk2NDMsImV4cCI6MjA5NjEwNTY0M30.DZ_mssAlWiGj-6xLG7Z_srt0taV-mXbbRzazQ29P2xw';
-
 /**
  * Stream an assistant reply, delivering text chunks via `onToken`.
  * POSTs { messages } to the backend and reads the streamed text response.
@@ -23,11 +21,16 @@ export async function streamChat(
   onToken: (chunk: string) => void,
   signal?: AbortSignal,
 ): Promise<void> {
+  // Send the signed-in user's access token so the backend acts as *this* user
+  // (their connected apps), not a shared identity. Falls back to anon.
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token ?? SUPABASE_ANON_KEY;
+
   const res = await fetch(CHAT_API, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      Authorization: `Bearer ${token}`,
       apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify({ messages }),
