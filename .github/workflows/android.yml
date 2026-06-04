@@ -82,14 +82,13 @@ jobs:
           find android/app/build/outputs \( -name '*.apk' -o -name '*.aab' \) -exec cp {} out/ \;
           ls -la out
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: go-farther-android
-          path: out/*
-          if-no-files-found: error
-
-      - name: Attach to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+      # Publish to a Release (not an artifact) — Releases don't count against the
+      # Actions artifact-storage quota, and action-gh-release creates the tag
+      # server-side, so this works even when tag pushes are blocked locally.
+      - name: Publish APK to a GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: android-latest
+          name: Go Farther — Android (latest build)
+          prerelease: true
           files: out/*
