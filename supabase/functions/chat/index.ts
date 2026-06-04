@@ -144,11 +144,13 @@ Deno.serve(async (req: Request) => {
   let messages: Msg[];
   let requestedApps: string[] | undefined;
   let tz = "UTC";
+  let clientCards = false;
   try {
     const body = await req.json();
     messages = body.messages;
     if (Array.isArray(body.apps)) requestedApps = body.apps; // per-session connector ids
     if (typeof body.tz === "string" && body.tz) tz = body.tz; // device timezone
+    if (body.cards === true) clientCards = true; // client can render rich blocks (inbox cards)
     if (!Array.isArray(messages) || messages.length === 0) throw new Error("bad body");
   } catch {
     return new Response("Invalid request body — expected { messages: [...] }.", { status: 400, headers: cors });
@@ -171,7 +173,7 @@ Deno.serve(async (req: Request) => {
       apps = connected.filter((s) => wanted.has(s));
     }
     if (apps.length) {
-      emailUI = apps.includes("gmail") || apps.includes("outlook");
+      emailUI = clientCards && (apps.includes("gmail") || apps.includes("outlook"));
       const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}`;
       mcpServers = [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }];
       // Current MCP connector format (mcp-client-2025-11-20): the toolset lives

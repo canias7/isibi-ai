@@ -43,7 +43,9 @@ export async function streamChat(
       apikey: SUPABASE_ANON_KEY,
     },
     // `apps` = connector ids enabled for this session (undefined = use all connected).
-    body: JSON.stringify({ messages, tz, ...(apps ? { apps } : {}) }),
+    // `cards: true` signals this client can render rich blocks (e.g. inbox cards),
+    // so the backend only emits them to bundles that know how to display them.
+    body: JSON.stringify({ messages, tz, cards: true, ...(apps ? { apps } : {}) }),
     signal,
   });
 
