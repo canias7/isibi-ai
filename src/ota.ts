@@ -5,14 +5,31 @@ import { Capacitor } from '@capacitor/core';
 // against the manifest so we only ever apply a *newer* bundle.
 declare const __APP_VERSION__: string;
 
-// The CI "Web OTA bundle" workflow publishes the latest web build + this
-// manifest to the `web-latest` GitHub Release on every push.
-const MANIFEST_URL =
-  'https://github.com/canias7/isibi-ai/releases/download/web-latest/manifest.json';
+// The CI "Web OTA bundle" workflow publishes the latest web build + a manifest.
+// Supabase Storage is the primary host (direct URLs, reliable); the GitHub
+// Release is a fallback (and what older builds used). We try them in order.
+const MANIFEST_URLS = [
+  'https://lkpfeqrelvziltfwpuxi.supabase.co/storage/v1/object/public/ota/manifest.json',
+  'https://github.com/canias7/isibi-ai/releases/download/web-latest/manifest.json',
+];
 
 interface Manifest {
   version?: string;
   url?: string;
+}
+
+async function fetchManifest(): Promise<Manifest | null> {
+  for (const url of MANIFEST_URLS) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const m = (await res.json()) as Manifest;
+      if (m.version && m.url) return m;
+    } catch {
+      /* try the next source */
+    }
+  }
+  return null;
 }
 
 /**
@@ -27,10 +44,8 @@ export async function initOta(): Promise<void> {
     // Mark the running bundle as good so the updater never auto-rolls-back.
     await CapacitorUpdater.notifyAppReady();
 
-    const res = await fetch(MANIFEST_URL, { cache: 'no-store' });
-    if (!res.ok) return;
-    const manifest = (await res.json()) as Manifest;
-    if (!manifest.version || !manifest.url) return;
+    const manifest = await fetchManifest();
+    if (!manifest || !manifest.version || !manifest.url) return;
 
     // Only move forward: skip if the published bundle isn't newer than the one
     // running (which includes the version baked into this native build). This
