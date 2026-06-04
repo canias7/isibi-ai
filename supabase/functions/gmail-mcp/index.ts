@@ -13,9 +13,16 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // Which toolkits to expose is passed by the chat function as ?apps=slug1,slug2
 // (the toolkit slugs of the user's currently-connected apps).
 
-const SHARED_SECRET = "717fa3c352eda109dcda2451e97f1254a62c244e526eccbb";
 const API_KEY = Deno.env.get("COMPOSIO_API_KEY")!;
 const BASE = "https://backend.composio.dev/api";
+
+// Bearer that gates this server, DERIVED at runtime from a server-only secret
+// (not stored in the repo). Must match the same derivation in the chat function.
+async function mcpToken(): Promise<string> {
+  const base = (Deno.env.get("COMPOSIO_API_KEY") ?? "") + "::gofarther-mcp-v1";
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(base));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 // The "most-used" tools per toolkit (~6 each). Tight on purpose: a small,
 // well-chosen set makes the model pick correctly and keeps every request lean.
@@ -182,7 +189,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
   const auth = req.headers.get("authorization") || "";
-  if (auth !== "Bearer " + SHARED_SECRET) {
+  if (auth !== "Bearer " + (await mcpToken())) {
     return new Response(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32001, message: "Unauthorized" } }), {
       status: 401,
       headers: { "content-type": "application/json" },

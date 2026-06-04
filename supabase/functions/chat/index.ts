@@ -1,8 +1,16 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const SHARED_SECRET = "717fa3c352eda109dcda2451e97f1254a62c244e526eccbb";
 const MCP_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-mcp";
 const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
+
+// Bearer shared with gmail-mcp, DERIVED at runtime from a server-only secret —
+// never stored in the repo. Both functions compute the same value from
+// COMPOSIO_API_KEY, so they stay in sync with no coordination.
+async function mcpToken(): Promise<string> {
+  const base = (COMPOSIO_API_KEY ?? "") + "::gofarther-mcp-v1";
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(base));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 const cors: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -77,7 +85,7 @@ Deno.serve(async (req: Request) => {
     const apps = await connectedToolkits(appUser);
     if (apps.length) {
       const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}`;
-      mcpServers = [{ type: "url", url, name: "connectors", authorization_token: SHARED_SECRET }];
+      mcpServers = [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }];
       extraHeaders["anthropic-beta"] = "mcp-client-2025-04-04";
     }
   }
