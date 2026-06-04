@@ -8,6 +8,7 @@ name: Android Build
 # installable debug APK so you can try it immediately.
 on:
   push:
+    branches: [claude/zealous-sagan-TA5qG]
     tags: ['v*']
   workflow_dispatch:
 
