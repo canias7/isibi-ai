@@ -93,7 +93,6 @@ export function EmailList({ items }: { items: EmailItem[] }) {
             <div className="gf-line1">
               <span className="gf-from">{it.from || it.email || 'Unknown'}</span>
               {it.time && <span className="gf-time">{it.time}</span>}
-              <span className={`gf-star ${it.starred ? 'on' : ''}`} aria-hidden>{it.starred ? '★' : '☆'}</span>
             </div>
             <div className="gf-subject">{it.subject}</div>
             {it.snippet && <div className="gf-snippet">{it.snippet}</div>}

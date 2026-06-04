@@ -573,8 +573,6 @@ body { background: var(--bg); color: var(--text); }
 }
 .gf-email.unread .gf-from { color: var(--text); font-weight: 700; }
 .gf-time { flex-shrink: 0; color: var(--text-dim); font-size: 12px; white-space: nowrap; }
-.gf-star { flex-shrink: 0; color: #ffffff33; font-size: 15px; line-height: 1; }
-.gf-star.on { color: #f5c518; }
 
 .gf-subject {
   margin-top: 1px; font-size: 13px; color: var(--text);
