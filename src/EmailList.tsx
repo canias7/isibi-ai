@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
-// Rich "inbox" rendering for email-list replies. The assistant emits a
-// ```gf-emails JSON block (see the chat system prompt) which AssistantMessage
-// parses and hands to <EmailList>. Pure presentation — no network here.
+// Rich email rendering for chat replies. The assistant emits a fenced JSON block
+// — ```gf-emails for an inbox list, ```gf-message for a single opened email —
+// which AssistantMessage parses and hands to these components. Pure presentation.
 
 export interface EmailItem {
   from: string;
@@ -11,7 +11,23 @@ export interface EmailItem {
   snippet?: string;
   time?: string;
   unread?: boolean;
-  starred?: boolean;
+}
+
+export interface Attachment {
+  name: string;
+  size?: string;
+  type?: string;
+}
+
+export interface EmailMessage {
+  from: string;
+  email?: string;
+  to?: string;
+  time?: string;
+  unread?: boolean;
+  subject: string;
+  body: string;
+  attachments?: Attachment[];
 }
 
 // Personal mailbox providers: their favicon is just the provider logo (useless
@@ -55,9 +71,9 @@ function hueColor(s: string): string {
   return PALETTE[h % PALETTE.length];
 }
 
-function Avatar({ item }: { item: EmailItem }) {
+function Avatar({ from, email }: { from?: string; email?: string }) {
   const [failed, setFailed] = useState(false);
-  const dom = domainOf(item.email);
+  const dom = domainOf(email);
   const brand = dom && !PERSONAL.has(dom);
   if (brand && !failed) {
     return (
@@ -71,7 +87,7 @@ function Avatar({ item }: { item: EmailItem }) {
       </span>
     );
   }
-  const name = item.from || item.email || '?';
+  const name = from || email || '?';
   return (
     <span className="gf-avatar gf-avatar-mono" style={{ background: hueColor(name) }}>
       {initials(name)}
@@ -86,7 +102,7 @@ export function EmailList({ items }: { items: EmailItem[] }) {
         <div key={i} className={`gf-email ${it.unread ? 'unread' : ''}`}>
           <span className="gf-num">{i + 1}</span>
           <span className="gf-avwrap">
-            <Avatar item={it} />
+            <Avatar from={it.from} email={it.email} />
             {it.unread && <span className="gf-dot" aria-hidden />}
           </span>
           <div className="gf-main">
@@ -103,7 +119,76 @@ export function EmailList({ items }: { items: EmailItem[] }) {
   );
 }
 
-// Shown while the gf-emails block is still streaming in (JSON not yet complete).
+const ATT_COLORS: Record<string, string> = {
+  pdf: '#E8453C', doc: '#2B7CD3', docx: '#2B7CD3', txt: '#5b6470',
+  xls: '#1E8E3E', xlsx: '#1E8E3E', csv: '#1E8E3E', ppt: '#D24726', pptx: '#D24726',
+  zip: '#B08900', rar: '#B08900', png: '#7A52CC', jpg: '#7A52CC', jpeg: '#7A52CC', gif: '#7A52CC',
+};
+function extOf(name: string): string {
+  const m = /\.([a-z0-9]+)$/i.exec(name.trim());
+  return m ? m[1].toLowerCase() : 'file';
+}
+
+const DownloadIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3v12" /><path d="m7 12 5 5 5-5" /><path d="M5 21h14" />
+  </svg>
+);
+const EyeIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+export function EmailDetail({ msg }: { msg: EmailMessage }) {
+  return (
+    <div className="gf-msg">
+      <div className="gf-msg-head">
+        <Avatar from={msg.from} email={msg.email} />
+        <div className="gf-msg-who">
+          <div className="gf-msg-name">{msg.from || msg.email || 'Unknown'}</div>
+          {msg.email && <div className="gf-msg-addr">{msg.email}</div>}
+          {msg.to && <div className="gf-msg-to">To: {msg.to}</div>}
+        </div>
+        <div className="gf-msg-meta">
+          {msg.time && <span className="gf-msg-time">{msg.time}</span>}
+          {msg.unread && <span className="gf-msg-pill">Unread</span>}
+        </div>
+      </div>
+
+      <div className="gf-msg-subject">{msg.subject}</div>
+      <div className="gf-msg-body">{msg.body}</div>
+
+      {msg.attachments && msg.attachments.length > 0 && (
+        <div className="gf-att-wrap">
+          <div className="gf-att-count">
+            {msg.attachments.length} Attachment{msg.attachments.length > 1 ? 's' : ''}
+          </div>
+          {msg.attachments.map((a, i) => {
+            const ext = extOf(a.name);
+            return (
+              <div key={i} className="gf-att">
+                <span className="gf-att-icon" style={{ background: ATT_COLORS[ext] ?? '#5b6470' }}>
+                  {ext.slice(0, 4).toUpperCase()}
+                </span>
+                <div className="gf-att-info">
+                  <div className="gf-att-name">{a.name}</div>
+                  {a.size && <div className="gf-att-size">{a.size}</div>}
+                </div>
+                <div className="gf-att-actions">
+                  <button className="gf-att-btn" aria-label="Download" disabled><DownloadIcon /></button>
+                  <button className="gf-att-btn" aria-label="Preview" disabled><EyeIcon /></button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Shown while a ```gf-emails block is still streaming in.
 export function EmailSkeleton() {
   return (
     <div className="gf-emails">
@@ -117,6 +202,25 @@ export function EmailSkeleton() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Shown while a ```gf-message block is still streaming in.
+export function EmailDetailSkeleton() {
+  return (
+    <div className="gf-msg gf-skel">
+      <div className="gf-msg-head">
+        <span className="gf-avatar gf-skel-box" />
+        <div className="gf-msg-who">
+          <div className="gf-skel-line w40" />
+          <div className="gf-skel-line w70" />
+        </div>
+      </div>
+      <div className="gf-skel-line w70" style={{ marginTop: 14 }} />
+      <div className="gf-skel-line w90" />
+      <div className="gf-skel-line w90" />
+      <div className="gf-skel-line w40" />
     </div>
   );
 }
