@@ -207,6 +207,13 @@ export default function App() {
 
     const controller = new AbortController();
     abortRef.current = controller;
+    // Safety net: if the network stalls mid-reply, abort after 2 min so the
+    // composer never locks forever. Generous enough for multi-tool workflows.
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 120000);
     // Tell the backend which connectors are active this session. Undefined until
     // loaded so the first message still gets all connected apps.
     const apps = connLoaded ? [...enabled] : undefined;
@@ -225,14 +232,16 @@ export default function App() {
         apps,
       );
     } catch (e) {
-      if (controller.signal.aborted) return; // user switched/cancelled — leave state alone
-      const msg = e instanceof Error ? e.message : 'Something went wrong';
+      // User pressed Stop (or navigated away) — keep whatever streamed so far.
+      if (controller.signal.aborted && !timedOut) return;
+      const msg = timedOut ? 'Timed out — please try again.' : e instanceof Error ? e.message : 'Something went wrong';
       setMessages((m) => {
         const copy = m.slice();
         copy[copy.length - 1] = { role: 'assistant', content: `⚠️ ${msg}` };
         return copy;
       });
     } finally {
+      clearTimeout(timeout);
       if (abortRef.current === controller) abortRef.current = null;
       setBusy(false);
     }
@@ -429,6 +438,9 @@ export default function App() {
                 aria-label="Connectors for this chat"
               >
                 +
+                {connLoaded && connApps.length > 0 && enabled.size < connApps.length && (
+                  <span className="plus-badge">{enabled.size}</span>
+                )}
               </button>
               <textarea
                 ref={taRef}
@@ -438,8 +450,13 @@ export default function App() {
                 placeholder="Message Go Farther…"
                 rows={1}
               />
-              <button className="send" onClick={() => void send()} disabled={!input.trim() || busy} aria-label="Send">
-                ↑
+              <button
+                className="send"
+                onClick={() => (busy ? stopStream() : void send())}
+                disabled={!busy && !input.trim()}
+                aria-label={busy ? 'Stop generating' : 'Send'}
+              >
+                {busy ? <span className="stop-sq" /> : '↑'}
               </button>
             </div>
             <p className="hint">Go Farther can make mistakes — double-check important info.</p>
