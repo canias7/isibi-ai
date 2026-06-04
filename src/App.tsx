@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { streamChat, type ChatMessage } from './api';
 import { supabase } from './supabase';
+import { CONNECTORS, CONNECT_API, byId } from './connectors';
 import Connectors from './Connectors';
 import Login from './Login';
 import Markdown from './Markdown';
@@ -100,6 +101,63 @@ export default function App() {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  // ---- Per-session connectors ----
+  // Which apps are connected (from the backend), which are enabled for THIS
+  // session (toggles), and whether we've loaded yet. Disabling a connector here
+  // only scopes it out of this chat — it stays connected globally.
+  const [connApps, setConnApps] = useState<string[]>([]);
+  const [enabled, setEnabled] = useState<Set<string>>(new Set());
+  const [connLoaded, setConnLoaded] = useState(false);
+  const [connMenu, setConnMenu] = useState(false);
+  const seenRef = useRef<string[]>([]);
+
+  async function loadConnectors() {
+    if (!uid) return;
+    try {
+      const { data } = await supabase.auth.getSession();
+      const t = data.session?.access_token;
+      if (!t) return;
+      const r = await fetch(`${CONNECT_API}/list`, { headers: { authorization: `Bearer ${t}` } });
+      if (!r.ok) return;
+      const j = await r.json();
+      const ids = CONNECTORS.map((c) => c.id).filter((id) => (j.connected ?? {})[id]);
+      setConnApps(ids);
+      // Keep existing toggles; auto-enable newly connected apps; drop gone ones.
+      setEnabled((prev) => {
+        const next = new Set<string>();
+        for (const id of ids) {
+          if (!seenRef.current.includes(id)) next.add(id); // new -> on
+          else if (prev.has(id)) next.add(id); // keep prior toggle
+        }
+        return next;
+      });
+      seenRef.current = ids;
+      setConnLoaded(true);
+    } catch {
+      /* offline — leave as-is */
+    }
+  }
+
+  useEffect(() => {
+    if (!uid) {
+      setConnApps([]);
+      setEnabled(new Set());
+      setConnLoaded(false);
+      seenRef.current = [];
+      return;
+    }
+    void loadConnectors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid]);
+
+  function toggleApp(id: string) {
+    setEnabled((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
   // Load this user's chats on login (and clear on logout).
   useEffect(() => {
     if (!uid) {
@@ -149,6 +207,9 @@ export default function App() {
 
     const controller = new AbortController();
     abortRef.current = controller;
+    // Tell the backend which connectors are active this session. Undefined until
+    // loaded so the first message still gets all connected apps.
+    const apps = connLoaded ? [...enabled] : undefined;
     try {
       await streamChat(
         history,
@@ -161,6 +222,7 @@ export default function App() {
           });
         },
         controller.signal,
+        apps,
       );
     } catch (e) {
       if (controller.signal.aborted) return; // user switched/cancelled — leave state alone
@@ -193,6 +255,7 @@ export default function App() {
   function go(v: View) {
     setView(v);
     setSidebarOpen(false);
+    if (v === 'chat') void loadConnectors(); // pick up anything connected meanwhile
   }
 
   function newChat() {
@@ -335,7 +398,38 @@ export default function App() {
           </div>
 
           <div className="composer-wrap">
+            {connMenu && <div className="conn-pop-backdrop" onClick={() => setConnMenu(false)} />}
+            {connMenu && (
+              <div className="conn-pop" role="menu">
+                <div className="conn-pop-head">Connectors · this chat</div>
+                {connApps.length === 0 ? (
+                  <button className="conn-pop-empty" onClick={() => { setConnMenu(false); go('connectors'); }}>
+                    No apps connected — open Connectors →
+                  </button>
+                ) : (
+                  connApps.map((id) => {
+                    const c = byId(id);
+                    if (!c) return null;
+                    const on = enabled.has(id);
+                    return (
+                      <button key={id} className="conn-pop-row" onClick={() => toggleApp(id)} aria-pressed={on}>
+                        <img className="conn-pop-logo" src={c.logo} alt="" loading="lazy" />
+                        <span className="conn-pop-name">{c.name}</span>
+                        <span className={`tgl ${on ? 'on' : ''}`}><span className="tgl-knob" /></span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            )}
             <div className="composer">
+              <button
+                className={`plus-btn ${connMenu ? 'open' : ''}`}
+                onClick={() => setConnMenu((o) => !o)}
+                aria-label="Connectors for this chat"
+              >
+                +
+              </button>
               <textarea
                 ref={taRef}
                 value={input}

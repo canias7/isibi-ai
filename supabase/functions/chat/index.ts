@@ -35,6 +35,20 @@ function corsFor(req: Request): Record<string, string> {
 
 interface Msg { role: string; content: string }
 
+// Frontend connector id -> Composio toolkit slug (for per-session filtering).
+const APP_TO_SLUG: Record<string, string> = {
+  gmail: "gmail",
+  gcal: "googlecalendar",
+  gdrive: "googledrive",
+  canva: "canva",
+  figma: "figma",
+  notion: "notion",
+  atlassian: "jira",
+  m365: "outlook",
+  slack: "slack",
+  hubspot: "hubspot",
+};
+
 // Identify the caller from their Supabase JWT (the `sub` claim = user id).
 // A plain anon key has no `sub`, so anonymous callers get no connected apps —
 // they can chat, but can't touch anyone's data.
@@ -84,9 +98,11 @@ Deno.serve(async (req: Request) => {
   }
 
   let messages: Msg[];
+  let requestedApps: string[] | undefined;
   try {
     const body = await req.json();
     messages = body.messages;
+    if (Array.isArray(body.apps)) requestedApps = body.apps; // per-session connector ids
     if (!Array.isArray(messages) || messages.length === 0) throw new Error("bad body");
   } catch {
     return new Response("Invalid request body — expected { messages: [...] }.", { status: 400, headers: cors });
@@ -98,7 +114,14 @@ Deno.serve(async (req: Request) => {
   const extraHeaders: Record<string, string> = {};
   const appUser = userFromJwt(req);
   if (appUser) {
-    const apps = await connectedToolkits(appUser);
+    const connected = await connectedToolkits(appUser);
+    // If the client sent a per-session app list, scope tools to it (∩ connected);
+    // otherwise expose everything connected.
+    let apps = connected;
+    if (requestedApps) {
+      const wanted = new Set(requestedApps.map((id) => APP_TO_SLUG[id]).filter(Boolean));
+      apps = connected.filter((s) => wanted.has(s));
+    }
     if (apps.length) {
       const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}`;
       mcpServers = [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }];

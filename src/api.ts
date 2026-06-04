@@ -20,6 +20,7 @@ export async function streamChat(
   messages: ChatMessage[],
   onToken: (chunk: string) => void,
   signal?: AbortSignal,
+  apps?: string[],
 ): Promise<void> {
   // Send the signed-in user's access token so the backend acts as *this* user
   // (their connected apps), not a shared identity. Falls back to anon.
@@ -33,7 +34,8 @@ export async function streamChat(
       Authorization: `Bearer ${token}`,
       apikey: SUPABASE_ANON_KEY,
     },
-    body: JSON.stringify({ messages }),
+    // `apps` = connector ids enabled for this session (undefined = use all connected).
+    body: JSON.stringify(apps ? { messages, apps } : { messages }),
     signal,
   });
 
