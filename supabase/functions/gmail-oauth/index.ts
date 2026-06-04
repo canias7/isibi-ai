@@ -137,9 +137,14 @@ Deno.serve(async (req: Request) => {
     if (!toolkit) return page(`⚠️ Unknown app: ${app}`);
     try {
       const ac = await ensureAuthConfig(toolkit);
+      const native = url.searchParams.get("native") === "1";
       const res = await api(`/connected_accounts/link`, {
         method: "POST",
-        body: JSON.stringify({ auth_config_id: ac, user_id: uid, callback_url: `${SELF}/callback` }),
+        body: JSON.stringify({
+          auth_config_id: ac,
+          user_id: uid,
+          callback_url: `${SELF}/${native ? "callback-app" : "callback"}`,
+        }),
       });
       const data = await res.json();
       if (!res.ok) return page(`❌ Composio link failed: ${data.message || data.error || res.status}`);
@@ -156,6 +161,14 @@ Deno.serve(async (req: Request) => {
     const err = url.searchParams.get("error");
     if (err) return page(`❌ ${err}`);
     return page("✅ Connected!\n\nYou can close this tab and return to Go Farther.");
+  }
+
+  // 2b) Native return: bounce back into the app via its custom URL scheme so
+  // the in-app browser auto-closes (no manual "back" tap needed).
+  if (path === "callback-app") {
+    const err = url.searchParams.get("error");
+    const target = err ? `gofarther://connected?error=${encodeURIComponent(err)}` : "gofarther://connected";
+    return new Response(null, { status: 302, headers: { Location: target } });
   }
 
   // 3b) Batched: every connected app for this user in ONE call (Bearer token).

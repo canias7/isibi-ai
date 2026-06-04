@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { supabase } from './supabase';
 
 interface Connector {
@@ -83,11 +86,31 @@ export default function Connectors() {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
+  // Native: when the OAuth flow bounces back via gofarther://connected, iOS
+  // reopens the app — close the in-app browser and refresh connection state.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let handle: { remove: () => void } | undefined;
+    CapApp.addListener('appUrlOpen', (e) => {
+      if (!e.url || !e.url.startsWith('gofarther://')) return;
+      Browser.close().catch(() => {});
+      refreshAll();
+    }).then((h) => {
+      handle = h;
+    });
+    return () => handle?.remove();
+  }, []);
+
   async function connect(id: string) {
     const t = await token();
     if (!t) return;
+    if (Capacitor.isNativePlatform()) {
+      // In-app browser; the appUrlOpen listener closes it + refreshes on return.
+      await Browser.open({ url: `${CONNECT_API}/start?app=${id}&t=${encodeURIComponent(t)}&native=1` });
+      return;
+    }
     window.open(`${CONNECT_API}/start?app=${id}&t=${encodeURIComponent(t)}`, '_blank');
-    // Poll briefly so the card flips to "Connected" when they return.
+    // Web: poll briefly so the card flips to "Connected" when they return.
     let n = 0;
     const iv = setInterval(async () => {
       n += 1;
