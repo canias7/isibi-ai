@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface Connector {
   id: string;
@@ -26,9 +26,12 @@ const CONNECTORS: Connector[] = [
   { id: 'hubspot', name: 'HubSpot', logo: si('hubspot'), color: '#FF7A59', desc: 'Contacts, deals & CRM' },
 ];
 
+// Gmail is wired for real (OAuth + MCP); the rest are placeholders for now.
+const GMAIL_OAUTH = 'https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-oauth';
+const USER = 'primary';
 const STORAGE_KEY = 'gf_connectors';
 
-function load(): Record<string, boolean> {
+function loadLocal(): Record<string, boolean> {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
   } catch {
@@ -53,21 +56,54 @@ function Logo({ c }: { c: Connector }) {
 }
 
 export default function Connectors() {
-  const [connected, setConnected] = useState<Record<string, boolean>>(load);
+  const [local, setLocal] = useState<Record<string, boolean>>(loadLocal);
+  const [gmail, setGmail] = useState<{ connected: boolean; email?: string | null }>({ connected: false });
 
-  function toggle(id: string) {
-    setConnected((c) => {
+  async function refreshGmail() {
+    try {
+      const r = await fetch(`${GMAIL_OAUTH}/status?u=${USER}`);
+      if (r.ok) {
+        const j = await r.json();
+        setGmail({ connected: !!j.connected, email: j.email });
+      }
+    } catch {
+      /* offline — leave state as-is */
+    }
+  }
+
+  useEffect(() => {
+    refreshGmail();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshGmail();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
+  function connectGmail() {
+    window.open(`${GMAIL_OAUTH}/start?u=${USER}`, '_blank');
+    // Poll briefly so the card flips to "Connected" when they return.
+    let n = 0;
+    const iv = setInterval(async () => {
+      n += 1;
+      await refreshGmail();
+      if (n >= 20) clearInterval(iv);
+    }, 3000);
+  }
+
+  function toggleLocal(id: string) {
+    setLocal((c) => {
       const next = { ...c, [id]: !c[id] };
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       } catch {
-        /* ignore storage errors */
+        /* ignore */
       }
       return next;
     });
   }
 
-  const count = Object.values(connected).filter(Boolean).length;
+  const count = CONNECTORS.filter((c) => (c.id === 'gmail' ? gmail.connected : !!local[c.id])).length;
 
   return (
     <div className="page">
@@ -80,17 +116,19 @@ export default function Connectors() {
 
         <div className="conn-list">
           {CONNECTORS.map((c) => {
-            const on = !!connected[c.id];
+            const isGmail = c.id === 'gmail';
+            const on = isGmail ? gmail.connected : !!local[c.id];
+            const desc = isGmail && gmail.connected && gmail.email ? `Connected as ${gmail.email}` : c.desc;
             return (
               <div className="conn-card" key={c.id}>
                 <Logo c={c} />
                 <div className="conn-meta">
                   <div className="conn-name">{c.name}</div>
-                  <div className="conn-desc">{c.desc}</div>
+                  <div className="conn-desc">{desc}</div>
                 </div>
                 <button
                   className={`conn-btn ${on ? 'on' : ''}`}
-                  onClick={() => toggle(c.id)}
+                  onClick={() => (isGmail ? connectGmail() : toggleLocal(c.id))}
                   aria-pressed={on}
                 >
                   {on ? 'Connected' : 'Connect'}
