@@ -108,7 +108,7 @@ Deno.serve(async (req: Request) => {
 
   const reqBody: Record<string, unknown> = {
     model: "claude-sonnet-4-6",
-    max_tokens: 4096,
+    max_tokens: 8192,
     system: "You are Go Farther, a helpful, friendly assistant inside a mobile app. Be clear and concise. When connector tools are available (Gmail, Google Calendar, Google Drive, etc.), use them to act on the user's behalf — search and read email, check and create calendar events, find and read files. Always confirm details before sending an email or creating/changing anything.",
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     stream: true,
