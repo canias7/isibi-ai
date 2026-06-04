@@ -1,6 +1,10 @@
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Capacitor } from '@capacitor/core';
 
+// Version baked into this bundle at build time (commit timestamp). Compared
+// against the manifest so we only ever apply a *newer* bundle.
+declare const __APP_VERSION__: string;
+
 // The CI "Web OTA bundle" workflow publishes the latest web build + this
 // manifest to the `web-latest` GitHub Release on every push.
 const MANIFEST_URL =
@@ -28,8 +32,12 @@ export async function initOta(): Promise<void> {
     const manifest = (await res.json()) as Manifest;
     if (!manifest.version || !manifest.url) return;
 
-    const current = await CapacitorUpdater.current();
-    if (current.bundle.version === manifest.version) return; // already current
+    // Only move forward: skip if the published bundle isn't newer than the one
+    // running (which includes the version baked into this native build). This
+    // prevents both redundant re-downloads and accidental downgrades.
+    const running = Number(__APP_VERSION__) || 0;
+    const available = Number(manifest.version) || 0;
+    if (available <= running) return;
 
     const bundle = await CapacitorUpdater.download({
       url: manifest.url,

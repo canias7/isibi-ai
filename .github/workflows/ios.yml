@@ -12,10 +12,20 @@ name: iOS Build
 #   APP_STORE_CONNECT_API_KEY    - the full text of the AuthKey_XXXXX.p8 file
 #
 # Without the API key the job is a cheap no-op (so it doesn't burn macOS minutes).
+#
+# Native builds are EXPENSIVE and unnecessary for web/UI changes — those ship
+# over-the-air (see web-ota.yml + src/ota.ts). So only cut a new TestFlight
+# version when something NATIVE actually changes (the iOS project, Capacitor
+# config, dependencies), or when triggered manually (use this for releases).
 on:
   push:
     branches: [claude/zealous-sagan-TA5qG]
-    tags: ['v*']
+    paths:
+      - 'ios/**'
+      - 'capacitor.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios.yml'
   workflow_dispatch:
 
 permissions:
@@ -67,6 +77,9 @@ jobs:
       - name: Build web bundle + sync Capacitor
         if: steps.signing.outputs.present == 'true'
         run: |
+          # Bake the commit timestamp in as the bundle version so OTA can tell
+          # whether a published web bundle is newer than this native build.
+          export APP_VERSION="$(git show -s --format=%ct HEAD)"
           npm run build
           npx cap sync ios
 
