@@ -20,8 +20,8 @@ const CONNECTORS: Connector[] = [
   { id: 'canva', name: 'Canva', logo: fav('canva.com'), color: '#00C4CC', desc: 'Designs and brand assets' },
   { id: 'figma', name: 'Figma', logo: si('figma'), color: '#F24E1E', desc: 'Design files and prototypes' },
   { id: 'notion', name: 'Notion', logo: si('notion'), color: '#111111', desc: 'Search and edit your workspace' },
-  { id: 'atlassian', name: 'Atlassian Rovo', logo: si('atlassian'), color: '#0052CC', desc: 'Jira, Confluence & Rovo search' },
-  { id: 'm365', name: 'Microsoft 365', logo: fav('microsoft365.com'), color: '#D83B01', desc: 'Outlook, Word, Excel & files' },
+  { id: 'atlassian', name: 'Atlassian Jira', logo: si('jira'), color: '#0052CC', desc: 'Search, read & create Jira issues' },
+  { id: 'm365', name: 'Microsoft Outlook', logo: fav('outlook.com'), color: '#0078D4', desc: 'Outlook mail & calendar' },
   { id: 'slack', name: 'Slack', logo: fav('slack.com'), color: '#4A154B', desc: 'Read and send messages' },
   { id: 'hubspot', name: 'HubSpot', logo: si('hubspot'), color: '#FF7A59', desc: 'Contacts, deals & CRM' },
 ];
@@ -30,7 +30,7 @@ const CONNECTORS: Connector[] = [
 // placeholders for now. The endpoint slug is historical (`gmail-oauth`) but it
 // now connects any app via ?app=<id>.
 const CONNECT_API = 'https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-oauth';
-const REAL = new Set(['gmail', 'gcal', 'gdrive']);
+const REAL = new Set(['gmail', 'gcal', 'gdrive', 'canva', 'figma', 'notion', 'atlassian', 'm365', 'slack', 'hubspot']);
 const USER = 'primary';
 const STORAGE_KEY = 'gf_connectors';
 

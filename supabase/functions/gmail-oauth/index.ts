@@ -17,11 +17,19 @@ const API_KEY = Deno.env.get("COMPOSIO_API_KEY")!;
 const SELF = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-oauth";
 const BASE = "https://backend.composio.dev/api/v3.1";
 
-// Frontend connector id -> Composio toolkit slug.
+// Frontend connector id -> Composio toolkit slug. (atlassian->jira and
+// m365->outlook are the best single-toolkit fits Composio offers.)
 const TOOLKIT: Record<string, string> = {
   gmail: "gmail",
   gcal: "googlecalendar",
   gdrive: "googledrive",
+  canva: "canva",
+  figma: "figma",
+  notion: "notion",
+  atlassian: "jira",
+  m365: "outlook",
+  slack: "slack",
+  hubspot: "hubspot",
 };
 
 const cors: Record<string, string> = {
