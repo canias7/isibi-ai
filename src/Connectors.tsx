@@ -10,7 +10,7 @@ interface Connector {
 }
 
 // Brand logos: simple-icons CDN where available, Google's favicon service for
-// the few brands not in open icon sets (Canva, Microsoft 365, Slack).
+// the few brands not in open icon sets.
 const si = (slug: string) => `https://cdn.simpleicons.org/${slug}`;
 const fav = (domain: string) => `https://www.google.com/s2/favicons?sz=128&domain=${domain}`;
 
@@ -27,22 +27,11 @@ const CONNECTORS: Connector[] = [
   { id: 'hubspot', name: 'HubSpot', logo: si('hubspot'), color: '#FF7A59', desc: 'Contacts, deals & CRM' },
 ];
 
-// These connectors are wired for real via Composio (OAuth + MCP); the rest are
-// placeholders for now. The endpoint slug is historical (`gmail-oauth`) but it
-// now connects any app via ?app=<id>.
+// All connectors run through Composio (OAuth + MCP). The endpoint slug is
+// historical (`gmail-oauth`) but it connects any app via ?app=<id>.
 const CONNECT_API = 'https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-oauth';
-const REAL = new Set(['gmail', 'gcal', 'gdrive', 'canva', 'figma', 'notion', 'atlassian', 'm365', 'slack', 'hubspot']);
-const STORAGE_KEY = 'gf_connectors';
 
 type Status = { connected: boolean; email?: string | null };
-
-function loadLocal(): Record<string, boolean> {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-  } catch {
-    return {};
-  }
-}
 
 function Logo({ c }: { c: Connector }) {
   const [err, setErr] = useState(false);
@@ -61,7 +50,6 @@ function Logo({ c }: { c: Connector }) {
 }
 
 export default function Connectors() {
-  const [local, setLocal] = useState<Record<string, boolean>>(loadLocal);
   const [status, setStatus] = useState<Record<string, Status>>({});
 
   async function token(): Promise<string | null> {
@@ -69,22 +57,21 @@ export default function Connectors() {
     return data.session?.access_token ?? null;
   }
 
-  async function refreshOne(id: string) {
+  // One batched call returns every connected app for this user.
+  async function refreshAll() {
     try {
       const t = await token();
       if (!t) return;
-      const r = await fetch(`${CONNECT_API}/status?app=${id}`, { headers: { authorization: `Bearer ${t}` } });
-      if (r.ok) {
-        const j = await r.json();
-        setStatus((s) => ({ ...s, [id]: { connected: !!j.connected, email: j.email } }));
-      }
+      const r = await fetch(`${CONNECT_API}/list`, { headers: { authorization: `Bearer ${t}` } });
+      if (!r.ok) return;
+      const j = await r.json();
+      const map: Record<string, { email?: string | null }> = j.connected ?? {};
+      const next: Record<string, Status> = {};
+      for (const c of CONNECTORS) next[c.id] = { connected: !!map[c.id], email: map[c.id]?.email ?? null };
+      setStatus(next);
     } catch {
       /* offline — leave state as-is */
     }
-  }
-
-  function refreshAll() {
-    REAL.forEach((id) => void refreshOne(id));
   }
 
   useEffect(() => {
@@ -104,25 +91,12 @@ export default function Connectors() {
     let n = 0;
     const iv = setInterval(async () => {
       n += 1;
-      await refreshOne(id);
+      await refreshAll();
       if (n >= 20) clearInterval(iv);
     }, 3000);
   }
 
-  function toggleLocal(id: string) {
-    setLocal((c) => {
-      const next = { ...c, [id]: !c[id] };
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }
-
-  const isOn = (id: string) => (REAL.has(id) ? !!status[id]?.connected : !!local[id]);
-  const count = CONNECTORS.filter((c) => isOn(c.id)).length;
+  const count = CONNECTORS.filter((c) => status[c.id]?.connected).length;
 
   return (
     <div className="page">
@@ -135,10 +109,9 @@ export default function Connectors() {
 
         <div className="conn-list">
           {CONNECTORS.map((c) => {
-            const real = REAL.has(c.id);
-            const on = isOn(c.id);
+            const on = !!status[c.id]?.connected;
             const email = status[c.id]?.email;
-            const desc = real && on && email ? `Connected as ${email}` : c.desc;
+            const desc = on && email ? `Connected as ${email}` : c.desc;
             return (
               <div className="conn-card" key={c.id}>
                 <Logo c={c} />
@@ -148,7 +121,7 @@ export default function Connectors() {
                 </div>
                 <button
                   className={`conn-btn ${on ? 'on' : ''}`}
-                  onClick={() => (real ? connect(c.id) : toggleLocal(c.id))}
+                  onClick={() => connect(c.id)}
                   aria-pressed={on}
                 >
                   {on ? 'Connected' : 'Connect'}

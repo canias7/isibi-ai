@@ -30,6 +30,10 @@ const TOOLKIT: Record<string, string> = {
   slack: "slack",
   hubspot: "hubspot",
 };
+// Reverse: Composio toolkit slug -> frontend connector id.
+const APP_FOR_SLUG: Record<string, string> = Object.fromEntries(
+  Object.entries(TOOLKIT).map(([app, slug]) => [slug, app]),
+);
 
 // CORS allowlist: native app (Capacitor) + local dev. Requests with no Origin
 // (native fetch / curl) are allowed; unknown browser origins are blocked.
@@ -152,6 +156,34 @@ Deno.serve(async (req: Request) => {
     const err = url.searchParams.get("error");
     if (err) return page(`❌ ${err}`);
     return page("✅ <h2>Connected!</h2><p>You can close this tab and return to Go Farther.</p>");
+  }
+
+  // 3b) Batched: every connected app for this user in ONE call (Bearer token).
+  if (path === "list") {
+    const auth = req.headers.get("authorization") || "";
+    const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
+    const uid = await verifyUser(token);
+    if (!uid) return json(req, { connected: {} });
+    try {
+      const q = new URL(`${BASE}/connected_accounts`);
+      q.searchParams.set("user_ids", uid);
+      q.searchParams.set("statuses", "ACTIVE");
+      const res = await fetch(q.toString(), { headers: { "x-api-key": API_KEY } });
+      if (!res.ok) return json(req, { connected: {} });
+      const body = await res.json();
+      const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
+      const connected: Record<string, { email: string | null }> = {};
+      for (const it of items) {
+        if ((it.status ?? "").toUpperCase() !== "ACTIVE") continue;
+        const appId = APP_FOR_SLUG[(pickSlug(it) ?? "").toLowerCase()];
+        if (!appId) continue;
+        const email = it?.data?.email ?? it?.meta?.email ?? it?.params?.email ?? it?.data?.emailAddress ?? null;
+        connected[appId] = { email };
+      }
+      return json(req, { connected });
+    } catch {
+      return json(req, { connected: {} });
+    }
   }
 
   // 3) The app polls this to show connection state (verified via Bearer token).

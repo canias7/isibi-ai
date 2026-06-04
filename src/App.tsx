@@ -4,6 +4,7 @@ import { streamChat, type ChatMessage } from './api';
 import { supabase } from './supabase';
 import Connectors from './Connectors';
 import Login from './Login';
+import Markdown from './Markdown';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -73,6 +74,7 @@ export default function App() {
   const [view, setView] = useState<View>('chat');
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Load this user's chats on login (and clear on logout).
   useEffect(() => {
@@ -121,16 +123,23 @@ export default function App() {
     setInput('');
     setBusy(true);
 
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
-      await streamChat(history, (tok) => {
-        setMessages((m) => {
-          const copy = m.slice();
-          const last = copy[copy.length - 1];
-          copy[copy.length - 1] = { role: 'assistant', content: last.content + tok };
-          return copy;
-        });
-      });
+      await streamChat(
+        history,
+        (tok) => {
+          setMessages((m) => {
+            const copy = m.slice();
+            const last = copy[copy.length - 1];
+            copy[copy.length - 1] = { role: 'assistant', content: last.content + tok };
+            return copy;
+          });
+        },
+        controller.signal,
+      );
     } catch (e) {
+      if (controller.signal.aborted) return; // user switched/cancelled — leave state alone
       const msg = e instanceof Error ? e.message : 'Something went wrong';
       setMessages((m) => {
         const copy = m.slice();
@@ -138,8 +147,16 @@ export default function App() {
         return copy;
       });
     } finally {
+      if (abortRef.current === controller) abortRef.current = null;
       setBusy(false);
     }
+  }
+
+  // Stop any in-flight reply before changing/leaving the conversation, so its
+  // streamed tokens can't land in a different chat.
+  function stopStream() {
+    abortRef.current?.abort();
+    abortRef.current = null;
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -155,6 +172,7 @@ export default function App() {
   }
 
   function newChat() {
+    stopStream();
     setCurrentId(cid());
     setMessages([]);
     go('chat');
@@ -163,6 +181,7 @@ export default function App() {
   function selectChat(id: string) {
     const c = chats.find((x) => x.id === id);
     if (!c) return;
+    stopStream();
     setCurrentId(id);
     setMessages(c.messages);
     go('chat');
@@ -182,6 +201,7 @@ export default function App() {
   }
 
   async function signOut() {
+    stopStream();
     setSidebarOpen(false);
     await supabase.auth.signOut();
   }
@@ -275,7 +295,7 @@ export default function App() {
                   return (
                     <div key={i} className={`msg ${m.role}`}>
                       <div className="bubble">
-                        {m.content}
+                        {m.role === 'assistant' ? <Markdown text={m.content} /> : m.content}
                         {streamingHere && <span className="cursor" />}
                       </div>
                     </div>
