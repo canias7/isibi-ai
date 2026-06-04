@@ -1,0 +1,8 @@
+# Supabase project config (used by the Supabase CLI for local dev & deploys).
+project_id = "lkpfeqrelvziltfwpuxi"
+
+# The mobile app authenticates with its own custom HS256 JWT, not a Supabase
+# JWT, so the platform JWT gate is disabled and the function validates tokens
+# itself (see supabase/functions/ghost/index.ts).
+[functions.ghost]
+verify_jwt = false

@@ -8,5 +8,10 @@
 export const API_ORIGIN =
   process.env.EXPO_PUBLIC_API_ORIGIN ?? 'https://isibi-backend.onrender.com';
 
-/** Base for the `/api/ghost` API surface (chat, AI, tools, connectors, auth). */
-export const GHOST_BASE = `${API_ORIGIN}/api/ghost`;
+/**
+ * Base for the `/api/ghost` API surface (chat, AI, tools, connectors, auth).
+ * Override directly via EXPO_PUBLIC_GHOST_BASE — e.g. to point at the Supabase
+ * Edge Function: https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/ghost
+ */
+export const GHOST_BASE =
+  process.env.EXPO_PUBLIC_GHOST_BASE ?? `${API_ORIGIN}/api/ghost`;
