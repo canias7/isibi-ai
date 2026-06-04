@@ -157,6 +157,7 @@ Deno.serve(async (req: Request) => {
   // Attach the MCP server, scoped to THIS user's connected apps. The proxy runs
   // tools as this same user id (passed in the URL) so users only touch their own data.
   let mcpServers: unknown[] | undefined;
+  let mcpTools: unknown[] | undefined;
   const extraHeaders: Record<string, string> = {};
   const appUser = userFromJwt(req);
   if (appUser) {
@@ -171,7 +172,14 @@ Deno.serve(async (req: Request) => {
     if (apps.length) {
       const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}`;
       mcpServers = [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }];
-      extraHeaders["anthropic-beta"] = "mcp-client-2025-04-04";
+      // Current MCP connector format (mcp-client-2025-11-20): the toolset lives
+      // in `tools`. cache_control caches the proxy-returned tool schemas — the
+      // big, stable part of the prompt — so follow-up turns re-read them at ~10%
+      // price instead of full. Only the tools prefix is cached on purpose: the
+      // system prompt carries a per-minute timestamp, and since the cache order
+      // is tools -> system -> messages, the tools cache stays stable regardless.
+      mcpTools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
+      extraHeaders["anthropic-beta"] = "mcp-client-2025-11-20";
     }
   }
 
@@ -191,6 +199,7 @@ Deno.serve(async (req: Request) => {
     stream: true,
   };
   if (mcpServers) reqBody.mcp_servers = mcpServers;
+  if (mcpTools) reqBody.tools = mcpTools;
 
   const upstream = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -228,6 +237,12 @@ Deno.serve(async (req: Request) => {
             if (data === "[DONE]" || data === "") continue;
             try {
               const evt = JSON.parse(data);
+              // Lightweight cost telemetry: log token usage (incl. cache hits)
+              // so caching can be verified and spend tracked from the logs.
+              if (evt.type === "message_start" && evt.message?.usage) {
+                const u = evt.message.usage;
+                console.log(`usage in=${u.input_tokens ?? 0} cache_write=${u.cache_creation_input_tokens ?? 0} cache_read=${u.cache_read_input_tokens ?? 0} out=${u.output_tokens ?? 0}`);
+              }
               if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
                 controller.enqueue(enc.encode(evt.delta.text));
               }
