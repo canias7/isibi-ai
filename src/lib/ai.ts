@@ -3,8 +3,9 @@
 import { getToken } from './api';
 import NetInfo from '@react-native-community/netinfo';
 import { AppState } from 'react-native';
+import { API_ORIGIN, GHOST_BASE } from './config';
 
-const BASE = 'https://isibi-backend.onrender.com/api/ghost/ai';
+const BASE = `${GHOST_BASE}/ai`;
 const TIMEOUT_MS = 120000;
 
 /** Check network before requests */
@@ -183,7 +184,7 @@ export async function generateImage(prompt: string, size: string = '1024x1024'):
   const data = await res.json();
   let url = data.url || '';
   if (url.startsWith('/api/')) {
-    url = 'https://isibi-backend.onrender.com' + url;
+    url = API_ORIGIN + url;
   }
   return url;
 }
@@ -204,7 +205,7 @@ export async function editImage(imageBase64: string, prompt: string): Promise<st
   const data = await res.json();
   let url = data.url || '';
   if (url.startsWith('/api/')) {
-    url = 'https://isibi-backend.onrender.com' + url;
+    url = API_ORIGIN + url;
   }
   return url;
 }
@@ -212,7 +213,7 @@ export async function editImage(imageBase64: string, prompt: string): Promise<st
 /** Text-to-speech via OpenAI TTS API. Returns {audio_base64, format}. */
 export async function textToSpeech(text: string, voice: string = 'nova'): Promise<{ audio_base64: string; format: string }> {
   const headers = await authHeaders();
-  const res = await fetchWithTimeout('https://isibi-backend.onrender.com/api/ghost/tools/v2/tts', {
+  const res = await fetchWithTimeout(`${GHOST_BASE}/tools/v2/tts`, {
     method: 'POST', headers,
     body: JSON.stringify({ text, voice }),
   }, 30000);
@@ -229,7 +230,7 @@ export function speakText(text: string) {
 
 // ─── TOOLS API ───────────────────────────────────────────────────────────
 
-const TOOLS_BASE = 'https://isibi-backend.onrender.com/api/ghost/tools';
+const TOOLS_BASE = `${GHOST_BASE}/tools`;
 
 /** Create a file (PDF, XLSX, DOCX, CSV, TXT) */
 export async function createFile(description: string, fileType: string = 'pdf', quality: string = 'standard'): Promise<{ file_id: string; filename: string; download_url: string }> {
@@ -426,7 +427,7 @@ export async function translateText(text: string, targetLanguage: string): Promi
 
 // ─── TOOLS V2 API ────────────────────────────────────────────────────────
 
-const TOOLS_V2 = 'https://isibi-backend.onrender.com/api/ghost/tools/v2';
+const TOOLS_V2 = `${GHOST_BASE}/tools/v2`;
 
 /** Send SMS silently via Twilio */
 export async function sendSMSSilent(to: string, body: string): Promise<any> {
@@ -543,7 +544,7 @@ export async function transcribeAudio(audioBase64: string): Promise<any> {
 
 // ─── TOOLS V3 API ────────────────────────────────────────────────────────
 
-const TOOLS_V3 = 'https://isibi-backend.onrender.com/api/ghost/tools/v3';
+const TOOLS_V3 = `${GHOST_BASE}/tools/v3`;
 
 /** OCR — extract text from image */
 export async function ocrImage(imageBase64: string): Promise<{ text: string }> {
@@ -595,7 +596,7 @@ export async function getStockPrice(symbol: string): Promise<string> {
 
 // ─── TOOLS V4 API ───────────────────────────────────────────────────────
 
-const TOOLS_V4 = 'https://isibi-backend.onrender.com/api/ghost/tools/v4';
+const TOOLS_V4 = `${GHOST_BASE}/tools/v4`;
 
 /** Generate AI summary from call transcript */
 export async function callSummary(transcript: string, contactName?: string, contactPhone?: string): Promise<any> {
@@ -666,7 +667,7 @@ export async function runConnectorAction(appId: string, action: string, paramsSt
       if (Object.keys(params).length === 0) params = { query: paramsStr };
     }
   }
-  const res = await fetchWithTimeout(`https://isibi-backend.onrender.com/api/ghost/connectors/${appId}/action`, {
+  const res = await fetchWithTimeout(`${GHOST_BASE}/connectors/${appId}/action`, {
     method: 'POST', headers,
     body: JSON.stringify({ action, params }),
   }, 30000);
@@ -691,7 +692,7 @@ export async function convertFile(fileUri: string, filename: string, mimeType: s
   const h: any = { ...headers };
   delete h['Content-Type'];
   delete h['content-type'];
-  const res = await fetchWithTimeout(`https://isibi-backend.onrender.com/api/ghost/connectors/convert`, {
+  const res = await fetchWithTimeout(`${GHOST_BASE}/connectors/convert`, {
     method: 'POST', headers: h, body: form as any,
   }, 120000);
   if (!res.ok) {
@@ -724,7 +725,7 @@ export async function convertFile(fileUri: string, filename: string, mimeType: s
 export async function runConnectorPlan(steps: Array<Record<string, any>>): Promise<any> {
   await checkNetwork();
   const headers = await authHeaders();
-  const res = await fetchWithTimeout(`https://isibi-backend.onrender.com/api/ghost/connectors/run_plan`, {
+  const res = await fetchWithTimeout(`${GHOST_BASE}/connectors/run_plan`, {
     method: 'POST', headers,
     body: JSON.stringify({ steps }),
   }, 120000);

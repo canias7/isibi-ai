@@ -6,6 +6,7 @@
  */
 
 import * as SecureStore from 'expo-secure-store';
+import { GHOST_BASE } from './config';
 import * as Crypto from 'expo-crypto';
 
 const E2E_KEY = 'e2e_encryption_key';
@@ -136,7 +137,7 @@ export async function syncKeyToServer(token: string): Promise<boolean> {
   );
 
   try {
-    const res = await fetch('https://isibi-backend.onrender.com/api/ghost/e2e/keys', {
+    const res = await fetch(`${GHOST_BASE}/e2e/keys`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

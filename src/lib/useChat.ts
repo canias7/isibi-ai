@@ -10,6 +10,7 @@ import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
 import { getChatHistory, saveChatHistory, addMemoryFact, deleteMemoryFact, deleteMemoryByCategory, clearMemory, getMemory, getMemoryByCategory, getSavedContacts, addSavedContact, addEmailTemplate, addCallRecording, trackEvent, addToOfflineQueue, getFileRegistry, saveFileRegistry } from './storage';
 import { pushSession } from './chatSync';
+import { API_ORIGIN } from './config';
 import { incrementReactionCount } from './storage';
 import { runAnalysisIfNeeded } from './preferenceAnalysis';
 import NetInfo from '@react-native-community/netinfo';
@@ -529,7 +530,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         cancelRef.current = false;
         createFile(finalAction.target || '', finalAction.text || 'pdf', finalAction.key || 'standard').then(async (result) => {
           if (cancelRef.current) { setIsCreating(false); return; }
-          const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
+          const downloadUrl = `${API_ORIGIN}${result.download_url}`;
           // Download file locally — must include auth header
           const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
           const token = await getToken();
@@ -710,7 +711,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
             if (result.download_url && result.filename) {
               // Zip of all files
               try {
-                const zipUrl = `https://isibi-backend.onrender.com${result.download_url}`;
+                const zipUrl = `${API_ORIGIN}${result.download_url}`;
                 downloadFilePath = `${FileSystem.cacheDirectory}${result.filename}`;
                 await FileSystem.downloadAsync(zipUrl, downloadFilePath);
                 registerFile(result.filename, result.file_id);
@@ -718,7 +719,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
             } else if (successful.length > 0) {
               // Fallback: download first file
               try {
-                const dlUrl = `https://isibi-backend.onrender.com${successful[0].download_url}`;
+                const dlUrl = `${API_ORIGIN}${successful[0].download_url}`;
                 downloadFilePath = `${FileSystem.cacheDirectory}${successful[0].filename}`;
                 await FileSystem.downloadAsync(dlUrl, downloadFilePath);
               } catch { downloadFilePath = undefined; }
@@ -738,7 +739,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
             return;
           }
           // File operations — download the result
-          const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
+          const downloadUrl = `${API_ORIGIN}${result.download_url}`;
           // Ensure filename has an extension so FileViewer can identify the type
           let fname = result.filename;
           if (fname && !fname.includes('.')) fname += '.pdf';
@@ -869,7 +870,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(generateQR(finalAction.target || '')).then(r => {
-          const url = `https://isibi-backend.onrender.com${r.download_url}`;
+          const url = `${API_ORIGIN}${r.download_url}`;
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'QR code generated!', imageUrl: `data:image/png;base64,${r.image_base64}` } : m));
         }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'QR generation failed: ' + e.message } : m)); });
         return;
@@ -880,7 +881,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(createCalendarEvent(finalAction.target || '', finalAction.text || new Date().toISOString().split('T')[0])).then(r => {
-          const url = `https://isibi-backend.onrender.com${r.download_url}`;
+          const url = `${API_ORIGIN}${r.download_url}`;
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `Event created: ${finalAction!.target}\n\n[Download .ics file](${url})` } : m));
         }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Event creation failed: ' + e.message } : m)); });
         return;
@@ -990,7 +991,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
         cancelRef.current = false;
         createFile(desc, fileType, 'premium').then(async (result) => {
           if (cancelRef.current) { setIsCreating(false); return; }
-          const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
+          const downloadUrl = `${API_ORIGIN}${result.download_url}`;
           const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
           const dlToken = await getToken();
           const dlResult = await FileSystem.downloadAsync(downloadUrl, filePath, {

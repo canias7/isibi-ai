@@ -26,6 +26,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Updates from 'expo-updates';
 import { getToken, clearTokenIfReinstalled, authLog } from './src/lib/api';
+import { GHOST_BASE } from './src/lib/config';
 import { C } from './src/lib/theme';
 import { ThemeProvider } from './src/lib/ThemeContext';
 import { hasCompletedOnboarding, getBiometricEnabled } from './src/lib/storage';
@@ -45,7 +46,7 @@ function App() {
   const [locked, setLocked] = useState(false);
 
   useEffect(() => {
-    fetch('https://isibi-backend.onrender.com/api/ghost/me').catch(() => {});
+    fetch(`${GHOST_BASE}/me`).catch(() => {});
 
     // Apply any pending OTA update IMMEDIATELY on launch. By default expo-updates
     // loads the cached bundle and downloads the new one in the background, so

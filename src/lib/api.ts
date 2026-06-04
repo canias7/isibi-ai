@@ -3,8 +3,9 @@
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GHOST_BASE } from './config';
 
-const BASE = 'https://isibi-backend.onrender.com/api/ghost';
+const BASE = GHOST_BASE;
 const TOKEN_KEY = 'gofurther_token';
 const INSTALLED_KEY = 'gofurther_installed';
 const DEBUG_LOG_KEY = 'auth_debug_log';

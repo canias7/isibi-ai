@@ -6,6 +6,7 @@
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
+import { GHOST_BASE } from './config';
 
 const JAILBREAK_PATHS_IOS = [
   '/Applications/Cydia.app',
@@ -70,7 +71,7 @@ export async function reportDeviceStatus(token: string): Promise<{ allowed: bool
   const info = getDeviceInfo();
 
   try {
-    const res = await fetch('https://isibi-backend.onrender.com/api/ghost/device-check', {
+    const res = await fetch(`${GHOST_BASE}/device-check`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

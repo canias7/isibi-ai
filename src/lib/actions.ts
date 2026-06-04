@@ -4,8 +4,9 @@ import { Alert, Linking } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import { findContactNumber, findContactEmail } from './contacts';
 import { getToken } from './api';
+import { GHOST_BASE } from './config';
 
-const TOOLS_V2 = 'https://isibi-backend.onrender.com/api/ghost/tools/v2';
+const TOOLS_V2 = `${GHOST_BASE}/tools/v2`;
 
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await getToken();

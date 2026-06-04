@@ -14,6 +14,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_ORIGIN } from './config';
 
 // Keys that are device-wide and must NOT be namespaced per user.
 const DEVICE_KEYS = new Set<string>([
@@ -455,7 +456,7 @@ export interface ScheduledTask {
   enabled: boolean;
 }
 
-const BACKEND_BASE = 'https://isibi-backend.onrender.com';
+const BACKEND_BASE = API_ORIGIN;
 const SCHED_URL = `${BACKEND_BASE}/api/ghost/scheduled-tasks`;
 
 export async function getScheduledTasks(): Promise<ScheduledTask[]> {
