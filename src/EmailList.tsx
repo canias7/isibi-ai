@@ -1,4 +1,6 @@
-// Rich "inbox cards" rendering for email-list replies. The assistant emits a
+import { useState } from 'react';
+
+// Rich "inbox" rendering for email-list replies. The assistant emits a
 // ```gf-emails JSON block (see the chat system prompt) which AssistantMessage
 // parses and hands to <EmailList>. Pure presentation — no network here.
 
@@ -30,6 +32,16 @@ function domainOf(email?: string): string | null {
   return email.slice(at + 1).trim().toLowerCase() || null;
 }
 
+// Marketing mail comes from subdomains (news.vans.com, e.sofi.com) that the
+// favicon service has no icon for → generic globe. Strip to the registrable
+// domain so the brand's real favicon resolves.
+function rootDomain(d: string): string {
+  const labels = d.split('.');
+  if (labels.length <= 2) return d;
+  const sld = new Set(['co', 'com', 'org', 'net', 'gov', 'edu', 'ac']);
+  return (sld.has(labels[labels.length - 2]) ? labels.slice(-3) : labels.slice(-2)).join('.');
+}
+
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return '?';
@@ -51,11 +63,18 @@ function catClass(category?: string): string {
 }
 
 function Avatar({ item }: { item: EmailItem }) {
+  const [failed, setFailed] = useState(false);
   const dom = domainOf(item.email);
-  if (dom && !PERSONAL.has(dom)) {
+  const brand = dom && !PERSONAL.has(dom);
+  if (brand && !failed) {
     return (
       <span className="gf-avatar">
-        <img src={`https://www.google.com/s2/favicons?sz=128&domain=${dom}`} alt="" loading="lazy" />
+        <img
+          src={`https://www.google.com/s2/favicons?sz=128&domain=${rootDomain(dom!)}`}
+          alt=""
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
       </span>
     );
   }
@@ -72,18 +91,25 @@ export function EmailList({ items }: { items: EmailItem[] }) {
     <div className="gf-emails">
       {items.map((it, i) => (
         <div key={i} className={`gf-email ${it.unread ? 'unread' : ''}`}>
-          <span className="gf-dot" aria-hidden />
-          <Avatar item={it} />
+          <span className="gf-num">{i + 1}</span>
+          <span className="gf-avwrap">
+            <Avatar item={it} />
+            {it.unread && <span className="gf-dot" aria-hidden />}
+          </span>
           <div className="gf-main">
             <div className="gf-line1">
               <span className="gf-from">{it.from || it.email || 'Unknown'}</span>
               {it.time && <span className="gf-time">{it.time}</span>}
+              <span className={`gf-star ${it.starred ? 'on' : ''}`} aria-hidden>{it.starred ? '★' : '☆'}</span>
             </div>
             <div className="gf-subject">{it.subject}</div>
-            {it.snippet && <div className="gf-snippet">{it.snippet}</div>}
-            {it.category && <span className={catClass(it.category)}>{it.category}</span>}
+            {(it.snippet || it.category) && (
+              <div className="gf-line3">
+                {it.snippet && <span className="gf-snippet">{it.snippet}</span>}
+                {it.category && <span className={catClass(it.category)}>{it.category}</span>}
+              </div>
+            )}
           </div>
-          <span className={`gf-star ${it.starred ? 'on' : ''}`} aria-hidden>{it.starred ? '★' : '☆'}</span>
         </div>
       ))}
     </div>
@@ -96,11 +122,11 @@ export function EmailSkeleton() {
     <div className="gf-emails">
       {[0, 1, 2].map((i) => (
         <div key={i} className="gf-email gf-skel">
-          <span className="gf-avatar gf-skel-box" />
+          <span className="gf-num" />
+          <span className="gf-avwrap"><span className="gf-avatar gf-skel-box" /></span>
           <div className="gf-main">
             <div className="gf-skel-line w40" />
             <div className="gf-skel-line w90" />
-            <div className="gf-skel-line w70" />
           </div>
         </div>
       ))}
