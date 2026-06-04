@@ -622,10 +622,10 @@ body { background: var(--bg); color: var(--text); }
 }
 .gf-show-images:active { background: #ffffff1f; }
 
-.gf-att-wrap { margin-top: 16px; background: #1c1f26; border: 1px solid #ffffff12; border-radius: 12px; padding: 12px; }
-.gf-att-count { color: var(--text-dim); font-size: 12px; margin-bottom: 10px; }
+.gf-att-list { margin-top: 12px; }
 .gf-att { display: flex; align-items: center; gap: 11px; }
-.gf-att + .gf-att { margin-top: 10px; }
+.gf-att + .gf-att { margin-top: 12px; }
+.gf-att-thumb { width: 46px; height: 46px; border-radius: 9px; object-fit: cover; flex-shrink: 0; background: #fff; }
 .gf-att-icon {
   width: 40px; height: 40px; border-radius: 9px; flex-shrink: 0;
   display: grid; place-items: center; color: #fff; font-size: 9.5px; font-weight: 800; letter-spacing: 0.3px;

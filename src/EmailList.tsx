@@ -152,23 +152,24 @@ const EyeIcon = () => (
 );
 
 function AttachmentCard(
-  { items, onPreview, onDownload }: {
+  { items, thumbs, onPreview, onDownload }: {
     items: { name: string; size?: string | number; type?: string }[];
+    thumbs?: (string | undefined)[];
     onPreview?: (i: number) => void;
     onDownload?: (i: number) => void;
   },
 ) {
   return (
-    <div className="gf-att-wrap">
-      <div className="gf-att-count">{items.length} Attachment{items.length > 1 ? 's' : ''}</div>
+    <div className="gf-att-list">
       {items.map((a, i) => {
         const ext = extOf(a.name);
         const size = humanSize(a.size);
+        const thumb = thumbs?.[i];
         return (
           <div key={i} className="gf-att">
-            <span className="gf-att-icon" style={{ background: ATT_COLORS[ext] ?? '#5b6470' }}>
-              {ext.slice(0, 4).toUpperCase()}
-            </span>
+            {thumb
+              ? <img className="gf-att-thumb" src={thumb} alt="" loading="lazy" />
+              : <span className="gf-att-icon" style={{ background: ATT_COLORS[ext] ?? '#5b6470' }}>{ext.slice(0, 4).toUpperCase()}</span>}
             <div className="gf-att-info">
               <div className="gf-att-name">{a.name}</div>
               {size && <div className="gf-att-size">{size}</div>}
@@ -207,12 +208,13 @@ function EmailBody({ id, fallback }: { id: string; fallback: string }) {
   const [showImages, setShowImages] = useState(false);
   const [atts, setAtts] = useState<MsgAttachment[]>([]);
   const [cidMap, setCidMap] = useState<Record<string, string>>({});
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [lightbox, setLightbox] = useState<string | null>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     let alive = true;
-    setStatus('loading'); setShowImages(false); setHtml(''); setAtts([]); setCidMap({});
+    setStatus('loading'); setShowImages(false); setHtml(''); setAtts([]); setCidMap({}); setThumbs({});
     (async () => {
       try {
         const r = await fetchEmailHtml(id);
@@ -221,21 +223,28 @@ function EmailBody({ id, fallback }: { id: string; fallback: string }) {
         setHasImages(r.hasImages);
         setHtml(r.html);
         setStatus(r.html ? 'ok' : 'fail');
-        // Resolve inline cid: images from the user's own attachments (safe — no
-        // tracking). Built as a map and applied at render, AFTER remote-image
-        // blocking, so these resolved URLs aren't treated as remote/blocked.
+        // Fetch a hosted URL for each image attachment once; reuse it for the
+        // inline cid: images AND for the attachment thumbnails.
+        const urlByAtt: Record<string, string> = {};
+        for (const a of r.attachments) {
+          if (!(a.mimeType || '').startsWith('image/')) continue;
+          try {
+            const { b64, url } = await fetchAttachment(id, a.attachmentId, a.name);
+            const src = url || (b64 ? `data:${a.mimeType};base64,${b64}` : '');
+            if (src) urlByAtt[a.attachmentId] = src;
+          } catch { /* skip */ }
+        }
+        if (!alive) return;
+        setThumbs(urlByAtt);
+        // Resolve inline cid: images (applied at render AFTER remote-image
+        // blocking, so these resolved URLs aren't treated as remote/blocked).
         const cids = [...new Set([...r.html.matchAll(/cid:([^"')\s>]+)/gi)].map((m) => m[1]))];
         const map: Record<string, string> = {};
         for (const cid of cids) {
           const att = r.attachments.find((a) => a.contentId && (a.contentId === cid || cid.includes(a.contentId)));
-          if (!att) continue;
-          try {
-            const { b64, url } = await fetchAttachment(id, att.attachmentId, att.name);
-            const src = url || (b64 ? `data:${att.mimeType || 'image/png'};base64,${b64}` : '');
-            if (src) map[cid] = src;
-          } catch { /* leave unresolved */ }
+          if (att && urlByAtt[att.attachmentId]) map[cid] = urlByAtt[att.attachmentId];
         }
-        if (alive && Object.keys(map).length) setCidMap(map);
+        if (Object.keys(map).length) setCidMap(map);
       } catch {
         if (alive) setStatus('fail');
       }
@@ -256,8 +265,11 @@ function EmailBody({ id, fallback }: { id: string; fallback: string }) {
     const att = atts[i];
     if (!att) return;
     try {
-      const { b64, url } = await fetchAttachment(id, att.attachmentId, att.name);
-      const src = url || (b64 ? `data:${att.mimeType || 'application/octet-stream'};base64,${b64}` : '');
+      let src = thumbs[att.attachmentId] || '';
+      if (!src) {
+        const { b64, url } = await fetchAttachment(id, att.attachmentId, att.name);
+        src = url || (b64 ? `data:${att.mimeType || 'application/octet-stream'};base64,${b64}` : '');
+      }
       if (!src) return;
       if (mode === 'preview' && (att.mimeType || '').startsWith('image/')) {
         setLightbox(src);
@@ -298,6 +310,7 @@ function EmailBody({ id, fallback }: { id: string; fallback: string }) {
       {atts.length > 0 && (
         <AttachmentCard
           items={atts.map((a) => ({ name: a.name, size: a.size, type: a.mimeType }))}
+          thumbs={atts.map((a) => thumbs[a.attachmentId])}
           onPreview={(i) => act(i, 'preview')}
           onDownload={(i) => act(i, 'download')}
         />
