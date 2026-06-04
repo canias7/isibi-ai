@@ -1,16 +1,17 @@
 name: iOS Build
 
-# Builds & signs the native iOS app (Capacitor wrapper around the Vite web app)
-# on a macOS runner, then publishes the IPA to a GitHub Release.
+# Builds, signs, and ships the iOS app (Capacitor wrapper around the Vite web
+# app) to TestFlight from a macOS runner — no Mac required on your end.
 #
-# Requires three repository secrets (see README "iOS signing"):
-#   APPLE_CERTIFICATE_BASE64        - your distribution cert (.p12), base64
-#   APPLE_CERTIFICATE_PASSWORD      - password for that .p12
-#   APPLE_PROVISIONING_PROFILE_BASE64 - the .mobileprovision, base64
-# Team ID, bundle ID and profile name are read from the profile automatically.
-# Optional repo variable IOS_EXPORT_METHOD: app-store (default) | ad-hoc | development
+# Uses AUTOMATIC signing: Xcode creates and manages the distribution
+# certificate and provisioning profile itself, authenticated with an App Store
+# Connect API key. So the ONLY secrets you need are the API key (no .p12, no
+# provisioning profile):
+#   APP_STORE_CONNECT_KEY_ID     - the key's Key ID
+#   APP_STORE_CONNECT_ISSUER_ID  - your App Store Connect Issuer ID
+#   APP_STORE_CONNECT_API_KEY    - the full text of the AuthKey_XXXXX.p8 file
 #
-# Without the secrets the job is a cheap no-op (so it doesn't burn macOS minutes).
+# Without the API key the job is a cheap no-op (so it doesn't burn macOS minutes).
 on:
   push:
     branches: [claude/zealous-sagan-TA5qG]
@@ -20,23 +21,25 @@ on:
 permissions:
   contents: write
 
+env:
+  APPLE_TEAM_ID: MY8LTVJQ82
+  BUNDLE_ID: com.gofarther.app
+
 jobs:
   ios:
     runs-on: macos-14
     steps:
-      - name: Check signing secrets
+      - name: Check App Store Connect secret
         id: signing
         env:
-          CERT: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           ASC: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: |
-          if [ -n "$CERT" ]; then
+          if [ -n "$ASC" ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No APPLE_CERTIFICATE_BASE64 secret set — skipping iOS build. Add the signing secrets to produce an IPA."
+            echo "::notice::No APP_STORE_CONNECT_API_KEY secret set — skipping iOS build. Add the 3 App Store Connect API key secrets to build + ship to TestFlight."
           fi
-          if [ -n "$ASC" ]; then echo "asc=true" >> "$GITHUB_OUTPUT"; else echo "asc=false" >> "$GITHUB_OUTPUT"; fi
 
       - uses: actions/checkout@v4
         if: steps.signing.outputs.present == 'true'
@@ -57,64 +60,32 @@ jobs:
           npm run build
           npx cap sync ios
 
-      - name: Import signing certificate
+      - name: Write App Store Connect API key to a file
+        id: asc
         if: steps.signing.outputs.present == 'true'
-        uses: apple-actions/import-codesign-certs@v3
-        with:
-          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-
-      - name: Install provisioning profile & derive identifiers
-        if: steps.signing.outputs.present == 'true'
-        id: profile
         env:
-          PROFILE_B64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: |
-          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          echo "$PROFILE_B64" | base64 -d > "$RUNNER_TEMP/pp.mobileprovision"
-          security cms -D -i "$RUNNER_TEMP/pp.mobileprovision" > "$RUNNER_TEMP/pp.plist"
-          UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$RUNNER_TEMP/pp.plist")
-          NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$RUNNER_TEMP/pp.plist")
-          TEAM=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$RUNNER_TEMP/pp.plist")
-          APPID=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$RUNNER_TEMP/pp.plist")
-          BUNDLE_ID="${APPID#${TEAM}.}"
-          cp "$RUNNER_TEMP/pp.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
-          # Pick the export method matching the profile type (override via the
-          # IOS_EXPORT_METHOD repo variable).
-          METHOD="${{ vars.IOS_EXPORT_METHOD }}"
-          if [ -z "$METHOD" ]; then
-            if /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$RUNNER_TEMP/pp.plist" >/dev/null 2>&1; then
-              if /usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$RUNNER_TEMP/pp.plist" 2>/dev/null | grep -qi true; then
-                METHOD=development
-              else
-                METHOD=ad-hoc
-              fi
-            else
-              METHOD=app-store
-            fi
-          fi
-          echo "uuid=$UUID" >> "$GITHUB_OUTPUT"
-          echo "name=$NAME" >> "$GITHUB_OUTPUT"
-          echo "team=$TEAM" >> "$GITHUB_OUTPUT"
-          echo "bundle_id=$BUNDLE_ID" >> "$GITHUB_OUTPUT"
-          echo "method=$METHOD" >> "$GITHUB_OUTPUT"
-          echo "Profile '$NAME' ($UUID) team=$TEAM bundle=$BUNDLE_ID method=$METHOD"
+          KEY_PATH="$RUNNER_TEMP/asc_key.p8"
+          printf '%s' "$ASC_KEY" > "$KEY_PATH"
+          echo "key_path=$KEY_PATH" >> "$GITHUB_OUTPUT"
 
-      - name: Archive
+      - name: Archive (automatic signing)
         if: steps.signing.outputs.present == 'true'
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
             -destination 'generic/platform=iOS' \
             -allowProvisioningUpdates \
-            DEVELOPMENT_TEAM="${{ steps.profile.outputs.team }}" \
-            PRODUCT_BUNDLE_IDENTIFIER="${{ steps.profile.outputs.bundle_id }}" \
-            CODE_SIGN_STYLE=Manual \
-            PROVISIONING_PROFILE_SPECIFIER="${{ steps.profile.outputs.name }}" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
+            -authenticationKeyPath "${{ steps.asc.outputs.key_path }}" \
+            -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
             clean archive
 
-      - name: Export IPA
+      - name: Export IPA (app-store)
         id: export
         if: steps.signing.outputs.present == 'true'
         run: |
@@ -122,12 +93,9 @@ jobs:
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
-            <key>method</key><string>${{ steps.profile.outputs.method }}</string>
-            <key>teamID</key><string>${{ steps.profile.outputs.team }}</string>
-            <key>signingStyle</key><string>manual</string>
-            <key>provisioningProfiles</key><dict>
-              <key>${{ steps.profile.outputs.bundle_id }}</key><string>${{ steps.profile.outputs.name }}</string>
-            </dict>
+            <key>method</key><string>app-store</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
             <key>compileBitcode</key><false/>
             <key>stripSwiftSymbols</key><true/>
           </dict></plist>
@@ -135,11 +103,24 @@ jobs:
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
-            -exportPath "$RUNNER_TEMP/export"
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${{ steps.asc.outputs.key_path }}" \
+            -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}"
           ls -la "$RUNNER_TEMP/export"
           echo "ipa=$(ls "$RUNNER_TEMP/export/"*.ipa | head -1)" >> "$GITHUB_OUTPUT"
 
-      - name: Publish IPA to a GitHub Release
+      - name: Upload to TestFlight
+        if: steps.signing.outputs.present == 'true'
+        uses: apple-actions/upload-testflight-build@v3
+        with:
+          app-path: ${{ steps.export.outputs.ipa }}
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+
+      - name: Publish IPA to a GitHub Release (backup copy)
         if: steps.signing.outputs.present == 'true'
         uses: softprops/action-gh-release@v2
         with:
@@ -147,14 +128,3 @@ jobs:
           name: Go Farther — iOS (latest build)
           prerelease: true
           files: ${{ runner.temp }}/export/*.ipa
-
-      # Uploads to TestFlight when App Store Connect API credentials are set and
-      # the profile is an App Store one. (app-store IPAs can't be sideloaded.)
-      - name: Upload to TestFlight
-        if: steps.signing.outputs.present == 'true' && steps.signing.outputs.asc == 'true' && steps.profile.outputs.method == 'app-store'
-        uses: apple-actions/upload-testflight-build@v3
-        with:
-          app-path: ${{ steps.export.outputs.ipa }}
-          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
