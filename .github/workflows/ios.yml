@@ -77,11 +77,26 @@ jobs:
           APPID=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$RUNNER_TEMP/pp.plist")
           BUNDLE_ID="${APPID#${TEAM}.}"
           cp "$RUNNER_TEMP/pp.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+          # Pick the export method matching the profile type (override via the
+          # IOS_EXPORT_METHOD repo variable).
+          METHOD="${{ vars.IOS_EXPORT_METHOD }}"
+          if [ -z "$METHOD" ]; then
+            if /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$RUNNER_TEMP/pp.plist" >/dev/null 2>&1; then
+              if /usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$RUNNER_TEMP/pp.plist" 2>/dev/null | grep -qi true; then
+                METHOD=development
+              else
+                METHOD=ad-hoc
+              fi
+            else
+              METHOD=app-store
+            fi
+          fi
           echo "uuid=$UUID" >> "$GITHUB_OUTPUT"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "team=$TEAM" >> "$GITHUB_OUTPUT"
           echo "bundle_id=$BUNDLE_ID" >> "$GITHUB_OUTPUT"
-          echo "Profile '$NAME' ($UUID) team=$TEAM bundle=$BUNDLE_ID"
+          echo "method=$METHOD" >> "$GITHUB_OUTPUT"
+          echo "Profile '$NAME' ($UUID) team=$TEAM bundle=$BUNDLE_ID method=$METHOD"
 
       - name: Archive
         if: steps.signing.outputs.present == 'true'
@@ -99,14 +114,12 @@ jobs:
 
       - name: Export IPA
         if: steps.signing.outputs.present == 'true'
-        env:
-          METHOD: ${{ vars.IOS_EXPORT_METHOD || 'app-store' }}
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
-            <key>method</key><string>${METHOD}</string>
+            <key>method</key><string>${{ steps.profile.outputs.method }}</string>
             <key>teamID</key><string>${{ steps.profile.outputs.team }}</string>
             <key>signingStyle</key><string>manual</string>
             <key>provisioningProfiles</key><dict>
