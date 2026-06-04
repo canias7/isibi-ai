@@ -582,27 +582,10 @@ body { background: var(--bg); color: var(--text); }
 }
 .gf-email.unread .gf-subject { font-weight: 600; }
 
-.gf-line3 { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
 .gf-snippet {
-  flex: 1; min-width: 0; color: var(--text-dim); font-size: 12px;
+  margin-top: 2px; color: var(--text-dim); font-size: 12px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.gf-badge {
-  flex-shrink: 0; font-size: 11px; font-weight: 600; line-height: 1;
-  padding: 4px 8px; border-radius: 6px; border: 1px solid transparent;
-}
-
-/* category pills (subtle tinted) */
-.cat-lead       { color: #f4c152; background: #f4c1521f; border-color: #f4c15233; }
-.cat-finance    { color: #c08bff; background: #c08bff1f; border-color: #c08bff33; }
-.cat-security   { color: #5fd08a; background: #5fd08a1f; border-color: #5fd08a33; }
-.cat-calendar   { color: #7fb0ff; background: #7fb0ff1f; border-color: #7fb0ff33; }
-.cat-promo      { color: #ff7eb6; background: #ff7eb61f; border-color: #ff7eb633; }
-.cat-personal   { color: #5ec8c8; background: #5ec8c81f; border-color: #5ec8c833; }
-.cat-update     { color: #a7b0bb; background: #a7b0bb1f; border-color: #a7b0bb33; }
-.cat-newsletter { color: #9aa0ff; background: #9aa0ff1f; border-color: #9aa0ff33; }
-.cat-social     { color: #7fd1ff; background: #7fd1ff1f; border-color: #7fd1ff33; }
-.cat-other      { color: #9a9a9a; background: #ffffff14; border-color: #ffffff1f; }
 
 /* skeleton while the block streams in */
 .gf-skel-box { background: #ffffff14; }

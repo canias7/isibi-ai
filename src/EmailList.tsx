@@ -12,7 +12,6 @@ export interface EmailItem {
   time?: string;
   unread?: boolean;
   starred?: boolean;
-  category?: string;
 }
 
 // Personal mailbox providers: their favicon is just the provider logo (useless
@@ -56,12 +55,6 @@ function hueColor(s: string): string {
   return PALETTE[h % PALETTE.length];
 }
 
-const KNOWN_CATS = new Set(['lead', 'finance', 'security', 'calendar', 'promo', 'personal', 'update', 'newsletter', 'social']);
-function catClass(category?: string): string {
-  const c = (category ?? '').trim().toLowerCase();
-  return 'gf-badge cat-' + (KNOWN_CATS.has(c) ? c : 'other');
-}
-
 function Avatar({ item }: { item: EmailItem }) {
   const [failed, setFailed] = useState(false);
   const dom = domainOf(item.email);
@@ -103,12 +96,7 @@ export function EmailList({ items }: { items: EmailItem[] }) {
               <span className={`gf-star ${it.starred ? 'on' : ''}`} aria-hidden>{it.starred ? '★' : '☆'}</span>
             </div>
             <div className="gf-subject">{it.subject}</div>
-            {(it.snippet || it.category) && (
-              <div className="gf-line3">
-                {it.snippet && <span className="gf-snippet">{it.snippet}</span>}
-                {it.category && <span className={catClass(it.category)}>{it.category}</span>}
-              </div>
-            )}
+            {it.snippet && <div className="gf-snippet">{it.snippet}</div>}
           </div>
         </div>
       ))}
