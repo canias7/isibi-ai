@@ -547,6 +547,8 @@ body { background: var(--bg); color: var(--text); }
 }
 .gf-email:first-child { border-top: none; }
 .gf-email.unread { background: #ffffff08; }
+.gf-email.tappable { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.gf-email.tappable:active { background: #ffffff14; }
 
 .gf-num { width: 15px; flex-shrink: 0; text-align: center; color: var(--text-dim); font-size: 11px; }
 

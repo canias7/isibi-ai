@@ -38,7 +38,9 @@ function firstFence(text: string) {
     : { before, lang, content: body.slice(0, close), after: body.slice(close + 3), closed: true };
 }
 
-export default function AssistantMessage({ text, streaming }: { text: string; streaming: boolean }) {
+export default function AssistantMessage(
+  { text, streaming, onOpen }: { text: string; streaming: boolean; onOpen?: (it: EmailItem) => void },
+) {
   const f = firstFence(text);
   // Only consider blocks that could be email JSON; leave real code blocks alone.
   const maybeEmail = !!f && ['gf-emails', 'gf-message', 'json', ''].includes(f.lang);
@@ -69,7 +71,7 @@ export default function AssistantMessage({ text, streaming }: { text: string; st
   return (
     <>
       {f.before.trim() && <Markdown text={f.before} />}
-      {list ? <EmailList items={parsed as EmailItem[]} /> : <EmailDetail msg={parsed as EmailMessage} />}
+      {list ? <EmailList items={parsed as EmailItem[]} onOpen={onOpen} /> : <EmailDetail msg={parsed as EmailMessage} />}
       {f.after.trim() && <Markdown text={f.after} />}
     </>
   );

@@ -6,6 +6,7 @@ import { CONNECTORS, CONNECT_API, byId } from './connectorData';
 import Connectors from './Connectors';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
+import type { EmailItem } from './EmailList';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -48,6 +49,11 @@ function cid(): string {
   } catch {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
+}
+
+// Hide the internal "open email" marker from the user's chat bubble.
+function cleanForDisplay(s: string): string {
+  return s.replace(/\s*\[\[gfid:[^\]]*\]\]/g, '');
 }
 
 // Flip to `true` to show the email/password login screen. When `false`, the app
@@ -196,13 +202,12 @@ export default function App() {
     });
   }, [messages, busy, currentId, uid]);
 
-  async function send() {
-    const text = input.trim();
+  async function sendText(raw: string) {
+    const text = raw.trim();
     if (!text || busy) return;
 
     const history = [...messages, { role: 'user', content: text } as ChatMessage];
     setMessages([...history, { role: 'assistant', content: '' }]);
-    setInput('');
     setBusy(true);
 
     const controller = new AbortController();
@@ -245,6 +250,23 @@ export default function App() {
       if (abortRef.current === controller) abortRef.current = null;
       setBusy(false);
     }
+  }
+
+  // Send from the composer (clears the input box).
+  function send() {
+    const text = input.trim();
+    if (!text || busy) return;
+    setInput('');
+    void sendText(text);
+  }
+
+  // Tapping an email card opens it: send a hidden "open by id" instruction so the
+  // assistant fetches that exact message and renders the reader card.
+  function openEmail(item: EmailItem) {
+    if (busy) return;
+    const label = (item.subject || '').trim() || item.from || 'this email';
+    const marker = item.id ? ` [[gfid:${item.id}]]` : '';
+    void sendText(`Open this email: ${label}${marker}`);
   }
 
   // Stop any in-flight reply before changing/leaving the conversation, so its
@@ -396,7 +418,7 @@ export default function App() {
                   return (
                     <div key={i} className={`msg ${m.role}`}>
                       <div className="bubble">
-                        {m.role === 'assistant' ? <AssistantMessage text={m.content} streaming={streamingHere} /> : m.content}
+                        {m.role === 'assistant' ? <AssistantMessage text={m.content} streaming={streamingHere} onOpen={openEmail} /> : cleanForDisplay(m.content)}
                         {streamingHere && <span className="cursor" />}
                       </div>
                     </div>

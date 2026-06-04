@@ -5,6 +5,7 @@ import { useState } from 'react';
 // which AssistantMessage parses and hands to these components. Pure presentation.
 
 export interface EmailItem {
+  id?: string;
   from: string;
   email?: string;
   subject: string;
@@ -95,11 +96,17 @@ function Avatar({ from, email }: { from?: string; email?: string }) {
   );
 }
 
-export function EmailList({ items }: { items: EmailItem[] }) {
+export function EmailList({ items, onOpen }: { items: EmailItem[]; onOpen?: (it: EmailItem) => void }) {
   return (
     <div className="gf-emails">
       {items.map((it, i) => (
-        <div key={i} className={`gf-email ${it.unread ? 'unread' : ''}`}>
+        <div
+          key={i}
+          className={`gf-email ${it.unread ? 'unread' : ''}${onOpen ? ' tappable' : ''}`}
+          onClick={onOpen ? () => onOpen(it) : undefined}
+          role={onOpen ? 'button' : undefined}
+          tabIndex={onOpen ? 0 : undefined}
+        >
           <span className="gf-num">{i + 1}</span>
           <span className="gf-avwrap">
             <Avatar from={it.from} email={it.email} />
