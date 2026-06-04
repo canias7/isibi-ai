@@ -17,6 +17,9 @@ name: iOS Build
 # over-the-air (see web-ota.yml + src/ota.ts). So only cut a new TestFlight
 # version when something NATIVE actually changes (the iOS project, Capacitor
 # config, dependencies), or when triggered manually (use this for releases).
+#
+# Rebuild: bake in the Supabase-Storage-aware OTA (src/ota.ts) so installed
+# apps switch to the reliable Storage host immediately.
 on:
   push:
     branches: [claude/zealous-sagan-TA5qG]
