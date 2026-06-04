@@ -49,18 +49,42 @@ function cid(): string {
   }
 }
 
+// Flip to `true` to show the email/password login screen. When `false`, the app
+// skips the login UI and uses a silent anonymous "guest" session, so identity
+// (per-user connectors + history) still works without a sign-in wall.
+// Requires "Allow anonymous sign-ins" enabled in Supabase → Authentication.
+const REQUIRE_LOGIN = false;
+
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
   // ---- Auth bootstrap ----
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setAuthReady(true);
-    });
+    let active = true;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        if (active) {
+          setSession(data.session);
+          setAuthReady(true);
+        }
+        return;
+      }
+      // No session: skip the login screen with a silent guest sign-in (unless
+      // login is required). If anonymous sign-ins are disabled, we fall through
+      // to the Login screen instead of bricking.
+      if (!REQUIRE_LOGIN) {
+        const { data: anon } = await supabase.auth.signInAnonymously();
+        if (active && anon?.session) setSession(anon.session);
+      }
+      if (active) setAuthReady(true);
+    })();
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const uid = session?.user.id ?? null;
@@ -216,6 +240,7 @@ export default function App() {
   }
   if (!session) return <Login />;
 
+  const isGuest = !!session.user.is_anonymous;
   const title = view === 'connectors' ? 'Connectors' : view === 'settings' ? 'Settings' : 'Go Farther';
 
   return (
@@ -258,10 +283,12 @@ export default function App() {
         )}
 
         <div className="side-foot">
-          <div className="side-user" title={session.user.email ?? ''}>{session.user.email}</div>
-          <button className="side-item" onClick={signOut}>
-            <span className="ico">⏏</span> Sign out
-          </button>
+          <div className="side-user" title={session.user.email ?? ''}>{session.user.email ?? 'Guest'}</div>
+          {!isGuest && (
+            <button className="side-item" onClick={signOut}>
+              <span className="ico">⏏</span> Sign out
+            </button>
+          )}
         </div>
       </aside>
 
@@ -277,8 +304,10 @@ export default function App() {
         <div className="page">
           <div className="page-inner">
             <h1 className="page-title">Settings</h1>
-            <p className="page-sub">Signed in as {session.user.email}.</p>
-            <button className="conn-btn" onClick={signOut}>Sign out</button>
+            <p className="page-sub">
+              {isGuest ? 'Using a guest session on this device.' : `Signed in as ${session.user.email}.`}
+            </p>
+            {!isGuest && <button className="conn-btn" onClick={signOut}>Sign out</button>}
           </div>
         </div>
       ) : (
