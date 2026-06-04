@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchEmailHtml } from './api';
+import { fetchEmailHtml, fetchAttachment, type MsgAttachment } from './api';
 
 // Rich email rendering for chat replies. The assistant emits a fenced JSON block
 // — ```gf-emails for an inbox list, ```gf-message for a single opened email —
-// which AssistantMessage parses and hands to these components. Pure presentation.
+// which AssistantMessage parses and hands to these components.
 
 export interface EmailItem {
   id?: string;
@@ -15,12 +15,6 @@ export interface EmailItem {
   unread?: boolean;
 }
 
-export interface Attachment {
-  name: string;
-  size?: string;
-  type?: string;
-}
-
 export interface EmailMessage {
   id?: string;
   from: string;
@@ -30,7 +24,7 @@ export interface EmailMessage {
   unread?: boolean;
   subject: string;
   body: string;
-  attachments?: Attachment[];
+  attachments?: { name: string; size?: string | number; type?: string }[];
 }
 
 // Personal mailbox providers: their favicon is just the provider logo (useless
@@ -128,6 +122,7 @@ export function EmailList({ items, onOpen }: { items: EmailItem[]; onOpen?: (it:
   );
 }
 
+// ---- Attachments ----
 const ATT_COLORS: Record<string, string> = {
   pdf: '#E8453C', doc: '#2B7CD3', docx: '#2B7CD3', txt: '#5b6470',
   xls: '#1E8E3E', xlsx: '#1E8E3E', csv: '#1E8E3E', ppt: '#D24726', pptx: '#D24726',
@@ -136,6 +131,13 @@ const ATT_COLORS: Record<string, string> = {
 function extOf(name: string): string {
   const m = /\.([a-z0-9]+)$/i.exec(name.trim());
   return m ? m[1].toLowerCase() : 'file';
+}
+function humanSize(n?: string | number): string {
+  if (n == null || n === '') return '';
+  if (typeof n === 'string') return n;
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
 const DownloadIcon = () => (
@@ -149,10 +151,47 @@ const EyeIcon = () => (
   </svg>
 );
 
-// Renders the email's real HTML inside a sandboxed iframe. Images are blocked
-// until the user taps "Show images" (privacy — remote images track opens).
-function stripImages(html: string): string {
-  return html.replace(/<img\b[^>]*>/gi, (tag) => tag.replace(/\s(src|srcset)=/gi, ' data-blk-$1='));
+function AttachmentCard(
+  { items, onPreview, onDownload }: {
+    items: { name: string; size?: string | number; type?: string }[];
+    onPreview?: (i: number) => void;
+    onDownload?: (i: number) => void;
+  },
+) {
+  return (
+    <div className="gf-att-wrap">
+      <div className="gf-att-count">{items.length} Attachment{items.length > 1 ? 's' : ''}</div>
+      {items.map((a, i) => {
+        const ext = extOf(a.name);
+        const size = humanSize(a.size);
+        return (
+          <div key={i} className="gf-att">
+            <span className="gf-att-icon" style={{ background: ATT_COLORS[ext] ?? '#5b6470' }}>
+              {ext.slice(0, 4).toUpperCase()}
+            </span>
+            <div className="gf-att-info">
+              <div className="gf-att-name">{a.name}</div>
+              {size && <div className="gf-att-size">{size}</div>}
+            </div>
+            <div className="gf-att-actions">
+              <button className="gf-att-btn" aria-label="Download" disabled={!onDownload} onClick={onDownload ? () => onDownload(i) : undefined}><DownloadIcon /></button>
+              <button className="gf-att-btn" aria-label="Preview" disabled={!onPreview} onClick={onPreview ? () => onPreview(i) : undefined}><EyeIcon /></button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---- Real-HTML email body (sandboxed iframe) ----
+// Block only REMOTE (http) images by default — privacy (they track opens).
+// Inline cid: images (resolved to data: URIs from the user's own attachments)
+// are safe and stay visible.
+function stripRemoteImages(html: string): string {
+  return html.replace(/<img\b[^>]*>/gi, (tag) =>
+    /\ssrc=["']?https?:/i.test(tag) ? tag.replace(/\s(src|srcset)=/gi, ' data-blk-$1=') : tag,
+  );
 }
 const FRAME_HEAD =
   '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">' +
@@ -164,17 +203,40 @@ const FRAME_FOOT = '</body></html>';
 function EmailBody({ id, fallback }: { id: string; fallback: string }) {
   const [status, setStatus] = useState<'loading' | 'ok' | 'fail'>('loading');
   const [html, setHtml] = useState('');
-  const [hasImages, setHasImages] = useState(false);
+  const [hasImages, setHasImages] = useState(false); // remote http images
   const [showImages, setShowImages] = useState(false);
+  const [atts, setAtts] = useState<MsgAttachment[]>([]);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     let alive = true;
-    setStatus('loading');
-    setShowImages(false);
-    fetchEmailHtml(id)
-      .then((r) => { if (alive) { setHtml(r.html); setHasImages(r.hasImages); setStatus(r.html ? 'ok' : 'fail'); } })
-      .catch(() => { if (alive) setStatus('fail'); });
+    setStatus('loading'); setShowImages(false); setHtml(''); setAtts([]);
+    (async () => {
+      try {
+        const r = await fetchEmailHtml(id);
+        if (!alive) return;
+        setAtts(r.attachments);
+        setHasImages(r.hasImages);
+        // Resolve inline cid: images from the user's own attachments (safe).
+        let resolved = r.html;
+        const cids = [...new Set([...r.html.matchAll(/cid:([^"')\s>]+)/gi)].map((m) => m[1]))];
+        for (const cid of cids) {
+          const att = r.attachments.find((a) => a.contentId && (a.contentId === cid || cid.includes(a.contentId)));
+          if (!att) continue;
+          try {
+            const { b64, url } = await fetchAttachment(id, att.attachmentId);
+            const src = url || (b64 ? `data:${att.mimeType || 'image/png'};base64,${b64}` : '');
+            if (src) resolved = resolved.split('cid:' + cid).join(src);
+          } catch { /* leave this one unresolved */ }
+        }
+        if (!alive) return;
+        setHtml(resolved);
+        setStatus(resolved ? 'ok' : 'fail');
+      } catch {
+        if (alive) setStatus('fail');
+      }
+    })();
     return () => { alive = false; };
   }, [id]);
 
@@ -183,27 +245,63 @@ function EmailBody({ id, fallback }: { id: string; fallback: string }) {
     const f = frameRef.current;
     try {
       const h = f?.contentWindow?.document?.body?.scrollHeight;
-      if (f && h) f.style.height = Math.min(h + 8, 5000) + 'px';
+      if (f && h) f.style.height = Math.min(h + 8, 6000) + 'px';
     } catch { /* opaque — keep default height */ }
+  }
+
+  async function act(i: number, mode: 'preview' | 'download') {
+    const att = atts[i];
+    if (!att) return;
+    try {
+      const { b64, url } = await fetchAttachment(id, att.attachmentId);
+      const src = url || (b64 ? `data:${att.mimeType || 'application/octet-stream'};base64,${b64}` : '');
+      if (!src) return;
+      if (mode === 'preview' && (att.mimeType || '').startsWith('image/')) {
+        setLightbox(src);
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = src;
+      a.download = att.name;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch { /* ignore */ }
   }
 
   if (status === 'loading') return <div className="gf-msg-body gf-body-loading">Loading email…</div>;
   if (status === 'fail') return <div className="gf-msg-body">{fallback}</div>;
 
   return (
-    <div className="gf-body-wrap">
-      {hasImages && !showImages && (
-        <button className="gf-show-images" onClick={() => setShowImages(true)}>🖼 Show images</button>
+    <>
+      <div className="gf-body-wrap">
+        {hasImages && !showImages && (
+          <button className="gf-show-images" onClick={() => setShowImages(true)}>🖼 Show images</button>
+        )}
+        <iframe
+          ref={frameRef}
+          className="gf-body-frame"
+          title="Email"
+          sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+          srcDoc={FRAME_HEAD + (showImages ? html : stripRemoteImages(html)) + FRAME_FOOT}
+          onLoad={() => { fit(); setTimeout(fit, 500); }}
+        />
+      </div>
+      {atts.length > 0 && (
+        <AttachmentCard
+          items={atts.map((a) => ({ name: a.name, size: a.size, type: a.mimeType }))}
+          onPreview={(i) => act(i, 'preview')}
+          onDownload={(i) => act(i, 'download')}
+        />
       )}
-      <iframe
-        ref={frameRef}
-        className="gf-body-frame"
-        title="Email"
-        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-        srcDoc={FRAME_HEAD + (showImages ? html : stripImages(html)) + FRAME_FOOT}
-        onLoad={() => { fit(); setTimeout(fit, 500); }}
-      />
-    </div>
+      {lightbox && (
+        <div className="gf-lightbox" onClick={() => setLightbox(null)}>
+          <img src={lightbox} alt="" />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -224,34 +322,14 @@ export function EmailDetail({ msg }: { msg: EmailMessage }) {
       </div>
 
       <div className="gf-msg-subject">{msg.subject}</div>
-      {msg.id
-        ? <EmailBody id={msg.id} fallback={msg.body} />
-        : <div className="gf-msg-body">{msg.body}</div>}
 
-      {msg.attachments && msg.attachments.length > 0 && (
-        <div className="gf-att-wrap">
-          <div className="gf-att-count">
-            {msg.attachments.length} Attachment{msg.attachments.length > 1 ? 's' : ''}
-          </div>
-          {msg.attachments.map((a, i) => {
-            const ext = extOf(a.name);
-            return (
-              <div key={i} className="gf-att">
-                <span className="gf-att-icon" style={{ background: ATT_COLORS[ext] ?? '#5b6470' }}>
-                  {ext.slice(0, 4).toUpperCase()}
-                </span>
-                <div className="gf-att-info">
-                  <div className="gf-att-name">{a.name}</div>
-                  {a.size && <div className="gf-att-size">{a.size}</div>}
-                </div>
-                <div className="gf-att-actions">
-                  <button className="gf-att-btn" aria-label="Download" disabled><DownloadIcon /></button>
-                  <button className="gf-att-btn" aria-label="Preview" disabled><EyeIcon /></button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      {msg.id ? (
+        <EmailBody id={msg.id} fallback={msg.body} />
+      ) : (
+        <>
+          <div className="gf-msg-body">{msg.body}</div>
+          {msg.attachments && msg.attachments.length > 0 && <AttachmentCard items={msg.attachments} />}
+        </>
       )}
     </div>
   );

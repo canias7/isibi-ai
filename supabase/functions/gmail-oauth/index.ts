@@ -209,14 +209,51 @@ function extractHtml(data: any): { html: string; hasImages: boolean } {
   const hasImages = /<img[^>]+src=["']?http/i.test(html) || /url\(["']?http/i.test(html);
   return { html, hasImages };
 }
-async function fetchMessageHtml(uid: string, messageId: string): Promise<{ html: string; hasImages: boolean }> {
+interface MsgAttachment { name: string; mimeType: string; size: number; attachmentId: string; contentId: string }
+function headerVal(headers: any[], name: string): string {
+  for (const h of headers ?? []) if (((h?.name ?? "") as string).toLowerCase() === name) return h?.value ?? "";
+  return "";
+}
+function collectAttachments(node: any, out: MsgAttachment[]): void {
+  if (!node || typeof node !== "object") return;
+  const attId = node.body?.attachmentId;
+  if (attId && node.filename) {
+    const cid = headerVal(node.headers, "content-id").replace(/^<|>$/g, "");
+    out.push({ name: node.filename, mimeType: node.mimeType ?? "", size: node.body?.size ?? 0, attachmentId: attId, contentId: cid });
+  }
+  for (const p of node.parts ?? []) collectAttachments(p, out);
+}
+function payloadOf(data: any): any {
+  return data?.payload ?? data?.message?.payload ?? data?.data?.payload ?? (data?.mimeType ? data : null);
+}
+async function fetchMessageHtml(uid: string, messageId: string): Promise<{ html: string; hasImages: boolean; attachments: MsgAttachment[] }> {
   const res = await fetch(`${COMPOSIO_EXEC}/GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID`, {
     method: "POST",
     headers: { "x-api-key": API_KEY, "content-type": "application/json" },
     body: JSON.stringify({ user_id: uid, arguments: { message_id: messageId, user_id: "me", format: "full" } }),
   });
   const body = await res.json().catch(() => ({}));
-  return extractHtml(body?.data ?? body);
+  const data = body?.data ?? body;
+  const { html, hasImages } = extractHtml(data);
+  const attachments: MsgAttachment[] = [];
+  const pl = payloadOf(data);
+  if (pl) collectAttachments(pl, attachments);
+  return { html, hasImages, attachments };
+}
+// Fetch one attachment's bytes (base64) or a hosted URL, for preview/download.
+async function getAttachment(uid: string, mid: string, aid: string): Promise<{ b64: string | null; url: string | null; mimeType: string | null }> {
+  const res = await fetch(`${COMPOSIO_EXEC}/GMAIL_GET_ATTACHMENT`, {
+    method: "POST",
+    headers: { "x-api-key": API_KEY, "content-type": "application/json" },
+    body: JSON.stringify({ user_id: uid, arguments: { message_id: mid, attachment_id: aid, user_id: "me" } }),
+  });
+  const body = await res.json().catch(() => ({}));
+  const d = body?.data ?? body;
+  const rawB64 = d?.data?.data ?? (typeof d?.data === "string" ? d.data : null) ?? d?.attachmentData ?? d?.base64 ?? (typeof d === "string" ? d : null);
+  const b64 = typeof rawB64 === "string" ? rawB64.replace(/-/g, "+").replace(/_/g, "/") : null;
+  const url = d?.file ?? d?.s3url ?? d?.url ?? d?.download_url ?? d?.file_url ?? null;
+  const mimeType = d?.mimeType ?? d?.mime_type ?? null;
+  return { b64, url, mimeType };
 }
 
 Deno.serve(async (req: Request) => {
@@ -307,6 +344,21 @@ Deno.serve(async (req: Request) => {
     if (!uid || !id) return json(req, { error: "unauthorized" });
     try {
       return json(req, await fetchMessageHtml(uid, id));
+    } catch (e) {
+      return json(req, { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  // 3d) One attachment's bytes (preview/download). Bearer + ?mid=&aid=.
+  if (path === "attachment") {
+    const auth = req.headers.get("authorization") || "";
+    const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
+    const uid = await verifyUser(token);
+    const mid = url.searchParams.get("mid");
+    const aid = url.searchParams.get("aid");
+    if (!uid || !mid || !aid) return json(req, { error: "unauthorized" });
+    try {
+      return json(req, await getAttachment(uid, mid, aid));
     } catch (e) {
       return json(req, { error: e instanceof Error ? e.message : String(e) });
     }

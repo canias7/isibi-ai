@@ -1,19 +1,48 @@
 import { supabase, SUPABASE_ANON_KEY } from './supabase';
 import { CONNECT_API } from './connectorData';
 
-// Fetch one email's real HTML (for the reader's true-to-life view), straight
-// from the connector backend by message id — out-of-band from the chat model.
-export async function fetchEmailHtml(id: string): Promise<{ html: string; hasImages: boolean }> {
+export interface MsgAttachment {
+  name: string;
+  mimeType: string;
+  size: number;
+  attachmentId: string;
+  contentId?: string;
+}
+
+async function authToken(): Promise<string> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error('Not signed in');
+  return token;
+}
+
+// Fetch one email's real HTML + attachment list (for the reader's true-to-life
+// view), straight from the connector backend by message id — out-of-band from
+// the chat model.
+export async function fetchEmailHtml(
+  id: string,
+): Promise<{ html: string; hasImages: boolean; attachments: MsgAttachment[] }> {
+  const token = await authToken();
   const res = await fetch(`${CONNECT_API}/message?id=${encodeURIComponent(id)}`, {
     headers: { authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(`Message fetch failed: ${res.status}`);
   const j = await res.json();
   if (j.error || typeof j.html !== 'string') throw new Error(j.error || 'No HTML');
-  return { html: j.html, hasImages: !!j.hasImages };
+  return { html: j.html, hasImages: !!j.hasImages, attachments: Array.isArray(j.attachments) ? j.attachments : [] };
+}
+
+// Fetch one attachment's bytes (base64) or hosted URL — for inline images,
+// preview, and download.
+export async function fetchAttachment(mid: string, aid: string): Promise<{ b64?: string; url?: string }> {
+  const token = await authToken();
+  const res = await fetch(`${CONNECT_API}/attachment?mid=${encodeURIComponent(mid)}&aid=${encodeURIComponent(aid)}`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`Attachment fetch failed: ${res.status}`);
+  const j = await res.json();
+  if (j.error) throw new Error(j.error);
+  return { b64: j.b64 || undefined, url: j.url || undefined };
 }
 
 export type Role = 'user' | 'assistant';
