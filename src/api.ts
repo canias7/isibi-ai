@@ -4,56 +4,47 @@ export interface ChatMessage {
   content: string;
 }
 
-const CHAT_API = import.meta.env.VITE_CHAT_API as string | undefined;
+// Go Farther backend: a Supabase Edge Function running Claude (the `chat`
+// function in the gofarther-ai project). Override with VITE_CHAT_API if needed.
+const CHAT_API =
+  (import.meta.env.VITE_CHAT_API as string | undefined) ??
+  'https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/chat';
+
+// Public anon key — safe to ship in the client; required to reach the function.
+const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrcGZlcXJlbHZ6aWx0ZndwdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1Mjk2NDMsImV4cCI6MjA5NjEwNTY0M30.DZ_mssAlWiGj-6xLG7Z_srt0taV-mXbbRzazQ29P2xw';
 
 /**
  * Stream an assistant reply, delivering text chunks via `onToken`.
- *
- * If VITE_CHAT_API is set, it POSTs { messages } to that endpoint and reads a
- * streamed text/plain (or SSE-ish) response. Otherwise it falls back to a local
- * mock so the UI works out of the box — swap in a real model (e.g. Claude via a
- * Supabase Edge Function) by setting VITE_CHAT_API.
+ * POSTs { messages } to the backend and reads the streamed text response.
  */
 export async function streamChat(
   messages: ChatMessage[],
   onToken: (chunk: string) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  if (CHAT_API) {
-    const res = await fetch(CHAT_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages }),
-      signal,
-    });
-    if (!res.ok || !res.body) throw new Error(`Chat API error: ${res.status}`);
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      onToken(decoder.decode(value, { stream: true }));
-    }
-    return;
-  }
-  await mockStream(messages, onToken, signal);
-}
+  const res = await fetch(CHAT_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({ messages }),
+    signal,
+  });
 
-/** Local placeholder that streams a canned reply word-by-word. */
-async function mockStream(
-  messages: ChatMessage[],
-  onToken: (chunk: string) => void,
-  signal?: AbortSignal,
-): Promise<void> {
-  const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
-  const reply =
-    `You said: “${lastUser}”.\n\n` +
-    `This is a demo reply from the local mock. Set VITE_CHAT_API to a chat ` +
-    `endpoint (e.g. a Supabase Edge Function proxying Claude) and I'll stream ` +
-    `real answers here.`;
-  for (const tok of reply.split(/(\s+)/)) {
-    if (signal?.aborted) return;
-    await new Promise((r) => setTimeout(r, 22));
-    onToken(tok);
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(detail || `Chat API error: ${res.status}`);
+  }
+  if (!res.body) throw new Error('No response stream from the assistant.');
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    onToken(decoder.decode(value, { stream: true }));
   }
 }

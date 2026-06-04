@@ -150,7 +150,7 @@ export default function App() {
                 ↑
               </button>
             </div>
-            <p className="hint">Demo mode — set VITE_CHAT_API to connect a real model.</p>
+            <p className="hint">Go Farther can make mistakes — double-check important info.</p>
           </div>
         </>
       )}
