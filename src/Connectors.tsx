@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { supabase } from './supabase';
 
 interface Connector {
   id: string;
@@ -59,14 +60,20 @@ function Logo({ c }: { c: Connector }) {
   );
 }
 
-export default function Connectors({ userId }: { userId: string }) {
+export default function Connectors() {
   const [local, setLocal] = useState<Record<string, boolean>>(loadLocal);
   const [status, setStatus] = useState<Record<string, Status>>({});
-  const USER = encodeURIComponent(userId);
+
+  async function token(): Promise<string | null> {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  }
 
   async function refreshOne(id: string) {
     try {
-      const r = await fetch(`${CONNECT_API}/status?u=${USER}&app=${id}`);
+      const t = await token();
+      if (!t) return;
+      const r = await fetch(`${CONNECT_API}/status?app=${id}`, { headers: { authorization: `Bearer ${t}` } });
       if (r.ok) {
         const j = await r.json();
         setStatus((s) => ({ ...s, [id]: { connected: !!j.connected, email: j.email } }));
@@ -87,10 +94,12 @@ export default function Connectors({ userId }: { userId: string }) {
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [userId]);
+  }, []);
 
-  function connect(id: string) {
-    window.open(`${CONNECT_API}/start?u=${USER}&app=${id}`, '_blank');
+  async function connect(id: string) {
+    const t = await token();
+    if (!t) return;
+    window.open(`${CONNECT_API}/start?app=${id}&t=${encodeURIComponent(t)}`, '_blank');
     // Poll briefly so the card flips to "Connected" when they return.
     let n = 0;
     const iv = setInterval(async () => {

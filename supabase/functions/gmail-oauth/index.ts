@@ -2,20 +2,19 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 // Generic "connect an app" flow, powered by Composio's managed (verified) OAuth.
 // NOTE: the function slug is still `gmail-oauth` for historical reasons, but it
-// now handles ANY connector via the ?app= param. Composio runs each provider's
-// consent screen, stores + refreshes tokens, and owns the verified OAuth apps.
+// now handles ANY connector via the ?app= param.
 //
-// Routes:
-//   /start?u=<user>&app=<id>    -> 302 to the provider's hosted consent URL
-//   /callback                   -> success page after Composio finishes OAuth
-//   /status?u=<user>&app=<id>   -> { connected, email }
-//
-// Auth configs are auto-provisioned (Composio-managed) the first time an app is
-// connected, so no dashboard setup is needed per connector.
+// Identity is verified SERVER-SIDE (the caller's Supabase access token), so we
+// never trust a client-supplied user id. Routes:
+//   /start?app=<id>&t=<access_token>   -> 302 to the provider's hosted consent
+//   /callback                          -> success page after Composio finishes
+//   /status?app=<id>  (Bearer token)   -> { connected, email }
 
 const API_KEY = Deno.env.get("COMPOSIO_API_KEY")!;
 const SELF = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-oauth";
 const BASE = "https://backend.composio.dev/api/v3.1";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
 // Frontend connector id -> Composio toolkit slug. (atlassian->jira and
 // m365->outlook are the best single-toolkit fits Composio offers.)
@@ -32,11 +31,26 @@ const TOOLKIT: Record<string, string> = {
   hubspot: "hubspot",
 };
 
-const cors: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
+// CORS allowlist: native app (Capacitor) + local dev. Requests with no Origin
+// (native fetch / curl) are allowed; unknown browser origins are blocked.
+const ALLOWED_ORIGINS = new Set([
+  "capacitor://localhost",
+  "ionic://localhost",
+  "http://localhost",
+  "https://localhost",
+  "http://localhost:5173",
+  "http://localhost:4173",
+]);
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin");
+  const allow = !origin || ALLOWED_ORIGINS.has(origin) ? (origin ?? "*") : "null";
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
 
 function page(body: string): Response {
   return new Response(
@@ -45,8 +59,23 @@ function page(body: string): Response {
   );
 }
 
-function json(obj: unknown): Response {
-  return new Response(JSON.stringify(obj), { headers: { ...cors, "content-type": "application/json" } });
+function json(req: Request, obj: unknown): Response {
+  return new Response(JSON.stringify(obj), { headers: { ...corsFor(req), "content-type": "application/json" } });
+}
+
+// Verify the caller's Supabase access token and return their user id (or null).
+async function verifyUser(token: string | null): Promise<string | null> {
+  if (!token || !SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const u = await res.json();
+    return typeof u?.id === "string" ? u.id : null;
+  } catch {
+    return null;
+  }
 }
 
 const api = (path: string, init?: RequestInit) =>
@@ -88,25 +117,25 @@ async function ensureAuthConfig(toolkit: string): Promise<string> {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
 
   const url = new URL(req.url);
   const path = url.pathname.split("/").pop();
-  const app = url.searchParams.get("app") ?? "gmail"; // default keeps old links working
+  const app = url.searchParams.get("app") ?? "gmail";
   const toolkit = TOOLKIT[app];
 
-  if (!API_KEY) return path === "status" ? json({ connected: false }) : page("⚠️ COMPOSIO_API_KEY is not set on the server.");
+  if (!API_KEY) return path === "status" ? json(req, { connected: false }) : page("⚠️ COMPOSIO_API_KEY is not set on the server.");
 
-  // 1) Kick off the provider's hosted consent.
+  // 1) Kick off the provider's hosted consent (verified via the ?t= token).
   if (path === "start") {
-    const u = url.searchParams.get("u");
-    if (!u) return page("⚠️ Missing user id (?u=).");
+    const uid = await verifyUser(url.searchParams.get("t"));
+    if (!uid) return page("⚠️ Please sign in to Go Farther, then try connecting again.");
     if (!toolkit) return page(`⚠️ Unknown app: ${app}`);
     try {
       const ac = await ensureAuthConfig(toolkit);
       const res = await api(`/connected_accounts/link`, {
         method: "POST",
-        body: JSON.stringify({ auth_config_id: ac, user_id: u, callback_url: `${SELF}/callback` }),
+        body: JSON.stringify({ auth_config_id: ac, user_id: uid, callback_url: `${SELF}/callback` }),
       });
       const data = await res.json();
       if (!res.ok) return page(`❌ Composio link failed: ${data.message || data.error || res.status}`);
@@ -125,26 +154,28 @@ Deno.serve(async (req: Request) => {
     return page("✅ <h2>Connected!</h2><p>You can close this tab and return to Go Farther.</p>");
   }
 
-  // 3) The app polls this to show connection state.
+  // 3) The app polls this to show connection state (verified via Bearer token).
   if (path === "status") {
-    const u = url.searchParams.get("u");
-    if (!u || !toolkit) return json({ connected: false });
+    const auth = req.headers.get("authorization") || "";
+    const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
+    const uid = await verifyUser(token);
+    if (!uid || !toolkit) return json(req, { connected: false });
     try {
       const ac = await findAuthConfig(toolkit);
-      if (!ac) return json({ connected: false });
+      if (!ac) return json(req, { connected: false });
       const q = new URL(`${BASE}/connected_accounts`);
-      q.searchParams.set("user_ids", u);
+      q.searchParams.set("user_ids", uid);
       q.searchParams.set("auth_config_ids", ac);
       q.searchParams.set("statuses", "ACTIVE");
       const res = await fetch(q.toString(), { headers: { "x-api-key": API_KEY } });
-      if (!res.ok) return json({ connected: false });
+      if (!res.ok) return json(req, { connected: false });
       const body = await res.json();
       const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
       const active = items.find((x) => (x.status ?? "").toUpperCase() === "ACTIVE") ?? items[0];
       const email = active?.data?.email ?? active?.meta?.email ?? active?.params?.email ?? active?.data?.emailAddress ?? null;
-      return json({ connected: !!active, email });
+      return json(req, { connected: !!active, email });
     } catch {
-      return json({ connected: false });
+      return json(req, { connected: false });
     }
   }
 

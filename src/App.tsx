@@ -252,7 +252,7 @@ export default function App() {
       </header>
 
       {view === 'connectors' ? (
-        <Connectors userId={session.user.id} />
+        <Connectors />
       ) : view === 'settings' ? (
         <div className="page">
           <div className="page-inner">

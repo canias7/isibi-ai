@@ -12,11 +12,26 @@ async function mcpToken(): Promise<string> {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-const cors: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+// CORS allowlist: native app (Capacitor) + local dev. Requests with no Origin
+// (native fetch / curl) are allowed; unknown browser origins are blocked.
+const ALLOWED_ORIGINS = new Set([
+  "capacitor://localhost",
+  "ionic://localhost",
+  "http://localhost",
+  "https://localhost",
+  "http://localhost:5173",
+  "http://localhost:4173",
+]);
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin");
+  const allow = !origin || ALLOWED_ORIGINS.has(origin) ? (origin ?? "*") : "null";
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
 
 interface Msg { role: string; content: string }
 
@@ -59,6 +74,7 @@ async function connectedToolkits(userId: string): Promise<string[]> {
 }
 
 Deno.serve(async (req: Request) => {
+  const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: cors });
 
