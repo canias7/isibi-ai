@@ -28,6 +28,7 @@ jobs:
         id: signing
         env:
           CERT: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          ASC: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: |
           if [ -n "$CERT" ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
@@ -35,6 +36,7 @@ jobs:
             echo "present=false" >> "$GITHUB_OUTPUT"
             echo "::notice::No APPLE_CERTIFICATE_BASE64 secret set — skipping iOS build. Add the signing secrets to produce an IPA."
           fi
+          if [ -n "$ASC" ]; then echo "asc=true" >> "$GITHUB_OUTPUT"; else echo "asc=false" >> "$GITHUB_OUTPUT"; fi
 
       - uses: actions/checkout@v4
         if: steps.signing.outputs.present == 'true'
@@ -113,6 +115,7 @@ jobs:
             clean archive
 
       - name: Export IPA
+        id: export
         if: steps.signing.outputs.present == 'true'
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
@@ -134,6 +137,7 @@ jobs:
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
             -exportPath "$RUNNER_TEMP/export"
           ls -la "$RUNNER_TEMP/export"
+          echo "ipa=$(ls "$RUNNER_TEMP/export/"*.ipa | head -1)" >> "$GITHUB_OUTPUT"
 
       - name: Publish IPA to a GitHub Release
         if: steps.signing.outputs.present == 'true'
@@ -143,3 +147,14 @@ jobs:
           name: Go Farther — iOS (latest build)
           prerelease: true
           files: ${{ runner.temp }}/export/*.ipa
+
+      # Uploads to TestFlight when App Store Connect API credentials are set and
+      # the profile is an App Store one. (app-store IPAs can't be sideloaded.)
+      - name: Upload to TestFlight
+        if: steps.signing.outputs.present == 'true' && steps.signing.outputs.asc == 'true' && steps.profile.outputs.method == 'app-store'
+        uses: apple-actions/upload-testflight-build@v3
+        with:
+          app-path: ${{ steps.export.outputs.ipa }}
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
