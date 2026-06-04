@@ -4,8 +4,47 @@ import Connectors from './Connectors';
 
 type View = 'chat' | 'connectors' | 'settings';
 
+interface Conversation {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  updatedAt: number;
+}
+
+const CHATS_KEY = 'gf_chats';
+const MAX_CHATS = 50;
+
+function loadChats(): Conversation[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(CHATS_KEY) || '[]');
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveChats(chats: Conversation[]) {
+  try {
+    localStorage.setItem(CHATS_KEY, JSON.stringify(chats.slice(0, MAX_CHATS)));
+  } catch {
+    /* storage full / unavailable — keep running in memory */
+  }
+}
+
+function titleFrom(messages: ChatMessage[]): string {
+  const first = messages.find((m) => m.role === 'user');
+  const t = (first?.content ?? '').trim().replace(/\s+/g, ' ');
+  return t ? (t.length > 42 ? t.slice(0, 42) + '…' : t) : 'New chat';
+}
+
+function uid(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
 export default function App() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chats, setChats] = useState<Conversation[]>(loadChats);
+  const [currentId, setCurrentId] = useState<string>(() => loadChats()[0]?.id ?? uid());
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadChats()[0]?.messages ?? []);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -25,6 +64,17 @@ export default function App() {
     ta.style.height = 'auto';
     ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
   }, [input]);
+
+  // Persist the active conversation once a turn finishes (not on every token).
+  useEffect(() => {
+    if (busy || messages.length === 0) return;
+    setChats((prev) => {
+      const convo: Conversation = { id: currentId, title: titleFrom(messages), messages, updatedAt: Date.now() };
+      const next = [convo, ...prev.filter((c) => c.id !== currentId)];
+      saveChats(next);
+      return next;
+    });
+  }, [messages, busy, currentId]);
 
   async function send() {
     const text = input.trim();
@@ -69,8 +119,31 @@ export default function App() {
   }
 
   function newChat() {
+    // The current thread is already saved by the persist effect; just start fresh.
+    setCurrentId(uid());
     setMessages([]);
     go('chat');
+  }
+
+  function selectChat(id: string) {
+    const c = chats.find((x) => x.id === id);
+    if (!c) return;
+    setCurrentId(id);
+    setMessages(c.messages);
+    go('chat');
+  }
+
+  function deleteChat(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setChats((prev) => {
+      const next = prev.filter((c) => c.id !== id);
+      saveChats(next);
+      return next;
+    });
+    if (id === currentId) {
+      setCurrentId(uid());
+      setMessages([]);
+    }
   }
 
   const title = view === 'connectors' ? 'Connectors' : view === 'settings' ? 'Settings' : 'Go Farther';
@@ -95,6 +168,29 @@ export default function App() {
             <span className="ico">⚙️</span> Settings
           </button>
         </nav>
+
+        {chats.length > 0 && (
+          <div className="side-chats">
+            <div className="side-label">Recent chats</div>
+            {chats.map((c) => (
+              <button
+                key={c.id}
+                className={`side-item chat-item ${view === 'chat' && c.id === currentId ? 'active' : ''}`}
+                onClick={() => selectChat(c.id)}
+              >
+                <span className="chat-title">{c.title || 'New chat'}</span>
+                <span
+                  className="chat-del"
+                  role="button"
+                  aria-label="Delete chat"
+                  onClick={(e) => deleteChat(c.id, e)}
+                >
+                  ×
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </aside>
 
       <header className="topbar">

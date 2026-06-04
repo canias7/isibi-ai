@@ -188,6 +188,47 @@ body { background: var(--bg); color: var(--text); }
   gap: 2px;
 }
 
+/* ---- Recent chats list ---- */
+.side-chats {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #ffffff14;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.side-label {
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px 6px;
+}
+.chat-item { justify-content: space-between; gap: 8px; }
+.chat-item .chat-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-item .chat-del {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-dim);
+  opacity: 0.5;
+}
+.chat-item.active .chat-del { opacity: 1; }
+.chat-del:active { background: #ffffff2a; opacity: 1; }
+
 /* ---- Generic page (Connectors / Settings) ---- */
 .page { flex: 1; overflow-y: auto; }
 .page-inner { max-width: 768px; margin: 0 auto; padding: 12px 16px 32px; }
