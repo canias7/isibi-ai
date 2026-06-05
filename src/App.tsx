@@ -8,6 +8,7 @@ import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconPhotos, IconFiles, IconX, IconDoc } from './icons';
+import { App as CapApp } from '@capacitor/app';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -20,6 +21,9 @@ interface Conversation {
 
 const MAX_CHATS = 50;
 const chatsKey = (uid: string) => `gf_chats_${uid}`;
+// Backgrounded for longer than this → resume into a fresh chat instead of the
+// old conversation. Shorter trips away keep you where you left off.
+const NEW_CHAT_AFTER_MS = 30 * 60 * 1000; // 30 minutes
 
 // Starter prompts shown on the home screen (tap to send).
 const SUGGESTIONS = ['Summarize my inbox', 'What’s on my calendar?'];
@@ -225,6 +229,10 @@ export default function App() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const jumpRef = useRef(true);        // next scroll should jump instantly (chat opened/restored)
+  const awaySinceRef = useRef(0);      // when the app was last backgrounded
+  const busyRef = useRef(false);       // latest busy/messages for the resume listener (avoids stale closures)
+  const msgLenRef = useRef(0);
 
   // ---- Per-session connectors ----
   // Which apps are connected (from the backend), which are enabled for THIS
@@ -305,6 +313,7 @@ export default function App() {
     const loaded = loadChats(uid);
     setChats(loaded);
     setCurrentId(loaded[0]?.id ?? cid());
+    jumpRef.current = true; // restored chat: land at the bottom, not the top
     setMessages(loaded[0]?.messages ?? []);
     // Pull synced conversations and merge them into the list (cloud is source of
     // truth; keep any local-only chats not yet synced). Doesn't disturb the open chat.
@@ -322,10 +331,50 @@ export default function App() {
     return () => { alive = false; };
   }, [uid]);
 
-  // Auto-scroll to the latest message.
+  // Auto-scroll to the latest message. When a conversation is opened or restored
+  // (app reopen / chat switch) jump straight to the bottom with NO animation —
+  // otherwise a saved chat lands scrolled to the top and you have to scroll down.
+  // During a live turn, scroll smoothly as tokens stream in.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    const el = scrollRef.current;
+    if (!el) return;
+    const jump = jumpRef.current;
+    jumpRef.current = false;
+    const toBottom = () => el.scrollTo({ top: el.scrollHeight, behavior: jump ? 'auto' : 'smooth' });
+    toBottom();
+    // Restored cards/markdown can grow the height a frame or two later — re-pin.
+    if (jump) {
+      requestAnimationFrame(toBottom);
+      setTimeout(toBottom, 120);
+    }
   }, [messages, busy]);
+
+  // Keep the latest busy/length handy for the resume listener below (set up once,
+  // so it would otherwise capture stale values).
+  useEffect(() => { busyRef.current = busy; msgLenRef.current = messages.length; }, [busy, messages]);
+
+  // Coming back after a while should feel fresh: if the app was backgrounded for
+  // longer than NEW_CHAT_AFTER_MS, resume into a brand-new chat instead of the old
+  // conversation. Short trips away keep you exactly where you were.
+  useEffect(() => {
+    let handle: { remove: () => void } | undefined;
+    void CapApp.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) { awaySinceRef.current = Date.now(); return; }
+      const since = awaySinceRef.current;
+      awaySinceRef.current = 0;
+      const away = since ? Date.now() - since : 0;
+      if (away >= NEW_CHAT_AFTER_MS && !busyRef.current && msgLenRef.current > 0) {
+        abortRef.current?.abort();
+        abortRef.current = null;
+        jumpRef.current = true;
+        setCurrentId(cid());
+        setMessages([]);
+        setView('chat');
+        setSidebarOpen(false);
+      }
+    }).then((h) => { handle = h; });
+    return () => { handle?.remove(); };
+  }, []);
 
   // Auto-grow the composer textarea.
   useEffect(() => {
@@ -487,6 +536,7 @@ export default function App() {
     if (!c) return;
     stopStream();
     setCurrentId(id);
+    jumpRef.current = true; // opened chat: land at the bottom
     setMessages(c.messages);
     go('chat');
   }
@@ -523,6 +573,8 @@ export default function App() {
 
   const isGuest = !!session.user.is_anonymous;
   const title = view === 'connectors' ? 'Connectors' : view === 'settings' ? 'Settings' : 'Go Farther';
+  // Recent chats, newest first — most recently updated/opened at the top.
+  const recentChats = [...chats].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
   return (
     <div className="app">
@@ -548,7 +600,7 @@ export default function App() {
         {chats.length > 0 && (
           <div className="side-chats">
             <div className="side-label">Recent chats</div>
-            {chats.map((c) => (
+            {recentChats.map((c) => (
               <button
                 key={c.id}
                 className={`side-item chat-item ${view === 'chat' && c.id === currentId ? 'active' : ''}`}
