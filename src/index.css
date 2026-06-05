@@ -319,11 +319,11 @@ body { background: var(--bg); color: var(--text); }
 /* Soft radial scrim behind the "+" fan — a dark glow on the +, fading out,
    so the icons read clearly over whatever's behind. */
 .radial-scrim {
-  background: radial-gradient(circle 340px at left 46px bottom 120px, rgba(6, 6, 8, 0.86) 0%, rgba(6, 6, 8, 0.58) 40%, rgba(6, 6, 8, 0) 72%);
+  background: radial-gradient(340px 480px at left 56px bottom 72px, rgba(6, 6, 8, 0.85) 0%, rgba(6, 6, 8, 0.6) 72%, rgba(6, 6, 8, 0) 92%);
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
-  -webkit-mask-image: radial-gradient(circle 340px at left 46px bottom 120px, #000 0%, #000 44%, transparent 72%);
-  mask-image: radial-gradient(circle 340px at left 46px bottom 120px, #000 0%, #000 44%, transparent 72%);
+  -webkit-mask-image: radial-gradient(340px 480px at left 56px bottom 72px, #000 0%, #000 76%, transparent 96%);
+  mask-image: radial-gradient(340px 480px at left 56px bottom 72px, #000 0%, #000 76%, transparent 96%);
   animation: scrimfade 0.2s ease backwards;
 }
 @keyframes scrimfade { from { opacity: 0; } to { opacity: 1; } }
