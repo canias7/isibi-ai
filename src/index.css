@@ -749,6 +749,7 @@ body { background: var(--bg); color: var(--text); }
 }
 .conn-btn:active { opacity: 0.7; }
 .conn-btn.on { background: var(--accent); color: #000; border-color: var(--accent); }
+.conn-btn.danger { background: #e5484d; color: #fff; border-color: #e5484d; }
 
 /* ---- Inbox list (email-list replies) ---- */
 .gf-emails {

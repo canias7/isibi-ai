@@ -27,6 +27,7 @@ function Logo({ c }: { c: Connector }) {
 export default function Connectors() {
   const [status, setStatus] = useState<Record<string, Status>>({});
   const [manage, setManage] = useState<Connector | null>(null);
+  const [armed, setArmed] = useState<string | null>(null); // app id whose "Connected" pill is armed to disconnect
 
   async function token(): Promise<string | null> {
     const { data } = await supabase.auth.getSession();
@@ -92,7 +93,36 @@ export default function Connectors() {
     }, 3000);
   }
 
+  // Disconnect an app: revoke the Composio connection, then refresh. Optimistic
+  // so the card flips to "Connect" immediately.
+  async function disconnect(id: string) {
+    setArmed(null);
+    const t = await token();
+    if (!t) return;
+    setStatus((s) => ({ ...s, [id]: { connected: false, email: null } }));
+    try {
+      await fetch(`${CONNECT_API}/disconnect?app=${id}`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${t}` },
+      });
+    } catch {
+      /* ignore — refreshAll reconciles real state */
+    }
+    refreshAll();
+  }
+
+  // Tapping "Connected" arms the pill into a red "Disconnect"; auto-disarm after
+  // a few seconds so it never gets stuck red.
+  function arm(id: string) {
+    setArmed(id);
+    setTimeout(() => setArmed((cur) => (cur === id ? null : cur)), 3500);
+  }
+
   const count = CONNECTORS.filter((c) => status[c.id]?.connected).length;
+  // Connected apps float to the top (stable sort keeps each group's order).
+  const ordered = [...CONNECTORS].sort(
+    (a, b) => Number(!!status[b.id]?.connected) - Number(!!status[a.id]?.connected),
+  );
 
   return (
     <div className="page">
@@ -104,7 +134,7 @@ export default function Connectors() {
         </p>
 
         <div className="conn-list">
-          {CONNECTORS.map((c) => {
+          {ordered.map((c) => {
             const on = !!status[c.id]?.connected;
             const email = status[c.id]?.email;
             const desc = on && email ? `Connected as ${email}` : c.desc;
@@ -135,11 +165,11 @@ export default function Connectors() {
                     </button>
                   )}
                   <button
-                    className={`conn-btn ${on ? 'on' : ''}`}
-                    onClick={() => connect(c.id)}
+                    className={`conn-btn ${on ? (armed === c.id ? 'danger' : 'on') : ''}`}
+                    onClick={() => (on ? (armed === c.id ? disconnect(c.id) : arm(c.id)) : connect(c.id))}
                     aria-pressed={on}
                   >
-                    {on ? 'Connected' : 'Connect'}
+                    {on ? (armed === c.id ? 'Disconnect' : 'Connected') : 'Connect'}
                   </button>
                 </div>
               </div>
