@@ -943,6 +943,18 @@ body { background: var(--bg); color: var(--text); }
 }
 .tm-save:disabled { opacity: 0.4; cursor: default; }
 .tm-save:active { opacity: 0.7; }
+/* Auto-save status (replaces the Save button) */
+.tm-status {
+  flex-shrink: 0;
+  min-width: 56px;
+  text-align: right;
+  font-size: 14px;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  font-family: inherit;
+}
+.tm-status.err { color: #ff8a8a; font-weight: 600; cursor: pointer; }
 .tm-body {
   flex: 1;
   overflow-y: auto;

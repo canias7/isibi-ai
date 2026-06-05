@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { supabase } from './supabase';
 import { CONNECT_API, type Connector } from './connectorData';
 import { IconInfo } from './icons';
@@ -19,9 +19,12 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
   const [tools, setTools] = useState<ToolDef[]>([]);
   const [enabled, setEnabled] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [err, setErr] = useState(false);
   const [info, setInfo] = useState<{ desc: string; top: number; left: number } | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latest = useRef<Set<string>>(new Set());
+  const dirty = useRef(false);
 
   function openInfo(e: MouseEvent, t: ToolDef) {
     e.stopPropagation();
@@ -55,29 +58,43 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
     return () => { alive = false; };
   }, [connector.id]);
 
-  function toggle(slug: string) {
-    setEnabled((prev) => {
-      const next = new Set(prev);
-      next.has(slug) ? next.delete(slug) : next.add(slug);
-      return next;
-    });
-  }
-
-  async function save() {
-    setSaving(true);
+  // Persist the current selection (auto-save). Marks state so the header can
+  // show Saving…/Saved, and keeps `dirty` set until a save actually succeeds.
+  async function persist(set: Set<string>) {
+    dirty.current = false;
+    setSaveState('saving');
+    const t = await token();
+    if (!t) { dirty.current = true; setSaveState('error'); return; }
     try {
-      const t = await token();
-      if (!t) return;
-      await fetch(`${CONNECT_API}/tools?app=${connector.id}`, {
+      const r = await fetch(`${CONNECT_API}/tools?app=${connector.id}`, {
         method: 'POST',
         headers: { authorization: `Bearer ${t}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ enabled: [...enabled] }),
+        body: JSON.stringify({ enabled: [...set] }),
       });
-      onClose();
-    } finally {
-      setSaving(false);
+      if (r.ok) { setSaveState('saved'); } else { dirty.current = true; setSaveState('error'); }
+    } catch {
+      dirty.current = true;
+      setSaveState('error');
     }
   }
+
+  function toggle(slug: string) {
+    const next = new Set(enabled);
+    next.has(slug) ? next.delete(slug) : next.add(slug);
+    setEnabled(next);
+    latest.current = next;
+    dirty.current = true;
+    setSaveState('saving');
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => void persist(next), 350);
+  }
+
+  // If the user closes before the debounce fires, flush the pending save.
+  useEffect(() => () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (dirty.current) void persist(latest.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const groups = [
     { label: 'Read-only', items: tools.filter((t) => !t.write) },
@@ -89,9 +106,11 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
       <div className="tm-head">
         <button className="tm-x" onClick={onClose} aria-label="Back">←</button>
         <span className="tm-title">{connector.name} · tools</span>
-        <button className="tm-save" onClick={save} disabled={saving || loading || err}>
-          {saving ? 'Saving…' : 'Save'}
-        </button>
+        {saveState === 'error' ? (
+          <button className="tm-status err" onClick={() => void persist(enabled)}>Retry</button>
+        ) : (
+          <span className="tm-status">{saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : ''}</span>
+        )}
       </div>
       <div className="tm-body">
         {loading ? (
