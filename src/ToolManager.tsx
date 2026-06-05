@@ -85,8 +85,7 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
         ) : (
           <>
             <p className="tm-sub">
-              Pick the tools Go Farther may use for {connector.name}. Nothing is on until you turn it on —
-              and only what's on counts toward cost. Actions that change or send things are grouped on their own.
+              Pick the tools Go Farther can use for {connector.name}. Only what's on counts toward cost.
             </p>
             {enabled.size === 0 && (
               <div className="tm-empty">No tools enabled yet — turn on what you want Go Farther to do here.</div>
@@ -94,18 +93,17 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
             {groups.map((g) => g.items.length > 0 && (
               <div className="tm-group" key={g.label}>
                 <div className="tm-group-head">{g.label} <span className="tm-count">{g.items.length}</span></div>
-                {g.items.map((t) => {
-                  const on = enabled.has(t.slug);
-                  return (
-                    <button key={t.slug} className="tm-row" onClick={() => toggle(t.slug)} aria-pressed={on}>
-                      <span className="tm-info">
+                <div className="tm-list">
+                  {g.items.map((t) => {
+                    const on = enabled.has(t.slug);
+                    return (
+                      <button key={t.slug} className="tm-row" onClick={() => toggle(t.slug)} aria-pressed={on}>
                         <span className="tm-name">{t.name}</span>
-                        {t.desc && <span className="tm-desc">{t.desc}</span>}
-                      </span>
-                      <span className={`tgl ${on ? 'on' : ''}`}><span className="tgl-knob" /></span>
-                    </button>
-                  );
-                })}
+                        <span className={`tgl ${on ? 'on' : ''}`}><span className="tgl-knob" /></span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             ))}
           </>
