@@ -548,6 +548,31 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // 3a) Disconnect: revoke this user's Composio connection(s) for an app.
+  if (path === "disconnect") {
+    const auth = req.headers.get("authorization") || "";
+    const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
+    const uid = await verifyUser(token);
+    if (!uid || !toolkit) return json(req, { error: "unauthorized" });
+    try {
+      const ac = await findAuthConfig(toolkit);
+      if (!ac) return json(req, { ok: true });
+      const q = new URL(`${BASE}/connected_accounts`);
+      q.searchParams.set("user_ids", uid);
+      q.searchParams.set("auth_config_ids", ac);
+      const res = await fetch(q.toString(), { headers: { "x-api-key": API_KEY } });
+      const body = await res.json().catch(() => ({}));
+      const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
+      for (const it of items) {
+        const id = pickId(it);
+        if (id) await api(`/connected_accounts/${id}`, { method: "DELETE" }).catch(() => {});
+      }
+      return json(req, { ok: true });
+    } catch (e) {
+      return json(req, { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
   // 3c) Raw email HTML for the in-app reader (real-HTML view). Bearer + ?id=.
   if (path === "message") {
     const auth = req.headers.get("authorization") || "";
