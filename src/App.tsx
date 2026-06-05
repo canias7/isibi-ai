@@ -586,19 +586,20 @@ export default function App() {
               <div className="conn-pop-backdrop" onClick={() => { setPlusOpen(false); setConnMenu(false); }} />
             )}
 
-            {/* "+" radial menu: attach options fan up from the + as circles */}
+            {/* "+" radial menu: attach options rise up from the + as circles,
+                staggered bottom-to-top; labels sit to the right (no overlap) */}
             {plusOpen && (
               <div className="radial" role="menu">
-                <button className="radial-item" style={{ left: 0, bottom: 150, animationDelay: '0ms' }} onClick={() => openPicker('camera')}>
+                <button className="radial-item" style={{ left: 0, bottom: 240, animationDelay: '150ms' }} onClick={() => openPicker('camera')}>
                   <IconCamera size={20} /><span className="radial-label">Camera</span>
                 </button>
-                <button className="radial-item" style={{ left: 56, bottom: 139, animationDelay: '40ms' }} onClick={() => openPicker('photos')}>
+                <button className="radial-item" style={{ left: 46, bottom: 180, animationDelay: '100ms' }} onClick={() => openPicker('photos')}>
                   <IconPhotos size={20} /><span className="radial-label">Photos</span>
                 </button>
-                <button className="radial-item" style={{ left: 104, bottom: 108, animationDelay: '80ms' }} onClick={() => openPicker('files')}>
+                <button className="radial-item" style={{ left: 61, bottom: 120, animationDelay: '50ms' }} onClick={() => openPicker('files')}>
                   <IconFiles size={20} /><span className="radial-label">Files</span>
                 </button>
-                <button className="radial-item" style={{ left: 137, bottom: 61, animationDelay: '120ms' }} onClick={() => { setPlusOpen(false); setConnMenu(true); }}>
+                <button className="radial-item" style={{ left: 68, bottom: 60, animationDelay: '0ms' }} onClick={() => { setPlusOpen(false); setConnMenu(true); }}>
                   <IconConnectors size={20} /><span className="radial-label">Connectors</span>
                 </button>
               </div>
