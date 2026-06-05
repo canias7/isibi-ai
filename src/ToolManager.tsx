@@ -1,6 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { supabase } from './supabase';
 import { CONNECT_API, type Connector } from './connectorData';
+import { IconInfo } from './icons';
+
+// Trim Composio's long/technical descriptions to something readable in the popover.
+function shortDesc(d: string): string {
+  const t = (d || '').trim();
+  if (!t) return 'No description available.';
+  return t.length > 200 ? t.slice(0, 200).replace(/\s+\S*$/, '') + '…' : t;
+}
 
 interface ToolDef { slug: string; name: string; desc: string; write: boolean }
 
@@ -13,6 +21,14 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(false);
+  const [info, setInfo] = useState<{ desc: string; top: number; left: number } | null>(null);
+
+  function openInfo(e: MouseEvent, t: ToolDef) {
+    e.stopPropagation();
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const W = 260;
+    setInfo({ desc: shortDesc(t.desc), top: r.bottom + 8, left: Math.max(12, Math.min(r.right - W, window.innerWidth - W - 12)) });
+  }
 
   async function token(): Promise<string | null> {
     const { data } = await supabase.auth.getSession();
@@ -99,6 +115,9 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
                     return (
                       <button key={t.slug} className="tm-row" onClick={() => toggle(t.slug)} aria-pressed={on}>
                         <span className="tm-name">{t.name}</span>
+                        <span className="tm-info-btn" role="button" aria-label="What this does" onClick={(e) => openInfo(e, t)}>
+                          <IconInfo size={18} />
+                        </span>
                         <span className={`tgl ${on ? 'on' : ''}`}><span className="tgl-knob" /></span>
                       </button>
                     );
@@ -109,6 +128,12 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
           </>
         )}
       </div>
+      {info && (
+        <>
+          <div className="tm-info-backdrop" onClick={() => setInfo(null)} />
+          <div className="tm-info-pop" style={{ top: info.top, left: info.left }}>{info.desc}</div>
+        </>
+      )}
     </div>
   );
 }
