@@ -396,7 +396,7 @@ export default function App() {
             <path d="M9 3v18" />
           </svg>
         </button>
-        <span className="title">{title}</span>
+        <span className="title">{view === 'chat' && messages.length === 0 ? '' : title}</span>
         <button className="icon-btn" onClick={newChat} aria-label="New chat">
           <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
