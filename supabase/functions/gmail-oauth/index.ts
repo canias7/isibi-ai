@@ -226,7 +226,14 @@ function collectAttachments(node: any, out: MsgAttachment[]): void {
 function payloadOf(data: any): any {
   return data?.payload ?? data?.message?.payload ?? data?.data?.payload ?? (data?.mimeType ? data : null);
 }
-async function fetchMessageHtml(uid: string, messageId: string): Promise<{ html: string; hasImages: boolean; attachments: MsgAttachment[] }> {
+// Split a "Name <email>" header into its parts (name may be empty).
+function parseAddr(v: string): { name: string; email: string } {
+  const m = /^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/.exec(v || "");
+  if (m) return { name: m[1].trim(), email: m[2].trim() };
+  return { name: "", email: (v || "").trim() };
+}
+interface MsgMeta { from: string; email: string; to: string; subject: string; date: string; unread: boolean }
+async function fetchMessageHtml(uid: string, messageId: string): Promise<{ html: string; hasImages: boolean; attachments: MsgAttachment[] } & MsgMeta> {
   const res = await fetch(`${COMPOSIO_EXEC}/GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID`, {
     method: "POST",
     headers: { "x-api-key": API_KEY, "content-type": "application/json" },
@@ -238,7 +245,18 @@ async function fetchMessageHtml(uid: string, messageId: string): Promise<{ html:
   const attachments: MsgAttachment[] = [];
   const pl = payloadOf(data);
   if (pl) collectAttachments(pl, attachments);
-  return { html, hasImages, attachments };
+  // Header fields, so the app can render a complete email card from just an id.
+  const headers = pl?.headers ?? [];
+  const fromAddr = parseAddr(headerVal(headers, "from"));
+  const labelIds: string[] = data?.labelIds ?? data?.message?.labelIds ?? [];
+  return {
+    html, hasImages, attachments,
+    from: fromAddr.name, email: fromAddr.email,
+    to: parseAddr(headerVal(headers, "to")).email,
+    subject: headerVal(headers, "subject"),
+    date: headerVal(headers, "date"),
+    unread: Array.isArray(labelIds) && labelIds.includes("UNREAD"),
+  };
 }
 // Fetch one attachment's bytes (base64) or a hosted URL, for preview/download.
 // GMAIL_GET_ATTACHMENT requires file_name and returns a temporary hosted URL

@@ -19,9 +19,12 @@ async function authToken(): Promise<string> {
 // Fetch one email's real HTML + attachment list (for the reader's true-to-life
 // view), straight from the connector backend by message id — out-of-band from
 // the chat model.
+export interface EmailMeta {
+  from?: string; email?: string; to?: string; subject?: string; date?: string; unread?: boolean;
+}
 export async function fetchEmailHtml(
   id: string,
-): Promise<{ html: string; hasImages: boolean; attachments: MsgAttachment[] }> {
+): Promise<{ html: string; hasImages: boolean; attachments: MsgAttachment[]; meta: EmailMeta }> {
   const token = await authToken();
   const res = await fetch(`${CONNECT_API}/message?id=${encodeURIComponent(id)}`, {
     headers: { authorization: `Bearer ${token}` },
@@ -29,7 +32,12 @@ export async function fetchEmailHtml(
   if (!res.ok) throw new Error(`Message fetch failed: ${res.status}`);
   const j = await res.json();
   if (j.error || typeof j.html !== 'string') throw new Error(j.error || 'No HTML');
-  return { html: j.html, hasImages: !!j.hasImages, attachments: Array.isArray(j.attachments) ? j.attachments : [] };
+  return {
+    html: j.html,
+    hasImages: !!j.hasImages,
+    attachments: Array.isArray(j.attachments) ? j.attachments : [],
+    meta: { from: j.from, email: j.email, to: j.to, subject: j.subject, date: j.date, unread: j.unread },
+  };
 }
 
 // Fetch one attachment's bytes (base64) or hosted URL — for inline images,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchEmailHtml, fetchAttachment, type MsgAttachment } from './api';
+import { fetchEmailHtml, fetchAttachment, type MsgAttachment, type EmailMeta } from './api';
 
 // Rich email rendering for chat replies. The assistant emits a fenced JSON block
 // — ```gf-emails for an inbox list, ```gf-message for a single opened email —
@@ -201,7 +201,18 @@ const FRAME_HEAD =
   'img{max-width:100%!important;height:auto}a{color:#1a73e8}table{max-width:100%!important}</style></head><body>';
 const FRAME_FOOT = '</body></html>';
 
-function EmailBody({ id, fallback }: { id: string; fallback: string }) {
+// Format an RFC date header into the short label the card shows ("9:41 AM" today,
+// else "May 19"), in the viewer's locale/timezone.
+function fmtTime(date?: string): string {
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
+  return d.toDateString() === new Date().toDateString()
+    ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+function EmailBody({ id, fallback, onMeta }: { id: string; fallback: string; onMeta?: (m: EmailMeta) => void }) {
   const [status, setStatus] = useState<'loading' | 'ok' | 'fail'>('loading');
   const [html, setHtml] = useState('');
   const [hasImages, setHasImages] = useState(false); // remote http images
@@ -219,6 +230,7 @@ function EmailBody({ id, fallback }: { id: string; fallback: string }) {
       try {
         const r = await fetchEmailHtml(id);
         if (!alive) return;
+        onMeta?.(r.meta);
         setAtts(r.attachments);
         setHasImages(r.hasImages);
         setHtml(r.html);
@@ -287,7 +299,7 @@ function EmailBody({ id, fallback }: { id: string; fallback: string }) {
   }
 
   if (status === 'loading') return <div className="gf-msg-body gf-body-loading">Loading email…</div>;
-  if (status === 'fail') return <div className="gf-msg-body">{fallback}</div>;
+  if (status === 'fail') return <div className="gf-msg-body">{fallback || 'Couldn’t load this email.'}</div>;
 
   let doc = showImages ? html : stripRemoteImages(html);
   for (const [cid, src] of Object.entries(cidMap)) doc = doc.split('cid:' + cid).join(src);
@@ -325,25 +337,35 @@ function EmailBody({ id, fallback }: { id: string; fallback: string }) {
 }
 
 export function EmailDetail({ msg }: { msg: EmailMessage }) {
+  // The model may send a full object or just an {"id"}; either way we fetch the
+  // real message by id and fill any header field it didn't provide, so the card
+  // is complete for every email.
+  const [meta, setMeta] = useState<EmailMeta>({});
+  const from = msg.from || meta.from || '';
+  const email = msg.email || meta.email;
+  const to = msg.to || meta.to;
+  const subject = msg.subject || meta.subject || '';
+  const time = msg.time || fmtTime(meta.date);
+  const unread = msg.unread ?? meta.unread;
   return (
     <div className="gf-msg">
       <div className="gf-msg-head">
-        <Avatar from={msg.from} email={msg.email} />
+        <Avatar from={from} email={email} />
         <div className="gf-msg-who">
-          <div className="gf-msg-name">{msg.from || msg.email || 'Unknown'}</div>
-          {msg.email && <div className="gf-msg-addr">{msg.email}</div>}
-          {msg.to && <div className="gf-msg-to">To: {msg.to}</div>}
+          <div className="gf-msg-name">{from || email || 'Unknown'}</div>
+          {email && <div className="gf-msg-addr">{email}</div>}
+          {to && <div className="gf-msg-to">To: {to}</div>}
         </div>
         <div className="gf-msg-meta">
-          {msg.time && <span className="gf-msg-time">{msg.time}</span>}
-          {msg.unread && <span className="gf-msg-pill">Unread</span>}
+          {time && <span className="gf-msg-time">{time}</span>}
+          {unread && <span className="gf-msg-pill">Unread</span>}
         </div>
       </div>
 
-      <div className="gf-msg-subject">{msg.subject}</div>
+      {subject && <div className="gf-msg-subject">{subject}</div>}
 
       {msg.id ? (
-        <EmailBody id={msg.id} fallback={msg.body} />
+        <EmailBody id={msg.id} fallback={msg.body || ''} onMeta={setMeta} />
       ) : (
         <>
           <div className="gf-msg-body">{msg.body}</div>

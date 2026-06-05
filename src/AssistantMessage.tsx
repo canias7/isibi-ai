@@ -64,9 +64,24 @@ export default function AssistantMessage(
   let parsed: unknown = null;
   try { parsed = JSON.parse(f.content.trim()); } catch { parsed = null; }
 
-  const list = Array.isArray(parsed) && parsed.length > 0 && parsed.every(isEmailItem);
-  const msg = isEmailMessage(parsed);
-  if (!list && !msg) return <Markdown text={text} />; // not email JSON — render normally
+  // Explicitly tagged blocks are trusted by their tag — a gf-message with just an
+  // {"id"} is valid (the reader fetches sender/subject/body itself). Generic
+  // json/'' blocks fall back to shape detection so real code blocks and unrelated
+  // JSON aren't hijacked into email cards.
+  const obj = !!parsed && typeof parsed === 'object' && !Array.isArray(parsed);
+  const list = f.lang === 'gf-emails'
+    ? (Array.isArray(parsed) && parsed.length > 0)
+    : (Array.isArray(parsed) && parsed.length > 0 && parsed.every(isEmailItem));
+  const msg = f.lang === 'gf-message' ? obj : isEmailMessage(parsed);
+  if (!list && !msg) {
+    // A gf-tagged block we couldn't use — never dump raw JSON on the user; show
+    // only any surrounding prose. Untagged blocks render normally (real code).
+    if (f.lang === 'gf-emails' || f.lang === 'gf-message') {
+      const around = `${f.before}\n${f.after}`.trim();
+      return around ? <Markdown text={around} /> : <></>;
+    }
+    return <Markdown text={text} />;
+  }
 
   return (
     <>
