@@ -352,9 +352,9 @@ body { background: var(--bg); color: var(--text); }
   border: none;
   color: var(--text);
   font: inherit;
-  font-size: 14px;
-  padding: 9px 10px;
-  border-radius: 10px;
+  font-size: 15px;
+  padding: 12px 14px;
+  border-radius: 12px;
   cursor: pointer;
   text-align: left;
 }
@@ -502,7 +502,7 @@ body { background: var(--bg); color: var(--text); }
   flex-shrink: 0;
   transition: background 0.15s ease;
 }
-.tgl.on { background: #2f9e44; }
+.tgl.on { background: #f0f0f2; }
 .tgl-knob {
   position: absolute;
   top: 3px;
@@ -513,7 +513,7 @@ body { background: var(--bg); color: var(--text); }
   background: #fff;
   transition: transform 0.15s ease;
 }
-.tgl.on .tgl-knob { transform: translateX(16px); }
+.tgl.on .tgl-knob { transform: translateX(16px); background: #1a1a1a; }
 
 /* ---- Sidebar ---- */
 .backdrop {

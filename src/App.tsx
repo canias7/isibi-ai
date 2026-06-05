@@ -628,7 +628,6 @@ export default function App() {
                     const on = enabled.has(id);
                     return (
                       <button key={id} className="conn-pop-row" onClick={() => toggleApp(id)} aria-pressed={on}>
-                        <img className="conn-pop-logo" src={c.logo} alt="" loading="lazy" />
                         <span className="conn-pop-name">{c.name}</span>
                         <span className={`tgl ${on ? 'on' : ''}`}><span className="tgl-knob" /></span>
                       </button>
