@@ -277,6 +277,73 @@ async function getAttachment(uid: string, mid: string, aid: string, fileName: st
   return { b64, url, mimeType };
 }
 
+// ---- Outlook reader adapter ----
+// Composio's Outlook tools return Microsoft Graph JSON (body.content + from.
+// emailAddress), a completely different shape from Gmail. Translate it into the
+// SAME card shape so the frontend reader renders identically.
+async function fetchOutlookMessageHtml(uid: string, messageId: string): Promise<{ html: string; hasImages: boolean; attachments: MsgAttachment[] } & MsgMeta> {
+  const res = await fetch(`${COMPOSIO_EXEC}/OUTLOOK_OUTLOOK_GET_MESSAGE`, {
+    method: "POST",
+    headers: { "x-api-key": API_KEY, "content-type": "application/json" },
+    body: JSON.stringify({ user_id: uid, arguments: { message_id: messageId } }),
+  });
+  const body = await res.json().catch(() => ({}));
+  const m = body?.data?.response_data ?? body?.data ?? {};
+  const raw = String(m?.body?.content ?? "");
+  const isHtml = String(m?.body?.contentType ?? "").toLowerCase() === "html";
+  const html = isHtml ? raw : (raw ? `<pre style="white-space:pre-wrap;font-family:inherit;margin:0">${escapeHtml(raw)}</pre>` : "");
+  const hasImages = /<img[^>]+src=["']?http/i.test(html) || /url\(["']?http/i.test(html);
+  const fromA = m?.from?.emailAddress ?? m?.sender?.emailAddress ?? {};
+  const toA = (Array.isArray(m?.toRecipients) ? m.toRecipients[0]?.emailAddress : null) ?? {};
+  // Graph needs a separate call for attachments; also fetch them when the body has
+  // inline cid: images so the reader can resolve them.
+  const attachments: MsgAttachment[] = [];
+  if (m?.hasAttachments || /cid:/i.test(html)) {
+    try {
+      const ar = await fetch(`${COMPOSIO_EXEC}/OUTLOOK_LIST_OUTLOOK_ATTACHMENTS`, {
+        method: "POST",
+        headers: { "x-api-key": API_KEY, "content-type": "application/json" },
+        body: JSON.stringify({ user_id: uid, arguments: { message_id: messageId } }),
+      });
+      const ab = await ar.json().catch(() => ({}));
+      const list: any[] = ab?.data?.response_data?.value ?? ab?.data?.value ?? [];
+      for (const a of list) {
+        attachments.push({
+          name: a?.name ?? "attachment", mimeType: a?.contentType ?? "", size: a?.size ?? 0,
+          attachmentId: a?.id ?? "", contentId: String(a?.contentId ?? "").replace(/^<|>$/g, ""),
+        });
+      }
+    } catch { /* none */ }
+  }
+  return {
+    html, hasImages, attachments,
+    from: fromA?.name ?? "", email: fromA?.address ?? "",
+    to: toA?.address ?? "", subject: m?.subject ?? "",
+    date: m?.receivedDateTime ?? m?.sentDateTime ?? "",
+    unread: m?.isRead === false,
+  };
+}
+async function getOutlookAttachment(uid: string, mid: string, aid: string, fileName: string): Promise<{ b64: string | null; url: string | null; mimeType: string | null }> {
+  const res = await fetch(`${COMPOSIO_EXEC}/OUTLOOK_DOWNLOAD_OUTLOOK_ATTACHMENT`, {
+    method: "POST",
+    headers: { "x-api-key": API_KEY, "content-type": "application/json" },
+    body: JSON.stringify({ user_id: uid, arguments: { message_id: mid, attachment_id: aid, file_name: fileName } }),
+  });
+  const body = await res.json().catch(() => ({}));
+  const d = body?.data?.response_data ?? body?.data ?? {};
+  const f = (d && typeof d.file === "object") ? d.file : d;
+  const b64 = typeof f?.contentBytes === "string" ? f.contentBytes : (typeof f?.data === "string" ? f.data : null);
+  const url = f?.s3url ?? f?.url ?? f?.download_url ?? null;
+  const mimeType = f?.contentType ?? f?.mimetype ?? f?.mimeType ?? null;
+  return { b64, url, mimeType };
+}
+// Which mailbox an id belongs to: trust an explicit ?app=, else infer from id shape
+// (Gmail ids are short hex; Outlook/Graph ids are long).
+function mailboxOf(app: string | null, id: string): "gmail" | "outlook" {
+  if (app === "gmail" || app === "outlook") return app;
+  return /^[0-9a-f]{10,24}$/i.test(id) ? "gmail" : "outlook";
+}
+
 // ---- Manage Tools (per-user tool selection) ----
 const SR = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
@@ -488,8 +555,10 @@ Deno.serve(async (req: Request) => {
     const uid = await verifyUser(token);
     const id = url.searchParams.get("id");
     if (!uid || !id) return json(req, { error: "unauthorized" });
+    const app = mailboxOf(url.searchParams.get("app"), id);
     try {
-      return json(req, await fetchMessageHtml(uid, id));
+      const r = app === "outlook" ? await fetchOutlookMessageHtml(uid, id) : await fetchMessageHtml(uid, id);
+      return json(req, { ...r, app });
     } catch (e) {
       return json(req, { error: e instanceof Error ? e.message : String(e) });
     }
@@ -504,8 +573,9 @@ Deno.serve(async (req: Request) => {
     const aid = url.searchParams.get("aid");
     const name = url.searchParams.get("name") ?? "file";
     if (!uid || !mid || !aid) return json(req, { error: "unauthorized" });
+    const app = mailboxOf(url.searchParams.get("app"), mid);
     try {
-      return json(req, await getAttachment(uid, mid, aid, name));
+      return json(req, app === "outlook" ? await getOutlookAttachment(uid, mid, aid, name) : await getAttachment(uid, mid, aid, name));
     } catch (e) {
       return json(req, { error: e instanceof Error ? e.message : String(e) });
     }

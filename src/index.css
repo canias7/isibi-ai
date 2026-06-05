@@ -879,6 +879,43 @@ body { background: var(--bg); color: var(--text); }
 .gf-skel { animation: gfpulse 1.2s ease-in-out infinite; }
 @keyframes gfpulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
+/* ---- Per-mailbox glass theming (Gmail = frosted white, Outlook = frosted blue).
+   The card is tinted by its provider; the email body iframe stays white (real HTML).
+   backdrop-filter refracts the app's ambient orb glow behind the chat. ---- */
+.gf-emails.gf-gmail, .gf-msg.gf-gmail {
+  background: linear-gradient(160deg, rgba(255,255,255,.82), rgba(248,250,253,.66));
+  -webkit-backdrop-filter: blur(26px) saturate(150%); backdrop-filter: blur(26px) saturate(150%);
+  border: 1px solid rgba(255,255,255,.60);
+  box-shadow: 0 10px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.85);
+}
+.gf-gmail .gf-email { border-top-color: rgba(0,0,0,.07); }
+.gf-gmail .gf-email.unread { background: rgba(255,255,255,.30); }
+.gf-gmail .gf-num, .gf-gmail .gf-time, .gf-gmail .gf-snippet, .gf-gmail .gf-from,
+.gf-gmail .gf-msg-addr, .gf-gmail .gf-msg-to, .gf-gmail .gf-msg-time, .gf-gmail .gf-att-size { color: #4b5563; }
+.gf-gmail .gf-email.unread .gf-from, .gf-gmail .gf-subject, .gf-gmail .gf-msg-name,
+.gf-gmail .gf-msg-subject, .gf-gmail .gf-att-name { color: #15181d; }
+.gf-gmail .gf-email.unread .gf-dot { background: #1a73e8; border-color: #eef2f7; }
+.gf-gmail .gf-msg-head { border-bottom-color: rgba(0,0,0,.08); }
+.gf-gmail .gf-msg-pill { color: #1a73e8; background: rgba(26,115,232,.12); border-color: rgba(26,115,232,.30); }
+.gf-gmail .gf-att-btn { border-color: rgba(0,0,0,.16); background: rgba(0,0,0,.03); color: #444; }
+
+.gf-emails.gf-outlook, .gf-msg.gf-outlook {
+  background: linear-gradient(160deg, rgba(16,118,212,.62), rgba(3,80,160,.46));
+  -webkit-backdrop-filter: blur(26px) saturate(150%); backdrop-filter: blur(26px) saturate(150%);
+  border: 1px solid rgba(255,255,255,.30);
+  box-shadow: 0 10px 40px rgba(0,0,0,.40), inset 0 1px 0 rgba(255,255,255,.40);
+}
+.gf-outlook .gf-email { border-top-color: rgba(255,255,255,.18); }
+.gf-outlook .gf-email.unread { background: rgba(255,255,255,.12); }
+.gf-outlook .gf-num, .gf-outlook .gf-time, .gf-outlook .gf-snippet, .gf-outlook .gf-from,
+.gf-outlook .gf-msg-addr, .gf-outlook .gf-msg-to, .gf-outlook .gf-msg-time, .gf-outlook .gf-att-size { color: rgba(255,255,255,.82); }
+.gf-outlook .gf-email.unread .gf-from, .gf-outlook .gf-subject, .gf-outlook .gf-msg-name,
+.gf-outlook .gf-msg-subject, .gf-outlook .gf-att-name { color: #ffffff; }
+.gf-outlook .gf-email.unread .gf-dot { background: #fff; border-color: #2f6fb0; }
+.gf-outlook .gf-msg-head { border-bottom-color: rgba(255,255,255,.22); }
+.gf-outlook .gf-msg-pill { color: #fff; background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.45); }
+.gf-outlook .gf-att-btn { border-color: rgba(255,255,255,.45); background: rgba(255,255,255,.14); color: #fff; }
+
 /* ---- Connector card actions (tools gear) ---- */
 .conn-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .conn-tools {

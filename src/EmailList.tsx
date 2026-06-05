@@ -13,6 +13,7 @@ export interface EmailItem {
   snippet?: string;
   time?: string;
   unread?: boolean;
+  app?: string; // mailbox provider ('gmail' | 'outlook'); themes the card
 }
 
 export interface EmailMessage {
@@ -24,7 +25,17 @@ export interface EmailMessage {
   unread?: boolean;
   subject: string;
   body: string;
+  app?: string; // mailbox provider ('gmail' | 'outlook')
   attachments?: { name: string; size?: string | number; type?: string }[];
+}
+
+// Which mailbox a card belongs to. The post-processor stamps `app` on the card;
+// if it's missing we infer from the message-id shape (Gmail ids are short hex,
+// Outlook ids are long) so the theme + reader routing are never wrong.
+export function providerOf(app?: string, id?: string): 'gmail' | 'outlook' {
+  if (app === 'gmail' || app === 'outlook') return app;
+  if (id && !/^[0-9a-f]{10,24}$/i.test(id)) return 'outlook';
+  return 'gmail';
 }
 
 // Personal mailbox providers: their favicon is just the provider logo (useless
@@ -93,8 +104,9 @@ function Avatar({ from, email }: { from?: string; email?: string }) {
 }
 
 export function EmailList({ items, onOpen }: { items: EmailItem[]; onOpen?: (it: EmailItem) => void }) {
+  const app = providerOf(items[0]?.app, items[0]?.id);
   return (
-    <div className="gf-emails">
+    <div className={`gf-emails gf-${app}`}>
       {items.map((it, i) => (
         <div
           key={i}
@@ -216,7 +228,7 @@ function fmtTime(date?: string): string {
     : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-function EmailBody({ id, fallback, onMeta }: { id: string; fallback: string; onMeta?: (m: EmailMeta) => void }) {
+function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fallback: string; onMeta?: (m: EmailMeta) => void }) {
   const [status, setStatus] = useState<'loading' | 'ok' | 'fail'>('loading');
   const [html, setHtml] = useState('');
   const [hasImages, setHasImages] = useState(false); // remote http images
@@ -232,7 +244,7 @@ function EmailBody({ id, fallback, onMeta }: { id: string; fallback: string; onM
     setStatus('loading'); setShowImages(true); setHtml(''); setAtts([]); setCidMap({}); setThumbs({});
     (async () => {
       try {
-        const r = await fetchEmailHtml(id);
+        const r = await fetchEmailHtml(id, app);
         if (!alive) return;
         onMeta?.(r.meta);
         setAtts(r.attachments);
@@ -245,7 +257,7 @@ function EmailBody({ id, fallback, onMeta }: { id: string; fallback: string; onM
         for (const a of r.attachments) {
           if (!(a.mimeType || '').startsWith('image/')) continue;
           try {
-            const { b64, url } = await fetchAttachment(id, a.attachmentId, a.name);
+            const { b64, url } = await fetchAttachment(id, a.attachmentId, a.name, app);
             const src = url || (b64 ? `data:${a.mimeType};base64,${b64}` : '');
             if (src) urlByAtt[a.attachmentId] = src;
           } catch { /* skip */ }
@@ -266,7 +278,7 @@ function EmailBody({ id, fallback, onMeta }: { id: string; fallback: string; onM
       }
     })();
     return () => { alive = false; };
-  }, [id]);
+  }, [id, app]);
 
   // Size the frame to its content (sandbox allows same-origin reads; no scripts run).
   function fit() {
@@ -283,7 +295,7 @@ function EmailBody({ id, fallback, onMeta }: { id: string; fallback: string; onM
     try {
       let src = thumbs[att.attachmentId] || '';
       if (!src) {
-        const { b64, url } = await fetchAttachment(id, att.attachmentId, att.name);
+        const { b64, url } = await fetchAttachment(id, att.attachmentId, att.name, app);
         src = url || (b64 ? `data:${att.mimeType || 'application/octet-stream'};base64,${b64}` : '');
       }
       if (!src) return;
@@ -351,8 +363,9 @@ export function EmailDetail({ msg }: { msg: EmailMessage }) {
   const subject = msg.subject || meta.subject || '';
   const time = msg.time || fmtTime(meta.date);
   const unread = msg.unread ?? meta.unread;
+  const app = providerOf(msg.app ?? meta.app, msg.id);
   return (
-    <div className="gf-msg">
+    <div className={`gf-msg gf-${app}`}>
       <div className="gf-msg-head">
         <Avatar from={from} email={email} />
         <div className="gf-msg-who">
@@ -369,7 +382,7 @@ export function EmailDetail({ msg }: { msg: EmailMessage }) {
       {subject && <div className="gf-msg-subject">{subject}</div>}
 
       {msg.id ? (
-        <EmailBody id={msg.id} fallback={msg.body || ''} onMeta={setMeta} />
+        <EmailBody id={msg.id} app={app} fallback={msg.body || ''} onMeta={setMeta} />
       ) : (
         <>
           <div className="gf-msg-body">{msg.body}</div>

@@ -20,13 +20,15 @@ async function authToken(): Promise<string> {
 // view), straight from the connector backend by message id — out-of-band from
 // the chat model.
 export interface EmailMeta {
-  from?: string; email?: string; to?: string; subject?: string; date?: string; unread?: boolean;
+  from?: string; email?: string; to?: string; subject?: string; date?: string; unread?: boolean; app?: string;
 }
 export async function fetchEmailHtml(
   id: string,
+  app?: string,
 ): Promise<{ html: string; hasImages: boolean; attachments: MsgAttachment[]; meta: EmailMeta }> {
   const token = await authToken();
-  const res = await fetch(`${CONNECT_API}/message?id=${encodeURIComponent(id)}`, {
+  const q = `id=${encodeURIComponent(id)}${app ? `&app=${encodeURIComponent(app)}` : ''}`;
+  const res = await fetch(`${CONNECT_API}/message?${q}`, {
     headers: { authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(`Message fetch failed: ${res.status}`);
@@ -36,16 +38,16 @@ export async function fetchEmailHtml(
     html: j.html,
     hasImages: !!j.hasImages,
     attachments: Array.isArray(j.attachments) ? j.attachments : [],
-    meta: { from: j.from, email: j.email, to: j.to, subject: j.subject, date: j.date, unread: j.unread },
+    meta: { from: j.from, email: j.email, to: j.to, subject: j.subject, date: j.date, unread: j.unread, app: j.app },
   };
 }
 
 // Fetch one attachment's bytes (base64) or hosted URL — for inline images,
-// preview, and download.
-export async function fetchAttachment(mid: string, aid: string, name = 'file'): Promise<{ b64?: string; url?: string }> {
+// preview, and download. `app` routes to the right mailbox provider.
+export async function fetchAttachment(mid: string, aid: string, name = 'file', app?: string): Promise<{ b64?: string; url?: string }> {
   const token = await authToken();
   const res = await fetch(
-    `${CONNECT_API}/attachment?mid=${encodeURIComponent(mid)}&aid=${encodeURIComponent(aid)}&name=${encodeURIComponent(name)}`,
+    `${CONNECT_API}/attachment?mid=${encodeURIComponent(mid)}&aid=${encodeURIComponent(aid)}&name=${encodeURIComponent(name)}${app ? `&app=${encodeURIComponent(app)}` : ''}`,
     { headers: { authorization: `Bearer ${token}` } },
   );
   if (!res.ok) throw new Error(`Attachment fetch failed: ${res.status}`);
