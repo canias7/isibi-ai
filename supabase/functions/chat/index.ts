@@ -319,6 +319,10 @@ Deno.serve(async (req: Request) => {
       const dec = new TextDecoder();
       const reader = upstream.body!.getReader();
       let buf = "";
+      let fullText = "";                             // text streamed to the client this turn
+      const toolName: Record<number, string> = {};   // tool name per content-block index
+      const toolJson: Record<number, string> = {};   // accumulated input JSON per index
+      const openedIds = new Set<string>();            // single emails the model fetched by id
       try {
         for (;;) {
           const { done, value } = await reader.read();
@@ -339,11 +343,37 @@ Deno.serve(async (req: Request) => {
                 const u = evt.message.usage;
                 console.log(`usage in=${u.input_tokens ?? 0} cache_write=${u.cache_creation_input_tokens ?? 0} cache_read=${u.cache_read_input_tokens ?? 0} out=${u.output_tokens ?? 0}`);
               }
+              // Watch tool calls so we can tell when the model opened ONE email.
+              if (evt.type === "content_block_start" && evt.content_block &&
+                  (evt.content_block.type === "mcp_tool_use" || evt.content_block.type === "tool_use")) {
+                toolName[evt.index] = String(evt.content_block.name ?? "");
+                toolJson[evt.index] = "";
+              }
+              if (evt.type === "content_block_delta" && evt.delta?.type === "input_json_delta" && evt.index in toolJson) {
+                toolJson[evt.index] += evt.delta.partial_json ?? "";
+              }
+              if (evt.type === "content_block_stop" && evt.index in toolName) {
+                if (toolName[evt.index].toUpperCase().includes("FETCH_MESSAGE")) {
+                  try {
+                    const a = JSON.parse(toolJson[evt.index] || "{}");
+                    const id = a.message_id ?? a.messageId ?? a.id;
+                    if (typeof id === "string" && id) openedIds.add(id);
+                  } catch { /* ignore */ }
+                }
+                delete toolName[evt.index]; delete toolJson[evt.index];
+              }
               if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
+                fullText += evt.delta.text;
                 controller.enqueue(enc.encode(evt.delta.text));
               }
             } catch { /* ignore partial json */ }
           }
+        }
+        // Bulletproof email card: if the model opened exactly one email but didn't
+        // emit a card block, inject one so the app ALWAYS renders the card —
+        // regardless of whether the model formatted it correctly.
+        if (emailUI && openedIds.size === 1 && !/```gf/.test(fullText)) {
+          controller.enqueue(enc.encode(`\n\n\`\`\`gf-message\n{"id":"${[...openedIds][0]}"}\n\`\`\``));
         }
       } catch (e) {
         controller.enqueue(enc.encode(`\n⚠️ ${e instanceof Error ? e.message : String(e)}`));
