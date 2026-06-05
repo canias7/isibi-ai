@@ -586,20 +586,20 @@ export default function App() {
               <div className="conn-pop-backdrop" onClick={() => { setPlusOpen(false); setConnMenu(false); }} />
             )}
 
-            {/* "+" sheet: attach media or jump to connectors */}
+            {/* "+" radial menu: attach options fan up from the + as circles */}
             {plusOpen && (
-              <div className="conn-pop plus-sheet" role="menu">
-                <button className="plus-row" onClick={() => openPicker('camera')}>
-                  <span className="plus-ico"><IconCamera size={20} /></span> Camera
+              <div className="radial" role="menu">
+                <button className="radial-item" style={{ left: 0, bottom: 150, animationDelay: '0ms' }} onClick={() => openPicker('camera')}>
+                  <IconCamera size={20} /><span className="radial-label">Camera</span>
                 </button>
-                <button className="plus-row" onClick={() => openPicker('photos')}>
-                  <span className="plus-ico"><IconPhotos size={20} /></span> Photos
+                <button className="radial-item" style={{ left: 56, bottom: 139, animationDelay: '40ms' }} onClick={() => openPicker('photos')}>
+                  <IconPhotos size={20} /><span className="radial-label">Photos</span>
                 </button>
-                <button className="plus-row" onClick={() => openPicker('files')}>
-                  <span className="plus-ico"><IconFiles size={20} /></span> Files
+                <button className="radial-item" style={{ left: 104, bottom: 108, animationDelay: '80ms' }} onClick={() => openPicker('files')}>
+                  <IconFiles size={20} /><span className="radial-label">Files</span>
                 </button>
-                <button className="plus-row" onClick={() => { setPlusOpen(false); setConnMenu(true); }}>
-                  <span className="plus-ico"><IconConnectors size={20} /></span> Connectors
+                <button className="radial-item" style={{ left: 137, bottom: 61, animationDelay: '120ms' }} onClick={() => { setPlusOpen(false); setConnMenu(true); }}>
+                  <IconConnectors size={20} /><span className="radial-label">Connectors</span>
                 </button>
               </div>
             )}
