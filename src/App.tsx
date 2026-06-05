@@ -419,7 +419,7 @@ export default function App() {
         </div>
       ) : (
         <>
-          <div className={`live-bg ${messages.length ? 'live-bg-dim' : ''}`} aria-hidden="true">
+          <div className="live-bg" aria-hidden="true">
             <span className="orb orb1" />
             <span className="orb orb2" />
             <span className="orb orb3" />

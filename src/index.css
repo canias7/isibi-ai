@@ -112,10 +112,7 @@ body { background: var(--bg); color: var(--text); }
   overflow: hidden;
   background: #000;
   pointer-events: none;
-  transition: opacity 0.7s ease;
 }
-/* In a conversation the glow stays alive but pulls back so text stays crisp. */
-.live-bg-dim { opacity: 0.5; }
 .live-bg .orb { position: absolute; border-radius: 50%; will-change: transform, opacity; }
 .orb1 {
   width: 78vw; height: 78vw; left: -20vw; top: -12vh;
