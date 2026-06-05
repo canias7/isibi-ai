@@ -275,6 +275,19 @@ Deno.serve(async (req: Request) => {
     return new Response("Invalid request body — expected { messages: [...] }.", { status: 400, headers: cors });
   }
 
+  // Fast path: tapping an email row sends "Open this email: … [[gfid:ID]]". That's
+  // an unambiguous request to open ONE specific email — there's nothing for the
+  // model to decide, and the reader card fetches that message (sender, subject,
+  // body, attachments) by id itself. So return the card directly. This makes a
+  // tap-to-open card-only EVERY time — no prose can leak, no dependence on the
+  // model emitting the right block or on the email app being in scope — and it
+  // still works even when the model is unavailable (e.g. no API credits).
+  const tappedId = latestUser(messages).text.match(/\[\[gfid:([^\]\s]+)\]\]/)?.[1];
+  if (tappedId) {
+    const card = `\`\`\`gf-message\n{"id":${JSON.stringify(tappedId)}}\n\`\`\``;
+    return new Response(card, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
+  }
+
   // Attach the MCP server, scoped to THIS user's connected apps. The proxy runs
   // tools as this same user id (passed in the URL) so users only touch their own data.
   let mcpServers: unknown[] | undefined;
