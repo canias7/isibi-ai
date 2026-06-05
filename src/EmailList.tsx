@@ -38,6 +38,11 @@ export function providerOf(app?: string, id?: string): 'gmail' | 'outlook' {
   return 'gmail';
 }
 
+// Remember each listed email's sender/subject so that when one is opened the
+// reader can show them instantly (real sender, avatar, colour) while it fetches
+// the full body — instead of a blank "Unknown / Loading…" flash.
+const emailHints = new Map<string, Partial<EmailMessage>>();
+
 // Personal mailbox providers: their favicon is just the provider logo (useless
 // as an avatar), so we fall back to colored initials for these senders.
 const PERSONAL = new Set([
@@ -105,6 +110,9 @@ function Avatar({ from, email }: { from?: string; email?: string }) {
 
 export function EmailList({ items, onOpen }: { items: EmailItem[]; onOpen?: (it: EmailItem) => void }) {
   const app = providerOf(items[0]?.app, items[0]?.id);
+  for (const it of items) {
+    if (it.id) emailHints.set(it.id, { from: it.from, email: it.email, subject: it.subject, time: it.time, unread: it.unread, app: it.app });
+  }
   return (
     <div className={`gf-emails gf-${app}`}>
       {items.map((it, i) => (
@@ -357,13 +365,16 @@ export function EmailDetail({ msg }: { msg: EmailMessage }) {
   // real message by id and fill any header field it didn't provide, so the card
   // is complete for every email.
   const [meta, setMeta] = useState<EmailMeta>({});
-  const from = msg.from || meta.from || '';
-  const email = msg.email || meta.email;
+  // Seed from the tapped list row (if we have it) so the header shows instantly,
+  // before the full message body finishes loading.
+  const hint: Partial<EmailMessage> = (msg.id && emailHints.get(msg.id)) || {};
+  const from = msg.from || hint.from || meta.from || '';
+  const email = msg.email || hint.email || meta.email;
   const to = msg.to || meta.to;
-  const subject = msg.subject || meta.subject || '';
-  const time = msg.time || fmtTime(meta.date);
-  const unread = msg.unread ?? meta.unread;
-  const app = providerOf(msg.app ?? meta.app, msg.id);
+  const subject = msg.subject || hint.subject || meta.subject || '';
+  const time = msg.time || hint.time || fmtTime(meta.date);
+  const unread = msg.unread ?? hint.unread ?? meta.unread;
+  const app = providerOf(msg.app ?? hint.app ?? meta.app, msg.id);
   return (
     <div className={`gf-msg gf-${app}`}>
       <div className="gf-msg-head">
