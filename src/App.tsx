@@ -419,14 +419,12 @@ export default function App() {
         </div>
       ) : (
         <>
-          {messages.length === 0 && (
-            <div className="live-bg" aria-hidden="true">
-              <span className="orb orb1" />
-              <span className="orb orb2" />
-              <span className="orb orb3" />
-              <span className="orb orb4" />
-            </div>
-          )}
+          <div className={`live-bg ${messages.length ? 'live-bg-dim' : ''}`} aria-hidden="true">
+            <span className="orb orb1" />
+            <span className="orb orb2" />
+            <span className="orb orb3" />
+            <span className="orb orb4" />
+          </div>
           <div className="messages" ref={scrollRef}>
             {messages.length === 0 ? (
               <div className="home">
