@@ -42,16 +42,19 @@ export default function AssistantMessage(
   { text, streaming, onOpen }: { text: string; streaming: boolean; onOpen?: (it: EmailItem) => void },
 ) {
   const f = firstFence(text);
-  // Only consider blocks that could be email JSON; leave real code blocks alone.
-  const maybeEmail = !!f && ['gf-emails', 'gf-message', 'json', ''].includes(f.lang);
+  // Accept ANY gf-* tag the model uses — gf-message / gf-emails AND variants it
+  // sometimes invents (gf-email-open, gf-email-detail, …). Also json/'' blocks,
+  // which we then confirm by shape so real code blocks are left alone.
+  const gf = !!f && f.lang.startsWith('gf-');
+  const maybeEmail = !!f && (gf || f.lang === 'json' || f.lang === '');
   if (!f || !maybeEmail) return <Markdown text={text} />;
 
   // Block still streaming in — guess list vs detail from the tag or first char.
   if (!f.closed) {
     if (!streaming) return <Markdown text={text} />;
     const head = f.content.trimStart()[0];
-    const isList = f.lang === 'gf-emails' || head === '[';
-    const isMsg = f.lang === 'gf-message' || head === '{';
+    const isList = head === '[';
+    const isMsg = head === '{';
     if (!isList && !isMsg) return <Markdown text={text} />;
     return (
       <>
@@ -69,14 +72,17 @@ export default function AssistantMessage(
   // json/'' blocks fall back to shape detection so real code blocks and unrelated
   // JSON aren't hijacked into email cards.
   const obj = !!parsed && typeof parsed === 'object' && !Array.isArray(parsed);
-  const list = f.lang === 'gf-emails'
+  // For ANY gf-* tag, trust it by shape: a JSON array → inbox list; a JSON object
+  // → one email (id-only is fine, the reader fetches the rest). Generic json/''
+  // blocks must actually look like email(s) so real code/JSON isn't hijacked.
+  const list = gf
     ? (Array.isArray(parsed) && parsed.length > 0)
     : (Array.isArray(parsed) && parsed.length > 0 && parsed.every(isEmailItem));
-  const msg = f.lang === 'gf-message' ? obj : isEmailMessage(parsed);
+  const msg = gf ? obj : isEmailMessage(parsed);
   if (!list && !msg) {
-    // A gf-tagged block we couldn't use — never dump raw JSON on the user; show
-    // only any surrounding prose. Untagged blocks render normally (real code).
-    if (f.lang === 'gf-emails' || f.lang === 'gf-message') {
+    // A gf-* block we couldn't parse — never dump raw JSON on the user; show only
+    // any surrounding prose. Untagged blocks render normally (real code).
+    if (gf) {
       const around = `${f.before}\n${f.after}`.trim();
       return around ? <Markdown text={around} /> : <></>;
     }
