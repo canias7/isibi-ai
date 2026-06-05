@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { streamChat, type ChatMessage } from './api';
+import { streamChat, type ChatMessage, type Attach } from './api';
 import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API, byId } from './connectorData';
 import Connectors from './Connectors';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash } from './icons';
+import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconPhotos, IconFiles, IconX, IconDoc } from './icons';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -35,10 +35,83 @@ function loadChats(uid: string): Conversation[] {
 
 function saveChats(uid: string, chats: Conversation[]) {
   try {
-    localStorage.setItem(chatsKey(uid), JSON.stringify(chats.slice(0, MAX_CHATS)));
+    // Drop heavy base64 from attachments before persisting (keep the meta so the
+    // bubble still shows a chip) — avoids blowing the localStorage quota.
+    const slim = chats.slice(0, MAX_CHATS).map((c) => ({
+      ...c,
+      messages: c.messages.map((m) =>
+        m.attachments?.length ? { ...m, attachments: m.attachments.map((a) => ({ ...a, data: '' })) } : m,
+      ),
+    }));
+    localStorage.setItem(chatsKey(uid), JSON.stringify(slim));
   } catch {
     /* storage full / unavailable */
   }
+}
+
+// ---- Attachment helpers (client-side image normalization) ----
+function stripPrefix(dataUrl: string): string {
+  const i = dataUrl.indexOf(',');
+  return i >= 0 ? dataUrl.slice(i + 1) : dataUrl;
+}
+function readAsDataUrl(f: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(new Error('read failed'));
+    r.readAsDataURL(f);
+  });
+}
+// Decode (incl. iOS HEIC) and re-encode to a downscaled JPEG so payloads stay
+// small and the media type is one Claude's vision accepts.
+function imageToJpeg(f: File): Promise<{ data: string; mediaType: string }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => {
+      const max = 1568;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      URL.revokeObjectURL(url);
+      if (!ctx) return reject(new Error('no canvas'));
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve({ data: stripPrefix(canvas.toDataURL('image/jpeg', 0.85)), mediaType: 'image/jpeg' });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('image decode failed'));
+    };
+    img.src = url;
+  });
+}
+async function fileToAttachment(f: File): Promise<Attach | null> {
+  if (f.type === 'application/pdf') {
+    return { kind: 'pdf', mediaType: 'application/pdf', data: stripPrefix(await readAsDataUrl(f)), name: f.name || 'document.pdf' };
+  }
+  if (f.type.startsWith('image/')) {
+    const { data, mediaType } = await imageToJpeg(f);
+    return { kind: 'image', mediaType, data, name: f.name || 'image.jpg' };
+  }
+  return null; // unsupported type
+}
+
+// Render one attachment — image thumbnail, or a file chip (also the fallback for
+// images whose base64 was stripped on persist).
+function AttView({ a }: { a: Attach }) {
+  if (a.kind === 'image' && a.data) {
+    return <img className="att-img" src={`data:${a.mediaType};base64,${a.data}`} alt={a.name} />;
+  }
+  return (
+    <span className="att-file">
+      <IconDoc size={16} />
+      <span className="att-file-name">{a.name}</span>
+    </span>
+  );
 }
 
 function titleFrom(messages: ChatMessage[]): string {
@@ -119,6 +192,10 @@ export default function App() {
   const [enabled, setEnabled] = useState<Set<string>>(new Set());
   const [connLoaded, setConnLoaded] = useState(false);
   const [connMenu, setConnMenu] = useState(false);
+  const [plusOpen, setPlusOpen] = useState(false);
+  const [attachments, setAttachments] = useState<Attach[]>([]);
+  const [attachErr, setAttachErr] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const seenRef = useRef<string[]>([]);
 
   async function loadConnectors() {
@@ -206,11 +283,12 @@ export default function App() {
     });
   }, [messages, busy, currentId, uid]);
 
-  async function sendText(raw: string) {
+  async function sendText(raw: string, atts: Attach[] = []) {
     const text = raw.trim();
-    if (!text || busy) return;
+    if ((!text && atts.length === 0) || busy) return;
 
-    const history = [...messages, { role: 'user', content: text } as ChatMessage];
+    const userMsg: ChatMessage = { role: 'user', content: text, ...(atts.length ? { attachments: atts } : {}) };
+    const history = [...messages, userMsg];
     setMessages([...history, { role: 'assistant', content: '' }]);
     setBusy(true);
 
@@ -256,12 +334,52 @@ export default function App() {
     }
   }
 
-  // Send from the composer (clears the input box).
+  // Send from the composer (clears the input box + pending attachments).
   function send() {
     const text = input.trim();
-    if (!text || busy) return;
+    if ((!text && attachments.length === 0) || busy) return;
+    const atts = attachments;
     setInput('');
-    void sendText(text);
+    setAttachments([]);
+    void sendText(text, atts);
+  }
+
+  // ---- Attachments ("+" menu) ----
+  function openPicker(mode: 'camera' | 'photos' | 'files') {
+    setPlusOpen(false);
+    const input = fileRef.current;
+    if (!input) return;
+    input.value = '';
+    input.multiple = mode !== 'camera';
+    if (mode === 'camera') {
+      input.accept = 'image/*';
+      input.setAttribute('capture', 'environment');
+    } else {
+      input.accept = mode === 'photos' ? 'image/*' : 'image/*,application/pdf';
+      input.removeAttribute('capture');
+    }
+    input.click();
+  }
+  async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    let bad = false;
+    for (const f of files) {
+      try {
+        const att = await fileToAttachment(f);
+        if (att) setAttachments((prev) => [...prev, att].slice(0, 6));
+        else bad = true;
+      } catch {
+        bad = true;
+      }
+    }
+    if (bad) {
+      setAttachErr(true);
+      setTimeout(() => setAttachErr(false), 3500);
+    }
+  }
+  function removeAttachment(i: number) {
+    setAttachments((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   // Tapping an email card opens it: send a hidden "open by id" instruction so the
@@ -442,7 +560,18 @@ export default function App() {
                   return (
                     <div key={i} className={`msg ${m.role}`}>
                       <div className="bubble">
-                        {m.role === 'assistant' ? <AssistantMessage text={m.content} streaming={streamingHere} onOpen={openEmail} /> : cleanForDisplay(m.content)}
+                        {m.role === 'assistant' ? (
+                          <AssistantMessage text={m.content} streaming={streamingHere} onOpen={openEmail} />
+                        ) : (
+                          <>
+                            {m.attachments && m.attachments.length > 0 && (
+                              <div className="msg-atts">
+                                {m.attachments.map((a, ai) => <AttView key={ai} a={a} />)}
+                              </div>
+                            )}
+                            {cleanForDisplay(m.content)}
+                          </>
+                        )}
                         {streamingHere && <span className="cursor" />}
                       </div>
                     </div>
@@ -453,7 +582,29 @@ export default function App() {
           </div>
 
           <div className="composer-wrap">
-            {connMenu && <div className="conn-pop-backdrop" onClick={() => setConnMenu(false)} />}
+            {(plusOpen || connMenu) && (
+              <div className="conn-pop-backdrop" onClick={() => { setPlusOpen(false); setConnMenu(false); }} />
+            )}
+
+            {/* "+" sheet: attach media or jump to connectors */}
+            {plusOpen && (
+              <div className="conn-pop plus-sheet" role="menu">
+                <button className="plus-row" onClick={() => openPicker('camera')}>
+                  <span className="plus-ico"><IconCamera size={20} /></span> Camera
+                </button>
+                <button className="plus-row" onClick={() => openPicker('photos')}>
+                  <span className="plus-ico"><IconPhotos size={20} /></span> Photos
+                </button>
+                <button className="plus-row" onClick={() => openPicker('files')}>
+                  <span className="plus-ico"><IconFiles size={20} /></span> Files
+                </button>
+                <button className="plus-row" onClick={() => { setPlusOpen(false); setConnMenu(true); }}>
+                  <span className="plus-ico"><IconConnectors size={20} /></span> Connectors
+                </button>
+              </div>
+            )}
+
+            {/* Per-chat connectors toggle (opened from the "+" sheet) */}
             {connMenu && (
               <div className="conn-pop" role="menu">
                 <div className="conn-pop-head">Connectors · this chat</div>
@@ -477,34 +628,48 @@ export default function App() {
                 )}
               </div>
             )}
+
             <div className="composer">
-              <button
-                className={`plus-btn ${connMenu ? 'open' : ''}`}
-                onClick={() => setConnMenu((o) => !o)}
-                aria-label="Connectors for this chat"
-              >
-                +
-                {connLoaded && connApps.length > 0 && enabled.size < connApps.length && (
-                  <span className="plus-badge">{enabled.size}</span>
-                )}
-              </button>
-              <textarea
-                ref={taRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder="Message Go Farther…"
-                rows={1}
-              />
-              <button
-                className="send"
-                onClick={() => (busy ? stopStream() : void send())}
-                disabled={!busy && !input.trim()}
-                aria-label={busy ? 'Stop generating' : 'Send'}
-              >
-                {busy ? <span className="stop-sq" /> : '↑'}
-              </button>
+              {attachments.length > 0 && (
+                <div className="att-row">
+                  {attachments.map((a, i) => (
+                    <span key={i} className="att-chip">
+                      <AttView a={a} />
+                      <button className="att-x" onClick={() => removeAttachment(i)} aria-label="Remove attachment">
+                        <IconX size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {attachErr && <div className="att-err">That file type isn't supported — try an image or PDF.</div>}
+              <div className="composer-row">
+                <button
+                  className={`plus-btn ${plusOpen ? 'open' : ''}`}
+                  onClick={() => { setConnMenu(false); setPlusOpen((o) => !o); }}
+                  aria-label="Add attachment or connectors"
+                >
+                  +
+                </button>
+                <textarea
+                  ref={taRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  placeholder="Message Go Farther…"
+                  rows={1}
+                />
+                <button
+                  className="send"
+                  onClick={() => (busy ? stopStream() : void send())}
+                  disabled={!busy && !input.trim() && attachments.length === 0}
+                  aria-label={busy ? 'Stop generating' : 'Send'}
+                >
+                  {busy ? <span className="stop-sq" /> : '↑'}
+                </button>
+              </div>
             </div>
+            <input ref={fileRef} type="file" hidden onChange={onFiles} />
             <p className="hint">Go Farther can make mistakes — double-check important info.</p>
           </div>
         </>

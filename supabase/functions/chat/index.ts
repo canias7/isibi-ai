@@ -33,7 +33,28 @@ function corsFor(req: Request): Record<string, string> {
   };
 }
 
-interface Msg { role: string; content: string }
+interface Attach { kind?: string; mediaType?: string; data?: string; name?: string }
+interface Msg { role: string; content: string; attachments?: Attach[] }
+
+// Build a Claude message `content` from text + optional image/PDF attachments.
+// Media goes first (Anthropic's recommended ordering for vision), then the text.
+// Attachments with empty data (e.g. stripped on the client when persisted) are
+// skipped, so reopened chats don't send blank blocks.
+function buildContent(m: Msg): unknown {
+  const atts = (m.attachments ?? []).filter((a) => a && typeof a.data === "string" && a.data.length > 0);
+  if (!atts.length) return m.content;
+  const blocks: unknown[] = [];
+  for (const a of atts) {
+    if (a.kind === "pdf" || a.mediaType === "application/pdf") {
+      blocks.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: a.data } });
+    } else {
+      const mt = ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(a.mediaType ?? "") ? a.mediaType : "image/jpeg";
+      blocks.push({ type: "image", source: { type: "base64", media_type: mt, data: a.data } });
+    }
+  }
+  if (m.content && m.content.trim()) blocks.push({ type: "text", text: m.content });
+  return blocks;
+}
 
 // Frontend connector id -> Composio toolkit slug (for per-session filtering).
 const APP_TO_SLUG: Record<string, string> = {
@@ -203,7 +224,7 @@ Deno.serve(async (req: Request) => {
     model: "claude-sonnet-4-6",
     max_tokens: 8192,
     system: baseSystem + (emailUI ? emailCardsSystem : ""),
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    messages: messages.map((m) => ({ role: m.role, content: buildContent(m) })),
     stream: true,
   };
   if (mcpServers) reqBody.mcp_servers = mcpServers;

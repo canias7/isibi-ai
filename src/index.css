@@ -239,10 +239,11 @@ body { background: var(--bg); color: var(--text); }
   background: var(--composer);
   border-radius: 26px;
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
   gap: 8px;
-  padding: 8px 8px 8px 18px;
+  padding: 8px 10px;
 }
+.composer-row { display: flex; align-items: flex-end; gap: 8px; }
 
 .composer textarea {
   flex: 1;
@@ -292,7 +293,7 @@ body { background: var(--bg); color: var(--text); }
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  margin: 0 2px 1px -8px;
+  margin: 0 2px 2px 2px;
 }
 .plus-btn:active, .plus-btn.open { background: #ffffff1f; }
 .plus-badge {
@@ -369,6 +370,79 @@ body { background: var(--bg); color: var(--text); }
   padding: 10px;
   cursor: pointer;
 }
+
+/* Frosted glass for both composer popups (attach sheet + connectors) */
+.conn-pop {
+  background: rgba(38, 38, 42, 0.86);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* "+" sheet rows (Camera / Photos / Files / Connectors) */
+.plus-sheet { padding: 8px; }
+.plus-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  padding: 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.plus-row:active { background: #ffffff14; }
+.plus-ico {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ffffff14;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--text);
+}
+
+/* Pending attachment previews (inside the composer, above the input) */
+.att-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 4px 0; }
+.att-chip { position: relative; display: inline-flex; }
+.att-chip .att-img { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; display: block; }
+.att-x {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--composer);
+  background: #4a4a4f;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+.att-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 200px;
+  background: #ffffff14;
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: var(--text);
+}
+.att-file-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.att-err { color: #ff9a9a; font-size: 12px; padding: 2px 6px; }
+
+/* Attachments shown inside a sent user bubble */
+.msg-atts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.msg-atts .att-img { max-width: 220px; max-height: 260px; border-radius: 14px; object-fit: cover; display: block; }
 
 /* iOS-style toggle */
 .tgl {

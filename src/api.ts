@@ -47,9 +47,20 @@ export async function fetchAttachment(mid: string, aid: string, name = 'file'): 
 }
 
 export type Role = 'user' | 'assistant';
+
+// A user-attached image or PDF. `data` is base64 WITHOUT the data-URL prefix.
+// (Stripped from `data` before persisting to localStorage to avoid quota bloat.)
+export interface Attach {
+  kind: 'image' | 'pdf';
+  mediaType: string;
+  data: string;
+  name: string;
+}
+
 export interface ChatMessage {
   role: Role;
   content: string;
+  attachments?: Attach[];
 }
 
 // Go Farther backend: a Supabase Edge Function running Claude (the `chat`
