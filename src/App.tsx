@@ -596,13 +596,13 @@ export default function App() {
                 <button className="radial-item" style={{ left: 0, bottom: 240, animationDelay: '150ms' }} onClick={() => openPicker('camera')}>
                   <IconCamera size={20} /><span className="radial-label">Camera</span>
                 </button>
-                <button className="radial-item" style={{ left: 46, bottom: 180, animationDelay: '100ms' }} onClick={() => openPicker('photos')}>
+                <button className="radial-item" style={{ left: 24, bottom: 180, animationDelay: '100ms' }} onClick={() => openPicker('photos')}>
                   <IconPhotos size={20} /><span className="radial-label">Photos</span>
                 </button>
-                <button className="radial-item" style={{ left: 61, bottom: 120, animationDelay: '50ms' }} onClick={() => openPicker('files')}>
+                <button className="radial-item" style={{ left: 48, bottom: 120, animationDelay: '50ms' }} onClick={() => openPicker('files')}>
                   <IconFiles size={20} /><span className="radial-label">Files</span>
                 </button>
-                <button className="radial-item" style={{ left: 68, bottom: 60, animationDelay: '0ms' }} onClick={() => { setPlusOpen(false); setConnMenu(true); }}>
+                <button className="radial-item" style={{ left: 72, bottom: 60, animationDelay: '0ms' }} onClick={() => { setPlusOpen(false); setConnMenu(true); }}>
                   <IconConnectors size={20} /><span className="radial-label">Connectors</span>
                 </button>
               </div>
