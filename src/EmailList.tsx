@@ -216,7 +216,7 @@ function EmailBody({ id, fallback, onMeta }: { id: string; fallback: string; onM
   const [status, setStatus] = useState<'loading' | 'ok' | 'fail'>('loading');
   const [html, setHtml] = useState('');
   const [hasImages, setHasImages] = useState(false); // remote http images
-  const [showImages, setShowImages] = useState(false);
+  const [showImages, setShowImages] = useState(true); // render images by default (like a normal mail app)
   const [atts, setAtts] = useState<MsgAttachment[]>([]);
   const [cidMap, setCidMap] = useState<Record<string, string>>({});
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
