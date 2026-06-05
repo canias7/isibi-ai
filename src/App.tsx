@@ -196,6 +196,7 @@ export default function App() {
   const [attachments, setAttachments] = useState<Attach[]>([]);
   const [attachErr, setAttachErr] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const menuOpenedAt = useRef(0); // guards against the tap's ghost-click closing a just-opened menu
   const seenRef = useRef<string[]>([]);
 
   async function loadConnectors() {
@@ -585,7 +586,11 @@ export default function App() {
             {(plusOpen || connMenu) && (
               <div
                 className={`conn-pop-backdrop ${plusOpen ? 'radial-scrim' : ''}`}
-                onClick={() => { setPlusOpen(false); setConnMenu(false); }}
+                onClick={() => {
+                  if (Date.now() - menuOpenedAt.current < 400) return; // ignore the tap's ghost-click
+                  setPlusOpen(false);
+                  setConnMenu(false);
+                }}
               />
             )}
 
@@ -602,7 +607,7 @@ export default function App() {
                 <button className="radial-item" style={{ left: 48, bottom: 120, animationDelay: '50ms' }} onClick={() => openPicker('files')}>
                   <IconFiles size={20} /><span className="radial-label">Files</span>
                 </button>
-                <button className="radial-item" style={{ left: 72, bottom: 60, animationDelay: '0ms' }} onClick={() => { setPlusOpen(false); setConnMenu(true); }}>
+                <button className="radial-item" style={{ left: 72, bottom: 60, animationDelay: '0ms' }} onClick={() => { menuOpenedAt.current = Date.now(); setPlusOpen(false); setConnMenu(true); }}>
                   <IconConnectors size={20} /><span className="radial-label">Connectors</span>
                 </button>
               </div>
@@ -650,7 +655,7 @@ export default function App() {
               <div className="composer-row">
                 <button
                   className={`plus-btn ${plusOpen ? 'open' : ''}`}
-                  onClick={() => { setConnMenu(false); setPlusOpen((o) => !o); }}
+                  onClick={() => { menuOpenedAt.current = Date.now(); setConnMenu(false); setPlusOpen((o) => !o); }}
                   aria-label="Add attachment or connectors"
                 >
                   +
