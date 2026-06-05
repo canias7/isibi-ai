@@ -33,19 +33,61 @@ function loadChats(uid: string): Conversation[] {
   }
 }
 
+// Drop heavy base64 from attachments (keep the meta so a chip still renders) —
+// used before persisting locally and syncing, to avoid bloating storage/DB.
+function slimMessages(messages: ChatMessage[]): ChatMessage[] {
+  return messages.map((m) =>
+    m.attachments?.length ? { ...m, attachments: m.attachments.map((a) => ({ ...a, data: '' })) } : m,
+  );
+}
+
 function saveChats(uid: string, chats: Conversation[]) {
   try {
-    // Drop heavy base64 from attachments before persisting (keep the meta so the
-    // bubble still shows a chip) — avoids blowing the localStorage quota.
-    const slim = chats.slice(0, MAX_CHATS).map((c) => ({
-      ...c,
-      messages: c.messages.map((m) =>
-        m.attachments?.length ? { ...m, attachments: m.attachments.map((a) => ({ ...a, data: '' })) } : m,
-      ),
-    }));
+    const slim = chats.slice(0, MAX_CHATS).map((c) => ({ ...c, messages: slimMessages(c.messages) }));
     localStorage.setItem(chatsKey(uid), JSON.stringify(slim));
   } catch {
     /* storage full / unavailable */
+  }
+}
+
+// ---- Cloud sync (conversations table, RLS-scoped to this user) ----
+async function syncLoad(uid: string): Promise<Conversation[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('id,title,messages,updated_at')
+      .eq('user_id', uid)
+      .order('updated_at', { ascending: false })
+      .limit(MAX_CHATS);
+    if (error || !data) return null;
+    return data.map((r: { id: string; title: string; messages: unknown; updated_at: string }) => ({
+      id: r.id,
+      title: r.title || 'New chat',
+      messages: Array.isArray(r.messages) ? (r.messages as ChatMessage[]) : [],
+      updatedAt: new Date(r.updated_at).getTime(),
+    }));
+  } catch {
+    return null;
+  }
+}
+async function syncSave(uid: string, c: Conversation) {
+  try {
+    await supabase.from('conversations').upsert({
+      user_id: uid,
+      id: c.id,
+      title: c.title,
+      messages: slimMessages(c.messages),
+      updated_at: new Date(c.updatedAt || Date.now()).toISOString(),
+    });
+  } catch {
+    /* offline — local copy still saved */
+  }
+}
+async function syncDelete(uid: string, id: string) {
+  try {
+    await supabase.from('conversations').delete().eq('user_id', uid).eq('id', id);
+  } catch {
+    /* offline */
   }
 }
 
@@ -246,7 +288,7 @@ export default function App() {
     });
   }
 
-  // Load this user's chats on login (and clear on logout).
+  // Load this user's chats on login (local cache instantly, then cloud sync).
   useEffect(() => {
     if (!uid) {
       setChats([]);
@@ -258,6 +300,20 @@ export default function App() {
     setChats(loaded);
     setCurrentId(loaded[0]?.id ?? cid());
     setMessages(loaded[0]?.messages ?? []);
+    // Pull synced conversations and merge them into the list (cloud is source of
+    // truth; keep any local-only chats not yet synced). Doesn't disturb the open chat.
+    let alive = true;
+    (async () => {
+      const remote = await syncLoad(uid);
+      if (!alive || !remote) return;
+      const byId = new Map<string, Conversation>();
+      for (const c of remote) byId.set(c.id, c);
+      for (const c of loadChats(uid)) if (!byId.has(c.id)) byId.set(c.id, c);
+      const merged = [...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, MAX_CHATS);
+      setChats(merged);
+      saveChats(uid, merged);
+    })();
+    return () => { alive = false; };
   }, [uid]);
 
   // Auto-scroll to the latest message.
@@ -276,12 +332,13 @@ export default function App() {
   // Persist the active conversation once a turn finishes (not on every token).
   useEffect(() => {
     if (!uid || busy || messages.length === 0) return;
+    const convo: Conversation = { id: currentId, title: titleFrom(messages), messages, updatedAt: Date.now() };
     setChats((prev) => {
-      const convo: Conversation = { id: currentId, title: titleFrom(messages), messages, updatedAt: Date.now() };
       const next = [convo, ...prev.filter((c) => c.id !== currentId)];
       saveChats(uid, next);
       return next;
     });
+    void syncSave(uid, convo); // mirror to the cloud
   }, [messages, busy, currentId, uid]);
 
   async function sendText(raw: string, atts: Attach[] = []) {
@@ -435,6 +492,7 @@ export default function App() {
       if (uid) saveChats(uid, next);
       return next;
     });
+    if (uid) void syncDelete(uid, id);
     if (id === currentId) {
       setCurrentId(cid());
       setMessages([]);
