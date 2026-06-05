@@ -215,6 +215,41 @@ async function connectedToolkits(userId: string): Promise<string[]> {
   }
 }
 
+// Server-side backstop: re-run the inbox fetch with the model's own arguments and
+// build a gf-emails card, so an inbox list ALWAYS renders as a card even if the
+// model wrote it out as plain text. Mirrors the single-email guarantee.
+async function buildInboxCard(uid: string, args: unknown, tz: string): Promise<string> {
+  if (!COMPOSIO_API_KEY || !uid) return "";
+  try {
+    const res = await fetch("https://backend.composio.dev/api/v3/tools/execute/GMAIL_FETCH_EMAILS", {
+      method: "POST",
+      headers: { "x-api-key": COMPOSIO_API_KEY, "content-type": "application/json" },
+      body: JSON.stringify({ user_id: uid, arguments: args ?? {} }),
+    });
+    const body = await res.json().catch(() => ({}));
+    const data = body?.data ?? body;
+    const msgs: any[] = data?.messages ?? data?.data?.messages ?? [];
+    if (!msgs.length) return "";
+    const dstr = (d: Date, o: Intl.DateTimeFormatOptions) => { try { return new Intl.DateTimeFormat("en-US", { timeZone: tz, ...o }).format(d); } catch { return ""; } };
+    const today = dstr(new Date(), { dateStyle: "short" });
+    const items = msgs.slice(0, 12).map((m) => {
+      const sender = String(m.sender ?? "");
+      const mt = /^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/.exec(sender);
+      const from = mt ? mt[1].trim() : sender;
+      const email = mt ? mt[2].trim() : "";
+      const labels: string[] = m.labelIds ?? [];
+      let time = "";
+      const d = new Date(m.messageTimestamp ?? m.internalDate ?? "");
+      if (!isNaN(d.getTime())) time = dstr(d, { dateStyle: "short" }) === today ? dstr(d, { hour: "numeric", minute: "2-digit" }) : dstr(d, { month: "short", day: "numeric" });
+      const snippet = String(m.messageText ?? m.preview?.body ?? "").replace(/\s+/g, " ").trim().split(" ").slice(0, 12).join(" ");
+      return { from: from || email || "Unknown", email, subject: String(m.subject ?? "(no subject)"), snippet, time, unread: Array.isArray(labels) && labels.includes("UNREAD"), id: String(m.messageId ?? m.id ?? "") };
+    });
+    return JSON.stringify(items);
+  } catch {
+    return "";
+  }
+}
+
 Deno.serve(async (req: Request) => {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -330,6 +365,8 @@ Deno.serve(async (req: Request) => {
       const toolName: Record<number, string> = {};   // tool name per content-block index
       const toolJson: Record<number, string> = {};   // accumulated input JSON per index
       const openedIds = new Set<string>();            // single emails the model fetched by id
+      let listArgs: unknown = {};                     // args of a FETCH_EMAILS (inbox) call
+      let listCalled = false;
       try {
         for (;;) {
           const { done, value } = await reader.read();
@@ -360,12 +397,16 @@ Deno.serve(async (req: Request) => {
                 toolJson[evt.index] += evt.delta.partial_json ?? "";
               }
               if (evt.type === "content_block_stop" && evt.index in toolName) {
-                if (toolName[evt.index].toUpperCase().includes("FETCH_MESSAGE")) {
+                const nm = toolName[evt.index].toUpperCase();
+                if (nm.includes("FETCH_MESSAGE")) {
                   try {
                     const a = JSON.parse(toolJson[evt.index] || "{}");
                     const id = a.message_id ?? a.messageId ?? a.id;
                     if (typeof id === "string" && id) openedIds.add(id);
                   } catch { /* ignore */ }
+                } else if (nm.includes("FETCH_EMAILS")) {
+                  listCalled = true;
+                  try { listArgs = JSON.parse(toolJson[evt.index] || "{}"); } catch { /* keep {} */ }
                 }
                 delete toolName[evt.index]; delete toolJson[evt.index];
               }
@@ -376,18 +417,27 @@ Deno.serve(async (req: Request) => {
             } catch { /* ignore partial json */ }
           }
         }
-        // Open-an-email intent: show ONLY the card. We buffered the model's prose;
-        // if it opened a message, emit just the card — otherwise fall back to the
-        // text so nothing is lost.
-        if (bufferEmail) {
-          if (openedIds.size >= 1) {
-            controller.enqueue(enc.encode(`\`\`\`gf-message\n{"id":"${[...openedIds][0]}"}\n\`\`\``));
+        // Guarantee an email card. The model usually formats it; this is the
+        // server-side safety net so opening an email OR listing the inbox ALWAYS
+        // renders as a card, regardless of which model ran (so even Haiku is fine).
+        const hasGf = /```gf/.test(fullText);
+        if (bufferEmail && hasGf) {
+          // Explicit open/show + the model produced a card: emit just that block
+          // (card only, drop any surrounding prose).
+          controller.enqueue(enc.encode(fullText.match(/```gf[\s\S]*?```/)?.[0] ?? fullText));
+        } else if (!hasGf && !summarizeIntent && emailUI && (openedIds.size === 1 || listCalled)) {
+          // The model fetched email(s) but produced no card — build & inject one.
+          let card = "";
+          if (openedIds.size === 1) {
+            card = `\`\`\`gf-message\n{"id":"${[...openedIds][0]}"}\n\`\`\``;
           } else {
-            controller.enqueue(enc.encode(fullText));
+            const json = await buildInboxCard(appUser ?? "", listArgs, tz);
+            if (json) card = `\`\`\`gf-emails\n${json}\n\`\`\``;
           }
-        } else if (emailUI && openedIds.size === 1 && !summarizeIntent && !/```gf/.test(fullText)) {
-          // Safety net for non-explicit opens: guarantee a card without dropping text.
-          controller.enqueue(enc.encode(`\n\n\`\`\`gf-message\n{"id":"${[...openedIds][0]}"}\n\`\`\``));
+          controller.enqueue(enc.encode(bufferEmail ? (card || fullText) : (card ? `\n\n${card}` : "")));
+        } else if (bufferEmail) {
+          // Buffered but not an email turn after all — emit the held text.
+          controller.enqueue(enc.encode(fullText));
         }
       } catch (e) {
         controller.enqueue(enc.encode(`\n⚠️ ${e instanceof Error ? e.message : String(e)}`));
