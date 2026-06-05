@@ -313,6 +313,13 @@ Deno.serve(async (req: Request) => {
     return new Response(`Assistant error ${upstream.status}: ${errText}`, { status: 502, headers: cors });
   }
 
+  // For an explicit "open / read / show / try again" on an email we suppress the
+  // model's prose and emit ONLY the card; summarize/draft/reply keep their text.
+  const lastUserText = latestUser(messages).text;
+  const summarizeIntent = /\b(summar|draft|reply|respond|compose|forward|tl;?dr|brief|gist|digest)\b/i.test(lastUserText);
+  const openIntent = !summarizeIntent && (/\b(open|read|show|view|see|pull up|bring up|look at|let me see)\b/i.test(lastUserText) || /^\s*(try\s*again|again)\b/i.test(lastUserText.trim()));
+  const bufferEmail = emailUI && openIntent;
+
   const out = new ReadableStream({
     async start(controller) {
       const enc = new TextEncoder();
@@ -364,15 +371,22 @@ Deno.serve(async (req: Request) => {
               }
               if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
                 fullText += evt.delta.text;
-                controller.enqueue(enc.encode(evt.delta.text));
+                if (!bufferEmail) controller.enqueue(enc.encode(evt.delta.text));
               }
             } catch { /* ignore partial json */ }
           }
         }
-        // Bulletproof email card: if the model opened exactly one email but didn't
-        // emit a card block, inject one so the app ALWAYS renders the card —
-        // regardless of whether the model formatted it correctly.
-        if (emailUI && openedIds.size === 1 && !/```gf/.test(fullText)) {
+        // Open-an-email intent: show ONLY the card. We buffered the model's prose;
+        // if it opened a message, emit just the card — otherwise fall back to the
+        // text so nothing is lost.
+        if (bufferEmail) {
+          if (openedIds.size >= 1) {
+            controller.enqueue(enc.encode(`\`\`\`gf-message\n{"id":"${[...openedIds][0]}"}\n\`\`\``));
+          } else {
+            controller.enqueue(enc.encode(fullText));
+          }
+        } else if (emailUI && openedIds.size === 1 && !summarizeIntent && !/```gf/.test(fullText)) {
+          // Safety net for non-explicit opens: guarantee a card without dropping text.
           controller.enqueue(enc.encode(`\n\n\`\`\`gf-message\n{"id":"${[...openedIds][0]}"}\n\`\`\``));
         }
       } catch (e) {
