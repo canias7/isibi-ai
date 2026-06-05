@@ -56,6 +56,69 @@ function buildContent(m: Msg): unknown {
   return blocks;
 }
 
+// ---- Model routing: pick Haiku / Sonnet / Opus per task ----
+const MODELS = {
+  haiku: "claude-haiku-4-5-20251001",
+  sonnet: "claude-sonnet-4-6",
+  opus: "claude-opus-4-8",
+};
+// Clear-cut cases are handled instantly by these rules; only the ambiguous
+// middle pays for the tiny Haiku classifier below.
+const COMPLEX_RE = /\b(analy[sz]e|analysis|plan|planning|strategy|strategi|compare|comparison|comprehensive|in[- ]?depth|detailed (report|plan|breakdown|analysis)|research|debug|refactor|coding|algorithm|step[- ]by[- ]step|reason through|pros and cons|trade[- ]?offs|evaluate|forecast|optimi[sz]e)\b/i;
+const TRIVIAL_RE = /^\s*(hi|hey+|hello|yo|sup|thanks|thank you|ty|ok(ay)?|cool|nice|great|perfect|got it|gotcha|yes|yep|yeah|no|nope|good (morning|night|evening|afternoon)|how are you)\b[\s!.?]*$/i;
+
+function latestUser(messages: Msg[]): { text: string; hasAtt: boolean } {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user") {
+      const m = messages[i];
+      const hasAtt = (m.attachments ?? []).some((a) => a && typeof a.data === "string" && a.data.length > 0);
+      return { text: typeof m.content === "string" ? m.content : "", hasAtt };
+    }
+  }
+  return { text: "", hasAtt: false };
+}
+
+// Tiny, cheap Haiku call that labels the task SIMPLE / STANDARD / COMPLEX.
+async function classifyTask(text: string, hasAtt: boolean, apiKey: string): Promise<string> {
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model: MODELS.haiku,
+        max_tokens: 6,
+        system: "You route requests for an assistant that can use the user's email, calendar and files. Reply with ONE word only: SIMPLE, STANDARD, or COMPLEX. SIMPLE = a quick lookup/list/read, a short factual question, or one easy action. STANDARD = typical work: summarize, draft or reply to an email, multi-step tool use, light reasoning. COMPLEX = deep analysis, multi-step planning, comparing many things, careful long-form writing, coding, or anything needing strong reasoning.",
+        messages: [{ role: "user", content: (hasAtt ? "[has image/PDF attachment] " : "") + text.slice(0, 1500) }],
+      }),
+    });
+    if (!res.ok) return MODELS.sonnet;
+    const j = await res.json();
+    const out = String(j?.content?.[0]?.text ?? "").toUpperCase();
+    if (out.includes("COMPLEX")) return MODELS.opus;
+    if (out.includes("SIMPLE")) return hasAtt ? MODELS.sonnet : MODELS.haiku; // vision wants Sonnet+
+    return MODELS.sonnet;
+  } catch {
+    return MODELS.sonnet;
+  }
+}
+
+// Hybrid router: instant rules for the obvious cases, classifier for the rest.
+async function pickModel(messages: Msg[], apiKey: string): Promise<string> {
+  const { text, hasAtt } = latestUser(messages);
+  const len = text.trim().length;
+  if (!hasAtt && len < 64 && TRIVIAL_RE.test(text)) return MODELS.haiku;
+  if (COMPLEX_RE.test(text) || len > 900) return MODELS.opus;
+  return await classifyTask(text, hasAtt, apiKey);
+}
+
+function callAnthropic(reqBody: Record<string, unknown>, apiKey: string, extra: Record<string, string>): Promise<Response> {
+  return fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", ...extra },
+    body: JSON.stringify(reqBody),
+  });
+}
+
 // Frontend connector id -> Composio toolkit slug (for per-session filtering).
 const APP_TO_SLUG: Record<string, string> = {
   gmail: "gmail",
@@ -220,8 +283,11 @@ Deno.serve(async (req: Request) => {
   // When an email app is in scope, render inbox listings as rich cards: the app
   // turns a ```gf-emails JSON block into a styled email list.
   const emailCardsSystem = `\n\nEMAIL DISPLAY — when an email tool is available, follow these rules EXACTLY:\n• Whenever you present multiple emails — the inbox, search results, OR a set of emails for the user to choose from (e.g. "which one?") — render them as a single fenced code block tagged gf-emails containing ONLY a JSON array (one object per email) with keys "from", "email", "subject", "snippet" (≤ 12 words), "time" (short label in the user's timezone, e.g. "9:41 AM", "Yesterday", "May 19"), "unread" (boolean), "id" (the Gmail message id, used to open the email). NEVER list emails as a plain numbered or bulleted list. You may write at most one short line (such as a question) before the block, but the emails themselves must be inside the block.\n• To open, read, or view ONE specific email in full: fetch it by id, then make your ENTIRE reply a single fenced code block tagged gf-message. Put ONLY one JSON object inside with keys "id" (the Gmail message id), "from", "email", "to", "time", "unread", "subject", "body" (the full readable message text), and "attachments" (array of {"name","size","type"}, or omit if none). Write no words before or after the block, and make sure the JSON is valid. If a user message contains a marker like [[gfid:ID]], they tapped an email in the list — fetch that exact message by id ID and reply with this same gf-message block.\n• To summarize, draft, reply to, or send an email: reply normally with no code block.`;
+  // Route to the right model for this task (Haiku/Sonnet/Opus).
+  const model = await pickModel(messages, apiKey);
+  console.log(`routed model=${model.replace(/^claude-/, "")}`);
   const reqBody: Record<string, unknown> = {
-    model: "claude-sonnet-4-6",
+    model,
     max_tokens: 8192,
     system: baseSystem + (emailUI ? emailCardsSystem : ""),
     messages: messages.map((m) => ({ role: m.role, content: buildContent(m) })),
@@ -230,16 +296,14 @@ Deno.serve(async (req: Request) => {
   if (mcpServers) reqBody.mcp_servers = mcpServers;
   if (mcpTools) reqBody.tools = mcpTools;
 
-  const upstream = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      ...extraHeaders,
-    },
-    body: JSON.stringify(reqBody),
-  });
+  let upstream = await callAnthropic(reqBody, apiKey, extraHeaders);
+  // If the routed model isn't available/usable, fall back to Sonnet so chat never breaks.
+  if (!upstream.ok && reqBody.model !== MODELS.sonnet) {
+    const e = await upstream.text().catch(() => "");
+    console.log(`model ${reqBody.model} failed ${upstream.status}; falling back to sonnet: ${e.slice(0, 100)}`);
+    reqBody.model = MODELS.sonnet;
+    upstream = await callAnthropic(reqBody, apiKey, extraHeaders);
+  }
 
   if (!upstream.ok || !upstream.body) {
     const errText = await upstream.text().catch(() => "");
@@ -286,5 +350,7 @@ Deno.serve(async (req: Request) => {
     },
   });
 
-  return new Response(out, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
+  return new Response(out, {
+    headers: { ...cors, "Content-Type": "text/plain; charset=utf-8", "x-gf-model": String(reqBody.model), "Access-Control-Expose-Headers": "x-gf-model" },
+  });
 });
