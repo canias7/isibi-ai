@@ -195,7 +195,11 @@ function stripRemoteImages(html: string): string {
   );
 }
 const FRAME_HEAD =
-  '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">' +
+  '<!doctype html><html><head>' +
+  // Auto-upgrade insecure http:// images to https:// — otherwise the HTTPS app
+  // blocks them as mixed content (many marketing emails use http image URLs).
+  '<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">' +
+  '<meta name="viewport" content="width=device-width,initial-scale=1">' +
   '<base target="_blank"><style>html,body{margin:0}body{padding:12px;background:#fff;color:#111;' +
   'font:14px/1.55 -apple-system,system-ui,sans-serif;word-break:break-word;overflow-x:hidden}' +
   'img{max-width:100%!important;height:auto}a{color:#1a73e8}table{max-width:100%!important}</style></head><body>';
