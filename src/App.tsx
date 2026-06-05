@@ -20,6 +20,9 @@ interface Conversation {
 const MAX_CHATS = 50;
 const chatsKey = (uid: string) => `gf_chats_${uid}`;
 
+// Starter prompts shown on the home screen (tap to send).
+const SUGGESTIONS = ['Summarize my inbox', 'What’s on my calendar?'];
+
 function loadChats(uid: string): Conversation[] {
   try {
     const v = JSON.parse(localStorage.getItem(chatsKey(uid)) || '[]');
@@ -406,10 +409,28 @@ export default function App() {
         </div>
       ) : (
         <>
+          {messages.length === 0 && (
+            <div className="live-bg" aria-hidden="true">
+              <span className="orb orb1" />
+              <span className="orb orb2" />
+              <span className="orb orb3" />
+              <span className="orb orb4" />
+            </div>
+          )}
           <div className="messages" ref={scrollRef}>
             {messages.length === 0 ? (
-              <div className="empty">
-                <h1>What can I help with?</h1>
+              <div className="home">
+                <div className="home-hero">
+                  <h1 className="home-mark">Go Farther</h1>
+                  <p className="home-tag">One chat for all your apps.</p>
+                </div>
+                <div className="home-suggest">
+                  {SUGGESTIONS.map((s) => (
+                    <button key={s} className="sug" onClick={() => void sendText(s)}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="thread">

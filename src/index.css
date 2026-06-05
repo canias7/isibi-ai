@@ -1,9 +1,9 @@
 :root {
-  --bg: #212121;
-  --bubble-user: #2f2f2f;
-  --composer: #2f2f2f;
-  --text: #ececec;
-  --text-dim: #9a9a9a;
+  --bg: #000000;
+  --bubble-user: #1c1c1e;
+  --composer: #161618;
+  --text: #f5f5f7;
+  --text-dim: #8e8e93;
   --accent: #ffffff;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color-scheme: dark;
@@ -45,14 +45,92 @@ body { background: var(--bg); color: var(--text); }
 
 .thread { max-width: 768px; margin: 0 auto; padding: 16px 16px 8px; }
 
-.empty {
-  height: 100%;
+/* ---- Home / empty state (Layout A) ---- */
+.home {
+  position: relative;
+  z-index: 1;
+  min-height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 16px;
+  gap: 36px;
+  padding: 0 24px;
+  text-align: center;
 }
-.empty h1 { font-size: clamp(22px, 4vw, 30px); font-weight: 600; }
+.home-mark {
+  font-size: clamp(42px, 13vw, 62px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+  color: var(--text);
+  text-shadow: 0 0 44px rgba(255, 255, 255, 0.16);
+}
+.home-tag { margin: 14px 0 0; color: var(--text-dim); font-size: clamp(15px, 4.2vw, 18px); }
+.home-suggest { display: flex; flex-direction: column; gap: 11px; width: 100%; max-width: 330px; }
+.sug {
+  border: 1px solid #ffffff1f;
+  background: #ffffff0a;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  padding: 13px 18px;
+  border-radius: 24px;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+.sug:active { transform: scale(0.98); background: #ffffff16; }
+
+/* ---- Living background: drifting / breathing white glows on black ---- */
+.live-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: #000;
+  pointer-events: none;
+}
+.live-bg .orb { position: absolute; border-radius: 50%; will-change: transform, opacity; }
+.orb1 {
+  width: 78vw; height: 78vw; left: -20vw; top: -12vh;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 65%);
+  animation: drift1 24s ease-in-out infinite;
+}
+.orb2 {
+  width: 88vw; height: 88vw; right: -28vw; bottom: -10vh;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 65%);
+  animation: drift2 30s ease-in-out infinite;
+}
+.orb3 {
+  width: 62vw; height: 62vw; left: 19vw; top: 24vh;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0) 60%);
+  animation: breathe 7s ease-in-out infinite;
+}
+.orb4 {
+  width: 130vw; height: 52vh; left: -15vw; bottom: -24vh;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 60%);
+  animation: breathe 9s ease-in-out infinite;
+}
+@keyframes drift1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(9vw, 6vh) scale(1.15); }
+}
+@keyframes drift2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-11vw, -5vh) scale(1.12); }
+}
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.18); opacity: 0.9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-bg .orb { animation: none !important; }
+}
+
+/* Keep app chrome above the living background */
+.topbar, .messages, .composer-wrap { position: relative; z-index: 1; }
 
 .msg { display: flex; margin: 16px 0; }
 .msg.user { justify-content: flex-end; }
