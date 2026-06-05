@@ -253,15 +253,21 @@ export default function App() {
       const ids = CONNECTORS.map((c) => c.id).filter((id) => (j.connected ?? {})[id]);
       setConnApps(ids);
       // Keep existing toggles; auto-enable newly connected apps; drop gone ones.
+      // Capture the previously-seen ids BEFORE updating the ref: the setEnabled
+      // updater runs later (during render), by which point seenRef would already
+      // hold the new ids — so reading the ref inside it would treat every app as
+      // "already seen" and enable nothing (leaving all connectors off on every
+      // app restart). Closing over the old value avoids that race.
+      const seen = seenRef.current;
+      seenRef.current = ids;
       setEnabled((prev) => {
         const next = new Set<string>();
         for (const id of ids) {
-          if (!seenRef.current.includes(id)) next.add(id); // new -> on
-          else if (prev.has(id)) next.add(id); // keep prior toggle
+          if (!seen.includes(id)) next.add(id); // newly connected -> on
+          else if (prev.has(id)) next.add(id);  // keep the user's prior toggle
         }
         return next;
       });
-      seenRef.current = ids;
       setConnLoaded(true);
     } catch {
       /* offline — leave as-is */
