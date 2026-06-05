@@ -583,7 +583,10 @@ export default function App() {
 
           <div className="composer-wrap">
             {(plusOpen || connMenu) && (
-              <div className="conn-pop-backdrop" onClick={() => { setPlusOpen(false); setConnMenu(false); }} />
+              <div
+                className={`conn-pop-backdrop ${plusOpen ? 'radial-scrim' : ''}`}
+                onClick={() => { setPlusOpen(false); setConnMenu(false); }}
+              />
             )}
 
             {/* "+" radial menu: attach options rise up from the + as circles,

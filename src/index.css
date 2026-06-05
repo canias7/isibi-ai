@@ -316,6 +316,13 @@ body { background: var(--bg); color: var(--text); }
 .stop-sq { width: 12px; height: 12px; border-radius: 2px; background: #000; }
 
 .conn-pop-backdrop { position: fixed; inset: 0; z-index: 30; }
+/* Soft radial scrim behind the "+" fan — a dark glow on the +, fading out,
+   so the icons read clearly over whatever's behind. */
+.radial-scrim {
+  background: radial-gradient(circle 340px at left 46px bottom 120px, rgba(6, 6, 8, 0.94) 0%, rgba(6, 6, 8, 0.72) 36%, rgba(6, 6, 8, 0) 72%);
+  animation: scrimfade 0.2s ease backwards;
+}
+@keyframes scrimfade { from { opacity: 0; } to { opacity: 1; } }
 .conn-pop {
   position: absolute;
   left: 16px;
