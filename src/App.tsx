@@ -7,6 +7,7 @@ import Connectors from './Connectors';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
+import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash } from './icons';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -347,17 +348,17 @@ export default function App() {
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="side-head">Go Farther</div>
         <button className="side-item primary" onClick={newChat}>
-          <span className="ico">✎</span> New chat
+          <span className="ico"><IconCompose size={18} /></span> New chat
         </button>
         <nav className="side-nav">
           <button className={`side-item ${view === 'chat' ? 'active' : ''}`} onClick={() => go('chat')}>
-            <span className="ico">💬</span> Chat
+            <span className="ico"><IconChat size={18} /></span> Chat
           </button>
           <button className={`side-item ${view === 'connectors' ? 'active' : ''}`} onClick={() => go('connectors')}>
-            <span className="ico">🔌</span> Connectors
+            <span className="ico"><IconConnectors size={18} /></span> Connectors
           </button>
           <button className={`side-item ${view === 'settings' ? 'active' : ''}`} onClick={() => go('settings')}>
-            <span className="ico">⚙️</span> Settings
+            <span className="ico"><IconSettings size={18} /></span> Settings
           </button>
         </nav>
 
@@ -372,7 +373,7 @@ export default function App() {
               >
                 <span className="chat-title">{c.title || 'New chat'}</span>
                 <span className="chat-del" role="button" aria-label="Delete chat" onClick={(e) => deleteChat(c.id, e)}>
-                  ×
+                  <IconTrash size={15} />
                 </span>
               </button>
             ))}
@@ -383,7 +384,7 @@ export default function App() {
           <div className="side-user" title={session.user.email ?? ''}>{session.user.email ?? 'Guest'}</div>
           {!isGuest && (
             <button className="side-item" onClick={signOut}>
-              <span className="ico">⏏</span> Sign out
+              <span className="ico"><IconLogout size={18} /></span> Sign out
             </button>
           )}
         </div>
@@ -391,17 +392,11 @@ export default function App() {
 
       <header className="topbar">
         <button className="icon-btn" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <path d="M9 3v18" />
-          </svg>
+          <IconMenu />
         </button>
         <span className="title">{view === 'chat' && messages.length === 0 ? '' : title}</span>
         <button className="icon-btn" onClick={newChat} aria-label="New chat">
-          <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-            <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" />
-          </svg>
+          <IconCompose size={21} />
         </button>
       </header>
 
