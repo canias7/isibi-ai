@@ -225,7 +225,7 @@ function EmailBody({ id, fallback, onMeta }: { id: string; fallback: string; onM
 
   useEffect(() => {
     let alive = true;
-    setStatus('loading'); setShowImages(false); setHtml(''); setAtts([]); setCidMap({}); setThumbs({});
+    setStatus('loading'); setShowImages(true); setHtml(''); setAtts([]); setCidMap({}); setThumbs({});
     (async () => {
       try {
         const r = await fetchEmailHtml(id);
