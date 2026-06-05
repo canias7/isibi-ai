@@ -281,7 +281,24 @@ function prettyName(slug: string): string {
   const rest = parts.length > 1 ? parts.slice(1) : parts; // drop toolkit prefix
   return rest.map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(" ");
 }
-// The toolkit's selectable tools (Composio's "important" set).
+// Tools Composio lists in its catalog but rejects at execute time with
+// "tool not found" (deprecated/renamed) — verified by direct execution. We hide
+// them so the UI never offers a tool that would just error. Extend per toolkit
+// as more are tested.
+const BROKEN_TOOLS = new Set<string>([
+  "GMAIL_LIST_MESSAGES",
+  "GMAIL_GET_DRAFT",
+  "GMAIL_UPDATE_DRAFT",
+  "GMAIL_BATCH_MODIFY_MESSAGES",
+  "GMAIL_UNTRASH_MESSAGE",
+  "GMAIL_MOVE_THREAD_TO_TRASH",
+  "GMAIL_UNTRASH_THREAD",
+  "GMAIL_DELETE_THREAD",
+  "GMAIL_UPDATE_LABEL",
+  "GMAIL_PATCH_SEND_AS",
+]);
+
+// The toolkit's selectable tools (Composio's "important" set, minus dead ones).
 async function toolkitCatalog(toolkit: string): Promise<{ slug: string; name: string; desc: string }[]> {
   const u = new URL(`${BASE}/tools`);
   u.searchParams.set("toolkit_slug", toolkit);
@@ -291,7 +308,9 @@ async function toolkitCatalog(toolkit: string): Promise<{ slug: string; name: st
   if (!res.ok) return [];
   const b = await res.json();
   const items: any[] = b.items ?? b.data ?? [];
-  return items.map((t) => ({ slug: t.slug, name: t.name || prettyName(t.slug), desc: t.description || "" }));
+  return items
+    .filter((t) => !BROKEN_TOOLS.has(t.slug))
+    .map((t) => ({ slug: t.slug, name: t.name || prettyName(t.slug), desc: t.description || "" }));
 }
 async function getPrefs(uid: string, toolkit: string): Promise<string[] | null> {
   if (!SR) return null;
