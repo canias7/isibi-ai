@@ -9,6 +9,7 @@ import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconPhotos, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck } from './icons';
 import { App as CapApp } from '@capacitor/app';
+import { tap } from './haptics';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -563,6 +564,7 @@ export default function App() {
   function send() {
     const text = input.trim();
     if ((!text && attachments.length === 0) || busy) return;
+    void tap(); // light haptic on send (no-op until a native build includes the plugin)
     const atts = attachments;
     setInput('');
     setAttachments([]);
