@@ -767,6 +767,30 @@ body { background: var(--bg); color: var(--text); }
 }
 .msg-retry:active { background: #ffffff26; }
 
+/* Biometric lock screen */
+.lock-screen {
+  position: fixed; inset: 0; z-index: 200;
+  background: #000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+}
+.lock-brand { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+.lock-btn {
+  background: #ffffff14; border: 1px solid #ffffff26; color: var(--text);
+  font: inherit; font-size: 15px; padding: 11px 28px; border-radius: 24px; cursor: pointer;
+}
+.lock-btn:active { background: #ffffff26; }
+
+/* Settings row with a toggle */
+.set-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0; margin-top: 6px;
+  border-top: 1px solid #ffffff14;
+  cursor: pointer;
+}
+.set-row-text { flex: 1; min-width: 0; }
+.set-row-title { font-size: 15px; color: var(--text); }
+.set-row-sub { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+
 .side-foot {
   margin-top: auto;
   padding-top: 8px;

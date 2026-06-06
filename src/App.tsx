@@ -9,7 +9,9 @@ import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconPhotos, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck } from './icons';
 import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { tap } from './haptics';
+import { biometryAvailable, unlock } from './biometric';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -285,6 +287,12 @@ export default function App() {
   const [online, setOnline] = useState(true);                 // network status (drives the offline banner)
   const pendingTurnRef = useRef<ChatMessage[] | null>(null);  // a turn that failed offline, awaiting retry
   const retryRef = useRef<() => void>(() => {});              // latest retryPending, for the online listener
+  // Face ID / biometric lock (opt-in; native-only; fails open).
+  const [faceId, setFaceId] = useState(() => { try { return localStorage.getItem('gf_faceid') === '1'; } catch { return false; } });
+  const [locked, setLocked] = useState(() => { try { return localStorage.getItem('gf_faceid') === '1' && Capacitor.getPlatform() !== 'web'; } catch { return false; } });
+  const faceIdRef = useRef(faceId);
+  faceIdRef.current = faceId;
+  const lockRef = useRef<() => void>(() => {});
 
   // ---- Per-session connectors ----
   // Which apps are connected (from the backend), which are enabled for THIS
@@ -414,6 +422,7 @@ export default function App() {
     let handle: { remove: () => void } | undefined;
     void CapApp.addListener('appStateChange', ({ isActive }) => {
       if (!isActive) { awaySinceRef.current = Date.now(); return; }
+      void lockRef.current(); // re-prompt the biometric lock on resume (no-op unless on)
       const since = awaySinceRef.current;
       awaySinceRef.current = 0;
       const away = since ? Date.now() - since : 0;
@@ -450,6 +459,12 @@ export default function App() {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
     };
+  }, []);
+
+  // Engage the biometric lock on launch (no-op unless Face ID is on + supported).
+  useEffect(() => {
+    if (faceIdRef.current) void lockRef.current();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Persist the active conversation once a turn finishes (not on every token).
@@ -559,6 +574,25 @@ export default function App() {
     void runTurn(hist);
   }
   retryRef.current = retryPending;
+
+  // Biometric lock: engage if enabled AND available, otherwise fail open (we
+  // never trap the user behind a lock we can't satisfy — e.g. plugin not yet in
+  // this native build, no hardware, web).
+  async function engageLock() {
+    if (!faceIdRef.current || Capacitor.getPlatform() === 'web') { setLocked(false); return; }
+    if (!(await biometryAvailable())) { setLocked(false); return; }
+    setLocked(true);
+    if (await unlock()) setLocked(false);
+  }
+  lockRef.current = engageLock;
+
+  function toggleFaceId() {
+    setFaceId((on) => {
+      const next = !on;
+      try { localStorage.setItem('gf_faceid', next ? '1' : '0'); } catch { /* ignore */ }
+      return next;
+    });
+  }
 
   // Send from the composer (clears the input box + pending attachments).
   function send() {
@@ -738,6 +772,12 @@ export default function App() {
 
   return (
     <div className="app">
+      {locked && (
+        <div className="lock-screen">
+          <div className="lock-brand">Go Farther</div>
+          <button className="lock-btn" onClick={() => void lockRef.current()}>Unlock</button>
+        </div>
+      )}
       {/* Sidebar + backdrop */}
       <div className={`backdrop ${sidebarOpen ? 'show' : ''}`} onClick={() => setSidebarOpen(false)} />
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
@@ -850,6 +890,15 @@ export default function App() {
             <p className="page-sub">
               {isGuest ? 'Using a guest session on this device.' : `Signed in as ${session.user.email}.`}
             </p>
+            {Capacitor.getPlatform() !== 'web' && (
+              <div className="set-row" onClick={toggleFaceId} role="button" tabIndex={0} aria-pressed={faceId}>
+                <div className="set-row-text">
+                  <div className="set-row-title">Require Face ID</div>
+                  <div className="set-row-sub">Lock the app when you open or return to it.</div>
+                </div>
+                <span className={`tgl ${faceId ? 'on' : ''}`}><span className="tgl-knob" /></span>
+              </div>
+            )}
             {!isGuest && <button className="conn-btn" onClick={signOut}>Sign out</button>}
           </div>
         </div>
