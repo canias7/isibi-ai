@@ -169,6 +169,20 @@ body { background: var(--bg); color: var(--text); }
 }
 .msg.assistant .bubble { max-width: 100%; }
 
+/* Assistant text replies sit in a subtle DARK "glass" bubble that refracts the
+   ambient orb glow behind the chat — deliberately not the white email-card glass.
+   (Cards keep their own look; only prose gets this panel.) */
+.msg.assistant .md {
+  white-space: normal; /* let Markdown control spacing — no stray pre-wrap breaks */
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 12px 16px;
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(16px) saturate(130%);
+}
+.msg.assistant .md + .md { margin-top: 10px; } /* spacing when prose wraps a card */
+
 /* ---- Markdown (assistant replies) ---- */
 .md > :first-child { margin-top: 0; }
 .md > :last-child { margin-bottom: 0; }
