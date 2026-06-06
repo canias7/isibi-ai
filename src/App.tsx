@@ -439,6 +439,12 @@ export default function App() {
   // so it would otherwise capture stale values).
   useEffect(() => { busyRef.current = busy; msgLenRef.current = messages.length; messagesRef.current = messages; }, [busy, messages]);
 
+  // Switching to a different chat (or a fresh one on resume) abandons any retry
+  // queued for the previous chat — otherwise the next online event / Retry tap
+  // would replay that old turn into the chat now open. The failed bubble doesn't
+  // survive a chat switch either, so this just matches what's on screen.
+  useEffect(() => { pendingTurnRef.current = null; retryingRef.current = false; }, [currentId]);
+
   // Coming back after a while should feel fresh: if the app was backgrounded for
   // longer than NEW_CHAT_AFTER_MS, resume into a brand-new chat instead of the old
   // conversation. Short trips away keep you exactly where you were.
