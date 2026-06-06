@@ -150,17 +150,36 @@ export interface ContactItem {
   name: string;
   email?: string;
   phone?: string;
+  photo?: string; // real profile photo url (default placeholders are dropped server-side)
 }
 
+// Real photo if the contact has one, otherwise colored initials (and fall back to
+// initials if the photo url fails to load).
+function ContactAvatar({ label, photo }: { label: string; photo?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (photo && !failed) {
+    return (
+      <span className="gf-avatar">
+        <img src={photo} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+      </span>
+    );
+  }
+  return (
+    <span className="gf-avatar gf-avatar-mono" style={{ background: hueColor(label) }}>{initials(label)}</span>
+  );
+}
+
+// Contacts are a Gmail feature, so the card uses the same frosted-white glass as
+// the Gmail email cards (gf-gmail).
 export function ContactsList({ items }: { items: ContactItem[] }) {
   return (
-    <div className="gf-contacts">
+    <div className="gf-contacts gf-gmail">
       {items.map((c, i) => {
         const label = c.name || c.email || c.phone || 'Unknown';
         const sub = c.email || c.phone || '';
         return (
           <div className="gf-contact" key={i}>
-            <span className="gf-avatar gf-avatar-mono" style={{ background: hueColor(label) }}>{initials(label)}</span>
+            <ContactAvatar label={label} photo={c.photo} />
             <div className="gf-main">
               <div className="gf-contact-name">{label}</div>
               {sub && <div className="gf-contact-sub">{sub}</div>}
