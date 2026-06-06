@@ -230,6 +230,7 @@ async function buildInboxCard(uid: string, args: unknown, tz: string): Promise<s
     const data = body?.data ?? body;
     const msgs: any[] = data?.messages ?? data?.data?.messages ?? [];
     if (!msgs.length) return "";
+    const isDrafts = /draft/i.test(JSON.stringify(args ?? {})); // an in:drafts query -> flag items as drafts
     const dstr = (d: Date, o: Intl.DateTimeFormatOptions) => { try { return new Intl.DateTimeFormat("en-US", { timeZone: tz, ...o }).format(d); } catch { return ""; } };
     const today = dstr(new Date(), { dateStyle: "short" });
     const items = msgs.slice(0, 12).map((m) => {
@@ -242,7 +243,7 @@ async function buildInboxCard(uid: string, args: unknown, tz: string): Promise<s
       const d = new Date(m.messageTimestamp ?? m.internalDate ?? "");
       if (!isNaN(d.getTime())) time = dstr(d, { dateStyle: "short" }) === today ? dstr(d, { hour: "numeric", minute: "2-digit" }) : dstr(d, { month: "short", day: "numeric" });
       const snippet = String(m.messageText ?? m.preview?.body ?? "").replace(/\s+/g, " ").trim().split(" ").slice(0, 12).join(" ");
-      return { from: from || email || "Unknown", email, subject: String(m.subject ?? "(no subject)"), snippet, time, unread: Array.isArray(labels) && labels.includes("UNREAD"), id: String(m.messageId ?? m.id ?? "") };
+      return { from: from || email || "Unknown", email, subject: String(m.subject ?? "(no subject)"), snippet, time, unread: Array.isArray(labels) && labels.includes("UNREAD"), draft: isDrafts || (Array.isArray(labels) && labels.includes("DRAFT")), id: String(m.messageId ?? m.id ?? "") };
     });
     return JSON.stringify(items);
   } catch {
@@ -420,6 +421,10 @@ Deno.serve(async (req: Request) => {
                 } else if (nm.includes("FETCH_EMAILS")) {
                   listCalled = true;
                   try { listArgs = JSON.parse(toolJson[evt.index] || "{}"); } catch { /* keep {} */ }
+                } else if (nm.includes("LIST_DRAFTS")) {
+                  // Drafts: guarantee a card by re-listing them via FETCH_EMAILS(in:drafts),
+                  // which (unlike LIST_DRAFTS) returns full metadata. buildInboxCard flags them.
+                  listCalled = true; listArgs = { query: "in:drafts", max_results: 12 };
                 }
                 delete toolName[evt.index]; delete toolJson[evt.index];
               }
