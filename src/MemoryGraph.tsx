@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Memory } from './memory';
-import { IconX, IconTrash, IconArrowUp, IconChat, IconDollar, IconQuestion, IconCube, IconDoc, IconSpark } from './icons';
+import { IconX, IconTrash, IconArrowUp, IconSpark } from './icons';
 
 // Full-screen "constellation" view of the user's memories: a glowing core with
 // each saved memory as a node on a connector line around it. Manual add/edit/
 // delete from the bottom composer; a top-right toggle pauses the whole feature.
+// Nodes can be dragged to rearrange a crowded constellation (positions persist).
 
 interface Props {
   memories: Memory[];
@@ -18,20 +19,19 @@ interface Props {
   onClose: () => void;
 }
 
-// Decorative icon + color per node, cycled by index (purely cosmetic).
-const PALETTE = [
-  { Icon: IconCube, color: '#4a90d9' },
-  { Icon: IconDollar, color: '#e0a13a' },
-  { Icon: IconChat, color: '#9aa0aa' },
-  { Icon: IconQuestion, color: '#9b87f5' },
-  { Icon: IconSpark, color: '#cdd1d8' },
-  { Icon: IconDoc, color: '#e0518c' },
-];
+type XY = { x: number; y: number };
 
-// Position each node to "float" around the core: alternate left/right columns,
+// Drag positions persist per-device, keyed by memory id (UUIDs are unique).
+const POS_KEY = 'gf_mempos';
+function loadPositions(): Record<string, XY> {
+  try { return JSON.parse(localStorage.getItem(POS_KEY) || '{}') || {}; } catch { return {}; }
+}
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+// Default slot for each node: float around the core — alternate left/right,
 // spread down the stage, and keep clear of the core's mid band so nothing sits
-// right next to the central logo.
-function layout(n: number): { x: number; y: number }[] {
+// right next to the central logo. Used until the user drags a node.
+function layout(n: number): XY[] {
   if (n === 1) return [{ x: 50, y: 27 }]; // a lone node floats above the core
   return Array.from({ length: n }, (_, i) => {
     let y = 22 + (60 * i) / (n - 1);                       // top -> bottom
@@ -44,6 +44,10 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
   const [input, setInput] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [positions, setPositions] = useState<Record<string, XY>>(loadPositions);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ id: string; sx: number; sy: number; ox: number; oy: number; w: number; h: number; moved: boolean } | null>(null);
 
   // Lock the page behind the modal so iOS rubber-band scroll can't drag it.
   useEffect(() => {
@@ -53,8 +57,46 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
 
   const n = memories.length;
   const coords = layout(n);
-  const pos = new Map<string, { x: number; y: number }>();
-  memories.forEach((m, i) => pos.set(m.id, coords[i]));
+  // Stable default slots: order by creation (oldest first) so adding a memory
+  // appends a new slot instead of reshuffling the ones already placed.
+  const slot = new Map<string, number>();
+  [...memories]
+    .sort((a, b) => (a.created_at < b.created_at ? -1 : 1))
+    .forEach((m, i) => slot.set(m.id, i));
+  const posOf = (m: Memory): XY => positions[m.id] ?? coords[slot.get(m.id) ?? 0] ?? { x: 50, y: 30 };
+
+  function onDown(e: React.PointerEvent, m: Memory) {
+    const rect = stageRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const p = posOf(m);
+    dragRef.current = { id: m.id, sx: e.clientX, sy: e.clientY, ox: p.x, oy: p.y, w: rect.width, h: rect.height, moved: false };
+    setDragId(m.id);
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  }
+
+  function onMove(e: React.PointerEvent) {
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = e.clientX - d.sx;
+    const dy = e.clientY - d.sy;
+    if (!d.moved && Math.abs(dx) < 5 && Math.abs(dy) < 5) return; // still a tap
+    d.moved = true;
+    const nx = clamp(d.ox + (dx / d.w) * 100, 10, 90);
+    const ny = clamp(d.oy + (dy / d.h) * 100, 8, 92);
+    setPositions((prev) => ({ ...prev, [d.id]: { x: nx, y: ny } }));
+  }
+
+  function onUp(m: Memory) {
+    const d = dragRef.current;
+    dragRef.current = null;
+    setDragId(null);
+    if (!d) return;
+    if (!d.moved) { select(m); return; } // it was a tap, not a drag
+    setPositions((prev) => {
+      try { localStorage.setItem(POS_KEY, JSON.stringify(prev)); } catch { /* ignore */ }
+      return prev;
+    });
+  }
 
   function deselect() {
     setSelectedId(null);
@@ -107,12 +149,13 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
       </div>
 
       <div
+        ref={stageRef}
         className={`memg-stage ${enabled ? '' : 'paused'}`}
         onClick={(e) => { if (e.target === e.currentTarget) deselect(); }}
       >
         <svg className="memg-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           {memories.map((m) => {
-            const p = pos.get(m.id)!;
+            const p = posOf(m);
             return (
               <line
                 key={m.id}
@@ -129,17 +172,19 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
         </div>
 
         {memories.map((m, i) => {
-          const p = pos.get(m.id)!;
-          const { Icon, color } = PALETTE[i % PALETTE.length];
+          const p = posOf(m);
           return (
             <button
               key={m.id}
-              className={`memg-node ${selectedId === m.id ? 'sel' : ''}`}
+              className={`memg-node ${selectedId === m.id ? 'sel' : ''} ${dragId === m.id ? 'dragging' : ''}`}
               style={{ left: `${p.x}%`, top: `${p.y}%`, animationDelay: `${60 + i * 45}ms` }}
-              onClick={(e) => { e.stopPropagation(); select(m); }}
+              onPointerDown={(e) => onDown(e, m)}
+              onPointerMove={onMove}
+              onPointerUp={(e) => { e.stopPropagation(); onUp(m); }}
+              onPointerCancel={() => { dragRef.current = null; setDragId(null); }}
             >
-              <span className="memg-ico" style={{ borderColor: color, color }}>
-                <Icon size={14} />
+              <span className="memg-ico">
+                <IconSpark size={13} />
               </span>
               <span className="memg-pill">{m.content}</span>
             </button>
