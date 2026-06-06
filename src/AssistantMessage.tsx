@@ -1,7 +1,7 @@
 import Markdown from './Markdown';
 import {
-  EmailList, EmailSkeleton, EmailDetail, EmailDetailSkeleton,
-  type EmailItem, type EmailMessage,
+  EmailList, EmailSkeleton, EmailDetail, EmailDetailSkeleton, ContactsList,
+  type EmailItem, type EmailMessage, type ContactItem,
 } from './EmailList';
 
 // The assistant is asked to emit ```gf-emails / ```gf-message blocks, but models
@@ -75,6 +75,9 @@ export default function AssistantMessage(
   // For ANY gf-* tag, trust it by shape: a JSON array → inbox list; a JSON object
   // → one email (id-only is fine, the reader fetches the rest). Generic json/''
   // blocks must actually look like email(s) so real code/JSON isn't hijacked.
+  // Contacts card (gf-contacts): a JSON array of {name,email,phone}. Detected by
+  // its own tag so it renders as people rows, not email rows.
+  const isContacts = f.lang === 'gf-contacts' && Array.isArray(parsed) && parsed.length > 0;
   const list = gf
     ? (Array.isArray(parsed) && parsed.length > 0)
     : (Array.isArray(parsed) && parsed.length > 0 && parsed.every(isEmailItem));
@@ -92,7 +95,11 @@ export default function AssistantMessage(
   return (
     <>
       {f.before.trim() && <Markdown text={f.before} />}
-      {list ? <EmailList items={parsed as EmailItem[]} onOpen={onOpen} /> : <EmailDetail msg={parsed as EmailMessage} />}
+      {isContacts
+        ? <ContactsList items={parsed as ContactItem[]} />
+        : list
+          ? <EmailList items={parsed as EmailItem[]} onOpen={onOpen} />
+          : <EmailDetail msg={parsed as EmailMessage} />}
       {f.after.trim() && <Markdown text={f.after} />}
     </>
   );

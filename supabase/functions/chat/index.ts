@@ -251,6 +251,37 @@ async function buildInboxCard(uid: string, args: unknown, tz: string): Promise<s
   }
 }
 
+// Guarantee a contacts card. Re-runs the SAME people-search tool the model used
+// (e.g. GMAIL_SEARCH_PEOPLE) with the SAME args, then flattens each result to
+// {name,email,phone} for the gf-contacts card. Defensive about shape: handles
+// Google People (names/emailAddresses/phoneNumbers arrays) and flatter shapes.
+async function buildContactsCard(uid: string, slug: string, args: unknown): Promise<string> {
+  if (!COMPOSIO_API_KEY || !uid || !slug) return "";
+  try {
+    const res = await fetch(`https://backend.composio.dev/api/v3/tools/execute/${encodeURIComponent(slug)}`, {
+      method: "POST",
+      headers: { "x-api-key": COMPOSIO_API_KEY, "content-type": "application/json" },
+      body: JSON.stringify({ user_id: uid, arguments: args ?? {} }),
+    });
+    const body = await res.json().catch(() => ({}));
+    const data = body?.data ?? body;
+    const rd = data?.response_data ?? data;
+    const rows: any[] = rd?.results ?? rd?.people ?? rd?.contacts ?? rd?.connections ?? [];
+    if (!Array.isArray(rows) || !rows.length) return "";
+    const items = rows.slice(0, 20).map((r) => {
+      const p = r?.person ?? r;
+      const name = p?.names?.[0]?.displayName ?? p?.displayName ?? p?.name ?? "";
+      const email = p?.emailAddresses?.[0]?.value ?? p?.email ?? p?.emailAddress?.address ?? "";
+      const phone = p?.phoneNumbers?.[0]?.value ?? p?.phone ?? "";
+      return { name: String(name || "").trim(), email: String(email || "").trim(), phone: String(phone || "").trim() };
+    }).filter((c) => c.name || c.email || c.phone);
+    if (!items.length) return "";
+    return JSON.stringify(items);
+  } catch {
+    return "";
+  }
+}
+
 Deno.serve(async (req: Request) => {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -331,7 +362,7 @@ Deno.serve(async (req: Request) => {
   const baseSystem = `You are Go Farther, a helpful, friendly assistant inside a mobile app. It is currently ${nowLocal} in the user's timezone (${tz}); use this for anything time-related (e.g. calendar date ranges) instead of guessing, and ALWAYS show times to the user in their local timezone (${tz}) — never UTC. You're on a narrow phone screen: keep formatting simple. Be clear and concise. When connector tools are available (Gmail, Google Calendar, Google Drive, etc.), use them to act on the user's behalf — search and read email, check and create calendar events, find and read files. Always confirm details before sending an email or creating/changing anything. When more than one connected app could handle the same request and the user didn't say which — for ANY request, whether a read/list/search OR an action (send, create, change, delete, pay) — do NOT guess, do NOT default to one, and do NOT silently combine them: ASK which app or account to use first, in one short line (e.g. "Which mailbox — Gmail or Outlook?"), then wait. Only once the user picks (or if they name one up front, like "in QuickBooks" or "my Outlook") do you act, using just that app.`;
   // When an email app is in scope, render inbox listings as rich cards: the app
   // turns a ```gf-emails JSON block into a styled email list.
-  const emailCardsSystem = `\n\nEMAIL DISPLAY — when an email tool is available, follow these rules EXACTLY:\n• Whenever you present multiple emails — the inbox, search results, OR a set of emails for the user to choose from (e.g. "which one?") — render them as a single fenced code block tagged gf-emails containing ONLY a JSON array (one object per email) with keys "from", "email", "subject", "snippet" (≤ 12 words), "time" (short label in the user's timezone, e.g. "9:41 AM", "Yesterday", "May 19"), "unread" (boolean), "id" (the Gmail message id, used to open the email). NEVER list emails as a plain numbered or bulleted list. You may write at most one short line (such as a question) before the block, but the emails themselves must be inside the block.\n• To open, read, show, view, or re-open ONE specific email — including "open it", "read that email", "show me the email", or tapping or hitting "try again" on an email — your ENTIRE reply MUST be a single fenced code block tagged gf-message containing one JSON object whose only required key is "id" (the Gmail message id); the app loads the sender, subject, body and attachments itself. That block is the ONLY acceptable way to show an email: do NOT type out the From/To/Date/Subject or the body as text or markdown, do NOT add any words before or after the block, and do NOT summarize unless explicitly asked. If a user message contains a marker like [[gfid:ID]], they tapped an email — reply with the gf-message block for that exact id.\n• When you show the user's existing drafts, use the SAME cards (gf-emails for the list, gf-message for one), with "draft": true on each item and its "id" set to the draft's message id so it still opens. ANY display of email content — inbox, search, drafts, or a single message — is ALWAYS a card; NEVER write emails out as plain text or a raw JSON dump.\n• Only when the user EXPLICITLY asks to summarize, draft, reply to, or send an email do you reply in normal text (no code block).`;
+  const emailCardsSystem = `\n\nEMAIL DISPLAY — when an email tool is available, follow these rules EXACTLY:\n• Whenever you present multiple emails — the inbox, search results, OR a set of emails for the user to choose from (e.g. "which one?") — render them as a single fenced code block tagged gf-emails containing ONLY a JSON array (one object per email) with keys "from", "email", "subject", "snippet" (≤ 12 words), "time" (short label in the user's timezone, e.g. "9:41 AM", "Yesterday", "May 19"), "unread" (boolean), "id" (the Gmail message id, used to open the email). NEVER list emails as a plain numbered or bulleted list. You may write at most one short line (such as a question) before the block, but the emails themselves must be inside the block.\n• To open, read, show, view, or re-open ONE specific email — including "open it", "read that email", "show me the email", or tapping or hitting "try again" on an email — your ENTIRE reply MUST be a single fenced code block tagged gf-message containing one JSON object whose only required key is "id" (the Gmail message id); the app loads the sender, subject, body and attachments itself. That block is the ONLY acceptable way to show an email: do NOT type out the From/To/Date/Subject or the body as text or markdown, do NOT add any words before or after the block, and do NOT summarize unless explicitly asked. If a user message contains a marker like [[gfid:ID]], they tapped an email — reply with the gf-message block for that exact id.\n• When you show the user's existing drafts, use the SAME cards (gf-emails for the list, gf-message for one), with "draft": true on each item and its "id" set to the draft's message id so it still opens. ANY display of email content — inbox, search, drafts, or a single message — is ALWAYS a card; NEVER write emails out as plain text or a raw JSON dump.\n• When you look up or show people or contacts (e.g. searching the user's contacts for someone's email or phone), render them as a single fenced code block tagged gf-contacts containing ONLY a JSON array, one object per person with keys "name", "email", "phone" (omit a field you don't have). NEVER list contacts as plain text. You may write at most one short line before the block.\n• Only when the user EXPLICITLY asks to summarize, draft, reply to, or send an email do you reply in normal text (no code block).`;
   // Route to the right model for this task (Haiku/Sonnet/Opus).
   let model = await pickModel(messages, apiKey);
   // Email card rendering needs a model that reliably emits the gf-message block;
@@ -381,6 +412,9 @@ Deno.serve(async (req: Request) => {
       const openedIds = new Set<string>();            // single emails the model fetched by id
       let listArgs: unknown = {};                     // args of a FETCH_EMAILS (inbox) call
       let listCalled = false;
+      let peopleCalled = false;                       // the model searched contacts/people
+      let peopleSlug = "";                            // exact people-search slug to re-run
+      let peopleArgs: unknown = {};                   // args of that people-search call
       try {
         for (;;) {
           const { done, value } = await reader.read();
@@ -425,6 +459,10 @@ Deno.serve(async (req: Request) => {
                   // Drafts: guarantee a card by re-listing them via FETCH_EMAILS(in:drafts),
                   // which (unlike LIST_DRAFTS) returns full metadata. buildInboxCard flags them.
                   listCalled = true; listArgs = { query: "in:drafts", max_results: 12 };
+                } else if (nm.includes("SEARCH_PEOPLE")) {
+                  // Contacts: guarantee a card by re-running the SAME people search.
+                  peopleCalled = true; peopleSlug = toolName[evt.index];
+                  try { peopleArgs = JSON.parse(toolJson[evt.index] || "{}"); } catch { /* keep {} */ }
                 }
                 delete toolName[evt.index]; delete toolJson[evt.index];
               }
@@ -453,6 +491,11 @@ Deno.serve(async (req: Request) => {
             if (json) card = `\`\`\`gf-emails\n${json}\n\`\`\``;
           }
           controller.enqueue(enc.encode(bufferEmail ? (card || fullText) : (card ? `\n\n${card}` : "")));
+        } else if (!hasGf && !summarizeIntent && emailUI && peopleCalled) {
+          // The model searched contacts but produced no card — build & inject one.
+          const json = await buildContactsCard(appUser ?? "", peopleSlug, peopleArgs);
+          const card = json ? `\`\`\`gf-contacts\n${json}\n\`\`\`` : "";
+          controller.enqueue(enc.encode(card ? `\n\n${card}` : ""));
         } else if (bufferEmail) {
           // Buffered but not an email turn after all — emit the held text.
           controller.enqueue(enc.encode(fullText));

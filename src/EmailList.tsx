@@ -145,6 +145,33 @@ export function EmailList({ items, onOpen }: { items: EmailItem[]; onOpen?: (it:
   );
 }
 
+// ---- Contacts (gf-contacts card: people / contact-search results) ----
+export interface ContactItem {
+  name: string;
+  email?: string;
+  phone?: string;
+}
+
+export function ContactsList({ items }: { items: ContactItem[] }) {
+  return (
+    <div className="gf-contacts">
+      {items.map((c, i) => {
+        const label = c.name || c.email || c.phone || 'Unknown';
+        const sub = c.email || c.phone || '';
+        return (
+          <div className="gf-contact" key={i}>
+            <span className="gf-avatar gf-avatar-mono" style={{ background: hueColor(label) }}>{initials(label)}</span>
+            <div className="gf-main">
+              <div className="gf-contact-name">{label}</div>
+              {sub && <div className="gf-contact-sub">{sub}</div>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ---- Attachments ----
 const ATT_COLORS: Record<string, string> = {
   pdf: '#E8453C', doc: '#2B7CD3', docx: '#2B7CD3', txt: '#5b6470',
