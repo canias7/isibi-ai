@@ -134,3 +134,18 @@ export async function streamChat(
   const tail = decoder.decode(); // flush any bytes buffered across the final chunk (e.g. a split emoji)
   if (tail) onToken(tail);
 }
+
+// Ask the backend to send THIS user a push, using their own session — a one-tap
+// way to verify notifications work end-to-end. The function pushes only to the
+// caller's own registered devices.
+const FUNCTIONS_BASE = CHAT_API.replace(/\/chat$/, '');
+export async function sendTestPush(): Promise<{ ok: boolean; error?: string; sent?: unknown[] }> {
+  const token = await authToken();
+  const res = await fetch(`${FUNCTIONS_BASE}/send-push`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify({ title: 'Go Farther', body: 'Test notification ✅' }),
+  });
+  const j = await res.json().catch(() => ({}));
+  return { ok: !!j.ok, error: j.error, sent: j.sent };
+}

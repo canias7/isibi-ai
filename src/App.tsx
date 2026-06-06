@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { streamChat, type ChatMessage, type Attach } from './api';
+import { streamChat, sendTestPush, type ChatMessage, type Attach } from './api';
 import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API, byId } from './connectorData';
 import Connectors from './Connectors';
@@ -718,6 +718,21 @@ export default function App() {
     setNotif(next);
   }
 
+  // One-tap end-to-end check: ask the backend to push us a test notification.
+  async function testPush() {
+    flashNote('Sending a test notification…');
+    try {
+      const r = await sendTestPush();
+      flashNote(
+        r.ok ? 'Test sent — check your lock screen.'
+          : r.error === 'no registered devices' ? 'No device registered yet — make sure Notifications is on and you tapped Allow.'
+          : `Couldn’t send: ${r.error || 'unknown error'}`,
+      );
+    } catch {
+      flashNote('Couldn’t reach the server — try again.');
+    }
+  }
+
   // Send from the composer (clears the input box + pending attachments).
   function send() {
     const text = input.trim();
@@ -1031,6 +1046,9 @@ export default function App() {
                 </div>
                 <span className={`tgl ${notif ? 'on' : ''}`}><span className="tgl-knob" /></span>
               </div>
+            )}
+            {Capacitor.getPlatform() !== 'web' && notif && (
+              <button className="set-test-btn" onClick={testPush}>Send a test notification</button>
             )}
             {noteMsg && <p className="set-note">{noteMsg}</p>}
             {!isGuest && <button className="conn-btn" onClick={signOut}>Sign out</button>}
