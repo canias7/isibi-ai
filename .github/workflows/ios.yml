@@ -114,10 +114,14 @@ jobs:
             -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
             CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
             CODE_SIGN_STYLE=Automatic \
             clean archive
+          # NOTE: do NOT pass PRODUCT_BUNDLE_IDENTIFIER here — as a command-line
+          # build setting it applies to EVERY target, stamping the app's id onto
+          # plugin resource bundles (e.g. the camera privacy bundle) and causing
+          # an upload-time "CFBundleIdentifier Collision". The App target already
+          # sets the correct id in project.pbxproj.
 
       - name: Export IPA (app-store)
         id: export
