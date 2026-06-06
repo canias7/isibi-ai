@@ -985,8 +985,13 @@ body { background: var(--bg); color: var(--text); }
     radial-gradient(420px 420px at 50% 44%, rgba(224, 161, 58, 0.10), transparent 70%),
     #08080a;
   padding-top: env(safe-area-inset-top);
+  overflow: hidden;            /* never scrollable — kills the drift */
+  overscroll-behavior: none;   /* stop iOS rubber-band from dragging it */
+  touch-action: none;          /* no pan/zoom on the backdrop */
   animation: memgIn 0.22s ease;
 }
+/* While the modal is open, lock the page behind it (belt-and-suspenders). */
+html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behavior: none; }
 @keyframes memgIn { from { opacity: 0; } to { opacity: 1; } }
 /* faint dot grid */
 .memg::before {
@@ -998,12 +1003,14 @@ body { background: var(--bg); color: var(--text); }
   pointer-events: none;
 }
 
-.memg-top { position: relative; flex-shrink: 0; padding: 18px 16px 8px; text-align: center; z-index: 2; }
+.memg-top { position: relative; flex-shrink: 0; padding: 12px 16px 8px; text-align: center; z-index: 2; }
 .memg-title { font-size: 19px; font-weight: 700; margin: 0; }
 .memg-sub { font-size: 13px; color: var(--text-dim); margin: 4px 0 0; }
+/* Absolute controls must clear the safe area / Dynamic Island themselves
+   (absolute positioning ignores the root's safe-area padding). */
 .memg-close {
   position: absolute;
-  top: 14px; right: 14px;
+  top: calc(env(safe-area-inset-top) + 8px); right: 14px;
   width: 34px; height: 34px;
   border: none; background: rgba(255, 255, 255, 0.06);
   color: var(--text);
@@ -1014,7 +1021,7 @@ body { background: var(--bg); color: var(--text); }
 .memg-close:active { background: rgba(255, 255, 255, 0.14); }
 .memg-toggle {
   position: absolute;
-  top: 19px; right: 58px;
+  top: calc(env(safe-area-inset-top) + 13px); right: 58px;
   border: none; background: transparent; padding: 0;
   cursor: pointer;
   display: grid; place-items: center;
@@ -1118,6 +1125,7 @@ body { background: var(--bg); color: var(--text); }
   background: transparent; border: none;
   color: var(--text); font: inherit; font-size: 15px;
   padding: 8px 6px;
+  touch-action: auto; /* keep normal caret/typing behavior on the locked modal */
 }
 .memg-cinput:focus { outline: none; }
 .memg-cinput::placeholder { color: var(--text-dim); }

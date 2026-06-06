@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { Memory } from './memory';
 import { IconX, IconTrash, IconArrowUp, IconChat, IconDollar, IconQuestion, IconCube, IconDoc, IconSpark } from './icons';
 
@@ -27,11 +28,16 @@ const PALETTE = [
   { Icon: IconDoc, color: '#e0518c' },
 ];
 
-// Evenly spread k nodes vertically across the stage (percent of height).
-function spread(k: number): number[] {
-  if (k <= 0) return [];
-  if (k === 1) return [50];
-  return Array.from({ length: k }, (_, j) => 22 + (56 * j) / (k - 1));
+// Position each node to "float" around the core: alternate left/right columns,
+// spread down the stage, and keep clear of the core's mid band so nothing sits
+// right next to the central logo.
+function layout(n: number): { x: number; y: number }[] {
+  if (n === 1) return [{ x: 50, y: 27 }]; // a lone node floats above the core
+  return Array.from({ length: n }, (_, i) => {
+    let y = 22 + (60 * i) / (n - 1);                       // top -> bottom
+    if (y > 41 && y < 59) y = i / (n - 1) < 0.5 ? 41 : 59; // skip the core band
+    return { x: i % 2 === 0 ? 29 : 71, y };
+  });
 }
 
 export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate, onDelete, onToggle, onClose }: Props) {
@@ -39,14 +45,16 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Lay nodes into two columns (left/right of the core), spread vertically.
-  const left = memories.filter((_, i) => i % 2 === 0);
-  const right = memories.filter((_, i) => i % 2 === 1);
-  const leftYs = spread(left.length);
-  const rightYs = spread(right.length);
+  // Lock the page behind the modal so iOS rubber-band scroll can't drag it.
+  useEffect(() => {
+    document.documentElement.classList.add('gf-modal-open');
+    return () => document.documentElement.classList.remove('gf-modal-open');
+  }, []);
+
+  const n = memories.length;
+  const coords = layout(n);
   const pos = new Map<string, { x: number; y: number }>();
-  left.forEach((m, j) => pos.set(m.id, { x: 30, y: leftYs[j] }));
-  right.forEach((m, j) => pos.set(m.id, { x: 70, y: rightYs[j] }));
+  memories.forEach((m, i) => pos.set(m.id, coords[i]));
 
   function deselect() {
     setSelectedId(null);
@@ -73,12 +81,11 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
     deselect();
   }
 
-  const n = memories.length;
   const sub = n === 0
     ? (enabled ? 'Applied on every chat' : 'Paused')
     : `${n} ${n === 1 ? 'memory' : 'memories'} · ${enabled ? 'applied on every chat' : 'paused'}`;
 
-  return (
+  return createPortal(
     <div className="memg" role="dialog" aria-label="Memory">
       <div className="memg-top">
         <div className="memg-titles">
@@ -173,6 +180,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
