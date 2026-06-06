@@ -702,6 +702,25 @@ body { background: var(--bg); color: var(--text); }
 .msg-act:active { background: #ffffff14; color: var(--text); }
 .msg-act-label { line-height: 1; }
 
+/* Live tool-activity pill — "Searching your inbox…" while a tool runs */
+.gf-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-dim);
+  font-size: 14px;
+  padding: 2px 0;
+}
+.gf-status-spin {
+  width: 14px; height: 14px; flex-shrink: 0;
+  border: 2px solid #ffffff2e;
+  border-top-color: var(--text);
+  border-radius: 50%;
+  animation: gf-spin 0.7s linear infinite;
+}
+@keyframes gf-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .gf-status-spin { animation-duration: 1.6s; } }
+
 .side-foot {
   margin-top: auto;
   padding-top: 8px;

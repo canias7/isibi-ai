@@ -41,21 +41,38 @@ function firstFence(text: string) {
 export default function AssistantMessage(
   { text, streaming, onOpen }: { text: string; streaming: boolean; onOpen?: (it: EmailItem) => void },
 ) {
-  const f = firstFence(text);
+  // Transient tool-activity markers the server streams while it works
+  // ([[gfstatus:…]]). Pull out the latest as the live label, strip the rest
+  // (incl. a trailing partial one still arriving) so they never show as text.
+  const sm = [...text.matchAll(/\[\[gfstatus:([^\]]*)\]\]/g)];
+  const liveStatus = sm.length ? sm[sm.length - 1][1] : '';
+  const clean = text.replace(/\[\[gfstatus:[^\]]*\]\]/g, '').replace(/\[\[gfstatus[^\]]*$/, '');
+
+  // Tools are running and there's nothing to render yet → live "working…" pill.
+  if (streaming && !clean.trim() && liveStatus) {
+    return (
+      <div className="gf-status">
+        <span className="gf-status-spin" aria-hidden />
+        <span>{liveStatus}</span>
+      </div>
+    );
+  }
+
+  const f = firstFence(clean);
   // Accept ANY gf-* tag the model uses — gf-message / gf-emails AND variants it
   // sometimes invents (gf-email-open, gf-email-detail, …). Also json/'' blocks,
   // which we then confirm by shape so real code blocks are left alone.
   const gf = !!f && f.lang.startsWith('gf-');
   const maybeEmail = !!f && (gf || f.lang === 'json' || f.lang === '');
-  if (!f || !maybeEmail) return <Markdown text={text} />;
+  if (!f || !maybeEmail) return <Markdown text={clean} />;
 
   // Block still streaming in — guess list vs detail from the tag or first char.
   if (!f.closed) {
-    if (!streaming) return <Markdown text={text} />;
+    if (!streaming) return <Markdown text={clean} />;
     const head = f.content.trimStart()[0];
     const isList = head === '[';
     const isMsg = head === '{';
-    if (!isList && !isMsg) return <Markdown text={text} />;
+    if (!isList && !isMsg) return <Markdown text={clean} />;
     return (
       <>
         {f.before.trim() && <Markdown text={f.before} />}
@@ -89,7 +106,7 @@ export default function AssistantMessage(
       const around = `${f.before}\n${f.after}`.trim();
       return around ? <Markdown text={around} /> : <></>;
     }
-    return <Markdown text={text} />;
+    return <Markdown text={clean} />;
   }
 
   return (

@@ -209,7 +209,7 @@ function cleanForDisplay(s: string): string {
 // the internal marker, so "Copy" yields readable text (and is hidden for a
 // card-only reply where there's nothing to copy).
 function plainText(s: string): string {
-  return s.replace(/```gf[\s\S]*?```/g, '').replace(/\[\[gfid:[^\]]*\]\]/g, '').trim();
+  return s.replace(/```gf[\s\S]*?```/g, '').replace(/\[\[gf(id|status):[^\]]*\]\]/g, '').trim();
 }
 
 // Flip to `true` to show the email/password login screen. When `false`, the app
@@ -476,6 +476,16 @@ export default function App() {
         controller.signal,
         apps,
       );
+      // Clear transient tool-activity markers from the finished reply so storage,
+      // copy, and search stay clean (they're only meant to show live).
+      setMessages((m) => {
+        const copy = m.slice();
+        const last = copy[copy.length - 1];
+        if (last && last.role === 'assistant' && last.content.includes('[[gfstatus:')) {
+          copy[copy.length - 1] = { ...last, content: last.content.replace(/\[\[gfstatus:[^\]]*\]\]/g, '') };
+        }
+        return copy;
+      });
     } catch (e) {
       // User pressed Stop (or navigated away) — keep whatever streamed so far,
       // but drop a trailing empty assistant bubble if nothing streamed at all.
@@ -818,6 +828,10 @@ export default function App() {
               <div className="thread">
                 {messages.map((m, i) => {
                   const streamingHere = busy && i === messages.length - 1 && m.role === 'assistant';
+                  // While only a tool-activity marker is present, AssistantMessage shows
+                  // its own spinner pill — don't also blink the cursor next to it.
+                  const statusOnly = streamingHere && m.content.includes('[[gfstatus:')
+                    && !m.content.replace(/\[\[gfstatus:[^\]]*\]\]/g, '').replace(/\[\[gfstatus[^\]]*$/, '').trim();
                   return (
                     <div key={i} className={`msg ${m.role}`}>
                       <div className="bubble">
@@ -833,7 +847,7 @@ export default function App() {
                             {cleanForDisplay(m.content)}
                           </>
                         )}
-                        {streamingHere && <span className="cursor" />}
+                        {streamingHere && !statusOnly && <span className="cursor" />}
                       </div>
                       {m.role === 'assistant' && !streamingHere && plainText(m.content) && (
                         <div className="msg-actions">

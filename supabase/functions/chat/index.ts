@@ -320,6 +320,25 @@ async function buildContactsCard(uid: string, slug: string, args: unknown): Prom
   }
 }
 
+// Friendly one-liner for the live "working…" pill, by tool name. Streamed to the
+// client as a [[gfstatus:…]] marker while a tool runs, then stripped from the text.
+function statusLabel(name: string): string {
+  const n = (name || "").toUpperCase();
+  if (n.includes("FETCH_EMAILS") || n.includes("LIST_MESSAGES") || n.includes("SEARCH_MESSAGES")) return "Searching your inbox…";
+  if (n.includes("LIST_DRAFTS")) return "Finding your drafts…";
+  if (n.includes("FETCH_MESSAGE") || n.includes("GET_MESSAGE")) return "Reading an email…";
+  if (n.includes("SEARCH_PEOPLE") || n.includes("LIST_CONTACTS") || n.includes("GET_CONTACT")) return "Looking up contacts…";
+  if (n.includes("REPLY")) return "Drafting a reply…";
+  if (n.includes("CREATE_DRAFT") || n.includes("CREATE_EMAIL_DRAFT")) return "Saving a draft…";
+  if (n.includes("SEND")) return "Sending…";
+  if (n.includes("DELETE") || n.includes("TRASH") || n.includes("MOVE")) return "Updating your mailbox…";
+  if (n.includes("LABEL") || n.includes("PATCH")) return "Updating labels…";
+  if (n.includes("ATTACHMENT")) return "Fetching an attachment…";
+  if (n.includes("CALENDAR") || n.includes("EVENT")) return "Checking your calendar…";
+  if (n.includes("DRIVE") || n.includes("FILE")) return "Searching your files…";
+  return "Working…";
+}
+
 Deno.serve(async (req: Request) => {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -478,6 +497,9 @@ Deno.serve(async (req: Request) => {
                   (evt.content_block.type === "mcp_tool_use" || evt.content_block.type === "tool_use")) {
                 toolName[evt.index] = String(evt.content_block.name ?? "");
                 toolJson[evt.index] = "";
+                // Stream a transient "working…" status to the client (out-of-band
+                // from fullText, so the card/post-processor logic is unaffected).
+                controller.enqueue(enc.encode(`[[gfstatus:${statusLabel(toolName[evt.index])}]]`));
               }
               if (evt.type === "content_block_delta" && evt.delta?.type === "input_json_delta" && evt.index in toolJson) {
                 toolJson[evt.index] += evt.delta.partial_json ?? "";
