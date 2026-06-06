@@ -42,8 +42,19 @@ export function providerOf(app?: string, id?: string): 'gmail' | 'outlook' {
 
 // Remember each listed email's sender/subject so that when one is opened the
 // reader can show them instantly (real sender, avatar, colour) while it fetches
-// the full body — instead of a blank "Unknown / Loading…" flash.
+// the full body — instead of a blank "Unknown / Loading…" flash. Bounded so a
+// long session can't grow it without limit (oldest entries are evicted).
 const emailHints = new Map<string, Partial<EmailMessage>>();
+const HINTS_MAX = 400;
+function rememberHint(id: string, hint: Partial<EmailMessage>) {
+  if (emailHints.has(id)) emailHints.delete(id); // re-insert so it counts as most-recent
+  emailHints.set(id, hint);
+  while (emailHints.size > HINTS_MAX) {
+    const oldest = emailHints.keys().next().value;
+    if (oldest === undefined) break;
+    emailHints.delete(oldest);
+  }
+}
 
 // Personal mailbox providers: their favicon is just the provider logo (useless
 // as an avatar), so we fall back to colored initials for these senders.
@@ -113,7 +124,7 @@ function Avatar({ from, email }: { from?: string; email?: string }) {
 export function EmailList({ items, onOpen }: { items: EmailItem[]; onOpen?: (it: EmailItem) => void }) {
   const app = providerOf(items[0]?.app, items[0]?.id);
   for (const it of items) {
-    if (it.id) emailHints.set(it.id, { from: it.from, email: it.email, subject: it.subject, time: it.time, unread: it.unread, app: it.app, draft: it.draft });
+    if (it.id) rememberHint(it.id, { from: it.from, email: it.email, subject: it.subject, time: it.time, unread: it.unread, app: it.app, draft: it.draft });
   }
   return (
     <div className={`gf-emails gf-${app}`}>

@@ -790,6 +790,7 @@ body { background: var(--bg); color: var(--text); }
 .set-row-text { flex: 1; min-width: 0; }
 .set-row-title { font-size: 15px; color: var(--text); }
 .set-row-sub { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+.set-note { margin: 12px 2px 0; font-size: 13px; line-height: 1.45; color: #f4a261; }
 
 .side-foot {
   margin-top: auto;

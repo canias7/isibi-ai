@@ -102,11 +102,16 @@ export default function AssistantMessage(
     : (Array.isArray(parsed) && parsed.length > 0 && parsed.every(isEmailItem));
   const msg = gf ? obj : isEmailMessage(parsed);
   if (!list && !msg) {
-    // A gf-* block we couldn't parse — never dump raw JSON on the user; show only
-    // any surrounding prose. Untagged blocks render normally (real code).
+    // A gf-* block we couldn't parse — never dump raw JSON on the user; show any
+    // surrounding prose, and recurse into what follows so a *second* card still
+    // renders. Untagged blocks render normally (real code).
     if (gf) {
-      const around = `${f.before}\n${f.after}`.trim();
-      return around ? <Markdown text={around} /> : <></>;
+      return (
+        <>
+          {f.before.trim() && <Markdown text={f.before} />}
+          {f.after.trim() && <AssistantMessage text={f.after} streaming={streaming} onOpen={onOpen} />}
+        </>
+      );
     }
     return <Markdown text={clean} />;
   }
@@ -121,7 +126,7 @@ export default function AssistantMessage(
           : list
             ? <EmailList items={parsed as EmailItem[]} onOpen={onOpen} />
             : <EmailDetail msg={parsed as EmailMessage} />}
-      {f.after.trim() && <Markdown text={f.after} />}
+      {f.after.trim() && <AssistantMessage text={f.after} streaming={streaming} onOpen={onOpen} />}
     </>
   );
 }

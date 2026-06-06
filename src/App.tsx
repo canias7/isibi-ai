@@ -294,6 +294,7 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [noteMsg, setNoteMsg] = useState(''); // transient Settings note (e.g. why a toggle didn't stick)
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -443,7 +444,14 @@ export default function App() {
   // queued for the previous chat — otherwise the next online event / Retry tap
   // would replay that old turn into the chat now open. The failed bubble doesn't
   // survive a chat switch either, so this just matches what's on screen.
-  useEffect(() => { pendingTurnRef.current = null; retryingRef.current = false; }, [currentId]);
+  useEffect(() => { pendingTurnRef.current = null; retryingRef.current = false; setCopiedIdx(null); }, [currentId]);
+
+  // A short-lived note in Settings (auto-clears) — used to explain why a toggle
+  // didn't turn on (no biometrics, notifications denied, …).
+  function flashNote(msg: string) {
+    setNoteMsg(msg);
+    setTimeout(() => setNoteMsg((m) => (m === msg ? '' : m)), 4500);
+  }
 
   // Coming back after a while should feel fresh: if the app was backgrounded for
   // longer than NEW_CHAT_AFTER_MS, resume into a brand-new chat instead of the old
@@ -686,21 +694,28 @@ export default function App() {
   }
   lockRef.current = engageLock;
 
-  function toggleFaceId() {
-    setFaceId((on) => {
-      const next = !on;
-      try { localStorage.setItem('gf_faceid', next ? '1' : '0'); } catch { /* ignore */ }
-      return next;
-    });
+  // Turning Face ID on only sticks if the device can actually do biometrics —
+  // otherwise the toggle would read "on" while the lock silently never engages.
+  async function toggleFaceId() {
+    const next = !faceIdRef.current;
+    if (next && !(await biometryAvailable())) {
+      flashNote('Face ID / Touch ID isn’t set up on this device.');
+      return;
+    }
+    try { localStorage.setItem('gf_faceid', next ? '1' : '0'); } catch { /* ignore */ }
+    setFaceId(next);
   }
 
-  function toggleNotif() {
-    setNotif((on) => {
-      const next = !on;
-      try { localStorage.setItem('gf_notif', next ? '1' : '0'); } catch { /* ignore */ }
-      if (next) void registerPush(); // ask permission + register (no-op until native build)
-      return next;
-    });
+  // Same for notifications: only show "on" if permission was actually granted, so
+  // the toggle never lies about whether pushes will arrive.
+  async function toggleNotif() {
+    const next = !notif;
+    if (next && !(await registerPush())) {
+      flashNote('Allow notifications for Go Farther in iOS Settings to turn this on.');
+      return;
+    }
+    try { localStorage.setItem('gf_notif', next ? '1' : '0'); } catch { /* ignore */ }
+    setNotif(next);
   }
 
   // Send from the composer (clears the input box + pending attachments).
@@ -1017,6 +1032,7 @@ export default function App() {
                 <span className={`tgl ${notif ? 'on' : ''}`}><span className="tgl-knob" /></span>
               </div>
             )}
+            {noteMsg && <p className="set-note">{noteMsg}</p>}
             {!isGuest && <button className="conn-btn" onClick={signOut}>Sign out</button>}
           </div>
         </div>
