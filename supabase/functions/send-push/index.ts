@@ -72,12 +72,13 @@ Deno.serve(async (req) => {
   const uid = uidFromJwt(req);
   if (!uid || !SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, error: "no user" }, 401);
 
-  let title = "Go Farther", body = "Test notification", extra: Record<string, unknown> = {};
+  let title = "Go Farther", body = "Test notification", category = "", extra: Record<string, unknown> = {};
   try {
     const b = await req.json();
     if (b.title) title = String(b.title);
     if (b.body) body = String(b.body);
-    if (b.data && typeof b.data === "object") extra = b.data;
+    if (b.category) category = String(b.category); // e.g. "GF_REPLY" for an inline-reply action
+    if (b.data && typeof b.data === "object") extra = b.data; // context for the action handler (e.g. thread id)
   } catch { /* defaults */ }
 
   // This user's device tokens (service role bypasses RLS).
@@ -88,7 +89,9 @@ Deno.serve(async (req) => {
   if (!rows.length) return json({ ok: false, error: "no registered devices" });
 
   const jwt = await apnsJwt();
-  const payload = JSON.stringify({ aps: { alert: { title, body }, sound: "default" }, ...extra });
+  const aps: Record<string, unknown> = { alert: { title, body }, sound: "default" };
+  if (category) aps.category = category; // makes the notification actionable (inline reply, etc.)
+  const payload = JSON.stringify({ aps, ...extra });
   const sent = await Promise.all(rows.map(async ({ token }) => {
     try {
       const res = await fetch(`https://${APNS_HOST}/3/device/${token}`, {

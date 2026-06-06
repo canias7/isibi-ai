@@ -88,9 +88,37 @@ npx cap sync ios
 build, then toggle Notifications on in Settings. Test by POSTing to `send-push`
 with your user JWT (`{ "title": "Hi", "body": "Test" }`).
 
-**Reply-from-push:** register a notification category with a text-input action
-(`UNTextInputNotificationAction`); handle the response by POSTing the typed reply
-to the chat backend.
+### Reply-from-push (inline reply)
+
+The enabler is done: `send-push` accepts a `category` (and `data`), so it can emit
+an actionable notification. The rest is native + a JS handler:
+
+1. **Register the category** (text-input action). In `AppDelegate.swift`
+   `didFinishLaunching`:
+   ```swift
+   import UserNotifications
+   let reply = UNTextInputNotificationAction(identifier: "REPLY",
+       title: "Reply", options: [], textInputButtonTitle: "Send",
+       textInputPlaceholder: "Type a reply…")
+   let cat = UNNotificationCategory(identifier: "GF_REPLY", actions: [reply],
+       intentIdentifiers: [], options: [])
+   UNUserNotificationCenter.current().setNotificationCategories([cat])
+   ```
+2. **Send an actionable push:** `POST send-push` with
+   `{ "title":"…", "body":"…", "category":"GF_REPLY", "data": { "threadId":"…" } }`.
+3. **Handle the typed reply (JS)** via the push plugin:
+   ```ts
+   Push.addListener('pushNotificationActionPerformed', (e) => {
+     if (e.actionId === 'REPLY' && e.inputValue) {
+       // e.notification.data.threadId + e.inputValue -> POST to the reply endpoint
+     }
+   });
+   ```
+
+⚠️ For the reply to actually *go somewhere* it needs (a) a notification source
+that embeds context (e.g. a "new email → push" flow) and (b) somewhere to send the
+reply — both of which lean on **server-side tasks** (next section's caveat). So
+this is staged/plumbed, not yet an end-to-end feature.
 
 ⚠️ **"Notify when a task finishes while you're away"** needs the task to run
 **server-side** (today, chat work runs in the app while it's open; iOS suspends a
