@@ -71,6 +71,7 @@ export interface ChatMessage {
   role: Role;
   content: string;
   attachments?: Attach[];
+  failed?: boolean; // a turn that couldn't send (offline) — shows a retry affordance
 }
 
 // Go Farther backend: a Supabase Edge Function running Claude (the `chat`

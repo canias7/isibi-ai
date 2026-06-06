@@ -743,6 +743,30 @@ body { background: var(--bg); color: var(--text); }
 .gf-receipt-title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.2; }
 .gf-receipt-detail { font-size: 12px; color: var(--text-dim); margin-top: 1px; }
 
+/* Offline banner + failed-turn retry */
+.net-banner {
+  position: relative; z-index: 1;
+  margin: 0 16px 8px;
+  padding: 8px 12px;
+  background: #2a2205;
+  border: 1px solid #5a4a12;
+  color: #e8c878;
+  border-radius: 10px;
+  font-size: 13px;
+  text-align: center;
+}
+.msg-failed { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--text-dim); font-size: 14px; }
+.msg-retry {
+  background: #ffffff14;
+  border: 1px solid #ffffff26;
+  color: var(--text);
+  font: inherit; font-size: 13px;
+  padding: 4px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.msg-retry:active { background: #ffffff26; }
+
 .side-foot {
   margin-top: auto;
   padding-top: 8px;

@@ -80,6 +80,14 @@ async function copyText(s: string): Promise<boolean> {
   } catch { return false; }
 }
 
+// A fetch/connectivity failure (vs. a real API/HTTP error) — used to queue a
+// send for retry instead of showing a hard error.
+function isNetworkError(e: unknown): boolean {
+  if (e instanceof TypeError) return true; // fetch network failures are TypeErrors
+  const m = (e instanceof Error ? e.message : String(e)).toLowerCase();
+  return /network|failed to fetch|load failed|connection|offline|err_internet/.test(m);
+}
+
 // ---- Cloud sync (conversations table, RLS-scoped to this user) ----
 async function syncLoad(uid: string): Promise<Conversation[] | null> {
   try {
@@ -273,6 +281,9 @@ export default function App() {
   const busyRef = useRef(false);       // latest busy/messages for the resume listener (avoids stale closures)
   const msgLenRef = useRef(0);
   const dirtyRef = useRef(false);      // a real turn changed messages -> persist (not just open/restore)
+  const [online, setOnline] = useState(true);                 // network status (drives the offline banner)
+  const pendingTurnRef = useRef<ChatMessage[] | null>(null);  // a turn that failed offline, awaiting retry
+  const retryRef = useRef<() => void>(() => {});              // latest retryPending, for the online listener
 
   // ---- Per-session connectors ----
   // Which apps are connected (from the backend), which are enabled for THIS
@@ -426,6 +437,20 @@ export default function App() {
     ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
   }, [input]);
 
+  // Network status: show the offline banner, and auto-retry a queued send the
+  // moment connectivity returns.
+  useEffect(() => {
+    setOnline(navigator.onLine);
+    const onOnline = () => { setOnline(true); retryRef.current(); };
+    const onOffline = () => setOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
+
   // Persist the active conversation once a turn finishes (not on every token).
   useEffect(() => {
     if (!uid || busy || messages.length === 0) return;
@@ -440,13 +465,10 @@ export default function App() {
     void syncSave(uid, convo); // mirror to the cloud
   }, [messages, busy, currentId, uid]);
 
-  async function sendText(raw: string, atts: Attach[] = []) {
-    const text = raw.trim();
-    if ((!text && atts.length === 0) || busy) return;
+  // Run one chat turn for a message history (its last item = the user's new
+  // message). An empty assistant bubble is appended for the streamed reply.
+  async function runTurn(history: ChatMessage[]) {
     dirtyRef.current = true; // a real turn — the persist effect should save it
-
-    const userMsg: ChatMessage = { role: 'user', content: text, ...(atts.length ? { attachments: atts } : {}) };
-    const history = [...messages, userMsg];
     setMessages([...history, { role: 'assistant', content: '' }]);
     setBusy(true);
 
@@ -496,6 +518,18 @@ export default function App() {
         });
         return;
       }
+      // Offline / network failure → queue this turn and offer retry instead of a
+      // hard error. It auto-retries when connectivity returns.
+      if (!timedOut && (!navigator.onLine || isNetworkError(e))) {
+        dirtyRef.current = false; // don't persist a failed placeholder turn
+        pendingTurnRef.current = history;
+        setMessages((m) => {
+          const copy = m.slice();
+          copy[copy.length - 1] = { role: 'assistant', content: '', failed: true };
+          return copy;
+        });
+        return;
+      }
       const msg = timedOut ? 'Timed out — please try again.' : e instanceof Error ? e.message : 'Something went wrong';
       setMessages((m) => {
         const copy = m.slice();
@@ -508,6 +542,22 @@ export default function App() {
       setBusy(false);
     }
   }
+
+  async function sendText(raw: string, atts: Attach[] = []) {
+    const text = raw.trim();
+    if ((!text && atts.length === 0) || busy) return;
+    const userMsg: ChatMessage = { role: 'user', content: text, ...(atts.length ? { attachments: atts } : {}) };
+    await runTurn([...messages, userMsg]);
+  }
+
+  // Re-run the turn that failed offline — manual tap, or auto when back online.
+  function retryPending() {
+    const hist = pendingTurnRef.current;
+    if (!hist || busy) return;
+    pendingTurnRef.current = null;
+    void runTurn(hist);
+  }
+  retryRef.current = retryPending;
 
   // Send from the composer (clears the input box + pending attachments).
   function send() {
@@ -836,7 +886,14 @@ export default function App() {
                     <div key={i} className={`msg ${m.role}`}>
                       <div className="bubble">
                         {m.role === 'assistant' ? (
-                          <AssistantMessage text={m.content} streaming={streamingHere} onOpen={openEmail} />
+                          m.failed ? (
+                            <div className="msg-failed">
+                              <span>⚠️ You're offline — couldn't send.</span>
+                              <button className="msg-retry" onClick={retryPending}>Retry</button>
+                            </div>
+                          ) : (
+                            <AssistantMessage text={m.content} streaming={streamingHere} onOpen={openEmail} />
+                          )
                         ) : (
                           <>
                             {m.attachments && m.attachments.length > 0 && (
@@ -864,6 +921,9 @@ export default function App() {
             )}
           </div>
 
+          {!online && (
+            <div className="net-banner">You're offline — messages will send when you reconnect.</div>
+          )}
           <div className="composer-wrap">
             {(plusOpen || connMenu) && (
               <div
