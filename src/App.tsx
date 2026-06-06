@@ -307,6 +307,7 @@ export default function App() {
   const dirtyRef = useRef(false);      // a real turn changed messages -> persist (not just open/restore)
   const [online, setOnline] = useState(true);                 // network status (drives the offline banner)
   const pendingTurnRef = useRef<ChatMessage[] | null>(null);  // a turn that failed offline, awaiting retry
+  const retryingRef = useRef(false);                          // a retry is mid-flight (serializes online + manual taps)
   const retryRef = useRef<() => void>(() => {});              // latest retryPending, for the online listener
   const resumeRef = useRef<() => void>(() => {});             // refresh current chat on resume (server-finished turn)
   // Face ID / biometric lock (opt-in; native-only; fails open).
@@ -620,16 +621,23 @@ export default function App() {
   // action would duplicate it (send the same email twice, delete twice), so if
   // the server already holds the reply we adopt that instead of sending again.
   async function retryPending() {
+    if (retryingRef.current || busyRef.current) return; // already retrying, or a turn is in flight
     const hist = pendingTurnRef.current;
-    if (!hist || busyRef.current) return;
-    if (uid) {
-      const remote = await syncLoad(uid);
-      const cur = remote?.find((c) => c.id === currentId);
-      if (pendingTurnRef.current !== hist) return; // superseded while loading
-      if (cur && serverIsMoreComplete(messagesRef.current, cur.messages)) { adoptConversation(cur); return; }
+    if (!hist) return;
+    retryingRef.current = true; // claim it so a concurrent online event + manual tap can't both re-run the turn
+    try {
+      if (uid) {
+        const remote = await syncLoad(uid);
+        if (pendingTurnRef.current !== hist) return; // adopted/replaced while we loaded
+        const cur = remote?.find((c) => c.id === currentId);
+        if (cur && serverIsMoreComplete(messagesRef.current, cur.messages)) { adoptConversation(cur); return; }
+      }
+      if (busyRef.current || pendingTurnRef.current !== hist) return; // a new turn started meanwhile — leave it queued
+      pendingTurnRef.current = null;
+      void runTurn(hist);
+    } finally {
+      retryingRef.current = false;
     }
-    pendingTurnRef.current = null;
-    void runTurn(hist);
   }
   retryRef.current = retryPending;
 
