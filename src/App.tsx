@@ -92,6 +92,23 @@ function isNetworkError(e: unknown): boolean {
   return /network|failed to fetch|load failed|connection|offline|err_internet/.test(m);
 }
 
+// Is the server's copy of a conversation a *more complete* version of what we
+// hold locally? True when it has more messages, or the same turns but a finished
+// assistant reply where ours is still empty/failed. This lets resume + retry
+// adopt a turn the backend completed while we were disconnected — instead of
+// re-running it, which would duplicate any action it performed (a second send, a
+// second delete). A shorter or empty server copy is never "more complete".
+function serverIsMoreComplete(local: ChatMessage[], remote: ChatMessage[]): boolean {
+  if (remote.length === 0) return false;
+  if (remote.length > local.length) return true;
+  if (remote.length < local.length) return false;
+  const ours = local[local.length - 1];
+  const theirs = remote[remote.length - 1];
+  const oursPending = !ours || ours.role !== 'assistant' || ours.content.trim() === '' || !!ours.failed;
+  const theirsReady = theirs.role === 'assistant' && theirs.content.trim() !== '';
+  return oursPending && theirsReady;
+}
+
 // ---- Cloud sync (conversations table, RLS-scoped to this user) ----
 async function syncLoad(uid: string): Promise<Conversation[] | null> {
   try {
@@ -284,6 +301,9 @@ export default function App() {
   const awaySinceRef = useRef(0);      // when the app was last backgrounded
   const busyRef = useRef(false);       // latest busy/messages for the resume listener (avoids stale closures)
   const msgLenRef = useRef(0);
+  const messagesRef = useRef<ChatMessage[]>([]); // latest messages, for content-based resume/retry checks
+  const currentIdRef = useRef(currentId);        // latest open chat id, for async adopt/poll guards
+  currentIdRef.current = currentId;
   const dirtyRef = useRef(false);      // a real turn changed messages -> persist (not just open/restore)
   const [online, setOnline] = useState(true);                 // network status (drives the offline banner)
   const pendingTurnRef = useRef<ChatMessage[] | null>(null);  // a turn that failed offline, awaiting retry
@@ -416,7 +436,7 @@ export default function App() {
 
   // Keep the latest busy/length handy for the resume listener below (set up once,
   // so it would otherwise capture stale values).
-  useEffect(() => { busyRef.current = busy; msgLenRef.current = messages.length; }, [busy, messages]);
+  useEffect(() => { busyRef.current = busy; msgLenRef.current = messages.length; messagesRef.current = messages; }, [busy, messages]);
 
   // Coming back after a while should feel fresh: if the app was backgrounded for
   // longer than NEW_CHAT_AFTER_MS, resume into a brand-new chat instead of the old
@@ -547,7 +567,9 @@ export default function App() {
         return;
       }
       // Offline / network failure → queue this turn and offer retry instead of a
-      // hard error. It auto-retries when connectivity returns.
+      // hard error. It auto-retries when connectivity returns. The backend may
+      // still finish the turn (it keeps running after we disconnect), so we also
+      // poll briefly to adopt a completed reply without a manual retry.
       if (!timedOut && (!navigator.onLine || isNetworkError(e))) {
         dirtyRef.current = false; // don't persist a failed placeholder turn
         pendingTurnRef.current = history;
@@ -556,6 +578,7 @@ export default function App() {
           copy[copy.length - 1] = { role: 'assistant', content: '', failed: true };
           return copy;
         });
+        pollForCompletion(history);
         return;
       }
       const msg = timedOut ? 'Timed out — please try again.' : e instanceof Error ? e.message : 'Something went wrong';
@@ -578,28 +601,65 @@ export default function App() {
     await runTurn([...messages, userMsg]);
   }
 
+  // Adopt the server's copy of a chat (a turn it finished while we were
+  // disconnected). Always updates the saved list; only swaps the visible
+  // messages when we're actually looking at that chat. Stands down any pending
+  // retry so the turn is never re-run (which would duplicate its action).
+  function adoptConversation(cur: Conversation) {
+    if (!uid) return;
+    pendingTurnRef.current = null;
+    setChats((prev) => { const next = [cur, ...prev.filter((c) => c.id !== cur.id)]; saveChats(uid, next); return next; });
+    if (cur.id !== currentIdRef.current) return; // not the open chat — list updated, don't disturb the view
+    jumpRef.current = true;
+    abortRef.current?.abort(); // stop a dying fetch from clobbering the adopted reply
+    setMessages(cur.messages);
+  }
+
   // Re-run the turn that failed offline — manual tap, or auto when back online.
-  function retryPending() {
+  // First check whether the backend already finished it: re-running a completed
+  // action would duplicate it (send the same email twice, delete twice), so if
+  // the server already holds the reply we adopt that instead of sending again.
+  async function retryPending() {
     const hist = pendingTurnRef.current;
-    if (!hist || busy) return;
+    if (!hist || busyRef.current) return;
+    if (uid) {
+      const remote = await syncLoad(uid);
+      const cur = remote?.find((c) => c.id === currentId);
+      if (pendingTurnRef.current !== hist) return; // superseded while loading
+      if (cur && serverIsMoreComplete(messagesRef.current, cur.messages)) { adoptConversation(cur); return; }
+    }
     pendingTurnRef.current = null;
     void runTurn(hist);
   }
   retryRef.current = retryPending;
 
-  // On resume, pull any turn that finished server-side while we were away (the
-  // server completes + saves a turn even if the app was backgrounded mid-reply).
+  // On resume (and while a failed turn is pending), pull any turn that finished
+  // server-side while we were away — the backend completes + saves a turn even if
+  // the app was backgrounded or the connection dropped mid-reply. Content-aware:
+  // it adopts when the server has a real reply where ours is still empty/failed,
+  // even when the message counts match.
   async function refreshCurrent() {
-    if (!uid || busy) return;
+    if (!uid) return;
     const remote = await syncLoad(uid);
     const cur = remote?.find((c) => c.id === currentId);
-    if (cur && cur.messages.length > messages.length) {
-      jumpRef.current = true;
-      setMessages(cur.messages);
-      setChats((prev) => { const next = [cur, ...prev.filter((c) => c.id !== cur.id)]; saveChats(uid, next); return next; });
-    }
+    if (cur && serverIsMoreComplete(messagesRef.current, cur.messages)) adoptConversation(cur);
   }
   resumeRef.current = refreshCurrent;
+
+  // After an offline failure, poll a few times (~30s) so a turn the backend is
+  // still finishing shows up on its own — the eventual reply replaces the
+  // "failed" bubble without the user having to tap Retry. Stops as soon as it
+  // adopts, gets retried, or is superseded by a newer turn.
+  function pollForCompletion(history: ChatMessage[]) {
+    let n = 0;
+    const tick = async () => {
+      if (pendingTurnRef.current !== history) return;
+      await refreshCurrent();
+      if (pendingTurnRef.current !== history) return;
+      if (++n < 6) window.setTimeout(tick, 5000);
+    };
+    window.setTimeout(tick, 4000);
+  }
 
   // Biometric lock: engage if enabled AND available, otherwise fail open (we
   // never trap the user behind a lock we can't satisfy — e.g. plugin not yet in
