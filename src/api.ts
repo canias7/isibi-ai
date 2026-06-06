@@ -73,6 +73,7 @@ export interface ChatMessage {
   attachments?: Attach[];
   failed?: boolean;  // a turn whose connection dropped — shows a retry/refresh affordance
   offline?: boolean; // the drop happened while genuinely offline (vs. backgrounded mid-reply)
+  model?: string;    // which model answered, from the x-gf-model response header
 }
 
 // Go Farther backend: a Supabase Edge Function running Claude (the `chat`
@@ -91,6 +92,7 @@ export async function streamChat(
   signal?: AbortSignal,
   apps?: string[],
   conversationId?: string,
+  onModel?: (model: string) => void,
 ): Promise<void> {
   // Send the signed-in user's access token so the backend acts as *this* user
   // (their connected apps), not a shared identity. Falls back to anon.
@@ -124,6 +126,12 @@ export async function streamChat(
     throw new Error(detail || `Chat API error: ${res.status}`);
   }
   if (!res.body) throw new Error('No response stream from the assistant.');
+
+  // Which model answered (server stamps it on the response; CORS-exposed).
+  if (onModel) {
+    const m = res.headers.get('x-gf-model');
+    if (m) onModel(m);
+  }
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();

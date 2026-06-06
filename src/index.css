@@ -699,7 +699,9 @@ body { background: var(--bg); color: var(--text); }
 
 /* Copy action under an assistant reply */
 .msg.assistant { flex-direction: column; align-items: flex-start; }
-.msg-actions { display: flex; margin: 2px 2px 0; }
+.msg-actions { display: flex; align-items: center; gap: 4px; margin: 2px 2px 0; }
+/* Tiny label showing which model answered (haiku/sonnet/opus). */
+.msg-model { font-size: 11px; color: var(--text-dim); opacity: 0.7; padding: 4px 6px; letter-spacing: 0.02em; }
 .msg-act {
   display: inline-flex;
   align-items: center;

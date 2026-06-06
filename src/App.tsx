@@ -237,6 +237,14 @@ function cleanForDisplay(s: string): string {
   return s.replace(/\s*\[\[gfid:[^\]]*\]\]/g, '');
 }
 
+// Short label for the model that answered (from the x-gf-model header).
+function modelShort(m: string): string {
+  if (/haiku/i.test(m)) return 'haiku';
+  if (/sonnet/i.test(m)) return 'sonnet';
+  if (/opus/i.test(m)) return 'opus';
+  return m.replace(/^claude-/, '');
+}
+
 // The copyable plain text of an assistant reply — strips rich card blocks and
 // the internal marker, so "Copy" yields readable text (and is hidden for a
 // card-only reply where there's nothing to copy).
@@ -564,13 +572,21 @@ export default function App() {
           setMessages((m) => {
             const copy = m.slice();
             const last = copy[copy.length - 1];
-            copy[copy.length - 1] = { role: 'assistant', content: last.content + tok };
+            copy[copy.length - 1] = { ...last, role: 'assistant', content: last.content + tok };
             return copy;
           });
         },
         controller.signal,
         apps,
         currentId,
+        (mdl) => {
+          setMessages((m) => {
+            const copy = m.slice();
+            const last = copy[copy.length - 1];
+            if (last && last.role === 'assistant') copy[copy.length - 1] = { ...last, model: mdl };
+            return copy;
+          });
+        },
       );
       // Clear transient tool-activity markers from the finished reply so storage,
       // copy, and search stay clean (they're only meant to show live).
@@ -1165,12 +1181,15 @@ export default function App() {
                         )}
                         {streamingHere && !thinking && <span className="cursor" />}
                       </div>
-                      {m.role === 'assistant' && !streamingHere && plainText(m.content) && (
+                      {m.role === 'assistant' && !streamingHere && (plainText(m.content) || m.model) && (
                         <div className="msg-actions">
-                          <button className="msg-act" aria-label="Copy message" onClick={() => copyMsg(i, plainText(m.content))}>
-                            {copiedIdx === i ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                            <span className="msg-act-label">{copiedIdx === i ? 'Copied' : 'Copy'}</span>
-                          </button>
+                          {plainText(m.content) && (
+                            <button className="msg-act" aria-label="Copy message" onClick={() => copyMsg(i, plainText(m.content))}>
+                              {copiedIdx === i ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                              <span className="msg-act-label">{copiedIdx === i ? 'Copied' : 'Copy'}</span>
+                            </button>
+                          )}
+                          {m.model && <span className="msg-model" title={m.model}>{modelShort(m.model)}</span>}
                         </div>
                       )}
                     </div>
