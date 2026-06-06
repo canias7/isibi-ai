@@ -154,6 +154,44 @@ const ALLOWED: Record<string, string[]> = {
 type Tool = { name: string; description: string; inputSchema: unknown };
 const cache: Record<string, Tool[]> = {}; // per-toolkit, across warm invocations
 
+// Built-in (non-Composio) tool: long-term memory. ALWAYS exposed so the model
+// can save a fact the user explicitly asks it to remember, in ANY chat, even
+// with no connectors. Handled locally (writes to public.user_memory), not via
+// Composio. The chat function feeds these memories back into every system prompt.
+const MEMORY_TOOL: Tool = {
+  name: "GF_SAVE_MEMORY",
+  description:
+    "Save a fact or preference the user EXPLICITLY asks you to remember about them long-term — e.g. they say \"remember that…\", \"keep in mind…\", \"note that…\", \"from now on…\", \"don't forget…\". Stored to the user's memory and applied across ALL future chats. Use ONLY when the user clearly wants something remembered; do NOT use it for ordinary conversation or for transient, one-off task details. After saving, briefly confirm in plain text.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      content: {
+        type: "string",
+        description:
+          "The single fact/preference to remember, rewritten as a concise, self-contained statement (e.g. \"Prefers concise replies\", \"Lives in New York City\", \"Manager is Sarah Chen\"). Omit filler like \"remember that\".",
+      },
+    },
+    required: ["content"],
+  },
+};
+
+// Persist one memory for the user (service role; RLS-bypassing but scoped to the
+// user id Composio/Anthropic passed us in the URL, so users only write their own).
+async function saveMemory(uid: string, content: unknown): Promise<string> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key || !uid) throw new Error("memory unavailable");
+  const c = String(content ?? "").trim().slice(0, 500);
+  if (!c) throw new Error("nothing to remember");
+  const r = await fetch(`${url}/rest/v1/user_memory`, {
+    method: "POST",
+    headers: { "content-type": "application/json", apikey: key, authorization: `Bearer ${key}`, prefer: "return=minimal" },
+    body: JSON.stringify({ user_id: uid, content: c }),
+  });
+  if (!r.ok) throw new Error(`save failed ${r.status}: ${await r.text().catch(() => "")}`);
+  return `Saved to memory: ${c}`;
+}
+
 function toMcp(t: any): Tool {
   return {
     name: t.slug,
@@ -229,14 +267,17 @@ async function userToolPrefs(uid: string): Promise<Record<string, string[]>> {
 }
 
 async function listTools(apps: string[], prefs: Record<string, string[]>): Promise<Tool[]> {
-  const toolkits = apps.length ? apps : Object.keys(ALLOWED);
   const out: Tool[] = [];
-  for (const tk of toolkits) {
+  // Only the toolkits the chat function scoped in for this session. Empty = no
+  // connector tools (e.g. user has none connected, or de-scoped them this chat).
+  for (const tk of apps) {
     // ONLY what the user explicitly enabled. No row / empty selection = no tools
     // for that app (nothing is on by default; the user opts in per tool).
     const enabled = prefs[tk] ?? [];
     out.push(...(await toolsForToolkit(tk, enabled)));
   }
+  // Long-term memory is always available, with or without connectors.
+  out.push(MEMORY_TOOL);
   return out;
 }
 
@@ -310,6 +351,17 @@ Deno.serve(async (req: Request) => {
     const p = msg.params || {};
     if (!reqUser) {
       return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "Error: no user context" }], isError: true } });
+    }
+    // Built-in memory tool — handled locally, not forwarded to Composio.
+    if (p.name === "GF_SAVE_MEMORY") {
+      try {
+        const text = await saveMemory(reqUser, (p.arguments || {}).content);
+        await logUsage(p.name, true, reqUser);
+        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
+      } catch (e) {
+        await logUsage(p.name, false, reqUser);
+        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "Error: " + (e instanceof Error ? e.message : String(e)) }], isError: true } });
+      }
     }
     try {
       const text = await execTool(p.name, p.arguments || {}, reqUser);

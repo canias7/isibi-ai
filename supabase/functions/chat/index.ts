@@ -301,6 +301,7 @@ async function buildContactsCard(uid: string, slug: string, args: unknown): Prom
 // client as a [[gfstatus:…]] marker while a tool runs, then stripped from the text.
 function statusLabel(name: string): string {
   const n = (name || "").toUpperCase();
+  if (n.includes("SAVE_MEMORY")) return "Saving to memory…";
   if (n.includes("FETCH_EMAILS") || n.includes("LIST_MESSAGES") || n.includes("SEARCH_MESSAGES")) return "Searching your inbox…";
   if (n.includes("LIST_DRAFTS")) return "Finding your drafts…";
   if (n.includes("FETCH_MESSAGE") || n.includes("GET_MESSAGE")) return "Reading an email…";
@@ -320,6 +321,7 @@ function statusLabel(name: string): string {
 // (fetch/search/list) return "" — they show a card, not a receipt.
 function actionKind(name: string): string {
   const n = (name || "").toUpperCase();
+  if (n.includes("SAVE_MEMORY")) return "memory";
   if (n.includes("REPLY")) return "reply";
   if (n.includes("SEND_EMAIL") || n.includes("SEND_DRAFT") || (n.includes("SEND") && n.includes("MAIL"))) return "sent";
   if (n.includes("CREATE_DRAFT") || n.includes("CREATE_EMAIL_DRAFT")) return "draft";
@@ -336,6 +338,7 @@ function receiptFor(kind: string): { kind: string; title: string } {
     case "deleted": return { kind, title: "Deleted" };
     case "trash": return { kind, title: "Moved to Trash" };
     case "updated": return { kind, title: "Updated" };
+    case "memory": return { kind, title: "Saved to memory" };
     default: return { kind: "done", title: "Done" };
   }
 }
@@ -456,19 +459,20 @@ Deno.serve(async (req: Request) => {
       const wanted = new Set(requestedApps.map((id) => APP_TO_SLUG[id]).filter(Boolean));
       apps = connected.filter((s) => wanted.has(s));
     }
-    if (apps.length) {
-      emailUI = clientCards && (apps.includes("gmail") || apps.includes("outlook"));
-      const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}`;
-      mcpServers = [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }];
-      // Current MCP connector format (mcp-client-2025-11-20): the toolset lives
-      // in `tools`. cache_control caches the proxy-returned tool schemas — the
-      // big, stable part of the prompt — so follow-up turns re-read them at ~10%
-      // price instead of full. Only the tools prefix is cached on purpose: the
-      // system prompt carries a per-minute timestamp, and since the cache order
-      // is tools -> system -> messages, the tools cache stays stable regardless.
-      mcpTools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
-      extraHeaders["anthropic-beta"] = "mcp-client-2025-11-20";
-    }
+    // Always attach the MCP toolset for a signed-in user — even with no connectors
+    // it serves the built-in GF_SAVE_MEMORY tool, so "remember that…" works in any
+    // chat. emailUI (rich inbox cards) still only turns on for an email app.
+    emailUI = clientCards && (apps.includes("gmail") || apps.includes("outlook"));
+    const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}`;
+    mcpServers = [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }];
+    // Current MCP connector format (mcp-client-2025-11-20): the toolset lives
+    // in `tools`. cache_control caches the proxy-returned tool schemas — the
+    // big, stable part of the prompt — so follow-up turns re-read them at ~10%
+    // price instead of full. Only the tools prefix is cached on purpose: the
+    // system prompt carries a per-minute timestamp, and since the cache order
+    // is tools -> system -> messages, the tools cache stays stable regardless.
+    mcpTools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
+    extraHeaders["anthropic-beta"] = "mcp-client-2025-11-20";
   }
 
   // Current time in the user's local timezone (falls back to UTC if tz is bad).
@@ -479,7 +483,7 @@ Deno.serve(async (req: Request) => {
     tz = "UTC";
     nowLocal = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", dateStyle: "full", timeStyle: "short" }).format(new Date());
   }
-  const baseSystem = `You are Go Farther, a helpful, friendly assistant inside a mobile app. It is currently ${nowLocal} in the user's timezone (${tz}); use this for anything time-related (e.g. calendar date ranges) instead of guessing, and ALWAYS show times to the user in their local timezone (${tz}) — never UTC. You're on a narrow phone screen: keep formatting simple. Be clear and concise. When connector tools are available (Gmail, Google Calendar, Google Drive, etc.), use them to act on the user's behalf — search and read email, check and create calendar events, find and read files. Always confirm details before sending an email or creating/changing anything. When more than one connected app could handle the same request and the user didn't say which — for ANY request, whether a read/list/search OR an action (send, create, change, delete, pay) — do NOT guess, do NOT default to one, and do NOT silently combine them: ASK which app or account to use first, in one short line (e.g. "Which mailbox — Gmail or Outlook?"), then wait. Only once the user picks (or if they name one up front, like "in QuickBooks" or "my Outlook") do you act, using just that app.`;
+  const baseSystem = `You are Go Farther, a helpful, friendly assistant inside a mobile app. It is currently ${nowLocal} in the user's timezone (${tz}); use this for anything time-related (e.g. calendar date ranges) instead of guessing, and ALWAYS show times to the user in their local timezone (${tz}) — never UTC. You're on a narrow phone screen: keep formatting simple. Be clear and concise. When connector tools are available (Gmail, Google Calendar, Google Drive, etc.), use them to act on the user's behalf — search and read email, check and create calendar events, find and read files. Always confirm details before sending an email or creating/changing anything. When more than one connected app could handle the same request and the user didn't say which — for ANY request, whether a read/list/search OR an action (send, create, change, delete, pay) — do NOT guess, do NOT default to one, and do NOT silently combine them: ASK which app or account to use first, in one short line (e.g. "Which mailbox — Gmail or Outlook?"), then wait. Only once the user picks (or if they name one up front, like "in QuickBooks" or "my Outlook") do you act, using just that app. When the user EXPLICITLY asks you to remember something about them for the future (e.g. "remember that…", "keep in mind…", "from now on…", "don't forget…"), call the GF_SAVE_MEMORY tool with a concise, self-contained statement, then briefly confirm in plain text — do NOT use it for ordinary chatter or one-off task details.`;
   // When an email app is in scope, render inbox listings as rich cards: the app
   // turns a ```gf-emails JSON block into a styled email list.
   const emailCardsSystem = `\n\nEMAIL DISPLAY — when an email tool is available, follow these rules EXACTLY:\n• Whenever you present multiple emails — the inbox, search results, OR a set of emails for the user to choose from (e.g. "which one?") — render them as a single fenced code block tagged gf-emails containing ONLY a JSON array (one object per email) with keys "from", "email", "subject", "snippet" (≤ 12 words), "time" (short label in the user's timezone, e.g. "9:41 AM", "Yesterday", "May 19"), "unread" (boolean), "id" (the Gmail message id, used to open the email). NEVER list emails as a plain numbered or bulleted list. You may write at most one short line (such as a question) before the block, but the emails themselves must be inside the block.\n• To open, read, show, view, or re-open ONE specific email — including "open it", "read that email", "show me the email", or tapping or hitting "try again" on an email — your ENTIRE reply MUST be a single fenced code block tagged gf-message containing one JSON object whose only required key is "id" (the Gmail message id); the app loads the sender, subject, body and attachments itself. That block is the ONLY acceptable way to show an email: do NOT type out the From/To/Date/Subject or the body as text or markdown, do NOT add any words before or after the block, and do NOT summarize unless explicitly asked. If a user message contains a marker like [[gfid:ID]], they tapped an email — reply with the gf-message block for that exact id.\n• When you show the user's existing drafts, use the SAME cards (gf-emails for the list, gf-message for one), with "draft": true on each item and its "id" set to the draft's message id so it still opens. ANY display of email content — inbox, search, drafts, or a single message — is ALWAYS a card; NEVER write emails out as plain text or a raw JSON dump.\n• To look up people or contacts (find someone's email or phone, check whether a contact exists, "do I have a contact for X", etc.), CALL the contacts/people search tool, then reply with AT MOST one short lead-in line (e.g. "Here's what I found:"). Do NOT write the contacts out yourself and do NOT put them in a code block — the app renders the matching contacts as a card automatically (with each person's photo where they have one).\n• Only when the user EXPLICITLY asks to summarize, draft, reply to, or send an email do you reply in normal text (no code block).`;
