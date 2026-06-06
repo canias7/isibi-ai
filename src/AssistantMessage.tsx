@@ -59,11 +59,7 @@ export default function AssistantMessage(
         </div>
       );
     }
-    return (
-      <div className="gf-thinking" role="status" aria-label="Thinking">
-        <span /><span /><span />
-      </div>
-    );
+    return <div className="gf-thinking" role="status" aria-label="Thinking">Thinking…</div>;
   }
 
   const f = firstFence(clean);
