@@ -73,12 +73,20 @@ npx cap sync ios
 <array><string>remote-notification</string></array>
 ```
 
-**Backend (I can build this now — it's server-side):**
-- `device_tokens` table: `(user_id uuid, token text, platform text, updated_at timestamptz)`.
-- An edge function `send-push` that signs a JWT with the .p8 key and POSTs to APNs
-  (`https://api.push.apple.com/3/device/<token>`). Store `APNS_KEY`, `APNS_KEY_ID`,
-  `APNS_TEAM_ID`, `APNS_BUNDLE_ID` as Supabase secrets.
-- Frontend: register on launch, upload the token to `device_tokens`.
+**Backend — ✅ already built (just needs your APNs key):**
+- `device_tokens` table + RLS — created.
+- `supabase/functions/send-push` — deployed; signs an ES256 JWT with the .p8 and
+  POSTs to APNs. **Set these Supabase secrets** to activate it:
+  `APNS_KEY` (full .p8 PEM), `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_BUNDLE_ID`,
+  and optionally `APNS_HOST=api.push.apple.com` (defaults to the sandbox for
+  TestFlight). Until then it returns `{ok:false,"error":"APNs not configured…"}`.
+- `src/push.ts` `registerPush()` — uploads the token to `device_tokens`; wired to
+  the Settings → **Notifications** toggle. No-ops until the native plugin is added.
+
+**To finish:** `npm i @capacitor/push-notifications && npx cap sync ios`, enable
+**Push Notifications** + **Background Modes → Remote notifications** in Xcode,
+build, then toggle Notifications on in Settings. Test by POSTing to `send-push`
+with your user JWT (`{ "title": "Hi", "body": "Test" }`).
 
 **Reply-from-push:** register a notification category with a text-input action
 (`UNTextInputNotificationAction`); handle the response by POSTing the typed reply
@@ -114,7 +122,8 @@ Like push, this is most useful once long tasks run server-side (see §3 caveat).
 
 | Feature | Code staged here | Needs from you |
 |---|---|---|
-| Haptics | ✅ done | `cap sync` + build |
-| Face ID lock | runbook | confirm plugin → I stage FE → build |
-| Push + reply | runbook | APNs key + capability; I build backend |
+| Haptics | ✅ staged | `cap sync` + build |
+| Face ID lock | ✅ staged (FE + toggle) | `npm i @aparajita/capacitor-biometric-auth` + `cap sync` + build |
+| Push backend + registration | ✅ built (table + send-push + registerPush) | APNs key as secrets; `npm i @capacitor/push-notifications` + capability + build |
+| Reply-from-push | runbook | notification category (native) |
 | Live Activity | runbook | Xcode widget extension |
