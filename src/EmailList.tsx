@@ -14,6 +14,7 @@ export interface EmailItem {
   time?: string;
   unread?: boolean;
   app?: string; // mailbox provider ('gmail' | 'outlook'); themes the card
+  draft?: boolean; // an unsent draft (shows a "Draft" badge); id = its message id
 }
 
 export interface EmailMessage {
@@ -26,6 +27,7 @@ export interface EmailMessage {
   subject: string;
   body: string;
   app?: string; // mailbox provider ('gmail' | 'outlook')
+  draft?: boolean;
   attachments?: { name: string; size?: string | number; type?: string }[];
 }
 
@@ -111,7 +113,7 @@ function Avatar({ from, email }: { from?: string; email?: string }) {
 export function EmailList({ items, onOpen }: { items: EmailItem[]; onOpen?: (it: EmailItem) => void }) {
   const app = providerOf(items[0]?.app, items[0]?.id);
   for (const it of items) {
-    if (it.id) emailHints.set(it.id, { from: it.from, email: it.email, subject: it.subject, time: it.time, unread: it.unread, app: it.app });
+    if (it.id) emailHints.set(it.id, { from: it.from, email: it.email, subject: it.subject, time: it.time, unread: it.unread, app: it.app, draft: it.draft });
   }
   return (
     <div className={`gf-emails gf-${app}`}>
@@ -131,6 +133,7 @@ export function EmailList({ items, onOpen }: { items: EmailItem[]; onOpen?: (it:
           <div className="gf-main">
             <div className="gf-line1">
               <span className="gf-from">{it.from || it.email || 'Unknown'}</span>
+              {it.draft && <span className="gf-draft-pill">Draft</span>}
               {it.time && <span className="gf-time">{it.time}</span>}
             </div>
             <div className="gf-subject">{it.subject}</div>
@@ -374,6 +377,7 @@ export function EmailDetail({ msg }: { msg: EmailMessage }) {
   const subject = msg.subject || hint.subject || meta.subject || '';
   const time = msg.time || hint.time || fmtTime(meta.date);
   const unread = msg.unread ?? hint.unread ?? meta.unread;
+  const draft = msg.draft ?? hint.draft;
   const app = providerOf(msg.app ?? hint.app ?? meta.app, msg.id);
   return (
     <div className={`gf-msg gf-${app}`}>
@@ -386,7 +390,7 @@ export function EmailDetail({ msg }: { msg: EmailMessage }) {
         </div>
         <div className="gf-msg-meta">
           {time && <span className="gf-msg-time">{time}</span>}
-          {unread && <span className="gf-msg-pill">Unread</span>}
+          {draft ? <span className="gf-msg-pill gf-draft-pill">Draft</span> : unread && <span className="gf-msg-pill">Unread</span>}
         </div>
       </div>
 
