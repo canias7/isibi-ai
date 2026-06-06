@@ -48,12 +48,20 @@ export default function AssistantMessage(
   const liveStatus = sm.length ? sm[sm.length - 1][1] : '';
   const clean = text.replace(/\[\[gfstatus:[^\]]*\]\]/g, '').replace(/\[\[gfstatus[^\]]*$/, '');
 
-  // Tools are running and there's nothing to render yet → live "working…" pill.
-  if (streaming && !clean.trim() && liveStatus) {
+  // Nothing to render yet while streaming → show a "thinking" indicator (the
+  // bouncing dots), or a tool-activity label when a tool is running.
+  if (streaming && !clean.trim()) {
+    if (liveStatus) {
+      return (
+        <div className="gf-status">
+          <span className="gf-status-spin" aria-hidden />
+          <span>{liveStatus}</span>
+        </div>
+      );
+    }
     return (
-      <div className="gf-status">
-        <span className="gf-status-spin" aria-hidden />
-        <span>{liveStatus}</span>
+      <div className="gf-thinking" role="status" aria-label="Thinking">
+        <span /><span /><span />
       </div>
     );
   }

@@ -721,6 +721,24 @@ body { background: var(--bg); color: var(--text); }
 @keyframes gf-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .gf-status-spin { animation-duration: 1.6s; } }
 
+/* "Thinking" indicator — three gently bouncing dots while waiting for the reply. */
+.gf-thinking { display: inline-flex; align-items: center; gap: 6px; padding: 6px 2px; }
+.gf-thinking span {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text);
+  animation: gf-think 1.25s ease-in-out infinite;
+}
+.gf-thinking span:nth-child(2) { animation-delay: 0.18s; }
+.gf-thinking span:nth-child(3) { animation-delay: 0.36s; }
+@keyframes gf-think {
+  0%, 70%, 100% { opacity: 0.22; transform: translateY(0) scale(0.78); }
+  35% { opacity: 1; transform: translateY(-4px) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gf-thinking span { animation-name: gf-think-fade; transform: none; }
+}
+@keyframes gf-think-fade { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+
 /* Action receipt card ("Email sent ✓", "Deleted ✓") */
 .gf-receipt {
   display: inline-flex;

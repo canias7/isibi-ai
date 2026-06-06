@@ -1129,9 +1129,9 @@ export default function App() {
               <div className="thread">
                 {messages.map((m, i) => {
                   const streamingHere = busy && i === messages.length - 1 && m.role === 'assistant';
-                  // While only a tool-activity marker is present, AssistantMessage shows
-                  // its own spinner pill — don't also blink the cursor next to it.
-                  const statusOnly = streamingHere && m.content.includes('[[gfstatus:')
+                  // No visible text yet → AssistantMessage shows its own "thinking"
+                  // (or tool-activity) indicator, so don't also blink the bare cursor.
+                  const thinking = streamingHere
                     && !m.content.replace(/\[\[gfstatus:[^\]]*\]\]/g, '').replace(/\[\[gfstatus[^\]]*$/, '').trim();
                   return (
                     <div key={i} className={`msg ${m.role}`}>
@@ -1163,7 +1163,7 @@ export default function App() {
                             {cleanForDisplay(m.content)}
                           </>
                         )}
-                        {streamingHere && !statusOnly && <span className="cursor" />}
+                        {streamingHere && !thinking && <span className="cursor" />}
                       </div>
                       {m.role === 'assistant' && !streamingHere && plainText(m.content) && (
                         <div className="msg-actions">
