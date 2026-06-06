@@ -973,60 +973,170 @@ body { background: var(--bg); color: var(--text); }
 .conn-btn.on { background: var(--accent); color: #000; border-color: var(--accent); }
 .conn-btn.danger { background: #e5484d; color: #fff; border-color: #e5484d; }
 
-/* ---- Memory ---- */
-.mem-add { display: flex; gap: 8px; margin-bottom: 18px; }
-.mem-input {
-  flex: 1;
-  min-width: 0;
-  background: var(--bubble-user);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  padding: 12px 14px;
+/* ---- Memory (constellation modal) ---- */
+.memg {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
   color: var(--text);
-  font: inherit;
-  font-size: 15px;
+  background:
+    radial-gradient(420px 420px at 50% 44%, rgba(224, 161, 58, 0.10), transparent 70%),
+    #08080a;
+  padding-top: env(safe-area-inset-top);
+  animation: memgIn 0.22s ease;
 }
-.mem-input::placeholder { color: var(--text-dim); }
-.mem-input:focus { outline: none; border-color: rgba(255, 255, 255, 0.28); }
-.mem-add-btn {
+@keyframes memgIn { from { opacity: 0; } to { opacity: 1; } }
+/* faint dot grid */
+.memg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 22px 22px;
+  pointer-events: none;
+}
+
+.memg-top { position: relative; flex-shrink: 0; padding: 18px 16px 8px; text-align: center; z-index: 2; }
+.memg-title { font-size: 19px; font-weight: 700; margin: 0; }
+.memg-sub { font-size: 13px; color: var(--text-dim); margin: 4px 0 0; }
+.memg-close {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 34px; height: 34px;
+  border: none; background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-radius: 50%;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.memg-close:active { background: rgba(255, 255, 255, 0.14); }
+.memg-toggle {
+  position: absolute;
+  top: 19px; right: 58px;
+  border: none; background: transparent; padding: 0;
+  cursor: pointer;
+  display: grid; place-items: center;
+}
+
+.memg-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.memg-stage.paused .memg-core,
+.memg-stage.paused .memg-node,
+.memg-stage.paused .memg-lines { opacity: 0.4; }
+
+.memg-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.memg-line { stroke: rgba(255, 255, 255, 0.12); stroke-width: 1; animation: memgFade 0.5s ease backwards; }
+.memg-line.on { stroke: rgba(224, 161, 58, 0.55); }
+
+.memg-core {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px; height: 60px;
+  border-radius: 18px;
+  display: grid; place-items: center;
+  color: #2a1c05;
+  background: linear-gradient(160deg, #ffce6f, #e0951f);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 0 40px 6px rgba(224, 161, 58, 0.45);
+  animation: memgPulse 3.5s ease-in-out infinite;
+}
+@keyframes memgPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 0 36px 4px rgba(224, 161, 58, 0.40); }
+  50% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.30), 0 0 52px 10px rgba(224, 161, 58, 0.55); }
+}
+
+.memg-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 42vw;
+  padding: 6px 10px 6px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(20, 20, 24, 0.72);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  cursor: pointer;
+  color: var(--text);
+  text-align: left;
+  animation: memgPop 0.32s cubic-bezier(0.2, 0.7, 0.2, 1.2) backwards;
+}
+.memg-node.sel { border-color: rgba(224, 161, 58, 0.8); box-shadow: 0 0 0 1px rgba(224, 161, 58, 0.5); }
+.memg-ico {
   flex-shrink: 0;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  background: rgba(255, 255, 255, 0.04);
+  display: grid; place-items: center;
+}
+.memg-pill {
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+@keyframes memgPop { from { opacity: 0; transform: translate(-50%, -50%) scale(0.6); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes memgFade { from { opacity: 0; } to { opacity: 1; } }
+
+.memg-empty { position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); text-align: center; width: 80%; }
+.memg-empty-title { font-size: 15px; font-weight: 600; }
+.memg-empty-sub { font-size: 13px; color: var(--text-dim); margin-top: 4px; line-height: 1.5; }
+
+.memg-compose-wrap { flex-shrink: 0; padding: 8px 16px calc(14px + env(safe-area-inset-bottom)); z-index: 2; }
+.memg-editing { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-dim); padding: 0 6px 6px; }
+.memg-cancel { border: none; background: transparent; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; }
+.memg-compose {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 26px;
+  padding: 6px 6px 6px 8px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.memg-trash {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
+  border: none; background: transparent;
+  color: #e5757a;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.memg-trash:active { background: rgba(229, 72, 77, 0.15); }
+.memg-cinput {
+  flex: 1; min-width: 0;
+  background: transparent; border: none;
+  color: var(--text); font: inherit; font-size: 15px;
+  padding: 8px 6px;
+}
+.memg-cinput:focus { outline: none; }
+.memg-cinput::placeholder { color: var(--text-dim); }
+.memg-send {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
   border: none;
-  background: var(--accent);
-  color: #000;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 0 18px;
-  border-radius: 12px;
+  background: #fff; color: #000;
+  border-radius: 50%;
+  display: grid; place-items: center;
   cursor: pointer;
   transition: opacity 0.15s ease;
 }
-.mem-add-btn:disabled { opacity: 0.4; cursor: default; }
-.mem-add-btn:active:not(:disabled) { opacity: 0.7; }
-.mem-list { display: flex; flex-direction: column; gap: 8px; }
-.mem-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--bubble-user);
-  border-radius: 12px;
-  padding: 12px 14px;
+.memg-send:disabled { opacity: 0.35; cursor: default; }
+.memg-send:active:not(:disabled) { opacity: 0.7; }
+
+@media (prefers-reduced-motion: reduce) {
+  .memg, .memg-core, .memg-node, .memg-line { animation: none; }
 }
-.mem-text { flex: 1; min-width: 0; font-size: 15px; line-height: 1.45; word-break: break-word; }
-.mem-del {
-  flex-shrink: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-dim);
-  padding: 4px;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  transition: color 0.15s ease;
-}
-.mem-del:active { color: #e5484d; }
-.mem-empty { color: var(--text-dim); font-size: 14px; line-height: 1.55; padding: 8px 2px; }
 
 /* ---- Inbox list (email-list replies) ---- */
 .gf-emails {

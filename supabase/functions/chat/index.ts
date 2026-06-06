@@ -416,6 +416,7 @@ Deno.serve(async (req: Request) => {
   let tz = "UTC";
   let clientCards = false;
   let conversationId = ""; // for server-side persistence of the finished turn
+  let memoryOn = true;     // false = user paused the whole memory feature (no inject, no tool)
   try {
     const body = await req.json();
     messages = body.messages;
@@ -423,6 +424,7 @@ Deno.serve(async (req: Request) => {
     if (typeof body.tz === "string" && body.tz) tz = body.tz; // device timezone
     if (body.cards === true) clientCards = true; // client can render rich blocks (inbox cards)
     if (typeof body.conversationId === "string") conversationId = body.conversationId;
+    if (body.memory === false) memoryOn = false; // memory paused for this turn
     if (!Array.isArray(messages) || messages.length === 0) throw new Error("bad body");
   } catch {
     return new Response("Invalid request body — expected { messages: [...] }.", { status: 400, headers: cors });
@@ -448,8 +450,9 @@ Deno.serve(async (req: Request) => {
   let emailUI = false; // expose the rich inbox-card format only when an email app is in scope
   const extraHeaders: Record<string, string> = {};
   const appUser = userFromJwt(req);
-  // Kick off the memory read in parallel with the connector lookup below.
-  const memPromise = appUser ? fetchMemories(appUser) : Promise.resolve([] as string[]);
+  // Kick off the memory read in parallel with the connector lookup below (skip it
+  // entirely when the feature is paused).
+  const memPromise = (appUser && memoryOn) ? fetchMemories(appUser) : Promise.resolve([] as string[]);
   if (appUser) {
     const connected = await connectedToolkits(appUser);
     // If the client sent a per-session app list, scope tools to it (∩ connected);
@@ -459,20 +462,23 @@ Deno.serve(async (req: Request) => {
       const wanted = new Set(requestedApps.map((id) => APP_TO_SLUG[id]).filter(Boolean));
       apps = connected.filter((s) => wanted.has(s));
     }
-    // Always attach the MCP toolset for a signed-in user — even with no connectors
-    // it serves the built-in GF_SAVE_MEMORY tool, so "remember that…" works in any
-    // chat. emailUI (rich inbox cards) still only turns on for an email app.
-    emailUI = clientCards && (apps.includes("gmail") || apps.includes("outlook"));
-    const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}`;
-    mcpServers = [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }];
-    // Current MCP connector format (mcp-client-2025-11-20): the toolset lives
-    // in `tools`. cache_control caches the proxy-returned tool schemas — the
-    // big, stable part of the prompt — so follow-up turns re-read them at ~10%
-    // price instead of full. Only the tools prefix is cached on purpose: the
-    // system prompt carries a per-minute timestamp, and since the cache order
-    // is tools -> system -> messages, the tools cache stays stable regardless.
-    mcpTools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
-    extraHeaders["anthropic-beta"] = "mcp-client-2025-11-20";
+    // Attach the MCP toolset when there are connector tools OR memory is on (it
+    // serves the built-in GF_SAVE_MEMORY tool, so "remember that…" works in any
+    // chat). Paused memory adds &mem=0 so the proxy drops that tool. emailUI (rich
+    // inbox cards) still only turns on for an email app.
+    if (apps.length || memoryOn) {
+      emailUI = clientCards && (apps.includes("gmail") || apps.includes("outlook"));
+      const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}${memoryOn ? "" : "&mem=0"}`;
+      mcpServers = [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }];
+      // Current MCP connector format (mcp-client-2025-11-20): the toolset lives
+      // in `tools`. cache_control caches the proxy-returned tool schemas — the
+      // big, stable part of the prompt — so follow-up turns re-read them at ~10%
+      // price instead of full. Only the tools prefix is cached on purpose: the
+      // system prompt carries a per-minute timestamp, and since the cache order
+      // is tools -> system -> messages, the tools cache stays stable regardless.
+      mcpTools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
+      extraHeaders["anthropic-beta"] = "mcp-client-2025-11-20";
+    }
   }
 
   // Current time in the user's local timezone (falls back to UTC if tz is bad).

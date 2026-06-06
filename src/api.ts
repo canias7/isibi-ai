@@ -93,6 +93,7 @@ export async function streamChat(
   apps?: string[],
   conversationId?: string,
   onModel?: (model: string) => void,
+  memoryOn?: boolean,
 ): Promise<void> {
   // Send the signed-in user's access token so the backend acts as *this* user
   // (their connected apps), not a shared identity. Falls back to anon.
@@ -117,7 +118,9 @@ export async function streamChat(
     // `apps` = connector ids enabled for this session (undefined = use all connected).
     // `cards: true` signals this client can render rich blocks (e.g. inbox cards),
     // so the backend only emits them to bundles that know how to display them.
-    body: JSON.stringify({ messages, tz, cards: true, ...(apps ? { apps } : {}), ...(conversationId ? { conversationId } : {}) }),
+    // `memory: false` pauses the whole memory feature for this turn (no injection,
+    // and the save-memory tool is dropped). Omitted when on (server defaults to on).
+    body: JSON.stringify({ messages, tz, cards: true, ...(apps ? { apps } : {}), ...(conversationId ? { conversationId } : {}), ...(memoryOn === false ? { memory: false } : {}) }),
     signal,
   });
 

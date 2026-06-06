@@ -8,7 +8,8 @@ import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconPhotos, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory } from './icons';
-import { listMemories, addMemory, deleteMemory, type Memory } from './memory';
+import { listMemories, addMemory, updateMemory, deleteMemory, type Memory } from './memory';
+import MemoryGraph from './MemoryGraph';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { tap } from './haptics';
@@ -16,7 +17,7 @@ import { biometryAvailable, unlock } from './biometric';
 import { registerPush, pushStatus } from './push';
 import { capturePhoto } from './camera';
 
-type View = 'chat' | 'connectors' | 'settings' | 'memory';
+type View = 'chat' | 'connectors' | 'settings';
 
 interface Conversation {
   id: string;
@@ -309,9 +310,10 @@ export default function App() {
   const [noteMsg, setNoteMsg] = useState(''); // transient Settings note (e.g. why a toggle didn't stick)
   // App-level memory (manual; global across chats). Loaded when the Memory screen opens.
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [memInput, setMemInput] = useState('');
-  const [memBusy, setMemBusy] = useState(false);
   const [memLoaded, setMemLoaded] = useState(false);
+  const [memOpen, setMemOpen] = useState(false);
+  // Whole-feature on/off (paused = not fed into chats and the save tool is dropped).
+  const [memEnabled, setMemEnabled] = useState(() => { try { return localStorage.getItem('gf_memory_on') !== '0'; } catch { return true; } });
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -593,6 +595,7 @@ export default function App() {
             return copy;
           });
         },
+        memEnabled,
       );
       // Clear transient tool-activity markers from the finished reply so storage,
       // copy, and search stay clean (they're only meant to show live).
@@ -879,7 +882,16 @@ export default function App() {
     setView(v);
     setSidebarOpen(false);
     if (v === 'chat') void loadConnectors(); // pick up anything connected meanwhile
-    if (v === 'memory') void loadMems();
+  }
+
+  function openMemory() {
+    setMemOpen(true);
+    setSidebarOpen(false);
+    void loadMems();
+  }
+
+  function closeMemory() {
+    setMemOpen(false);
   }
 
   async function loadMems() {
@@ -890,24 +902,32 @@ export default function App() {
     setMemLoaded(true);
   }
 
-  async function addMem() {
-    const content = memInput.trim();
-    if (!content || memBusy) return;
-    setMemBusy(true);
-    const m = await addMemory(content);
-    if (m) {
-      setMemories((prev) => [m, ...prev]);
-      setMemInput('');
-    } else {
-      flashNote("Couldn't save that memory — try again.");
-    }
-    setMemBusy(false);
+  async function addMem(content: string): Promise<boolean> {
+    const c = content.trim();
+    if (!c) return false;
+    const m = await addMemory(c);
+    if (m) { setMemories((prev) => [m, ...prev]); return true; }
+    flashNote("Couldn't save that memory — try again.");
+    return false;
   }
 
-  async function delMem(id: string) {
+  async function updateMem(id: string, content: string): Promise<boolean> {
+    const c = content.trim();
+    if (!c) return false;
+    const ok = await updateMemory(id, c);
+    if (ok) setMemories((prev) => prev.map((m) => (m.id === id ? { ...m, content: c } : m)));
+    else flashNote("Couldn't update that memory — try again.");
+    return ok;
+  }
+
+  function delMem(id: string) {
     setMemories((prev) => prev.filter((m) => m.id !== id)); // optimistic
-    const ok = await deleteMemory(id);
-    if (!ok) void loadMems(); // restore on failure
+    void deleteMemory(id).then((ok) => { if (!ok) void loadMems(); }); // restore on failure
+  }
+
+  function toggleMem(next: boolean) {
+    setMemEnabled(next);
+    try { localStorage.setItem('gf_memory_on', next ? '1' : '0'); } catch { /* ignore */ }
   }
 
   function newChat() {
@@ -995,7 +1015,7 @@ export default function App() {
   if (!session) return <Login />;
 
   const isGuest = !!session.user.is_anonymous;
-  const title = view === 'connectors' ? 'Connectors' : view === 'settings' ? 'Settings' : view === 'memory' ? 'Memory' : 'Go Farther';
+  const title = view === 'connectors' ? 'Connectors' : view === 'settings' ? 'Settings' : 'Go Farther';
   // Recent chats: pinned first, then newest. Filtered by the search box (title +
   // message text).
   const q = chatSearch.trim().toLowerCase();
@@ -1030,7 +1050,7 @@ export default function App() {
           <button className={`side-item ${view === 'connectors' ? 'active' : ''}`} onClick={() => go('connectors')}>
             <span className="ico"><IconConnectors size={18} /></span> Connectors
           </button>
-          <button className={`side-item ${view === 'memory' ? 'active' : ''}`} onClick={() => go('memory')}>
+          <button className={`side-item ${memOpen ? 'active' : ''}`} onClick={openMemory}>
             <span className="ico"><IconMemory size={18} /></span> Memory
           </button>
           <button className={`side-item ${view === 'settings' ? 'active' : ''}`} onClick={() => go('settings')}>
@@ -1156,43 +1176,6 @@ export default function App() {
             {!isGuest && <button className="conn-btn" onClick={signOut}>Sign out</button>}
           </div>
         </div>
-      ) : view === 'memory' ? (
-        <div className="page">
-          <div className="page-inner">
-            <h1 className="page-title">Memory</h1>
-            <p className="page-sub">
-              Things you want Go Farther to remember about you — used across every chat. Add or remove them anytime.
-            </p>
-            <div className="mem-add">
-              <input
-                className="mem-input"
-                value={memInput}
-                onChange={(e) => setMemInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') void addMem(); }}
-                placeholder="e.g. I prefer concise replies"
-                maxLength={500}
-              />
-              <button className="mem-add-btn" onClick={() => void addMem()} disabled={!memInput.trim() || memBusy}>
-                Add
-              </button>
-            </div>
-            {memLoaded && memories.length === 0 ? (
-              <div className="mem-empty">No memories yet. Add one above and I'll keep it in mind.</div>
-            ) : (
-              <div className="mem-list">
-                {memories.map((m) => (
-                  <div className="mem-item" key={m.id}>
-                    <span className="mem-text">{m.content}</span>
-                    <button className="mem-del" aria-label="Delete memory" onClick={() => void delMem(m.id)}>
-                      <IconTrash size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {noteMsg && <p className="set-note">{noteMsg}</p>}
-          </div>
-        </div>
       ) : (
         <>
           <div className="live-bg" aria-hidden="true">
@@ -1293,7 +1276,7 @@ export default function App() {
                 staggered bottom-to-top; labels sit to the right (no overlap) */}
             {plusOpen && (
               <div className="radial" role="menu">
-                <button className="radial-item" style={{ left: 0, bottom: 300, animationDelay: '200ms' }} onClick={() => { setPlusOpen(false); go('memory'); }}>
+                <button className="radial-item" style={{ left: 0, bottom: 300, animationDelay: '200ms' }} onClick={() => { setPlusOpen(false); openMemory(); }}>
                   <IconMemory size={20} /><span className="radial-label">Memory</span>
                 </button>
                 <button className="radial-item" style={{ left: 24, bottom: 240, animationDelay: '150ms' }} onClick={() => openPicker('camera')}>
@@ -1379,6 +1362,19 @@ export default function App() {
             <p className="hint">Go Farther can make mistakes — double-check important info.</p>
           </div>
         </>
+      )}
+
+      {memOpen && (
+        <MemoryGraph
+          memories={memories}
+          loaded={memLoaded}
+          enabled={memEnabled}
+          onAdd={addMem}
+          onUpdate={updateMem}
+          onDelete={delMem}
+          onToggle={toggleMem}
+          onClose={closeMemory}
+        />
       )}
     </div>
   );

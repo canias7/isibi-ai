@@ -266,7 +266,7 @@ async function userToolPrefs(uid: string): Promise<Record<string, string[]>> {
   }
 }
 
-async function listTools(apps: string[], prefs: Record<string, string[]>): Promise<Tool[]> {
+async function listTools(apps: string[], prefs: Record<string, string[]>, memOn: boolean): Promise<Tool[]> {
   const out: Tool[] = [];
   // Only the toolkits the chat function scoped in for this session. Empty = no
   // connector tools (e.g. user has none connected, or de-scoped them this chat).
@@ -276,8 +276,9 @@ async function listTools(apps: string[], prefs: Record<string, string[]>): Promi
     const enabled = prefs[tk] ?? [];
     out.push(...(await toolsForToolkit(tk, enabled)));
   }
-  // Long-term memory is always available, with or without connectors.
-  out.push(MEMORY_TOOL);
+  // Long-term memory is available with or without connectors — unless paused
+  // (the chat function passes &mem=0 when the user turned the feature off).
+  if (memOn) out.push(MEMORY_TOOL);
   return out;
 }
 
@@ -317,6 +318,7 @@ Deno.serve(async (req: Request) => {
   const reqUrl = new URL(req.url);
   const apps = (reqUrl.searchParams.get("apps") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   const reqUser = reqUrl.searchParams.get("user") || "";
+  const memOn = reqUrl.searchParams.get("mem") !== "0"; // memory tool on unless the chat fn paused it
 
   let msg: any;
   try { msg = await req.json(); } catch { return new Response("bad json", { status: 400 }); }
@@ -342,7 +344,7 @@ Deno.serve(async (req: Request) => {
       const d = msg.params?.discover;
       if (d) return J({ jsonrpc: "2.0", id, result: { tools: [], _discover: await discover(String(d), !!msg.params?.important) } });
       const prefs = await userToolPrefs(reqUser);
-      return J({ jsonrpc: "2.0", id, result: { tools: await listTools(apps, prefs) } });
+      return J({ jsonrpc: "2.0", id, result: { tools: await listTools(apps, prefs, memOn) } });
     } catch (e) {
       return J({ jsonrpc: "2.0", id, error: { code: -32000, message: e instanceof Error ? e.message : String(e) } });
     }
