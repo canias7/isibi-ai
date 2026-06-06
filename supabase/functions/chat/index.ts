@@ -380,6 +380,23 @@ async function firePush(authHeader: string, body: string): Promise<void> {
     });
   } catch { /* inert until APNs is configured */ }
 }
+// App-level memory: facts/preferences the user manually saved. Fed into the
+// system prompt so the assistant personalizes across every chat.
+async function fetchMemories(uid: string): Promise<string[]> {
+  if (!SB_URL || !SB_SERVICE_KEY || !uid) return [];
+  try {
+    const url = `${SB_URL}/rest/v1/user_memory?user_id=eq.${encodeURIComponent(uid)}&select=content&order=created_at.asc`;
+    const r = await fetch(url, {
+      headers: { apikey: SB_SERVICE_KEY, authorization: `Bearer ${SB_SERVICE_KEY}` },
+    });
+    if (!r.ok) return [];
+    const rows = await r.json();
+    if (!Array.isArray(rows)) return [];
+    return rows.map((x: { content?: string }) => (x?.content || "").trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
 
 Deno.serve(async (req: Request) => {
   const cors = corsFor(req);
@@ -428,6 +445,8 @@ Deno.serve(async (req: Request) => {
   let emailUI = false; // expose the rich inbox-card format only when an email app is in scope
   const extraHeaders: Record<string, string> = {};
   const appUser = userFromJwt(req);
+  // Kick off the memory read in parallel with the connector lookup below.
+  const memPromise = appUser ? fetchMemories(appUser) : Promise.resolve([] as string[]);
   if (appUser) {
     const connected = await connectedToolkits(appUser);
     // If the client sent a per-session app list, scope tools to it (∩ connected);
@@ -464,6 +483,12 @@ Deno.serve(async (req: Request) => {
   // When an email app is in scope, render inbox listings as rich cards: the app
   // turns a ```gf-emails JSON block into a styled email list.
   const emailCardsSystem = `\n\nEMAIL DISPLAY — when an email tool is available, follow these rules EXACTLY:\n• Whenever you present multiple emails — the inbox, search results, OR a set of emails for the user to choose from (e.g. "which one?") — render them as a single fenced code block tagged gf-emails containing ONLY a JSON array (one object per email) with keys "from", "email", "subject", "snippet" (≤ 12 words), "time" (short label in the user's timezone, e.g. "9:41 AM", "Yesterday", "May 19"), "unread" (boolean), "id" (the Gmail message id, used to open the email). NEVER list emails as a plain numbered or bulleted list. You may write at most one short line (such as a question) before the block, but the emails themselves must be inside the block.\n• To open, read, show, view, or re-open ONE specific email — including "open it", "read that email", "show me the email", or tapping or hitting "try again" on an email — your ENTIRE reply MUST be a single fenced code block tagged gf-message containing one JSON object whose only required key is "id" (the Gmail message id); the app loads the sender, subject, body and attachments itself. That block is the ONLY acceptable way to show an email: do NOT type out the From/To/Date/Subject or the body as text or markdown, do NOT add any words before or after the block, and do NOT summarize unless explicitly asked. If a user message contains a marker like [[gfid:ID]], they tapped an email — reply with the gf-message block for that exact id.\n• When you show the user's existing drafts, use the SAME cards (gf-emails for the list, gf-message for one), with "draft": true on each item and its "id" set to the draft's message id so it still opens. ANY display of email content — inbox, search, drafts, or a single message — is ALWAYS a card; NEVER write emails out as plain text or a raw JSON dump.\n• To look up people or contacts (find someone's email or phone, check whether a contact exists, "do I have a contact for X", etc.), CALL the contacts/people search tool, then reply with AT MOST one short lead-in line (e.g. "Here's what I found:"). Do NOT write the contacts out yourself and do NOT put them in a code block — the app renders the matching contacts as a card automatically (with each person's photo where they have one).\n• Only when the user EXPLICITLY asks to summarize, draft, reply to, or send an email do you reply in normal text (no code block).`;
+  // User's saved memories (manual, app-level) -> personalize every chat. Placed
+  // after the timestamped baseSystem so it doesn't disturb the cached tools prefix.
+  const mems = await memPromise;
+  const memorySystem = mems.length
+    ? `\n\nWHAT YOU KNOW ABOUT THIS USER (they saved these for you to remember; honor them unless a message clearly overrides one):\n${mems.map((m) => `• ${m}`).join("\n")}`
+    : "";
   // Route this turn: Opus for genuinely complex/long asks, Sonnet for everything
   // else. A single default model keeps the cached tool-schema prefix warm.
   const model = pickModel(messages);
@@ -471,7 +496,7 @@ Deno.serve(async (req: Request) => {
   const reqBody: Record<string, unknown> = {
     model,
     max_tokens: 8192,
-    system: baseSystem + (emailUI ? emailCardsSystem : ""),
+    system: baseSystem + memorySystem + (emailUI ? emailCardsSystem : ""),
     messages: messages.map((m) => ({ role: m.role, content: buildContent(m) })),
     stream: true,
   };

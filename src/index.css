@@ -973,6 +973,61 @@ body { background: var(--bg); color: var(--text); }
 .conn-btn.on { background: var(--accent); color: #000; border-color: var(--accent); }
 .conn-btn.danger { background: #e5484d; color: #fff; border-color: #e5484d; }
 
+/* ---- Memory ---- */
+.mem-add { display: flex; gap: 8px; margin-bottom: 18px; }
+.mem-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bubble-user);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+}
+.mem-input::placeholder { color: var(--text-dim); }
+.mem-input:focus { outline: none; border-color: rgba(255, 255, 255, 0.28); }
+.mem-add-btn {
+  flex-shrink: 0;
+  border: none;
+  background: var(--accent);
+  color: #000;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.mem-add-btn:disabled { opacity: 0.4; cursor: default; }
+.mem-add-btn:active:not(:disabled) { opacity: 0.7; }
+.mem-list { display: flex; flex-direction: column; gap: 8px; }
+.mem-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bubble-user);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.mem-text { flex: 1; min-width: 0; font-size: 15px; line-height: 1.45; word-break: break-word; }
+.mem-del {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  padding: 4px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  transition: color 0.15s ease;
+}
+.mem-del:active { color: #e5484d; }
+.mem-empty { color: var(--text-dim); font-size: 14px; line-height: 1.55; padding: 8px 2px; }
+
 /* ---- Inbox list (email-list replies) ---- */
 .gf-emails {
   white-space: normal;
