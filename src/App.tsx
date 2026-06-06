@@ -12,7 +12,7 @@ import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { tap } from './haptics';
 import { biometryAvailable, unlock } from './biometric';
-import { registerPush } from './push';
+import { registerPush, pushStatus } from './push';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -448,9 +448,9 @@ export default function App() {
 
   // A short-lived note in Settings (auto-clears) — used to explain why a toggle
   // didn't turn on (no biometrics, notifications denied, …).
-  function flashNote(msg: string) {
+  function flashNote(msg: string, ms = 4500) {
     setNoteMsg(msg);
-    setTimeout(() => setNoteMsg((m) => (m === msg ? '' : m)), 4500);
+    setTimeout(() => setNoteMsg((m) => (m === msg ? '' : m)), ms);
   }
 
   // Coming back after a while should feel fresh: if the app was backgrounded for
@@ -723,11 +723,13 @@ export default function App() {
     flashNote('Sending a test notification…');
     try {
       const r = await sendTestPush();
-      flashNote(
-        r.ok ? 'Test sent — check your lock screen.'
-          : r.error === 'no registered devices' ? 'No device registered yet — make sure Notifications is on and you tapped Allow.'
-          : `Couldn’t send: ${r.error || 'unknown error'}`,
-      );
+      if (r.ok) { flashNote('Test sent — check your lock screen.'); return; }
+      if (r.error === 'no registered devices') {
+        const s = pushStatus();
+        flashNote(`No device registered. ${s || 'Toggle Notifications off/on and tap Allow.'}`, 9000);
+        return;
+      }
+      flashNote(`Couldn’t send: ${r.error || 'unknown error'}`, 9000);
     } catch {
       flashNote('Couldn’t reach the server — try again.');
     }
