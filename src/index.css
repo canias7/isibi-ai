@@ -721,6 +721,28 @@ body { background: var(--bg); color: var(--text); }
 @keyframes gf-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .gf-status-spin { animation-duration: 1.6s; } }
 
+/* Action receipt card ("Email sent ✓", "Deleted ✓") */
+.gf-receipt {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: normal;
+  margin: 6px 0;
+  padding: 9px 13px;
+  background: #181a1f;
+  border: 1px solid #ffffff14;
+  border-radius: 12px;
+}
+.gf-receipt-ico {
+  width: 22px; height: 22px; flex-shrink: 0;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: #1f8a4d; color: #fff;
+}
+.gf-receipt-danger .gf-receipt-ico { background: #b4691a; }
+.gf-receipt-title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.2; }
+.gf-receipt-detail { font-size: 12px; color: var(--text-dim); margin-top: 1px; }
+
 .side-foot {
   margin-top: auto;
   padding-top: 8px;

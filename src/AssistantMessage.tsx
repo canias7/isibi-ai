@@ -1,7 +1,7 @@
 import Markdown from './Markdown';
 import {
-  EmailList, EmailSkeleton, EmailDetail, EmailDetailSkeleton, ContactsList,
-  type EmailItem, type EmailMessage, type ContactItem,
+  EmailList, EmailSkeleton, EmailDetail, EmailDetailSkeleton, ContactsList, ReceiptCard,
+  type EmailItem, type EmailMessage, type ContactItem, type ReceiptData,
 } from './EmailList';
 
 // The assistant is asked to emit ```gf-emails / ```gf-message blocks, but models
@@ -95,6 +95,8 @@ export default function AssistantMessage(
   // Contacts card (gf-contacts): a JSON array of {name,email,phone}. Detected by
   // its own tag so it renders as people rows, not email rows.
   const isContacts = f.lang === 'gf-contacts' && Array.isArray(parsed) && parsed.length > 0;
+  // Receipt card (gf-receipt): a {kind,title} object confirming a completed action.
+  const isReceipt = f.lang === 'gf-receipt' && obj;
   const list = gf
     ? (Array.isArray(parsed) && parsed.length > 0)
     : (Array.isArray(parsed) && parsed.length > 0 && parsed.every(isEmailItem));
@@ -112,11 +114,13 @@ export default function AssistantMessage(
   return (
     <>
       {f.before.trim() && <Markdown text={f.before} />}
-      {isContacts
-        ? <ContactsList items={parsed as ContactItem[]} />
-        : list
-          ? <EmailList items={parsed as EmailItem[]} onOpen={onOpen} />
-          : <EmailDetail msg={parsed as EmailMessage} />}
+      {isReceipt
+        ? <ReceiptCard data={parsed as ReceiptData} />
+        : isContacts
+          ? <ContactsList items={parsed as ContactItem[]} />
+          : list
+            ? <EmailList items={parsed as EmailItem[]} onOpen={onOpen} />
+            : <EmailDetail msg={parsed as EmailMessage} />}
       {f.after.trim() && <Markdown text={f.after} />}
     </>
   );

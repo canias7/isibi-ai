@@ -339,6 +339,30 @@ function statusLabel(name: string): string {
   return "Working…";
 }
 
+// Action tools that warrant a "done" receipt, mapped to a receipt kind. Reads
+// (fetch/search/list) return "" — they show a card, not a receipt.
+function actionKind(name: string): string {
+  const n = (name || "").toUpperCase();
+  if (n.includes("REPLY")) return "reply";
+  if (n.includes("SEND_EMAIL") || n.includes("SEND_DRAFT") || (n.includes("SEND") && n.includes("MAIL"))) return "sent";
+  if (n.includes("CREATE_DRAFT") || n.includes("CREATE_EMAIL_DRAFT")) return "draft";
+  if (n.includes("MOVE_TO_TRASH")) return "trash";
+  if (n.includes("DELETE")) return "deleted";
+  if (n.includes("PATCH_LABEL") || n.includes("MOVE_MESSAGE") || (n.includes("UPDATE") && n.includes("EMAIL"))) return "updated";
+  return "";
+}
+function receiptFor(kind: string): { kind: string; title: string } {
+  switch (kind) {
+    case "sent": return { kind, title: "Email sent" };
+    case "reply": return { kind, title: "Reply sent" };
+    case "draft": return { kind, title: "Draft saved" };
+    case "deleted": return { kind, title: "Deleted" };
+    case "trash": return { kind, title: "Moved to Trash" };
+    case "updated": return { kind, title: "Updated" };
+    default: return { kind: "done", title: "Done" };
+  }
+}
+
 Deno.serve(async (req: Request) => {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -472,6 +496,8 @@ Deno.serve(async (req: Request) => {
       let peopleCalled = false;                       // the model searched contacts/people
       let peopleSlug = "";                            // exact people-search slug to re-run
       let peopleArgs: unknown = {};                   // args of that people-search call
+      const actionById: Record<string, string> = {}; // tool_use id -> receipt kind (action tools only)
+      let receipt: { kind: string; title: string } | null = null; // a confirmed successful action
       try {
         for (;;) {
           const { done, value } = await reader.read();
@@ -500,6 +526,15 @@ Deno.serve(async (req: Request) => {
                 // Stream a transient "working…" status to the client (out-of-band
                 // from fullText, so the card/post-processor logic is unaffected).
                 controller.enqueue(enc.encode(`[[gfstatus:${statusLabel(toolName[evt.index])}]]`));
+                const ak = actionKind(toolName[evt.index]);
+                if (ak && evt.content_block.id) actionById[String(evt.content_block.id)] = ak;
+              }
+              // An MCP tool result — mark the action's outcome for the receipt card
+              // (only on real success, so we never show a false "Sent ✓").
+              if (evt.type === "content_block_start" && evt.content_block && evt.content_block.type === "mcp_tool_result") {
+                const tid = String(evt.content_block.tool_use_id ?? "");
+                const ak = tid && actionById[tid];
+                if (ak && evt.content_block.is_error !== true) receipt = receiptFor(ak);
               }
               if (evt.type === "content_block_delta" && evt.delta?.type === "input_json_delta" && evt.index in toolJson) {
                 toolJson[evt.index] += evt.delta.partial_json ?? "";
@@ -541,7 +576,7 @@ Deno.serve(async (req: Request) => {
           // Explicit open/show + the model produced a card: emit just that block
           // (card only, drop any surrounding prose).
           controller.enqueue(enc.encode(fullText.match(/```gf[\s\S]*?```/)?.[0] ?? fullText));
-        } else if (!hasGf && !summarizeIntent && emailUI && (openedIds.size === 1 || listCalled)) {
+        } else if (!hasGf && !summarizeIntent && emailUI && !receipt && (openedIds.size === 1 || listCalled)) {
           // The model fetched email(s) but produced no card — build & inject one.
           let card = "";
           if (openedIds.size === 1) {
@@ -551,7 +586,7 @@ Deno.serve(async (req: Request) => {
             if (json) card = `\`\`\`gf-emails\n${json}\n\`\`\``;
           }
           controller.enqueue(enc.encode(bufferEmail ? (card || fullText) : (card ? `\n\n${card}` : "")));
-        } else if (!hasGf && !summarizeIntent && emailUI && peopleCalled) {
+        } else if (!hasGf && !summarizeIntent && emailUI && !receipt && peopleCalled) {
           // The model searched contacts but produced no card — build & inject one.
           const json = await buildContactsCard(appUser ?? "", peopleSlug, peopleArgs);
           const card = json ? `\`\`\`gf-contacts\n${json}\n\`\`\`` : "";
@@ -560,6 +595,8 @@ Deno.serve(async (req: Request) => {
           // Buffered but not an email turn after all — emit the held text.
           controller.enqueue(enc.encode(fullText));
         }
+        // A confirmed successful action — append a guaranteed receipt card.
+        if (receipt) controller.enqueue(enc.encode(`\n\n\`\`\`gf-receipt\n${JSON.stringify(receipt)}\n\`\`\``));
       } catch (e) {
         controller.enqueue(enc.encode(`\n⚠️ ${e instanceof Error ? e.message : String(e)}`));
       } finally {

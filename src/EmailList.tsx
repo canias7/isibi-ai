@@ -191,6 +191,25 @@ export function ContactsList({ items }: { items: ContactItem[] }) {
   );
 }
 
+// ---- Action receipt (gf-receipt: "Email sent ✓", "Deleted ✓", …) ----
+export interface ReceiptData { kind?: string; title: string; detail?: string }
+export function ReceiptCard({ data }: { data: ReceiptData }) {
+  const danger = data.kind === 'deleted' || data.kind === 'trash';
+  return (
+    <div className={`gf-receipt ${danger ? 'gf-receipt-danger' : ''}`}>
+      <span className="gf-receipt-ico">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+      </span>
+      <div className="gf-receipt-text">
+        <div className="gf-receipt-title">{data.title}</div>
+        {data.detail && <div className="gf-receipt-detail">{data.detail}</div>}
+      </div>
+    </div>
+  );
+}
+
 // ---- Attachments ----
 const ATT_COLORS: Record<string, string> = {
   pdf: '#E8453C', doc: '#2B7CD3', docx: '#2B7CD3', txt: '#5b6470',
