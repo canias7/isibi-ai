@@ -1037,12 +1037,6 @@ body { background: var(--bg); color: var(--text); }
 .gf-body-loading { color: var(--text-dim); }
 .gf-body-wrap { margin-top: 8px; }
 .gf-body-frame { width: 100%; border: 0; min-height: 140px; background: #fff; border-radius: 10px; display: block; }
-.gf-show-images {
-  display: inline-block; margin-bottom: 8px;
-  background: #ffffff0f; border: 1px solid #ffffff24; color: var(--text);
-  font: inherit; font-size: 12.5px; font-weight: 600; padding: 7px 12px; border-radius: 8px; cursor: pointer;
-}
-.gf-show-images:active { background: #ffffff1f; }
 
 .gf-att-list { margin-top: 12px; }
 .gf-att { display: flex; align-items: center; gap: 11px; }

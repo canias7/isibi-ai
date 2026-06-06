@@ -274,14 +274,9 @@ function AttachmentCard(
 }
 
 // ---- Real-HTML email body (sandboxed iframe) ----
-// Block only REMOTE (http) images by default — privacy (they track opens).
-// Inline cid: images (resolved to data: URIs from the user's own attachments)
-// are safe and stay visible.
-function stripRemoteImages(html: string): string {
-  return html.replace(/<img\b[^>]*>/gi, (tag) =>
-    /\ssrc=["']?https?:/i.test(tag) ? tag.replace(/\s(src|srcset)=/gi, ' data-blk-$1=') : tag,
-  );
-}
+// Remote images load by default (like Gmail / Apple Mail); insecure http URLs are
+// auto-upgraded to https below so they aren't blocked as mixed content. Inline
+// cid: images are resolved to data: URIs from the user's own attachments.
 const FRAME_HEAD =
   '<!doctype html><html><head>' +
   // Auto-upgrade insecure http:// images to https:// — otherwise the HTTPS app
@@ -307,8 +302,6 @@ function fmtTime(date?: string): string {
 function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fallback: string; onMeta?: (m: EmailMeta) => void }) {
   const [status, setStatus] = useState<'loading' | 'ok' | 'fail'>('loading');
   const [html, setHtml] = useState('');
-  const [hasImages, setHasImages] = useState(false); // remote http images
-  const [showImages, setShowImages] = useState(true); // render images by default (like a normal mail app)
   const [atts, setAtts] = useState<MsgAttachment[]>([]);
   const [cidMap, setCidMap] = useState<Record<string, string>>({});
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
@@ -317,14 +310,13 @@ function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fa
 
   useEffect(() => {
     let alive = true;
-    setStatus('loading'); setShowImages(true); setHtml(''); setAtts([]); setCidMap({}); setThumbs({});
+    setStatus('loading'); setHtml(''); setAtts([]); setCidMap({}); setThumbs({});
     (async () => {
       try {
         const r = await fetchEmailHtml(id, app);
         if (!alive) return;
         onMeta?.(r.meta);
         setAtts(r.attachments);
-        setHasImages(r.hasImages);
         setHtml(r.html);
         setStatus(r.html ? 'ok' : 'fail');
         // Fetch a hosted URL for each image attachment once; reuse it for the
@@ -393,15 +385,12 @@ function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fa
   if (status === 'loading') return <div className="gf-msg-body gf-body-loading">Loading email…</div>;
   if (status === 'fail') return <div className="gf-msg-body">{fallback || 'Couldn’t load this email.'}</div>;
 
-  let doc = showImages ? html : stripRemoteImages(html);
+  let doc = html;
   for (const [cid, src] of Object.entries(cidMap)) doc = doc.split('cid:' + cid).join(src);
 
   return (
     <>
       <div className="gf-body-wrap">
-        {hasImages && !showImages && (
-          <button className="gf-show-images" onClick={() => setShowImages(true)}>🖼 Show images</button>
-        )}
         <iframe
           ref={frameRef}
           className="gf-body-frame"
