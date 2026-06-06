@@ -7,7 +7,7 @@ import Connectors from './Connectors';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconPhotos, IconFiles, IconX, IconDoc } from './icons';
+import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconPhotos, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck } from './icons';
 import { App as CapApp } from '@capacitor/app';
 
 type View = 'chat' | 'connectors' | 'settings';
@@ -52,6 +52,32 @@ function saveChats(uid: string, chats: Conversation[]) {
   } catch {
     /* storage full / unavailable */
   }
+}
+
+// Pinned chat ids (device-local — kept separate from the synced chat list so a
+// cloud merge can't wipe them).
+const pinsKey = (uid: string) => `gf_pins_${uid}`;
+function loadPins(uid: string): Set<string> {
+  try {
+    const v = JSON.parse(localStorage.getItem(pinsKey(uid)) || '[]');
+    return new Set(Array.isArray(v) ? v : []);
+  } catch {
+    return new Set();
+  }
+}
+function savePins(uid: string, pins: Set<string>) {
+  try { localStorage.setItem(pinsKey(uid), JSON.stringify([...pins])); } catch { /* ignore */ }
+}
+
+// Copy text to the clipboard, with a hidden-textarea fallback for older webviews.
+async function copyText(s: string): Promise<boolean> {
+  try { await navigator.clipboard.writeText(s); return true; } catch { /* fall through */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = s; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    return true;
+  } catch { return false; }
 }
 
 // ---- Cloud sync (conversations table, RLS-scoped to this user) ----
@@ -179,6 +205,13 @@ function cleanForDisplay(s: string): string {
   return s.replace(/\s*\[\[gfid:[^\]]*\]\]/g, '');
 }
 
+// The copyable plain text of an assistant reply — strips rich card blocks and
+// the internal marker, so "Copy" yields readable text (and is hidden for a
+// card-only reply where there's nothing to copy).
+function plainText(s: string): string {
+  return s.replace(/```gf[\s\S]*?```/g, '').replace(/\[\[gfid:[^\]]*\]\]/g, '').trim();
+}
+
 // Flip to `true` to show the email/password login screen. When `false`, the app
 // skips the login UI and uses a silent anonymous "guest" session, so identity
 // (per-user connectors + history) still works without a sign-in wall.
@@ -226,6 +259,12 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [view, setView] = useState<View>('chat');
+  // Chat management (sidebar): search filter, pinned ids, inline rename, copy feedback.
+  const [pinned, setPinned] = useState<Set<string>>(new Set());
+  const [chatSearch, setChatSearch] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -309,8 +348,10 @@ export default function App() {
       setChats([]);
       setMessages([]);
       setCurrentId(cid());
+      setPinned(new Set());
       return;
     }
+    setPinned(loadPins(uid));
     const loaded = loadChats(uid);
     setChats(loaded);
     setCurrentId(loaded[0]?.id ?? cid());
@@ -567,6 +608,42 @@ export default function App() {
     }
   }
 
+  function togglePin(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setPinned((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      if (uid) savePins(uid, next);
+      return next;
+    });
+  }
+
+  function startRename(c: Conversation, e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditingId(c.id);
+    setEditingTitle(c.title || '');
+  }
+  function commitRename() {
+    const id = editingId;
+    if (!id) return;
+    const title = editingTitle.trim() || 'New chat';
+    setEditingId(null);
+    setChats((prev) => {
+      const next = prev.map((c) => (c.id === id ? { ...c, title } : c));
+      if (uid) saveChats(uid, next);
+      const c = next.find((x) => x.id === id);
+      if (uid && c) void syncSave(uid, c);
+      return next;
+    });
+  }
+
+  async function copyMsg(i: number, text: string) {
+    if (await copyText(text)) {
+      setCopiedIdx(i);
+      setTimeout(() => setCopiedIdx((cur) => (cur === i ? null : cur)), 1500);
+    }
+  }
+
   async function signOut() {
     stopStream();
     setSidebarOpen(false);
@@ -585,8 +662,17 @@ export default function App() {
 
   const isGuest = !!session.user.is_anonymous;
   const title = view === 'connectors' ? 'Connectors' : view === 'settings' ? 'Settings' : 'Go Farther';
-  // Recent chats, newest first — most recently updated/opened at the top.
-  const recentChats = [...chats].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  // Recent chats: pinned first, then newest. Filtered by the search box (title +
+  // message text).
+  const q = chatSearch.trim().toLowerCase();
+  const recentChats = chats
+    .filter((c) => !q || (c.title || '').toLowerCase().includes(q) || c.messages.some((m) => m.content.toLowerCase().includes(q)))
+    .sort((a, b) => {
+      const pa = pinned.has(a.id) ? 1 : 0;
+      const pb = pinned.has(b.id) ? 1 : 0;
+      if (pa !== pb) return pb - pa; // pinned to the top
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
 
   return (
     <div className="app">
@@ -611,19 +697,65 @@ export default function App() {
 
         {chats.length > 0 && (
           <div className="side-chats">
-            <div className="side-label">Recent chats</div>
-            {recentChats.map((c) => (
-              <button
-                key={c.id}
-                className={`side-item chat-item ${view === 'chat' && c.id === currentId ? 'active' : ''}`}
-                onClick={() => selectChat(c.id)}
-              >
-                <span className="chat-title">{c.title || 'New chat'}</span>
-                <span className="chat-del" role="button" aria-label="Delete chat" onClick={(e) => deleteChat(c.id, e)}>
-                  <IconTrash size={15} />
-                </span>
-              </button>
-            ))}
+            <div className="side-search">
+              <IconSearch size={15} />
+              <input
+                value={chatSearch}
+                onChange={(e) => setChatSearch(e.target.value)}
+                placeholder="Search chats"
+                aria-label="Search chats"
+              />
+              {chatSearch && (
+                <button className="side-search-x" onClick={() => setChatSearch('')} aria-label="Clear search">
+                  <IconX size={13} />
+                </button>
+              )}
+            </div>
+            <div className="side-label">{q ? 'Results' : 'Recent chats'}</div>
+            {recentChats.length === 0 ? (
+              <div className="side-empty">No chats match that.</div>
+            ) : (
+              recentChats.map((c) => {
+                const isPinned = pinned.has(c.id);
+                const isEditing = editingId === c.id;
+                return (
+                  <div
+                    key={c.id}
+                    className={`side-item chat-item ${view === 'chat' && c.id === currentId ? 'active' : ''}`}
+                    onClick={() => { if (!isEditing) selectChat(c.id); }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    {isEditing ? (
+                      <input
+                        className="chat-rename"
+                        value={editingTitle}
+                        autoFocus
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); else if (e.key === 'Escape') setEditingId(null); }}
+                        onBlur={commitRename}
+                      />
+                    ) : (
+                      <span className="chat-title">{c.title || 'New chat'}</span>
+                    )}
+                    {!isEditing && (
+                      <span className="chat-acts">
+                        <span role="button" aria-label={isPinned ? 'Unpin chat' : 'Pin chat'} className={`chat-act ${isPinned ? 'on' : ''}`} onClick={(e) => togglePin(c.id, e)}>
+                          <IconPin size={14} />
+                        </span>
+                        <span role="button" aria-label="Rename chat" className="chat-act" onClick={(e) => startRename(c, e)}>
+                          <IconEdit size={14} />
+                        </span>
+                        <span role="button" aria-label="Delete chat" className="chat-act" onClick={(e) => deleteChat(c.id, e)}>
+                          <IconTrash size={14} />
+                        </span>
+                      </span>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
 
@@ -703,6 +835,14 @@ export default function App() {
                         )}
                         {streamingHere && <span className="cursor" />}
                       </div>
+                      {m.role === 'assistant' && !streamingHere && plainText(m.content) && (
+                        <div className="msg-actions">
+                          <button className="msg-act" aria-label="Copy message" onClick={() => copyMsg(i, plainText(m.content))}>
+                            {copiedIdx === i ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                            <span className="msg-act-label">{copiedIdx === i ? 'Copied' : 'Copy'}</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
