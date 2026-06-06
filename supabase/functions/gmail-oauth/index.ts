@@ -555,19 +555,23 @@ Deno.serve(async (req: Request) => {
     const uid = await verifyUser(token);
     if (!uid || !toolkit) return json(req, { error: "unauthorized" });
     try {
-      const ac = await findAuthConfig(toolkit);
-      if (!ac) return json(req, { ok: true });
+      // Delete EVERY connected account whose toolkit matches — a user may have more
+      // than one, possibly under different auth configs, so we match by toolkit slug
+      // (not auth_config_id) to make the disconnect complete.
       const q = new URL(`${BASE}/connected_accounts`);
       q.searchParams.set("user_ids", uid);
-      q.searchParams.set("auth_config_ids", ac);
       const res = await fetch(q.toString(), { headers: { "x-api-key": API_KEY } });
       const body = await res.json().catch(() => ({}));
       const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
+      let removed = 0;
       for (const it of items) {
+        if ((pickSlug(it) ?? "").toLowerCase() !== toolkit.toLowerCase()) continue;
         const id = pickId(it);
-        if (id) await api(`/connected_accounts/${id}`, { method: "DELETE" }).catch(() => {});
+        if (!id) continue;
+        const dr = await api(`/connected_accounts/${id}`, { method: "DELETE" }).catch(() => null);
+        if (dr && dr.ok) removed++;
       }
-      return json(req, { ok: true });
+      return json(req, { ok: true, removed });
     } catch (e) {
       return json(req, { error: e instanceof Error ? e.message : String(e) });
     }

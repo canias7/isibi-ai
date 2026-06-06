@@ -68,7 +68,11 @@ export default function Connectors() {
     CapApp.addListener('appUrlOpen', (e) => {
       if (!e.url || !e.url.startsWith('gofarther://')) return;
       Browser.close().catch(() => {});
+      // Re-check now + a couple times: the new connection can take a moment to
+      // show up in Composio's account list after the OAuth returns.
       refreshAll();
+      setTimeout(refreshAll, 2000);
+      setTimeout(refreshAll, 5000);
     }).then((h) => {
       handle = h;
     });
@@ -108,14 +112,17 @@ export default function Connectors() {
     } catch {
       /* ignore — refreshAll reconciles real state */
     }
-    refreshAll();
+    // Composio's account list is eventually consistent, so re-check after a beat
+    // (not instantly) or the just-removed app can briefly flip back to "Connected".
+    setTimeout(refreshAll, 1500);
+    setTimeout(refreshAll, 4000);
   }
 
   // Tapping "Connected" arms the pill into a red "Disconnect"; auto-disarm after
   // a few seconds so it never gets stuck red.
   function arm(id: string) {
     setArmed(id);
-    setTimeout(() => setArmed((cur) => (cur === id ? null : cur)), 3500);
+    setTimeout(() => setArmed((cur) => (cur === id ? null : cur)), 5000);
   }
 
   const count = CONNECTORS.filter((c) => status[c.id]?.connected).length;
