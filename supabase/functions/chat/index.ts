@@ -58,16 +58,15 @@ function buildContent(m: Msg): unknown {
   return blocks;
 }
 
-// ---- Model routing: pick Haiku / Sonnet / Opus per task ----
+// ---- Model routing: Sonnet by default, Opus for complex/long tasks ----
 const MODELS = {
-  haiku: "claude-haiku-4-5-20251001",
   sonnet: "claude-sonnet-4-6",
   opus: "claude-opus-4-8",
 };
-// Clear-cut cases are handled instantly by these rules; only the ambiguous
-// middle pays for the tiny Haiku classifier below.
+// Escalate to Opus only for clearly hard/long work; Sonnet handles the rest.
+// Keeping a single default model (Sonnet) also lets the cached tool-schema prefix
+// read turn-to-turn instead of fragmenting across models.
 const COMPLEX_RE = /\b(analy[sz]e|analysis|plan|planning|strategy|strategi|compare|comparison|comprehensive|in[- ]?depth|detailed (report|plan|breakdown|analysis)|research|debug|refactor|coding|algorithm|step[- ]by[- ]step|reason through|pros and cons|trade[- ]?offs|evaluate|forecast|optimi[sz]e)\b/i;
-const TRIVIAL_RE = /^\s*(hi|hey+|hello|yo|sup|thanks|thank you|ty|ok(ay)?|cool|nice|great|perfect|got it|gotcha|yes|yep|yeah|no|nope|good (morning|night|evening|afternoon)|how are you)\b[\s!.?]*$/i;
 
 function latestUser(messages: Msg[]): { text: string; hasAtt: boolean } {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -80,37 +79,13 @@ function latestUser(messages: Msg[]): { text: string; hasAtt: boolean } {
   return { text: "", hasAtt: false };
 }
 
-// Tiny, cheap Haiku call that labels the task SIMPLE / STANDARD / COMPLEX.
-async function classifyTask(text: string, hasAtt: boolean, apiKey: string): Promise<string> {
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({
-        model: MODELS.haiku,
-        max_tokens: 6,
-        system: "You route requests for an assistant that can use the user's email, calendar and files. Reply with ONE word only: SIMPLE, STANDARD, or COMPLEX. SIMPLE = a quick lookup/list/read, a short factual question, or one easy action. STANDARD = typical work: summarize, draft or reply to an email, multi-step tool use, light reasoning. COMPLEX = deep analysis, multi-step planning, comparing many things, careful long-form writing, coding, or anything needing strong reasoning.",
-        messages: [{ role: "user", content: (hasAtt ? "[has image/PDF attachment] " : "") + text.slice(0, 1500) }],
-      }),
-    });
-    if (!res.ok) return MODELS.sonnet;
-    const j = await res.json();
-    const out = String(j?.content?.[0]?.text ?? "").toUpperCase();
-    if (out.includes("COMPLEX")) return MODELS.opus;
-    if (out.includes("SIMPLE")) return hasAtt ? MODELS.sonnet : MODELS.haiku; // vision wants Sonnet+
-    return MODELS.sonnet;
-  } catch {
-    return MODELS.sonnet;
-  }
-}
-
-// Hybrid router: instant rules for the obvious cases, classifier for the rest.
-async function pickModel(messages: Msg[], apiKey: string): Promise<string> {
-  const { text, hasAtt } = latestUser(messages);
-  const len = text.trim().length;
-  if (!hasAtt && len < 64 && TRIVIAL_RE.test(text)) return MODELS.haiku;
-  if (COMPLEX_RE.test(text) || len > 900) return MODELS.opus;
-  return await classifyTask(text, hasAtt, apiKey);
+// Pick the model for this turn: Opus for genuinely complex/long asks, Sonnet for
+// everything else (the default). No classifier round-trip — the keyword rule is
+// instant, and Sonnet handles the vast majority including all email/tool work.
+function pickModel(messages: Msg[]): string {
+  const { text } = latestUser(messages);
+  if (COMPLEX_RE.test(text) || text.trim().length > 900) return MODELS.opus;
+  return MODELS.sonnet;
 }
 
 function callAnthropic(reqBody: Record<string, unknown>, apiKey: string, extra: Record<string, string>): Promise<Response> {
@@ -489,27 +464,10 @@ Deno.serve(async (req: Request) => {
   // When an email app is in scope, render inbox listings as rich cards: the app
   // turns a ```gf-emails JSON block into a styled email list.
   const emailCardsSystem = `\n\nEMAIL DISPLAY — when an email tool is available, follow these rules EXACTLY:\n• Whenever you present multiple emails — the inbox, search results, OR a set of emails for the user to choose from (e.g. "which one?") — render them as a single fenced code block tagged gf-emails containing ONLY a JSON array (one object per email) with keys "from", "email", "subject", "snippet" (≤ 12 words), "time" (short label in the user's timezone, e.g. "9:41 AM", "Yesterday", "May 19"), "unread" (boolean), "id" (the Gmail message id, used to open the email). NEVER list emails as a plain numbered or bulleted list. You may write at most one short line (such as a question) before the block, but the emails themselves must be inside the block.\n• To open, read, show, view, or re-open ONE specific email — including "open it", "read that email", "show me the email", or tapping or hitting "try again" on an email — your ENTIRE reply MUST be a single fenced code block tagged gf-message containing one JSON object whose only required key is "id" (the Gmail message id); the app loads the sender, subject, body and attachments itself. That block is the ONLY acceptable way to show an email: do NOT type out the From/To/Date/Subject or the body as text or markdown, do NOT add any words before or after the block, and do NOT summarize unless explicitly asked. If a user message contains a marker like [[gfid:ID]], they tapped an email — reply with the gf-message block for that exact id.\n• When you show the user's existing drafts, use the SAME cards (gf-emails for the list, gf-message for one), with "draft": true on each item and its "id" set to the draft's message id so it still opens. ANY display of email content — inbox, search, drafts, or a single message — is ALWAYS a card; NEVER write emails out as plain text or a raw JSON dump.\n• To look up people or contacts (find someone's email or phone, check whether a contact exists, "do I have a contact for X", etc.), CALL the contacts/people search tool, then reply with AT MOST one short lead-in line (e.g. "Here's what I found:"). Do NOT write the contacts out yourself and do NOT put them in a code block — the app renders the matching contacts as a card automatically (with each person's photo where they have one).\n• Only when the user EXPLICITLY asks to summarize, draft, reply to, or send an email do you reply in normal text (no code block).`;
-  // Dev override: prefix a message with /haiku, /sonnet, or /opus to force that
-  // model (skipping the router + the email-UI bump). The marker is stripped so the
-  // model never sees it; the card backstop below still guarantees the cards.
-  let forced = "";
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role !== "user") continue;
-    const c = messages[i].content;
-    const mm = typeof c === "string" ? c.match(/^\s*\/(haiku|sonnet|opus)\b[ \t]*/i) : null;
-    if (mm) {
-      forced = mm[1].toLowerCase();
-      messages[i] = { ...messages[i], content: c.slice(mm[0].length) };
-    }
-    break;
-  }
-  // Route to the right model for this task (Haiku/Sonnet/Opus).
-  let model = forced ? MODELS[forced as keyof typeof MODELS] : await pickModel(messages, apiKey);
-  // Email card rendering needs a model that reliably emits the gf-message block;
-  // the lightweight model often free-types the email as text instead. Skipped when
-  // a model is explicitly forced via the /model prefix.
-  if (!forced && emailUI && model === MODELS.haiku) model = MODELS.sonnet;
-  console.log(`routed model=${model.replace(/^claude-/, "")}${forced ? " (forced)" : ""}`);
+  // Route this turn: Opus for genuinely complex/long asks, Sonnet for everything
+  // else. A single default model keeps the cached tool-schema prefix warm.
+  const model = pickModel(messages);
+  console.log(`routed model=${model.replace(/^claude-/, "")}`);
   const reqBody: Record<string, unknown> = {
     model,
     max_tokens: 8192,
@@ -639,7 +597,7 @@ Deno.serve(async (req: Request) => {
         }
         // Guarantee an email card. The model usually formats it; this is the
         // server-side safety net so opening an email OR listing the inbox ALWAYS
-        // renders as a card, regardless of which model ran (so even Haiku is fine).
+        // renders as a card, regardless of which model ran or how it formatted it.
         const hasGf = /```gf/.test(fullText);
         if (bufferEmail && hasGf) {
           // Explicit open/show + the model produced a card: emit just that block
