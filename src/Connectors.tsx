@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
@@ -28,6 +28,7 @@ export default function Connectors() {
   const [status, setStatus] = useState<Record<string, Status>>({});
   const [manage, setManage] = useState<Connector | null>(null);
   const [armed, setArmed] = useState<string | null>(null); // app id whose "Connected" pill is armed to disconnect
+  const aliveRef = useRef(true); // false after unmount — guards async setState + the connect() poll
 
   async function token(): Promise<string | null> {
     const { data } = await supabase.auth.getSession();
@@ -45,19 +46,23 @@ export default function Connectors() {
       const map: Record<string, { email?: string | null }> = j.connected ?? {};
       const next: Record<string, Status> = {};
       for (const c of CONNECTORS) next[c.id] = { connected: !!map[c.id], email: map[c.id]?.email ?? null };
-      setStatus(next);
+      if (aliveRef.current) setStatus(next);
     } catch {
       /* offline — leave state as-is */
     }
   }
 
   useEffect(() => {
+    aliveRef.current = true;
     refreshAll();
     const onVisible = () => {
       if (document.visibilityState === 'visible') refreshAll();
     };
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    return () => {
+      aliveRef.current = false; // stop any in-flight refresh/poll from setState after unmount
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   // Native: when the OAuth flow bounces back via gofarther://connected, iOS
@@ -92,6 +97,7 @@ export default function Connectors() {
     let n = 0;
     const iv = setInterval(async () => {
       n += 1;
+      if (!aliveRef.current) { clearInterval(iv); return; } // left the screen — stop polling
       await refreshAll();
       if (n >= 20) clearInterval(iv);
     }, 3000);

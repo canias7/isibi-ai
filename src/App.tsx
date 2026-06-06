@@ -233,6 +233,7 @@ export default function App() {
   const awaySinceRef = useRef(0);      // when the app was last backgrounded
   const busyRef = useRef(false);       // latest busy/messages for the resume listener (avoids stale closures)
   const msgLenRef = useRef(0);
+  const dirtyRef = useRef(false);      // a real turn changed messages -> persist (not just open/restore)
 
   // ---- Per-session connectors ----
   // Which apps are connected (from the backend), which are enabled for THIS
@@ -387,6 +388,8 @@ export default function App() {
   // Persist the active conversation once a turn finishes (not on every token).
   useEffect(() => {
     if (!uid || busy || messages.length === 0) return;
+    if (!dirtyRef.current) return; // only persist after a real turn — not on mere open/restore
+    dirtyRef.current = false;
     const convo: Conversation = { id: currentId, title: titleFrom(messages), messages, updatedAt: Date.now() };
     setChats((prev) => {
       const next = [convo, ...prev.filter((c) => c.id !== currentId)];
@@ -399,6 +402,7 @@ export default function App() {
   async function sendText(raw: string, atts: Attach[] = []) {
     const text = raw.trim();
     if ((!text && atts.length === 0) || busy) return;
+    dirtyRef.current = true; // a real turn — the persist effect should save it
 
     const userMsg: ChatMessage = { role: 'user', content: text, ...(atts.length ? { attachments: atts } : {}) };
     const history = [...messages, userMsg];
@@ -432,8 +436,15 @@ export default function App() {
         apps,
       );
     } catch (e) {
-      // User pressed Stop (or navigated away) — keep whatever streamed so far.
-      if (controller.signal.aborted && !timedOut) return;
+      // User pressed Stop (or navigated away) — keep whatever streamed so far,
+      // but drop a trailing empty assistant bubble if nothing streamed at all.
+      if (controller.signal.aborted && !timedOut) {
+        setMessages((m) => {
+          const last = m[m.length - 1];
+          return last && last.role === 'assistant' && last.content === '' ? m.slice(0, -1) : m;
+        });
+        return;
+      }
       const msg = timedOut ? 'Timed out — please try again.' : e instanceof Error ? e.message : 'Something went wrong';
       setMessages((m) => {
         const copy = m.slice();
@@ -480,7 +491,7 @@ export default function App() {
     for (const f of files) {
       try {
         const att = await fileToAttachment(f);
-        if (att) setAttachments((prev) => [...prev, att].slice(0, 6));
+        if (att) setAttachments((prev) => [...prev, att].slice(-6));
         else bad = true;
       } catch {
         bad = true;
@@ -543,6 +554,7 @@ export default function App() {
 
   function deleteChat(id: string, e: React.MouseEvent) {
     e.stopPropagation();
+    if (id === currentId) stopStream(); // abort any in-flight reply before dropping its chat
     setChats((prev) => {
       const next = prev.filter((c) => c.id !== id);
       if (uid) saveChats(uid, next);

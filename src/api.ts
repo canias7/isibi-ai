@@ -129,4 +129,6 @@ export async function streamChat(
     if (done) break;
     onToken(decoder.decode(value, { stream: true }));
   }
+  const tail = decoder.decode(); // flush any bytes buffered across the final chunk (e.g. a split emoji)
+  if (tail) onToken(tail);
 }
