@@ -723,13 +723,20 @@ export default function App() {
     flashNote('Sending a test notification…');
     try {
       const r = await sendTestPush();
-      if (r.ok) { flashNote('Test sent — check your lock screen.'); return; }
-      if (r.error === 'no registered devices') {
-        const s = pushStatus();
-        flashNote(`No device registered. ${s || 'Toggle Notifications off/on and tap Allow.'}`, 9000);
+      if (!r.ok) {
+        if (r.error === 'no registered devices') {
+          flashNote(`No device registered. ${pushStatus() || 'Toggle Notifications off/on and tap Allow.'}`, 9000);
+        } else {
+          flashNote(`Couldn’t send: ${r.error || 'unknown error'}`, 9000);
+        }
         return;
       }
-      flashNote(`Couldn’t send: ${r.error || 'unknown error'}`, 9000);
+      // Server accepted it — report what APNs actually said (200 = delivered).
+      const d = r.sent?.[0];
+      if (!d) { flashNote('Sent — check your lock screen.'); return; }
+      if (d.status === 200) { flashNote('Sent ✓ — check your lock screen.'); return; }
+      const why = (d.reason || '').replace(/[{}"]/g, '').trim().slice(0, 90);
+      flashNote(`APNs rejected it (${d.status}): ${why || 'unknown'}`, 12000);
     } catch {
       flashNote('Couldn’t reach the server — try again.');
     }

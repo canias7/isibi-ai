@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ ok: false, error: "method" }, 405);
   if (!APNS_KEY || !APNS_KEY_ID || !APNS_TEAM_ID || !APNS_BUNDLE_ID) {
-    return json({ ok: false, error: "APNs not configured — set APNS_KEY, APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID secrets." });
+    return json({ ok: false, error: "APNs not configured - set APNS_KEY, APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID secrets." });
   }
   const uid = uidFromJwt(req);
   if (!uid || !SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, error: "no user" }, 401);
@@ -92,17 +92,32 @@ Deno.serve(async (req) => {
   const aps: Record<string, unknown> = { alert: { title, body }, sound: "default" };
   if (category) aps.category = category; // makes the notification actionable (inline reply, etc.)
   const payload = JSON.stringify({ aps, ...extra });
-  const sent = await Promise.all(rows.map(async ({ token }) => {
-    try {
-      const res = await fetch(`https://${APNS_HOST}/3/device/${token}`, {
-        method: "POST",
-        headers: { authorization: `bearer ${jwt}`, "apns-topic": APNS_BUNDLE_ID!, "apns-push-type": "alert" },
-        body: payload,
-      });
-      return { token: token.slice(0, 8), status: res.status, reason: res.ok ? "" : await res.text() };
-    } catch (e) {
-      return { token: token.slice(0, 8), status: 0, reason: e instanceof Error ? e.message : String(e) };
+
+  // Try the configured host first, then fall back to the OTHER environment if
+  // Apple says the token doesn't belong here. TestFlight/App Store tokens are
+  // production; a dev (Xcode) run is sandbox - and the wrong one returns
+  // BadDeviceToken. Trying both makes delivery work regardless of how the build
+  // was distributed, instead of silently failing on an env mismatch.
+  const hosts = [...new Set([APNS_HOST, "api.push.apple.com", "api.sandbox.push.apple.com"])];
+  async function pushTo(token: string) {
+    let last = { status: 0, reason: "no attempt", host: "" };
+    for (const host of hosts) {
+      try {
+        const res = await fetch(`https://${host}/3/device/${token}`, {
+          method: "POST",
+          headers: { authorization: `bearer ${jwt}`, "apns-topic": APNS_BUNDLE_ID!, "apns-push-type": "alert" },
+          body: payload,
+        });
+        if (res.ok) return { token: token.slice(0, 8), status: res.status, reason: "", host };
+        last = { status: res.status, reason: await res.text(), host };
+        // Only an env/token mismatch is worth retrying on the other host.
+        if (!/BadDeviceToken|BadEnvironmentKeyInToken|DeviceTokenNotForTopic/i.test(last.reason)) break;
+      } catch (e) {
+        last = { status: 0, reason: e instanceof Error ? e.message : String(e), host };
+      }
     }
-  }));
+    return { token: token.slice(0, 8), ...last };
+  }
+  const sent = await Promise.all(rows.map(({ token }) => pushTo(token)));
   return json({ ok: true, sent });
 });

@@ -139,7 +139,8 @@ export async function streamChat(
 // way to verify notifications work end-to-end. The function pushes only to the
 // caller's own registered devices.
 const FUNCTIONS_BASE = CHAT_API.replace(/\/chat$/, '');
-export async function sendTestPush(): Promise<{ ok: boolean; error?: string; sent?: unknown[] }> {
+export interface PushResult { token: string; status: number; reason: string; host?: string }
+export async function sendTestPush(): Promise<{ ok: boolean; error?: string; sent?: PushResult[] }> {
   const token = await authToken();
   const res = await fetch(`${FUNCTIONS_BASE}/send-push`, {
     method: 'POST',
@@ -147,5 +148,5 @@ export async function sendTestPush(): Promise<{ ok: boolean; error?: string; sen
     body: JSON.stringify({ title: 'Go Farther', body: 'Test notification ✅' }),
   });
   const j = await res.json().catch(() => ({}));
-  return { ok: !!j.ok, error: j.error, sent: j.sent };
+  return { ok: !!j.ok, error: j.error, sent: Array.isArray(j.sent) ? j.sent : undefined };
 }
