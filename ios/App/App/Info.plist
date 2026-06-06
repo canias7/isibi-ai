@@ -35,6 +35,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Go Farther uses the camera so you can take a photo to send in chat.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Go Farther needs access to your photos so you can attach them in chat.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

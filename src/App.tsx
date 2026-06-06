@@ -13,6 +13,7 @@ import { Capacitor } from '@capacitor/core';
 import { tap } from './haptics';
 import { biometryAvailable, unlock } from './biometric';
 import { registerPush, pushStatus } from './push';
+import { capturePhoto } from './camera';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -784,8 +785,16 @@ export default function App() {
   }
 
   // ---- Attachments ("+" menu) ----
-  function openPicker(mode: 'camera' | 'photos' | 'files') {
+  async function openPicker(mode: 'camera' | 'photos' | 'files') {
     setPlusOpen(false);
+    // Use the native camera / photo library for photos (real in-app capture).
+    // Only fall back to the HTML file input when it's unavailable (web, or a
+    // build without the plugin) — not when the user simply cancelled.
+    if (mode === 'camera' || mode === 'photos') {
+      const r = await capturePhoto(mode);
+      if (r.status === 'ok') { setAttachments((prev) => [...prev, r.attach].slice(-6)); return; }
+      if (r.status === 'cancel') return;
+    }
     const input = fileRef.current;
     if (!input) return;
     input.value = '';
