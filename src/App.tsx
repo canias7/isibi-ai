@@ -104,9 +104,11 @@ function serverIsMoreComplete(local: ChatMessage[], remote: ChatMessage[]): bool
   if (remote.length < local.length) return false;
   const ours = local[local.length - 1];
   const theirs = remote[remote.length - 1];
-  const oursPending = !ours || ours.role !== 'assistant' || ours.content.trim() === '' || !!ours.failed;
-  const theirsReady = theirs.role === 'assistant' && theirs.content.trim() !== '';
-  return oursPending && theirsReady;
+  if (!theirs || theirs.role !== 'assistant' || theirs.content.trim() === '') return false; // server has no real reply yet
+  if (!ours || ours.role !== 'assistant' || ours.failed) return true; // ours is missing/failed
+  // Same turn, both assistant: adopt if the server's reply is more complete than
+  // ours — ours was empty, or only partially streamed before we disconnected.
+  return theirs.content.trim().length > ours.content.trim().length;
 }
 
 // ---- Cloud sync (conversations table, RLS-scoped to this user) ----
@@ -298,6 +300,7 @@ export default function App() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const bgAbortRef = useRef(false);    // the in-flight turn was aborted by backgrounding (vs. the Stop button)
   const jumpRef = useRef(true);        // next scroll should jump instantly (chat opened/restored)
   const awaySinceRef = useRef(0);      // when the app was last backgrounded
   const busyRef = useRef(false);       // latest busy/messages for the resume listener (avoids stale closures)
@@ -459,7 +462,14 @@ export default function App() {
   useEffect(() => {
     let handle: { remove: () => void } | undefined;
     void CapApp.addListener('appStateChange', ({ isActive }) => {
-      if (!isActive) { awaySinceRef.current = Date.now(); return; }
+      if (!isActive) {
+        awaySinceRef.current = Date.now();
+        // Leaving mid-reply: close the connection so the server notices we're gone
+        // and pushes when it's done. (iOS otherwise just suspends the socket, so
+        // the server never sees the disconnect and never sends the "ready" push.)
+        if (busyRef.current && abortRef.current) { bgAbortRef.current = true; abortRef.current.abort(); }
+        return;
+      }
       void lockRef.current(); // re-prompt the biometric lock on resume (no-op unless on)
       const since = awaySinceRef.current;
       awaySinceRef.current = 0;
@@ -572,6 +582,23 @@ export default function App() {
         return copy;
       });
     } catch (e) {
+      // Backgrounded mid-reply: we closed the connection on purpose so the server
+      // finishes the turn and pushes "ready". Don't show an error — keep whatever
+      // streamed (or a calm "finishing" line); the resume refresh swaps in the
+      // server's complete reply when we return (and the push tells us when).
+      if (bgAbortRef.current) {
+        bgAbortRef.current = false;
+        dirtyRef.current = false;
+        setMessages((m) => {
+          const copy = m.slice();
+          const l = copy[copy.length - 1];
+          if (l && l.role === 'assistant' && l.content === '' && !l.failed) {
+            copy[copy.length - 1] = { role: 'assistant', content: '', failed: true, offline: false };
+          }
+          return copy;
+        });
+        return;
+      }
       // User pressed Stop (or navigated away) — keep whatever streamed so far,
       // but drop a trailing empty assistant bubble if nothing streamed at all.
       if (controller.signal.aborted && !timedOut) {
