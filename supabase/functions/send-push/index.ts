@@ -1,0 +1,105 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+// Sends an APNs push to the calling user's registered devices. Inert until the
+// APNS_* secrets are set (returns a clear error). Called with the user's JWT;
+// only ever pushes to that user's own device_tokens.
+//
+// Secrets to set when you have an APNs Auth Key (.p8):
+//   APNS_KEY        full PEM contents of the .p8
+//   APNS_KEY_ID     the key's 10-char Key ID
+//   APNS_TEAM_ID    your Apple Team ID
+//   APNS_BUNDLE_ID  the app bundle id (apns-topic)
+//   APNS_HOST       (optional) api.push.apple.com for App Store; default is the
+//                   sandbox (api.sandbox.push.apple.com) for TestFlight/dev.
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const APNS_KEY = Deno.env.get("APNS_KEY");
+const APNS_KEY_ID = Deno.env.get("APNS_KEY_ID");
+const APNS_TEAM_ID = Deno.env.get("APNS_TEAM_ID");
+const APNS_BUNDLE_ID = Deno.env.get("APNS_BUNDLE_ID");
+const APNS_HOST = Deno.env.get("APNS_HOST") || "api.sandbox.push.apple.com";
+
+const cors: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type, apikey",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+const json = (obj: unknown, status = 200) =>
+  new Response(JSON.stringify(obj), { status, headers: { ...cors, "content-type": "application/json" } });
+
+function b64url(input: ArrayBuffer | Uint8Array | string): string {
+  const bytes = typeof input === "string"
+    ? new TextEncoder().encode(input)
+    : input instanceof Uint8Array ? input : new Uint8Array(input);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// APNs provider JWT (ES256), cached ~50 min (Apple allows reuse up to ~60).
+let cachedJwt: { token: string; at: number } | null = null;
+async function apnsJwt(): Promise<string> {
+  if (cachedJwt && Date.now() - cachedJwt.at < 50 * 60 * 1000) return cachedJwt.token;
+  const pem = (APNS_KEY || "").replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+  const der = Uint8Array.from(atob(pem), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey("pkcs8", der, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  const header = b64url(JSON.stringify({ alg: "ES256", kid: APNS_KEY_ID }));
+  const payload = b64url(JSON.stringify({ iss: APNS_TEAM_ID, iat: Math.floor(Date.now() / 1000) }));
+  const input = `${header}.${payload}`;
+  const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(input));
+  const token = `${input}.${b64url(sig)}`;
+  cachedJwt = { token, at: Date.now() };
+  return token;
+}
+
+function uidFromJwt(req: Request): string | null {
+  try {
+    const t = (req.headers.get("authorization") || "").replace(/^bearer\s+/i, "");
+    const p = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return p.role === "authenticated" && typeof p.sub === "string" ? p.sub : null;
+  } catch {
+    return null;
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return json({ ok: false, error: "method" }, 405);
+  if (!APNS_KEY || !APNS_KEY_ID || !APNS_TEAM_ID || !APNS_BUNDLE_ID) {
+    return json({ ok: false, error: "APNs not configured — set APNS_KEY, APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID secrets." });
+  }
+  const uid = uidFromJwt(req);
+  if (!uid || !SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, error: "no user" }, 401);
+
+  let title = "Go Farther", body = "Test notification", extra: Record<string, unknown> = {};
+  try {
+    const b = await req.json();
+    if (b.title) title = String(b.title);
+    if (b.body) body = String(b.body);
+    if (b.data && typeof b.data === "object") extra = b.data;
+  } catch { /* defaults */ }
+
+  // This user's device tokens (service role bypasses RLS).
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/device_tokens?user_id=eq.${uid}&select=token`, {
+    headers: { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}` },
+  });
+  const rows: { token: string }[] = r.ok ? await r.json() : [];
+  if (!rows.length) return json({ ok: false, error: "no registered devices" });
+
+  const jwt = await apnsJwt();
+  const payload = JSON.stringify({ aps: { alert: { title, body }, sound: "default" }, ...extra });
+  const sent = await Promise.all(rows.map(async ({ token }) => {
+    try {
+      const res = await fetch(`https://${APNS_HOST}/3/device/${token}`, {
+        method: "POST",
+        headers: { authorization: `bearer ${jwt}`, "apns-topic": APNS_BUNDLE_ID!, "apns-push-type": "alert" },
+        body: payload,
+      });
+      return { token: token.slice(0, 8), status: res.status, reason: res.ok ? "" : await res.text() };
+    } catch (e) {
+      return { token: token.slice(0, 8), status: 0, reason: e instanceof Error ? e.message : String(e) };
+    }
+  }));
+  return json({ ok: true, sent });
+});

@@ -12,6 +12,7 @@ import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { tap } from './haptics';
 import { biometryAvailable, unlock } from './biometric';
+import { registerPush } from './push';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -293,6 +294,7 @@ export default function App() {
   const faceIdRef = useRef(faceId);
   faceIdRef.current = faceId;
   const lockRef = useRef<() => void>(() => {});
+  const [notif, setNotif] = useState(() => { try { return localStorage.getItem('gf_notif') === '1'; } catch { return false; } });
 
   // ---- Per-session connectors ----
   // Which apps are connected (from the backend), which are enabled for THIS
@@ -467,6 +469,12 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Refresh the push registration on launch if notifications are enabled.
+  useEffect(() => {
+    if (notif) void registerPush();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Persist the active conversation once a turn finishes (not on every token).
   useEffect(() => {
     if (!uid || busy || messages.length === 0) return;
@@ -590,6 +598,15 @@ export default function App() {
     setFaceId((on) => {
       const next = !on;
       try { localStorage.setItem('gf_faceid', next ? '1' : '0'); } catch { /* ignore */ }
+      return next;
+    });
+  }
+
+  function toggleNotif() {
+    setNotif((on) => {
+      const next = !on;
+      try { localStorage.setItem('gf_notif', next ? '1' : '0'); } catch { /* ignore */ }
+      if (next) void registerPush(); // ask permission + register (no-op until native build)
       return next;
     });
   }
@@ -897,6 +914,15 @@ export default function App() {
                   <div className="set-row-sub">Lock the app when you open or return to it.</div>
                 </div>
                 <span className={`tgl ${faceId ? 'on' : ''}`}><span className="tgl-knob" /></span>
+              </div>
+            )}
+            {Capacitor.getPlatform() !== 'web' && (
+              <div className="set-row" onClick={toggleNotif} role="button" tabIndex={0} aria-pressed={notif}>
+                <div className="set-row-text">
+                  <div className="set-row-title">Notifications</div>
+                  <div className="set-row-sub">Get push alerts from Go Farther.</div>
+                </div>
+                <span className={`tgl ${notif ? 'on' : ''}`}><span className="tgl-knob" /></span>
               </div>
             )}
             {!isGuest && <button className="conn-btn" onClick={signOut}>Sign out</button>}
