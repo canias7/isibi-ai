@@ -756,6 +756,7 @@ body { background: var(--bg); color: var(--text); }
   text-align: center;
 }
 .msg-failed { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--text-dim); font-size: 14px; }
+.msg-working { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--text-dim); font-size: 14px; }
 .msg-retry {
   background: #ffffff14;
   border: 1px solid #ffffff26;

@@ -588,9 +588,12 @@ export default function App() {
       if (!timedOut && (!navigator.onLine || isNetworkError(e))) {
         dirtyRef.current = false; // don't persist a failed placeholder turn
         pendingTurnRef.current = history;
+        // Genuinely offline vs. just backgrounded mid-reply (still online, server
+        // keeps finishing + will push). The bubble wording differs accordingly.
+        const wasOffline = !navigator.onLine;
         setMessages((m) => {
           const copy = m.slice();
-          copy[copy.length - 1] = { role: 'assistant', content: '', failed: true };
+          copy[copy.length - 1] = { role: 'assistant', content: '', failed: true, offline: wasOffline };
           return copy;
         });
         pollForCompletion(history);
@@ -1099,10 +1102,18 @@ export default function App() {
                       <div className="bubble">
                         {m.role === 'assistant' ? (
                           m.failed ? (
-                            <div className="msg-failed">
-                              <span>⚠️ You're offline — couldn't send.</span>
-                              <button className="msg-retry" onClick={retryPending}>Retry</button>
-                            </div>
+                            m.offline ? (
+                              <div className="msg-failed">
+                                <span>⚠️ You're offline — couldn't send.</span>
+                                <button className="msg-retry" onClick={retryPending}>Retry</button>
+                              </div>
+                            ) : (
+                              <div className="msg-working">
+                                <span className="gf-status-spin" aria-hidden />
+                                <span>Finishing in the background — I'll notify you when it's ready.</span>
+                                <button className="msg-retry" onClick={retryPending}>Refresh</button>
+                              </div>
+                            )
                           ) : (
                             <AssistantMessage text={m.content} streaming={streamingHere} onOpen={openEmail} />
                           )
