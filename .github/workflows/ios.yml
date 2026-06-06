@@ -97,19 +97,26 @@ jobs:
           printf '%s' "$ASC_KEY" > "$KEY_PATH"
           echo "key_path=$KEY_PATH" >> "$GITHUB_OUTPUT"
 
-      # Archive WITHOUT code signing — disposable CI runners can't keep a
-      # development cert around, so we defer all signing to the export step,
-      # which signs for the App Store (distribution) via the API key.
-      - name: Archive (unsigned)
+      # Archive WITH automatic signing (App Store Connect API key + provisioning
+      # updates). This is required for push: an unsigned archive carries no
+      # entitlements, so the exported app ended up with no valid aps-environment
+      # and APNs registration failed at runtime. Signing here bakes in the
+      # entitlement and lets -allowProvisioningUpdates register the Push
+      # Notifications capability on the App ID + mint a matching profile.
+      - name: Archive (signed, automatic)
         if: steps.signing.outputs.present == 'true'
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
             -destination 'generic/platform=iOS' \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${{ steps.asc.outputs.key_path }}" \
+            -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
             CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_STYLE=Automatic \
             clean archive
 
       - name: Export IPA (app-store)
