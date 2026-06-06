@@ -288,6 +288,7 @@ export default function App() {
   const [online, setOnline] = useState(true);                 // network status (drives the offline banner)
   const pendingTurnRef = useRef<ChatMessage[] | null>(null);  // a turn that failed offline, awaiting retry
   const retryRef = useRef<() => void>(() => {});              // latest retryPending, for the online listener
+  const resumeRef = useRef<() => void>(() => {});             // refresh current chat on resume (server-finished turn)
   // Face ID / biometric lock (opt-in; native-only; fails open).
   const [faceId, setFaceId] = useState(() => { try { return localStorage.getItem('gf_faceid') === '1'; } catch { return false; } });
   const [locked, setLocked] = useState(() => { try { return localStorage.getItem('gf_faceid') === '1' && Capacitor.getPlatform() !== 'web'; } catch { return false; } });
@@ -436,6 +437,8 @@ export default function App() {
         setMessages([]);
         setView('chat');
         setSidebarOpen(false);
+      } else {
+        void resumeRef.current(); // pick up a turn that finished server-side while away
       }
     }).then((h) => { handle = h; });
     return () => { handle?.remove(); };
@@ -521,6 +524,7 @@ export default function App() {
         },
         controller.signal,
         apps,
+        currentId,
       );
       // Clear transient tool-activity markers from the finished reply so storage,
       // copy, and search stay clean (they're only meant to show live).
@@ -582,6 +586,20 @@ export default function App() {
     void runTurn(hist);
   }
   retryRef.current = retryPending;
+
+  // On resume, pull any turn that finished server-side while we were away (the
+  // server completes + saves a turn even if the app was backgrounded mid-reply).
+  async function refreshCurrent() {
+    if (!uid || busy) return;
+    const remote = await syncLoad(uid);
+    const cur = remote?.find((c) => c.id === currentId);
+    if (cur && cur.messages.length > messages.length) {
+      jumpRef.current = true;
+      setMessages(cur.messages);
+      setChats((prev) => { const next = [cur, ...prev.filter((c) => c.id !== cur.id)]; saveChats(uid, next); return next; });
+    }
+  }
+  resumeRef.current = refreshCurrent;
 
   // Biometric lock: engage if enabled AND available, otherwise fail open (we
   // never trap the user behind a lock we can't satisfy — e.g. plugin not yet in

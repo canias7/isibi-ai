@@ -2,6 +2,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const MCP_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-mcp";
 const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
+const SB_URL = Deno.env.get("SUPABASE_URL");
+const SB_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 // Bearer shared with gmail-mcp, DERIVED at runtime from a server-only secret —
 // never stored in the repo. Both functions compute the same value from
@@ -363,6 +365,47 @@ function receiptFor(kind: string): { kind: string; title: string } {
   }
 }
 
+// ---- Server-side turn completion -------------------------------------------
+// So a task that started while the app was open still COMPLETES and is SAVED if
+// the user leaves the app (the model read is finished via EdgeRuntime.waitUntil,
+// not tied to the client connection), then we push them that it's ready.
+function titleOf(messages: Msg[]): string {
+  const first = messages.find((m) => m.role === "user");
+  const t = (first?.content ?? "").trim().replace(/\s+/g, " ");
+  return t ? (t.length > 42 ? t.slice(0, 42) + "…" : t) : "New chat";
+}
+async function persistTurn(uid: string, convId: string, history: Msg[], reply: string): Promise<void> {
+  if (!SB_URL || !SB_SERVICE_KEY || !uid || !convId || !reply.trim()) return;
+  try {
+    const slim = history.map((m) => ({
+      role: m.role,
+      content: m.content,
+      ...(m.attachments?.length ? { attachments: m.attachments.map((a) => ({ ...a, data: "" })) } : {}),
+    }));
+    const messages = [...slim, { role: "assistant", content: reply }];
+    await fetch(`${SB_URL}/rest/v1/conversations`, {
+      method: "POST",
+      headers: {
+        apikey: SB_SERVICE_KEY,
+        authorization: `Bearer ${SB_SERVICE_KEY}`,
+        "content-type": "application/json",
+        prefer: "resolution=merge-duplicates",
+      },
+      body: JSON.stringify({ id: convId, user_id: uid, title: titleOf(history), messages, updated_at: new Date().toISOString() }),
+    });
+  } catch { /* best effort — the client also persists when it's connected */ }
+}
+async function firePush(authHeader: string, body: string): Promise<void> {
+  if (!authHeader) return;
+  try {
+    await fetch(MCP_URL.replace("/gmail-mcp", "/send-push"), {
+      method: "POST",
+      headers: { authorization: authHeader, "content-type": "application/json" },
+      body: JSON.stringify({ title: "Go Farther", body }),
+    });
+  } catch { /* inert until APNs is configured */ }
+}
+
 Deno.serve(async (req: Request) => {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -377,12 +420,14 @@ Deno.serve(async (req: Request) => {
   let requestedApps: string[] | undefined;
   let tz = "UTC";
   let clientCards = false;
+  let conversationId = ""; // for server-side persistence of the finished turn
   try {
     const body = await req.json();
     messages = body.messages;
     if (Array.isArray(body.apps)) requestedApps = body.apps; // per-session connector ids
     if (typeof body.tz === "string" && body.tz) tz = body.tz; // device timezone
     if (body.cards === true) clientCards = true; // client can render rich blocks (inbox cards)
+    if (typeof body.conversationId === "string") conversationId = body.conversationId;
     if (!Array.isArray(messages) || messages.length === 0) throw new Error("bad body");
   } catch {
     return new Response("Invalid request body — expected { messages: [...] }.", { status: 400, headers: cors });
@@ -481,10 +526,19 @@ Deno.serve(async (req: Request) => {
   const openIntent = !summarizeIntent && (/\b(open|read|show|view|see|pull up|bring up|look at|let me see)\b/i.test(lastUserText) || /^\s*(try\s*again|again)\b/i.test(lastUserText.trim()));
   const bufferEmail = emailUI && openIntent;
 
+  const authHeader = req.headers.get("authorization") || "";
+  let clientOpen = true; // flips false if the app disconnects (e.g. backgrounds mid-turn)
   const out = new ReadableStream({
-    async start(controller) {
+    start(controller) {
       const enc = new TextEncoder();
       const dec = new TextDecoder();
+      let persistOut = ""; // final assistant content to persist (status markers excluded)
+      const emit = (s: string, persist = true) => {
+        if (persist) persistOut += s;
+        if (clientOpen) { try { controller.enqueue(enc.encode(s)); } catch { clientOpen = false; } }
+      };
+      // Finish the whole turn even if the client disconnects mid-stream.
+      const run = async () => {
       const reader = upstream.body!.getReader();
       let buf = "";
       let fullText = "";                             // text streamed to the client this turn
@@ -525,7 +579,7 @@ Deno.serve(async (req: Request) => {
                 toolJson[evt.index] = "";
                 // Stream a transient "working…" status to the client (out-of-band
                 // from fullText, so the card/post-processor logic is unaffected).
-                controller.enqueue(enc.encode(`[[gfstatus:${statusLabel(toolName[evt.index])}]]`));
+                emit(`[[gfstatus:${statusLabel(toolName[evt.index])}]]`, false);
                 const ak = actionKind(toolName[evt.index]);
                 if (ak && evt.content_block.id) actionById[String(evt.content_block.id)] = ak;
               }
@@ -563,7 +617,7 @@ Deno.serve(async (req: Request) => {
               }
               if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
                 fullText += evt.delta.text;
-                if (!bufferEmail) controller.enqueue(enc.encode(evt.delta.text));
+                if (!bufferEmail) emit(evt.delta.text);
               }
             } catch { /* ignore partial json */ }
           }
@@ -575,7 +629,7 @@ Deno.serve(async (req: Request) => {
         if (bufferEmail && hasGf) {
           // Explicit open/show + the model produced a card: emit just that block
           // (card only, drop any surrounding prose).
-          controller.enqueue(enc.encode(fullText.match(/```gf[\s\S]*?```/)?.[0] ?? fullText));
+          emit(fullText.match(/```gf[\s\S]*?```/)?.[0] ?? fullText);
         } else if (!hasGf && !summarizeIntent && emailUI && !receipt && (openedIds.size === 1 || listCalled)) {
           // The model fetched email(s) but produced no card — build & inject one.
           let card = "";
@@ -585,24 +639,32 @@ Deno.serve(async (req: Request) => {
             const json = await buildInboxCard(appUser ?? "", listArgs, tz);
             if (json) card = `\`\`\`gf-emails\n${json}\n\`\`\``;
           }
-          controller.enqueue(enc.encode(bufferEmail ? (card || fullText) : (card ? `\n\n${card}` : "")));
+          emit(bufferEmail ? (card || fullText) : (card ? `\n\n${card}` : ""));
         } else if (!hasGf && !summarizeIntent && emailUI && !receipt && peopleCalled) {
           // The model searched contacts but produced no card — build & inject one.
           const json = await buildContactsCard(appUser ?? "", peopleSlug, peopleArgs);
           const card = json ? `\`\`\`gf-contacts\n${json}\n\`\`\`` : "";
-          controller.enqueue(enc.encode(card ? `\n\n${card}` : ""));
+          emit(card ? `\n\n${card}` : "");
         } else if (bufferEmail) {
           // Buffered but not an email turn after all — emit the held text.
-          controller.enqueue(enc.encode(fullText));
+          emit(fullText);
         }
         // A confirmed successful action — append a guaranteed receipt card.
-        if (receipt) controller.enqueue(enc.encode(`\n\n\`\`\`gf-receipt\n${JSON.stringify(receipt)}\n\`\`\``));
+        if (receipt) emit(`\n\n\`\`\`gf-receipt\n${JSON.stringify(receipt)}\n\`\`\``);
       } catch (e) {
-        controller.enqueue(enc.encode(`\n⚠️ ${e instanceof Error ? e.message : String(e)}`));
+        emit(`\n⚠️ ${e instanceof Error ? e.message : String(e)}`);
       } finally {
-        controller.close();
+        try { controller.close(); } catch { /* already closed (client gone) */ }
       }
+      // Turn finished — persist it (so it survives the app being closed) and, if
+      // the user had left mid-turn, push them that it's ready.
+      await persistTurn(appUser ?? "", conversationId, messages, persistOut);
+      if (!clientOpen) await firePush(authHeader, "Your reply is ready.");
+      };
+      const p = run();
+      try { if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(p); } catch { /* not supported here */ }
     },
+    cancel() { clientOpen = false; }, // app went away — keep finishing via waitUntil, then push
   });
 
   return new Response(out, {

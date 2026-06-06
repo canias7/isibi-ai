@@ -89,6 +89,7 @@ export async function streamChat(
   onToken: (chunk: string) => void,
   signal?: AbortSignal,
   apps?: string[],
+  conversationId?: string,
 ): Promise<void> {
   // Send the signed-in user's access token so the backend acts as *this* user
   // (their connected apps), not a shared identity. Falls back to anon.
@@ -113,7 +114,7 @@ export async function streamChat(
     // `apps` = connector ids enabled for this session (undefined = use all connected).
     // `cards: true` signals this client can render rich blocks (e.g. inbox cards),
     // so the backend only emits them to bundles that know how to display them.
-    body: JSON.stringify({ messages, tz, cards: true, ...(apps ? { apps } : {}) }),
+    body: JSON.stringify({ messages, tz, cards: true, ...(apps ? { apps } : {}), ...(conversationId ? { conversationId } : {}) }),
     signal,
   });
 
