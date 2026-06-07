@@ -253,10 +253,12 @@ async function getMemoryFile(uid: string, memoryId: string, toolkitSlug: string,
   const uj = await ur.json();
   const s3key = uj.key;
   const put = uj.new_presigned_url || uj.newPresignedUrl;
+  console.log(`memfile stage: req=${ur.status} s3key=${s3key ? "yes" : "no"} put=${put ? "yes" : "no"} bytes=${bytes.length} mime=${mimetype}`);
   if (!s3key) throw new Error("no s3key from Composio");
   if (put) {
     let pr = await fetch(put, { method: "PUT", headers: { "content-type": mimetype }, body: bytes });
     if (!pr.ok) pr = await fetch(put, { method: "PUT", body: bytes }); // retry without content-type if the presign didn't sign it
+    console.log(`memfile PUT: ${pr.status}`);
     if (!pr.ok) throw new Error(`upload PUT ${pr.status}`);
   }
   return JSON.stringify({ s3key, mimetype, name });
@@ -359,6 +361,7 @@ async function execTool(name: string, args: unknown, userId: string): Promise<st
     body: JSON.stringify({ user_id: userId, arguments: args ?? {} }),
   });
   const body = await res.json().catch(() => ({}));
+  console.log(`exec ${name}: http=${res.status} successful=${body?.successful} err=${body?.error ? String(body.error).slice(0, 200) : ""}`);
   if (!res.ok) throw new Error(`Composio execute ${res.status}: ${JSON.stringify(body)}`);
   if (body.successful === false || body.error) throw new Error(String(body.error || "Tool execution failed"));
   const data = body.data ?? body;
