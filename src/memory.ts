@@ -77,6 +77,24 @@ export async function memoryFileUrl(path: string): Promise<string | null> {
   }
 }
 
+// Resolve one memory's attachment (by id) to a viewable URL — used when the
+// assistant surfaces a saved photo/file in chat. RLS scopes this to the owner.
+export async function memoryAttachment(id: string): Promise<{ type: string; name: string; url: string } | null> {
+  try {
+    const { data } = await supabase
+      .from('user_memory')
+      .select('attachment_path,attachment_type,attachment_name')
+      .eq('id', id)
+      .maybeSingle();
+    if (!data?.attachment_path) return null;
+    const url = await memoryFileUrl(data.attachment_path);
+    if (!url) return null;
+    return { type: data.attachment_type || 'file', name: data.attachment_name || 'Attachment', url };
+  } catch {
+    return null;
+  }
+}
+
 export async function updateMemory(id: string, content: string): Promise<boolean> {
   try {
     const { error } = await supabase

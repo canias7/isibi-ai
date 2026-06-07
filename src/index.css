@@ -783,6 +783,20 @@ body { background: var(--bg); color: var(--text); }
 .gf-receipt-title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.2; }
 .gf-receipt-detail { font-size: 12px; color: var(--text-dim); margin-top: 1px; }
 
+/* Memory attachment surfaced in a reply (gf-memory) */
+.mc-load, .mc-err { white-space: normal; margin: 6px 0; font-size: 13px; color: var(--text-dim); }
+.mc-img { display: block; margin: 6px 0; max-width: 240px; }
+.mc-img img { width: 100%; height: auto; border-radius: 14px; border: 1px solid #ffffff1f; display: block; }
+.mc-file {
+  display: inline-flex; align-items: center; gap: 10px;
+  white-space: normal; margin: 6px 0; padding: 10px 14px;
+  background: #181a1f; border: 1px solid #ffffff14; border-radius: 12px;
+  color: var(--text); text-decoration: none; max-width: 280px;
+}
+.mc-file-ico { width: 26px; height: 26px; flex-shrink: 0; display: grid; place-items: center; border-radius: 8px; background: #2b2f37; color: var(--text); }
+.mc-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.mc-file-open { color: var(--accent); font-weight: 600; font-size: 13px; flex-shrink: 0; }
+
 /* Offline banner + failed-turn retry */
 .net-banner {
   position: relative; z-index: 1;

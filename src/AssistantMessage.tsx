@@ -3,6 +3,7 @@ import {
   EmailList, EmailSkeleton, EmailDetail, EmailDetailSkeleton, ContactsList, ReceiptCard,
   type EmailItem, type EmailMessage, type ContactItem, type ReceiptData,
 } from './EmailList';
+import { MemoryAttachmentCard } from './MemoryCard';
 
 // The assistant is asked to emit ```gf-emails / ```gf-message blocks, but models
 // drift (plain ``` or ```json, stray intro text). So we detect by SHAPE, not just
@@ -101,6 +102,8 @@ export default function AssistantMessage(
   const isContacts = f.lang === 'gf-contacts' && Array.isArray(parsed) && parsed.length > 0;
   // Receipt card (gf-receipt): a {kind,title} object confirming a completed action.
   const isReceipt = f.lang === 'gf-receipt' && obj;
+  // Memory attachment (gf-memory): a {id} object — surface a saved photo/file.
+  const isMemoryCard = f.lang === 'gf-memory' && obj && typeof (parsed as { id?: unknown }).id === 'string';
   const list = gf
     ? (Array.isArray(parsed) && parsed.length > 0)
     : (Array.isArray(parsed) && parsed.length > 0 && parsed.every(isEmailItem));
@@ -123,13 +126,15 @@ export default function AssistantMessage(
   return (
     <>
       {f.before.trim() && <Markdown text={f.before} />}
-      {isReceipt
-        ? <ReceiptCard data={parsed as ReceiptData} />
-        : isContacts
-          ? <ContactsList items={parsed as ContactItem[]} />
-          : list
-            ? <EmailList items={parsed as EmailItem[]} onOpen={onOpen} />
-            : <EmailDetail msg={parsed as EmailMessage} />}
+      {isMemoryCard
+        ? <MemoryAttachmentCard id={(parsed as { id: string }).id} />
+        : isReceipt
+          ? <ReceiptCard data={parsed as ReceiptData} />
+          : isContacts
+            ? <ContactsList items={parsed as ContactItem[]} />
+            : list
+              ? <EmailList items={parsed as EmailItem[]} onOpen={onOpen} />
+              : <EmailDetail msg={parsed as EmailMessage} />}
       {f.after.trim() && <AssistantMessage text={f.after} streaming={streaming} onOpen={onOpen} />}
     </>
   );

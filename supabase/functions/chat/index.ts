@@ -384,18 +384,22 @@ async function firePush(authHeader: string, body: string): Promise<void> {
   } catch { /* inert until APNs is configured */ }
 }
 // App-level memory: facts/preferences the user manually saved. Fed into the
-// system prompt so the assistant personalizes across every chat.
-async function fetchMemories(uid: string): Promise<string[]> {
+// system prompt so the assistant personalizes across every chat. A memory may
+// also carry an attachment (image/file) the assistant can surface in chat.
+interface Mem { id: string; content: string; attType: string | null }
+async function fetchMemories(uid: string): Promise<Mem[]> {
   if (!SB_URL || !SB_SERVICE_KEY || !uid) return [];
   try {
-    const url = `${SB_URL}/rest/v1/user_memory?user_id=eq.${encodeURIComponent(uid)}&select=content&order=created_at.asc`;
+    const url = `${SB_URL}/rest/v1/user_memory?user_id=eq.${encodeURIComponent(uid)}&select=id,content,attachment_type&order=created_at.asc`;
     const r = await fetch(url, {
       headers: { apikey: SB_SERVICE_KEY, authorization: `Bearer ${SB_SERVICE_KEY}` },
     });
     if (!r.ok) return [];
     const rows = await r.json();
     if (!Array.isArray(rows)) return [];
-    return rows.map((x: { content?: string }) => (x?.content || "").trim()).filter(Boolean);
+    return rows
+      .map((x: { id?: string; content?: string; attachment_type?: string | null }) => ({ id: String(x?.id ?? ""), content: (x?.content || "").trim(), attType: x?.attachment_type || null }))
+      .filter((m: Mem) => m.content);
   } catch {
     return [];
   }
@@ -452,7 +456,7 @@ Deno.serve(async (req: Request) => {
   const appUser = userFromJwt(req);
   // Kick off the memory read in parallel with the connector lookup below (skip it
   // entirely when the feature is paused).
-  const memPromise = (appUser && memoryOn) ? fetchMemories(appUser) : Promise.resolve([] as string[]);
+  const memPromise = (appUser && memoryOn) ? fetchMemories(appUser) : Promise.resolve([] as Mem[]);
   if (appUser) {
     const connected = await connectedToolkits(appUser);
     // If the client sent a per-session app list, scope tools to it (∩ connected);
@@ -496,9 +500,14 @@ Deno.serve(async (req: Request) => {
   // User's saved memories (manual, app-level) -> personalize every chat. Placed
   // after the timestamped baseSystem so it doesn't disturb the cached tools prefix.
   const mems = await memPromise;
-  const memorySystem = mems.length
-    ? `\n\nWHAT YOU KNOW ABOUT THIS USER (they saved these for you to remember; honor them unless a message clearly overrides one):\n${mems.map((m) => `• ${m}`).join("\n")}`
-    : "";
+  let memorySystem = "";
+  if (mems.length) {
+    const lines = mems.map((m) => `• ${m.content}${m.attType ? ` [attachment: ${m.attType}, id: ${m.id}]` : ""}`).join("\n");
+    memorySystem = `\n\nWHAT YOU KNOW ABOUT THIS USER (they saved these for you to remember; honor them unless a message clearly overrides one):\n${lines}`;
+    if (mems.some((m) => m.attType)) {
+      memorySystem += `\n\nSome of those memories have an attached image or file (shown as [attachment: …, id: …]). When the user asks to SEE / show / pull up / send one of these, reply with a fenced code block tagged gf-memory containing ONLY {"id":"<that memory's id>"} — the app then displays the image inline or a file to open. You may put one short line before the block. (When they only ask ABOUT it, answer normally from the saved description.)`;
+    }
+  }
   // Route this turn: Opus for genuinely complex/long asks, Sonnet for everything
   // else. A single default model keeps the cached tool-schema prefix warm.
   const model = pickModel(messages);
