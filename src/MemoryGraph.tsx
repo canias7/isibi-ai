@@ -27,6 +27,8 @@ function loadPositions(): Record<string, XY> {
   try { return JSON.parse(localStorage.getItem(POS_KEY) || '{}') || {}; } catch { return {}; }
 }
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+// Node label is a short preview; the full text is kept and shown when tapped to edit.
+const preview = (s: string) => (s.length > 20 ? s.slice(0, 20).trimEnd() + '…' : s);
 
 // Default slot for each node: float around the core — alternate left/right,
 // spread down the stage, and keep clear of the core's mid band so nothing sits
@@ -186,7 +188,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
               <span className="memg-ico">
                 <IconSpark size={13} />
               </span>
-              <span className="memg-pill">{m.content}</span>
+              <span className="memg-pill">{preview(m.content)}</span>
             </button>
           );
         })}
