@@ -412,7 +412,73 @@ const BROKEN_TOOLS = new Set<string>([
   "GOOGLEDRIVE_WATCH_FILE",
 ]);
 
-// The toolkit's selectable tools (the full Composio catalog, minus dead ones).
+// Tested apps surface ONLY this curated, known-working set (kept in order) — in
+// Manage Tools, in ?catalog, and (via gmail-mcp's default) to the model. Other
+// apps fall through to their full catalog; they're hidden from the UI for now
+// but stay backend-usable. Widen these lists as more tools are verified.
+const CURATED: Record<string, string[]> = {
+  gmail: [
+    "GMAIL_FETCH_EMAILS",
+    "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID",
+    "GMAIL_FETCH_MESSAGE_BY_THREAD_ID",
+    "GMAIL_LIST_THREADS",
+    "GMAIL_SEND_EMAIL",
+    "GMAIL_REPLY_TO_THREAD",
+    "GMAIL_CREATE_EMAIL_DRAFT",
+    "GMAIL_LIST_DRAFTS",
+    "GMAIL_SEND_DRAFT",
+    "GMAIL_GET_ATTACHMENT",
+    "GMAIL_LIST_LABELS",
+    "GMAIL_ADD_LABEL_TO_EMAIL",
+    "GMAIL_SEARCH_PEOPLE",
+  ],
+  outlook: [
+    "OUTLOOK_LIST_MESSAGES",
+    "OUTLOOK_SEARCH_MESSAGES",
+    "OUTLOOK_QUERY_EMAILS",
+    "OUTLOOK_GET_MESSAGE",
+    "OUTLOOK_GET_MAIL_DELTA",
+    "OUTLOOK_LIST_MAIL_FOLDERS",
+    "OUTLOOK_LIST_MAIL_FOLDER_MESSAGES",
+    "OUTLOOK_LIST_SENT_ITEMS_MESSAGES",
+    "OUTLOOK_LIST_OUTLOOK_ATTACHMENTS",
+    "OUTLOOK_DOWNLOAD_OUTLOOK_ATTACHMENT",
+    "OUTLOOK_SEND_EMAIL",
+    "OUTLOOK_REPLY_EMAIL",
+    "OUTLOOK_FORWARD_MESSAGE",
+    "OUTLOOK_CREATE_DRAFT",
+    "OUTLOOK_SEND_DRAFT",
+    "OUTLOOK_ADD_MAIL_ATTACHMENT",
+    "OUTLOOK_UPDATE_EMAIL",
+    "OUTLOOK_MOVE_MESSAGE",
+    "OUTLOOK_DELETE_MESSAGE",
+    "OUTLOOK_CREATE_MAIL_FOLDER",
+    "OUTLOOK_LIST_EMAIL_RULES",
+    "OUTLOOK_CREATE_EMAIL_RULE",
+    "OUTLOOK_LIST_EVENTS",
+    "OUTLOOK_GET_EVENT",
+    "OUTLOOK_CALENDAR_CREATE_EVENT",
+    "OUTLOOK_UPDATE_CALENDAR_EVENT",
+    "OUTLOOK_DELETE_CALENDAR_EVENT",
+    "OUTLOOK_LIST_CALENDARS",
+    "OUTLOOK_GET_CALENDAR_VIEW",
+    "OUTLOOK_FIND_MEETING_TIMES",
+    "OUTLOOK_ACCEPT_EVENT",
+    "OUTLOOK_DECLINE_EVENT",
+    "OUTLOOK_LIST_EVENT_ATTACHMENTS",
+    "OUTLOOK_LIST_CONTACTS",
+    "OUTLOOK_GET_ME_CONTACTS",
+    "OUTLOOK_CREATE_CONTACT",
+    "OUTLOOK_UPDATE_CONTACT",
+    "OUTLOOK_GET_PROFILE",
+    "OUTLOOK_GET_MAILBOX_SETTINGS",
+    "OUTLOOK_LIST_TODO_TASKS",
+    "OUTLOOK_CREATE_TASK",
+  ],
+};
+
+// The toolkit's selectable tools. Curated apps return only their working set;
+// everything else returns the full Composio catalog minus known-dead tools.
 async function toolkitCatalog(toolkit: string): Promise<{ slug: string; name: string; desc: string }[]> {
   const u = new URL(`${BASE}/tools`);
   u.searchParams.set("toolkit_slug", toolkit);
@@ -421,9 +487,13 @@ async function toolkitCatalog(toolkit: string): Promise<{ slug: string; name: st
   if (!res.ok) return [];
   const b = await res.json();
   const items: any[] = b.items ?? b.data ?? [];
-  return items
+  const all = items
     .filter((t) => !BROKEN_TOOLS.has(t.slug))
     .map((t) => ({ slug: t.slug, name: t.name || prettyName(t.slug), desc: t.description || "" }));
+  const pick = CURATED[toolkit];
+  if (!pick) return all;
+  const bySlug = new Map(all.map((t) => [t.slug, t]));
+  return pick.map((s) => bySlug.get(s) ?? { slug: s, name: prettyName(s), desc: "" });
 }
 async function getPrefs(uid: string, toolkit: string): Promise<string[] | null> {
   if (!SR) return null;
