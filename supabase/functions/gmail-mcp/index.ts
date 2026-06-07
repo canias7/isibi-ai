@@ -193,21 +193,6 @@ async function saveMemory(uid: string, content: unknown): Promise<string> {
   return `Saved to memory: ${c}`;
 }
 
-// Debug capture (temporary): record tool failures + attachment shape to a table
-// we can read, since edge console logs aren't retrievable via the management API.
-async function dbg(userId: string, tool: string, ok: boolean, detail: string): Promise<void> {
-  try {
-    const url = Deno.env.get("SUPABASE_URL");
-    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!url || !key) return;
-    await fetch(`${url}/rest/v1/gf_debug`, {
-      method: "POST",
-      headers: { "content-type": "application/json", apikey: key, authorization: `Bearer ${key}`, prefer: "return=minimal" },
-      body: JSON.stringify({ user_id: userId, tool, ok, detail: String(detail).slice(0, 2000) }),
-    });
-  } catch { /* debug only */ }
-}
-
 // Built-in tool: hand the model a temporary download URL for a memory's attached
 // file, so it can attach/send it via ANY app (email attachment, Slack upload, …)
 // without ever handling the bytes. The model reads the target app's send tool
@@ -268,13 +253,10 @@ async function getMemoryFile(uid: string, memoryId: string, toolkitSlug: string,
   const uj = await ur.json();
   const s3key = uj.key;
   const put = uj.new_presigned_url || uj.newPresignedUrl;
-  console.log(`memfile stage: req=${ur.status} s3key=${s3key ? "yes" : "no"} put=${put ? "yes" : "no"} bytes=${bytes.length} mime=${mimetype}`);
-  await dbg(uid, "GF_GET_MEMORY_FILE", !!s3key, `s3key=${s3key} put=${put ? "y" : "n"} bytes=${bytes.length} mime=${mimetype} name=${name}`);
   if (!s3key) throw new Error("no s3key from Composio");
   if (put) {
     let pr = await fetch(put, { method: "PUT", headers: { "content-type": mimetype }, body: bytes });
     if (!pr.ok) pr = await fetch(put, { method: "PUT", body: bytes }); // retry without content-type if the presign didn't sign it
-    console.log(`memfile PUT: ${pr.status}`);
     if (!pr.ok) throw new Error(`upload PUT ${pr.status}`);
   }
   return JSON.stringify({ s3key, mimetype, name });
@@ -377,7 +359,6 @@ async function execTool(name: string, args: unknown, userId: string): Promise<st
     body: JSON.stringify({ user_id: userId, arguments: args ?? {} }),
   });
   const body = await res.json().catch(() => ({}));
-  console.log(`exec ${name}: http=${res.status} successful=${body?.successful} err=${body?.error ? String(body.error).slice(0, 200) : ""}`);
 
   // Composio caps the size of the response it returns to us. For a SEND/REPLY/
   // upload/draft, the action already happened upstream (e.g. Gmail accepted the
@@ -390,16 +371,9 @@ async function execTool(name: string, args: unknown, userId: string): Promise<st
   const tooLarge = res.status === 413 || !!(eo && (eo.code === 1613 || eo.slug === "Upstream_PayloadTooLarge" || eo.status === 413));
   const isMutation = /SEND|REPLY|UPLOAD|CREATE_[A-Z_]*DRAFT/.test(name.toUpperCase());
   if (tooLarge && isMutation) {
-    await dbg(userId, name, true, `payload-too-large treated as success (action completed upstream)`);
     return "Done — it completed successfully. (The provider returned more confirmation detail than could be included, but the action went through.)";
   }
 
-  if (!res.ok || body.successful === false || body.error) {
-    const a = (args || {}) as Record<string, unknown>;
-    const att = a.attachment as unknown;
-    const attInfo = att == null ? "none" : typeof att === "string" ? `string(${att.length})` : Array.isArray(att) ? `array(${att.length})` : `obj{${Object.keys(att as object).join(",")}}`;
-    await dbg(userId, name, false, `http=${res.status} attachment=${attInfo} argkeys=${Object.keys(a).join(",")} resp=${JSON.stringify(body).slice(0, 1400)}`);
-  }
   if (!res.ok) throw new Error(`Composio execute ${res.status}: ${JSON.stringify(body)}`);
   if (body.successful === false || body.error) throw new Error(String(body.error || "Tool execution failed"));
   const data = body.data ?? body;
