@@ -405,6 +405,33 @@ async function fetchMemories(uid: string): Promise<Mem[]> {
   }
 }
 
+// Keep the injected-memory cost flat regardless of how many the user has saved:
+// when the list is small, send all; when it's large, send the ones relevant to
+// this message (keyword overlap) plus the most-recent few (always-on prefs).
+const MAX_MEMS = 30;
+const MEM_STOP = new Set("the a an of to and or in on at is are was were be been do does did how what who when where why can could would should will just about your you his her our their this that with from for".split(" "));
+function selectMemories(mems: Mem[], query: string): Mem[] {
+  if (mems.length <= MAX_MEMS) return mems;
+  const words = new Set((query.toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter((w) => !MEM_STOP.has(w)));
+  const keep = new Set<number>();
+  if (words.size) {
+    const scored = mems
+      .map((m, i) => {
+        const t = m.content.toLowerCase();
+        let s = 0;
+        for (const w of words) if (t.includes(w)) s++;
+        if (m.attType) s += 0.5; // nudge attachment memories so "show me X" can resolve
+        return { i, s };
+      })
+      .filter((x) => x.s > 0)
+      .sort((a, b) => b.s - a.s);
+    for (const x of scored) { if (keep.size >= MAX_MEMS) break; keep.add(x.i); }
+  }
+  // Fill the rest with the most-recent memories (recent prefs stay always-on).
+  for (let i = mems.length - 1; i >= 0 && keep.size < MAX_MEMS; i--) keep.add(i);
+  return mems.filter((_, i) => keep.has(i)); // preserves created_at asc order
+}
+
 Deno.serve(async (req: Request) => {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -499,7 +526,8 @@ Deno.serve(async (req: Request) => {
   const emailCardsSystem = `\n\nEMAIL DISPLAY — when an email tool is available, follow these rules EXACTLY:\n• Whenever you present multiple emails — the inbox, search results, OR a set of emails for the user to choose from (e.g. "which one?") — render them as a single fenced code block tagged gf-emails containing ONLY a JSON array (one object per email) with keys "from", "email", "subject", "snippet" (≤ 12 words), "time" (short label in the user's timezone, e.g. "9:41 AM", "Yesterday", "May 19"), "unread" (boolean), "id" (the Gmail message id, used to open the email). NEVER list emails as a plain numbered or bulleted list. You may write at most one short line (such as a question) before the block, but the emails themselves must be inside the block.\n• To open, read, show, view, or re-open ONE specific email — including "open it", "read that email", "show me the email", or tapping or hitting "try again" on an email — your ENTIRE reply MUST be a single fenced code block tagged gf-message containing one JSON object whose only required key is "id" (the Gmail message id); the app loads the sender, subject, body and attachments itself. That block is the ONLY acceptable way to show an email: do NOT type out the From/To/Date/Subject or the body as text or markdown, do NOT add any words before or after the block, and do NOT summarize unless explicitly asked. If a user message contains a marker like [[gfid:ID]], they tapped an email — reply with the gf-message block for that exact id.\n• When you show the user's existing drafts, use the SAME cards (gf-emails for the list, gf-message for one), with "draft": true on each item and its "id" set to the draft's message id so it still opens. ANY display of email content — inbox, search, drafts, or a single message — is ALWAYS a card; NEVER write emails out as plain text or a raw JSON dump.\n• To look up people or contacts (find someone's email or phone, check whether a contact exists, "do I have a contact for X", etc.), CALL the contacts/people search tool, then reply with AT MOST one short lead-in line (e.g. "Here's what I found:"). Do NOT write the contacts out yourself and do NOT put them in a code block — the app renders the matching contacts as a card automatically (with each person's photo where they have one).\n• Only when the user EXPLICITLY asks to summarize, draft, reply to, or send an email do you reply in normal text (no code block).`;
   // User's saved memories (manual, app-level) -> personalize every chat. Placed
   // after the timestamped baseSystem so it doesn't disturb the cached tools prefix.
-  const mems = await memPromise;
+  const allMems = await memPromise;
+  const mems = selectMemories(allMems, latestUser(messages).text);
   let memorySystem = "";
   if (mems.length) {
     const lines = mems.map((m) => `• ${m.content}${m.attType ? ` [attachment: ${m.attType}, id: ${m.id}]` : ""}`).join("\n");
