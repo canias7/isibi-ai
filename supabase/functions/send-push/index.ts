@@ -69,17 +69,24 @@ Deno.serve(async (req) => {
   if (!APNS_KEY || !APNS_KEY_ID || !APNS_TEAM_ID || !APNS_BUNDLE_ID) {
     return json({ ok: false, error: "APNs not configured - set APNS_KEY, APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID secrets." });
   }
-  const uid = uidFromJwt(req);
-  if (!uid || !SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, error: "no user" }, 401);
+  // Caller is either a signed-in user (their own JWT) or the service role (the
+  // workflow runner), which may target a specific user via body.user_id.
+  const bearer = (req.headers.get("authorization") || "").replace(/^bearer\s+/i, "").trim();
+  const admin = !!SERVICE_KEY && bearer === SERVICE_KEY;
 
   let title = "Go Farther", body = "Test notification", category = "", extra: Record<string, unknown> = {};
+  let bodyUser = "";
   try {
     const b = await req.json();
     if (b.title) title = String(b.title);
     if (b.body) body = String(b.body);
     if (b.category) category = String(b.category); // e.g. "GF_REPLY" for an inline-reply action
     if (b.data && typeof b.data === "object") extra = b.data; // context for the action handler (e.g. thread id)
+    if (b.user_id) bodyUser = String(b.user_id);
   } catch { /* defaults */ }
+
+  const uid = admin ? bodyUser : uidFromJwt(req);
+  if (!uid || !SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, error: "no user" }, 401);
 
   // This user's device tokens (service role bypasses RLS).
   const r = await fetch(`${SUPABASE_URL}/rest/v1/device_tokens?user_id=eq.${uid}&select=token`, {
