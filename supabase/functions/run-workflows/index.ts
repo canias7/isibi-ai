@@ -115,6 +115,39 @@ function computeNext(from: Date, sched: any): Date | null {
   return null;
 }
 
+// ---- event triggers (v1: new Gmail message matching a filter) ----
+interface MatchedMsg { id: string; from: string; subject: string; snippet: string; ts: number }
+function buildEventQuery(ev: any): string {
+  const parts: string[] = ["in:inbox", "newer_than:2d"];
+  if (ev?.from) parts.push(`from:(${String(ev.from)})`);
+  if (ev?.query) parts.push(String(ev.query));
+  return parts.join(" ");
+}
+async function gmailSearch(uid: string, query: string): Promise<MatchedMsg[]> {
+  if (!COMPOSIO_API_KEY || !uid) return [];
+  try {
+    const res = await fetch("https://backend.composio.dev/api/v3/tools/execute/GMAIL_FETCH_EMAILS", {
+      method: "POST",
+      headers: { "x-api-key": COMPOSIO_API_KEY, "content-type": "application/json" },
+      body: JSON.stringify({ user_id: uid, arguments: { query, max_results: 10 } }),
+    });
+    const body = await res.json().catch(() => ({}));
+    const data = body?.data ?? body;
+    const msgs: any[] = data?.messages ?? data?.data?.messages ?? [];
+    return msgs.map((m) => {
+      const sender = String(m.sender ?? "");
+      const mt = /^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/.exec(sender);
+      const from = mt ? (mt[1].trim() || mt[2].trim()) : sender;
+      const d = new Date(m.messageTimestamp ?? (m.internalDate ? Number(m.internalDate) : NaN));
+      const ts = isNaN(d.getTime()) ? 0 : d.getTime();
+      const snippet = String(m.messageText ?? m.preview?.body ?? "").replace(/\s+/g, " ").trim().slice(0, 160);
+      return { id: String(m.messageId ?? m.id ?? ""), from: from || "Unknown", subject: String(m.subject ?? "(no subject)"), snippet, ts };
+    }).filter((m) => m.ts > 0);
+  } catch {
+    return [];
+  }
+}
+
 // Run one workflow's instruction through Claude (with the user's connectors).
 async function runInstruction(uid: string, instruction: string): Promise<string> {
   if (!ANTHROPIC_KEY) throw new Error("assistant not configured");
@@ -203,5 +236,46 @@ Deno.serve(async (req: Request) => {
       failed++;
     }
   }
-  return json({ checked: due.length, ran, init, failed });
+
+  // EVENT workflows: fire when a new matching email arrives (Gmail, v1).
+  let eventChecked = 0, eventFired = 0;
+  try {
+    const er = await fetch(`${SB_URL}/rest/v1/workflows?enabled=eq.true&trigger_type=eq.event&select=*&limit=50`, { headers: sbHeaders });
+    if (er.ok) {
+      const evs: any[] = await er.json();
+      eventChecked = evs.length;
+      for (const wf of evs) {
+        try {
+          const ev = wf.event || {};
+          if ((ev.app || "gmail") !== "gmail") continue; // v1: Gmail only
+          const msgs = await gmailSearch(wf.user_id, buildEventQuery(ev));
+          // First check: record where we are, don't fire on the existing backlog.
+          if (!wf.cursor) {
+            const maxTs = msgs.length ? Math.max(...msgs.map((m) => m.ts)) : Date.now();
+            await patchWorkflow(wf.id, { cursor: { lastTs: maxTs } });
+            continue;
+          }
+          const lastTs = Number(wf.cursor?.lastTs) || 0;
+          const fresh = msgs.filter((m) => m.ts > lastTs).sort((a, b) => a.ts - b.ts);
+          if (!fresh.length) continue;
+          const ctx = fresh.slice(0, 5).map((m) => `• From ${m.from} — "${m.subject}": ${m.snippet}`).join("\n");
+          const prompt = `A new email just arrived in the user's inbox matching their trigger:\n${ctx}\n\nNow do the following: ${wf.instruction}`;
+          let text = "", ok = true;
+          try {
+            text = await runInstruction(wf.user_id, prompt);
+          } catch (e) {
+            ok = false;
+            text = `Couldn't finish this workflow: ${e instanceof Error ? e.message : String(e)}`;
+          }
+          await insertRun(wf.id, wf.user_id, text, ok);
+          const summary = text.replace(/```[\s\S]*?```/g, " ").replace(/\s+/g, " ").trim().slice(0, 140) || (ok ? "Done." : "Failed.");
+          await pushUser(wf.user_id, wf.title || "Workflow", summary);
+          await patchWorkflow(wf.id, { cursor: { lastTs: Math.max(...fresh.map((m) => m.ts)) }, last_run_at: nowIso });
+          eventFired++;
+        } catch { /* skip this one */ }
+      }
+    }
+  } catch { /* ignore event phase errors */ }
+
+  return json({ checked: due.length, ran, init, failed, eventChecked, eventFired });
 });

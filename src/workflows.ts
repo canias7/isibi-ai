@@ -9,12 +9,23 @@ export interface Schedule {
   weekday?: number;      // 0=Sun .. 6=Sat (weekly only)
   tz: string;            // IANA timezone
 }
+// Event trigger (v1): a new Gmail message matching a filter.
+export interface EventCfg {
+  app: string;        // 'gmail'
+  from?: string;      // sender name/email to match
+  query?: string;     // optional extra Gmail search terms
+}
+export type Trigger =
+  | { type: 'schedule'; schedule: Schedule }
+  | { type: 'event'; event: EventCfg };
+
 export interface Workflow {
   id: string;
   title: string;
   instruction: string;
-  trigger_type: string;
+  trigger_type: 'schedule' | 'event' | string;
   schedule: Schedule | null;
+  event: EventCfg | null;
   enabled: boolean;
   next_run_at: string | null;
   last_run_at: string | null;
@@ -39,12 +50,22 @@ export function scheduleLabel(s: Schedule | null): string {
   if (s.freq === 'weekly') return `${DOW[s.weekday ?? 0]} · ${t}`;
   return `Daily · ${t}`;
 }
+// One-line trigger description for the list card.
+export function triggerLabel(w: Workflow): string {
+  if (w.trigger_type === 'event') {
+    const f = w.event?.from?.trim();
+    return f ? `When email from ${f}` : 'When an email arrives';
+  }
+  return scheduleLabel(w.schedule);
+}
+
+const SEL = 'id,title,instruction,trigger_type,schedule,event,enabled,next_run_at,last_run_at,created_at';
 
 export async function listWorkflows(): Promise<Workflow[]> {
   try {
     const { data, error } = await supabase
       .from('workflows')
-      .select('id,title,instruction,trigger_type,schedule,enabled,next_run_at,last_run_at,created_at')
+      .select(SEL)
       .order('created_at', { ascending: false });
     if (error || !data) return [];
     return data as Workflow[];
@@ -53,16 +74,23 @@ export async function listWorkflows(): Promise<Workflow[]> {
   }
 }
 
-export async function createWorkflow(title: string, instruction: string, schedule: Schedule): Promise<Workflow | null> {
+export async function createWorkflow(title: string, instruction: string, trigger: Trigger): Promise<Workflow | null> {
   try {
     const { data: s } = await supabase.auth.getSession();
     const uid = s.session?.user.id;
     if (!uid) return null;
-    const { data, error } = await supabase
-      .from('workflows')
-      .insert({ user_id: uid, title: title || instruction.slice(0, 40), instruction, trigger_type: 'schedule', schedule, enabled: true, next_run_at: null })
-      .select('id,title,instruction,trigger_type,schedule,enabled,next_run_at,last_run_at,created_at')
-      .single();
+    const row = {
+      user_id: uid,
+      title: title || instruction.slice(0, 40),
+      instruction,
+      enabled: true,
+      trigger_type: trigger.type,
+      schedule: trigger.type === 'schedule' ? trigger.schedule : null,
+      event: trigger.type === 'event' ? trigger.event : null,
+      next_run_at: null,   // runner initializes the first scheduled run
+      cursor: null,        // runner records the event baseline on first check
+    };
+    const { data, error } = await supabase.from('workflows').insert(row).select(SEL).single();
     if (error || !data) return null;
     return data as Workflow;
   } catch {
@@ -70,11 +98,27 @@ export async function createWorkflow(title: string, instruction: string, schedul
   }
 }
 
-export async function updateWorkflow(id: string, fields: Partial<Pick<Workflow, 'title' | 'instruction' | 'schedule' | 'enabled'>>): Promise<boolean> {
+export async function updateWorkflow(
+  id: string,
+  fields: { title?: string; instruction?: string; enabled?: boolean; trigger?: Trigger },
+): Promise<boolean> {
   try {
-    // Changing the schedule resets next_run_at so the runner reschedules it.
-    const patch: Record<string, unknown> = { ...fields, updated_at: new Date().toISOString() };
-    if ('schedule' in fields) patch.next_run_at = null;
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (fields.title !== undefined) patch.title = fields.title;
+    if (fields.instruction !== undefined) patch.instruction = fields.instruction;
+    if (fields.enabled !== undefined) patch.enabled = fields.enabled;
+    if (fields.trigger) {
+      patch.trigger_type = fields.trigger.type;
+      if (fields.trigger.type === 'schedule') {
+        patch.schedule = fields.trigger.schedule;
+        patch.event = null;
+        patch.next_run_at = null; // reschedule from scratch
+      } else {
+        patch.event = fields.trigger.event;
+        patch.schedule = null;
+        patch.cursor = null;      // re-baseline so it won't fire on the backlog
+      }
+    }
     const { error } = await supabase.from('workflows').update(patch).eq('id', id);
     return !error;
   } catch {

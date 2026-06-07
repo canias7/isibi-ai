@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IconX, IconTrash } from './icons';
 import {
-  listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, scheduleLabel, deviceTz,
-  type Workflow, type WorkflowRun, type Schedule,
+  listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, triggerLabel, deviceTz,
+  type Workflow, type WorkflowRun, type Schedule, type Trigger,
 } from './workflows';
 
 // Full-screen Workflows manager: list saved automations, create/edit one (an
@@ -68,7 +68,7 @@ export default function WorkflowsScreen({ onClose }: { onClose: () => void }) {
                 <div className="wf-card-main">
                   <div className="wf-card-title">{w.title}</div>
                   <div className="wf-card-sub">
-                    {scheduleLabel(w.schedule)}{w.last_run_at ? ` · last ran ${relTime(w.last_run_at)}` : ''}
+                    {triggerLabel(w)}{w.last_run_at ? ` · last ran ${relTime(w.last_run_at)}` : ''}
                   </div>
                 </div>
                 <span
@@ -103,6 +103,9 @@ function Editor({ wf, onDone, onBack }: { wf: Workflow | null; onDone: () => voi
   const [title, setTitle] = useState(wf?.title ?? '');
   const [instruction, setInstruction] = useState(wf?.instruction ?? '');
   const [sched, setSched] = useState<Schedule>(wf?.schedule ?? defaultSchedule());
+  const [kind, setKind] = useState<'schedule' | 'event'>(wf?.trigger_type === 'event' ? 'event' : 'schedule');
+  const [evFrom, setEvFrom] = useState(wf?.event?.from ?? '');
+  const [evQuery, setEvQuery] = useState(wf?.event?.query ?? '');
   const [busy, setBusy] = useState(false);
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
 
@@ -116,10 +119,13 @@ function Editor({ wf, onDone, onBack }: { wf: Workflow | null; onDone: () => voi
   async function save() {
     const inst = instruction.trim();
     if (!inst || busy) return;
+    const trigger: Trigger = kind === 'event'
+      ? { type: 'event', event: { app: 'gmail', from: evFrom.trim() || undefined, query: evQuery.trim() || undefined } }
+      : { type: 'schedule', schedule: sched };
     setBusy(true);
     const ok = wf
-      ? await updateWorkflow(wf.id, { title: title.trim() || inst.slice(0, 40), instruction: inst, schedule: sched })
-      : !!(await createWorkflow(title.trim(), inst, sched));
+      ? await updateWorkflow(wf.id, { title: title.trim() || inst.slice(0, 40), instruction: inst, trigger })
+      : !!(await createWorkflow(title.trim(), inst, trigger));
     setBusy(false);
     if (ok) onDone();
   }
@@ -149,32 +155,50 @@ function Editor({ wf, onDone, onBack }: { wf: Workflow | null; onDone: () => voi
       <label className="wf-label">Name (optional)</label>
       <input className="wf-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Morning brief" maxLength={80} />
 
-      <label className="wf-label">When</label>
+      <label className="wf-label">Trigger</label>
       <div className="wf-seg">
-        {(['daily', 'weekly', 'hourly'] as const).map((f) => (
-          <button key={f} className={`wf-seg-btn ${sched.freq === f ? 'on' : ''}`} onClick={() => setSched((s) => ({ ...s, freq: f }))}>
-            {f[0].toUpperCase() + f.slice(1)}
-          </button>
-        ))}
+        <button className={`wf-seg-btn ${kind === 'schedule' ? 'on' : ''}`} onClick={() => setKind('schedule')}>On a schedule</button>
+        <button className={`wf-seg-btn ${kind === 'event' ? 'on' : ''}`} onClick={() => setKind('event')}>When email arrives</button>
       </div>
 
-      {sched.freq === 'weekly' && (
-        <div className="wf-dow">
-          {DOW.map((d, i) => (
-            <button key={d} className={`wf-dow-btn ${(sched.weekday ?? 1) === i ? 'on' : ''}`} onClick={() => setSched((s) => ({ ...s, weekday: i }))}>
-              {d[0]}
-            </button>
-          ))}
-        </div>
-      )}
+      {kind === 'schedule' ? (
+        <>
+          <label className="wf-label">When</label>
+          <div className="wf-seg">
+            {(['daily', 'weekly', 'hourly'] as const).map((f) => (
+              <button key={f} className={`wf-seg-btn ${sched.freq === f ? 'on' : ''}`} onClick={() => setSched((s) => ({ ...s, freq: f }))}>
+                {f[0].toUpperCase() + f.slice(1)}
+              </button>
+            ))}
+          </div>
 
-      {sched.freq === 'hourly' ? (
-        <p className="wf-hint">Runs at the top of every hour.</p>
+          {sched.freq === 'weekly' && (
+            <div className="wf-dow">
+              {DOW.map((d, i) => (
+                <button key={d} className={`wf-dow-btn ${(sched.weekday ?? 1) === i ? 'on' : ''}`} onClick={() => setSched((s) => ({ ...s, weekday: i }))}>
+                  {d[0]}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {sched.freq === 'hourly' ? (
+            <p className="wf-hint">Runs at the top of every hour.</p>
+          ) : (
+            <div className="wf-time-row">
+              <span className="wf-time-label">At</span>
+              <input className="wf-input wf-time" type="time" value={timeValue(sched)} onChange={(e) => setTime(e.target.value)} />
+            </div>
+          )}
+        </>
       ) : (
-        <div className="wf-time-row">
-          <span className="wf-time-label">At</span>
-          <input className="wf-input wf-time" type="time" value={timeValue(sched)} onChange={(e) => setTime(e.target.value)} />
-        </div>
+        <>
+          <label className="wf-label">From (sender name or email)</label>
+          <input className="wf-input" value={evFrom} onChange={(e) => setEvFrom(e.target.value)} placeholder="e.g. boss@company.com — leave blank for any sender" maxLength={120} />
+          <label className="wf-label">Containing (optional keywords)</label>
+          <input className="wf-input" value={evQuery} onChange={(e) => setEvQuery(e.target.value)} placeholder="e.g. invoice" maxLength={120} />
+          <p className="wf-hint">Checks your Gmail inbox every few minutes and runs when a new matching email arrives.</p>
+        </>
       )}
 
       <button className="wf-save" onClick={() => void save()} disabled={!instruction.trim() || busy}>
@@ -190,7 +214,7 @@ function Editor({ wf, onDone, onBack }: { wf: Workflow | null; onDone: () => voi
         <div className="wf-runs">
           <div className="wf-runs-head">Recent runs</div>
           {runs.length === 0 ? (
-            <div className="wf-runs-empty">No runs yet — it’ll appear here after the first scheduled run.</div>
+            <div className="wf-runs-empty">No runs yet — results show up here after it runs.</div>
           ) : (
             runs.map((r) => (
               <div className={`wf-run ${r.ok ? '' : 'bad'}`} key={r.id}>
