@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  IconX, IconTrash, IconArrowLeft, IconArrowUp, IconLayers, IconPlus, IconMinus,
+  IconX, IconTrash, IconArrowLeft, IconArrowUp, IconLayers,
   IconClock, IconBolt, IconBranch, IconSpark, IconCheck,
 } from './icons';
 import { byId } from './connectorData';
@@ -319,7 +319,12 @@ function Canvas({ graph, onChange, onSelect }: { graph: WfGraph; onChange: (g: W
     return { x: Math.round(vw / 2 - (w / 2) * Z0), y: 18 };
   });
   const drag = useRef<{ id: string; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
-  const panRef = useRef<{ sx: number; sy: number; px: number; py: number } | null>(null);
+  const ptrs = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const gest = useRef<
+    | { mode: 'pan'; sx: number; sy: number; px: number; py: number }
+    | { mode: 'pinch'; d0: number; z0: number; px: number; py: number; mx: number; my: number }
+    | null
+  >(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const nodes = graph.nodes;
@@ -364,16 +369,44 @@ function Canvas({ graph, onChange, onSelect }: { graph: WfGraph; onChange: (g: W
     if (d && !d.moved) onSelect(n.id);
   }
 
+  // One finger pans; two fingers pinch-zoom (anchored on the pinch midpoint).
+  function startGesture() {
+    const pts = [...ptrs.current.values()];
+    if (pts.length === 1) {
+      gest.current = { mode: 'pan', sx: pts[0].x, sy: pts[0].y, px: pan.x, py: pan.y };
+    } else if (pts.length >= 2) {
+      const [a, b] = pts;
+      gest.current = { mode: 'pinch', d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: zoom, px: pan.x, py: pan.y, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    }
+  }
   function bgDown(e: React.PointerEvent) {
-    panRef.current = { sx: e.clientX, sy: e.clientY, px: pan.x, py: pan.y };
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    startGesture();
   }
   function bgMove(e: React.PointerEvent) {
-    const p = panRef.current;
-    if (!p) return;
-    setPan(clampPan(p.px + (e.clientX - p.sx), p.py + (e.clientY - p.sy), zoom));
+    if (!ptrs.current.has(e.pointerId)) return;
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const g = gest.current;
+    if (!g) return;
+    const pts = [...ptrs.current.values()];
+    if (g.mode === 'pan' && pts.length === 1) {
+      setPan(clampPan(g.px + (pts[0].x - g.sx), g.py + (pts[0].y - g.sy), zoom));
+    } else if (g.mode === 'pinch' && pts.length >= 2) {
+      const [a, b] = pts;
+      const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      const nz = clamp(+(g.z0 * (d / g.d0)).toFixed(3), 0.5, 2);
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      const sxp = (g.mx - g.px) / g.z0, syp = (g.my - g.py) / g.z0; // content point under the start midpoint
+      setZoom(nz);
+      setPan(clampPan(mx - sxp * nz, my - syp * nz, nz));
+    }
   }
-  function bgUp() { panRef.current = null; }
+  function bgUp(e: React.PointerEvent) {
+    ptrs.current.delete(e.pointerId);
+    gest.current = null;
+    if (ptrs.current.size > 0) startGesture(); // e.g. two fingers -> one: resume panning
+  }
 
   return (
     <div className="wfx-canvas" ref={wrapRef} onPointerDown={bgDown} onPointerMove={bgMove} onPointerUp={bgUp} onPointerCancel={bgUp}>
@@ -408,11 +441,6 @@ function Canvas({ graph, onChange, onSelect }: { graph: WfGraph; onChange: (g: W
             <div className="wfx-node-app">{appLabel(n.app)}</div>
           </div>
         ))}
-      </div>
-
-      <div className="wfx-zoom">
-        <button onClick={() => { const nz = clamp(+(zoom + 0.2).toFixed(2), 0.5, 2); setZoom(nz); setPan((p) => clampPan(p.x, p.y, nz)); }} aria-label="Zoom in"><IconPlus size={18} /></button>
-        <button onClick={() => { const nz = clamp(+(zoom - 0.2).toFixed(2), 0.5, 2); setZoom(nz); setPan((p) => clampPan(p.x, p.y, nz)); }} aria-label="Zoom out"><IconMinus size={18} /></button>
       </div>
     </div>
   );
