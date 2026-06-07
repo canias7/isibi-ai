@@ -253,3 +253,9 @@ export const IconLayers = ({ size }: { size?: number }) => (
     <path d="m2 17 10 5 10-5" />
   </Svg>
 );
+
+export const IconPlay = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M6 4.5v15a1 1 0 0 0 1.5.87l12-7.5a1 1 0 0 0 0-1.74l-12-7.5A1 1 0 0 0 6 4.5z" />
+  </Svg>
+);

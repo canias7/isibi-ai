@@ -1702,7 +1702,11 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .wfx-canvas { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; overscroll-behavior: none; }
 .wfx-surface { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
 .wfx-edges { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
-.wfx-edge { fill: none; stroke: rgba(255, 255, 255, 0.22); stroke-width: 2; }
+.wfx-edge { fill: none; stroke: rgba(255, 255, 255, 0.22); stroke-width: 2; transition: stroke 0.3s ease; }
+.wfx-edge.run { stroke: #e0a13a; stroke-dasharray: 6 7; animation: wfxFlow 0.55s linear infinite; transition: none; }
+@keyframes wfxFlow { to { stroke-dashoffset: -26; } }
+.wfx-edge.pass { stroke: #46d17f; }
+.wfx-edge.fail { stroke: #ff6b6b; }
 .wfx-edge-tag { fill: var(--text-dim); font-size: 10px; text-anchor: middle; }
 .wfx-edge-tag.yes { fill: #6fe09a; }
 .wfx-edge-tag.no { fill: #ff8f8f; }
@@ -1770,3 +1774,21 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .wfx-app.on { border-color: #e0a13a; background: rgba(224, 161, 58, 0.16); }
 .wfx-app-ic { display: grid; place-items: center; }
 .wfx-app-ic img { width: 16px; height: 16px; object-fit: contain; }
+
+/* Test button + result banner */
+.wfx-test {
+  position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 14px;
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+  border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.08);
+  color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.wfx-test:active { background: rgba(255, 255, 255, 0.16); }
+.wfx-test:disabled { opacity: 0.6; }
+.wfx-spin-l { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.3); border-top-color: var(--text); display: inline-block; animation: wfxSpin 0.7s linear infinite; }
+
+.wfx-testmsg { margin: 0 16px 8px; padding: 10px 12px; border-radius: 12px; font-size: 13px; line-height: 1.45; max-height: 30vh; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+.wfx-testmsg strong { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.9; }
+.wfx-testmsg.ok { background: rgba(70, 209, 127, 0.12); border: 1px solid rgba(70, 209, 127, 0.4); color: #bfeecf; }
+.wfx-testmsg.bad { background: rgba(255, 107, 107, 0.12); border: 1px solid rgba(255, 107, 107, 0.4); color: #ffc9c9; }
+
+.wfx-bar-hist { width: 50px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.05); color: var(--text); border-radius: 14px; display: grid; place-items: center; cursor: pointer; }

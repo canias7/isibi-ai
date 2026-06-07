@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  IconX, IconTrash, IconArrowLeft, IconArrowUp, IconLayers,
+  IconX, IconTrash, IconArrowLeft, IconArrowUp, IconLayers, IconPlay,
   IconClock, IconBolt, IconBranch, IconSpark, IconCheck,
 } from './icons';
 import { byId } from './connectorData';
 import {
-  listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow,
+  listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow, testWorkflow,
   triggerLabel, deviceTz, appLabel, compileInstruction,
   type Workflow, type WorkflowRun, type Schedule, type Trigger, type WfGraph, type WfNode,
 } from './workflows';
@@ -86,6 +86,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
   if (draft) {
     return (
       <PlanView
+        key="draft"
         initial={draft}
         mode="draft"
         connApps={connApps}
@@ -99,6 +100,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
   if (open) {
     return (
       <PlanView
+        key={open.id}
         initial={{ title: open.title, instruction: open.instruction, trigger: triggerOf(open), graph: open.graph ?? emptyGraph(open) }}
         mode="saved"
         wfId={open.id}
@@ -212,18 +214,37 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
   const [busy, setBusy] = useState(false);
   const [showRuns, setShowRuns] = useState(false);
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
+  const [testing, setTesting] = useState(false);
+  const [edgeState, setEdgeState] = useState<'idle' | 'run' | 'pass' | 'fail'>('idle');
+  const [testMsg, setTestMsg] = useState<string | null>(null);
 
   // Modal-lock is owned by the parent WorkflowsScreen (this renders inside it).
   useEffect(() => { if (wfId) void listRuns(wfId).then(setRuns); }, [wfId]);
 
   const selNode = sel ? graph.nodes.find((n) => n.id === sel) ?? null : null;
 
+  function clearTest() { if (edgeState !== 'idle') setEdgeState('idle'); if (testMsg) setTestMsg(null); }
   function patchNode(id: string, patch: Partial<WfNode>) {
     setGraph((g) => ({ ...g, nodes: g.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)) }));
+    clearTest();
   }
   function removeNode(id: string) {
     setGraph((g) => ({ nodes: g.nodes.filter((n) => n.id !== id), edges: g.edges.filter((e) => e.from !== id && e.to !== id) }));
     setSel(null);
+    clearTest();
+  }
+
+  async function test() {
+    if (testing) return;
+    const inst = compileInstruction(title.trim(), graph);
+    if (!inst.trim()) return;
+    setTesting(true); setEdgeState('run'); setTestMsg(null);
+    const r = await testWorkflow(inst, mode === 'saved' ? wfId : undefined);
+    setTesting(false);
+    if (!r) { setEdgeState('fail'); setTestMsg('Test couldn’t run — try again.'); return; }
+    setEdgeState(r.ok ? 'pass' : 'fail');
+    setTestMsg(r.result || (r.ok ? 'It ran.' : 'It didn’t complete.'));
+    if (wfId) void listRuns(wfId).then(setRuns);
   }
   function applyTrigger(t: Trigger) {
     setTrigger(t);
@@ -258,15 +279,27 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
           <input className="wfx-title-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Untitled workflow" maxLength={80} />
           <p className="memg-sub">{mode === 'draft' ? 'Draft · tap a step to edit' : 'Tap a step to edit'}</p>
         </div>
-        {mode === 'saved'
-          ? <button className="wfx-corner" onClick={() => setShowRuns(true)} aria-label="Run history"><IconClock size={20} /></button>
-          : <span style={{ width: 40 }} />}
+        <button className="wfx-test" onClick={() => void test()} disabled={testing} aria-label="Test workflow">
+          {testing ? <span className="wfx-spin-l" /> : <IconPlay size={14} />}
+          <span>{testing ? 'Testing' : 'Test'}</span>
+        </button>
       </div>
 
-      <Canvas graph={graph} onChange={setGraph} onSelect={setSel} />
+      <Canvas graph={graph} onChange={(g) => { setGraph(g); clearTest(); }} onSelect={setSel} edgeState={edgeState} />
+
+      {/* Test result banner */}
+      {testMsg && (
+        <div className={`wfx-testmsg ${edgeState === 'fail' ? 'bad' : 'ok'}`} onClick={() => setTestMsg(null)}>
+          <strong>{edgeState === 'fail' ? 'Test failed' : 'Test ran'}</strong>
+          <span>{testMsg}</span>
+        </div>
+      )}
 
       {/* Bottom action bar */}
       <div className="wfx-bar">
+        {mode === 'saved' && (
+          <button className="wfx-bar-hist" onClick={() => setShowRuns(true)} disabled={busy} aria-label="Run history"><IconClock size={18} /></button>
+        )}
         {mode === 'saved' && (
           <button className="wfx-bar-del" onClick={() => void remove()} disabled={busy} aria-label="Delete workflow"><IconTrash size={18} /></button>
         )}
@@ -309,14 +342,20 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
 }
 
 // ---- The pan/zoom/drag canvas ----------------------------------------------
-function Canvas({ graph, onChange, onSelect }: { graph: WfGraph; onChange: (g: WfGraph) => void; onSelect: (id: string) => void }) {
+function Canvas({ graph, onChange, onSelect, edgeState }: { graph: WfGraph; onChange: (g: WfGraph) => void; onSelect: (id: string) => void; edgeState: 'idle' | 'run' | 'pass' | 'fail' }) {
+  // Lock the coordinate origin ONCE (from the initial layout). Recomputing bounds
+  // on every drag move is what made the whole graph jump under your finger.
+  const [base] = useState(() => {
+    const xs = graph.nodes.map((n) => n.x), ys = graph.nodes.map((n) => n.y);
+    const minX = Math.min(0, ...xs), minY = Math.min(0, ...ys);
+    const maxX = Math.max(0, ...xs), maxY = Math.max(0, ...ys);
+    return { offX: PAD - minX, offY: PAD - minY, W: (maxX - minX) + PAD * 2, H: (maxY - minY) + PAD * 2 };
+  });
+  const { offX, offY, W, H } = base;
   const [zoom, setZoom] = useState(Z0);
-  // Center the graph horizontally on open (origin is top-left, so offset the pan).
   const [pan, setPan] = useState(() => {
-    const xs0 = graph.nodes.map((n) => n.x);
-    const w = (Math.max(0, ...xs0) - Math.min(0, ...xs0)) + PAD * 2;
     const vw = typeof window !== 'undefined' ? window.innerWidth : 380;
-    return { x: Math.round(vw / 2 - (w / 2) * Z0), y: 18 };
+    return { x: Math.round(vw / 2 - (W / 2) * Z0), y: 18 };
   });
   const drag = useRef<{ id: string; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
   const ptrs = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -328,12 +367,6 @@ function Canvas({ graph, onChange, onSelect }: { graph: WfGraph; onChange: (g: W
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const nodes = graph.nodes;
-  const xs = nodes.map((n) => n.x), ys = nodes.map((n) => n.y);
-  const minX = Math.min(0, ...xs), minY = Math.min(0, ...ys);
-  const maxX = Math.max(0, ...xs), maxY = Math.max(0, ...ys);
-  const offX = PAD - minX, offY = PAD - minY;
-  const W = (maxX - minX) + PAD * 2;
-  const H = (maxY - minY) + PAD * 2;
   const px = (n: WfNode) => n.x + offX;
   const py = (n: WfNode) => n.y + offY;
   const byNode = new Map(nodes.map((n) => [n.id, n]));
@@ -419,7 +452,11 @@ function Canvas({ graph, onChange, onSelect }: { graph: WfGraph; onChange: (g: W
             const mid = (y1 + y2) / 2;
             return (
               <g key={i}>
-                <path d={`M ${x1} ${y1} C ${x1} ${mid} ${x2} ${mid} ${x2} ${y2}`} className="wfx-edge" />
+                <path
+                  d={`M ${x1} ${y1} C ${x1} ${mid} ${x2} ${mid} ${x2} ${y2}`}
+                  className={`wfx-edge ${edgeState === 'idle' ? '' : edgeState}`}
+                  style={edgeState === 'pass' || edgeState === 'fail' ? { transitionDelay: `${i * 0.1}s` } : undefined}
+                />
                 {e.branch && <text x={(x1 + x2) / 2} y={mid - 4} className={`wfx-edge-tag ${e.branch}`}>{e.branch}</text>}
               </g>
             );

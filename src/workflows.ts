@@ -78,6 +78,22 @@ export function triggerLabel(w: Workflow): string {
   return scheduleLabel(w.schedule);
 }
 
+// Run a workflow right now (the "Test" button). Executes the compiled
+// instruction as the current user through their connectors; returns ok + result.
+export async function testWorkflow(instruction: string, workflowId?: string): Promise<{ ok: boolean; result: string } | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('test-workflow', {
+      body: { instruction, workflow_id: workflowId, tz: deviceTz() },
+    });
+    if (error || !data) return null;
+    const d = data as { ok?: boolean; result?: string; error?: string };
+    if (d.error && d.ok === undefined) return { ok: false, result: d.error };
+    return { ok: !!d.ok, result: String(d.result ?? '') };
+  } catch {
+    return null;
+  }
+}
+
 // Human label for a node's app field (real apps -> brand name; special kinds).
 export function appLabel(app: string): string {
   if (app === 'ai') return 'AI';
