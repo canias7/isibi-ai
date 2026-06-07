@@ -5,7 +5,6 @@ import {
   IconClock, IconBolt, IconBranch, IconSpark, IconCheck,
 } from './icons';
 import { byId } from './connectorData';
-import Markdown from './Markdown';
 import {
   listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow, testWorkflow,
   triggerLabel, deviceTz, appLabel, compileInstruction,
@@ -217,14 +216,13 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [testing, setTesting] = useState(false);
   const [edgeState, setEdgeState] = useState<'idle' | 'run' | 'pass' | 'fail'>('idle');
-  const [testMsg, setTestMsg] = useState<string | null>(null);
 
   // Modal-lock is owned by the parent WorkflowsScreen (this renders inside it).
   useEffect(() => { if (wfId) void listRuns(wfId).then(setRuns); }, [wfId]);
 
   const selNode = sel ? graph.nodes.find((n) => n.id === sel) ?? null : null;
 
-  function clearTest() { if (edgeState !== 'idle') setEdgeState('idle'); if (testMsg) setTestMsg(null); }
+  function clearTest() { if (edgeState !== 'idle') setEdgeState('idle'); }
   function patchNode(id: string, patch: Partial<WfNode>) {
     setGraph((g) => ({ ...g, nodes: g.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)) }));
     clearTest();
@@ -239,13 +237,11 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
     if (testing) return;
     const inst = compileInstruction(title.trim(), graph);
     if (!inst.trim()) return;
-    setTesting(true); setEdgeState('run'); setTestMsg(null);
+    setTesting(true); setEdgeState('run');
     const r = await testWorkflow(inst, mode === 'saved' ? wfId : undefined);
     setTesting(false);
-    if (!r) { setEdgeState('fail'); setTestMsg('Test couldn’t run — try again.'); return; }
-    setEdgeState(r.ok ? 'pass' : 'fail');
-    setTestMsg(r.result || (r.ok ? 'It ran.' : 'It didn’t complete.'));
-    if (wfId) void listRuns(wfId).then(setRuns);
+    setEdgeState(!r ? 'fail' : r.ok ? 'pass' : 'fail');
+    if (wfId) void listRuns(wfId).then(setRuns); // run is saved to history (future Logs)
   }
   function applyTrigger(t: Trigger) {
     setTrigger(t);
@@ -330,19 +326,6 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
         </div>
       )}
 
-      {testMsg && (
-        <div className="wfx-sheet-scrim" onClick={() => setTestMsg(null)}>
-          <div className="wfx-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="wfx-sheet-head">
-              <span className={`wfx-result-title ${edgeState === 'fail' ? 'bad' : 'ok'}`}>
-                <span className="wfx-result-dot" />{edgeState === 'fail' ? 'Test failed' : 'Test ran'}
-              </span>
-              <button className="memg-cancel" onClick={() => setTestMsg(null)}>Done</button>
-            </div>
-            <div className="wfx-result-body"><Markdown text={testMsg} /></div>
-          </div>
-        </div>
-      )}
     </div>,
     document.body,
   );
