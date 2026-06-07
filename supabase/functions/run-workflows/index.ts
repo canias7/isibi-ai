@@ -68,6 +68,18 @@ async function fetchMemories(uid: string): Promise<string[]> {
   }
 }
 
+// Whole-feature memory toggle (server-side); default on if the user has no row.
+async function memoryEnabled(uid: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/user_settings?user_id=eq.${encodeURIComponent(uid)}&select=memory_on`, { headers: sbHeaders });
+    if (!r.ok) return true;
+    const rows = await r.json();
+    return Array.isArray(rows) && rows.length ? !!rows[0].memory_on : true;
+  } catch {
+    return true;
+  }
+}
+
 // ---- timezone-aware scheduling ----
 function localParts(date: Date, tz: string): Record<string, number> {
   const m: Record<string, number> = {};
@@ -177,7 +189,8 @@ async function detectItems(uid: string, ev: any): Promise<DetectedItem[]> {
 // Run one workflow's instruction through Claude (with the user's connectors).
 async function runInstruction(uid: string, instruction: string): Promise<string> {
   if (!ANTHROPIC_KEY) throw new Error("assistant not configured");
-  const [apps, mems] = await Promise.all([connectedToolkits(uid), fetchMemories(uid)]);
+  const [apps, memOn] = await Promise.all([connectedToolkits(uid), memoryEnabled(uid)]);
+  const mems = memOn ? await fetchMemories(uid) : []; // respect the user's pause toggle
   const memSys = mems.length
     ? `\n\nWHAT YOU KNOW ABOUT THIS USER (saved memories; honor them):\n${mems.map((m) => `• ${m}`).join("\n")}`
     : "";

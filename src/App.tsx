@@ -8,7 +8,7 @@ import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow } from './icons';
-import { listMemories, addMemory, updateMemory, deleteMemory, type Memory } from './memory';
+import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, type Memory } from './memory';
 import MemoryGraph from './MemoryGraph';
 import WorkflowsScreen from './WorkflowsScreen';
 import { App as CapApp } from '@capacitor/app';
@@ -892,6 +892,11 @@ export default function App() {
     setMemOpen(true);
     setSidebarOpen(false);
     void loadMems();
+    // Sync the on/off state from the server (source of truth across devices).
+    void getMemoryEnabled().then((on) => {
+      setMemEnabled(on);
+      try { localStorage.setItem('gf_memory_on', on ? '1' : '0'); } catch { /* ignore */ }
+    });
   }
 
   function closeMemory() {
@@ -933,6 +938,7 @@ export default function App() {
   function toggleMem(next: boolean) {
     setMemEnabled(next);
     try { localStorage.setItem('gf_memory_on', next ? '1' : '0'); } catch { /* ignore */ }
+    void setMemoryEnabled(next); // persist server-side so workflows respect it too
   }
 
   function newChat() {

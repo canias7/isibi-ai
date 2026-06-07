@@ -60,3 +60,25 @@ export async function deleteMemory(id: string): Promise<boolean> {
     return false;
   }
 }
+
+// Whole-feature on/off, stored server-side so it applies everywhere — chats AND
+// background workflow runs (which the device-only flag couldn't reach).
+export async function getMemoryEnabled(): Promise<boolean> {
+  try {
+    const { data } = await supabase.from('user_settings').select('memory_on').maybeSingle();
+    return data ? !!data.memory_on : true; // default on
+  } catch {
+    return true;
+  }
+}
+
+export async function setMemoryEnabled(on: boolean): Promise<void> {
+  try {
+    const { data: s } = await supabase.auth.getSession();
+    const uid = s.session?.user.id;
+    if (!uid) return;
+    await supabase.from('user_settings').upsert({ user_id: uid, memory_on: on, updated_at: new Date().toISOString() });
+  } catch {
+    /* ignore — localStorage still reflects the choice locally */
+  }
+}
