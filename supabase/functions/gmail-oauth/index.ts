@@ -629,7 +629,9 @@ Deno.serve(async (req: Request) => {
     const have = new Set(catalog.map((t) => t.slug));
     for (const s of (saved ?? [])) if (!have.has(s)) catalog.push({ slug: s, name: prettyName(s), desc: "" });
     const tools = catalog.map((t) => ({ slug: t.slug, name: t.name, desc: t.desc, write: isWrite(t.slug) }));
-    return json(req, { tools, enabled: saved ?? [], customized: saved !== null });
+    // Uncustomized = everything on by default (matches gmail-mcp), so show all
+    // toggles enabled; the user trims from there and that saves their selection.
+    return json(req, { tools, enabled: saved ?? catalog.map((t) => t.slug), customized: saved !== null });
   }
 
   // 3) The app polls this to show connection state (verified via Bearer token).

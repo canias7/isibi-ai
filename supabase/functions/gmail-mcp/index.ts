@@ -16,6 +16,7 @@ import { crypto as stdCrypto } from "jsr:@std/crypto"; // for MD5 (WebCrypto lac
 
 const API_KEY = Deno.env.get("COMPOSIO_API_KEY")!;
 const BASE = "https://backend.composio.dev/api";
+const CATALOG_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-oauth?catalog=";
 
 // Bearer that gates this server, DERIVED at runtime from a server-only secret
 // (not stored in the repo). Must match the same derivation in the chat function.
@@ -279,14 +280,20 @@ async function fetchTools(params: Record<string, string>): Promise<any[]> {
   return body.items ?? body.data ?? (Array.isArray(body) ? body : []);
 }
 
-// Expose exactly our most-used allowlist for a toolkit (schemas from Composio,
-// kept in our preferred order).
+// Tool schemas for a toolkit's selected slugs (from Composio, kept in order).
+// Fetched in parallel batches of 40 so a large selection can't exceed the URL
+// length limit (tool_slugs is a query param) or stall on one giant request.
 async function toolsForToolkit(toolkit: string, slugs: string[]): Promise<Tool[]> {
   if (!slugs.length) return [];
   const cacheKey = toolkit + ":" + slugs.join(",");
   if (cache[cacheKey]) return cache[cacheKey];
-  const items = await fetchTools({ tool_slugs: slugs.join(","), limit: String(slugs.length) });
-  const bySlug = new Map<string, any>(items.map((t) => [t.slug, t]));
+  const batches: string[][] = [];
+  for (let i = 0; i < slugs.length; i += 40) batches.push(slugs.slice(i, i + 40));
+  const results = await Promise.all(
+    batches.map((b) => fetchTools({ tool_slugs: b.join(","), limit: String(b.length) }).catch(() => [] as any[])),
+  );
+  const bySlug = new Map<string, any>();
+  for (const items of results) for (const t of items) bySlug.set(t.slug, t);
   const tools = slugs.map((s) => bySlug.get(s)).filter(Boolean).map(toMcp);
   if (tools.length) cache[cacheKey] = tools;
   return tools;
@@ -317,7 +324,8 @@ async function discover(toolkit: string, important?: boolean): Promise<{ slug: s
 }
 
 // A user's per-toolkit tool selection. Read with the service role; absence of a
-// row means NO tools are enabled for that app (the user hasn't opted in yet).
+// row means the app hasn't been customized yet — listTools then defaults it to
+// the whole catalog (everything on until the user trims it in Manage Tools).
 async function userToolPrefs(uid: string): Promise<Record<string, string[]>> {
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -336,16 +344,34 @@ async function userToolPrefs(uid: string): Promise<Record<string, string[]>> {
   }
 }
 
+// Full (broken-filtered) catalog slugs for a toolkit — the same list Manage Tools
+// shows (from gmail-oauth ?catalog). Used as the default for a connected app the
+// user hasn't customized yet: everything on, then they trim it. Cached warm.
+const catalogCache: Record<string, string[]> = {};
+async function fullCatalogSlugs(toolkit: string): Promise<string[]> {
+  if (catalogCache[toolkit]) return catalogCache[toolkit];
+  try {
+    const r = await fetch(`${CATALOG_URL}${encodeURIComponent(toolkit)}`);
+    if (!r.ok) return [];
+    const d = await r.json();
+    const slugs: string[] = Array.isArray(d.slugs) ? d.slugs : [];
+    if (slugs.length) catalogCache[toolkit] = slugs;
+    return slugs;
+  } catch {
+    return [];
+  }
+}
+
 async function listTools(apps: string[], prefs: Record<string, string[]>, memOn: boolean): Promise<Tool[]> {
   const out: Tool[] = [];
-  // Only the toolkits the chat function scoped in for this session. Empty = no
-  // connector tools (e.g. user has none connected, or de-scoped them this chat).
-  for (const tk of apps) {
-    // ONLY what the user explicitly enabled. No row / empty selection = no tools
-    // for that app (nothing is on by default; the user opts in per tool).
-    const enabled = prefs[tk] ?? [];
-    out.push(...(await toolsForToolkit(tk, enabled)));
-  }
+  // The user's saved selection wins. If they haven't customized an app (no row),
+  // default to the WHOLE catalog — everything on until they trim it. Build all
+  // apps in parallel so a big catalog doesn't stall the tool list.
+  const lists = await Promise.all(apps.map(async (tk) => {
+    const slugs = prefs[tk] !== undefined ? prefs[tk] : await fullCatalogSlugs(tk);
+    return toolsForToolkit(tk, slugs);
+  }));
+  for (const l of lists) out.push(...l);
   // Long-term memory is available with or without connectors — unless paused
   // (the chat function passes &mem=0 when the user turned the feature off).
   if (memOn) { out.push(MEMORY_TOOL); out.push(MEMORY_FILE_TOOL); }
