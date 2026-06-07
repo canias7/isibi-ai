@@ -5,6 +5,7 @@ import {
   IconClock, IconBolt, IconBranch, IconSpark, IconCheck,
 } from './icons';
 import { byId } from './connectorData';
+import { BrandLogo, hasBrand } from './brandLogos';
 import {
   listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow, testWorkflow,
   triggerLabel, deviceTz, appLabel, compileInstruction, orderedNodes,
@@ -38,6 +39,7 @@ function NodeIcon({ app, size = 22 }: { app: string; size?: number }) {
   if (app === 'event') return <IconBolt size={size} />;
   if (app === 'ai') return <IconSpark size={size} />;
   if (app === 'decision') return <IconBranch size={size} />;
+  if (hasBrand(app)) return <BrandLogo app={app} size={size} />; // bundled SVG (no CDN)
   const c = byId(app);
   if (c) return <img src={c.logo} alt="" className="wfx-logo" draggable={false} />;
   return <IconSpark size={size} />;
@@ -67,11 +69,11 @@ function HeroFlow() {
         <path className="wfx-hf-wire" d="M156,96 C192,96 192,140 215,140" style={{ animationDelay: '.48s' }} />
       </svg>
       {inputs.map((o) => (
-        <div key={o.app} className="wfx-hf-node" style={{ left: o.x, top: o.y }}><NodeIcon app={o.app} size={20} /></div>
+        <div key={o.app} className="wfx-hf-node" style={{ left: o.x, top: o.y }}><BrandLogo app={o.app} size={24} /></div>
       ))}
       <div className="wfx-hf-node b" style={{ left: '43%', top: '50%' }}><NodeIcon app="ai" size={24} /></div>
       {outputs.map((o) => (
-        <div key={o.app} className="wfx-hf-node" style={{ left: o.x, top: o.y }}><NodeIcon app={o.app} size={20} /></div>
+        <div key={o.app} className="wfx-hf-node" style={{ left: o.x, top: o.y }}><BrandLogo app={o.app} size={24} /></div>
       ))}
     </div>
   );
@@ -526,7 +528,7 @@ function Canvas({ graph, results, onChange, onSelect, edgeState }: { graph: WfGr
               onPointerUp={(e) => nodeUp(e, n)}
               onPointerCancel={() => { drag.current = null; }}
             >
-              <div className="wfx-chip">
+              <div className={`wfx-chip ${hasBrand(n.app) ? 'logo' : ''}`}>
                 <NodeIcon app={n.app} />
                 {ns && (
                   <span className={`wfx-node-status ${ns.ok ? 'ok' : 'bad'}`}>

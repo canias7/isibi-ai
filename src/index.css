@@ -1746,6 +1746,8 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .wfx-result.bad .wfx-result-head { color: #ff8f8f; }
 .wfx-result-out { margin: 8px 0 0; white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.45; color: var(--text); max-height: 200px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .wfx-node.trigger .wfx-chip { background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05; border-color: rgba(255, 255, 255, 0.25); }
+/* App nodes carry a real brand logo — sit it on a light tile so it always reads. */
+.wfx-chip.logo { background: #f7f7fa; border-color: rgba(0, 0, 0, 0.12); }
 .wfx-node.decision .wfx-chip { transform: rotate(45deg); }
 .wfx-node.decision .wfx-chip > * { transform: rotate(-45deg); }
 .wfx-logo { width: 30px; height: 30px; object-fit: contain; pointer-events: none; }
