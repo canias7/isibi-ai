@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { type Memory, memoryFileUrl } from './memory';
 import type { Attach } from './api';
+import { fileToAttachment } from './attach';
 import { IconTrash, IconArrowUp, IconSpark, IconArrowLeft, IconFiles, IconX, IconPhotos, IconDoc } from './icons';
 
 // Full-screen "constellation" view of the user's memories: a glowing core with
@@ -21,21 +22,6 @@ interface Props {
   onClose: () => void;
 }
 
-// Read a picked File into an Attach (base64, no data-URL prefix). Images + PDFs only.
-function fileToAttach(file: File): Promise<Attach | null> {
-  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
-  const isImg = file.type.startsWith('image/');
-  if (!isPdf && !isImg) return Promise.resolve(null);
-  return new Promise((resolve) => {
-    const r = new FileReader();
-    r.onload = () => {
-      const b64 = String(r.result || '').split(',')[1] || '';
-      resolve(b64 ? { kind: isPdf ? 'pdf' : 'image', mediaType: file.type || (isPdf ? 'application/pdf' : 'image/jpeg'), data: b64, name: file.name } : null);
-    };
-    r.onerror = () => resolve(null);
-    r.readAsDataURL(file);
-  });
-}
 
 type XY = { x: number; y: number };
 
@@ -65,6 +51,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [pending, setPending] = useState<Attach | null>(null); // attachment waiting to be saved
+  const [attErr, setAttErr] = useState('');
   const [positions, setPositions] = useState<Record<string, XY>>(loadPositions);
   const [dragId, setDragId] = useState<string | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -136,8 +123,9 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    const a = await fileToAttach(file);
-    if (a) { setSelectedId(null); setPending(a); }
+    const { attach, error } = await fileToAttachment(file);
+    if (attach) { setSelectedId(null); setPending(attach); setAttErr(''); }
+    else if (error) { setAttErr(error); setTimeout(() => setAttErr(''), 4000); }
   }
 
   async function submit() {
@@ -270,6 +258,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
           </div>
         )}
         {saving && pending && <div className="memg-reading">Reading attachment…</div>}
+        {attErr && <div className="memg-reading memg-att-err">{attErr}</div>}
         <div className="memg-compose">
           {selectedId ? (
             <button className="memg-trash" onClick={remove} aria-label="Delete memory">

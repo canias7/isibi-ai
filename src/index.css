@@ -1205,6 +1205,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   padding: 2px; display: grid; place-items: center; cursor: pointer; border-radius: 6px;
 }
 .memg-reading { max-width: 640px; margin: 0 auto 8px; font-size: 12px; color: var(--text-dim); }
+.memg-att-err { color: #f4a261; }
 
 @media (prefers-reduced-motion: reduce) {
   .memg, .memg-core, .memg-node, .memg-line { animation: none; }

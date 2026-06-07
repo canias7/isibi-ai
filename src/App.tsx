@@ -17,6 +17,7 @@ import { tap } from './haptics';
 import { biometryAvailable, unlock } from './biometric';
 import { registerPush, pushStatus } from './push';
 import { capturePhoto } from './camera';
+import { fileToAttachment } from './attach';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -156,56 +157,8 @@ async function syncDelete(uid: string, id: string) {
   }
 }
 
-// ---- Attachment helpers (client-side image normalization) ----
-function stripPrefix(dataUrl: string): string {
-  const i = dataUrl.indexOf(',');
-  return i >= 0 ? dataUrl.slice(i + 1) : dataUrl;
-}
-function readAsDataUrl(f: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result));
-    r.onerror = () => reject(new Error('read failed'));
-    r.readAsDataURL(f);
-  });
-}
-// Decode (incl. iOS HEIC) and re-encode to a downscaled JPEG so payloads stay
-// small and the media type is one Claude's vision accepts.
-function imageToJpeg(f: File): Promise<{ data: string; mediaType: string }> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(f);
-    const img = new Image();
-    img.onload = () => {
-      const max = 1568;
-      const scale = Math.min(1, max / Math.max(img.width, img.height));
-      const w = Math.max(1, Math.round(img.width * scale));
-      const h = Math.max(1, Math.round(img.height * scale));
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      URL.revokeObjectURL(url);
-      if (!ctx) return reject(new Error('no canvas'));
-      ctx.drawImage(img, 0, 0, w, h);
-      resolve({ data: stripPrefix(canvas.toDataURL('image/jpeg', 0.85)), mediaType: 'image/jpeg' });
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('image decode failed'));
-    };
-    img.src = url;
-  });
-}
-async function fileToAttachment(f: File): Promise<Attach | null> {
-  if (f.type === 'application/pdf') {
-    return { kind: 'pdf', mediaType: 'application/pdf', data: stripPrefix(await readAsDataUrl(f)), name: f.name || 'document.pdf' };
-  }
-  if (f.type.startsWith('image/')) {
-    const { data, mediaType } = await imageToJpeg(f);
-    return { kind: 'image', mediaType, data, name: f.name || 'image.jpg' };
-  }
-  return null; // unsupported type
-}
+// Attachment conversion (size cap + image downscale) lives in ./attach, shared
+// with the Memory composer.
 
 // Render one attachment — image thumbnail, or a file chip (also the fallback for
 // images whose base64 was stripped on persist).
@@ -351,7 +304,7 @@ export default function App() {
   const [connMenu, setConnMenu] = useState(false);
   const [plusOpen, setPlusOpen] = useState(false);
   const [attachments, setAttachments] = useState<Attach[]>([]);
-  const [attachErr, setAttachErr] = useState(false);
+  const [attachErr, setAttachErr] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const menuOpenedAt = useRef(0); // guards against the tap's ghost-click closing a just-opened menu
   const seenRef = useRef<string[]>([]);
@@ -840,19 +793,15 @@ export default function App() {
   async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
-    let bad = false;
+    let err = '';
     for (const f of files) {
-      try {
-        const att = await fileToAttachment(f);
-        if (att) setAttachments((prev) => [...prev, att].slice(-6));
-        else bad = true;
-      } catch {
-        bad = true;
-      }
+      const { attach, error } = await fileToAttachment(f);
+      if (attach) setAttachments((prev) => [...prev, attach].slice(-6));
+      else if (error) err = error;
     }
-    if (bad) {
-      setAttachErr(true);
-      setTimeout(() => setAttachErr(false), 3500);
+    if (err) {
+      setAttachErr(err);
+      setTimeout(() => setAttachErr(''), 4000);
     }
   }
   function removeAttachment(i: number) {
@@ -1356,7 +1305,7 @@ export default function App() {
                   ))}
                 </div>
               )}
-              {attachErr && <div className="att-err">That file type isn't supported — try an image or PDF.</div>}
+              {attachErr && <div className="att-err">{attachErr}</div>}
               <div className="composer-row">
                 <button
                   className={`plus-btn ${plusOpen ? 'open' : ''}`}
