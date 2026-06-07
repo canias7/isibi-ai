@@ -10,6 +10,7 @@ import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow } from './icons';
 import { listMemories, addMemory, updateMemory, deleteMemory, type Memory } from './memory';
 import MemoryGraph from './MemoryGraph';
+import WorkflowsScreen from './WorkflowsScreen';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { tap } from './haptics';
@@ -897,12 +898,6 @@ export default function App() {
     setMemOpen(false);
   }
 
-  // Lock the page behind the Workflows overlay (same as the Memory modal).
-  useEffect(() => {
-    if (!wfOpen) return;
-    document.documentElement.classList.add('gf-modal-open');
-    return () => document.documentElement.classList.remove('gf-modal-open');
-  }, [wfOpen]);
 
   async function loadMems() {
     if (!uid) return;
@@ -1387,26 +1382,7 @@ export default function App() {
         />
       )}
 
-      {wfOpen && (
-        <div className="memg" role="dialog" aria-label="Workflows">
-          <div className="memg-top">
-            <div className="memg-titles">
-              <h1 className="memg-title">Workflows</h1>
-              <p className="memg-sub">Coming soon</p>
-            </div>
-            <button className="memg-close" onClick={() => setWfOpen(false)} aria-label="Close">
-              <IconX size={20} />
-            </button>
-          </div>
-          <div className="memg-stage">
-            <div className="memg-core" aria-hidden="true"><IconWorkflow size={26} /></div>
-            <div className="memg-empty">
-              <div className="memg-empty-title">Workflows are on the way</div>
-              <div className="memg-empty-sub">Save routines you run often and trigger them in one tap.</div>
-            </div>
-          </div>
-        </div>
-      )}
+      {wfOpen && <WorkflowsScreen onClose={() => setWfOpen(false)} />}
     </div>
   );
 }
