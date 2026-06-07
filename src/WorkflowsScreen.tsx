@@ -68,16 +68,24 @@ const HF_POOL = BRAND_IDS.slice(0, Math.max(5, Math.floor(BRAND_IDS.length / 5) 
 
 function HeroFlow() {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [round, setRound] = useState(0);
+  const [slotRound, setSlotRound] = useState<number[]>(() => [0, 0, 0, 0, 0]);
+  const cur = useRef(0); // which slot swaps next (round-robin 0..4)
   const [off, setOff] = useState(() => HF_NODES.map(() => ({ dx: 0, dy: 0 })));
   const drag = useRef<{ i: number; sx: number; sy: number; ox: number; oy: number } | null>(null);
 
   useEffect(() => {
-    // Advance every 5s, but never mid-drag (a pop would jar the node you're holding).
-    const t = setInterval(() => { if (!drag.current) setRound((r) => r + 1); }, 5000);
+    // Swap ONE node per second, round-robin (0..4 then loop) — first, then the
+    // next a second later, and so on. Each slot stays on its own residue mod 5,
+    // so the five visible apps are never duplicated. Paused while dragging.
+    const t = setInterval(() => {
+      if (drag.current) return;
+      const s = cur.current;
+      setSlotRound((prev) => prev.map((r, idx) => (idx === s ? r + 1 : r)));
+      cur.current = (s + 1) % 5;
+    }, 1000);
     return () => clearInterval(t);
   }, []);
-  const appForSlot = (slot: number) => HF_POOL[(round * 5 + slot) % HF_POOL.length];
+  const appForSlot = (slot: number) => HF_POOL[(slotRound[slot] * 5 + slot) % HF_POOL.length];
   const center = (i: number) => ({ x: HF_NODES[i].base[0] + off[i].dx, y: HF_NODES[i].base[1] + off[i].dy });
 
   function down(e: React.PointerEvent, i: number) {
@@ -128,7 +136,7 @@ function HeroFlow() {
           >
             {nd.ai
               ? <NodeIcon app="ai" size={24} />
-              : <span key={app} className="wfx-hf-ic" style={{ animationDelay: `${nd.slot! * 0.06}s` }}><BrandLogo app={app} size={24} /></span>}
+              : <span key={app} className="wfx-hf-ic"><BrandLogo app={app} size={24} /></span>}
           </div>
         );
       })}
