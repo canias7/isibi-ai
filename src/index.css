@@ -1807,9 +1807,22 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 }
 @media (prefers-reduced-motion: reduce) { .wfx-hf-wire, .wfx-hf-node.b, .wfx-hf-ic { animation: none; } }
 
-/* Workflow preview showcase (per-prompt graph + typewriter). */
-.wfx-wp-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
-.wfx-wp { position: relative; width: min(300px, 84vw); aspect-ratio: 300 / 240; transition: opacity 0.35s ease, transform 0.35s ease; }
+/* Workflow preview showcase: a mock chat box types the prompt, sends, the graph builds. */
+.wfx-wp-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; }
+/* Mock chat box the prompt types into. */
+.wfx-wp-chat {
+  display: flex; align-items: center; gap: 8px;
+  width: min(330px, 88vw); min-height: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px; padding: 10px 10px 10px 16px;
+}
+.wfx-wp-chat-text { flex: 1; text-align: left; font-size: 15px; line-height: 1.35; color: var(--text); min-width: 0; }
+.wfx-wp-send { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); color: var(--text); display: grid; place-items: center; transition: background 0.2s ease, transform 0.15s ease; }
+.wfx-wp-send.sending { background: #e0a13a; color: #2a1c05; transform: scale(0.9); }
+/* Stage where the workflow "loads" — fixed size so nothing jumps. */
+.wfx-wp-stage { position: relative; width: min(300px, 84vw); aspect-ratio: 300 / 240; }
+.wfx-wp-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--text-dim); font-size: 13px; }
+.wfx-wp { position: absolute; inset: 0; transition: opacity 0.35s ease, transform 0.35s ease; }
 .wfx-wp.leaving { opacity: 0; transform: scale(0.96); }
 .wfx-wp .wfx-hf-node { cursor: default; }
 /* Node pops in (keeps the -50%,-50% centering so it can't jump to the corner). */

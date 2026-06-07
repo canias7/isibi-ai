@@ -48,20 +48,20 @@ function NodeIcon({ app, size = 22 }: { app: string; size?: number }) {
 interface Work { title: string; instruction: string; trigger: Trigger; graph: WfGraph }
 
 // Each empty-state prompt with the real workflow it would build: trigger app(s)
-// on top -> the AI step -> destination app(s) on the bottom. The graph for the
-// active prompt animates in as the prompt types, so it looks like the real thing.
+// on top -> the AI step -> destination app(s) on the bottom. Shown as: the prompt
+// types into a chat box, hits send, the workflow "builds", holds, then the next.
 type WfPreview = { prompt: string; top: string[]; bottom: string[] };
 const WORKFLOWS: WfPreview[] = [
-  { prompt: 'Nudge my team about the weekly report every Friday at 5.', top: ['schedule'], bottom: ['slack'] },
-  { prompt: 'When an invoice shows up in my email, save the PDF to Drive.', top: ['gmail'], bottom: ['gdrive'] },
-  { prompt: 'Around lunch, sum up the Slack messages I missed.', top: ['slack'], bottom: ['sms'] },
-  { prompt: 'New meeting on my Outlook? Drop prep notes into Notion.', top: ['m365'], bottom: ['notion'] },
-  { prompt: 'If a Stripe payment fails, text me and log it in a sheet.', top: ['stripe'], bottom: ['sms', 'googlesheets'] },
-  { prompt: 'Turn the emails I star into Todoist tasks for tomorrow.', top: ['gmail'], bottom: ['todoist'] },
-  { prompt: 'New YouTube video? Post it to Discord and LinkedIn.', top: ['youtube'], bottom: ['discord', 'linkedin'] },
-  { prompt: 'Back up my new Dropbox files to Google Drive overnight.', top: ['dropbox'], bottom: ['gdrive'] },
-  { prompt: 'Reply to the Instagram DMs asking when we’re open.', top: ['instagram'], bottom: ['instagram'] },
-  { prompt: 'When I wake up, text me my schedule and the weather.', top: ['gcal', 'weather'], bottom: ['sms'] },
+  { prompt: 'Every Friday at 5, email my team the weekly report and post it to Slack.', top: ['schedule'], bottom: ['gmail', 'slack'] },
+  { prompt: 'When an invoice hits Gmail, save the PDF to Drive and log it in Sheets.', top: ['gmail'], bottom: ['gdrive', 'googlesheets'] },
+  { prompt: 'At noon, summarize my Slack, text me a recap, and add follow-ups to Todoist.', top: ['schedule', 'slack'], bottom: ['sms', 'todoist'] },
+  { prompt: 'New Outlook meeting? Add prep notes to Notion and a reminder to my calendar.', top: ['m365'], bottom: ['notion', 'gcal'] },
+  { prompt: 'If a Stripe payment fails, text me, log it in Sheets, and email the customer.', top: ['stripe'], bottom: ['sms', 'googlesheets', 'gmail'] },
+  { prompt: 'Turn the emails I star into Todoist tasks and jot a note in Notion.', top: ['gmail'], bottom: ['todoist', 'notion'] },
+  { prompt: 'New YouTube video? Post it to Discord, LinkedIn, and Slack.', top: ['youtube'], bottom: ['discord', 'linkedin', 'slack'] },
+  { prompt: 'Back up new Dropbox files to Google Drive and ping me on Slack.', top: ['dropbox'], bottom: ['gdrive', 'slack'] },
+  { prompt: 'Reply to Instagram DMs about our hours and save the leads to a Sheet.', top: ['instagram'], bottom: ['instagram', 'googlesheets'] },
+  { prompt: 'When I wake up, text me my calendar, the weather, and any unread email.', top: ['gcal', 'weather', 'gmail'], bottom: ['sms'] },
 ];
 const WP_VB_W = 300, WP_VB_H = 240;
 const wpXs = (n: number): number[] => (n <= 1 ? [150] : n === 2 ? [108, 192] : [74, 150, 226]);
@@ -82,32 +82,31 @@ function wpIcon(app: string, size: number) {
   return <BrandLogo app={app} size={size} />;
 }
 
-// Empty-state showcase: types each prompt while rendering the matching workflow
-// graph; holds 3s, erases in reverse, then moves to the next prompt + graph.
+// Empty-state showcase: type prompt into a chat box -> send -> "build" -> show the
+// matching workflow graph -> hold 5s -> next.
 function WorkflowPreview() {
   const [wi, setWi] = useState(0);
   const [text, setText] = useState('');
-  const [phase, setPhase] = useState<'type' | 'del'>('type');
+  const [phase, setPhase] = useState<'type' | 'send' | 'show' | 'leave'>('type');
   const wf = WORKFLOWS[wi % WORKFLOWS.length];
 
   useEffect(() => {
     const full = wf.prompt;
     if (phase === 'type') {
       if (text.length < full.length) {
-        const t = setTimeout(() => setText(full.slice(0, text.length + 1)), 45);
+        const t = setTimeout(() => setText(full.slice(0, text.length + 1)), 42);
         return () => clearTimeout(t);
       }
-      const t = setTimeout(() => setPhase('del'), 3000); // fully typed -> hold 3s
+      const t = setTimeout(() => setPhase('send'), 500); // beat, then hit send
       return () => clearTimeout(t);
     }
-    if (text.length > 0) {
-      const t = setTimeout(() => setText(full.slice(0, text.length - 1)), 22);
-      return () => clearTimeout(t);
-    }
-    const t = setTimeout(() => { setWi((p) => (p + 1) % WORKFLOWS.length); setPhase('type'); }, 450);
+    if (phase === 'send') { const t = setTimeout(() => setPhase('show'), 1000); return () => clearTimeout(t); } // "building…"
+    if (phase === 'show') { const t = setTimeout(() => setPhase('leave'), 5000); return () => clearTimeout(t); } // hold 5s
+    const t = setTimeout(() => { setWi((p) => (p + 1) % WORKFLOWS.length); setText(''); setPhase('type'); }, 520);
     return () => clearTimeout(t);
   }, [text, phase, wi]);
 
+  const built = phase === 'show' || phase === 'leave';
   const topX = wpXs(wf.top.length), botX = wpXs(wf.bottom.length);
   const nodes = [
     ...wf.top.map((app, i) => ({ id: 't' + i, app, x: topX[i], y: 40, r: 21, ai: false })),
@@ -122,28 +121,37 @@ function WorkflowPreview() {
 
   return (
     <div className="wfx-wp-wrap">
-      <div className={`wfx-wp ${phase === 'del' ? 'leaving' : ''}`}>
-        <svg className="wfx-hf-wires" viewBox={`0 0 ${WP_VB_W} ${WP_VB_H}`}>
-          <defs>
-            <marker id="wfx-hf-arrow" markerWidth="7" markerHeight="7" refX="5.4" refY="3" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M0,0 L6,3 L0,6 Z" fill="rgba(224,161,58,0.85)" />
-            </marker>
-          </defs>
-          {edges.map(([a, b], k) => {
-            const A = nodes[a], B = nodes[b];
-            const x1 = A.x, y1 = A.y + A.r, x2 = B.x, y2 = B.y - B.r, mid = (y1 + y2) / 2;
-            return <path key={k} className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)" style={{ animationDelay: `${k * 0.12}s` }} d={`M ${x1} ${y1} C ${x1} ${mid} ${x2} ${mid} ${x2} ${y2}`} />;
-          })}
-        </svg>
-        {nodes.map((n, idx) => (
-          <div key={`${wi}-${n.id}`} className={`wfx-hf-node ${n.ai ? 'b' : ''} wfx-pin`} style={{ left: `${(n.x / WP_VB_W) * 100}%`, top: `${(n.y / WP_VB_H) * 100}%`, animationDelay: `${idx * 0.07}s` }}>
-            {wpIcon(n.app, n.ai ? 24 : 22)}
-          </div>
-        ))}
+      <div className="wfx-wp-chat">
+        <span className="wfx-wp-chat-text">{text}{phase === 'type' && <span className="wfx-prompt-caret" />}</span>
+        <span className={`wfx-wp-send ${phase === 'send' ? 'sending' : ''}`} aria-hidden="true">
+          {phase === 'send' ? <span className="wfx-spin" /> : <IconArrowUp size={16} />}
+        </span>
       </div>
-      <div className="wfx-prompt" aria-live="polite">
-        <span className="wfx-prompt-text">{text}</span>
-        <span className="wfx-prompt-caret" />
+      <div className="wfx-wp-stage">
+        {phase === 'send' && (
+          <div className="wfx-wp-loading"><span className="wfx-spin" /><span>Building workflow…</span></div>
+        )}
+        {built && (
+          <div className={`wfx-wp ${phase === 'leave' ? 'leaving' : ''}`}>
+            <svg className="wfx-hf-wires" viewBox={`0 0 ${WP_VB_W} ${WP_VB_H}`}>
+              <defs>
+                <marker id="wfx-hf-arrow" markerWidth="7" markerHeight="7" refX="5.4" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+                  <path d="M0,0 L6,3 L0,6 Z" fill="rgba(224,161,58,0.85)" />
+                </marker>
+              </defs>
+              {edges.map(([a, b], k) => {
+                const A = nodes[a], B = nodes[b];
+                const x1 = A.x, y1 = A.y + A.r, x2 = B.x, y2 = B.y - B.r, mid = (y1 + y2) / 2;
+                return <path key={k} className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)" style={{ animationDelay: `${k * 0.12}s` }} d={`M ${x1} ${y1} C ${x1} ${mid} ${x2} ${mid} ${x2} ${y2}`} />;
+              })}
+            </svg>
+            {nodes.map((n, idx) => (
+              <div key={`${wi}-${n.id}`} className={`wfx-hf-node ${n.ai ? 'b' : ''} wfx-pin`} style={{ left: `${(n.x / WP_VB_W) * 100}%`, top: `${(n.y / WP_VB_H) * 100}%`, animationDelay: `${idx * 0.06}s` }}>
+                {wpIcon(n.app, n.ai ? 24 : 22)}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
