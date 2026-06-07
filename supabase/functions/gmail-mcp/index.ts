@@ -378,6 +378,22 @@ async function execTool(name: string, args: unknown, userId: string): Promise<st
   });
   const body = await res.json().catch(() => ({}));
   console.log(`exec ${name}: http=${res.status} successful=${body?.successful} err=${body?.error ? String(body.error).slice(0, 200) : ""}`);
+
+  // Composio caps the size of the response it returns to us. For a SEND/REPLY/
+  // upload/draft, the action already happened upstream (e.g. Gmail accepted the
+  // email WITH its attachment) — Composio just can't echo the big result back,
+  // so it answers 413 "Upstream_PayloadTooLarge". That is NOT a failure: the
+  // message was sent. Treat it as success so we never tell the user a delivered
+  // email didn't go through. (Reads that legitimately 413 still surface as errors
+  // below, so the model can paginate/filter.)
+  const eo = body?.error as { code?: number; slug?: string; status?: number } | undefined;
+  const tooLarge = res.status === 413 || !!(eo && (eo.code === 1613 || eo.slug === "Upstream_PayloadTooLarge" || eo.status === 413));
+  const isMutation = /SEND|REPLY|UPLOAD|CREATE_[A-Z_]*DRAFT/.test(name.toUpperCase());
+  if (tooLarge && isMutation) {
+    await dbg(userId, name, true, `payload-too-large treated as success (action completed upstream)`);
+    return "Done — it completed successfully. (The provider returned more confirmation detail than could be included, but the action went through.)";
+  }
+
   if (!res.ok || body.successful === false || body.error) {
     const a = (args || {}) as Record<string, unknown>;
     const att = a.attachment as unknown;
