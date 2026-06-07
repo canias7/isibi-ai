@@ -1056,6 +1056,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .memg-stage.paused .memg-node,
 .memg-stage.paused .memg-lines { opacity: 0.4; }
 
+.memg-world { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
 .memg-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .memg-line { stroke: rgba(255, 255, 255, 0.12); stroke-width: 1; animation: memgFade 0.5s ease backwards; }
 .memg-line.on { stroke: rgba(224, 161, 58, 0.55); }

@@ -54,9 +54,19 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
   const [attErr, setAttErr] = useState('');
   const [positions, setPositions] = useState<Record<string, XY>>(loadPositions);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1); // pinch-zoom of the whole constellation
+  const [pan, setPan] = useState<XY>({ x: 0, y: 0 });
   const stageRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<{ id: string; sx: number; sy: number; ox: number; oy: number; w: number; h: number; moved: boolean } | null>(null);
+  // Background gesture state: track every active pointer so two fingers pinch.
+  const ptrs = useRef<Map<number, XY>>(new Map());
+  const gest = useRef<
+    | { mode: 'pan'; sx: number; sy: number; px: number; py: number }
+    | { mode: 'pinch'; d0: number; z0: number; px: number; py: number; mx: number; my: number }
+    | null
+  >(null);
+  const bgMoved = useRef(false); // distinguishes a pan/pinch from a tap-to-deselect
 
   // Lock the page behind the modal so iOS rubber-band scroll can't drag it.
   useEffect(() => {
@@ -75,6 +85,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
   const posOf = (m: Memory): XY => positions[m.id] ?? coords[slot.get(m.id) ?? 0] ?? { x: 50, y: 30 };
 
   function onDown(e: React.PointerEvent, m: Memory) {
+    e.stopPropagation(); // don't let the node's touch also start a background pan/pinch
     const rect = stageRef.current?.getBoundingClientRect();
     if (!rect) return;
     const p = posOf(m);
@@ -90,8 +101,9 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
     const dy = e.clientY - d.sy;
     if (!d.moved && Math.abs(dx) < 5 && Math.abs(dy) < 5) return; // still a tap
     d.moved = true;
-    const nx = clamp(d.ox + (dx / d.w) * 100, 10, 90);
-    const ny = clamp(d.oy + (dy / d.h) * 100, 8, 92);
+    // Divide by zoom: a finger moving N screen px shifts the node N/zoom in stage space.
+    const nx = clamp(d.ox + (dx / d.w / zoom) * 100, 10, 90);
+    const ny = clamp(d.oy + (dy / d.h / zoom) * 100, 8, 92);
     setPositions((prev) => ({ ...prev, [d.id]: { x: nx, y: ny } }));
   }
 
@@ -105,6 +117,65 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
       try { localStorage.setItem(POS_KEY, JSON.stringify(prev)); } catch { /* ignore */ }
       return prev;
     });
+  }
+
+  // Keep the constellation anchored: don't let pan slide it off the stage. At
+  // zoom 1 the scaled size equals the stage, so the range collapses to 0 (no drift).
+  function clampPan(x: number, y: number, z: number): XY {
+    const el = stageRef.current;
+    if (!el) return { x, y };
+    const cw = el.clientWidth, ch = el.clientHeight, sw = cw * z, sh = ch * z;
+    return { x: clamp(x, Math.min(0, cw - sw), 0), y: clamp(y, Math.min(0, ch - sh), 0) };
+  }
+
+  // One finger pans (only travels once zoomed in); two fingers pinch-zoom,
+  // anchored on the midpoint between them — same feel as the Workflows canvas.
+  function localMid(pts: XY[]): XY {
+    const r = stageRef.current?.getBoundingClientRect();
+    const ox = r?.left ?? 0, oy = r?.top ?? 0;
+    if (pts.length >= 2) return { x: (pts[0].x + pts[1].x) / 2 - ox, y: (pts[0].y + pts[1].y) / 2 - oy };
+    return { x: (pts[0]?.x ?? 0) - ox, y: (pts[0]?.y ?? 0) - oy };
+  }
+  function startGesture() {
+    const pts = [...ptrs.current.values()];
+    if (pts.length === 1) {
+      gest.current = { mode: 'pan', sx: pts[0].x, sy: pts[0].y, px: pan.x, py: pan.y };
+    } else if (pts.length >= 2) {
+      const m = localMid(pts);
+      gest.current = { mode: 'pinch', d0: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1, z0: zoom, px: pan.x, py: pan.y, mx: m.x, my: m.y };
+    }
+  }
+  function bgDown(e: React.PointerEvent) {
+    if (ptrs.current.size === 0) bgMoved.current = false;
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    startGesture();
+  }
+  function bgMove(e: React.PointerEvent) {
+    if (!ptrs.current.has(e.pointerId)) return; // a node's pointer — ignore here
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const g = gest.current;
+    if (!g) return;
+    const pts = [...ptrs.current.values()];
+    if (g.mode === 'pan' && pts.length === 1) {
+      const dx = pts[0].x - g.sx, dy = pts[0].y - g.sy;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) bgMoved.current = true;
+      setPan(clampPan(g.px + dx, g.py + dy, zoom));
+    } else if (g.mode === 'pinch' && pts.length >= 2) {
+      bgMoved.current = true;
+      const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+      const nz = clamp(+(g.z0 * (d / g.d0)).toFixed(3), 1, 3);
+      const m = localMid(pts);
+      const sxp = (g.mx - g.px) / g.z0, syp = (g.my - g.py) / g.z0; // content point under the start midpoint
+      setZoom(nz);
+      setPan(clampPan(m.x - sxp * nz, m.y - syp * nz, nz));
+    }
+  }
+  function bgUp(e: React.PointerEvent) {
+    ptrs.current.delete(e.pointerId);
+    gest.current = null;
+    if (ptrs.current.size > 0) { startGesture(); return; } // 2 fingers -> 1: resume panning
+    if (!bgMoved.current) deselect(); // a clean tap on the background closes the editor
   }
 
   function deselect() {
@@ -186,8 +257,12 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
       <div
         ref={stageRef}
         className={`memg-stage ${enabled ? '' : 'paused'}`}
-        onClick={(e) => { if (e.target === e.currentTarget) deselect(); }}
+        onPointerDown={bgDown}
+        onPointerMove={bgMove}
+        onPointerUp={bgUp}
+        onPointerCancel={bgUp}
       >
+       <div className="memg-world" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
         <svg className="memg-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           {memories.map((m) => {
             const p = posOf(m);
@@ -225,6 +300,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
             </button>
           );
         })}
+       </div>
 
         {loaded && n === 0 && (
           <div className="memg-empty">
