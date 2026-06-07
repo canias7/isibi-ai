@@ -195,6 +195,13 @@ export const IconArrowUp = ({ size }: { size?: number }) => (
   </Svg>
 );
 
+export const IconArrowLeft = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="m12 19-7-7 7-7" />
+    <path d="M19 12H5" />
+  </Svg>
+);
+
 export const IconWorkflow = ({ size }: { size?: number }) => (
   <Svg size={size}>
     <rect width="8" height="8" x="3" y="3" rx="2" />

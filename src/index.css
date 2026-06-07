@@ -1018,6 +1018,17 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   cursor: pointer;
 }
 .memg-close:active { background: rgba(255, 255, 255, 0.14); }
+.memg-back {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 8px); left: 14px;
+  width: 34px; height: 34px;
+  border: none; background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-radius: 50%;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.memg-back:active { background: rgba(255, 255, 255, 0.14); }
 .memg-toggle {
   position: absolute;
   top: calc(env(safe-area-inset-top) + 13px); right: 58px;

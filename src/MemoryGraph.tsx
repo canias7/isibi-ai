@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Memory } from './memory';
-import { IconX, IconTrash, IconArrowUp, IconSpark } from './icons';
+import { IconTrash, IconArrowUp, IconSpark, IconArrowLeft } from './icons';
 
 // Full-screen "constellation" view of the user's memories: a glowing core with
 // each saved memory as a node on a connector line around it. Manual add/edit/
@@ -132,6 +132,9 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
   return createPortal(
     <div className="memg" role="dialog" aria-label="Memory">
       <div className="memg-top">
+        <button className="memg-back" onClick={onClose} aria-label="Back">
+          <IconArrowLeft size={22} />
+        </button>
         <div className="memg-titles">
           <h1 className="memg-title">Memory</h1>
           <p className="memg-sub">{sub}</p>
@@ -144,9 +147,6 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
           aria-label={enabled ? 'Memory on' : 'Memory off'}
         >
           <span className={`tgl ${enabled ? 'on' : ''}`}><span className="tgl-knob" /></span>
-        </button>
-        <button className="memg-close" onClick={onClose} aria-label="Close">
-          <IconX size={20} />
         </button>
       </div>
 
