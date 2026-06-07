@@ -1752,6 +1752,30 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .wfx-node-label { font-size: 12px; font-weight: 600; text-align: center; line-height: 1.2; max-width: 96px; }
 .wfx-node-app { font-size: 10px; color: var(--text-dim); }
 
+/* Decorative animated mini-graph in the Workflows empty state. */
+.wfx-hf { position: relative; width: min(300px, 84vw); aspect-ratio: 260 / 120; margin: 0 auto 20px; }
+.wfx-hf-wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.wfx-hf-wire { fill: none; stroke: rgba(224, 161, 58, 0.5); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 4 7; animation: wfxFlow 0.7s linear infinite; }
+.wfx-hf-node {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 42px; height: 42px; border-radius: 13px;
+  display: grid; place-items: center;
+  background: rgba(40, 40, 46, 0.96); border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45); color: var(--text);
+}
+.wfx-hf-node .wfx-logo { width: 22px; height: 22px; }
+.wfx-hf-node.b {
+  width: 56px; height: 56px; border-radius: 17px;
+  background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05;
+  border-color: rgba(255, 255, 255, 0.28);
+  animation: wfxHfPulse 2.4s ease-in-out infinite;
+}
+@keyframes wfxHfPulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(224, 149, 31, 0.35), 0 8px 22px rgba(0, 0, 0, 0.5); }
+  50% { box-shadow: 0 0 30px rgba(224, 149, 31, 0.65), 0 8px 22px rgba(0, 0, 0, 0.5); }
+}
+@media (prefers-reduced-motion: reduce) { .wfx-hf-wire, .wfx-hf-node.b { animation: none; } }
+
 .wfx-zoom { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
 .wfx-zoom button {
   width: 38px; height: 38px; border-radius: 50%;

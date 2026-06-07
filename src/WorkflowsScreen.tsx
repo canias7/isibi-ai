@@ -45,6 +45,24 @@ function NodeIcon({ app, size = 22 }: { app: string; size?: number }) {
 
 interface Work { title: string; instruction: string; trigger: Trigger; graph: WfGraph }
 
+// Decorative mini node-graph for the empty state: a trigger flows into an AI
+// step that fans out to two apps, cables animated. Purely cosmetic (aria-hidden).
+function HeroFlow() {
+  return (
+    <div className="wfx-hf" aria-hidden="true">
+      <svg className="wfx-hf-wires" viewBox="0 0 260 120">
+        <path className="wfx-hf-wire" d="M53,60 L106,60" />
+        <path className="wfx-hf-wire" d="M154,56 C184,56 184,38 207,38" style={{ animationDelay: '.18s' }} />
+        <path className="wfx-hf-wire" d="M154,64 C184,64 184,86 207,86" style={{ animationDelay: '.34s' }} />
+      </svg>
+      <div className="wfx-hf-node a" style={{ left: '13%', top: '50%' }}><NodeIcon app="schedule" size={18} /></div>
+      <div className="wfx-hf-node b" style={{ left: '50%', top: '50%' }}><NodeIcon app="ai" size={24} /></div>
+      <div className="wfx-hf-node" style={{ left: '87%', top: '32%' }}><NodeIcon app="gmail" size={20} /></div>
+      <div className="wfx-hf-node" style={{ left: '87%', top: '72%' }}><NodeIcon app="gcal" size={20} /></div>
+    </div>
+  );
+}
+
 export default function WorkflowsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [items, setItems] = useState<Workflow[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -159,7 +177,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
       ) : (
         <div className="wfx-home">
           <div className="wfx-hero">
-            <div className="wfx-hero-mark"><IconSpark size={26} /></div>
+            <HeroFlow />
             <div className="wfx-hero-title">What should run on autopilot?</div>
             <div className="wfx-hero-sub">e.g. “Every weekday at 8am, email me a summary of my unread mail and today’s calendar.”</div>
             {err && <div className="wfx-err">{err}</div>}
