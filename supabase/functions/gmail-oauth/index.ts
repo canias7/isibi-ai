@@ -475,6 +475,8 @@ const CURATED: Record<string, string[]> = {
     "OUTLOOK_LIST_TODO_TASKS",
     "OUTLOOK_CREATE_TASK",
   ],
+  // Excel is intentionally NOT curated yet: surface all 54 tools so we can test
+  // which work, then trim into a CURATED entry here like gmail/outlook.
 };
 
 // The toolkit's selectable tools. Curated apps return only their working set;
