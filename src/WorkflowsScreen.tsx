@@ -320,6 +320,7 @@ function Canvas({ graph, onChange, onSelect }: { graph: WfGraph; onChange: (g: W
   });
   const drag = useRef<{ id: string; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
   const panRef = useRef<{ sx: number; sy: number; px: number; py: number } | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
   const nodes = graph.nodes;
   const xs = nodes.map((n) => n.x), ys = nodes.map((n) => n.y);
@@ -331,6 +332,17 @@ function Canvas({ graph, onChange, onSelect }: { graph: WfGraph; onChange: (g: W
   const px = (n: WfNode) => n.x + offX;
   const py = (n: WfNode) => n.y + offY;
   const byNode = new Map(nodes.map((n) => [n.id, n]));
+
+  // Keep the workspace anchored: don't let pan slide the graph off the screen.
+  function clampPan(x: number, y: number, z: number) {
+    const el = wrapRef.current;
+    if (!el) return { x, y };
+    const cw = el.clientWidth, ch = el.clientHeight, sw = W * z, sh = H * z, SLOP = 24;
+    return {
+      x: clamp(x, Math.min(0, cw - sw) - SLOP, Math.max(0, cw - sw) + SLOP),
+      y: clamp(y, Math.min(0, ch - sh) - SLOP, Math.max(0, ch - sh) + SLOP),
+    };
+  }
 
   function nodeDown(e: React.PointerEvent, n: WfNode) {
     e.stopPropagation();
@@ -359,12 +371,12 @@ function Canvas({ graph, onChange, onSelect }: { graph: WfGraph; onChange: (g: W
   function bgMove(e: React.PointerEvent) {
     const p = panRef.current;
     if (!p) return;
-    setPan({ x: p.px + (e.clientX - p.sx), y: p.py + (e.clientY - p.sy) });
+    setPan(clampPan(p.px + (e.clientX - p.sx), p.py + (e.clientY - p.sy), zoom));
   }
   function bgUp() { panRef.current = null; }
 
   return (
-    <div className="wfx-canvas" onPointerDown={bgDown} onPointerMove={bgMove} onPointerUp={bgUp} onPointerCancel={bgUp}>
+    <div className="wfx-canvas" ref={wrapRef} onPointerDown={bgDown} onPointerMove={bgMove} onPointerUp={bgUp} onPointerCancel={bgUp}>
       <div className="wfx-surface" style={{ width: W, height: H, transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
         <svg className="wfx-edges" width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
           {graph.edges.map((e, i) => {
@@ -399,8 +411,8 @@ function Canvas({ graph, onChange, onSelect }: { graph: WfGraph; onChange: (g: W
       </div>
 
       <div className="wfx-zoom">
-        <button onClick={() => setZoom((z) => clamp(+(z + 0.15).toFixed(2), 0.4, 2))} aria-label="Zoom in"><IconPlus size={18} /></button>
-        <button onClick={() => setZoom((z) => clamp(+(z - 0.15).toFixed(2), 0.4, 2))} aria-label="Zoom out"><IconMinus size={18} /></button>
+        <button onClick={() => { const nz = clamp(+(zoom + 0.2).toFixed(2), 0.5, 2); setZoom(nz); setPan((p) => clampPan(p.x, p.y, nz)); }} aria-label="Zoom in"><IconPlus size={18} /></button>
+        <button onClick={() => { const nz = clamp(+(zoom - 0.2).toFixed(2), 0.5, 2); setZoom(nz); setPan((p) => clampPan(p.x, p.y, nz)); }} aria-label="Zoom out"><IconMinus size={18} /></button>
       </div>
     </div>
   );

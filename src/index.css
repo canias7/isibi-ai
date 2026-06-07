@@ -1051,7 +1051,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   display: grid; place-items: center;
 }
 
-.memg-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.memg-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; overscroll-behavior: none; }
 .memg-stage.paused .memg-core,
 .memg-stage.paused .memg-node,
 .memg-stage.paused .memg-lines { opacity: 0.4; }
@@ -1676,7 +1676,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 
 /* home (chatbox) */
 .wfx-home { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.wfx-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px 28px; gap: 12px; }
+.wfx-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px 28px; gap: 12px; touch-action: none; }
 .wfx-hero-mark {
   width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center;
   color: #2a1c05; background: linear-gradient(160deg, #ffce6f, #e0951f);
@@ -1699,7 +1699,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   font: inherit; font-size: 18px; font-weight: 700; text-align: center;
 }
 .wfx-title-input:focus { outline: none; }
-.wfx-canvas { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; }
+.wfx-canvas { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; overscroll-behavior: none; }
 .wfx-surface { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
 .wfx-edges { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
 .wfx-edge { fill: none; stroke: rgba(255, 255, 255, 0.22); stroke-width: 2; }
