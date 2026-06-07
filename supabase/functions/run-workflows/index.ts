@@ -282,8 +282,8 @@ Deno.serve(async (req: Request) => {
           const seenSet = new Set(seen);
           const fresh = items.filter((i) => !seenSet.has(i.id));
           if (!fresh.length) continue;
-          const ctx = fresh.slice(0, 8).map((i) => `• ${i.line}`).join("\n");
-          const prompt = `Your trigger fired — new item(s) just detected:\n${ctx}\n\nNow do the following: ${wf.instruction}`;
+          const ctx = fresh.slice(0, 8).map((i) => `• ${i.line} [id: ${i.id}]`).join("\n");
+          const prompt = `Your trigger fired — these new item(s) were just detected in the user's connected app (their tool ids are in brackets, use them to act on the exact item):\n${ctx}\n\nUsing whatever tools across the user's apps you need (e.g. read the item, reply, send an email, create something), do the following about the item(s) above: ${wf.instruction}`;
           let text = "", ok = true;
           try {
             text = await runInstruction(wf.user_id, prompt);
