@@ -1290,7 +1290,7 @@ export default function App() {
                 <button className="radial-item" style={{ left: 48, bottom: 180, animationDelay: '100ms' }} onClick={() => openPicker('attachments')}>
                   <IconFiles size={20} /><span className="radial-label">Attachments</span>
                 </button>
-                <button className="radial-item" style={{ left: 72, bottom: 120, animationDelay: '50ms' }} onClick={() => { setPlusOpen(false); setWfOpen(true); }}>
+                <button className="radial-item" style={{ left: 72, bottom: 120, animationDelay: '50ms' }} onClick={() => { setPlusOpen(false); void loadConnectors(); setWfOpen(true); }}>
                   <IconWorkflow size={20} /><span className="radial-label">Workflows</span>
                 </button>
                 <button className="radial-item" style={{ left: 96, bottom: 60, animationDelay: '0ms' }} onClick={() => { menuOpenedAt.current = Date.now(); setPlusOpen(false); setConnMenu(true); }}>
@@ -1382,7 +1382,7 @@ export default function App() {
         />
       )}
 
-      {wfOpen && <WorkflowsScreen onClose={() => setWfOpen(false)} />}
+      {wfOpen && <WorkflowsScreen connApps={connApps} onClose={() => setWfOpen(false)} />}
     </div>
   );
 }

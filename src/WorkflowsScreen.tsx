@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IconX, IconTrash } from './icons';
+import { byId } from './connectorData';
 import {
   listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, triggerLabel, deviceTz,
   type Workflow, type WorkflowRun, type Schedule, type Trigger,
@@ -28,7 +29,7 @@ function relTime(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-export default function WorkflowsScreen({ onClose }: { onClose: () => void }) {
+export default function WorkflowsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [items, setItems] = useState<Workflow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState<Workflow | 'new' | null>(null);
@@ -52,7 +53,7 @@ export default function WorkflowsScreen({ onClose }: { onClose: () => void }) {
   }
 
   const body = editing
-    ? <Editor wf={editing === 'new' ? null : editing} onDone={() => { setEditing(null); void load(); }} onBack={() => setEditing(null)} />
+    ? <Editor wf={editing === 'new' ? null : editing} connApps={connApps} onDone={() => { setEditing(null); void load(); }} onBack={() => setEditing(null)} />
     : (
       <div className="wf-stage">
         <button className="wf-new" onClick={() => setEditing('new')}>+ New workflow</button>
@@ -99,13 +100,13 @@ export default function WorkflowsScreen({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Editor({ wf, onDone, onBack }: { wf: Workflow | null; onDone: () => void; onBack: () => void }) {
+function Editor({ wf, connApps, onDone, onBack }: { wf: Workflow | null; connApps: string[]; onDone: () => void; onBack: () => void }) {
   const [title, setTitle] = useState(wf?.title ?? '');
   const [instruction, setInstruction] = useState(wf?.instruction ?? '');
   const [sched, setSched] = useState<Schedule>(wf?.schedule ?? defaultSchedule());
   const [kind, setKind] = useState<'schedule' | 'event'>(wf?.trigger_type === 'event' ? 'event' : 'schedule');
-  const [evFrom, setEvFrom] = useState(wf?.event?.from ?? '');
-  const [evQuery, setEvQuery] = useState(wf?.event?.query ?? '');
+  const [evApp, setEvApp] = useState(wf?.event?.app ?? connApps[0] ?? '');
+  const [evFilter, setEvFilter] = useState(wf?.event?.filter ?? '');
   const [busy, setBusy] = useState(false);
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
 
@@ -120,7 +121,7 @@ function Editor({ wf, onDone, onBack }: { wf: Workflow | null; onDone: () => voi
     const inst = instruction.trim();
     if (!inst || busy) return;
     const trigger: Trigger = kind === 'event'
-      ? { type: 'event', event: { app: 'gmail', from: evFrom.trim() || undefined, query: evQuery.trim() || undefined } }
+      ? { type: 'event', event: { app: evApp, filter: evFilter.trim() || undefined } }
       : { type: 'schedule', schedule: sched };
     setBusy(true);
     const ok = wf
@@ -191,13 +192,21 @@ function Editor({ wf, onDone, onBack }: { wf: Workflow | null; onDone: () => voi
             </div>
           )}
         </>
+      ) : connApps.length === 0 ? (
+        <p className="wf-hint">Connect an app first (from the + menu → Connectors) to use “when something arrives” triggers.</p>
       ) : (
         <>
-          <label className="wf-label">From (sender name or email)</label>
-          <input className="wf-input" value={evFrom} onChange={(e) => setEvFrom(e.target.value)} placeholder="e.g. boss@company.com — leave blank for any sender" maxLength={120} />
-          <label className="wf-label">Containing (optional keywords)</label>
-          <input className="wf-input" value={evQuery} onChange={(e) => setEvQuery(e.target.value)} placeholder="e.g. invoice" maxLength={120} />
-          <p className="wf-hint">Checks your Gmail inbox every few minutes and runs when a new matching email arrives.</p>
+          <label className="wf-label">In which app</label>
+          <div className="wf-apps">
+            {connApps.map((id) => (
+              <button key={id} className={`wf-app-btn ${evApp === id ? 'on' : ''}`} onClick={() => setEvApp(id)}>
+                {byId(id)?.name ?? id}
+              </button>
+            ))}
+          </div>
+          <label className="wf-label">Trigger when… (describe what to watch for)</label>
+          <input className="wf-input" value={evFilter} onChange={(e) => setEvFilter(e.target.value)} placeholder="e.g. an email from boss@company.com · a message in #alerts · a new event" maxLength={160} />
+          <p className="wf-hint">Checks {byId(evApp)?.name ?? 'the app'} every few minutes and runs when a new matching item appears.</p>
         </>
       )}
 

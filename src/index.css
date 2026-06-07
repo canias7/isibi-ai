@@ -1204,6 +1204,13 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   padding: 10px; border-radius: 10px; cursor: pointer;
 }
 .wf-seg-btn.on { background: var(--accent); color: #000; border-color: var(--accent); }
+.wf-apps { display: flex; flex-wrap: wrap; gap: 8px; }
+.wf-app-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12); background: var(--bubble-user);
+  color: var(--text-dim); font: inherit; font-size: 13px; font-weight: 600;
+  padding: 8px 14px; border-radius: 20px; cursor: pointer;
+}
+.wf-app-btn.on { background: var(--accent); color: #000; border-color: var(--accent); }
 .wf-dow { display: flex; gap: 6px; margin-top: 10px; }
 .wf-dow-btn {
   flex: 1; aspect-ratio: 1; border: 1px solid rgba(255, 255, 255, 0.12); background: var(--bubble-user);

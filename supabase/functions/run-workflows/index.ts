@@ -115,34 +115,60 @@ function computeNext(from: Date, sched: any): Date | null {
   return null;
 }
 
-// ---- event triggers (v1: new Gmail message matching a filter) ----
-interface MatchedMsg { id: string; from: string; subject: string; snippet: string; ts: number }
-function buildEventQuery(ev: any): string {
-  const parts: string[] = ["in:inbox", "newer_than:2d"];
-  if (ev?.from) parts.push(`from:(${String(ev.from)})`);
-  if (ev?.query) parts.push(String(ev.query));
-  return parts.join(" ");
-}
-async function gmailSearch(uid: string, query: string): Promise<MatchedMsg[]> {
-  if (!COMPOSIO_API_KEY || !uid) return [];
+// ---- event triggers (any connected app) ----
+// Frontend connector id -> Composio toolkit slug (event.app stores the frontend id).
+const APP_TO_SLUG: Record<string, string> = {
+  gmail: "gmail", gcal: "googlecalendar", gdrive: "googledrive", canva: "canva", figma: "figma",
+  notion: "notion", atlassian: "jira", m365: "outlook", slack: "slack", hubspot: "hubspot",
+  googlesheets: "googlesheets", googledocs: "googledocs", excel: "excel", one_drive: "one_drive",
+  dropbox: "dropbox", box: "box", onenote: "onenote", airtable: "airtable", todoist: "todoist",
+  googletasks: "googletasks", asana: "asana", trello: "trello", clickup: "clickup", monday: "monday",
+  miro: "miro", calendly: "calendly", zoom: "zoom", googlemeet: "googlemeet", microsoft_teams: "microsoft_teams",
+  webex: "webex", telegram: "telegram", discord: "discord", linkedin: "linkedin", reddit: "reddit",
+  youtube: "youtube", instagram: "instagram", twitter: "twitter", spotify: "spotify", salesforce: "salesforce",
+  pipedrive: "pipedrive", zoho: "zoho", zendesk: "zendesk", intercom: "intercom", freshdesk: "freshdesk",
+  shopify: "shopify", stripe: "stripe", square: "square", quickbooks: "quickbooks", xero: "xero",
+  typeform: "typeform", jotform: "jotform", mailchimp: "mailchimp", sendgrid: "sendgrid", klaviyo: "klaviyo",
+};
+
+// App-agnostic poller: ask the model to list, via the app's own tools, the most
+// recent items matching the user's condition, each with a STABLE id from the tool
+// result. The runner dedupes by id so only genuinely new items fire — this works
+// for every connector without per-app code.
+interface DetectedItem { id: string; line: string }
+async function detectItems(uid: string, ev: any): Promise<DetectedItem[]> {
+  if (!ANTHROPIC_KEY || !COMPOSIO_API_KEY) return [];
+  const slug = APP_TO_SLUG[ev?.app] || String(ev?.app || "");
+  if (!slug) return [];
+  const connected = await connectedToolkits(uid);
+  if (!connected.includes(slug)) return []; // app not connected -> nothing to watch
+  const filter = String(ev?.filter || "").trim() || "any new item";
+  const url = `${MCP_URL}?apps=${encodeURIComponent(slug)}&user=${encodeURIComponent(uid)}&mem=0`;
+  const system = `You check whether a trigger condition is currently met in a connected app. Use ONLY the available tools to look up the most recent items that match the user's condition. Then reply with ONLY a compact JSON array (no prose, no markdown, no code fences) of up to 15 items, newest first, each shaped {"id":"<the item's stable unique id straight from the tool result>","line":"<short one-line description>"}. Use the real ids returned by the tools — never invent them. If nothing matches, reply exactly [].`;
+  const reqBody: Record<string, unknown> = {
+    model: MODEL,
+    max_tokens: 1024,
+    system,
+    messages: [{ role: "user", content: `Condition to watch for: ${filter}\nList the most recent matching items right now.` }],
+    mcp_servers: [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }],
+    tools: [{ type: "mcp_toolset", mcp_server_name: "connectors" }],
+  };
   try {
-    const res = await fetch("https://backend.composio.dev/api/v3/tools/execute/GMAIL_FETCH_EMAILS", {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { "x-api-key": COMPOSIO_API_KEY, "content-type": "application/json" },
-      body: JSON.stringify({ user_id: uid, arguments: { query, max_results: 10 } }),
+      headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "anthropic-beta": "mcp-client-2025-11-20" },
+      body: JSON.stringify(reqBody),
     });
-    const body = await res.json().catch(() => ({}));
-    const data = body?.data ?? body;
-    const msgs: any[] = data?.messages ?? data?.data?.messages ?? [];
-    return msgs.map((m) => {
-      const sender = String(m.sender ?? "");
-      const mt = /^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/.exec(sender);
-      const from = mt ? (mt[1].trim() || mt[2].trim()) : sender;
-      const d = new Date(m.messageTimestamp ?? (m.internalDate ? Number(m.internalDate) : NaN));
-      const ts = isNaN(d.getTime()) ? 0 : d.getTime();
-      const snippet = String(m.messageText ?? m.preview?.body ?? "").replace(/\s+/g, " ").trim().slice(0, 160);
-      return { id: String(m.messageId ?? m.id ?? ""), from: from || "Unknown", subject: String(m.subject ?? "(no subject)"), snippet, ts };
-    }).filter((m) => m.ts > 0);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const text = (data.content || []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join("").trim();
+    const m = text.match(/\[[\s\S]*\]/);
+    if (!m) return [];
+    const arr = JSON.parse(m[0]);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map((x: any) => ({ id: String(x?.id ?? "").trim(), line: String(x?.line ?? "").trim() }))
+      .filter((x: DetectedItem) => x.id);
   } catch {
     return [];
   }
@@ -237,7 +263,7 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // EVENT workflows: fire when a new matching email arrives (Gmail, v1).
+  // EVENT workflows: fire when a new matching item appears in the chosen app.
   let eventChecked = 0, eventFired = 0;
   try {
     const er = await fetch(`${SB_URL}/rest/v1/workflows?enabled=eq.true&trigger_type=eq.event&select=*&limit=50`, { headers: sbHeaders });
@@ -246,20 +272,18 @@ Deno.serve(async (req: Request) => {
       eventChecked = evs.length;
       for (const wf of evs) {
         try {
-          const ev = wf.event || {};
-          if ((ev.app || "gmail") !== "gmail") continue; // v1: Gmail only
-          const msgs = await gmailSearch(wf.user_id, buildEventQuery(ev));
-          // First check: record where we are, don't fire on the existing backlog.
+          const items = await detectItems(wf.user_id, wf.event || {});
+          // First check: record what's already there, don't fire on the backlog.
           if (!wf.cursor) {
-            const maxTs = msgs.length ? Math.max(...msgs.map((m) => m.ts)) : Date.now();
-            await patchWorkflow(wf.id, { cursor: { lastTs: maxTs } });
+            await patchWorkflow(wf.id, { cursor: { seen: items.map((i) => i.id).slice(0, 200) } });
             continue;
           }
-          const lastTs = Number(wf.cursor?.lastTs) || 0;
-          const fresh = msgs.filter((m) => m.ts > lastTs).sort((a, b) => a.ts - b.ts);
+          const seen: string[] = Array.isArray(wf.cursor?.seen) ? wf.cursor.seen : [];
+          const seenSet = new Set(seen);
+          const fresh = items.filter((i) => !seenSet.has(i.id));
           if (!fresh.length) continue;
-          const ctx = fresh.slice(0, 5).map((m) => `• From ${m.from} — "${m.subject}": ${m.snippet}`).join("\n");
-          const prompt = `A new email just arrived in the user's inbox matching their trigger:\n${ctx}\n\nNow do the following: ${wf.instruction}`;
+          const ctx = fresh.slice(0, 8).map((i) => `• ${i.line}`).join("\n");
+          const prompt = `Your trigger fired — new item(s) just detected:\n${ctx}\n\nNow do the following: ${wf.instruction}`;
           let text = "", ok = true;
           try {
             text = await runInstruction(wf.user_id, prompt);
@@ -270,7 +294,9 @@ Deno.serve(async (req: Request) => {
           await insertRun(wf.id, wf.user_id, text, ok);
           const summary = text.replace(/```[\s\S]*?```/g, " ").replace(/\s+/g, " ").trim().slice(0, 140) || (ok ? "Done." : "Failed.");
           await pushUser(wf.user_id, wf.title || "Workflow", summary);
-          await patchWorkflow(wf.id, { cursor: { lastTs: Math.max(...fresh.map((m) => m.ts)) }, last_run_at: nowIso });
+          // Remember everything currently seen (fresh + prior), capped.
+          const merged = [...fresh.map((i) => i.id), ...seen].slice(0, 200);
+          await patchWorkflow(wf.id, { cursor: { seen: merged }, last_run_at: nowIso });
           eventFired++;
         } catch { /* skip this one */ }
       }

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { byId } from './connectorData';
 
 // Workflows = saved automations. v1 supports scheduled triggers; the runner
 // (run-workflows Edge Function) executes them and pushes the result.
@@ -9,11 +10,10 @@ export interface Schedule {
   weekday?: number;      // 0=Sun .. 6=Sat (weekly only)
   tz: string;            // IANA timezone
 }
-// Event trigger (v1): a new Gmail message matching a filter.
+// Event trigger: a new item appears in a connected app matching a condition.
 export interface EventCfg {
-  app: string;        // 'gmail'
-  from?: string;      // sender name/email to match
-  query?: string;     // optional extra Gmail search terms
+  app: string;        // frontend connector id (e.g. 'gmail', 'slack', 'gcal')
+  filter?: string;    // natural-language condition, e.g. "from boss@co.com" / "in #general"
 }
 export type Trigger =
   | { type: 'schedule'; schedule: Schedule }
@@ -53,8 +53,9 @@ export function scheduleLabel(s: Schedule | null): string {
 // One-line trigger description for the list card.
 export function triggerLabel(w: Workflow): string {
   if (w.trigger_type === 'event') {
-    const f = w.event?.from?.trim();
-    return f ? `When email from ${f}` : 'When an email arrives';
+    const app = byId(w.event?.app ?? '')?.name ?? 'an app';
+    const f = w.event?.filter?.trim();
+    return f ? `${app}: ${f}` : `New in ${app}`;
   }
   return scheduleLabel(w.schedule);
 }
