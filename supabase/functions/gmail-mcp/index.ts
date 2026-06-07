@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { crypto as stdCrypto } from "jsr:@std/crypto"; // for MD5 (WebCrypto lacks it)
 
 // Generic MCP server Claude connects to (via the chat function's mcp_servers).
 // NOTE: the function slug is still `gmail-mcp` for historical reasons, but it
@@ -199,21 +200,31 @@ async function saveMemory(uid: string, content: unknown): Promise<string> {
 const MEMORY_FILE_TOOL: Tool = {
   name: "GF_GET_MEMORY_FILE",
   description:
-    "Get a temporary download URL for the file attached to one of the user's memories, so you can SEND or ATTACH it through another app (e.g. put the url in an email's attachment field, or a file-upload tool). Input: the memory's id (shown as [attachment: …, id: …] in the user's memories). Returns JSON {url, name, mime}; the url is short-lived. Use ONLY when the user wants to send/attach a saved file somewhere — to just show it to the user, use the gf-memory block instead.",
+    "Stage the file attached to one of the user's memories so you can SEND or ATTACH it via another app's tool (e.g. an email's attachment field, or a file-upload action). Call this RIGHT BEFORE the send/attach tool, passing the memory id PLUS the toolkit_slug and tool_slug of the action you're about to use (e.g. toolkit_slug \"gmail\", tool_slug \"GMAIL_SEND_EMAIL\"). Returns JSON {s3key, mimetype, name} — pass that object straight into that tool's attachment/file parameter. (To just show a file to the user, use the gf-memory block instead, not this.)",
   inputSchema: {
     type: "object",
-    properties: { memory_id: { type: "string", description: "The id of the memory whose attached file you need." } },
-    required: ["memory_id"],
+    properties: {
+      memory_id: { type: "string", description: "The id of the memory whose attached file you need (from [attachment: …, id: …])." },
+      toolkit_slug: { type: "string", description: "Slug of the app you'll attach it in, e.g. \"gmail\", \"outlook\", \"slack\"." },
+      tool_slug: { type: "string", description: "Slug of the action you'll call, e.g. \"GMAIL_SEND_EMAIL\", \"SLACK_UPLOAD_FILE\"." },
+    },
+    required: ["memory_id", "toolkit_slug", "tool_slug"],
   },
 };
 
-// Look up the memory (scoped to this user) and sign a short-lived URL to its file.
-async function getMemoryFile(uid: string, memoryId: string): Promise<string> {
+// Stage a memory's file with Composio (returns the {s3key, mimetype, name} that
+// file/attachment params expect): look up the memory (scoped to this user),
+// download the bytes, then run Composio's upload-request -> presigned PUT flow.
+async function getMemoryFile(uid: string, memoryId: string, toolkitSlug: string, toolSlug: string): Promise<string> {
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key || !uid) throw new Error("memory unavailable");
   const id = String(memoryId ?? "").trim();
   if (!id) throw new Error("missing memory_id");
+  const tk = String(toolkitSlug || "gmail").trim();
+  const ts = String(toolSlug || "GMAIL_SEND_EMAIL").trim();
+
+  // 1) Find the memory's stored file (RLS-equivalent scoping via user_id).
   const r = await fetch(`${url}/rest/v1/user_memory?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(uid)}&select=attachment_path,attachment_name,attachment_type`, {
     headers: { apikey: key, authorization: `Bearer ${key}` },
   });
@@ -221,18 +232,34 @@ async function getMemoryFile(uid: string, memoryId: string): Promise<string> {
   const rows = await r.json();
   const m = Array.isArray(rows) && rows[0];
   if (!m || !m.attachment_path) throw new Error("that memory has no attached file");
+  const name = String(m.attachment_name || (m.attachment_type === "pdf" ? "file.pdf" : "image.jpg"));
+  const mimetype = m.attachment_type === "pdf" ? "application/pdf" : m.attachment_type === "image" ? "image/jpeg" : "application/octet-stream";
+
+  // 2) Download the bytes (service role can read the private bucket).
   const path = String(m.attachment_path).split("/").map(encodeURIComponent).join("/");
-  const s = await fetch(`${url}/storage/v1/object/sign/memory/${path}`, {
+  const dl = await fetch(`${url}/storage/v1/object/memory/${path}`, { headers: { apikey: key, authorization: `Bearer ${key}` } });
+  if (!dl.ok) throw new Error(`download ${dl.status}`);
+  const bytes = new Uint8Array(await dl.arrayBuffer());
+
+  // 3) Composio upload: request an upload slot, then PUT the bytes to the presigned URL.
+  const md5buf = await stdCrypto.subtle.digest("MD5", bytes);
+  const md5 = Array.from(new Uint8Array(md5buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const ur = await fetch(`${BASE}/v3/files/upload/request`, {
     method: "POST",
-    headers: { apikey: key, authorization: `Bearer ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({ expiresIn: 3600 }),
+    headers: { "x-api-key": API_KEY, "content-type": "application/json" },
+    body: JSON.stringify({ toolkit_slug: tk, tool_slug: ts, filename: name, mimetype, md5 }),
   });
-  if (!s.ok) throw new Error(`sign ${s.status}`);
-  const sj = await s.json();
-  const signed = sj.signedURL || sj.signedUrl || "";
-  if (!signed) throw new Error("could not sign url");
-  const mime = m.attachment_type === "pdf" ? "application/pdf" : m.attachment_type === "image" ? "image/jpeg" : "application/octet-stream";
-  return JSON.stringify({ url: `${url}/storage/v1${signed}`, name: m.attachment_name || "file", mime });
+  if (!ur.ok) throw new Error(`upload/request ${ur.status}: ${(await ur.text().catch(() => "")).slice(0, 200)}`);
+  const uj = await ur.json();
+  const s3key = uj.key;
+  const put = uj.new_presigned_url || uj.newPresignedUrl;
+  if (!s3key) throw new Error("no s3key from Composio");
+  if (put) {
+    let pr = await fetch(put, { method: "PUT", headers: { "content-type": mimetype }, body: bytes });
+    if (!pr.ok) pr = await fetch(put, { method: "PUT", body: bytes }); // retry without content-type if the presign didn't sign it
+    if (!pr.ok) throw new Error(`upload PUT ${pr.status}`);
+  }
+  return JSON.stringify({ s3key, mimetype, name });
 }
 
 function toMcp(t: any): Tool {
@@ -410,7 +437,8 @@ Deno.serve(async (req: Request) => {
     }
     if (p.name === "GF_GET_MEMORY_FILE") {
       try {
-        const text = await getMemoryFile(reqUser, (p.arguments || {}).memory_id);
+        const a = p.arguments || {};
+        const text = await getMemoryFile(reqUser, a.memory_id, a.toolkit_slug, a.tool_slug);
         await logUsage(p.name, true, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
       } catch (e) {
