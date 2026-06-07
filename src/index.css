@@ -1764,8 +1764,17 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   display: grid; place-items: center;
   background: rgba(40, 40, 46, 0.96); border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45); color: var(--text);
+  touch-action: none; cursor: grab;
 }
+.wfx-hf-node:active { cursor: grabbing; }
 .wfx-hf-node .wfx-logo { width: 24px; height: 24px; }
+/* Logo swap animation when an app node cycles to the next app. */
+.wfx-hf-ic { display: grid; place-items: center; animation: wfxHfPop 0.5s ease both; }
+@keyframes wfxHfPop {
+  0% { transform: scale(0.2) rotate(-20deg); opacity: 0; }
+  55% { transform: scale(1.12) rotate(6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
 /* App nodes get a light tile so every brand logo (incl. dark ones like Notion) stays crisp. */
 .wfx-hf-node:not(.b) { background: #f7f7fa; border-color: rgba(0, 0, 0, 0.12); }
 .wfx-hf-node.b {
@@ -1778,7 +1787,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   0%, 100% { box-shadow: 0 0 16px rgba(224, 149, 31, 0.35), 0 8px 22px rgba(0, 0, 0, 0.5); }
   50% { box-shadow: 0 0 30px rgba(224, 149, 31, 0.65), 0 8px 22px rgba(0, 0, 0, 0.5); }
 }
-@media (prefers-reduced-motion: reduce) { .wfx-hf-wire, .wfx-hf-node.b { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .wfx-hf-wire, .wfx-hf-node.b, .wfx-hf-ic { animation: none; } }
 
 .wfx-zoom { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
 .wfx-zoom button {

@@ -5,7 +5,7 @@ import {
   IconClock, IconBolt, IconBranch, IconSpark, IconCheck,
 } from './icons';
 import { byId } from './connectorData';
-import { BrandLogo, hasBrand } from './brandLogos';
+import { BrandLogo, hasBrand, BRAND_IDS } from './brandLogos';
 import {
   listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow, testWorkflow,
   triggerLabel, deviceTz, appLabel, compileInstruction, orderedNodes,
@@ -47,40 +47,90 @@ function NodeIcon({ app, size = 22 }: { app: string; size?: number }) {
 
 interface Work { title: string; instruction: string; trigger: Trigger; graph: WfGraph }
 
-// Decorative mini node-graph for the empty state: top-down (matching the real
-// canvas) — two app sources flow into an AI step that fans out to three apps,
-// cables animated with arrowheads. Cosmetic (aria-hidden).
+// Decorative mini node-graph for the empty state — top-down like the real canvas.
+// Nodes are draggable (clamped so they can't reach the composer), and the five
+// app nodes cycle through our bundled-logo apps every 5s (no repeats in a round;
+// once all are shown it loops) with a pop animation. Wires follow the nodes.
+const HF_VB_W = 240, HF_VB_H = 250, HF_CLAMP = 20; // viewBox + max drag (vb units)
+// base center [x,y], radius, and (for app nodes) the cycling slot 0..4.
+const HF_NODES: { base: [number, number]; r: number; slot?: number; ai?: boolean }[] = [
+  { base: [80, 36], r: 21, slot: 0 },
+  { base: [160, 36], r: 21, slot: 1 },
+  { base: [120, 125], r: 29, ai: true },
+  { base: [60, 214], r: 21, slot: 2 },
+  { base: [120, 214], r: 21, slot: 3 },
+  { base: [180, 214], r: 21, slot: 4 },
+];
+const HF_EDGES: [number, number][] = [[0, 2], [1, 2], [2, 3], [2, 4], [2, 5]];
+// App pool, trimmed to a multiple of 5 so each round shows 5 distinct apps and
+// the rounds tile through the whole list before repeating.
+const HF_POOL = BRAND_IDS.slice(0, Math.max(5, Math.floor(BRAND_IDS.length / 5) * 5));
+
 function HeroFlow() {
-  const inputs = [
-    { app: 'gmail', x: '33%', y: '14%' },
-    { app: 'gcal', x: '67%', y: '14%' },
-  ];
-  const outputs = [
-    { app: 'slack', x: '25%', y: '86%' },
-    { app: 'notion', x: '50%', y: '86%' },
-    { app: 'googlesheets', x: '75%', y: '86%' },
-  ];
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [round, setRound] = useState(0);
+  const [off, setOff] = useState(() => HF_NODES.map(() => ({ dx: 0, dy: 0 })));
+  const drag = useRef<{ i: number; sx: number; sy: number; ox: number; oy: number } | null>(null);
+
+  useEffect(() => {
+    const t = setInterval(() => setRound((r) => r + 1), 5000);
+    return () => clearInterval(t);
+  }, []);
+  const appForSlot = (slot: number) => HF_POOL[(round * 5 + slot) % HF_POOL.length];
+  const center = (i: number) => ({ x: HF_NODES[i].base[0] + off[i].dx, y: HF_NODES[i].base[1] + off[i].dy });
+
+  function down(e: React.PointerEvent, i: number) {
+    e.stopPropagation();
+    drag.current = { i, sx: e.clientX, sy: e.clientY, ox: off[i].dx, oy: off[i].dy };
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  }
+  function move(e: React.PointerEvent) {
+    const d = drag.current; if (!d) return;
+    const r = wrapRef.current?.getBoundingClientRect(); if (!r) return;
+    const dx = clamp(d.ox + ((e.clientX - d.sx) / r.width) * HF_VB_W, -HF_CLAMP, HF_CLAMP);
+    const dy = clamp(d.oy + ((e.clientY - d.sy) / r.height) * HF_VB_H, -HF_CLAMP, HF_CLAMP);
+    setOff((p) => p.map((o, idx) => (idx === d.i ? { dx, dy } : o)));
+  }
+  function up() { drag.current = null; }
+
   return (
-    <div className="wfx-hf" aria-hidden="true">
-      <svg className="wfx-hf-wires" viewBox="0 0 240 250">
+    <div className="wfx-hf" ref={wrapRef} aria-hidden="true">
+      <svg className="wfx-hf-wires" viewBox={`0 0 ${HF_VB_W} ${HF_VB_H}`}>
         <defs>
           <marker id="wfx-hf-arrow" markerWidth="7" markerHeight="7" refX="5.4" refY="3" orient="auto" markerUnits="userSpaceOnUse">
             <path d="M0,0 L6,3 L0,6 Z" fill="rgba(224,161,58,0.85)" />
           </marker>
         </defs>
-        <path className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)" d="M80,55 C80,88 120,78 120,99" />
-        <path className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)" d="M160,55 C160,88 120,78 120,99" style={{ animationDelay: '.12s' }} />
-        <path className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)" d="M120,151 C120,182 60,168 60,195" style={{ animationDelay: '.24s' }} />
-        <path className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)" d="M120,151 C120,176 120,176 120,195" style={{ animationDelay: '.36s' }} />
-        <path className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)" d="M120,151 C120,182 180,168 180,195" style={{ animationDelay: '.48s' }} />
+        {HF_EDGES.map(([a, b], k) => {
+          const A = center(a), B = center(b);
+          const x1 = A.x, y1 = A.y + HF_NODES[a].r, x2 = B.x, y2 = B.y - HF_NODES[b].r;
+          const mid = (y1 + y2) / 2;
+          return (
+            <path key={k} className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)"
+              style={{ animationDelay: `${k * 0.12}s` }}
+              d={`M ${x1} ${y1} C ${x1} ${mid} ${x2} ${mid} ${x2} ${y2}`} />
+          );
+        })}
       </svg>
-      {inputs.map((o) => (
-        <div key={o.app} className="wfx-hf-node" style={{ left: o.x, top: o.y }}><BrandLogo app={o.app} size={24} /></div>
-      ))}
-      <div className="wfx-hf-node b" style={{ left: '50%', top: '50%' }}><NodeIcon app="ai" size={24} /></div>
-      {outputs.map((o) => (
-        <div key={o.app} className="wfx-hf-node" style={{ left: o.x, top: o.y }}><BrandLogo app={o.app} size={24} /></div>
-      ))}
+      {HF_NODES.map((nd, i) => {
+        const c = center(i);
+        const app = nd.ai ? 'ai' : appForSlot(nd.slot!);
+        return (
+          <div
+            key={i}
+            className={`wfx-hf-node ${nd.ai ? 'b' : ''}`}
+            style={{ left: `${(c.x / HF_VB_W) * 100}%`, top: `${(c.y / HF_VB_H) * 100}%` }}
+            onPointerDown={(e) => down(e, i)}
+            onPointerMove={move}
+            onPointerUp={up}
+            onPointerCancel={up}
+          >
+            {nd.ai
+              ? <NodeIcon app="ai" size={24} />
+              : <span key={app} className="wfx-hf-ic" style={{ animationDelay: `${nd.slot! * 0.06}s` }}><BrandLogo app={app} size={24} /></span>}
+          </div>
+        );
+      })}
     </div>
   );
 }
