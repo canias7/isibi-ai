@@ -19,6 +19,23 @@ export type Trigger =
   | { type: 'schedule'; schedule: Schedule }
   | { type: 'event'; event: EventCfg };
 
+// Visual graph (from build-workflow): the trigger + steps the user sees, drags,
+// and edits. This is display/editing state only — the runner executes the
+// compiled `instruction`, so the graph never has to be "executable" itself.
+export interface WfNode {
+  id: string;
+  kind: 'trigger' | 'action' | 'decision';
+  app: string;        // connector id, or 'schedule' / 'event' / 'ai' / 'decision'
+  label: string;
+  detail?: string;
+  x: number;          // canvas position (draggable; persisted in the graph)
+  y: number;
+}
+export interface WfEdge { from: string; to: string; branch?: 'yes' | 'no' | null }
+export interface WfGraph { nodes: WfNode[]; edges: WfEdge[] }
+// What the AI builder returns for a described workflow (before it's saved).
+export interface WorkflowDraft { title: string; instruction: string; trigger: Trigger; graph: WfGraph }
+
 export interface Workflow {
   id: string;
   title: string;
@@ -26,6 +43,7 @@ export interface Workflow {
   trigger_type: 'schedule' | 'event' | string;
   schedule: Schedule | null;
   event: EventCfg | null;
+  graph: WfGraph | null;
   enabled: boolean;
   next_run_at: string | null;
   last_run_at: string | null;
@@ -60,7 +78,30 @@ export function triggerLabel(w: Workflow): string {
   return scheduleLabel(w.schedule);
 }
 
-const SEL = 'id,title,instruction,trigger_type,schedule,event,enabled,next_run_at,last_run_at,created_at';
+const SEL = 'id,title,instruction,trigger_type,schedule,event,graph,enabled,next_run_at,last_run_at,created_at';
+
+// Ask the AI builder (Opus) to turn a natural-language description into a draft
+// workflow: a title, a trigger, the visual graph, and the compiled instruction.
+export async function buildWorkflow(description: string): Promise<WorkflowDraft | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('build-workflow', {
+      body: { description: description.trim(), tz: deviceTz() },
+    });
+    if (error || !data) return null;
+    const d = data as Record<string, unknown> & { error?: string };
+    if (d.error) return null;
+    const graph = d.graph as WfGraph | undefined;
+    if (!graph || !Array.isArray(graph.nodes)) return null;
+    return {
+      title: String(d.title || ''),
+      instruction: String(d.instruction || description),
+      trigger: d.trigger as Trigger,
+      graph: { nodes: graph.nodes, edges: Array.isArray(graph.edges) ? graph.edges : [] },
+    };
+  } catch {
+    return null;
+  }
+}
 
 export async function listWorkflows(): Promise<Workflow[]> {
   try {
@@ -75,7 +116,7 @@ export async function listWorkflows(): Promise<Workflow[]> {
   }
 }
 
-export async function createWorkflow(title: string, instruction: string, trigger: Trigger): Promise<Workflow | null> {
+export async function createWorkflow(title: string, instruction: string, trigger: Trigger, graph?: WfGraph | null): Promise<Workflow | null> {
   try {
     const { data: s } = await supabase.auth.getSession();
     const uid = s.session?.user.id;
@@ -88,6 +129,7 @@ export async function createWorkflow(title: string, instruction: string, trigger
       trigger_type: trigger.type,
       schedule: trigger.type === 'schedule' ? trigger.schedule : null,
       event: trigger.type === 'event' ? trigger.event : null,
+      graph: graph ?? null,
       next_run_at: null,   // runner initializes the first scheduled run
       cursor: null,        // runner records the event baseline on first check
     };
@@ -101,13 +143,14 @@ export async function createWorkflow(title: string, instruction: string, trigger
 
 export async function updateWorkflow(
   id: string,
-  fields: { title?: string; instruction?: string; enabled?: boolean; trigger?: Trigger },
+  fields: { title?: string; instruction?: string; enabled?: boolean; trigger?: Trigger; graph?: WfGraph | null },
 ): Promise<boolean> {
   try {
     const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (fields.title !== undefined) patch.title = fields.title;
     if (fields.instruction !== undefined) patch.instruction = fields.instruction;
     if (fields.enabled !== undefined) patch.enabled = fields.enabled;
+    if (fields.graph !== undefined) patch.graph = fields.graph;
     if (fields.trigger) {
       patch.trigger_type = fields.trigger.type;
       if (fields.trigger.type === 'schedule') {
