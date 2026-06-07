@@ -412,12 +412,11 @@ const BROKEN_TOOLS = new Set<string>([
   "GOOGLEDRIVE_WATCH_FILE",
 ]);
 
-// The toolkit's selectable tools (Composio's "important" set, minus dead ones).
+// The toolkit's selectable tools (the full Composio catalog, minus dead ones).
 async function toolkitCatalog(toolkit: string): Promise<{ slug: string; name: string; desc: string }[]> {
   const u = new URL(`${BASE}/tools`);
   u.searchParams.set("toolkit_slug", toolkit);
-  u.searchParams.set("important", "true");
-  u.searchParams.set("limit", "120");
+  u.searchParams.set("limit", "500");
   const res = await fetch(u.toString(), { headers: { "x-api-key": API_KEY } });
   if (!res.ok) return [];
   const b = await res.json();
