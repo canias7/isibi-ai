@@ -1807,6 +1807,20 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 }
 @media (prefers-reduced-motion: reduce) { .wfx-hf-wire, .wfx-hf-node.b, .wfx-hf-ic { animation: none; } }
 
+/* Workflow preview showcase (per-prompt graph + typewriter). */
+.wfx-wp-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+.wfx-wp { position: relative; width: min(300px, 84vw); aspect-ratio: 300 / 240; transition: opacity 0.35s ease, transform 0.35s ease; }
+.wfx-wp.leaving { opacity: 0; transform: scale(0.96); }
+.wfx-wp .wfx-hf-node { cursor: default; }
+/* Node pops in (keeps the -50%,-50% centering so it can't jump to the corner). */
+.wfx-pin { animation: wfxNodePop 0.45s ease both; }
+@keyframes wfxNodePop {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  55% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .wfx-wp { transition: none; } .wfx-pin { animation: none; } }
+
 .wfx-zoom { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
 .wfx-zoom button {
   width: 38px; height: 38px; border-radius: 50%;

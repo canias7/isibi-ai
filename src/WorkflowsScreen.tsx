@@ -5,7 +5,7 @@ import {
   IconClock, IconBolt, IconBranch, IconSpark, IconCheck,
 } from './icons';
 import { byId } from './connectorData';
-import { BrandLogo, hasBrand, BRAND_IDS } from './brandLogos';
+import { BrandLogo, hasBrand } from './brandLogos';
 import {
   listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow, testWorkflow,
   triggerLabel, deviceTz, appLabel, compileInstruction, orderedNodes,
@@ -47,147 +47,104 @@ function NodeIcon({ app, size = 22 }: { app: string; size?: number }) {
 
 interface Work { title: string; instruction: string; trigger: Trigger; graph: WfGraph }
 
-// Decorative mini node-graph for the empty state — top-down like the real canvas.
-// Nodes are draggable (clamped so they can't reach the composer), and the five
-// app nodes cycle through our bundled-logo apps every 5s (no repeats in a round;
-// once all are shown it loops) with a pop animation. Wires follow the nodes.
-const HF_VB_W = 240, HF_VB_H = 250, HF_CLAMP = 20; // viewBox + max drag (vb units)
-// base center [x,y], radius, and (for app nodes) the cycling slot 0..4.
-const HF_NODES: { base: [number, number]; r: number; slot?: number; ai?: boolean }[] = [
-  { base: [80, 36], r: 21, slot: 0 },
-  { base: [160, 36], r: 21, slot: 1 },
-  { base: [120, 125], r: 29, ai: true },
-  { base: [60, 214], r: 21, slot: 2 },
-  { base: [120, 214], r: 21, slot: 3 },
-  { base: [180, 214], r: 21, slot: 4 },
+// Each empty-state prompt with the real workflow it would build: trigger app(s)
+// on top -> the AI step -> destination app(s) on the bottom. The graph for the
+// active prompt animates in as the prompt types, so it looks like the real thing.
+type WfPreview = { prompt: string; top: string[]; bottom: string[] };
+const WORKFLOWS: WfPreview[] = [
+  { prompt: 'Nudge my team about the weekly report every Friday at 5.', top: ['schedule'], bottom: ['slack'] },
+  { prompt: 'When an invoice shows up in my email, save the PDF to Drive.', top: ['gmail'], bottom: ['gdrive'] },
+  { prompt: 'Around lunch, sum up the Slack messages I missed.', top: ['slack'], bottom: ['sms'] },
+  { prompt: 'New meeting on my Outlook? Drop prep notes into Notion.', top: ['m365'], bottom: ['notion'] },
+  { prompt: 'If a Stripe payment fails, text me and log it in a sheet.', top: ['stripe'], bottom: ['sms', 'googlesheets'] },
+  { prompt: 'Turn the emails I star into Todoist tasks for tomorrow.', top: ['gmail'], bottom: ['todoist'] },
+  { prompt: 'New YouTube video? Post it to Discord and LinkedIn.', top: ['youtube'], bottom: ['discord', 'linkedin'] },
+  { prompt: 'Back up my new Dropbox files to Google Drive overnight.', top: ['dropbox'], bottom: ['gdrive'] },
+  { prompt: 'Reply to the Instagram DMs asking when we’re open.', top: ['instagram'], bottom: ['instagram'] },
+  { prompt: 'When I wake up, text me my schedule and the weather.', top: ['gcal', 'weather'], bottom: ['sms'] },
 ];
-const HF_EDGES: [number, number][] = [[0, 2], [1, 2], [2, 3], [2, 4], [2, 5]];
-// App pool, trimmed to a multiple of 5 so each round shows 5 distinct apps and
-// the rounds tile through the whole list before repeating.
-const HF_POOL = BRAND_IDS.slice(0, Math.max(5, Math.floor(BRAND_IDS.length / 5) * 5));
+const WP_VB_W = 300, WP_VB_H = 240;
+const wpXs = (n: number): number[] => (n <= 1 ? [150] : n === 2 ? [108, 192] : [74, 150, 226]);
 
-function HeroFlow() {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [slotRound, setSlotRound] = useState<number[]>(() => [0, 0, 0, 0, 0]);
-  const cur = useRef(0); // which slot swaps next (round-robin 0..4)
-  const [off, setOff] = useState(() => HF_NODES.map(() => ({ dx: 0, dy: 0 })));
-  const drag = useRef<{ i: number; sx: number; sy: number; ox: number; oy: number } | null>(null);
-
-  useEffect(() => {
-    // Swap ONE node per second, round-robin (0..4 then loop) — first, then the
-    // next a second later, and so on. Each slot stays on its own residue mod 5,
-    // so the five visible apps are never duplicated. Paused while dragging.
-    const t = setInterval(() => {
-      if (drag.current) return;
-      const s = cur.current;
-      setSlotRound((prev) => prev.map((r, idx) => (idx === s ? r + 1 : r)));
-      cur.current = (s + 1) % 5;
-    }, 1000);
-    return () => clearInterval(t);
-  }, []);
-  const appForSlot = (slot: number) => HF_POOL[(slotRound[slot] * 5 + slot) % HF_POOL.length];
-  const center = (i: number) => ({ x: HF_NODES[i].base[0] + off[i].dx, y: HF_NODES[i].base[1] + off[i].dy });
-
-  function down(e: React.PointerEvent, i: number) {
-    e.stopPropagation();
-    drag.current = { i, sx: e.clientX, sy: e.clientY, ox: off[i].dx, oy: off[i].dy };
-    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ignore */ }
-  }
-  function move(e: React.PointerEvent) {
-    const d = drag.current; if (!d) return;
-    const r = wrapRef.current?.getBoundingClientRect(); if (!r) return;
-    const dx = clamp(d.ox + ((e.clientX - d.sx) / r.width) * HF_VB_W, -HF_CLAMP, HF_CLAMP);
-    const dy = clamp(d.oy + ((e.clientY - d.sy) / r.height) * HF_VB_H, -HF_CLAMP, HF_CLAMP);
-    setOff((p) => p.map((o, idx) => (idx === d.i ? { dx, dy } : o)));
-  }
-  function up() { drag.current = null; }
-
-  return (
-    <div className="wfx-hf" ref={wrapRef} aria-hidden="true">
-      <svg className="wfx-hf-wires" viewBox={`0 0 ${HF_VB_W} ${HF_VB_H}`}>
-        <defs>
-          <marker id="wfx-hf-arrow" markerWidth="7" markerHeight="7" refX="5.4" refY="3" orient="auto" markerUnits="userSpaceOnUse">
-            <path d="M0,0 L6,3 L0,6 Z" fill="rgba(224,161,58,0.85)" />
-          </marker>
-        </defs>
-        {HF_EDGES.map(([a, b], k) => {
-          const A = center(a), B = center(b);
-          const x1 = A.x, y1 = A.y + HF_NODES[a].r, x2 = B.x, y2 = B.y - HF_NODES[b].r;
-          const mid = (y1 + y2) / 2;
-          return (
-            <path key={k} className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)"
-              style={{ animationDelay: `${k * 0.12}s` }}
-              d={`M ${x1} ${y1} C ${x1} ${mid} ${x2} ${mid} ${x2} ${y2}`} />
-          );
-        })}
-      </svg>
-      {HF_NODES.map((nd, i) => {
-        const c = center(i);
-        const app = nd.ai ? 'ai' : appForSlot(nd.slot!);
-        return (
-          <div
-            key={i}
-            className={`wfx-hf-node ${nd.ai ? 'b' : ''}`}
-            style={{ left: `${(c.x / HF_VB_W) * 100}%`, top: `${(c.y / HF_VB_H) * 100}%` }}
-            onPointerDown={(e) => down(e, i)}
-            onPointerMove={move}
-            onPointerUp={up}
-            onPointerCancel={up}
-          >
-            {nd.ai
-              ? <NodeIcon app="ai" size={24} />
-              : <span key={app} className="wfx-hf-ic"><BrandLogo app={app} size={24} /></span>}
-          </div>
-        );
-      })}
-    </div>
+// Icon for a preview node. Concept glyphs (trigger/ai/sms/weather) get an explicit
+// color so they read on the light tile; real apps use the bundled brand logo.
+function wpIcon(app: string, size: number) {
+  if (app === 'ai') return <IconSpark size={size} />;
+  if (app === 'schedule') return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
   );
+  if (app === 'sms') return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" /></svg>
+  );
+  if (app === 'weather') return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4" /></svg>
+  );
+  return <BrandLogo app={app} size={size} />;
 }
 
-// Rotating example prompts for the empty state — deliberately spread across
-// different apps, tools and situations.
-const HERO_PROMPTS = [
-  'Nudge my team about the weekly report every Friday at 5.',
-  'When an invoice shows up in my email, save the PDF to Drive.',
-  'Around lunch, sum up the Slack messages I missed.',
-  'New meeting on my Outlook? Drop prep notes into Notion.',
-  'If a Stripe payment fails, text me and log it in a sheet.',
-  'Turn the emails I star into Todoist tasks for tomorrow.',
-  'New YouTube video? Post it to Discord and LinkedIn.',
-  'Back up my new Dropbox files to Google Drive overnight.',
-  'Reply to the Instagram DMs asking when we’re open.',
-  'When I wake up, text me my schedule and the weather.',
-];
-
-// Typewriter that cycles the prompts: types in letter-by-letter, holds 3s, then
-// erases in reverse and moves to the next one.
-function PromptCycler() {
-  const [i, setI] = useState(0);
+// Empty-state showcase: types each prompt while rendering the matching workflow
+// graph; holds 3s, erases in reverse, then moves to the next prompt + graph.
+function WorkflowPreview() {
+  const [wi, setWi] = useState(0);
   const [text, setText] = useState('');
   const [phase, setPhase] = useState<'type' | 'del'>('type');
+  const wf = WORKFLOWS[wi % WORKFLOWS.length];
 
   useEffect(() => {
-    const full = HERO_PROMPTS[i % HERO_PROMPTS.length];
+    const full = wf.prompt;
     if (phase === 'type') {
       if (text.length < full.length) {
         const t = setTimeout(() => setText(full.slice(0, text.length + 1)), 45);
         return () => clearTimeout(t);
       }
-      const t = setTimeout(() => setPhase('del'), 3000); // fully typed → hold 3s
+      const t = setTimeout(() => setPhase('del'), 3000); // fully typed -> hold 3s
       return () => clearTimeout(t);
     }
     if (text.length > 0) {
       const t = setTimeout(() => setText(full.slice(0, text.length - 1)), 22);
       return () => clearTimeout(t);
     }
-    const t = setTimeout(() => { setI((p) => (p + 1) % HERO_PROMPTS.length); setPhase('type'); }, 250);
+    const t = setTimeout(() => { setWi((p) => (p + 1) % WORKFLOWS.length); setPhase('type'); }, 450);
     return () => clearTimeout(t);
-  }, [text, phase, i]);
+  }, [text, phase, wi]);
+
+  const topX = wpXs(wf.top.length), botX = wpXs(wf.bottom.length);
+  const nodes = [
+    ...wf.top.map((app, i) => ({ id: 't' + i, app, x: topX[i], y: 40, r: 21, ai: false })),
+    { id: 'ai', app: 'ai', x: 150, y: 120, r: 29, ai: true },
+    ...wf.bottom.map((app, i) => ({ id: 'b' + i, app, x: botX[i], y: 200, r: 21, ai: false })),
+  ];
+  const aiIdx = wf.top.length;
+  const edges: [number, number][] = [
+    ...wf.top.map((_, i) => [i, aiIdx] as [number, number]),
+    ...wf.bottom.map((_, i) => [aiIdx, aiIdx + 1 + i] as [number, number]),
+  ];
 
   return (
-    <div className="wfx-prompt" aria-live="polite">
-      <span className="wfx-prompt-text">{text}</span>
-      <span className="wfx-prompt-caret" />
+    <div className="wfx-wp-wrap">
+      <div className={`wfx-wp ${phase === 'del' ? 'leaving' : ''}`}>
+        <svg className="wfx-hf-wires" viewBox={`0 0 ${WP_VB_W} ${WP_VB_H}`}>
+          <defs>
+            <marker id="wfx-hf-arrow" markerWidth="7" markerHeight="7" refX="5.4" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+              <path d="M0,0 L6,3 L0,6 Z" fill="rgba(224,161,58,0.85)" />
+            </marker>
+          </defs>
+          {edges.map(([a, b], k) => {
+            const A = nodes[a], B = nodes[b];
+            const x1 = A.x, y1 = A.y + A.r, x2 = B.x, y2 = B.y - B.r, mid = (y1 + y2) / 2;
+            return <path key={k} className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)" style={{ animationDelay: `${k * 0.12}s` }} d={`M ${x1} ${y1} C ${x1} ${mid} ${x2} ${mid} ${x2} ${y2}`} />;
+          })}
+        </svg>
+        {nodes.map((n, idx) => (
+          <div key={`${wi}-${n.id}`} className={`wfx-hf-node ${n.ai ? 'b' : ''} wfx-pin`} style={{ left: `${(n.x / WP_VB_W) * 100}%`, top: `${(n.y / WP_VB_H) * 100}%`, animationDelay: `${idx * 0.07}s` }}>
+            {wpIcon(n.app, n.ai ? 24 : 22)}
+          </div>
+        ))}
+      </div>
+      <div className="wfx-prompt" aria-live="polite">
+        <span className="wfx-prompt-text">{text}</span>
+        <span className="wfx-prompt-caret" />
+      </div>
     </div>
   );
 }
@@ -306,8 +263,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
       ) : (
         <div className="wfx-home">
           <div className="wfx-hero">
-            <HeroFlow />
-            <PromptCycler />
+            <WorkflowPreview />
             {err && <div className="wfx-err">{err}</div>}
           </div>
           <div className="memg-compose-wrap">
