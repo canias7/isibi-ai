@@ -7,7 +7,7 @@ import Connectors from './Connectors';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconPhotos, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory } from './icons';
+import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow } from './icons';
 import { listMemories, addMemory, updateMemory, deleteMemory, type Memory } from './memory';
 import MemoryGraph from './MemoryGraph';
 import { App as CapApp } from '@capacitor/app';
@@ -314,6 +314,7 @@ export default function App() {
   const [memOpen, setMemOpen] = useState(false);
   // Whole-feature on/off (paused = not fed into chats and the save tool is dropped).
   const [memEnabled, setMemEnabled] = useState(() => { try { return localStorage.getItem('gf_memory_on') !== '0'; } catch { return true; } });
+  const [wfOpen, setWfOpen] = useState(false); // Workflows screen (placeholder for now)
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -810,25 +811,27 @@ export default function App() {
   }
 
   // ---- Attachments ("+" menu) ----
-  async function openPicker(mode: 'camera' | 'photos' | 'files') {
+  async function openPicker(mode: 'camera' | 'attachments') {
     setPlusOpen(false);
-    // Use the native camera / photo library for photos (real in-app capture).
-    // Only fall back to the HTML file input when it's unavailable (web, or a
-    // build without the plugin) — not when the user simply cancelled.
-    if (mode === 'camera' || mode === 'photos') {
-      const r = await capturePhoto(mode);
+    // Camera: real in-app capture via the native plugin. Only fall back to the
+    // HTML file input when it's unavailable (web / no plugin) — not on cancel.
+    if (mode === 'camera') {
+      const r = await capturePhoto('camera');
       if (r.status === 'ok') { setAttachments((prev) => [...prev, r.attach].slice(-6)); return; }
       if (r.status === 'cancel') return;
     }
+    // Attachments: one picker for photos AND files — the OS sheet offers Photo
+    // Library / Take Photo / Choose File, so both live under a single entry.
     const input = fileRef.current;
     if (!input) return;
     input.value = '';
-    input.multiple = mode !== 'camera';
     if (mode === 'camera') {
+      input.multiple = false;
       input.accept = 'image/*';
       input.setAttribute('capture', 'environment');
     } else {
-      input.accept = mode === 'photos' ? 'image/*' : 'image/*,application/pdf';
+      input.multiple = true;
+      input.accept = 'image/*,application/pdf';
       input.removeAttribute('capture');
     }
     input.click();
@@ -893,6 +896,13 @@ export default function App() {
   function closeMemory() {
     setMemOpen(false);
   }
+
+  // Lock the page behind the Workflows overlay (same as the Memory modal).
+  useEffect(() => {
+    if (!wfOpen) return;
+    document.documentElement.classList.add('gf-modal-open');
+    return () => document.documentElement.classList.remove('gf-modal-open');
+  }, [wfOpen]);
 
   async function loadMems() {
     if (!uid) return;
@@ -1282,11 +1292,11 @@ export default function App() {
                 <button className="radial-item" style={{ left: 24, bottom: 240, animationDelay: '150ms' }} onClick={() => openPicker('camera')}>
                   <IconCamera size={20} /><span className="radial-label">Camera</span>
                 </button>
-                <button className="radial-item" style={{ left: 48, bottom: 180, animationDelay: '100ms' }} onClick={() => openPicker('photos')}>
-                  <IconPhotos size={20} /><span className="radial-label">Photos</span>
+                <button className="radial-item" style={{ left: 48, bottom: 180, animationDelay: '100ms' }} onClick={() => openPicker('attachments')}>
+                  <IconFiles size={20} /><span className="radial-label">Attachments</span>
                 </button>
-                <button className="radial-item" style={{ left: 72, bottom: 120, animationDelay: '50ms' }} onClick={() => openPicker('files')}>
-                  <IconFiles size={20} /><span className="radial-label">Files</span>
+                <button className="radial-item" style={{ left: 72, bottom: 120, animationDelay: '50ms' }} onClick={() => { setPlusOpen(false); setWfOpen(true); }}>
+                  <IconWorkflow size={20} /><span className="radial-label">Workflows</span>
                 </button>
                 <button className="radial-item" style={{ left: 96, bottom: 60, animationDelay: '0ms' }} onClick={() => { menuOpenedAt.current = Date.now(); setPlusOpen(false); setConnMenu(true); }}>
                   <IconConnectors size={20} /><span className="radial-label">Connectors</span>
@@ -1375,6 +1385,27 @@ export default function App() {
           onToggle={toggleMem}
           onClose={closeMemory}
         />
+      )}
+
+      {wfOpen && (
+        <div className="memg" role="dialog" aria-label="Workflows">
+          <div className="memg-top">
+            <div className="memg-titles">
+              <h1 className="memg-title">Workflows</h1>
+              <p className="memg-sub">Coming soon</p>
+            </div>
+            <button className="memg-close" onClick={() => setWfOpen(false)} aria-label="Close">
+              <IconX size={20} />
+            </button>
+          </div>
+          <div className="memg-stage">
+            <div className="memg-core" aria-hidden="true"><IconWorkflow size={26} /></div>
+            <div className="memg-empty">
+              <div className="memg-empty-title">Workflows are on the way</div>
+              <div className="memg-empty-sub">Save routines you run often and trigger them in one tap.</div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
