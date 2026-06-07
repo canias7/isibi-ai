@@ -144,6 +144,54 @@ function HeroFlow() {
   );
 }
 
+// Rotating example prompts for the empty state — deliberately spread across
+// different apps, tools and situations.
+const HERO_PROMPTS = [
+  'Email the weekly report to my team every Friday at 5pm.',
+  'When an invoice lands in Gmail, save the PDF to Google Drive.',
+  'Summarize unread Slack messages and DM me a recap at noon.',
+  'Add every new Outlook meeting to a prep checklist in Notion.',
+  'When a Stripe payment fails, alert me and log it in a Sheet.',
+  'Turn emails I star into Todoist tasks due tomorrow.',
+  'Post our new YouTube video to Discord and LinkedIn.',
+  'Back up new Dropbox files to Google Drive overnight.',
+  'Auto-reply to Instagram DMs that ask for our hours.',
+  'Every morning, text me today’s calendar and the weather.',
+];
+
+// Typewriter that cycles the prompts: types in letter-by-letter, holds 3s, then
+// erases in reverse and moves to the next one.
+function PromptCycler() {
+  const [i, setI] = useState(0);
+  const [text, setText] = useState('');
+  const [phase, setPhase] = useState<'type' | 'del'>('type');
+
+  useEffect(() => {
+    const full = HERO_PROMPTS[i % HERO_PROMPTS.length];
+    if (phase === 'type') {
+      if (text.length < full.length) {
+        const t = setTimeout(() => setText(full.slice(0, text.length + 1)), 45);
+        return () => clearTimeout(t);
+      }
+      const t = setTimeout(() => setPhase('del'), 3000); // fully typed → hold 3s
+      return () => clearTimeout(t);
+    }
+    if (text.length > 0) {
+      const t = setTimeout(() => setText(full.slice(0, text.length - 1)), 22);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(() => { setI((p) => (p + 1) % HERO_PROMPTS.length); setPhase('type'); }, 250);
+    return () => clearTimeout(t);
+  }, [text, phase, i]);
+
+  return (
+    <div className="wfx-prompt" aria-live="polite">
+      <span className="wfx-prompt-text">{text}</span>
+      <span className="wfx-prompt-caret" />
+    </div>
+  );
+}
+
 export default function WorkflowsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [items, setItems] = useState<Workflow[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -259,8 +307,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
         <div className="wfx-home">
           <div className="wfx-hero">
             <HeroFlow />
-            <div className="wfx-hero-title">What should run on autopilot?</div>
-            <div className="wfx-hero-sub">e.g. “Every weekday at 8am, email me a summary of my unread mail and today’s calendar.”</div>
+            <PromptCycler />
             {err && <div className="wfx-err">{err}</div>}
           </div>
           <div className="memg-compose-wrap">

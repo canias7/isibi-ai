@@ -1686,6 +1686,21 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .wfx-hero-title { font-size: 20px; font-weight: 700; }
 .wfx-hero-sub { font-size: 14px; color: var(--text-dim); max-width: 320px; line-height: 1.5; }
 .wfx-err { color: #ff8f8f; font-size: 13px; margin-top: 4px; }
+
+/* Cycling typewriter prompt (replaces the static title). Fixed min-height so the
+   layout doesn't jump as prompts of different lengths type in and out. */
+.wfx-prompt {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 3.4em; max-width: 320px; line-height: 1.45;
+  font-size: 17px; font-weight: 600; color: var(--text);
+}
+.wfx-prompt-caret {
+  display: inline-block; width: 2px; height: 1.05em; margin-left: 2px;
+  background: #e0a13a; border-radius: 1px; vertical-align: text-bottom;
+  animation: wfxCaret 1s steps(1) infinite;
+}
+@keyframes wfxCaret { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .wfx-prompt-caret { animation: none; } }
 .wfx-spin {
   width: 16px; height: 16px; border-radius: 50%;
   border: 2px solid rgba(0, 0, 0, 0.25); border-top-color: #2a1c05;
