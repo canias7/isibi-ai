@@ -147,6 +147,27 @@ export async function streamChat(
   if (tail) onToken(tail);
 }
 
+// Read an attachment (image/PDF) into a concise memory line, via the chat model's
+// vision. Memory is off for this call so it doesn't pull in other memories or the
+// save tool — we just want the extracted text.
+export async function extractMemory(attach: Attach, note: string): Promise<string> {
+  const prompt = note.trim()
+    ? `The user wants to remember this attachment. Their note: "${note.trim()}". Read the attachment and write ONE concise memory line capturing the key facts (merge in their note). Reply with ONLY that line — no preamble, no markdown.`
+    : `Read this attachment and write ONE concise memory line capturing the key facts to remember (e.g. a contact's name/email/phone, or the gist of a document). Reply with ONLY that line — no preamble, no markdown.`;
+  let out = '';
+  await streamChat(
+    [{ role: 'user', content: prompt, attachments: [attach] }],
+    (t) => { out += t; },
+    undefined, undefined, undefined, undefined,
+    false, // memory off for this utility call
+  );
+  return out
+    .replace(/\[\[gfstatus:[^\]]*\]\]/g, '')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // Ask the backend to send THIS user a push, using their own session — a one-tap
 // way to verify notifications work end-to-end. The function pushes only to the
 // caller's own registered devices.

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import type { Memory } from './memory';
-import { IconTrash, IconArrowUp, IconSpark, IconArrowLeft } from './icons';
+import { type Memory, memoryFileUrl } from './memory';
+import type { Attach } from './api';
+import { IconTrash, IconArrowUp, IconSpark, IconArrowLeft, IconFiles, IconX, IconPhotos, IconDoc } from './icons';
 
 // Full-screen "constellation" view of the user's memories: a glowing core with
 // each saved memory as a node on a connector line around it. Manual add/edit/
@@ -13,10 +14,27 @@ interface Props {
   loaded: boolean;
   enabled: boolean;
   onAdd: (content: string) => Promise<boolean>;
+  onAddFile: (note: string, attach: Attach) => Promise<boolean>;
   onUpdate: (id: string, content: string) => Promise<boolean>;
   onDelete: (id: string) => void;
   onToggle: (next: boolean) => void;
   onClose: () => void;
+}
+
+// Read a picked File into an Attach (base64, no data-URL prefix). Images + PDFs only.
+function fileToAttach(file: File): Promise<Attach | null> {
+  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+  const isImg = file.type.startsWith('image/');
+  if (!isPdf && !isImg) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const b64 = String(r.result || '').split(',')[1] || '';
+      resolve(b64 ? { kind: isPdf ? 'pdf' : 'image', mediaType: file.type || (isPdf ? 'application/pdf' : 'image/jpeg'), data: b64, name: file.name } : null);
+    };
+    r.onerror = () => resolve(null);
+    r.readAsDataURL(file);
+  });
 }
 
 type XY = { x: number; y: number };
@@ -42,13 +60,15 @@ function layout(n: number): XY[] {
   });
 }
 
-export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate, onDelete, onToggle, onClose }: Props) {
+export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFile, onUpdate, onDelete, onToggle, onClose }: Props) {
   const [input, setInput] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pending, setPending] = useState<Attach | null>(null); // attachment waiting to be saved
   const [positions, setPositions] = useState<Record<string, XY>>(loadPositions);
   const [dragId, setDragId] = useState<string | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<{ id: string; sx: number; sy: number; ox: number; oy: number; w: number; h: number; moved: boolean } | null>(null);
 
   // Lock the page behind the modal so iOS rubber-band scroll can't drag it.
@@ -103,21 +123,46 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
   function deselect() {
     setSelectedId(null);
     setInput('');
+    setPending(null);
   }
 
   function select(m: Memory) {
     setSelectedId(m.id);
     setInput(m.content);
+    setPending(null);
+  }
+
+  async function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const a = await fileToAttach(file);
+    if (a) { setSelectedId(null); setPending(a); }
   }
 
   async function submit() {
+    if (saving) return;
+    if (pending) {
+      setSaving(true);
+      const ok = await onAddFile(input.trim(), pending);
+      setSaving(false);
+      if (ok) deselect();
+      return;
+    }
     const c = input.trim();
-    if (!c || saving) return;
+    if (!c) return;
     setSaving(true);
     const ok = selectedId ? await onUpdate(selectedId, c) : await onAdd(c);
     setSaving(false);
     if (ok) deselect();
   }
+
+  async function openAttachment(path: string) {
+    const url = await memoryFileUrl(path);
+    if (url) window.open(url, '_blank');
+  }
+
+  const selected = selectedId ? memories.find((m) => m.id === selectedId) : null;
 
   function remove() {
     if (!selectedId) return;
@@ -186,7 +231,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
               onPointerCancel={() => { dragRef.current = null; setDragId(null); }}
             >
               <span className="memg-ico">
-                <IconSpark size={13} />
+                {m.attachment_type === 'image' ? <IconPhotos size={13} /> : m.attachment_path ? <IconDoc size={13} /> : <IconSpark size={13} />}
               </span>
               <span className="memg-pill">{preview(m.content)}</span>
             </button>
@@ -208,10 +253,31 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
             <button className="memg-cancel" onClick={deselect}>Cancel</button>
           </div>
         )}
+        {/* Existing memory's attachment: open the original file. */}
+        {selected?.attachment_path && (
+          <button className="memg-attach-chip" onClick={() => void openAttachment(selected.attachment_path!)}>
+            {selected.attachment_type === 'image' ? <IconPhotos size={15} /> : <IconDoc size={15} />}
+            <span className="memg-attach-name">{selected.attachment_name || 'Attachment'}</span>
+            <span className="memg-attach-open">Open</span>
+          </button>
+        )}
+        {/* New attachment waiting to be saved. */}
+        {pending && (
+          <div className="memg-attach-chip">
+            {pending.kind === 'image' ? <IconPhotos size={15} /> : <IconDoc size={15} />}
+            <span className="memg-attach-name">{pending.name || (pending.kind === 'image' ? 'Photo' : 'File')}</span>
+            <button className="memg-attach-x" onClick={() => setPending(null)} aria-label="Remove attachment"><IconX size={13} /></button>
+          </div>
+        )}
+        {saving && pending && <div className="memg-reading">Reading attachment…</div>}
         <div className="memg-compose">
-          {selectedId && (
+          {selectedId ? (
             <button className="memg-trash" onClick={remove} aria-label="Delete memory">
               <IconTrash size={18} />
+            </button>
+          ) : (
+            <button className="memg-clip" onClick={() => fileRef.current?.click()} aria-label="Attach photo or file" disabled={saving}>
+              <IconFiles size={18} />
             </button>
           )}
           <input
@@ -219,13 +285,14 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onUpdate
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
-            placeholder={selectedId ? 'Edit this memory' : 'Add a memory'}
+            placeholder={pending ? 'Add a note (optional)' : selectedId ? 'Edit this memory' : 'Add a memory'}
             maxLength={500}
           />
-          <button className="memg-send" onClick={() => void submit()} disabled={!input.trim() || saving} aria-label={selectedId ? 'Update' : 'Add'}>
+          <button className="memg-send" onClick={() => void submit()} disabled={(!input.trim() && !pending) || saving} aria-label={selectedId ? 'Update' : 'Add'}>
             <IconArrowUp size={20} />
           </button>
         </div>
+        <input ref={fileRef} type="file" accept="image/*,application/pdf" hidden onChange={pickFile} />
       </div>
     </div>,
     document.body,

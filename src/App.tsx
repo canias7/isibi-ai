@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { streamChat, sendTestPush, type ChatMessage, type Attach } from './api';
+import { streamChat, sendTestPush, extractMemory, type ChatMessage, type Attach } from './api';
 import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API, byId } from './connectorData';
 import Connectors from './Connectors';
@@ -8,7 +8,7 @@ import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow } from './icons';
-import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, type Memory } from './memory';
+import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
 import MemoryGraph from './MemoryGraph';
 import WorkflowsScreen from './WorkflowsScreen';
 import { App as CapApp } from '@capacitor/app';
@@ -921,6 +921,20 @@ export default function App() {
     return false;
   }
 
+  // Add a memory from an attachment: read its contents into text (vision) AND
+  // keep the original file in storage, in parallel.
+  async function addMemFile(note: string, attach: Attach): Promise<boolean> {
+    const [text, path] = await Promise.all([
+      extractMemory(attach, note).catch(() => ''),
+      uploadMemoryFile(attach),
+    ]);
+    const content = (text || note || attach.name || 'Attachment').trim();
+    const m = await addMemory(content, path ? { path, type: attach.kind, name: attach.name } : undefined);
+    if (m) { setMemories((prev) => [m, ...prev]); return true; }
+    flashNote("Couldn't save that attachment — try again.");
+    return false;
+  }
+
   async function updateMem(id: string, content: string): Promise<boolean> {
     const c = content.trim();
     if (!c) return false;
@@ -1381,6 +1395,7 @@ export default function App() {
           loaded={memLoaded}
           enabled={memEnabled}
           onAdd={addMem}
+          onAddFile={addMemFile}
           onUpdate={updateMem}
           onDelete={delMem}
           onToggle={toggleMem}

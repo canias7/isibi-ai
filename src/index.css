@@ -1163,6 +1163,34 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 }
 .memg-send:disabled { opacity: 0.35; cursor: default; }
 .memg-send:active:not(:disabled) { opacity: 0.7; }
+.memg-clip {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
+  border: none; background: transparent;
+  color: var(--text-dim);
+  border-radius: 50%;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.memg-clip:disabled { opacity: 0.4; cursor: default; }
+.memg-clip:active:not(:disabled) { background: rgba(255, 255, 255, 0.08); }
+.memg-attach-chip {
+  display: flex; align-items: center; gap: 8px;
+  max-width: 640px; margin: 0 auto 8px;
+  width: fit-content;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px; padding: 8px 12px;
+  color: var(--text); font: inherit; font-size: 13px;
+  cursor: pointer;
+}
+.memg-attach-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.memg-attach-open { color: var(--accent); font-weight: 600; margin-left: 2px; }
+.memg-attach-x {
+  border: none; background: transparent; color: var(--text-dim);
+  padding: 2px; display: grid; place-items: center; cursor: pointer; border-radius: 6px;
+}
+.memg-reading { max-width: 640px; margin: 0 auto 8px; font-size: 12px; color: var(--text-dim); }
 
 @media (prefers-reduced-motion: reduce) {
   .memg, .memg-core, .memg-node, .memg-line { animation: none; }
