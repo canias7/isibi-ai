@@ -3,7 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { supabase } from './supabase';
-import { CONNECTORS, CONNECT_API, type Connector } from './connectorData';
+import { CONNECTORS, CONNECT_API, VISIBLE_CONNECTOR_IDS, type Connector } from './connectorData';
 import ToolManager from './ToolManager';
 
 type Status = { connected: boolean; email?: string | null };
@@ -131,9 +131,11 @@ export default function Connectors() {
     setTimeout(() => setArmed((cur) => (cur === id ? null : cur)), 5000);
   }
 
-  const count = CONNECTORS.filter((c) => status[c.id]?.connected).length;
+  // Only the apps we've tested are shown for now (the rest stay backend-only).
+  const visible = CONNECTORS.filter((c) => VISIBLE_CONNECTOR_IDS.has(c.id));
+  const count = visible.filter((c) => status[c.id]?.connected).length;
   // Connected apps float to the top (stable sort keeps each group's order).
-  const ordered = [...CONNECTORS].sort(
+  const ordered = [...visible].sort(
     (a, b) => Number(!!status[b.id]?.connected) - Number(!!status[a.id]?.connected),
   );
 
