@@ -47,31 +47,37 @@ function NodeIcon({ app, size = 22 }: { app: string; size?: number }) {
 
 interface Work { title: string; instruction: string; trigger: Trigger; graph: WfGraph }
 
-// Decorative mini node-graph for the empty state: two app sources flow into an
-// AI step that fans out to three more apps, cables animated. Cosmetic (aria-hidden).
+// Decorative mini node-graph for the empty state: top-down (matching the real
+// canvas) — two app sources flow into an AI step that fans out to three apps,
+// cables animated with arrowheads. Cosmetic (aria-hidden).
 function HeroFlow() {
   const inputs = [
-    { app: 'gmail', x: '13%', y: '29%' },
-    { app: 'gcal', x: '13%', y: '71%' },
+    { app: 'gmail', x: '33%', y: '14%' },
+    { app: 'gcal', x: '67%', y: '14%' },
   ];
   const outputs = [
-    { app: 'slack', x: '78%', y: '22%' },
-    { app: 'notion', x: '87%', y: '50%' },
-    { app: 'googlesheets', x: '78%', y: '78%' },
+    { app: 'slack', x: '25%', y: '86%' },
+    { app: 'notion', x: '50%', y: '86%' },
+    { app: 'googlesheets', x: '75%', y: '86%' },
   ];
   return (
     <div className="wfx-hf" aria-hidden="true">
-      <svg className="wfx-hf-wires" viewBox="0 0 300 180">
-        <path className="wfx-hf-wire" d="M60,56 C95,56 95,86 104,86" />
-        <path className="wfx-hf-wire" d="M60,124 C95,124 95,94 104,94" style={{ animationDelay: '.12s' }} />
-        <path className="wfx-hf-wire" d="M156,84 C192,84 192,40 215,40" style={{ animationDelay: '.24s' }} />
-        <path className="wfx-hf-wire" d="M156,90 C200,90 200,90 242,90" style={{ animationDelay: '.36s' }} />
-        <path className="wfx-hf-wire" d="M156,96 C192,96 192,140 215,140" style={{ animationDelay: '.48s' }} />
+      <svg className="wfx-hf-wires" viewBox="0 0 240 250">
+        <defs>
+          <marker id="wfx-hf-arrow" markerWidth="7" markerHeight="7" refX="5.4" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M0,0 L6,3 L0,6 Z" fill="rgba(224,161,58,0.85)" />
+          </marker>
+        </defs>
+        <path className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)" d="M80,55 C80,88 120,78 120,99" />
+        <path className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)" d="M160,55 C160,88 120,78 120,99" style={{ animationDelay: '.12s' }} />
+        <path className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)" d="M120,151 C120,182 60,168 60,195" style={{ animationDelay: '.24s' }} />
+        <path className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)" d="M120,151 C120,176 120,176 120,195" style={{ animationDelay: '.36s' }} />
+        <path className="wfx-hf-wire" markerEnd="url(#wfx-hf-arrow)" d="M120,151 C120,182 180,168 180,195" style={{ animationDelay: '.48s' }} />
       </svg>
       {inputs.map((o) => (
         <div key={o.app} className="wfx-hf-node" style={{ left: o.x, top: o.y }}><BrandLogo app={o.app} size={24} /></div>
       ))}
-      <div className="wfx-hf-node b" style={{ left: '43%', top: '50%' }}><NodeIcon app="ai" size={24} /></div>
+      <div className="wfx-hf-node b" style={{ left: '50%', top: '50%' }}><NodeIcon app="ai" size={24} /></div>
       {outputs.map((o) => (
         <div key={o.app} className="wfx-hf-node" style={{ left: o.x, top: o.y }}><BrandLogo app={o.app} size={24} /></div>
       ))}
