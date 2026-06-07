@@ -475,8 +475,38 @@ const CURATED: Record<string, string[]> = {
     "OUTLOOK_LIST_TODO_TASKS",
     "OUTLOOK_CREATE_TASK",
   ],
-  // Excel is intentionally NOT curated yet: surface all 54 tools so we can test
-  // which work, then trim into a CURATED entry here like gmail/outlook.
+  // Excel — curated to the tools verified working against a live workbook (the
+  // rest of the 54 are dead 404s, or the table sub-toolset which is unusable
+  // because Composio's ADD_TABLE is broken, or SharePoint-only variants).
+  excel: [
+    "EXCEL_LIST_FILES",
+    "EXCEL_LIST_WORKSHEETS",
+    "EXCEL_GET_WORKSHEET",
+    "EXCEL_ADD_WORKSHEET",
+    "EXCEL_UPDATE_WORKSHEET",
+    "EXCEL_DELETE_WORKSHEET",
+    "EXCEL_PROTECT_WORKSHEET",
+    "EXCEL_GET_RANGE",
+    "EXCEL_UPDATE_RANGE",
+    "EXCEL_CLEAR_RANGE",
+    "EXCEL_INSERT_RANGE",
+    "EXCEL_MERGE_CELLS",
+    "EXCEL_SORT_RANGE",
+    "EXCEL_GET_WORKBOOK",
+    "EXCEL_LIST_WORKBOOK_PERMISSIONS",
+    "EXCEL_GET_SESSION",
+    "EXCEL_LIST_NAMED_ITEMS",
+    "EXCEL_LIST_COMMENTS",
+    "EXCEL_LIST_TABLES",
+    "EXCEL_ADD_CHART",
+    "EXCEL_LIST_CHARTS",
+    "EXCEL_LIST_CHART_SERIES",
+    "EXCEL_GET_CHART_AXIS",
+    "EXCEL_GET_CHART_DATA_LABELS",
+    "EXCEL_GET_CHART_LEGEND",
+    "EXCEL_UPDATE_CHART",
+    "EXCEL_UPDATE_CHART_LEGEND",
+  ],
 };
 
 // The toolkit's selectable tools. Curated apps return only their working set;
