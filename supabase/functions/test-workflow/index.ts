@@ -2,9 +2,10 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 // Run a workflow ON DEMAND (the "Test" button). Executes the compiled
 // instruction right now, as the calling user, through their connectors — same
-// path the scheduled runner uses — and returns { ok, result }. If a workflow_id
-// is given, the run is also saved to its history. Real side effects happen
-// (it actually sends/creates things), exactly like a live run.
+// path the scheduled runner uses. Returns { ok, result, steps }, where `steps`
+// is a per-node report ([{id, ok, output}]) so the canvas can show a green check
+// or pinned error on each node. If a workflow_id is given, the run is also saved
+// to history. Real side effects happen, exactly like a live run.
 
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
@@ -92,12 +93,32 @@ async function memoryEnabled(uid: string): Promise<boolean> {
   }
 }
 
-async function runInstruction(uid: string, instruction: string, tz: string): Promise<string> {
+type Step = { id: string; label: string };
+type StepResult = { id: string; ok: boolean; output: string };
+
+// Tolerant JSON parse: handles code fences and surrounding prose.
+function parseLoose(text: string): any | null {
+  if (!text) return null;
+  const t = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+  try { return JSON.parse(t); } catch { /* try a substring */ }
+  const i = t.indexOf("{"), j = t.lastIndexOf("}");
+  if (i >= 0 && j > i) { try { return JSON.parse(t.slice(i, j + 1)); } catch { /* give up */ } }
+  return null;
+}
+
+async function runInstruction(uid: string, instruction: string, tz: string, steps: Step[]): Promise<{ summary: string; steps: StepResult[] }> {
   if (!ANTHROPIC_KEY) throw new Error("assistant not configured");
   const [apps, memOn] = await Promise.all([connectedToolkits(uid), memoryEnabled(uid)]);
   const mems = memOn ? await fetchMemories(uid) : [];
   const memSys = mems.length ? `\n\nWHAT YOU KNOW ABOUT THIS USER (saved memories; honor them):\n${mems.map((m) => `• ${m}`).join("\n")}` : "";
-  const system = `You are Go Farther, running a saved automation for the user as a TEST. Carry out the instruction using the connected tools as needed. Then reply with a SHORT summary of what you did and the outcome — at most 2-3 sentences. Plain text only: no markdown (no **bold**, #headings, or bullet lists), no emoji, no code blocks. Use the user's local timezone (${tz}).${memSys}`;
+
+  const wantSteps = steps.length > 0;
+  const stepList = wantSteps ? `\n\nSTEPS (in order — "id — what it does"):\n${steps.map((s) => `${s.id} — ${s.label}`).join("\n")}` : "";
+  const outFmt = wantSteps
+    ? `\n\nWhen finished, reply with ONLY a JSON object (no prose, no code fences), shaped EXACTLY:\n{"summary":"2-3 plain sentences on the overall outcome","steps":[{"id":"<step id>","ok":true,"output":"one short line: what this step produced, or why it failed"}]}\nInclude exactly one entry per step id listed above, in the same order. No markdown or emoji inside any value.`
+    : ` Then reply with a SHORT summary of what you did and the outcome — at most 2-3 sentences. Plain text only: no markdown, no emoji, no code blocks.`;
+  const system = `You are Go Farther, running a saved automation for the user as a TEST. Carry out the steps in order using the connected tools as needed.${stepList} Use the user's local timezone (${tz}).${outFmt}${memSys}`;
+
   const reqBody: Record<string, unknown> = {
     model: MODEL,
     max_tokens: 4096,
@@ -119,7 +140,24 @@ async function runInstruction(uid: string, instruction: string, tz: string): Pro
   if (!res.ok) throw new Error(`assistant ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
   const data = await res.json();
   const text = (data.content || []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join("").trim();
-  return text || "(no output)";
+
+  if (!wantSteps) return { summary: text || "(no output)", steps: [] };
+
+  const parsed = parseLoose(text);
+  if (parsed && Array.isArray(parsed.steps)) {
+    const byId = new Map<string, any>(parsed.steps.map((s: any) => [String(s?.id ?? ""), s]));
+    const out = steps.map((s) => {
+      const r = byId.get(s.id);
+      return { id: s.id, ok: r ? r.ok !== false : false, output: r ? String(r.output ?? "").slice(0, 600) : "no result reported" };
+    });
+    return { summary: String(parsed.summary ?? text).slice(0, 600), steps: out };
+  }
+  // Model didn't return structured output — it still ran; attach the prose to the
+  // first step so the user can read what happened.
+  return {
+    summary: (text || "(no output)").slice(0, 600),
+    steps: steps.map((s, i) => ({ id: s.id, ok: true, output: i === 0 ? text.slice(0, 600) : "" })),
+  };
 }
 
 async function saveRun(workflowId: string, uid: string, result: string, ok: boolean): Promise<void> {
@@ -141,21 +179,31 @@ Deno.serve(async (req: Request) => {
   if (!uid) return J({ error: "unauthorized" }, 401);
 
   let instruction = "", workflowId = "", tz = "UTC";
+  let steps: Step[] = [];
   try {
     const b = await req.json();
     instruction = String(b.instruction || "").trim().slice(0, 6000);
     workflowId = String(b.workflow_id || "");
     if (typeof b.tz === "string" && b.tz) tz = b.tz;
+    if (Array.isArray(b.steps)) {
+      steps = b.steps.slice(0, 40)
+        .map((s: any) => ({ id: String(s?.id || ""), label: String(s?.label || "").slice(0, 200) }))
+        .filter((s: Step) => s.id);
+    }
   } catch { /* fallthrough */ }
   if (!instruction) return J({ error: "Nothing to run." }, 400);
 
-  let ok = true, result = "";
+  let ok = true, result = "", stepsOut: StepResult[] = [];
   try {
-    result = await runInstruction(uid, instruction, tz);
+    const out = await runInstruction(uid, instruction, tz, steps);
+    result = out.summary;
+    stepsOut = out.steps;
+    ok = stepsOut.length ? stepsOut.every((s) => s.ok) : true;
   } catch (e) {
     ok = false;
     result = `Couldn't finish: ${e instanceof Error ? e.message : String(e)}`;
+    stepsOut = steps.map((s) => ({ id: s.id, ok: false, output: "did not run" }));
   }
   if (workflowId) await saveRun(workflowId, uid, result, ok);
-  return J({ ok, result });
+  return J({ ok, result, steps: stepsOut });
 });

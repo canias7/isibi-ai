@@ -55,6 +55,8 @@ export interface WorkflowRun {
   ok: boolean;
   created_at: string;
 }
+// Per-node outcome from a Test run (so the canvas can badge each node).
+export interface StepResult { id: string; ok: boolean; output: string }
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export function deviceTz(): string {
@@ -80,15 +82,22 @@ export function triggerLabel(w: Workflow): string {
 
 // Run a workflow right now (the "Test" button). Executes the compiled
 // instruction as the current user through their connectors; returns ok + result.
-export async function testWorkflow(instruction: string, workflowId?: string): Promise<{ ok: boolean; result: string } | null> {
+export async function testWorkflow(
+  instruction: string,
+  workflowId?: string,
+  steps?: { id: string; label: string }[],
+): Promise<{ ok: boolean; result: string; steps: StepResult[] } | null> {
   try {
     const { data, error } = await supabase.functions.invoke('test-workflow', {
-      body: { instruction, workflow_id: workflowId, tz: deviceTz() },
+      body: { instruction, workflow_id: workflowId, tz: deviceTz(), steps: steps ?? [] },
     });
     if (error || !data) return null;
-    const d = data as { ok?: boolean; result?: string; error?: string };
-    if (d.error && d.ok === undefined) return { ok: false, result: d.error };
-    return { ok: !!d.ok, result: String(d.result ?? '') };
+    const d = data as { ok?: boolean; result?: string; error?: string; steps?: StepResult[] };
+    const stepsOut = Array.isArray(d.steps)
+      ? d.steps.map((s) => ({ id: String(s.id), ok: !!s.ok, output: String(s.output ?? '') }))
+      : [];
+    if (d.error && d.ok === undefined) return { ok: false, result: d.error, steps: stepsOut };
+    return { ok: !!d.ok, result: String(d.result ?? ''), steps: stepsOut };
   } catch {
     return null;
   }
@@ -108,7 +117,9 @@ export function appLabel(app: string): string {
 // user sees on the canvas and what actually executes never drift apart. Steps are
 // emitted in flow order (BFS from the trigger); the runner executes each with the
 // named app. Called on every save.
-export function compileInstruction(title: string, graph: WfGraph): string {
+// Nodes in flow order (BFS from the trigger). Shared by compileInstruction and
+// the Test button so the step numbering and the per-node results line up.
+export function orderedNodes(graph: WfGraph): WfNode[] {
   const nodes = graph.nodes || [];
   const edges = graph.edges || [];
   const byNode = new Map(nodes.map((n) => [n.id, n]));
@@ -133,7 +144,11 @@ export function compileInstruction(title: string, graph: WfGraph): string {
     for (const c of nextOf.get(id) || []) if (!seen.has(c)) q.push(c);
   }
   for (const n of nodes) if (!seen.has(n.id)) order.push(n); // orphans last
-  const steps = order
+  return order;
+}
+
+export function compileInstruction(title: string, graph: WfGraph): string {
+  const steps = orderedNodes(graph)
     .filter((n) => n.kind !== 'trigger')
     .map((n, i) => `${i + 1}. [${appLabel(n.app)}] ${n.label}${n.detail ? ` — ${n.detail}` : ''}`);
   const head = title ? `${title}.` : 'Run this workflow.';

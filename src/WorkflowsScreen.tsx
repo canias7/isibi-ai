@@ -7,9 +7,11 @@ import {
 import { byId } from './connectorData';
 import {
   listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow, testWorkflow,
-  triggerLabel, deviceTz, appLabel, compileInstruction,
+  triggerLabel, deviceTz, appLabel, compileInstruction, orderedNodes,
   type Workflow, type WorkflowRun, type Schedule, type Trigger, type WfGraph, type WfNode,
 } from './workflows';
+
+type NodeResult = { ok: boolean; output: string };
 
 // Full-screen Workflows: describe an automation in the chatbox -> the AI drafts
 // it as a node graph (each node tagged with the app it uses) -> drag/zoom/edit
@@ -216,13 +218,18 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [testing, setTesting] = useState(false);
   const [edgeState, setEdgeState] = useState<'idle' | 'run' | 'pass' | 'fail'>('idle');
+  const [results, setResults] = useState<Record<string, NodeResult>>({}); // per-node test outcomes
 
   // Modal-lock is owned by the parent WorkflowsScreen (this renders inside it).
   useEffect(() => { if (wfId) void listRuns(wfId).then(setRuns); }, [wfId]);
 
   const selNode = sel ? graph.nodes.find((n) => n.id === sel) ?? null : null;
 
-  function clearTest() { if (edgeState !== 'idle') setEdgeState('idle'); }
+  // Editing the graph invalidates the last test — drop the colors + node badges.
+  function clearTest() {
+    if (edgeState !== 'idle') setEdgeState('idle');
+    setResults((r) => (Object.keys(r).length ? {} : r));
+  }
   function patchNode(id: string, patch: Partial<WfNode>) {
     setGraph((g) => ({ ...g, nodes: g.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)) }));
     clearTest();
@@ -237,10 +244,17 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
     if (testing) return;
     const inst = compileInstruction(title.trim(), graph);
     if (!inst.trim()) return;
-    setTesting(true); setEdgeState('run');
-    const r = await testWorkflow(inst, mode === 'saved' ? wfId : undefined);
+    const steps = orderedNodes(graph).filter((n) => n.kind !== 'trigger').map((n) => ({ id: n.id, label: n.label }));
+    setTesting(true); setEdgeState('run'); setResults({});
+    const r = await testWorkflow(inst, mode === 'saved' ? wfId : undefined, steps);
     setTesting(false);
-    setEdgeState(!r ? 'fail' : r.ok ? 'pass' : 'fail');
+    if (!r) { setEdgeState('fail'); return; }
+    const map: Record<string, NodeResult> = {};
+    for (const s of r.steps) map[s.id] = { ok: s.ok, output: s.output };
+    setResults(map);
+    // With per-node results we color each cable by its target; otherwise fall
+    // back to a single overall pass/fail.
+    setEdgeState(r.steps.length ? 'idle' : r.ok ? 'pass' : 'fail');
     if (wfId) void listRuns(wfId).then(setRuns); // run is saved to history (future Logs)
   }
   function applyTrigger(t: Trigger) {
@@ -282,7 +296,7 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
         </button>
       </div>
 
-      <Canvas graph={graph} onChange={(g) => { setGraph(g); clearTest(); }} onSelect={setSel} edgeState={edgeState} />
+      <Canvas graph={graph} results={results} onChange={(g) => { setGraph(g); clearTest(); }} onSelect={setSel} edgeState={edgeState} />
 
       {/* Bottom action bar */}
       <div className="wfx-bar">
@@ -303,6 +317,7 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
           node={selNode}
           trigger={trigger}
           connApps={connApps}
+          result={results[selNode.id]}
           onPatch={(p) => patchNode(selNode.id, p)}
           onTrigger={applyTrigger}
           onDelete={selNode.kind === 'trigger' ? undefined : () => removeNode(selNode.id)}
@@ -332,7 +347,7 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
 }
 
 // ---- The pan/zoom/drag canvas ----------------------------------------------
-function Canvas({ graph, onChange, onSelect, edgeState }: { graph: WfGraph; onChange: (g: WfGraph) => void; onSelect: (id: string) => void; edgeState: 'idle' | 'run' | 'pass' | 'fail' }) {
+function Canvas({ graph, results, onChange, onSelect, edgeState }: { graph: WfGraph; results: Record<string, NodeResult>; onChange: (g: WfGraph) => void; onSelect: (id: string) => void; edgeState: 'idle' | 'run' | 'pass' | 'fail' }) {
   // Lock the coordinate origin ONCE (from the initial layout). Recomputing bounds
   // on every drag move is what made the whole graph jump under your finger.
   const [base] = useState(() => {
@@ -435,17 +450,31 @@ function Canvas({ graph, onChange, onSelect, edgeState }: { graph: WfGraph; onCh
     <div className="wfx-canvas" ref={wrapRef} onPointerDown={bgDown} onPointerMove={bgMove} onPointerUp={bgUp} onPointerCancel={bgUp}>
       <div className="wfx-surface" style={{ width: W, height: H, transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
         <svg className="wfx-edges" width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+          <defs>
+            {[['idle', 'rgba(255,255,255,0.34)'], ['run', '#e0a13a'], ['pass', '#46d17f'], ['fail', '#ff6b6b']].map(([k, c]) => (
+              <marker key={k} id={`wfx-arrow-${k}`} markerWidth="7" markerHeight="7" refX="5.4" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+                <path d="M0,0 L6,3 L0,6 Z" fill={c} />
+              </marker>
+            ))}
+          </defs>
           {graph.edges.map((e, i) => {
             const a = byNode.get(e.from), b = byNode.get(e.to);
             if (!a || !b) return null;
             const x1 = px(a), y1 = py(a) + CHIP, x2 = px(b), y2 = py(b) - CHIP;
             const mid = (y1 + y2) / 2;
+            // While testing, every cable flows; afterwards each is colored by its
+            // TARGET node's result (n8n-style), else the overall pass/fail.
+            const tr = results[e.to];
+            const ec = edgeState === 'run' ? 'run'
+              : tr ? (tr.ok ? 'pass' : 'fail')
+              : (edgeState === 'pass' || edgeState === 'fail' ? edgeState : '');
             return (
               <g key={i}>
                 <path
                   d={`M ${x1} ${y1} C ${x1} ${mid} ${x2} ${mid} ${x2} ${y2}`}
-                  className={`wfx-edge ${edgeState === 'idle' ? '' : edgeState}`}
-                  style={edgeState === 'pass' || edgeState === 'fail' ? { transitionDelay: `${i * 0.1}s` } : undefined}
+                  className={`wfx-edge ${ec}`}
+                  markerEnd={`url(#wfx-arrow-${ec || 'idle'})`}
+                  style={ec === 'pass' || ec === 'fail' ? { transitionDelay: `${i * 0.08}s` } : undefined}
                 />
                 {e.branch && <text x={(x1 + x2) / 2} y={mid - 4} className={`wfx-edge-tag ${e.branch}`}>{e.branch}</text>}
               </g>
@@ -453,29 +482,48 @@ function Canvas({ graph, onChange, onSelect, edgeState }: { graph: WfGraph; onCh
           })}
         </svg>
 
-        {nodes.map((n) => (
-          <div
-            key={n.id}
-            className={`wfx-node ${n.kind}`}
-            style={{ left: px(n), top: py(n) }}
-            onPointerDown={(e) => nodeDown(e, n)}
-            onPointerMove={nodeMove}
-            onPointerUp={(e) => nodeUp(e, n)}
-            onPointerCancel={() => { drag.current = null; }}
-          >
-            <div className="wfx-chip"><NodeIcon app={n.app} /></div>
-            <div className="wfx-node-label">{n.label}</div>
-            <div className="wfx-node-app">{appLabel(n.app)}</div>
-          </div>
-        ))}
+        {nodes.map((n) => {
+          const ns = results[n.id];
+          return (
+            <div
+              key={n.id}
+              className={`wfx-node ${n.kind} ${ns ? (ns.ok ? 'ran-ok' : 'ran-bad') : ''}`}
+              style={{ left: px(n), top: py(n) }}
+              onPointerDown={(e) => nodeDown(e, n)}
+              onPointerMove={nodeMove}
+              onPointerUp={(e) => nodeUp(e, n)}
+              onPointerCancel={() => { drag.current = null; }}
+            >
+              <div className="wfx-chip">
+                <NodeIcon app={n.app} />
+                {ns && (
+                  <span className={`wfx-node-status ${ns.ok ? 'ok' : 'bad'}`}>
+                    {ns.ok ? <IconCheck size={11} /> : <IconX size={11} />}
+                  </span>
+                )}
+              </div>
+              <div className="wfx-node-label">{n.label}</div>
+              <div className="wfx-node-app">{appLabel(n.app)}</div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 // ---- Bottom sheet to edit a tapped node ------------------------------------
-function NodeSheet({ node, trigger, connApps, onPatch, onTrigger, onDelete, onClose }: {
-  node: WfNode; trigger: Trigger; connApps: string[];
+// Pretty-print a step's output: JSON gets indented, everything else shown as-is.
+function prettyOutput(s: string): string {
+  const t = (s || '').trim();
+  if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
+    try { return JSON.stringify(JSON.parse(t), null, 2); } catch { /* not json */ }
+  }
+  return t;
+}
+
+function NodeSheet({ node, trigger, connApps, result, onPatch, onTrigger, onDelete, onClose }: {
+  node: WfNode; trigger: Trigger; connApps: string[]; result?: NodeResult;
   onPatch: (p: Partial<WfNode>) => void; onTrigger: (t: Trigger) => void;
   onDelete?: () => void; onClose: () => void;
 }) {
@@ -490,6 +538,16 @@ function NodeSheet({ node, trigger, connApps, onPatch, onTrigger, onDelete, onCl
           <span>{isTrigger ? 'Trigger' : 'Edit step'}</span>
           <button className="memg-cancel" onClick={onClose}>Done</button>
         </div>
+
+        {result && (
+          <div className={`wfx-result ${result.ok ? 'ok' : 'bad'}`}>
+            <div className="wfx-result-head">
+              {result.ok ? <IconCheck size={13} /> : <IconX size={13} />}
+              {result.ok ? 'Ran OK' : 'Failed'}
+            </div>
+            {result.output && <pre className="wfx-result-out">{prettyOutput(result.output)}</pre>}
+          </div>
+        )}
 
         <label className="wf-label">Label</label>
         <input className="wf-input" value={node.label} onChange={(e) => onPatch({ label: e.target.value })} maxLength={40} />

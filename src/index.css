@@ -1719,11 +1719,32 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 }
 .wfx-node:active { cursor: grabbing; }
 .wfx-chip {
+  position: relative;
   width: 60px; height: 60px; border-radius: 16px;
   background: rgba(40, 40, 46, 0.96); border: 1px solid rgba(255, 255, 255, 0.14);
   display: grid; place-items: center; color: var(--text);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
+/* Per-node Test result: a ring on the chip + a corner badge. */
+.wfx-node.ran-ok .wfx-chip { border-color: rgba(70, 209, 127, 0.7); box-shadow: 0 0 0 1px rgba(70, 209, 127, 0.5), 0 6px 18px rgba(0, 0, 0, 0.4); }
+.wfx-node.ran-bad .wfx-chip { border-color: rgba(255, 107, 107, 0.8); box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.55), 0 6px 18px rgba(0, 0, 0, 0.4); }
+.wfx-node-status {
+  position: absolute; top: -7px; right: -7px;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 2px solid #161618;
+}
+.wfx-node-status.ok { background: #46d17f; color: #08160d; }
+.wfx-node-status.bad { background: #ff6b6b; color: #2a0707; }
+
+/* A tapped node's last Test result, shown in the edit sheet. */
+.wfx-result { margin: 4px 0 10px; border-radius: 12px; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.04); }
+.wfx-result.ok { border-color: rgba(70, 209, 127, 0.45); }
+.wfx-result.bad { border-color: rgba(255, 107, 107, 0.5); }
+.wfx-result-head { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
+.wfx-result.ok .wfx-result-head { color: #6fe09a; }
+.wfx-result.bad .wfx-result-head { color: #ff8f8f; }
+.wfx-result-out { margin: 8px 0 0; white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.45; color: var(--text); max-height: 200px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .wfx-node.trigger .wfx-chip { background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05; border-color: rgba(255, 255, 255, 0.25); }
 .wfx-node.decision .wfx-chip { transform: rotate(45deg); }
 .wfx-node.decision .wfx-chip > * { transform: rotate(-45deg); }
