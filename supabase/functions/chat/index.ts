@@ -533,7 +533,7 @@ Deno.serve(async (req: Request) => {
     const lines = mems.map((m) => `• ${m.content}${m.attType ? ` [attachment: ${m.attType}, id: ${m.id}]` : ""}`).join("\n");
     memorySystem = `\n\nWHAT YOU KNOW ABOUT THIS USER (they saved these for you to remember; honor them unless a message clearly overrides one):\n${lines}`;
     if (mems.some((m) => m.attType)) {
-      memorySystem += `\n\nSome of those memories have an attached image or file (shown as [attachment: …, id: …]). When the user asks to SEE / show / pull up / send one of these, reply with a fenced code block tagged gf-memory containing ONLY {"id":"<that memory's id>"} — the app then displays the image inline or a file to open. You may put one short line before the block. (When they only ask ABOUT it, answer normally from the saved description.)`;
+      memorySystem += `\n\nSome of those memories have an attached image or file (shown as [attachment: …, id: …]). Two ways to use one: (1) to SHOW it to the user in chat, reply with a fenced code block tagged gf-memory containing ONLY {"id":"<that memory's id>"} (the app displays the image inline, or a file to open; you may put one short line before the block); (2) to SEND or ATTACH it through another app (attach to an email, upload to Slack, etc.), call the GF_GET_MEMORY_FILE tool with that id to get a temporary file url, then pass that url into the send tool's file/attachment parameter. When the user only asks ABOUT it, just answer from the saved description.`;
     }
   }
   // Route this turn: Opus for genuinely complex/long asks, Sonnet for everything

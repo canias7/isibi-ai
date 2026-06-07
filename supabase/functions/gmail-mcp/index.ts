@@ -192,6 +192,49 @@ async function saveMemory(uid: string, content: unknown): Promise<string> {
   return `Saved to memory: ${c}`;
 }
 
+// Built-in tool: hand the model a temporary download URL for a memory's attached
+// file, so it can attach/send it via ANY app (email attachment, Slack upload, …)
+// without ever handling the bytes. The model reads the target app's send tool
+// schema and passes this url into its file/attachment parameter.
+const MEMORY_FILE_TOOL: Tool = {
+  name: "GF_GET_MEMORY_FILE",
+  description:
+    "Get a temporary download URL for the file attached to one of the user's memories, so you can SEND or ATTACH it through another app (e.g. put the url in an email's attachment field, or a file-upload tool). Input: the memory's id (shown as [attachment: …, id: …] in the user's memories). Returns JSON {url, name, mime}; the url is short-lived. Use ONLY when the user wants to send/attach a saved file somewhere — to just show it to the user, use the gf-memory block instead.",
+  inputSchema: {
+    type: "object",
+    properties: { memory_id: { type: "string", description: "The id of the memory whose attached file you need." } },
+    required: ["memory_id"],
+  },
+};
+
+// Look up the memory (scoped to this user) and sign a short-lived URL to its file.
+async function getMemoryFile(uid: string, memoryId: string): Promise<string> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key || !uid) throw new Error("memory unavailable");
+  const id = String(memoryId ?? "").trim();
+  if (!id) throw new Error("missing memory_id");
+  const r = await fetch(`${url}/rest/v1/user_memory?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(uid)}&select=attachment_path,attachment_name,attachment_type`, {
+    headers: { apikey: key, authorization: `Bearer ${key}` },
+  });
+  if (!r.ok) throw new Error(`lookup ${r.status}`);
+  const rows = await r.json();
+  const m = Array.isArray(rows) && rows[0];
+  if (!m || !m.attachment_path) throw new Error("that memory has no attached file");
+  const path = String(m.attachment_path).split("/").map(encodeURIComponent).join("/");
+  const s = await fetch(`${url}/storage/v1/object/sign/memory/${path}`, {
+    method: "POST",
+    headers: { apikey: key, authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({ expiresIn: 3600 }),
+  });
+  if (!s.ok) throw new Error(`sign ${s.status}`);
+  const sj = await s.json();
+  const signed = sj.signedURL || sj.signedUrl || "";
+  if (!signed) throw new Error("could not sign url");
+  const mime = m.attachment_type === "pdf" ? "application/pdf" : m.attachment_type === "image" ? "image/jpeg" : "application/octet-stream";
+  return JSON.stringify({ url: `${url}/storage/v1${signed}`, name: m.attachment_name || "file", mime });
+}
+
 function toMcp(t: any): Tool {
   return {
     name: t.slug,
@@ -278,7 +321,7 @@ async function listTools(apps: string[], prefs: Record<string, string[]>, memOn:
   }
   // Long-term memory is available with or without connectors — unless paused
   // (the chat function passes &mem=0 when the user turned the feature off).
-  if (memOn) out.push(MEMORY_TOOL);
+  if (memOn) { out.push(MEMORY_TOOL); out.push(MEMORY_FILE_TOOL); }
   return out;
 }
 
@@ -354,10 +397,20 @@ Deno.serve(async (req: Request) => {
     if (!reqUser) {
       return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "Error: no user context" }], isError: true } });
     }
-    // Built-in memory tool — handled locally, not forwarded to Composio.
+    // Built-in memory tools — handled locally, not forwarded to Composio.
     if (p.name === "GF_SAVE_MEMORY") {
       try {
         const text = await saveMemory(reqUser, (p.arguments || {}).content);
+        await logUsage(p.name, true, reqUser);
+        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
+      } catch (e) {
+        await logUsage(p.name, false, reqUser);
+        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "Error: " + (e instanceof Error ? e.message : String(e)) }], isError: true } });
+      }
+    }
+    if (p.name === "GF_GET_MEMORY_FILE") {
+      try {
+        const text = await getMemoryFile(reqUser, (p.arguments || {}).memory_id);
         await logUsage(p.name, true, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
       } catch (e) {
