@@ -314,7 +314,6 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
         {selectedId && (
           <div className="memg-editing">
             <span>Editing memory</span>
-            <button className="memg-cancel" onClick={deselect}>Cancel</button>
           </div>
         )}
         {/* Existing memory's attachment: open the original file. */}
