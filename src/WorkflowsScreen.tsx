@@ -73,7 +73,8 @@ function HeroFlow() {
   const drag = useRef<{ i: number; sx: number; sy: number; ox: number; oy: number } | null>(null);
 
   useEffect(() => {
-    const t = setInterval(() => setRound((r) => r + 1), 5000);
+    // Advance every 5s, but never mid-drag (a pop would jar the node you're holding).
+    const t = setInterval(() => { if (!drag.current) setRound((r) => r + 1); }, 5000);
     return () => clearInterval(t);
   }, []);
   const appForSlot = (slot: number) => HF_POOL[(round * 5 + slot) % HF_POOL.length];
