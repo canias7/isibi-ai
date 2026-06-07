@@ -1763,7 +1763,9 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   background: rgba(40, 40, 46, 0.96); border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45); color: var(--text);
 }
-.wfx-hf-node .wfx-logo { width: 22px; height: 22px; }
+.wfx-hf-node .wfx-logo { width: 24px; height: 24px; }
+/* App nodes get a light tile so every brand logo (incl. dark ones like Notion) stays crisp. */
+.wfx-hf-node:not(.b) { background: #f7f7fa; border-color: rgba(0, 0, 0, 0.12); }
 .wfx-hf-node.b {
   width: 56px; height: 56px; border-radius: 17px;
   background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05;
