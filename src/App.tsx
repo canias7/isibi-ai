@@ -4,7 +4,6 @@ import { streamChat, sendTestPush, extractMemory, type ChatMessage, type Attach 
 import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API, byId } from './connectorData';
 import Connectors from './Connectors';
-import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow } from './icons';
@@ -239,7 +238,12 @@ export default function App() {
       }
       if (active) setAuthReady(true);
     })();
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s);
+      // Login is deactivated: if the session ever goes away (sign-out/expiry),
+      // silently re-establish a guest one instead of showing a login wall.
+      if (!s && !REQUIRE_LOGIN) supabase.auth.signInAnonymously().catch(() => {});
+    });
     return () => {
       active = false;
       sub.subscription.unsubscribe();
@@ -986,7 +990,15 @@ export default function App() {
       </div>
     );
   }
-  if (!session) return <Login />;
+  // Login screen deactivated for now — show the neutral splash while the silent
+  // (persisted or guest) session establishes, never a sign-in wall.
+  if (!session) {
+    return (
+      <div className="auth">
+        <div className="auth-brand">Go Farther</div>
+      </div>
+    );
+  }
 
   const isGuest = !!session.user.is_anonymous;
   const title = view === 'connectors' ? 'Connectors' : view === 'settings' ? 'Settings' : 'Go Farther';
