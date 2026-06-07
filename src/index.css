@@ -1652,3 +1652,121 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   color: var(--text);
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
 }
+
+/* ---- Workflows: AI builder (home chatbox, node canvas, edit sheet) ---- */
+.memg-titles { flex: 1; min-width: 0; }
+
+/* flush top-right corner button (Projects / run history) */
+.wfx-corner {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 8px); right: 14px;
+  width: 34px; height: 34px;
+  border: none; background: rgba(255, 255, 255, 0.06);
+  color: var(--text); border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+}
+.wfx-corner:active { background: rgba(255, 255, 255, 0.14); }
+.wfx-projects-count {
+  position: absolute; top: -4px; right: -4px;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05;
+  font-size: 10px; font-weight: 800; border-radius: 9px;
+  display: grid; place-items: center;
+}
+
+/* home (chatbox) */
+.wfx-home { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.wfx-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px 28px; gap: 12px; }
+.wfx-hero-mark {
+  width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center;
+  color: #2a1c05; background: linear-gradient(160deg, #ffce6f, #e0951f);
+  box-shadow: 0 0 40px 6px rgba(224, 161, 58, 0.35);
+}
+.wfx-hero-title { font-size: 20px; font-weight: 700; }
+.wfx-hero-sub { font-size: 14px; color: var(--text-dim); max-width: 320px; line-height: 1.5; }
+.wfx-err { color: #ff8f8f; font-size: 13px; margin-top: 4px; }
+.wfx-spin {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.25); border-top-color: #2a1c05;
+  display: inline-block; animation: wfxSpin 0.7s linear infinite;
+}
+@keyframes wfxSpin { to { transform: rotate(360deg); } }
+
+/* canvas */
+.wfx-title-input {
+  width: 100%; max-width: 62vw; margin: 0 auto; display: block;
+  border: none; background: transparent; color: var(--text);
+  font: inherit; font-size: 18px; font-weight: 700; text-align: center;
+}
+.wfx-title-input:focus { outline: none; }
+.wfx-canvas { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; }
+.wfx-surface { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+.wfx-edges { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
+.wfx-edge { fill: none; stroke: rgba(255, 255, 255, 0.22); stroke-width: 2; }
+.wfx-edge-tag { fill: var(--text-dim); font-size: 10px; text-anchor: middle; }
+.wfx-edge-tag.yes { fill: #6fe09a; }
+.wfx-edge-tag.no { fill: #ff8f8f; }
+
+.wfx-node {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 96px; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none;
+}
+.wfx-node:active { cursor: grabbing; }
+.wfx-chip {
+  width: 60px; height: 60px; border-radius: 16px;
+  background: rgba(40, 40, 46, 0.96); border: 1px solid rgba(255, 255, 255, 0.14);
+  display: grid; place-items: center; color: var(--text);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+.wfx-node.trigger .wfx-chip { background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05; border-color: rgba(255, 255, 255, 0.25); }
+.wfx-node.decision .wfx-chip { transform: rotate(45deg); }
+.wfx-node.decision .wfx-chip > * { transform: rotate(-45deg); }
+.wfx-logo { width: 30px; height: 30px; object-fit: contain; pointer-events: none; }
+.wfx-node-label { font-size: 12px; font-weight: 600; text-align: center; line-height: 1.2; max-width: 96px; }
+.wfx-node-app { font-size: 10px; color: var(--text-dim); }
+
+.wfx-zoom { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
+.wfx-zoom button {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(30, 30, 34, 0.9);
+  color: var(--text); display: grid; place-items: center; cursor: pointer;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.wfx-zoom button:active { background: rgba(255, 255, 255, 0.14); }
+
+/* bottom action bar */
+.wfx-bar { flex-shrink: 0; display: flex; gap: 10px; padding: 10px 16px calc(14px + env(safe-area-inset-bottom)); z-index: 3; }
+.wfx-bar-save {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; border-radius: 14px; padding: 14px;
+  background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05;
+  font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.wfx-bar-save:disabled { opacity: 0.5; }
+.wfx-bar-del {
+  width: 50px; border: 1px solid rgba(255, 90, 90, 0.4); background: rgba(255, 90, 90, 0.08);
+  color: #ff8f8f; border-radius: 14px; display: grid; place-items: center; cursor: pointer;
+}
+
+/* node edit sheet + runs sheet */
+.wfx-sheet-scrim { position: fixed; inset: 0; z-index: 210; background: rgba(0, 0, 0, 0.5); display: flex; align-items: flex-end; animation: memgIn 0.18s ease; }
+.wfx-sheet {
+  width: 100%; max-height: 80vh; overflow-y: auto;
+  background: #161618; border-top-left-radius: 20px; border-top-right-radius: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 14px 16px calc(20px + env(safe-area-inset-bottom));
+  animation: wfxSheetUp 0.22s ease;
+}
+@keyframes wfxSheetUp { from { transform: translateY(30px); opacity: 0.6; } to { transform: translateY(0); opacity: 1; } }
+.wfx-sheet-head { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+
+.wfx-apps { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
+.wfx-app {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.04);
+  color: var(--text); border-radius: 10px; padding: 7px 10px; font: inherit; font-size: 13px; cursor: pointer;
+}
+.wfx-app.on { border-color: #e0a13a; background: rgba(224, 161, 58, 0.16); }
+.wfx-app-ic { display: grid; place-items: center; }
+.wfx-app-ic img { width: 16px; height: 16px; object-fit: contain; }

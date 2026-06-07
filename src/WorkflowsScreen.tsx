@@ -1,27 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { IconX, IconTrash } from './icons';
+import {
+  IconX, IconTrash, IconArrowLeft, IconArrowUp, IconLayers, IconPlus, IconMinus,
+  IconClock, IconBolt, IconBranch, IconSpark, IconCheck,
+} from './icons';
 import { byId } from './connectorData';
 import {
-  listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, triggerLabel, deviceTz,
-  type Workflow, type WorkflowRun, type Schedule, type Trigger,
+  listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow,
+  triggerLabel, deviceTz, appLabel, compileInstruction,
+  type Workflow, type WorkflowRun, type Schedule, type Trigger, type WfGraph, type WfNode,
 } from './workflows';
 
-// Full-screen Workflows manager: list saved automations, create/edit one (an
-// instruction + a schedule), toggle, delete, and view each one's run history.
+// Full-screen Workflows: describe an automation in the chatbox -> the AI drafts
+// it as a node graph (each node tagged with the app it uses) -> drag/zoom/edit
+// the nodes -> "Save & turn on". A top-right Projects button lists saved ones.
 
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const PAD = 80;   // canvas padding around the graph bounds
+const CHIP = 30;  // node chip half-height (where edges attach)
+const Z0 = 0.9;   // initial zoom
 
-function defaultSchedule(): Schedule {
-  return { freq: 'daily', hour: 8, minute: 0, weekday: 1, tz: deviceTz() };
-}
-function timeValue(s: Schedule): string {
-  return `${String(s.hour).padStart(2, '0')}:${String(s.minute).padStart(2, '0')}`;
-}
 function relTime(iso: string): string {
-  const d = new Date(iso).getTime();
-  const diff = Date.now() - d;
-  const m = Math.round(diff / 60000);
+  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (m < 1) return 'just now';
   if (m < 60) return `${m}m ago`;
   const h = Math.round(m / 60);
@@ -29,10 +30,28 @@ function relTime(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+// A node's visual badge: special kinds get a line icon; real apps get their logo.
+function NodeIcon({ app, size = 22 }: { app: string; size?: number }) {
+  if (app === 'schedule') return <IconClock size={size} />;
+  if (app === 'event') return <IconBolt size={size} />;
+  if (app === 'ai') return <IconSpark size={size} />;
+  if (app === 'decision') return <IconBranch size={size} />;
+  const c = byId(app);
+  if (c) return <img src={c.logo} alt="" className="wfx-logo" draggable={false} />;
+  return <IconSpark size={size} />;
+}
+
+interface Work { title: string; instruction: string; trigger: Trigger; graph: WfGraph }
+
 export default function WorkflowsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [items, setItems] = useState<Workflow[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [editing, setEditing] = useState<Workflow | 'new' | null>(null);
+  const [view, setView] = useState<'home' | 'projects'>('home');
+  const [draft, setDraft] = useState<Work | null>(null);   // AI-drafted, not yet saved
+  const [open, setOpen] = useState<Workflow | null>(null); // a saved workflow being viewed/edited
+  const [desc, setDesc] = useState('');
+  const [building, setBuilding] = useState(false);
+  const [err, setErr] = useState('');
 
   useEffect(() => {
     document.documentElement.classList.add('gf-modal-open');
@@ -46,194 +65,453 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
   }
   useEffect(() => { void load(); }, []);
 
-  async function toggle(w: Workflow) {
-    setItems((prev) => prev.map((x) => (x.id === w.id ? { ...x, enabled: !x.enabled } : x))); // optimistic
-    const ok = await updateWorkflow(w.id, { enabled: !w.enabled });
-    if (!ok) void load();
+  async function build() {
+    const d = desc.trim();
+    if (!d || building) return;
+    setBuilding(true);
+    setErr('');
+    const draftWf = await buildWorkflow(d);
+    setBuilding(false);
+    if (!draftWf) { setErr("Couldn't build that — try describing it a little differently."); return; }
+    setDraft({ title: draftWf.title, instruction: draftWf.instruction, trigger: draftWf.trigger, graph: draftWf.graph });
+    setDesc('');
   }
 
-  const body = editing
-    ? <Editor wf={editing === 'new' ? null : editing} connApps={connApps} onDone={() => { setEditing(null); void load(); }} onBack={() => setEditing(null)} />
-    : (
-      <div className="wf-stage">
-        <button className="wf-new" onClick={() => setEditing('new')}>+ New workflow</button>
-        {loaded && items.length === 0 ? (
-          <div className="wf-empty">
-            <div className="wf-empty-title">No workflows yet</div>
-            <div className="wf-empty-sub">Create an automation that runs on a schedule — like a morning brief of your calendar and unread email.</div>
-          </div>
-        ) : (
-          <div className="wf-list">
-            {items.map((w) => (
-              <div className="wf-card" key={w.id} onClick={() => setEditing(w)} role="button">
-                <div className="wf-card-main">
-                  <div className="wf-card-title">{w.title}</div>
-                  <div className="wf-card-sub">
-                    {triggerLabel(w)}{w.last_run_at ? ` · last ran ${relTime(w.last_run_at)}` : ''}
-                  </div>
-                </div>
-                <span
-                  className={`tgl ${w.enabled ? 'on' : ''}`}
-                  role="switch"
-                  aria-checked={w.enabled}
-                  onClick={(e) => { e.stopPropagation(); void toggle(w); }}
-                ><span className="tgl-knob" /></span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+  async function toggle(w: Workflow) {
+    setItems((prev) => prev.map((x) => (x.id === w.id ? { ...x, enabled: !x.enabled } : x)));
+    if (!(await updateWorkflow(w.id, { enabled: !w.enabled }))) void load();
+  }
+
+  // A drafted workflow takes over the screen as an editable canvas.
+  if (draft) {
+    return (
+      <PlanView
+        initial={draft}
+        mode="draft"
+        connApps={connApps}
+        onClose={() => setDraft(null)}
+        onSaved={() => { setDraft(null); setView('projects'); void load(); }}
+        onDeleted={() => setDraft(null)}
+      />
     );
+  }
+  // An existing saved workflow opened for view/edit.
+  if (open) {
+    return (
+      <PlanView
+        initial={{ title: open.title, instruction: open.instruction, trigger: triggerOf(open), graph: open.graph ?? emptyGraph(open) }}
+        mode="saved"
+        wfId={open.id}
+        connApps={connApps}
+        onClose={() => setOpen(null)}
+        onSaved={() => { setOpen(null); void load(); }}
+        onDeleted={() => { setOpen(null); void load(); }}
+      />
+    );
+  }
 
   return createPortal(
     <div className="memg" role="dialog" aria-label="Workflows">
       <div className="memg-top">
+        {view === 'projects' ? (
+          <button className="memg-back" onClick={() => setView('home')} aria-label="Back"><IconArrowLeft size={22} /></button>
+        ) : (
+          <button className="memg-back" onClick={onClose} aria-label="Close"><IconX size={20} /></button>
+        )}
         <div className="memg-titles">
-          <h1 className="memg-title">{editing ? (editing === 'new' ? 'New workflow' : 'Edit workflow') : 'Workflows'}</h1>
-          <p className="memg-sub">{editing ? 'Runs automatically on your schedule' : 'Automations that run on a schedule'}</p>
+          <h1 className="memg-title">{view === 'projects' ? 'Projects' : 'Workflows'}</h1>
+          <p className="memg-sub">{view === 'projects' ? `${items.length} saved` : 'Describe an automation and I’ll build it'}</p>
         </div>
-        <button className="memg-close" onClick={onClose} aria-label="Close"><IconX size={20} /></button>
+        {view === 'home' ? (
+          <button className="wfx-corner wfx-projects" onClick={() => setView('projects')} aria-label="Projects">
+            <IconLayers size={20} />
+            {items.length > 0 && <span className="wfx-projects-count">{items.length}</span>}
+          </button>
+        ) : <span style={{ width: 40 }} />}
       </div>
-      {body}
+
+      {view === 'projects' ? (
+        <div className="wf-stage">
+          {loaded && items.length === 0 ? (
+            <div className="wf-empty">
+              <div className="wf-empty-title">No workflows yet</div>
+              <div className="wf-empty-sub">Go back and describe one — it’ll show up here once you save it.</div>
+            </div>
+          ) : (
+            <div className="wf-list">
+              {items.map((w) => (
+                <div className="wf-card" key={w.id} onClick={() => setOpen(w)} role="button">
+                  <div className="wf-card-main">
+                    <div className="wf-card-title">{w.title}</div>
+                    <div className="wf-card-sub">{triggerLabel(w)}{w.last_run_at ? ` · last ran ${relTime(w.last_run_at)}` : ''}</div>
+                  </div>
+                  <span className={`tgl ${w.enabled ? 'on' : ''}`} role="switch" aria-checked={w.enabled}
+                    onClick={(e) => { e.stopPropagation(); void toggle(w); }}><span className="tgl-knob" /></span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="wfx-home">
+          <div className="wfx-hero">
+            <div className="wfx-hero-mark"><IconSpark size={26} /></div>
+            <div className="wfx-hero-title">What should run on autopilot?</div>
+            <div className="wfx-hero-sub">e.g. “Every weekday at 8am, email me a summary of my unread mail and today’s calendar.”</div>
+            {err && <div className="wfx-err">{err}</div>}
+          </div>
+          <div className="memg-compose-wrap">
+            <div className="memg-compose">
+              <input
+                className="memg-cinput"
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') void build(); }}
+                placeholder="Describe your workflow…"
+                maxLength={2000}
+                disabled={building}
+              />
+              <button className="memg-send" onClick={() => void build()} disabled={!desc.trim() || building} aria-label="Build">
+                {building ? <span className="wfx-spin" /> : <IconArrowUp size={20} />}
+              </button>
+            </div>
+            {building && <div className="memg-reading">Designing your workflow…</div>}
+          </div>
+        </div>
+      )}
     </div>,
     document.body,
   );
 }
 
-function Editor({ wf, connApps, onDone, onBack }: { wf: Workflow | null; connApps: string[]; onDone: () => void; onBack: () => void }) {
-  const [title, setTitle] = useState(wf?.title ?? '');
-  const [instruction, setInstruction] = useState(wf?.instruction ?? '');
-  const [sched, setSched] = useState<Schedule>(wf?.schedule ?? defaultSchedule());
-  const [kind, setKind] = useState<'schedule' | 'event'>(wf?.trigger_type === 'event' ? 'event' : 'schedule');
-  const [evApp, setEvApp] = useState(wf?.event?.app ?? connApps[0] ?? '');
-  const [evFilter, setEvFilter] = useState(wf?.event?.filter ?? '');
+function triggerOf(w: Workflow): Trigger {
+  return w.trigger_type === 'event'
+    ? { type: 'event', event: w.event ?? { app: '', filter: '' } }
+    : { type: 'schedule', schedule: w.schedule ?? { freq: 'daily', hour: 8, minute: 0, weekday: 1, tz: deviceTz() } };
+}
+// Legacy workflows saved before the graph existed: show a minimal 2-node graph.
+function emptyGraph(w: Workflow): WfGraph {
+  return {
+    nodes: [
+      { id: 't', kind: 'trigger', app: w.trigger_type === 'event' ? 'event' : 'schedule', label: w.trigger_type === 'event' ? 'When it arrives' : 'On schedule', x: 0, y: 0 },
+      { id: 'a', kind: 'action', app: 'ai', label: w.title || 'Do the task', detail: w.instruction.slice(0, 120), x: 0, y: 140 },
+    ],
+    edges: [{ from: 't', to: 'a' }],
+  };
+}
+
+// ---- The editable canvas screen (draft or saved) ----------------------------
+function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }: {
+  initial: Work; mode: 'draft' | 'saved'; wfId?: string; connApps: string[];
+  onClose: () => void; onSaved: () => void; onDeleted: () => void;
+}) {
+  const [title, setTitle] = useState(initial.title);
+  const [trigger, setTrigger] = useState<Trigger>(initial.trigger);
+  const [graph, setGraph] = useState<WfGraph>(initial.graph);
+  const [sel, setSel] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showRuns, setShowRuns] = useState(false);
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
 
-  useEffect(() => { if (wf) void listRuns(wf.id).then(setRuns); }, [wf]);
+  // Modal-lock is owned by the parent WorkflowsScreen (this renders inside it).
+  useEffect(() => { if (wfId) void listRuns(wfId).then(setRuns); }, [wfId]);
 
-  function setTime(v: string) {
-    const [h, m] = v.split(':').map((x) => parseInt(x, 10));
-    if (!isNaN(h) && !isNaN(m)) setSched((s) => ({ ...s, hour: h, minute: m }));
+  const selNode = sel ? graph.nodes.find((n) => n.id === sel) ?? null : null;
+
+  function patchNode(id: string, patch: Partial<WfNode>) {
+    setGraph((g) => ({ ...g, nodes: g.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)) }));
+  }
+  function removeNode(id: string) {
+    setGraph((g) => ({ nodes: g.nodes.filter((n) => n.id !== id), edges: g.edges.filter((e) => e.from !== id && e.to !== id) }));
+    setSel(null);
+  }
+  function applyTrigger(t: Trigger) {
+    setTrigger(t);
+    // keep the trigger node's badge in sync
+    const tn = graph.nodes.find((n) => n.kind === 'trigger');
+    if (tn) patchNode(tn.id, { app: t.type });
   }
 
   async function save() {
-    const inst = instruction.trim();
-    if (!inst || busy) return;
-    const trigger: Trigger = kind === 'event'
-      ? { type: 'event', event: { app: evApp, filter: evFilter.trim() || undefined } }
-      : { type: 'schedule', schedule: sched };
+    if (busy) return;
     setBusy(true);
-    const ok = wf
-      ? await updateWorkflow(wf.id, { title: title.trim() || inst.slice(0, 40), instruction: inst, trigger })
-      : !!(await createWorkflow(title.trim(), inst, trigger));
+    const instruction = compileInstruction(title.trim(), graph);
+    const ok = mode === 'draft'
+      ? !!(await createWorkflow(title.trim(), instruction, trigger, graph))
+      : wfId ? await updateWorkflow(wfId, { title: title.trim(), instruction, trigger, graph }) : false;
     setBusy(false);
-    if (ok) onDone();
+    if (ok) onSaved();
+  }
+  async function remove() {
+    if (!wfId || busy) return;
+    setBusy(true);
+    const ok = await deleteWorkflow(wfId);
+    setBusy(false);
+    if (ok) onDeleted();
   }
 
-  async function remove() {
-    if (!wf || busy) return;
-    setBusy(true);
-    const ok = await deleteWorkflow(wf.id);
-    setBusy(false);
-    if (ok) onDone();
+  return createPortal(
+    <div className="memg wfx-plan" role="dialog" aria-label={mode === 'draft' ? 'New workflow' : 'Edit workflow'}>
+      <div className="memg-top">
+        <button className="memg-back" onClick={onClose} aria-label="Back"><IconArrowLeft size={22} /></button>
+        <div className="memg-titles">
+          <input className="wfx-title-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Untitled workflow" maxLength={80} />
+          <p className="memg-sub">{mode === 'draft' ? 'Draft · tap a step to edit' : 'Tap a step to edit'}</p>
+        </div>
+        {mode === 'saved'
+          ? <button className="wfx-corner" onClick={() => setShowRuns(true)} aria-label="Run history"><IconClock size={20} /></button>
+          : <span style={{ width: 40 }} />}
+      </div>
+
+      <Canvas graph={graph} onChange={setGraph} onSelect={setSel} />
+
+      {/* Bottom action bar */}
+      <div className="wfx-bar">
+        {mode === 'saved' && (
+          <button className="wfx-bar-del" onClick={() => void remove()} disabled={busy} aria-label="Delete workflow"><IconTrash size={18} /></button>
+        )}
+        <button className="wfx-bar-save" onClick={() => void save()} disabled={busy}>
+          <IconCheck size={18} />
+          {mode === 'draft' ? 'Looks good — Save & turn on' : 'Save changes'}
+        </button>
+      </div>
+
+      {selNode && (
+        <NodeSheet
+          node={selNode}
+          trigger={trigger}
+          connApps={connApps}
+          onPatch={(p) => patchNode(selNode.id, p)}
+          onTrigger={applyTrigger}
+          onDelete={selNode.kind === 'trigger' ? undefined : () => removeNode(selNode.id)}
+          onClose={() => setSel(null)}
+        />
+      )}
+
+      {showRuns && (
+        <div className="wfx-sheet-scrim" onClick={() => setShowRuns(false)}>
+          <div className="wfx-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="wfx-sheet-head"><span>Recent runs</span><button className="memg-cancel" onClick={() => setShowRuns(false)}>Done</button></div>
+            {runs.length === 0
+              ? <div className="wf-runs-empty">No runs yet — results show up here after it runs.</div>
+              : runs.map((r) => (
+                <div className={`wf-run ${r.ok ? '' : 'bad'}`} key={r.id}>
+                  <div className="wf-run-time">{relTime(r.created_at)}</div>
+                  <div className="wf-run-text">{r.result}</div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+    </div>,
+    document.body,
+  );
+}
+
+// ---- The pan/zoom/drag canvas ----------------------------------------------
+function Canvas({ graph, onChange, onSelect }: { graph: WfGraph; onChange: (g: WfGraph) => void; onSelect: (id: string) => void }) {
+  const [zoom, setZoom] = useState(Z0);
+  // Center the graph horizontally on open (origin is top-left, so offset the pan).
+  const [pan, setPan] = useState(() => {
+    const xs0 = graph.nodes.map((n) => n.x);
+    const w = (Math.max(0, ...xs0) - Math.min(0, ...xs0)) + PAD * 2;
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 380;
+    return { x: Math.round(vw / 2 - (w / 2) * Z0), y: 18 };
+  });
+  const drag = useRef<{ id: string; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
+  const panRef = useRef<{ sx: number; sy: number; px: number; py: number } | null>(null);
+
+  const nodes = graph.nodes;
+  const xs = nodes.map((n) => n.x), ys = nodes.map((n) => n.y);
+  const minX = Math.min(0, ...xs), minY = Math.min(0, ...ys);
+  const maxX = Math.max(0, ...xs), maxY = Math.max(0, ...ys);
+  const offX = PAD - minX, offY = PAD - minY;
+  const W = (maxX - minX) + PAD * 2;
+  const H = (maxY - minY) + PAD * 2;
+  const px = (n: WfNode) => n.x + offX;
+  const py = (n: WfNode) => n.y + offY;
+  const byNode = new Map(nodes.map((n) => [n.id, n]));
+
+  function nodeDown(e: React.PointerEvent, n: WfNode) {
+    e.stopPropagation();
+    drag.current = { id: n.id, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y, moved: false };
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ignore */ }
   }
+  function nodeMove(e: React.PointerEvent) {
+    const d = drag.current;
+    if (!d) return;
+    const dx = (e.clientX - d.sx) / zoom, dy = (e.clientY - d.sy) / zoom;
+    if (!d.moved && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+    d.moved = true;
+    onChange({ ...graph, nodes: graph.nodes.map((nn) => (nn.id === d.id ? { ...nn, x: Math.round(d.ox + dx), y: Math.round(d.oy + dy) } : nn)) });
+  }
+  function nodeUp(e: React.PointerEvent, n: WfNode) {
+    e.stopPropagation();
+    const d = drag.current;
+    drag.current = null;
+    if (d && !d.moved) onSelect(n.id);
+  }
+
+  function bgDown(e: React.PointerEvent) {
+    panRef.current = { sx: e.clientX, sy: e.clientY, px: pan.x, py: pan.y };
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  }
+  function bgMove(e: React.PointerEvent) {
+    const p = panRef.current;
+    if (!p) return;
+    setPan({ x: p.px + (e.clientX - p.sx), y: p.py + (e.clientY - p.sy) });
+  }
+  function bgUp() { panRef.current = null; }
 
   return (
-    <div className="wf-stage wf-editor">
-      <button className="wf-back" onClick={onBack}>‹ Back</button>
+    <div className="wfx-canvas" onPointerDown={bgDown} onPointerMove={bgMove} onPointerUp={bgUp} onPointerCancel={bgUp}>
+      <div className="wfx-surface" style={{ width: W, height: H, transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
+        <svg className="wfx-edges" width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+          {graph.edges.map((e, i) => {
+            const a = byNode.get(e.from), b = byNode.get(e.to);
+            if (!a || !b) return null;
+            const x1 = px(a), y1 = py(a) + CHIP, x2 = px(b), y2 = py(b) - CHIP;
+            const mid = (y1 + y2) / 2;
+            return (
+              <g key={i}>
+                <path d={`M ${x1} ${y1} C ${x1} ${mid} ${x2} ${mid} ${x2} ${y2}`} className="wfx-edge" />
+                {e.branch && <text x={(x1 + x2) / 2} y={mid - 4} className={`wfx-edge-tag ${e.branch}`}>{e.branch}</text>}
+              </g>
+            );
+          })}
+        </svg>
 
-      <label className="wf-label">What should it do?</label>
-      <textarea
-        className="wf-input wf-area"
-        value={instruction}
-        onChange={(e) => setInstruction(e.target.value)}
-        placeholder="e.g. Summarize my unread email and what's on my calendar today"
-        rows={3}
-        maxLength={1000}
-      />
+        {nodes.map((n) => (
+          <div
+            key={n.id}
+            className={`wfx-node ${n.kind}`}
+            style={{ left: px(n), top: py(n) }}
+            onPointerDown={(e) => nodeDown(e, n)}
+            onPointerMove={nodeMove}
+            onPointerUp={(e) => nodeUp(e, n)}
+            onPointerCancel={() => { drag.current = null; }}
+          >
+            <div className="wfx-chip"><NodeIcon app={n.app} /></div>
+            <div className="wfx-node-label">{n.label}</div>
+            <div className="wfx-node-app">{appLabel(n.app)}</div>
+          </div>
+        ))}
+      </div>
 
-      <label className="wf-label">Name (optional)</label>
-      <input className="wf-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Morning brief" maxLength={80} />
+      <div className="wfx-zoom">
+        <button onClick={() => setZoom((z) => clamp(+(z + 0.15).toFixed(2), 0.4, 2))} aria-label="Zoom in"><IconPlus size={18} /></button>
+        <button onClick={() => setZoom((z) => clamp(+(z - 0.15).toFixed(2), 0.4, 2))} aria-label="Zoom out"><IconMinus size={18} /></button>
+      </div>
+    </div>
+  );
+}
 
+// ---- Bottom sheet to edit a tapped node ------------------------------------
+function NodeSheet({ node, trigger, connApps, onPatch, onTrigger, onDelete, onClose }: {
+  node: WfNode; trigger: Trigger; connApps: string[];
+  onPatch: (p: Partial<WfNode>) => void; onTrigger: (t: Trigger) => void;
+  onDelete?: () => void; onClose: () => void;
+}) {
+  const isTrigger = node.kind === 'trigger';
+  // app choices: the user's connected apps + the special step kinds.
+  const choices = [...connApps, 'ai', 'decision'];
+
+  return (
+    <div className="wfx-sheet-scrim" onClick={onClose}>
+      <div className="wfx-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="wfx-sheet-head">
+          <span>{isTrigger ? 'Trigger' : 'Edit step'}</span>
+          <button className="memg-cancel" onClick={onClose}>Done</button>
+        </div>
+
+        <label className="wf-label">Label</label>
+        <input className="wf-input" value={node.label} onChange={(e) => onPatch({ label: e.target.value })} maxLength={40} />
+
+        <label className="wf-label">Details</label>
+        <textarea className="wf-input wf-area" rows={2} value={node.detail ?? ''} onChange={(e) => onPatch({ detail: e.target.value })} maxLength={200} placeholder="What this step does" />
+
+        {isTrigger ? (
+          <TriggerEditor trigger={trigger} connApps={connApps} onChange={onTrigger} />
+        ) : (
+          <>
+            <label className="wf-label">App</label>
+            <div className="wfx-apps">
+              {choices.map((id) => (
+                <button key={id} className={`wfx-app ${node.app === id ? 'on' : ''}`} onClick={() => onPatch({ app: id })}>
+                  <span className="wfx-app-ic"><NodeIcon app={id} size={16} /></span>
+                  {appLabel(id)}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {onDelete && (
+          <button className="wf-delete" onClick={onDelete}><IconTrash size={16} /> Remove step</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TriggerEditor({ trigger, connApps, onChange }: { trigger: Trigger; connApps: string[]; onChange: (t: Trigger) => void }) {
+  const kind = trigger.type;
+  const sched: Schedule = trigger.type === 'schedule' ? trigger.schedule : { freq: 'daily', hour: 8, minute: 0, weekday: 1, tz: deviceTz() };
+  const evApp = trigger.type === 'event' ? trigger.event.app : (connApps[0] ?? '');
+  const evFilter = trigger.type === 'event' ? (trigger.event.filter ?? '') : '';
+  const timeVal = `${String(sched.hour).padStart(2, '0')}:${String(sched.minute).padStart(2, '0')}`;
+  const setSched = (s: Schedule) => onChange({ type: 'schedule', schedule: s });
+
+  return (
+    <>
       <label className="wf-label">Trigger</label>
       <div className="wf-seg">
-        <button className={`wf-seg-btn ${kind === 'schedule' ? 'on' : ''}`} onClick={() => setKind('schedule')}>On a schedule</button>
-        <button className={`wf-seg-btn ${kind === 'event' ? 'on' : ''}`} onClick={() => setKind('event')}>When email arrives</button>
+        <button className={`wf-seg-btn ${kind === 'schedule' ? 'on' : ''}`} onClick={() => setSched(sched)}>On a schedule</button>
+        <button className={`wf-seg-btn ${kind === 'event' ? 'on' : ''}`} onClick={() => onChange({ type: 'event', event: { app: evApp, filter: evFilter } })} disabled={connApps.length === 0}>When it arrives</button>
       </div>
 
       {kind === 'schedule' ? (
         <>
-          <label className="wf-label">When</label>
           <div className="wf-seg">
             {(['daily', 'weekly', 'hourly'] as const).map((f) => (
-              <button key={f} className={`wf-seg-btn ${sched.freq === f ? 'on' : ''}`} onClick={() => setSched((s) => ({ ...s, freq: f }))}>
-                {f[0].toUpperCase() + f.slice(1)}
-              </button>
+              <button key={f} className={`wf-seg-btn ${sched.freq === f ? 'on' : ''}`} onClick={() => setSched({ ...sched, freq: f })}>{f[0].toUpperCase() + f.slice(1)}</button>
             ))}
           </div>
-
           {sched.freq === 'weekly' && (
             <div className="wf-dow">
               {DOW.map((d, i) => (
-                <button key={d} className={`wf-dow-btn ${(sched.weekday ?? 1) === i ? 'on' : ''}`} onClick={() => setSched((s) => ({ ...s, weekday: i }))}>
-                  {d[0]}
-                </button>
+                <button key={d} className={`wf-dow-btn ${(sched.weekday ?? 1) === i ? 'on' : ''}`} onClick={() => setSched({ ...sched, weekday: i })}>{d[0]}</button>
               ))}
             </div>
           )}
-
           {sched.freq === 'hourly' ? (
             <p className="wf-hint">Runs at the top of every hour.</p>
           ) : (
             <div className="wf-time-row">
               <span className="wf-time-label">At</span>
-              <input className="wf-input wf-time" type="time" value={timeValue(sched)} onChange={(e) => setTime(e.target.value)} />
+              <input className="wf-input wf-time" type="time" value={timeVal} onChange={(e) => {
+                const [h, m] = e.target.value.split(':').map((x) => parseInt(x, 10));
+                if (!isNaN(h) && !isNaN(m)) setSched({ ...sched, hour: h, minute: m });
+              }} />
             </div>
           )}
         </>
       ) : connApps.length === 0 ? (
-        <p className="wf-hint">Connect an app first (from the + menu → Connectors) to use “when something arrives” triggers.</p>
+        <p className="wf-hint">Connect an app first to use “when something arrives” triggers.</p>
       ) : (
         <>
           <label className="wf-label">In which app</label>
-          <div className="wf-apps">
+          <div className="wfx-apps">
             {connApps.map((id) => (
-              <button key={id} className={`wf-app-btn ${evApp === id ? 'on' : ''}`} onClick={() => setEvApp(id)}>
-                {byId(id)?.name ?? id}
+              <button key={id} className={`wfx-app ${evApp === id ? 'on' : ''}`} onClick={() => onChange({ type: 'event', event: { app: id, filter: evFilter } })}>
+                <span className="wfx-app-ic"><NodeIcon app={id} size={16} /></span>{byId(id)?.name ?? id}
               </button>
             ))}
           </div>
-          <label className="wf-label">Trigger when… (describe what to watch for)</label>
-          <input className="wf-input" value={evFilter} onChange={(e) => setEvFilter(e.target.value)} placeholder="e.g. an email from boss@company.com · a message in #alerts · a new event" maxLength={160} />
-          <p className="wf-hint">Checks {byId(evApp)?.name ?? 'the app'} every few minutes and runs when a new matching item appears.</p>
+          <label className="wf-label">Trigger when…</label>
+          <input className="wf-input" value={evFilter} onChange={(e) => onChange({ type: 'event', event: { app: evApp, filter: e.target.value } })} placeholder="e.g. an email from boss@company.com" maxLength={160} />
         </>
       )}
-
-      <button className="wf-save" onClick={() => void save()} disabled={!instruction.trim() || busy}>
-        {wf ? 'Save changes' : 'Create workflow'}
-      </button>
-      {wf && (
-        <button className="wf-delete" onClick={() => void remove()} disabled={busy}>
-          <IconTrash size={16} /> Delete workflow
-        </button>
-      )}
-
-      {wf && (
-        <div className="wf-runs">
-          <div className="wf-runs-head">Recent runs</div>
-          {runs.length === 0 ? (
-            <div className="wf-runs-empty">No runs yet — results show up here after it runs.</div>
-          ) : (
-            runs.map((r) => (
-              <div className={`wf-run ${r.ok ? '' : 'bad'}`} key={r.id}>
-                <div className="wf-run-time">{relTime(r.created_at)}</div>
-                <div className="wf-run-text">{r.result}</div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
+    </>
   );
 }

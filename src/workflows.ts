@@ -78,6 +78,53 @@ export function triggerLabel(w: Workflow): string {
   return scheduleLabel(w.schedule);
 }
 
+// Human label for a node's app field (real apps -> brand name; special kinds).
+export function appLabel(app: string): string {
+  if (app === 'ai') return 'AI';
+  if (app === 'decision') return 'Decision';
+  if (app === 'schedule') return 'Schedule';
+  if (app === 'event') return 'Trigger';
+  if (!app || app === 'none') return 'Manual';
+  return byId(app)?.name ?? app;
+}
+
+// Compile the runnable instruction FROM the (possibly edited) graph, so what the
+// user sees on the canvas and what actually executes never drift apart. Steps are
+// emitted in flow order (BFS from the trigger); the runner executes each with the
+// named app. Called on every save.
+export function compileInstruction(title: string, graph: WfGraph): string {
+  const nodes = graph.nodes || [];
+  const edges = graph.edges || [];
+  const byNode = new Map(nodes.map((n) => [n.id, n]));
+  const indeg = new Map(nodes.map((n) => [n.id, 0] as [string, number]));
+  const nextOf = new Map<string, string[]>(nodes.map((n) => [n.id, [] as string[]]));
+  for (const e of edges) {
+    if (byNode.has(e.from) && byNode.has(e.to)) {
+      nextOf.get(e.from)!.push(e.to);
+      indeg.set(e.to, (indeg.get(e.to) || 0) + 1);
+    }
+  }
+  const order: WfNode[] = [];
+  const seen = new Set<string>();
+  const q = nodes.filter((n) => (indeg.get(n.id) || 0) === 0).map((n) => n.id);
+  if (!q.length && nodes.length) q.push(nodes[0].id);
+  for (let h = 0; h < q.length; h++) {
+    const id = q[h];
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const nn = byNode.get(id);
+    if (nn) order.push(nn);
+    for (const c of nextOf.get(id) || []) if (!seen.has(c)) q.push(c);
+  }
+  for (const n of nodes) if (!seen.has(n.id)) order.push(n); // orphans last
+  const steps = order
+    .filter((n) => n.kind !== 'trigger')
+    .map((n, i) => `${i + 1}. [${appLabel(n.app)}] ${n.label}${n.detail ? ` — ${n.detail}` : ''}`);
+  const head = title ? `${title}.` : 'Run this workflow.';
+  if (!steps.length) return head;
+  return `${head}\n\nCarry out these steps in order, using the named app for each:\n${steps.join('\n')}`;
+}
+
 const SEL = 'id,title,instruction,trigger_type,schedule,event,graph,enabled,next_run_at,last_run_at,created_at';
 
 // Ask the AI builder (Opus) to turn a natural-language description into a draft

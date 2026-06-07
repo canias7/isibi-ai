@@ -209,3 +209,47 @@ export const IconWorkflow = ({ size }: { size?: number }) => (
     <rect width="8" height="8" x="13" y="13" rx="2" />
   </Svg>
 );
+
+export const IconClock = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </Svg>
+);
+
+export const IconBolt = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M13 2 4.5 13.5a.5.5 0 0 0 .4.8H11l-1 7 8.5-11.5a.5.5 0 0 0-.4-.8H12z" />
+  </Svg>
+);
+
+export const IconBranch = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <circle cx="6" cy="6" r="2.5" />
+    <circle cx="18" cy="6" r="2.5" />
+    <circle cx="12" cy="19" r="2.5" />
+    <path d="M6 8.5V11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8.5" />
+    <path d="M12 13v3.5" />
+  </Svg>
+);
+
+export const IconPlus = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M12 5v14" />
+    <path d="M5 12h14" />
+  </Svg>
+);
+
+export const IconMinus = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M5 12h14" />
+  </Svg>
+);
+
+export const IconLayers = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M12 2 2 7l10 5 10-5z" />
+    <path d="m2 12 10 5 10-5" />
+    <path d="m2 17 10 5 10-5" />
+  </Svg>
+);
