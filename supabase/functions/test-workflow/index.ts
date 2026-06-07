@@ -97,7 +97,7 @@ async function runInstruction(uid: string, instruction: string, tz: string): Pro
   const [apps, memOn] = await Promise.all([connectedToolkits(uid), memoryEnabled(uid)]);
   const mems = memOn ? await fetchMemories(uid) : [];
   const memSys = mems.length ? `\n\nWHAT YOU KNOW ABOUT THIS USER (saved memories; honor them):\n${mems.map((m) => `• ${m}`).join("\n")}` : "";
-  const system = `You are Go Farther, running a saved automation for the user as a TEST (no one is watching live). Carry out the instruction using the connected tools as needed, then reply with a clear, concise result the user can read. Reply in PLAIN TEXT only — no code blocks or card formats. Use the user's local timezone (${tz}).${memSys}`;
+  const system = `You are Go Farther, running a saved automation for the user as a TEST. Carry out the instruction using the connected tools as needed. Then reply with a SHORT summary of what you did and the outcome — at most 2-3 sentences. Plain text only: no markdown (no **bold**, #headings, or bullet lists), no emoji, no code blocks. Use the user's local timezone (${tz}).${memSys}`;
   const reqBody: Record<string, unknown> = {
     model: MODEL,
     max_tokens: 4096,

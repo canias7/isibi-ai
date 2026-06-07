@@ -5,6 +5,7 @@ import {
   IconClock, IconBolt, IconBranch, IconSpark, IconCheck,
 } from './icons';
 import { byId } from './connectorData';
+import Markdown from './Markdown';
 import {
   listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow, testWorkflow,
   triggerLabel, deviceTz, appLabel, compileInstruction,
@@ -287,14 +288,6 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
 
       <Canvas graph={graph} onChange={(g) => { setGraph(g); clearTest(); }} onSelect={setSel} edgeState={edgeState} />
 
-      {/* Test result banner */}
-      {testMsg && (
-        <div className={`wfx-testmsg ${edgeState === 'fail' ? 'bad' : 'ok'}`} onClick={() => setTestMsg(null)}>
-          <strong>{edgeState === 'fail' ? 'Test failed' : 'Test ran'}</strong>
-          <span>{testMsg}</span>
-        </div>
-      )}
-
       {/* Bottom action bar */}
       <div className="wfx-bar">
         {mode === 'saved' && (
@@ -333,6 +326,20 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
                   <div className="wf-run-text">{r.result}</div>
                 </div>
               ))}
+          </div>
+        </div>
+      )}
+
+      {testMsg && (
+        <div className="wfx-sheet-scrim" onClick={() => setTestMsg(null)}>
+          <div className="wfx-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="wfx-sheet-head">
+              <span className={`wfx-result-title ${edgeState === 'fail' ? 'bad' : 'ok'}`}>
+                <span className="wfx-result-dot" />{edgeState === 'fail' ? 'Test failed' : 'Test ran'}
+              </span>
+              <button className="memg-cancel" onClick={() => setTestMsg(null)}>Done</button>
+            </div>
+            <div className="wfx-result-body"><Markdown text={testMsg} /></div>
           </div>
         </div>
       )}
