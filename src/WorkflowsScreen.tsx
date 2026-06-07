@@ -147,16 +147,16 @@ function HeroFlow() {
 // Rotating example prompts for the empty state — deliberately spread across
 // different apps, tools and situations.
 const HERO_PROMPTS = [
-  'Email the weekly report to my team every Friday at 5pm.',
-  'When an invoice lands in Gmail, save the PDF to Google Drive.',
-  'Summarize unread Slack messages and DM me a recap at noon.',
-  'Add every new Outlook meeting to a prep checklist in Notion.',
-  'When a Stripe payment fails, alert me and log it in a Sheet.',
-  'Turn emails I star into Todoist tasks due tomorrow.',
-  'Post our new YouTube video to Discord and LinkedIn.',
-  'Back up new Dropbox files to Google Drive overnight.',
-  'Auto-reply to Instagram DMs that ask for our hours.',
-  'Every morning, text me today’s calendar and the weather.',
+  'Nudge my team about the weekly report every Friday at 5.',
+  'When an invoice shows up in my email, save the PDF to Drive.',
+  'Around lunch, sum up the Slack messages I missed.',
+  'New meeting on my Outlook? Drop prep notes into Notion.',
+  'If a Stripe payment fails, text me and log it in a sheet.',
+  'Turn the emails I star into Todoist tasks for tomorrow.',
+  'New YouTube video? Post it to Discord and LinkedIn.',
+  'Back up my new Dropbox files to Google Drive overnight.',
+  'Reply to the Instagram DMs asking when we’re open.',
+  'When I wake up, text me my schedule and the weather.',
 ];
 
 // Typewriter that cycles the prompts: types in letter-by-letter, holds 3s, then
