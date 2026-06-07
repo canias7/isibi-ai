@@ -1753,7 +1753,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .wfx-node-app { font-size: 10px; color: var(--text-dim); }
 
 /* Decorative animated mini-graph in the Workflows empty state. */
-.wfx-hf { position: relative; width: min(300px, 84vw); aspect-ratio: 260 / 120; margin: 0 auto 20px; }
+.wfx-hf { position: relative; width: min(320px, 88vw); aspect-ratio: 300 / 180; margin: 0 auto 18px; }
 .wfx-hf-wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .wfx-hf-wire { fill: none; stroke: rgba(224, 161, 58, 0.5); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 4 7; animation: wfxFlow 0.7s linear infinite; }
 .wfx-hf-node {

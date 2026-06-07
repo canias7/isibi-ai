@@ -45,20 +45,34 @@ function NodeIcon({ app, size = 22 }: { app: string; size?: number }) {
 
 interface Work { title: string; instruction: string; trigger: Trigger; graph: WfGraph }
 
-// Decorative mini node-graph for the empty state: a trigger flows into an AI
-// step that fans out to two apps, cables animated. Purely cosmetic (aria-hidden).
+// Decorative mini node-graph for the empty state: two app sources flow into an
+// AI step that fans out to three more apps, cables animated. Cosmetic (aria-hidden).
 function HeroFlow() {
+  const inputs = [
+    { app: 'gmail', x: '13%', y: '29%' },
+    { app: 'gcal', x: '13%', y: '71%' },
+  ];
+  const outputs = [
+    { app: 'slack', x: '78%', y: '22%' },
+    { app: 'notion', x: '87%', y: '50%' },
+    { app: 'googlesheets', x: '78%', y: '78%' },
+  ];
   return (
     <div className="wfx-hf" aria-hidden="true">
-      <svg className="wfx-hf-wires" viewBox="0 0 260 120">
-        <path className="wfx-hf-wire" d="M53,60 L106,60" />
-        <path className="wfx-hf-wire" d="M154,56 C184,56 184,38 207,38" style={{ animationDelay: '.18s' }} />
-        <path className="wfx-hf-wire" d="M154,64 C184,64 184,86 207,86" style={{ animationDelay: '.34s' }} />
+      <svg className="wfx-hf-wires" viewBox="0 0 300 180">
+        <path className="wfx-hf-wire" d="M60,56 C95,56 95,86 104,86" />
+        <path className="wfx-hf-wire" d="M60,124 C95,124 95,94 104,94" style={{ animationDelay: '.12s' }} />
+        <path className="wfx-hf-wire" d="M156,84 C192,84 192,40 215,40" style={{ animationDelay: '.24s' }} />
+        <path className="wfx-hf-wire" d="M156,90 C200,90 200,90 242,90" style={{ animationDelay: '.36s' }} />
+        <path className="wfx-hf-wire" d="M156,96 C192,96 192,140 215,140" style={{ animationDelay: '.48s' }} />
       </svg>
-      <div className="wfx-hf-node a" style={{ left: '13%', top: '50%' }}><NodeIcon app="schedule" size={18} /></div>
-      <div className="wfx-hf-node b" style={{ left: '50%', top: '50%' }}><NodeIcon app="ai" size={24} /></div>
-      <div className="wfx-hf-node" style={{ left: '87%', top: '32%' }}><NodeIcon app="gmail" size={20} /></div>
-      <div className="wfx-hf-node" style={{ left: '87%', top: '72%' }}><NodeIcon app="gcal" size={20} /></div>
+      {inputs.map((o) => (
+        <div key={o.app} className="wfx-hf-node" style={{ left: o.x, top: o.y }}><NodeIcon app={o.app} size={20} /></div>
+      ))}
+      <div className="wfx-hf-node b" style={{ left: '43%', top: '50%' }}><NodeIcon app="ai" size={24} /></div>
+      {outputs.map((o) => (
+        <div key={o.app} className="wfx-hf-node" style={{ left: o.x, top: o.y }}><NodeIcon app={o.app} size={20} /></div>
+      ))}
     </div>
   );
 }
