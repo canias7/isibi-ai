@@ -203,7 +203,11 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     const el = stageRef.current;
     if (!el) return { x, y };
     const cw = el.clientWidth, ch = el.clientHeight, sw = cw * z, sh = ch * z;
-    return { x: clamp(x, Math.min(0, cw - sw), 0), y: clamp(y, Math.min(0, ch - sh), 0) };
+    // Zoomed in: keep the world covering the stage. Zoomed out (smaller than the
+    // stage): center it instead of pinning to the top-left corner.
+    const px = sw <= cw ? (cw - sw) / 2 : clamp(x, cw - sw, 0);
+    const py = sh <= ch ? (ch - sh) / 2 : clamp(y, ch - sh, 0);
+    return { x: px, y: py };
   }
   function localMid(pts: XY[]): XY {
     const r = stageRef.current?.getBoundingClientRect();
@@ -238,7 +242,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     } else if (g.mode === 'pinch' && pts.length >= 2) {
       bgMoved.current = true;
       const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
-      const nz = clamp(+(g.z0 * (d / g.d0)).toFixed(3), 1, 3);
+      const nz = clamp(+(g.z0 * (d / g.d0)).toFixed(3), 0.5, 3); // allow zooming out below 1
       const m = localMid(pts);
       const sxp = (g.mx - g.px) / g.z0, syp = (g.my - g.py) / g.z0;
       setZoom(nz);
