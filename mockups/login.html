@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Login — current</title>
+<style>
+  :root{
+    --bg:#000000; --composer:#161618; --text:#f5f5f7; --text-dim:#8e8e93; --accent:#ffffff;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:#0b0b0c; color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:flex; justify-content:center; align-items:flex-start;
+  }
+  .screen{ position:relative; width:100%; max-width:412px; min-height:100vh; background:var(--bg); overflow:hidden; }
+  .status{display:flex; justify-content:space-between; align-items:center; padding:10px 22px 2px; font-size:14px; font-weight:600; color:#fff;}
+  .status .dots{display:flex; gap:6px; align-items:center; opacity:.9;}
+  .status .batt{width:22px;height:11px;border:1.5px solid #fff;border-radius:3px;position:relative;opacity:.9;}
+  .status .batt::after{content:"";position:absolute;left:1.5px;top:1.5px;bottom:1.5px;width:60%;background:#fff;border-radius:1px;}
+
+  /* ---- the real .auth styles ---- */
+  .auth{
+    min-height:calc(100vh - 30px);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:18px; padding:24px 16px;
+  }
+  .auth-brand{ font-size:26px; font-weight:700; }
+  .auth-card{ width:100%; max-width:360px; display:flex; flex-direction:column; gap:14px; text-align:center; }
+  .auth-sub{ color:var(--text-dim); font-size:14px; margin:-6px 0 4px; }
+  .auth-form{ display:flex; flex-direction:column; gap:10px; text-align:left; }
+  .auth-input{
+    background:var(--composer); border:1px solid #ffffff1f; border-radius:12px; color:var(--text);
+    font:inherit; font-size:16px; padding:13px 14px; outline:none;
+  }
+  .auth-input:focus{ border-color:#ffffff55; }
+  .auth-input::placeholder{ color:var(--text-dim); }
+  .auth-btn{
+    margin-top:4px; background:var(--accent); color:#000; border:none; border-radius:12px;
+    font:inherit; font-size:15px; font-weight:600; padding:13px; cursor:pointer;
+  }
+  .auth-toggle{ background:none; border:none; color:var(--text-dim); font:inherit; font-size:13px; cursor:pointer; padding:6px; }
+</style>
+</head>
+<body>
+  <div class="screen">
+    <div class="status">
+      <span>9:41</span>
+      <span class="dots">
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="#fff"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="2.5" width="3" height="9.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg>
+        <span style="font-size:12px;font-weight:700;">5G</span><span class="batt"></span>
+      </span>
+    </div>
+
+    <div class="auth">
+      <div class="auth-card">
+        <div class="auth-brand">Go Farther</div>
+        <p class="auth-sub">Sign in to continue</p>
+        <form class="auth-form" onsubmit="return false">
+          <input class="auth-input" type="email" placeholder="Email" />
+          <input class="auth-input" type="password" placeholder="Password" />
+          <button class="auth-btn" type="submit">Sign in</button>
+        </form>
+        <button class="auth-toggle">Don't have an account? Sign up</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
