@@ -24,7 +24,7 @@ async function mcpHmac(msg: string): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg)));
 }
 async function mintUserToken(uid: string): Promise<string> {
-  const payload = mcpB64url(new TextEncoder().encode(JSON.stringify({ u: uid, exp: Math.floor(Date.now() / 1000) + 1800 })));
+  const payload = mcpB64url(new TextEncoder().encode(JSON.stringify({ u: uid, exp: Math.floor(Date.now() / 1000) + 3600 })));
   return `${payload}.${mcpB64url(await mcpHmac(payload))}`;
 }
 
