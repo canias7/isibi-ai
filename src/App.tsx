@@ -481,7 +481,6 @@ export default function App() {
   // Engage the biometric lock on launch (no-op unless Face ID is on + supported).
   useEffect(() => {
     if (faceIdRef.current) void lockRef.current();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Refresh the push registration on launch if notifications are enabled.
