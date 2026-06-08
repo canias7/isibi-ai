@@ -5,13 +5,27 @@ const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
 const SB_URL = Deno.env.get("SUPABASE_URL");
 const SB_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-// Bearer shared with gmail-mcp, DERIVED at runtime from a server-only secret —
-// never stored in the repo. Both functions compute the same value from
-// COMPOSIO_API_KEY, so they stay in sync with no coordination.
-async function mcpToken(): Promise<string> {
+// Per-user MCP auth: each call to gmail-mcp carries a short-lived HMAC-signed
+// token binding the acting user id, so the user identity is derived from a value
+// the caller can't forge (not a query param). Secret is MCP_SHARED_SECRET if set,
+// else derived from a server-only secret (never the empty string).
+async function mcpSecret(): Promise<string> {
+  const s = Deno.env.get("MCP_SHARED_SECRET");
+  if (s) return s;
   const base = (COMPOSIO_API_KEY ?? "") + "::gofarther-mcp-v1";
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(base));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function mcpB64url(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+async function mcpHmac(msg: string): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(await mcpSecret()), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg)));
+}
+async function mintUserToken(uid: string): Promise<string> {
+  const payload = mcpB64url(new TextEncoder().encode(JSON.stringify({ u: uid, exp: Math.floor(Date.now() / 1000) + 1800 })));
+  return `${payload}.${mcpB64url(await mcpHmac(payload))}`;
 }
 
 // CORS allowlist: native app (Capacitor) + local dev. Requests with no Origin
@@ -500,7 +514,7 @@ Deno.serve(async (req: Request) => {
     if (apps.length || memoryOn) {
       emailUI = clientCards && (apps.includes("gmail") || apps.includes("outlook"));
       const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}${memoryOn ? "" : "&mem=0"}`;
-      mcpServers = [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }];
+      mcpServers = [{ type: "url", url, name: "connectors", authorization_token: await mintUserToken(appUser) }];
       // Current MCP connector format (mcp-client-2025-11-20): the toolset lives
       // in `tools`. cache_control caches the proxy-returned tool schemas — the
       // big, stable part of the prompt — so follow-up turns re-read them at ~10%
