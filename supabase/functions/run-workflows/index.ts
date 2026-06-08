@@ -12,6 +12,10 @@ const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const MCP_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-mcp";
 const PUSH_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/send-push";
 const MODEL = "claude-sonnet-4-6";
+// The detector only lists items and copies back their ids — a cheap, mechanical
+// task — so it runs on Haiku. The runner (which takes real outward actions) stays
+// on MODEL above, where the extra judgment matters.
+const DETECTOR_MODEL = "claude-haiku-4-5";
 // Cron ticks every 5 min (scheduled workflows need that granularity), but event
 // triggers are polled with an LLM call per workflow — the dominant cost. Gate the
 // event phase to once every EVENT_EVERY_MIN to cut that ~3x without slowing schedules.
@@ -193,7 +197,7 @@ The "id" MUST be the item's stable, unique identifier exactly as the tool return
 
 Example: [{"id":"199c1f2a7b8e4d10","line":"Invoice #4521 from Acme"},{"id":"199c1f0e5a3b22ff","line":"Reschedule from Sam, Fri 3pm"}]`;
   const reqBody: Record<string, unknown> = {
-    model: MODEL,
+    model: DETECTOR_MODEL,
     max_tokens: 1024,
     system,
     messages: [{ role: "user", content: `Condition to watch for: ${filter}\nList the most recent matching items right now.` }],
