@@ -8,6 +8,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
+const COMPOSIO_BASE = "https://backend.composio.dev/api";
 const MODEL = "claude-opus-4-8";
 
 const ALLOWED_ORIGINS = new Set([
@@ -75,6 +76,37 @@ async function connectedApps(uid: string): Promise<string[]> {
     return [...new Set(ids)];
   } catch {
     return [];
+  }
+}
+
+// Read-only contact lookup: search the user's connected email for a named person
+// and return candidate email addresses, so the builder can RESOLVE "from Jhon"
+// instead of guessing. Never sends or changes anything; fails safe to no candidates.
+async function composioExec(name: string, args: unknown, uid: string): Promise<any> {
+  const res = await fetch(`${COMPOSIO_BASE}/v3/tools/execute/${encodeURIComponent(name)}`, {
+    method: "POST",
+    headers: { "x-api-key": COMPOSIO_API_KEY ?? "", "content-type": "application/json" },
+    body: JSON.stringify({ user_id: uid, arguments: args ?? {} }),
+  });
+  return await res.json().catch(() => ({}));
+}
+async function findContact(uid: string, query: unknown, apps: string[]): Promise<string> {
+  const q = String(query ?? "").trim();
+  if (!q || !COMPOSIO_API_KEY) return JSON.stringify({ candidates: [] });
+  try {
+    let raw: any = null;
+    if (apps.includes("gmail")) {
+      raw = await composioExec("GMAIL_FETCH_EMAILS", { query: `from:${q}`, max_results: 10 }, uid);
+    } else if (apps.includes("m365")) {
+      raw = await composioExec("OUTLOOK_OUTLOOK_SEARCH_MESSAGES", { query: q, top: 10 }, uid);
+    } else {
+      return JSON.stringify({ candidates: [], note: "No email account is connected, so this person can't be looked up — ask the user for their email address." });
+    }
+    const text = JSON.stringify(raw?.data ?? raw ?? {});
+    const emails = [...new Set((text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []).map((e) => e.toLowerCase()))].slice(0, 8);
+    return JSON.stringify({ candidates: emails });
+  } catch {
+    return JSON.stringify({ candidates: [] });
   }
 }
 
@@ -190,6 +222,19 @@ const EMIT_TOOL = {
   },
 };
 
+// Read-only lookup so the builder can resolve a person it would otherwise guess at.
+const FIND_CONTACT_TOOL = {
+  name: "find_contact",
+  description: "Resolve WHO a named person is by searching the user's connected email, returning candidate email addresses. Call this WHENEVER the user names someone (e.g. \"emails from Jhon\", \"reply to Sarah\") without giving an address, so the workflow targets a real address instead of a guessed name. Read-only — it never sends or changes anything.",
+  input_schema: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "The person's name to look up, e.g. \"Jhon\"." },
+    },
+    required: ["query"],
+  },
+};
+
 // Top-down tree layout: BFS depth from the trigger sets the row; siblings spread
 // horizontally. Gives the client sensible starting positions (the user can drag).
 function layout(nodes: any[], edges: any[]): any[] {
@@ -289,9 +334,10 @@ Use ONLY the user's connected apps for app steps and event triggers — their co
 CRITICAL — a workflow you emit must RUN right now. Every app step (and an event trigger) must use an app from that connected list. NEVER emit a step or trigger for an app that isn't connected — it would just fail. If the request needs an app that isn't connected, ASK whether to use a connected app instead or drop that part, and only emit once everything maps to a connected app. If the core purpose needs an unconnected app, ask the user to connect it — don't emit a broken workflow. Always either ask a question or emit a complete, working workflow — never return nothing.
 
 ## First: build, or ask?
-When you're not sure, ASK — one quick question beats building the wrong thing. Call the "ask" tool (don't guess) when ANY of these hold:
+When you're not sure, ASK — one quick question beats building the wrong thing. NEVER silently guess or assume a detail, identity, recipient, or account you aren't certain of: if you can look it up with a tool (use find_contact to resolve a named person), do that FIRST; if you still aren't sure, ASK. A workflow built on a guess is a broken workflow. Call the "ask" tool when ANY of these hold:
 - TWO OR MORE connected apps could do a step and the user didn't say which — e.g. Gmail AND Outlook both connected and they said "email me" / "send an email": you MUST ask which account, never silently pick one.
 - a key detail is missing with no safe default: who/where (recipient, which Slack channel, which list/board), WHICH items ("my emails" = all? unread? from a sender/label?), or the exact event condition,
+- the user names a PERSON/contact without an email or handle (e.g. "from Jhon", "reply to Sarah"): FIRST call find_contact to resolve them — exactly one clear match → use that exact address in the trigger filter and the instruction; several plausible → ASK which (offer the addresses as options); none found → ASK for their email. NEVER leave a trigger as just "from <name>" — the runner can't reliably tell who that is,
 - the trigger is an EVENT (arrival-based) and the user hasn't said WHEN to watch — ALWAYS ask the active hours, because watching 24/7 costs much more than a narrow window. Offer tappable options that fit their case (e.g. work hours, a specific window) plus "All day", then set event.window from their answer,
 - the workflow's CORE purpose needs an app the user has NOT connected (ask, and offer the closest connected app as an option),
 - it would delete, pay, or message people at scale (confirm scope first),
@@ -331,32 +377,45 @@ Request: "When an email from my boss arrives, Slack me a one-line summary." (Gma
       { type: "text", text: system, cache_control: { type: "ephemeral" } },
       { type: "text", text: `The user's connected apps (use ONLY these connector ids for app steps and event triggers): ${appList}. The user's timezone is ${tz}. So far you have asked ${askedCount} clarifying question(s) in this conversation.` },
     ],
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    tools: [ASK_TOOL, EMIT_TOOL],
+    tools: [FIND_CONTACT_TOOL, ASK_TOOL, EMIT_TOOL],
     // Never FORCE a build — a forced build can produce a workflow that won't run.
-    // The model keeps asking until it can emit one that actually works (enforced
-    // by the system prompt + the connected-apps check below).
+    // The model keeps asking (or looks a person up) until it can emit one that
+    // actually works, enforced by the system prompt + the connected-apps check.
     tool_choice: { type: "any" },
   };
 
-  let res: Response;
-  try {
-    res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify(reqBody),
-    });
-  } catch (e) {
-    console.error("builder request failed:", e);
-    return J({ error: "The builder is temporarily unavailable. Please try again." }, 502);
+  // The model may call find_contact (read-only) to resolve a person it would
+  // otherwise guess at; execute those server-side and loop until it asks or emits.
+  const apiMessages: any[] = messages.map((m) => ({ role: m.role, content: m.content }));
+  let content: any[] = [];
+  for (let turn = 0; turn < 4; turn++) {
+    reqBody.messages = apiMessages;
+    let res: Response;
+    try {
+      res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify(reqBody),
+      });
+    } catch (e) {
+      console.error("builder request failed:", e);
+      return J({ error: "The builder is temporarily unavailable. Please try again." }, 502);
+    }
+    if (!res.ok) {
+      console.error(`builder ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
+      return J({ error: "The builder is temporarily unavailable. Please try again." }, 502);
+    }
+    const data = await res.json();
+    content = data.content || [];
+    const fc = content.find((b: any) => b?.type === "tool_use" && b?.name === "find_contact");
+    if (fc && turn < 3) {
+      const found = await findContact(uid, fc.input?.query, apps);
+      apiMessages.push({ role: "assistant", content });
+      apiMessages.push({ role: "user", content: [{ type: "tool_result", tool_use_id: fc.id, content: found }] });
+      continue;
+    }
+    break;
   }
-  if (!res.ok) {
-    console.error(`builder ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
-    return J({ error: "The builder is temporarily unavailable. Please try again." }, 502);
-  }
-
-  const data = await res.json();
-  const content = data.content || [];
 
   // Clarifying questions path. Each question is multiple-choice: a header, the
   // question, and tappable options ({label, description?}). The app adds "Other".
