@@ -175,11 +175,11 @@ async function claimDue(id: string, currentNextRunAt: string | null, next: Date 
 // result. The runner dedupes by id so only genuinely new items fire — this works
 // for every connector without per-app code.
 interface DetectedItem { id: string; line: string }
-async function detectItems(uid: string, ev: any): Promise<DetectedItem[] | null> {
+async function detectItems(uid: string, ev: any, connectedArg?: string[]): Promise<DetectedItem[] | null> {
   if (!ANTHROPIC_KEY || !COMPOSIO_API_KEY) return null;
   const slug = APP_TO_SLUG[ev?.app] || String(ev?.app || "");
   if (!slug) return null; // no/unknown app -> can't watch
-  const connected = await connectedToolkits(uid);
+  const connected = connectedArg ?? await connectedToolkits(uid);
   if (!connected.includes(slug)) return null; // can't watch (app not connected) -> skip, don't baseline
   const filter = String(ev?.filter || "").trim() || "any new item";
   const url = `${MCP_URL}?apps=${encodeURIComponent(slug)}&user=${encodeURIComponent(uid)}&mem=0`;
@@ -320,18 +320,33 @@ Deno.serve(async (req: Request) => {
       eventChecked = evs.length;
       for (const wf of evs) {
         try {
-          const items = await detectItems(wf.user_id, wf.event || {});
+          const evApp = String(wf.event?.app || "");
+          const slug = APP_TO_SLUG[evApp] || "";
+          const connected = await connectedToolkits(wf.user_id);
+          // Trigger's own app is disconnected: tell the user (at most once/day), then skip.
+          if (slug && !connected.includes(slug)) {
+            const dcAt = wf.cursor?.dcAt ? new Date(wf.cursor.dcAt).getTime() : 0;
+            if (Date.now() - dcAt > 86400000) {
+              await insertRun(wf.id, wf.user_id, `Trigger paused — ${evApp} isn't connected. Reconnect it to resume.`, false);
+              await pushUser(wf.user_id, wf.title || "Workflow", `Trigger paused — connect ${evApp} to resume.`);
+              await patchWorkflow(wf.id, { cursor: { ...(wf.cursor || {}), dcAt: new Date().toISOString() } });
+            }
+            continue;
+          }
+          const items = await detectItems(wf.user_id, wf.event || {}, connected);
           if (items === null) continue; // couldn't actually check this cycle — don't baseline or fire
           // First check: record what's already there, don't fire on the backlog.
-          if (!wf.cursor) {
+          if (!wf.cursor?.seen) {
             await patchWorkflow(wf.id, { cursor: { seen: items.map((i) => i.id).slice(0, 200) } });
             continue;
           }
-          const seen: string[] = Array.isArray(wf.cursor?.seen) ? wf.cursor.seen : [];
+          const seen: string[] = Array.isArray(wf.cursor.seen) ? wf.cursor.seen : [];
           const seenSet = new Set(seen);
           const fresh = items.filter((i) => !seenSet.has(i.id));
-          if (!fresh.length) continue;
-          const connected = await connectedToolkits(wf.user_id);
+          if (!fresh.length) {
+            if (wf.cursor?.dcAt) await patchWorkflow(wf.id, { cursor: { seen } }); // reconnected, nothing new — clear the notice
+            continue;
+          }
           const missing = neededApps(wf.graph).filter((a) => !connected.includes(APP_TO_SLUG[a]));
           const ctx = fresh.slice(0, 8).map((i) => `• ${i.line} [id: ${i.id}]`).join("\n");
           const prompt = `Your trigger fired — these new item(s) were just detected in the user's connected app (their tool ids are in brackets, use them to act on the exact item):\n${ctx}\n\nUsing whatever tools across the user's apps you need (e.g. read the item, reply, send an email, create something), do the following about the item(s) above: ${wf.instruction}`;
