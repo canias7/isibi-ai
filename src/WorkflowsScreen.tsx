@@ -171,13 +171,13 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
   const [open, setOpen] = useState<Workflow | null>(null); // a saved workflow being viewed/edited
   const [desc, setDesc] = useState('');
   const [building, setBuilding] = useState(false);
-  const [composing, setComposing] = useState(false); // compose box focused/typing — hide the looping demo
   const [err, setErr] = useState('');
   const [convo, setConvo] = useState<ChatMsg[]>([]); // back-and-forth while the builder clarifies
   const [picks, setPicks] = useState<Record<number, string>>({});      // selected option label per question (last turn)
   const [otherText, setOtherText] = useState<Record<number, string>>({}); // free-text per question when "Other" is picked
   const [step, setStep] = useState(0);                                  // which clarifying question is on screen (one at a time)
   const chatRef = useRef<HTMLDivElement>(null);
+  const composeRef = useRef<HTMLTextAreaElement>(null);
   const OTHER = '__other__';
 
   useEffect(() => {
@@ -190,6 +190,13 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
     const el = chatRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [convo, building]);
+
+  // Grow the compose box with the text (up to a cap, then it scrolls), and shrink
+  // back when it's cleared after sending.
+  useEffect(() => {
+    const el = composeRef.current;
+    if (el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 132) + 'px'; }
+  }, [desc]);
 
   async function load() {
     setLoaded(false);
@@ -417,9 +424,6 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
               )}
               {err && <div className="wfx-err">{err}</div>}
             </div>
-          ) : (composing || desc.trim() || building) ? (
-            // Composing your own prompt (or building) — drop the looping demo; keep a clean space above the box.
-            <div className="wfx-hero">{err && <div className="wfx-err">{err}</div>}</div>
           ) : (
             <div className="wfx-hero">
               <WorkflowPreview />
@@ -437,14 +441,14 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
                 </button>
               </div>
             ) : (
-              <div className="memg-compose">
-                <input
-                  className="memg-cinput"
+              <div className="memg-compose wfx-compose">
+                <textarea
+                  ref={composeRef}
+                  className="memg-cinput wfx-cgrow"
+                  rows={1}
                   value={desc}
                   onChange={(e) => setDesc(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') void send(desc); }}
-                  onFocus={() => setComposing(true)}
-                  onBlur={() => setComposing(false)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(desc); } }}
                   placeholder="Describe your workflow…"
                   maxLength={2000}
                   disabled={building}
