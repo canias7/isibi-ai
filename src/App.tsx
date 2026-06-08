@@ -15,7 +15,6 @@ import { Capacitor } from '@capacitor/core';
 import { tap } from './haptics';
 import { biometryAvailable, unlock } from './biometric';
 import { registerPush, pushStatus } from './push';
-import { capturePhoto } from './camera';
 import { fileToAttachment } from './attach';
 
 type View = 'chat' | 'connectors' | 'settings';
@@ -760,24 +759,19 @@ export default function App() {
   }
 
   // ---- Attachments ("+" menu) ----
-  async function openPicker(mode: 'camera' | 'attachments') {
+  // Camera jumps straight into the device camera (Take Photo); Attachments offers
+  // the photo library + files. Both go through the hidden file input -> onFiles
+  // (which downsizes images). The file-input camera is the one that reliably
+  // opens in the iOS webview, so the Camera button uses it directly.
+  function openPicker(mode: 'camera' | 'attachments') {
     setPlusOpen(false);
-    // Camera: real in-app capture via the native plugin. Only fall back to the
-    // HTML file input when it's unavailable (web / no plugin) — not on cancel.
-    if (mode === 'camera') {
-      const r = await capturePhoto('camera');
-      if (r.status === 'ok') { setAttachments((prev) => [...prev, r.attach].slice(-6)); return; }
-      if (r.status === 'cancel') return;
-    }
-    // Attachments: one picker for photos AND files — the OS sheet offers Photo
-    // Library / Take Photo / Choose File, so both live under a single entry.
     const input = fileRef.current;
     if (!input) return;
     input.value = '';
     if (mode === 'camera') {
       input.multiple = false;
       input.accept = 'image/*';
-      input.setAttribute('capture', 'environment');
+      input.setAttribute('capture', 'environment'); // open the camera, not the menu
     } else {
       input.multiple = true;
       input.accept = 'image/*,application/pdf';
