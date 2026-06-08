@@ -127,11 +127,19 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     if (!t) return;
     pendingConnect.current = id; // open the tool picker once it's connected
     setPicker(false);
+    // Mint a one-time code so the session token never lands in the /start URL
+    // (history/logs/referer). Falls back to the token param if minting fails.
+    let q = `t=${encodeURIComponent(t)}`;
+    try {
+      const r = await fetch(`${CONNECT_API}/connect-init`, { method: 'POST', headers: { authorization: `Bearer ${t}` } });
+      const j = await r.json().catch(() => ({}));
+      if (j?.code) q = `code=${encodeURIComponent(j.code)}`;
+    } catch { /* fall back to token in URL */ }
     if (Capacitor.isNativePlatform()) {
-      await Browser.open({ url: `${CONNECT_API}/start?app=${id}&t=${encodeURIComponent(t)}&native=1` });
+      await Browser.open({ url: `${CONNECT_API}/start?app=${id}&${q}&native=1` });
       return;
     }
-    window.open(`${CONNECT_API}/start?app=${id}&t=${encodeURIComponent(t)}`, '_blank');
+    window.open(`${CONNECT_API}/start?app=${id}&${q}`, '_blank');
     let n = 0;
     const iv = setInterval(async () => {
       n += 1;

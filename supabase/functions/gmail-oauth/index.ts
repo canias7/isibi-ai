@@ -129,6 +129,43 @@ async function verifyUser(token: string | null): Promise<string | null> {
 const api = (path: string, init?: RequestInit) =>
   fetch(`${BASE}${path}`, { ...init, headers: { "x-api-key": API_KEY, "content-type": "application/json", ...(init?.headers ?? {}) } });
 
+// One-time "connect code": a short-lived HMAC token that stands in for the user's
+// access token in the OAuth /start URL, so the real session JWT never lands in a
+// navigable URL (browser history / referer / access logs). Minted by /connect-init
+// (token in the Authorization header), verified by /start. Signed with a
+// server-only key; ~5 min TTL; no DB needed.
+const CODE_TTL_MS = 5 * 60 * 1000;
+function b64url(bytes: Uint8Array): string {
+  let s = ""; for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function unb64url(s: string): Uint8Array {
+  return Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+}
+async function hmacKey(): Promise<CryptoKey> {
+  return crypto.subtle.importKey("raw", new TextEncoder().encode((API_KEY ?? "") + "::gf-connect-code"), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
+}
+async function mintCode(uid: string): Promise<string> {
+  const payload = `${uid}.${Date.now() + CODE_TTL_MS}`;
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", await hmacKey(), new TextEncoder().encode(payload)));
+  return `${b64url(new TextEncoder().encode(payload))}.${b64url(sig)}`;
+}
+async function verifyCode(code: string | null): Promise<string | null> {
+  if (!code) return null;
+  try {
+    const [p, s] = code.split(".");
+    if (!p || !s) return null;
+    const payload = new TextDecoder().decode(unb64url(p));
+    const ok = await crypto.subtle.verify("HMAC", await hmacKey(), unb64url(s), new TextEncoder().encode(payload));
+    if (!ok) return null;
+    const [uid, expStr] = payload.split(".");
+    if (!uid || !expStr || Date.now() > Number(expStr)) return null;
+    return uid;
+  } catch {
+    return null;
+  }
+}
+
 function pickId(o: any): string | null {
   return o?.id ?? o?.uuid ?? o?.nanoid ?? o?.auth_config?.id ?? null;
 }
@@ -580,9 +617,20 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // 1) Kick off the provider's hosted consent (verified via the ?t= token).
+  // 1a) Mint a one-time connect code so the client never puts the session token
+  // in the /start URL. Token comes in the Authorization header (POST).
+  if (path === "connect-init") {
+    const auth = req.headers.get("authorization") || "";
+    const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
+    const uid = await verifyUser(token);
+    if (!uid) return json(req, { error: "unauthorized" });
+    return json(req, { code: await mintCode(uid) });
+  }
+
+  // 1) Kick off the provider's hosted consent. Identity from the one-time ?code=
+  // (preferred) or the legacy ?t= access token (back-compat for older clients).
   if (path === "start") {
-    const uid = await verifyUser(url.searchParams.get("t"));
+    const uid = (await verifyCode(url.searchParams.get("code"))) ?? (await verifyUser(url.searchParams.get("t")));
     if (!uid) return page("⚠️ Please sign in to Go Farther, then try connecting again.");
     if (!toolkit) return page(`⚠️ Unknown app: ${app}`);
     try {
