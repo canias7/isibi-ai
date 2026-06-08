@@ -48,6 +48,13 @@ export const IconConnectors = ({ size }: { size?: number }) => (
     <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" />
   </Svg>
 );
+export const IconBank = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M3 10 12 4l9 6" />
+    <path d="M5 10v8M9 10v8M15 10v8M19 10v8" />
+    <path d="M3 21h18" />
+  </Svg>
+);
 
 export const IconSettings = ({ size }: { size?: number }) => (
   <Svg size={size}>
