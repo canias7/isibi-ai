@@ -283,7 +283,7 @@ Do NOT ask when:
 - Give each option a short label, plus a one-line description when it adds clarity. Give each question a 1-2 word header (e.g. "Account", "Scope").
 - Keep questions short and plain — no jargon, don't restate the whole request.
 - Never re-ask something already answered earlier in the conversation.
-You have already asked ${askedCount} time(s). KEEP ASKING until you have everything you need to build a workflow that will actually run (the right account, recipient, scope, and only connected apps) — but never re-ask what's already been answered. Don't emit a half-working workflow just to avoid a question.
+KEEP ASKING until you have everything you need to build a workflow that will actually run (the right account, recipient, scope, and only connected apps) — but never re-ask what's already been answered. Don't emit a half-working workflow just to avoid a question.
 
 ## When building, call emit_workflow
 - The FIRST node is the trigger: kind "trigger", app "schedule" (time-based) or "event" (fires when something new arrives in an app).
@@ -301,7 +301,12 @@ Request: "When an email from my boss arrives, Slack me a one-line summary." (Gma
   const reqBody: Record<string, unknown> = {
     model: MODEL,
     max_tokens: 3000,
-    system,
+    // Cache the static design instructions + tools (stable within a build
+    // conversation); keep the per-turn ask count in a separate uncached block.
+    system: [
+      { type: "text", text: system, cache_control: { type: "ephemeral" } },
+      { type: "text", text: `So far you have asked ${askedCount} clarifying question(s) in this conversation.` },
+    ],
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     tools: [ASK_TOOL, EMIT_TOOL],
     // Never FORCE a build — a forced build can produce a workflow that won't run.

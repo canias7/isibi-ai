@@ -153,7 +153,8 @@ Be strictly honest about each step's outcome: if a step needs an app/tool you do
   if (apps.length) {
     const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(uid)}&mem=0`;
     reqBody.mcp_servers = [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }];
-    reqBody.tools = [{ type: "mcp_toolset", mcp_server_name: "connectors" }];
+    // cache_control caches the (large) MCP tool schemas across the model's tool-use turns.
+    reqBody.tools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
     extra["anthropic-beta"] = "mcp-client-2025-11-20";
   }
   const res = await fetch("https://api.anthropic.com/v1/messages", {
