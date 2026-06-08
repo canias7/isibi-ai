@@ -198,7 +198,9 @@ Example: [{"id":"199c1f2a7b8e4d10","line":"Invoice #4521 from Acme"},{"id":"199c
     system,
     messages: [{ role: "user", content: `Condition to watch for: ${filter}\nList the most recent matching items right now.` }],
     mcp_servers: [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }],
-    tools: [{ type: "mcp_toolset", mcp_server_name: "connectors" }],
+    // cache_control caches the (large) MCP tool schemas across the model's
+    // internal tool-use turns and across back-to-back runs for the same user.
+    tools: [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }],
   };
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -249,7 +251,7 @@ Example result: "Sent your morning digest — 12 unread emails grouped by sender
   if (apps.length) {
     const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(uid)}&mem=0`;
     reqBody.mcp_servers = [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }];
-    reqBody.tools = [{ type: "mcp_toolset", mcp_server_name: "connectors" }];
+    reqBody.tools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
     extra["anthropic-beta"] = "mcp-client-2025-11-20";
   }
   const res = await fetch("https://api.anthropic.com/v1/messages", {
