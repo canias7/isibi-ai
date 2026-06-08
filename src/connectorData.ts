@@ -73,9 +73,3 @@ export const CONNECTORS: Connector[] = [
 ];
 
 export const byId = (id: string) => CONNECTORS.find((c) => c.id === id);
-
-// Apps surfaced in the Connectors screen for now. Everything else stays defined
-// above (and fully wired on the backend — connected accounts, workflows, byId
-// lookups all keep working) but is hidden from the UI until we've tested it.
-// Widen this set to bring more apps back into the frontend.
-export const VISIBLE_CONNECTOR_IDS = new Set<string>(['gmail', 'm365', 'excel']);

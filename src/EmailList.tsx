@@ -292,7 +292,11 @@ const FRAME_HEAD =
   '<!doctype html><html><head>' +
   // Auto-upgrade insecure http:// images to https:// — otherwise the HTTPS app
   // blocks them as mixed content (many marketing emails use http image URLs).
-  '<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">' +
+  // Lock the email frame down: no scripts/objects/frames/connections, no form
+  // submissions (anti-phishing); only images, inline styles, fonts and media are
+  // allowed so marketing HTML still renders. (Scripts also can't run — the iframe
+  // sandbox omits allow-scripts — this is defense-in-depth.)
+  '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src http: https: data:; style-src \'unsafe-inline\'; font-src http: https: data:; media-src http: https: data:; base-uri \'none\'; form-action \'none\'; upgrade-insecure-requests">' +
   '<meta name="viewport" content="width=device-width,initial-scale=1">' +
   '<base target="_blank"><style>html,body{margin:0}body{padding:12px;background:#fff;color:#111;' +
   'font:14px/1.55 -apple-system,system-ui,sans-serif;word-break:break-word;overflow-x:hidden}' +
