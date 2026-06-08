@@ -1019,11 +1019,13 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .memg-top { position: relative; flex-shrink: 0; padding: 12px 16px 8px; text-align: center; z-index: 2; }
 .memg-title { font-size: 19px; font-weight: 700; margin: 0; }
 .memg-sub { font-size: 13px; color: var(--text-dim); margin: 4px 0 0; }
-/* Absolute controls must clear the safe area / Dynamic Island themselves
-   (absolute positioning ignores the root's safe-area padding). */
+/* These controls sit inside .memg-top, which is already pushed below the safe
+   area by .memg's padding-top — so they offset from the header, not the screen
+   top (adding env(safe-area-inset-top) here would double-count and shove them
+   down into the content). */
 .memg-close {
   position: absolute;
-  top: calc(env(safe-area-inset-top) + 8px); right: 14px;
+  top: 8px; right: 14px;
   width: 34px; height: 34px;
   border: none; background: rgba(255, 255, 255, 0.06);
   color: var(--text);
@@ -1034,7 +1036,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .memg-close:active { background: rgba(255, 255, 255, 0.14); }
 .memg-back {
   position: absolute;
-  top: calc(env(safe-area-inset-top) + 8px); left: 14px;
+  top: 8px; left: 14px;
   width: 34px; height: 34px;
   border: none; background: rgba(255, 255, 255, 0.06);
   color: var(--text);
@@ -1045,7 +1047,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .memg-back:active { background: rgba(255, 255, 255, 0.14); }
 .memg-toggle {
   position: absolute;
-  top: calc(env(safe-area-inset-top) + 13px); right: 58px;
+  top: 13px; right: 58px;
   border: none; background: transparent; padding: 0;
   cursor: pointer;
   display: grid; place-items: center;
@@ -1660,7 +1662,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 /* flush top-right corner button (Projects / run history) */
 .wfx-corner {
   position: absolute;
-  top: calc(env(safe-area-inset-top) + 8px); right: 14px;
+  top: 8px; right: 14px;
   width: 34px; height: 34px;
   border: none; background: rgba(255, 255, 255, 0.06);
   color: var(--text); border-radius: 50%;
