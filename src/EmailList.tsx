@@ -322,6 +322,10 @@ function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fa
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [lightbox, setLightbox] = useState<string | null>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
+  // Call the latest onMeta via a ref so the fetch effect depends only on id/app
+  // (not the callback's identity) — otherwise it would re-fetch on every render.
+  const onMetaRef = useRef(onMeta);
+  onMetaRef.current = onMeta;
 
   useEffect(() => {
     let alive = true;
@@ -330,7 +334,7 @@ function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fa
       try {
         const r = await fetchEmailHtml(id, app);
         if (!alive) return;
-        onMeta?.(r.meta);
+        onMetaRef.current?.(r.meta);
         setAtts(r.attachments);
         setHtml(r.html);
         setStatus(r.html ? 'ok' : 'fail');

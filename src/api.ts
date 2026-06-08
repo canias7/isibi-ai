@@ -70,6 +70,7 @@ export interface Attach {
 export interface ChatMessage {
   role: Role;
   content: string;
+  id?: string; // stable client-side id, used as the React list key
   attachments?: Attach[];
   failed?: boolean;  // a turn whose connection dropped — shows a retry/refresh affordance
   offline?: boolean; // the drop happened while genuinely offline (vs. backgrounded mid-reply)
