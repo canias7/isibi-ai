@@ -243,7 +243,7 @@ export async function listWorkflows(): Promise<Workflow[]> {
   }
 }
 
-export async function createWorkflow(title: string, instruction: string, trigger: Trigger, graph?: WfGraph | null): Promise<Workflow | null> {
+export async function createWorkflow(title: string, instruction: string, trigger: Trigger, graph?: WfGraph | null, enabled = false): Promise<Workflow | null> {
   try {
     const { data: s } = await supabase.auth.getSession();
     const uid = s.session?.user.id;
@@ -252,7 +252,7 @@ export async function createWorkflow(title: string, instruction: string, trigger
       user_id: uid,
       title: title || instruction.slice(0, 40),
       instruction,
-      enabled: true,
+      enabled,
       trigger_type: trigger.type,
       schedule: trigger.type === 'schedule' ? trigger.schedule : null,
       event: trigger.type === 'event' ? trigger.event : null,

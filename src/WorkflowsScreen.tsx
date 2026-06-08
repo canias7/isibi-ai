@@ -281,9 +281,8 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
         initial={draft}
         mode="draft"
         connApps={connApps}
-        onClose={() => setDraft(null)}
-        onSaved={() => { setDraft(null); setView('projects'); void load(); }}
-        onDeleted={() => setDraft(null)}
+        onClose={() => { setDraft(null); setView('projects'); void load(); }}
+        onDeleted={() => { setDraft(null); setView('projects'); void load(); }}
       />
     );
   }
@@ -295,9 +294,9 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
         initial={{ title: open.title, instruction: open.instruction, trigger: triggerOf(open), graph: open.graph ?? emptyGraph(open) }}
         mode="saved"
         wfId={open.id}
+        enabled={open.enabled}
         connApps={connApps}
-        onClose={() => setOpen(null)}
-        onSaved={() => { setOpen(null); void load(); }}
+        onClose={() => { setOpen(null); void load(); }}
         onDeleted={() => { setOpen(null); void load(); }}
       />
     );
@@ -474,9 +473,9 @@ function emptyGraph(w: Workflow): WfGraph {
 }
 
 // ---- The editable canvas screen (draft or saved) ----------------------------
-function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }: {
-  initial: Work; mode: 'draft' | 'saved'; wfId?: string; connApps: string[];
-  onClose: () => void; onSaved: () => void; onDeleted: () => void;
+function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false, onClose, onDeleted }: {
+  initial: Work; mode: 'draft' | 'saved'; wfId?: string; connApps: string[]; enabled?: boolean;
+  onClose: () => void; onDeleted: () => void;
 }) {
   const [title, setTitle] = useState(initial.title);
   const [trigger, setTrigger] = useState<Trigger>(initial.trigger);
@@ -488,9 +487,15 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
   const [testing, setTesting] = useState(false);
   const [edgeState, setEdgeState] = useState<'idle' | 'run' | 'pass' | 'fail'>('idle');
   const [results, setResults] = useState<Record<string, NodeResult>>({}); // per-node test outcomes
+  const [enabled, setEnabled] = useState(enabledInit);             // live on/off (top-right toggle)
+  const [savedId, setSavedId] = useState<string | undefined>(wfId); // workflow id once persisted
+  const savedIdRef = useRef<string | undefined>(wfId);
+  savedIdRef.current = savedId;
+  const creatingRef = useRef(false); // guards against a double create on first save
+  const initedRef = useRef(false);   // skip the very first auto-save effect run
 
   // Modal-lock is owned by the parent WorkflowsScreen (this renders inside it).
-  useEffect(() => { if (wfId) void listRuns(wfId).then(setRuns); }, [wfId]);
+  useEffect(() => { if (savedId) void listRuns(savedId).then(setRuns); }, [savedId]);
 
   const selNode = sel ? graph.nodes.find((n) => n.id === sel) ?? null : null;
 
@@ -515,16 +520,26 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
     if (!inst.trim()) return;
     const steps = orderedNodes(graph).filter((n) => n.kind !== 'trigger').map((n) => ({ id: n.id, label: n.label }));
     setTesting(true); setEdgeState('run'); setResults({});
-    const r = await testWorkflow(inst, mode === 'saved' ? wfId : undefined, steps);
+    const r = await testWorkflow(inst, savedIdRef.current, steps);
     setTesting(false);
     if (!r) { setEdgeState('fail'); return; }
     const map: Record<string, NodeResult> = {};
     for (const s of r.steps) map[s.id] = { ok: s.ok, output: s.output };
+    // Guard against hallucinated success: a step whose app isn't actually
+    // connected can't have run (the model has no tool for it, so it may claim a
+    // fake "done"). Override those deterministically so they never show green.
+    for (const n of orderedNodes(graph)) {
+      if (n.kind === 'trigger') continue;
+      const c = byId(n.app); // defined only for real connectors (not ai/decision/etc.)
+      if (c && !connApps.includes(n.app)) {
+        map[n.id] = { ok: false, output: `${c.name} isn't connected — connect it first.` };
+      }
+    }
     setResults(map);
     // With per-node results we color each cable by its target; otherwise fall
     // back to a single overall pass/fail.
     setEdgeState(r.steps.length ? 'idle' : r.ok ? 'pass' : 'fail');
-    if (wfId) void listRuns(wfId).then(setRuns); // run is saved to history (future Logs)
+    if (savedIdRef.current) void listRuns(savedIdRef.current).then(setRuns); // run saved to history
   }
   function applyTrigger(t: Trigger) {
     setTrigger(t);
@@ -533,20 +548,46 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
     if (tn) patchNode(tn.id, { app: t.type });
   }
 
-  async function save() {
-    if (busy) return;
-    setBusy(true);
+  // Persist the current state — create the workflow on first save (new drafts
+  // start OFF), update it thereafter. Saving is automatic (no button); the
+  // top-right toggle controls whether it's live.
+  async function persist(extra: { enabled?: boolean } = {}) {
     const instruction = compileInstruction(title.trim(), graph);
-    const ok = mode === 'draft'
-      ? !!(await createWorkflow(title.trim(), instruction, trigger, graph))
-      : wfId ? await updateWorkflow(wfId, { title: title.trim(), instruction, trigger, graph }) : false;
-    setBusy(false);
-    if (ok) onSaved();
+    if (savedIdRef.current) {
+      await updateWorkflow(savedIdRef.current, { title: title.trim(), instruction, trigger, graph, ...extra });
+    } else if (!creatingRef.current) {
+      creatingRef.current = true;
+      const w = await createWorkflow(title.trim(), instruction, trigger, graph, extra.enabled ?? enabled);
+      if (w) { savedIdRef.current = w.id; setSavedId(w.id); }
+      creatingRef.current = false;
+    }
   }
+
+  // Create a fresh draft once on open so it persists without a Save button.
+  useEffect(() => {
+    if (mode === 'draft' && !savedIdRef.current) void persist();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Debounced auto-save on any edit (skips the initial mount run).
+  useEffect(() => {
+    if (!initedRef.current) { initedRef.current = true; return; }
+    const t = setTimeout(() => { void persist(); }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, trigger, graph]);
+
+  // Top-right toggle: flip live on/off (persists immediately).
+  async function toggleEnabled() {
+    const next = !enabled;
+    setEnabled(next);
+    await persist({ enabled: next });
+  }
+
   async function remove() {
-    if (!wfId || busy) return;
+    const id = savedIdRef.current;
+    if (!id || busy) return;
     setBusy(true);
-    const ok = await deleteWorkflow(wfId);
+    const ok = await deleteWorkflow(id);
     setBusy(false);
     if (ok) onDeleted();
   }
@@ -559,26 +600,31 @@ function PlanView({ initial, mode, wfId, connApps, onClose, onSaved, onDeleted }
           <input className="wfx-title-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Untitled workflow" maxLength={80} />
           <p className="memg-sub">{mode === 'draft' ? 'Draft · tap a step to edit' : 'Tap a step to edit'}</p>
         </div>
-        <button className="wfx-test" onClick={() => void test()} disabled={testing} aria-label="Test workflow">
-          {testing ? <span className="wfx-spin-l" /> : <IconPlay size={14} />}
-          <span>{testing ? 'Testing' : 'Test'}</span>
-        </button>
+        <div className="wfx-top-actions">
+          <span className="wfx-onoff">
+            <span className="wfx-onoff-label">{enabled ? 'On' : 'Off'}</span>
+            <span className={`tgl ${enabled ? 'on' : ''}`} role="switch" aria-checked={enabled}
+              aria-label={enabled ? 'Turn workflow off' : 'Turn workflow on'}
+              onClick={() => void toggleEnabled()}><span className="tgl-knob" /></span>
+          </span>
+          <button className="wfx-test" onClick={() => void test()} disabled={testing} aria-label="Test workflow">
+            {testing ? <span className="wfx-spin-l" /> : <IconPlay size={14} />}
+            <span>{testing ? 'Testing' : 'Test'}</span>
+          </button>
+        </div>
       </div>
 
       <Canvas graph={graph} results={results} onChange={(g) => { setGraph(g); clearTest(); }} onSelect={setSel} edgeState={edgeState} />
 
-      {/* Bottom action bar */}
+      {/* Bottom action bar — saving is automatic; the top-right toggle turns it live */}
       <div className="wfx-bar">
-        {mode === 'saved' && (
+        <span className="wfx-bar-status"><IconCheck size={15} /> Changes save automatically</span>
+        {savedId && (
           <button className="wfx-bar-hist" onClick={() => setShowRuns(true)} disabled={busy} aria-label="Run history"><IconClock size={18} /></button>
         )}
-        {mode === 'saved' && (
+        {savedId && (
           <button className="wfx-bar-del" onClick={() => void remove()} disabled={busy} aria-label="Delete workflow"><IconTrash size={18} /></button>
         )}
-        <button className="wfx-bar-save" onClick={() => void save()} disabled={busy}>
-          <IconCheck size={18} />
-          {mode === 'draft' ? 'Looks good — Save & turn on' : 'Save changes'}
-        </button>
       </div>
 
       {selNode && (

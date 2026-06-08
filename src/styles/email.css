@@ -652,7 +652,8 @@
 .wfx-zoom button:active { background: rgba(255, 255, 255, 0.14); }
 
 /* bottom action bar */
-.wfx-bar { flex-shrink: 0; display: flex; gap: 10px; padding: 10px 16px calc(14px + env(safe-area-inset-bottom)); z-index: 3; }
+.wfx-bar { flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 10px 16px calc(14px + env(safe-area-inset-bottom)); z-index: 3; }
+.wfx-bar-status { flex: 1; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255, 255, 255, 0.5); }
 .wfx-bar-save {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
   border: none; border-radius: 14px; padding: 14px;
@@ -688,8 +689,14 @@
 .wfx-app-ic img { width: 16px; height: 16px; object-fit: contain; }
 
 /* Test button + result banner */
-.wfx-test {
+/* Top-right cluster: live on/off toggle + Test button */
+.wfx-top-actions {
   position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 14px;
+  display: flex; align-items: center; gap: 10px; z-index: 3;
+}
+.wfx-onoff { display: inline-flex; align-items: center; gap: 6px; }
+.wfx-onoff-label { font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, 0.55); min-width: 18px; text-align: right; }
+.wfx-test {
   display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
   border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.08);
   color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
