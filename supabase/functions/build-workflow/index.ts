@@ -377,7 +377,10 @@ You have already asked ${askedCount} time(s); ask at most twice total, then buil
     // (silently). Fall back to the first connected app, else to a daily schedule.
     const ev = (trigger.event && typeof trigger.event === "object") ? trigger.event : {};
     let app = String(ev.app || "");
-    if (!APP_TO_SLUG[app] || !apps.includes(app)) app = apps[0] || "";
+    // Keep a valid connector id even if it isn't connected yet (the runner just
+    // waits until the user connects it). Only replace an empty/unknown app — never
+    // silently switch the trigger to a different app.
+    if (!APP_TO_SLUG[app]) app = apps[0] || "";
     if (app) trigger.event = { app, filter: String(ev.filter || "") };
     else { trigger.type = "schedule"; trigger.schedule = { freq: "daily", hour: 8, minute: 0, weekday: 1, tz }; }
   }
