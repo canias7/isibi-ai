@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import Markdown from './Markdown';
 import {
   EmailList, EmailSkeleton, EmailDetail, EmailDetailSkeleton, ContactsList, ReceiptCard,
@@ -39,7 +40,11 @@ function firstFence(text: string) {
     : { before, lang, content: body.slice(0, close), after: body.slice(close + 3), closed: true };
 }
 
-export default function AssistantMessage(
+// Memoised: this does real work per render (regex scans, JSON parse, markdown).
+// With a stable `onOpen` (App wraps it in useCallback) and unchanged `text`,
+// memo lets every non-streaming message skip re-rendering when the parent
+// re-renders (e.g. on every composer keystroke) — that's the anti-jank win.
+function AssistantMessage(
   { text, streaming, onOpen }: { text: string; streaming: boolean; onOpen?: (it: EmailItem) => void },
 ) {
   // Transient tool-activity markers the server streams while it works
@@ -139,3 +144,5 @@ export default function AssistantMessage(
     </>
   );
 }
+
+export default memo(AssistantMessage);

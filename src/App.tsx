@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { streamChat, sendTestPush, extractMemory, type ChatMessage, type Attach } from './api';
 import { supabase } from './supabase';
@@ -17,6 +17,7 @@ import { tap } from './haptics';
 import { biometryAvailable, unlock } from './biometric';
 import { registerPush, pushStatus } from './push';
 import { fileToAttachment } from './attach';
+import { slimMessages, isNetworkError, serverIsMoreComplete, titleFrom, cleanForDisplay, modelShort, plainText } from './chatUtils';
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -43,14 +44,6 @@ function loadChats(uid: string): Conversation[] {
   } catch {
     return [];
   }
-}
-
-// Drop heavy base64 from attachments (keep the meta so a chip still renders) —
-// used before persisting locally and syncing, to avoid bloating storage/DB.
-function slimMessages(messages: ChatMessage[]): ChatMessage[] {
-  return messages.map((m) =>
-    m.attachments?.length ? { ...m, attachments: m.attachments.map((a) => ({ ...a, data: '' })) } : m,
-  );
 }
 
 function saveChats(uid: string, chats: Conversation[]) {
@@ -86,33 +79,6 @@ async function copyText(s: string): Promise<boolean> {
     document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
     return true;
   } catch { return false; }
-}
-
-// A fetch/connectivity failure (vs. a real API/HTTP error) — used to queue a
-// send for retry instead of showing a hard error.
-function isNetworkError(e: unknown): boolean {
-  if (e instanceof TypeError) return true; // fetch network failures are TypeErrors
-  const m = (e instanceof Error ? e.message : String(e)).toLowerCase();
-  return /network|failed to fetch|load failed|connection|offline|err_internet/.test(m);
-}
-
-// Is the server's copy of a conversation a *more complete* version of what we
-// hold locally? True when it has more messages, or the same turns but a finished
-// assistant reply where ours is still empty/failed. This lets resume + retry
-// adopt a turn the backend completed while we were disconnected — instead of
-// re-running it, which would duplicate any action it performed (a second send, a
-// second delete). A shorter or empty server copy is never "more complete".
-function serverIsMoreComplete(local: ChatMessage[], remote: ChatMessage[]): boolean {
-  if (remote.length === 0) return false;
-  if (remote.length > local.length) return true;
-  if (remote.length < local.length) return false;
-  const ours = local[local.length - 1];
-  const theirs = remote[remote.length - 1];
-  if (!theirs || theirs.role !== 'assistant' || theirs.content.trim() === '') return false; // server has no real reply yet
-  if (!ours || ours.role !== 'assistant' || ours.failed) return true; // ours is missing/failed
-  // Same turn, both assistant: adopt if the server's reply is more complete than
-  // ours — ours was empty, or only partially streamed before we disconnected.
-  return theirs.content.trim().length > ours.content.trim().length;
 }
 
 // ---- Cloud sync (conversations table, RLS-scoped to this user) ----
@@ -173,38 +139,12 @@ function AttView({ a }: { a: Attach }) {
   );
 }
 
-function titleFrom(messages: ChatMessage[]): string {
-  const first = messages.find((m) => m.role === 'user');
-  const t = (first?.content ?? '').trim().replace(/\s+/g, ' ');
-  return t ? (t.length > 42 ? t.slice(0, 42) + '…' : t) : 'New chat';
-}
-
 function cid(): string {
   try {
     return crypto.randomUUID();
   } catch {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
-}
-
-// Hide the internal "open email" marker from the user's chat bubble.
-function cleanForDisplay(s: string): string {
-  return s.replace(/\s*\[\[gfid:[^\]]*\]\]/g, '');
-}
-
-// Short label for the model that answered (from the x-gf-model header).
-function modelShort(m: string): string {
-  if (/haiku/i.test(m)) return 'haiku';
-  if (/sonnet/i.test(m)) return 'sonnet';
-  if (/opus/i.test(m)) return 'opus';
-  return m.replace(/^claude-/, '');
-}
-
-// The copyable plain text of an assistant reply — strips rich card blocks and
-// the internal marker, so "Copy" yields readable text (and is hidden for a
-// card-only reply where there's nothing to copy).
-function plainText(s: string): string {
-  return s.replace(/```gf[\s\S]*?```/g, '').replace(/\[\[gf(id|status):[^\]]*\]\]/g, '').trim();
 }
 
 // Flip to `true` to show the email/password login screen. When `false`, the app
@@ -296,6 +236,7 @@ export default function App() {
   const faceIdRef = useRef(faceId);
   faceIdRef.current = faceId;
   const lockRef = useRef<() => void>(() => {});
+  const sendTextRef = useRef<(raw: string, atts?: Attach[]) => Promise<void>>(async () => {}); // latest sendText, for the stable openEmail callback
   const [notif, setNotif] = useState(() => { try { return localStorage.getItem('gf_notif') === '1'; } catch { return false; } });
 
   // ---- Per-session connectors ----
@@ -507,7 +448,7 @@ export default function App() {
   // message). An empty assistant bubble is appended for the streamed reply.
   async function runTurn(history: ChatMessage[]) {
     dirtyRef.current = true; // a real turn — the persist effect should save it
-    setMessages([...history, { role: 'assistant', content: '' }]);
+    setMessages([...history, { role: 'assistant', content: '', id: cid() }]);
     setBusy(true);
 
     const controller = new AbortController();
@@ -617,9 +558,10 @@ export default function App() {
   async function sendText(raw: string, atts: Attach[] = []) {
     const text = raw.trim();
     if ((!text && atts.length === 0) || busy) return;
-    const userMsg: ChatMessage = { role: 'user', content: text, ...(atts.length ? { attachments: atts } : {}) };
+    const userMsg: ChatMessage = { role: 'user', content: text, id: cid(), ...(atts.length ? { attachments: atts } : {}) };
     await runTurn([...messages, userMsg]);
   }
+  sendTextRef.current = sendText;
 
   // Adopt the server's copy of a chat (a turn it finished while we were
   // disconnected). Always updates the saved list; only swaps the visible
@@ -799,12 +741,15 @@ export default function App() {
 
   // Tapping an email card opens it: send a hidden "open by id" instruction so the
   // assistant fetches that exact message and renders the reader card.
-  function openEmail(item: EmailItem) {
-    if (busy) return;
+  // Stable identity (empty deps) so memo(AssistantMessage) can skip re-renders
+  // on unrelated state changes (e.g. every composer keystroke); reads the latest
+  // busy/sendText via refs to avoid a stale closure.
+  const openEmail = useCallback((item: EmailItem) => {
+    if (busyRef.current) return;
     const label = (item.subject || '').trim() || item.from || 'this email';
     const marker = item.id ? ` [[gfid:${item.id}]]` : '';
-    void sendText(`Open this email: ${label}${marker}`);
-  }
+    void sendTextRef.current(`Open this email: ${label}${marker}`);
+  }, []);
 
   // Stop any in-flight reply before changing/leaving the conversation, so its
   // streamed tokens can't land in a different chat.
@@ -1165,7 +1110,7 @@ export default function App() {
                   const thinking = streamingHere
                     && !m.content.replace(/\[\[gfstatus:[^\]]*\]\]/g, '').replace(/\[\[gfstatus[^\]]*$/, '').trim();
                   return (
-                    <div key={i} className={`msg ${m.role}`}>
+                    <div key={m.id ?? i} className={`msg ${m.role}`}>
                       <div className="bubble">
                         {m.role === 'assistant' ? (
                           m.failed ? (
