@@ -2051,6 +2051,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .cg-connect { flex-shrink: 0; border: 1px solid rgba(255, 255, 255, 0.18); background: transparent; color: var(--text); font: inherit; font-size: 14px; font-weight: 600; padding: 8px 16px; border-radius: 16px; cursor: pointer; }
 .cg-connect:active { background: rgba(255, 255, 255, 0.08); }
 .cg-connected-tag { flex-shrink: 0; font-size: 13px; font-weight: 600; color: #6fe09a; }
+.cg-pick-empty { text-align: center; color: var(--text-dim); font-size: 14px; padding: 40px 16px; }
 
 /* tapped-app action sheet */
 .cg-sheet-backdrop { position: fixed; inset: 0; z-index: 250; background: rgba(0, 0, 0, 0.5); animation: memgIn 0.15s ease; }

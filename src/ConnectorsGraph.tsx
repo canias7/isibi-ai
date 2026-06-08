@@ -338,23 +338,19 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
             <span style={{ width: 40 }} />
           </div>
           <div className="cg-pick-body">
-            {CATALOG.map((c) => {
-              const on = !!status[c.id]?.connected;
-              return (
-                <div className="cg-row" key={c.id}>
-                  <span className="cg-row-tile"><Tile id={c.id} size={24} /></span>
-                  <div className="cg-row-meta">
-                    <div className="cg-row-name">{c.name}</div>
-                    <div className="cg-row-desc">{c.desc}</div>
-                  </div>
-                  {on ? (
-                    <span className="cg-connected-tag">✓ Connected</span>
-                  ) : (
-                    <button className="cg-connect" onClick={() => void connect(c.id)}>Connect</button>
-                  )}
+            {CATALOG.filter((c) => !status[c.id]?.connected).map((c) => (
+              <div className="cg-row" key={c.id}>
+                <span className="cg-row-tile"><Tile id={c.id} size={24} /></span>
+                <div className="cg-row-meta">
+                  <div className="cg-row-name">{c.name}</div>
+                  <div className="cg-row-desc">{c.desc}</div>
                 </div>
-              );
-            })}
+                <button className="cg-connect" onClick={() => void connect(c.id)}>Connect</button>
+              </div>
+            ))}
+            {CATALOG.every((c) => status[c.id]?.connected) && (
+              <div className="cg-pick-empty">Everything's connected — you're all set.</div>
+            )}
           </div>
         </div>
       )}
