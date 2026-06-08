@@ -161,8 +161,11 @@ const SEL = 'id,title,instruction,trigger_type,schedule,event,graph,enabled,next
 // One turn in the build conversation. assistant turns are the clarifying
 // questions the builder asked; user turns are the request and the answers.
 export interface BuildMsg { role: 'user' | 'assistant'; text: string }
-// A clarifying question; options (when present) render as tappable chips.
-export interface AskQuestion { text: string; options?: string[] }
+// A tappable choice for a clarifying question.
+export interface AskOption { label: string; description?: string }
+// A clarifying question; multiple-choice when it has options (the UI also adds
+// an "Other" choice). `header` is a short category label (e.g. "Account").
+export interface AskQuestion { text: string; header?: string; options?: AskOption[] }
 // The builder either needs more info (questions) or has a finished draft.
 export type BuildResult =
   | { kind: 'questions'; questions: AskQuestion[] }
@@ -184,12 +187,27 @@ export async function buildWorkflow(messages: BuildMsg[]): Promise<BuildResult |
     if (Array.isArray(d.questions)) {
       const qs: AskQuestion[] = (d.questions as unknown[])
         .map((q) => {
-          const o = q as { text?: unknown; question?: unknown; options?: unknown } | string;
+          const o = q as { text?: unknown; question?: unknown; header?: unknown; options?: unknown } | string;
           const text = String((typeof o === 'object' && o ? (o.text ?? o.question) : o) ?? '').trim();
-          const options = typeof o === 'object' && o && Array.isArray(o.options)
-            ? o.options.map((x) => String(x ?? '').trim()).filter(Boolean)
-            : undefined;
-          return options && options.length ? { text, options } : { text };
+          const header = typeof o === 'object' && o ? String(o.header ?? '').trim() : '';
+          const options: AskOption[] = typeof o === 'object' && o && Array.isArray(o.options)
+            ? o.options
+                .map((x): AskOption | null => {
+                  if (x && typeof x === 'object') {
+                    const opt = x as { label?: unknown; value?: unknown; description?: unknown };
+                    const label = String(opt.label ?? opt.value ?? '').trim();
+                    const description = String(opt.description ?? '').trim();
+                    return label ? (description ? { label, description } : { label }) : null;
+                  }
+                  const label = String(x ?? '').trim();
+                  return label ? { label } : null;
+                })
+                .filter((x): x is AskOption => !!x)
+            : [];
+          const out: AskQuestion = { text };
+          if (header) out.header = header;
+          if (options.length) out.options = options;
+          return out;
         })
         .filter((q) => q.text)
         .slice(0, 3);

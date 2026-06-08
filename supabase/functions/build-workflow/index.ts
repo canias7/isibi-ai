@@ -81,24 +81,32 @@ async function connectedApps(uid: string): Promise<string[]> {
 // Two tools: ask clarifying questions, or emit the finished workflow.
 const ASK_TOOL = {
   name: "ask",
-  description: "Ask the user 1-3 SHORT clarifying questions when the request is ambiguous or missing a detail that would change what the workflow does, who it contacts, or which account it uses. Ask EVERYTHING you're unsure about in this single call. Prefer this over guessing on anything that matters.",
+  description: "Ask the user 1-3 SHORT, MULTIPLE-CHOICE clarifying questions when the request is ambiguous or missing a detail that would change what the workflow does, who it contacts, or which account it uses. Ask EVERYTHING you're unsure about in this single call. Prefer this over guessing on anything that matters.",
   input_schema: {
     type: "object",
     properties: {
       questions: {
         type: "array",
-        description: "1-3 concise questions, asked together in one round.",
+        description: "1-3 multiple-choice questions, asked together in one round.",
         items: {
           type: "object",
           properties: {
             question: { type: "string", description: "One short, plain-language question." },
+            header: { type: "string", description: "1-2 word category label for the question (e.g. \"Account\", \"Scope\", \"Recipient\")." },
             options: {
               type: "array",
-              items: { type: "string" },
-              description: "If the answer is a small fixed set of choices, list them here (e.g. [\"Gmail\",\"Outlook\"]) so the user can tap instead of type. Omit for open-ended questions.",
+              description: "2-4 concrete choices the user can tap. The app adds an \"Other\" choice automatically, so never include one yourself.",
+              items: {
+                type: "object",
+                properties: {
+                  label: { type: "string", description: "Short choice text (1-4 words)." },
+                  description: { type: "string", description: "Optional one-line clarification of this choice." },
+                },
+                required: ["label"],
+              },
             },
           },
-          required: ["question"],
+          required: ["question", "header", "options"],
         },
       },
     },
@@ -269,7 +277,8 @@ Do NOT ask when:
 
 ## How to ask (this matters)
 - Gather EVERYTHING you're unsure about and ask it in ONE round. Don't ask, get an answer, then ask again.
-- Make each question specific and easy to answer. When the answer is a small fixed set of choices, put them in "options" (e.g. ["Gmail","Outlook"]) so the user can tap instead of type.
+- Make EVERY question MULTIPLE CHOICE: give 2-4 concrete options the user can tap (the app adds an "Other" choice for anything not listed, so never add one yourself). Only a truly open detail (e.g. an exact email address) may have no options.
+- Give each option a short label, plus a one-line description when it adds clarity. Give each question a 1-2 word header (e.g. "Account", "Scope").
 - Keep questions short and plain — no jargon, don't restate the whole request.
 - Never re-ask something already answered earlier in the conversation.
 You have already asked ${askedCount} time(s); ask at most twice total, then build your best guess with emit_workflow.
@@ -307,16 +316,32 @@ You have already asked ${askedCount} time(s); ask at most twice total, then buil
   const data = await res.json();
   const content = data.content || [];
 
-  // Clarifying questions path. Each question can carry tappable `options`.
+  // Clarifying questions path. Each question is multiple-choice: a header, the
+  // question, and tappable options ({label, description?}). The app adds "Other".
   const ask = content.find((b: any) => b?.type === "tool_use" && b?.name === "ask");
   if (ask?.input?.questions && Array.isArray(ask.input.questions)) {
     const questions = ask.input.questions
       .map((q: any) => {
         const text = String((q && typeof q === "object" ? (q.question ?? q.text) : q) ?? "").trim();
-        const opts = q && typeof q === "object" && Array.isArray(q.options)
-          ? q.options.map((o: any) => String(o ?? "").trim()).filter(Boolean).slice(0, 6)
+        const header = q && typeof q === "object" ? String(q.header ?? "").trim() : "";
+        const options = q && typeof q === "object" && Array.isArray(q.options)
+          ? q.options
+              .map((o: any) => {
+                if (o && typeof o === "object") {
+                  const label = String(o.label ?? o.value ?? "").trim();
+                  const description = String(o.description ?? "").trim();
+                  return label ? (description ? { label, description } : { label }) : null;
+                }
+                const label = String(o ?? "").trim();
+                return label ? { label } : null;
+              })
+              .filter(Boolean)
+              .slice(0, 6)
           : [];
-        return opts.length ? { text, options: opts } : { text };
+        const out: any = { text };
+        if (header) out.header = header;
+        if (options.length) out.options = options;
+        return out;
       })
       .filter((q: { text: string }) => q.text)
       .slice(0, 3);

@@ -170,7 +170,10 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
   const [building, setBuilding] = useState(false);
   const [err, setErr] = useState('');
   const [convo, setConvo] = useState<ChatMsg[]>([]); // back-and-forth while the builder clarifies
+  const [picks, setPicks] = useState<Record<number, string>>({});      // selected option label per question (last turn)
+  const [otherText, setOtherText] = useState<Record<number, string>>({}); // free-text per question when "Other" is picked
   const chatRef = useRef<HTMLDivElement>(null);
+  const OTHER = '__other__';
 
   useEffect(() => {
     document.documentElement.classList.add('gf-modal-open');
@@ -207,14 +210,45 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
     if (!res) { setErr("Couldn't build that — try describing it a little differently."); return; }
     if (res.kind === 'questions') {
       setConvo([...next, { role: 'assistant', text: res.questions.map((q) => q.text).join('\n'), questions: res.questions }]);
+      setPicks({}); setOtherText({}); // fresh form for the new questions
       return;
     }
     setConvo([]);
     setDraft({ title: res.draft.title, instruction: res.draft.instruction, trigger: res.draft.trigger, graph: res.draft.graph });
   }
 
+  function resetConvo() { setConvo([]); setErr(''); setPicks({}); setOtherText({}); }
+
   // The last turn being a question means the user is mid-clarification.
   const awaiting = convo.length > 0 && convo[convo.length - 1].role === 'assistant';
+  // The questions currently being answered (last assistant turn).
+  const lastMsg = convo[convo.length - 1];
+  const lastQs: AskQuestion[] = awaiting
+    ? (lastMsg.questions?.length ? lastMsg.questions : lastMsg.text.split('\n').filter(Boolean).map((t) => ({ text: t })))
+    : [];
+  const answerOf = (i: number): string => {
+    const q = lastQs[i];
+    const openEnded = !(q?.options && q.options.length);
+    if (openEnded || picks[i] === OTHER) return (otherText[i] ?? '').trim();
+    return picks[i] ?? '';
+  };
+  const allAnswered = lastQs.length > 0 && lastQs.every((_q, i) => answerOf(i).length > 0);
+
+  // Tap an option. Single-question multiple-choice submits on tap; otherwise we
+  // collect picks and the user taps Continue.
+  function choose(i: number, label: string) {
+    setPicks((s) => ({ ...s, [i]: label }));
+    if (label !== OTHER && lastQs.length === 1) void send(label);
+  }
+
+  // Turn the picked answers into one message and send it.
+  function submitAnswers() {
+    if (!allAnswered || building) return;
+    const text = lastQs
+      .map((q, i) => (lastQs.length > 1 ? `${q.header || q.text}: ${answerOf(i)}` : answerOf(i)))
+      .join(lastQs.length > 1 ? '\n' : ' ');
+    void send(text);
+  }
 
   async function toggle(w: Workflow) {
     setItems((prev) => prev.map((x) => (x.id === w.id ? { ...x, enabled: !x.enabled } : x)));
@@ -257,7 +291,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
         {view === 'projects' ? (
           <button className="memg-back" onClick={() => setView('home')} aria-label="Back"><IconArrowLeft size={22} /></button>
         ) : convo.length > 0 ? (
-          <button className="memg-back" onClick={() => { setConvo([]); setErr(''); }} aria-label="Start over"><IconArrowLeft size={22} /></button>
+          <button className="memg-back" onClick={resetConvo} aria-label="Start over"><IconArrowLeft size={22} /></button>
         ) : (
           <button className="memg-back" onClick={onClose} aria-label="Close"><IconX size={20} /></button>
         )}
@@ -301,25 +335,53 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
             <div className="wfx-chat" ref={chatRef}>
               {convo.map((m, i) => {
                 const isLast = i === convo.length - 1;
-                const qs: AskQuestion[] = m.role !== 'assistant' ? []
-                  : m.questions?.length ? m.questions
+                if (m.role === 'user') return <div key={i} className="wfx-msg user">{m.text}</div>;
+                const qs: AskQuestion[] = m.questions?.length
+                  ? m.questions
                   : m.text.split('\n').filter(Boolean).map((t) => ({ text: t }));
+                // Older question turns render as plain read-only text.
+                if (!isLast) {
+                  return (
+                    <div key={i} className="wfx-msg assistant">
+                      {qs.map((q, j) => <div key={j} className="wfx-msg-q">{q.text}</div>)}
+                    </div>
+                  );
+                }
+                // Current questions render as a tap-to-answer multiple-choice form.
                 return (
-                  <div key={i} className={`wfx-msg ${m.role}`}>
-                    {m.role === 'assistant'
-                      ? qs.map((q, j) => (
-                          <div key={j} className="wfx-q">
-                            <div className="wfx-msg-q">{q.text}</div>
-                            {isLast && q.options && q.options.length > 0 && (
-                              <div className="wfx-chips">
-                                {q.options.map((opt, k) => (
-                                  <button key={k} className="wfx-chip" onClick={() => void send(opt)} disabled={building}>{opt}</button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))
-                      : m.text}
+                  <div key={i} className="wfx-form">
+                    {qs.map((q, qi) => {
+                      const hasOpts = !!(q.options && q.options.length);
+                      return (
+                        <div key={qi} className="wfx-q">
+                          {q.header && <div className="wfx-q-head">{q.header}</div>}
+                          <div className="wfx-q-text">{q.text}</div>
+                          {hasOpts && (
+                            <div className="wfx-opts">
+                              {q.options!.map((opt, k) => (
+                                <button key={k} className={`wfx-opt ${picks[qi] === opt.label ? 'sel' : ''}`}
+                                  onClick={() => choose(qi, opt.label)} disabled={building}>
+                                  <span className="wfx-opt-label">{opt.label}</span>
+                                  {opt.description && <span className="wfx-opt-desc">{opt.description}</span>}
+                                </button>
+                              ))}
+                              <button className={`wfx-opt wfx-opt-other ${picks[qi] === OTHER ? 'sel' : ''}`}
+                                onClick={() => choose(qi, OTHER)} disabled={building}>
+                                <span className="wfx-opt-label">Other…</span>
+                              </button>
+                            </div>
+                          )}
+                          {(picks[qi] === OTHER || !hasOpts) && (
+                            <input className="wfx-other-input"
+                              value={otherText[qi] ?? ''}
+                              onChange={(e) => setOtherText((s) => ({ ...s, [qi]: e.target.value }))}
+                              onKeyDown={(e) => { if (e.key === 'Enter') submitAnswers(); }}
+                              placeholder="Type your answer…" maxLength={500} disabled={building}
+                              autoFocus={picks[qi] === OTHER} />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}
@@ -337,20 +399,26 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
             </div>
           )}
           <div className="memg-compose-wrap">
-            <div className="memg-compose">
-              <input
-                className="memg-cinput"
-                value={desc}
-                onChange={(e) => setDesc(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') void send(desc); }}
-                placeholder={awaiting ? 'Type your answer…' : 'Describe your workflow…'}
-                maxLength={2000}
-                disabled={building}
-              />
-              <button className="memg-send" onClick={() => void send(desc)} disabled={!desc.trim() || building} aria-label={awaiting ? 'Send' : 'Build'}>
-                {building ? <span className="wfx-spin" /> : <IconArrowUp size={20} />}
+            {awaiting ? (
+              <button className="wfx-continue" onClick={submitAnswers} disabled={!allAnswered || building}>
+                {building ? <span className="wfx-spin" /> : 'Continue'}
               </button>
-            </div>
+            ) : (
+              <div className="memg-compose">
+                <input
+                  className="memg-cinput"
+                  value={desc}
+                  onChange={(e) => setDesc(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') void send(desc); }}
+                  placeholder="Describe your workflow…"
+                  maxLength={2000}
+                  disabled={building}
+                />
+                <button className="memg-send" onClick={() => void send(desc)} disabled={!desc.trim() || building} aria-label="Build">
+                  {building ? <span className="wfx-spin" /> : <IconArrowUp size={20} />}
+                </button>
+              </div>
+            )}
             {building && convo.length === 0 && <div className="memg-reading">Designing your workflow…</div>}
           </div>
         </div>

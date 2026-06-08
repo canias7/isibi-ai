@@ -1710,21 +1710,49 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   border-bottom-left-radius: 6px;
 }
 .wfx-msg-q + .wfx-msg-q { margin-top: 8px; }
-.wfx-q + .wfx-q { margin-top: 12px; }
 @keyframes wfxMsgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-/* Tappable answer chips under a question with discrete options. */
-.wfx-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-.wfx-chip {
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text); font: inherit; font-size: 14px; font-weight: 500;
-  padding: 7px 14px; border-radius: 16px; cursor: pointer;
+/* Multiple-choice answer form (Claude-style tap-to-select). The form spans the
+   full chat width rather than sitting in a chat bubble. */
+.wfx-form { align-self: stretch; width: 100%; display: flex; flex-direction: column; gap: 18px; animation: wfxMsgIn 0.24s ease both; }
+.wfx-q-head { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+.wfx-q-text { font-size: 16px; font-weight: 600; line-height: 1.4; margin-bottom: 10px; }
+.wfx-opts { display: flex; flex-direction: column; gap: 8px; }
+.wfx-opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  width: 100%; text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text); font: inherit;
+  padding: 12px 14px; border-radius: 14px; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
 }
-.wfx-chip:active:not(:disabled) { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.3); }
-.wfx-chip:disabled { opacity: 0.4; cursor: default; }
+.wfx-opt:active:not(:disabled) { transform: scale(0.99); }
+.wfx-opt.sel { border-color: var(--accent, #e0a13a); background: rgba(224, 161, 58, 0.15); }
+.wfx-opt:disabled { opacity: 0.5; cursor: default; }
+.wfx-opt-label { font-size: 15px; font-weight: 600; }
+.wfx-opt-desc { font-size: 13px; color: var(--text-dim); line-height: 1.35; }
+.wfx-opt-other .wfx-opt-label { color: var(--text-dim); font-weight: 500; }
+.wfx-other-input {
+  width: 100%; margin-top: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px; color: var(--text); font: inherit; font-size: 15px; padding: 11px 13px;
+}
+.wfx-other-input:focus { outline: none; border-color: rgba(255, 255, 255, 0.3); }
+.wfx-other-input::placeholder { color: var(--text-dim); }
+
+/* Continue CTA — submits the picked answers (replaces the composer mid-clarify). */
+.wfx-continue {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; max-width: 640px; margin: 0 auto; min-height: 48px;
+  border: none; border-radius: 26px;
+  background: #fff; color: #000; font: inherit; font-size: 16px; font-weight: 600;
+  cursor: pointer; transition: opacity 0.15s ease;
+}
+.wfx-continue:disabled { opacity: 0.35; cursor: default; }
+.wfx-continue:active:not(:disabled) { opacity: 0.8; }
 
 /* Typing dots while the builder thinks. */
 .wfx-typing { display: inline-flex; gap: 4px; align-items: center; padding: 2px 0; }
