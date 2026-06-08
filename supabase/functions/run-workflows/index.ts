@@ -41,14 +41,18 @@ async function expectedSecret(): Promise<string> {
   }
 }
 
-async function connectedToolkits(uid: string): Promise<string[]> {
+// Returns the user's connected toolkit slugs, [] if they genuinely have none, or
+// null if Composio couldn't be reached — callers must treat null as "couldn't
+// check" (skip/retry), NOT as "nothing connected", or an outage looks like the
+// user disconnecting every app.
+async function connectedToolkits(uid: string): Promise<string[] | null> {
   if (!COMPOSIO_API_KEY) return [];
   try {
     const u = new URL("https://backend.composio.dev/api/v3.1/connected_accounts");
     u.searchParams.set("user_ids", uid);
     u.searchParams.set("statuses", "ACTIVE");
     const res = await fetch(u.toString(), { headers: { "x-api-key": COMPOSIO_API_KEY } });
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const body = await res.json();
     const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
     const slugs = items
@@ -57,7 +61,7 @@ async function connectedToolkits(uid: string): Promise<string[]> {
       .filter((s): s is string => !!s);
     return [...new Set(slugs)];
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -205,17 +209,20 @@ async function detectItems(uid: string, ev: any, connectedArg?: string[]): Promi
   const slug = APP_TO_SLUG[ev?.app] || String(ev?.app || "");
   if (!slug) return null; // no/unknown app -> can't watch
   const connected = connectedArg ?? await connectedToolkits(uid);
+  if (!connected) return null;                // couldn't check connections -> skip, don't baseline
   if (!connected.includes(slug)) return null; // can't watch (app not connected) -> skip, don't baseline
   const filter = String(ev?.filter || "").trim() || "any new item";
   const url = `${MCP_URL}?apps=${encodeURIComponent(slug)}&user=${encodeURIComponent(uid)}&mem=0`;
-  const system = `You check whether a trigger condition is currently met in a connected app. Use ONLY the available tools to look up the most recent items that match the user's condition. Then reply with ONLY a compact JSON array (no prose, no markdown, no code fences) of up to 15 items, newest first, each shaped {"id":"<item id>","line":"<short one-line description>"}.
+  // 50, not 15: a windowed trigger can wake after a long gap with a big backlog,
+  // and anything past the cap is never seen or fired.
+  const system = `You check whether a trigger condition is currently met in a connected app. Use ONLY the available tools to look up the most recent items that match the user's condition. Then reply with ONLY a compact JSON array (no prose, no markdown, no code fences) of up to 50 items, newest first, each shaped {"id":"<item id>","line":"<short one-line description>"}.
 
 The "id" MUST be the item's stable, unique identifier exactly as the tool returned it (e.g. a Gmail message id, a calendar event id, a database row id, a Slack message ts) — NOT a subject line, title, date, sender name, or anything you wrote yourself. The SAME item must produce the SAME id every time it's checked, or the trigger will fire repeatedly or miss it. Never invent or reformat an id; if you can't get a real id for an item, leave that item out. If nothing matches, reply exactly [].
 
 Example: [{"id":"199c1f2a7b8e4d10","line":"Invoice #4521 from Acme"},{"id":"199c1f0e5a3b22ff","line":"Reschedule from Sam, Fri 3pm"}]`;
   const reqBody: Record<string, unknown> = {
     model: DETECTOR_MODEL,
-    max_tokens: 1024,
+    max_tokens: 2048,
     system,
     messages: [{ role: "user", content: `Condition to watch for: ${filter}\nList the most recent matching items right now.` }],
     mcp_servers: [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }],
@@ -236,9 +243,15 @@ Example: [{"id":"199c1f2a7b8e4d10","line":"Invoice #4521 from Acme"},{"id":"199c
     if (!m) return null; // couldn't parse a result -> "couldn't check", not "nothing"
     const arr = JSON.parse(m[0]);
     if (!Array.isArray(arr)) return null;
-    return arr
-      .map((x: any) => ({ id: String(x?.id ?? "").trim(), line: String(x?.line ?? "").trim() }))
-      .filter((x: DetectedItem) => x.id);
+    const out: DetectedItem[] = [];
+    const ids = new Set<string>();
+    for (const x of arr) {
+      const id = String(x?.id ?? "").trim();
+      if (!id || ids.has(id)) continue; // skip blanks and duplicate ids
+      ids.add(id);
+      out.push({ id, line: String(x?.line ?? "").trim() });
+    }
+    return out;
   } catch {
     return null;
   }
@@ -247,7 +260,7 @@ Example: [{"id":"199c1f2a7b8e4d10","line":"Invoice #4521 from Acme"},{"id":"199c
 // Run one workflow's instruction through Claude (with the user's connectors).
 async function runInstruction(uid: string, instruction: string, connected?: string[]): Promise<string> {
   if (!ANTHROPIC_KEY) throw new Error("assistant not configured");
-  const apps = connected ?? await connectedToolkits(uid);
+  const apps = connected ?? (await connectedToolkits(uid)) ?? [];
   const memOn = await memoryEnabled(uid);
   const mems = memOn ? await fetchMemories(uid) : []; // respect the user's pause toggle
   const memSys = mems.length
@@ -286,10 +299,12 @@ Example result: "Sent your morning digest — 12 unread emails grouped by sender
   return text || "(no output)";
 }
 
-async function patchWorkflow(id: string, fields: Record<string, unknown>): Promise<void> {
+async function patchWorkflow(id: string, fields: Record<string, unknown>): Promise<boolean> {
   try {
-    await fetch(`${SB_URL}/rest/v1/workflows?id=eq.${id}`, { method: "PATCH", headers: { ...sbHeaders, prefer: "return=minimal" }, body: JSON.stringify(fields) });
-  } catch { /* best effort */ }
+    const r = await fetch(`${SB_URL}/rest/v1/workflows?id=eq.${id}`, { method: "PATCH", headers: { ...sbHeaders, prefer: "return=minimal" }, body: JSON.stringify(fields) });
+    if (!r.ok) { console.error(`patchWorkflow ${id} -> ${r.status}`); return false; }
+    return true;
+  } catch (e) { console.error(`patchWorkflow ${id} failed:`, e); return false; }
 }
 async function insertRun(workflowId: string, uid: string, result: string, ok: boolean): Promise<void> {
   try {
@@ -324,6 +339,11 @@ Deno.serve(async (req: Request) => {
       // First time we've seen it: we just scheduled its first run — don't fire now.
       if (!wf.next_run_at) { init++; return; }
       const connected = await connectedToolkits(wf.user_id);
+      if (connected === null) { // Composio unreachable — don't mislabel as "not connected"
+        await insertRun(wf.id, wf.user_id, "Couldn't check your connected apps just now — will try again next run.", false);
+        await patchWorkflow(wf.id, { last_run_at: nowIso });
+        failed++; return;
+      }
       const missing = neededApps(wf.graph).filter((a) => !connected.includes(APP_TO_SLUG[a]));
       let text: string, ok: boolean, notify = true;
       if (missing.length) {
@@ -365,6 +385,7 @@ Deno.serve(async (req: Request) => {
           const evApp = String(wf.event?.app || "");
           const slug = APP_TO_SLUG[evApp] || "";
           const connected = await connectedToolkits(wf.user_id);
+          if (connected === null) continue; // couldn't check connections — try next tick (don't baseline/notify)
           // Trigger's own app is disconnected: tell the user (at most once/day), then skip.
           if (slug && !connected.includes(slug)) {
             const dcAt = wf.cursor?.dcAt ? new Date(wf.cursor.dcAt).getTime() : 0;
@@ -407,7 +428,12 @@ Deno.serve(async (req: Request) => {
           }
           // Remember everything currently seen (fresh + prior), capped — even on failure, so it doesn't re-fire endlessly.
           const merged = [...fresh.map((i) => i.id), ...seen].slice(0, 200);
-          await patchWorkflow(wf.id, { cursor: { seen: merged }, last_run_at: nowIso });
+          // The fire already took outward actions; a dropped cursor write would re-fire
+          // these same items next cycle, so retry once and log if it still fails.
+          if (!(await patchWorkflow(wf.id, { cursor: { seen: merged }, last_run_at: nowIso }))
+              && !(await patchWorkflow(wf.id, { cursor: { seen: merged }, last_run_at: nowIso }))) {
+            console.error(`cursor write failed twice for ${wf.id} — items may re-fire`);
+          }
           eventFired++;
         } catch { /* skip this one */ }
       }

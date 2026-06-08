@@ -10,7 +10,7 @@ import { hasBrand } from './brandData';
 import {
   listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow, testWorkflow,
   triggerLabel, deviceTz, appLabel, compileInstruction, orderedNodes,
-  type Workflow, type WorkflowRun, type Schedule, type Trigger, type EventCfg, type WfGraph, type WfNode, type BuildMsg, type AskQuestion,
+  type Workflow, type WorkflowRun, type Schedule, type Trigger, type EventCfg, type EventWindow, type WfGraph, type WfNode, type BuildMsg, type AskQuestion,
 } from './workflows';
 
 type NodeResult = { ok: boolean; output: string };
@@ -942,6 +942,8 @@ function TriggerEditor({ trigger, connApps, onChange }: { trigger: Trigger; conn
     onChange({ type: 'event', event: { app: evApp, filter: evFilter, ...(evWindow ? { window: evWindow } : {}), ...patch } });
   const fmtMin = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   const parseTime = (v: string) => { const [h, m] = v.split(':').map((x) => parseInt(x, 10)); return isNaN(h) || isNaN(m) ? null : h * 60 + m; };
+  // Never persist a zero-length window (start === end), which the runner reads as "never active".
+  const writeWindow = (w: EventWindow) => setEvent({ window: w.start === w.end ? { ...w, end: (w.start + 60) % 1440 } : w });
 
   return (
     <>
@@ -1001,9 +1003,9 @@ function TriggerEditor({ trigger, connApps, onChange }: { trigger: Trigger; conn
             <>
               <div className="wf-time-row">
                 <span className="wf-time-label">From</span>
-                <input className="wf-input wf-time" type="time" value={fmtMin(evWindow.start)} onChange={(e) => { const m = parseTime(e.target.value); if (m !== null) setEvent({ window: { ...evWindow, start: m } }); }} />
+                <input className="wf-input wf-time" type="time" value={fmtMin(evWindow.start)} onChange={(e) => { const m = parseTime(e.target.value); if (m !== null) writeWindow({ ...evWindow, start: m }); }} />
                 <span className="wf-time-label">to</span>
-                <input className="wf-input wf-time" type="time" value={fmtMin(evWindow.end)} onChange={(e) => { const m = parseTime(e.target.value); if (m !== null) setEvent({ window: { ...evWindow, end: m } }); }} />
+                <input className="wf-input wf-time" type="time" value={fmtMin(evWindow.end)} onChange={(e) => { const m = parseTime(e.target.value); if (m !== null) writeWindow({ ...evWindow, end: m }); }} />
               </div>
               <div className="wf-dow">
                 {DOW.map((d, i) => {
@@ -1012,7 +1014,7 @@ function TriggerEditor({ trigger, connApps, onChange }: { trigger: Trigger; conn
                   return <button key={d} className={`wf-dow-btn ${on ? 'on' : ''}`} onClick={() => setEvent({ window: { ...evWindow, days: on ? days.filter((x) => x !== i) : [...days, i] } })}>{d[0]}</button>;
                 })}
               </div>
-              <p className="wf-hint">Only checks during these hours, so it costs much less. Anything new is caught at the next check. No days selected = every day.</p>
+              <p className="wf-hint">Only checks during these hours, so it costs much less. Anything new is caught at the next check. No days selected = every day. Set the start later than the end for an overnight window (e.g. 10 PM–6 AM).</p>
             </>
           )}
         </>
