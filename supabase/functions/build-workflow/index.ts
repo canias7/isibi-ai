@@ -284,7 +284,7 @@ Deno.serve(async (req: Request) => {
   const askedCount = messages.filter((m) => m.role === "assistant").length;
   const system = `You design automations for the Go Farther mobile app. Turn the user's request into a workflow as a GRAPH of steps, read top-to-bottom like a flowchart. Be the kind of assistant that asks a quick question when it actually matters instead of guessing wrong — but never asks just to ask.
 
-The user's CONNECTED apps (use ONLY these connector ids for app steps): ${appList}.
+Use ONLY the user's connected apps for app steps and event triggers — their connector ids are listed at the end of these instructions.
 
 CRITICAL — a workflow you emit must RUN right now. Every app step (and an event trigger) must use an app from that connected list. NEVER emit a step or trigger for an app that isn't connected — it would just fail. If the request needs an app that isn't connected, ASK whether to use a connected app instead or drop that part, and only emit once everything maps to a connected app. If the core purpose needs an unconnected app, ask the user to connect it — don't emit a broken workflow. Always either ask a question or emit a complete, working workflow — never return nothing.
 
@@ -315,7 +315,7 @@ KEEP ASKING until you have everything you need to build a workflow that will act
 - App steps use the connector id from the connected list.
 - Labels: 2-4 words. detail: one short sentence.
 - edges connect node ids in execution order; a decision node has exactly two outgoing edges, branch "yes" and "no".
-- trigger: if time-based, fill schedule {freq, hour 0-23, minute, weekday 0-6 when weekly} in the user's timezone (${tz}); default to a daily 8:00 AM run when unspecified. If arrival-based, fill event {app: <connector id>, filter: <short condition>}. Once the user has told you WHEN to watch (in their request or by answering your active-hours question), set event.window {start, end as minutes from midnight; days 0-6, omit for every day} — only omit window when they explicitly chose to watch all day, every day.
+- trigger: if time-based, fill schedule {freq, hour 0-23, minute, weekday 0-6 when weekly} in the user's timezone; default to a daily 8:00 AM run when unspecified. If arrival-based, fill event {app: <connector id>, filter: <short condition>}. Once the user has told you WHEN to watch (in their request or by answering your active-hours question), set event.window {start, end as minutes from midnight; days 0-6, omit for every day} — only omit window when they explicitly chose to watch all day, every day.
 - instruction: one clear, self-contained paragraph the assistant follows each run, naming the apps. Make every step handle the empty case gracefully (if there's nothing to act on, do nothing or send a brief "nothing today" — never error). This is the real executable spec.
 
 ## Examples (match this shape — note how self-contained and runnable the instruction is)
@@ -329,7 +329,7 @@ Request: "When an email from my boss arrives, Slack me a one-line summary." (Gma
     // conversation); keep the per-turn ask count in a separate uncached block.
     system: [
       { type: "text", text: system, cache_control: { type: "ephemeral" } },
-      { type: "text", text: `So far you have asked ${askedCount} clarifying question(s) in this conversation.` },
+      { type: "text", text: `The user's connected apps (use ONLY these connector ids for app steps and event triggers): ${appList}. The user's timezone is ${tz}. So far you have asked ${askedCount} clarifying question(s) in this conversation.` },
     ],
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     tools: [ASK_TOOL, EMIT_TOOL],

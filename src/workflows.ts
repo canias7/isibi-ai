@@ -319,7 +319,19 @@ export async function updateWorkflow(
       } else {
         patch.event = fields.trigger.event;
         patch.schedule = null;
-        patch.cursor = null;      // re-baseline so it won't fire on the backlog
+        // Only re-baseline (drop the dedup cursor) when WHAT counts as a match
+        // changes — the app or filter. A pure active-hours/window edit must NOT
+        // reset the baseline, or editing hours would drop or replay notifications.
+        try {
+          const { data: cur } = await supabase.from('workflows').select('trigger_type,event').eq('id', id).single();
+          const prev = (cur && cur.trigger_type === 'event' ? (cur.event as EventCfg | null) : null);
+          const matchChanged = !prev
+            || (prev.app ?? '') !== (fields.trigger.event.app ?? '')
+            || (prev.filter ?? '') !== (fields.trigger.event.filter ?? '');
+          if (matchChanged) patch.cursor = null;
+        } catch {
+          patch.cursor = null; // couldn't compare — safest is to re-baseline
+        }
       }
     }
     const { error } = await supabase.from('workflows').update(patch).eq('id', id);
