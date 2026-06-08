@@ -66,6 +66,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     | null
   >(null);
   const bgMoved = useRef(false);
+  const ivRef = useRef<ReturnType<typeof setInterval> | null>(null); // web connect poller
 
   async function token(): Promise<string | null> {
     const { data } = await supabase.auth.getSession();
@@ -103,6 +104,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       aliveRef.current = false;
+      if (ivRef.current) clearInterval(ivRef.current);
       document.documentElement.classList.remove('gf-modal-open');
       document.removeEventListener('visibilitychange', onVisible);
     };
@@ -113,12 +115,13 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     let handle: { remove: () => void } | undefined;
+    let cancelled = false;
     CapApp.addListener('appUrlOpen', (e) => {
       if (!e.url || !e.url.startsWith('gofarther://')) return;
       Browser.close().catch(() => {});
       refreshAll(); setTimeout(refreshAll, 2000); setTimeout(refreshAll, 5000);
-    }).then((h) => { handle = h; });
-    return () => handle?.remove();
+    }).then((h) => { handle = h; if (cancelled) h.remove(); }); // unmount raced the promise
+    return () => { cancelled = true; handle?.remove(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -141,11 +144,12 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     }
     window.open(`${CONNECT_API}/start?app=${id}&${q}`, '_blank');
     let n = 0;
-    const iv = setInterval(async () => {
+    if (ivRef.current) clearInterval(ivRef.current);
+    ivRef.current = setInterval(async () => {
       n += 1;
-      if (!aliveRef.current) { clearInterval(iv); return; }
+      if (!aliveRef.current) { if (ivRef.current) clearInterval(ivRef.current); return; }
       await refreshAll();
-      if (n >= 20) clearInterval(iv);
+      if (n >= 20 && ivRef.current) clearInterval(ivRef.current);
     }, 3000);
   }
 

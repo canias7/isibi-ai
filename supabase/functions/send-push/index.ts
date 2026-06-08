@@ -20,13 +20,22 @@ const APNS_TEAM_ID = Deno.env.get("APNS_TEAM_ID");
 const APNS_BUNDLE_ID = Deno.env.get("APNS_BUNDLE_ID");
 const APNS_HOST = Deno.env.get("APNS_HOST") || "api.sandbox.push.apple.com";
 
-const cors: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type, apikey",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-const json = (obj: unknown, status = 200) =>
-  new Response(JSON.stringify(obj), { status, headers: { ...cors, "content-type": "application/json" } });
+// CORS allowlist: native app (Capacitor) + local dev. No-Origin requests
+// (native fetch / server-to-server) are allowed; unknown browser origins blocked.
+const ALLOWED_ORIGINS = new Set([
+  "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
+  "http://localhost:5173", "http://localhost:4173",
+]);
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin");
+  const allow = !origin || ALLOWED_ORIGINS.has(origin) ? (origin ?? "*") : "null";
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Headers": "authorization, content-type, apikey",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
 
 function b64url(input: ArrayBuffer | Uint8Array | string): string {
   const bytes = typeof input === "string"
@@ -64,6 +73,9 @@ function uidFromJwt(req: Request): string | null {
 }
 
 Deno.serve(async (req) => {
+  const cors = corsFor(req);
+  const json = (obj: unknown, status = 200) =>
+    new Response(JSON.stringify(obj), { status, headers: { ...cors, "content-type": "application/json" } });
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ ok: false, error: "method" }, 405);
   if (!APNS_KEY || !APNS_KEY_ID || !APNS_TEAM_ID || !APNS_BUNDLE_ID) {
