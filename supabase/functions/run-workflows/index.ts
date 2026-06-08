@@ -286,17 +286,19 @@ Deno.serve(async (req: Request) => {
       if (!wf.next_run_at) { init++; return; }
       const connected = await connectedToolkits(wf.user_id);
       const missing = neededApps(wf.graph).filter((a) => !connected.includes(APP_TO_SLUG[a]));
-      let text: string, ok: boolean;
+      let text: string, ok: boolean, notify = true;
       if (missing.length) {
-        ok = false;
+        ok = false; notify = false; // record it, but don't push every run (would spam an hourly workflow)
         text = `Couldn't run — ${missing.join(", ")} ${missing.length > 1 ? "aren't" : "isn't"} connected. Connect ${missing.length > 1 ? "them" : "it"} and it'll run next time.`;
       } else {
         try { text = await runInstruction(wf.user_id, wf.instruction, connected); ok = true; }
         catch (e) { ok = false; console.error("scheduled workflow error:", e); text = "Couldn't finish this workflow."; }
       }
       await insertRun(wf.id, wf.user_id, text, ok);
-      const summary = text.replace(/```[\s\S]*?```/g, " ").replace(/\s+/g, " ").trim().slice(0, 140) || (ok ? "Done." : "Failed.");
-      await pushUser(wf.user_id, wf.title || "Workflow", summary);
+      if (notify) {
+        const summary = text.replace(/```[\s\S]*?```/g, " ").replace(/\s+/g, " ").trim().slice(0, 140) || (ok ? "Done." : "Failed.");
+        await pushUser(wf.user_id, wf.title || "Workflow", summary);
+      }
       await patchWorkflow(wf.id, { last_run_at: nowIso });
       ok ? ran++ : failed++;
     } catch {
@@ -333,17 +335,19 @@ Deno.serve(async (req: Request) => {
           const missing = neededApps(wf.graph).filter((a) => !connected.includes(APP_TO_SLUG[a]));
           const ctx = fresh.slice(0, 8).map((i) => `• ${i.line} [id: ${i.id}]`).join("\n");
           const prompt = `Your trigger fired — these new item(s) were just detected in the user's connected app (their tool ids are in brackets, use them to act on the exact item):\n${ctx}\n\nUsing whatever tools across the user's apps you need (e.g. read the item, reply, send an email, create something), do the following about the item(s) above: ${wf.instruction}`;
-          let text: string, ok: boolean;
+          let text: string, ok: boolean, notify = true;
           if (missing.length) {
-            ok = false;
+            ok = false; notify = false; // record it, don't push repeatedly while an app stays disconnected
             text = `Triggered, but ${missing.join(", ")} ${missing.length > 1 ? "aren't" : "isn't"} connected — connect ${missing.length > 1 ? "them" : "it"} to run this.`;
           } else {
             try { text = await runInstruction(wf.user_id, prompt, connected); ok = true; }
             catch (e) { ok = false; console.error("event workflow error:", e); text = "Couldn't finish this workflow."; }
           }
           await insertRun(wf.id, wf.user_id, text, ok);
-          const summary = text.replace(/```[\s\S]*?```/g, " ").replace(/\s+/g, " ").trim().slice(0, 140) || (ok ? "Done." : "Failed.");
-          await pushUser(wf.user_id, wf.title || "Workflow", summary);
+          if (notify) {
+            const summary = text.replace(/```[\s\S]*?```/g, " ").replace(/\s+/g, " ").trim().slice(0, 140) || (ok ? "Done." : "Failed.");
+            await pushUser(wf.user_id, wf.title || "Workflow", summary);
+          }
           // Remember everything currently seen (fresh + prior), capped — even on failure, so it doesn't re-fire endlessly.
           const merged = [...fresh.map((i) => i.id), ...seen].slice(0, 200);
           await patchWorkflow(wf.id, { cursor: { seen: merged }, last_run_at: nowIso });

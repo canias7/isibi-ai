@@ -163,6 +163,10 @@ async function runInstruction(uid: string, instruction: string, tz: string, step
 
   if (!wantSteps) return { summary: text || "(no output)", steps: [] };
 
+  // Steps whose app isn't connected can't have run — note it in the summary so it
+  // never contradicts the per-step badges.
+  const missingApps = [...new Set(steps.filter((s) => appMissing(s.app, apps)).map((s) => s.app))];
+  const note = missingApps.length ? `Not connected: ${missingApps.join(", ")} — connect to run those step(s). ` : "";
   const parsed = parseLoose(text);
   if (parsed && Array.isArray(parsed.steps)) {
     const byId = new Map<string, any>(parsed.steps.map((s: any) => [String(s?.id ?? ""), s]));
@@ -172,12 +176,12 @@ async function runInstruction(uid: string, instruction: string, tz: string, step
       const r = byId.get(s.id);
       return { id: s.id, ok: r ? r.ok !== false : false, output: r ? String(r.output ?? "").slice(0, 600) : "no result reported" };
     });
-    return { summary: String(parsed.summary ?? text).slice(0, 600), steps: out };
+    return { summary: (note + String(parsed.summary ?? text)).slice(0, 600), steps: out };
   }
   // Model didn't return structured output — it still ran; attach the prose to the
   // first step so the user can read what happened.
   return {
-    summary: (text || "(no output)").slice(0, 600),
+    summary: (note + (text || "(no output)")).slice(0, 600),
     steps: steps.map((s, i) => (
       appMissing(s.app, apps)
         ? { id: s.id, ok: false, output: `${s.app} isn't connected — connect it to run this step.` }
