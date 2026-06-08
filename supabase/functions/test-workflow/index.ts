@@ -14,6 +14,26 @@ const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const MCP_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-mcp";
 const MODEL = "claude-sonnet-4-6";
 
+// frontend connector id -> Composio toolkit slug (a step's `app` is the frontend id)
+const APP_TO_SLUG: Record<string, string> = {
+  gmail: "gmail", gcal: "googlecalendar", gdrive: "googledrive", canva: "canva", figma: "figma",
+  notion: "notion", atlassian: "jira", m365: "outlook", slack: "slack", hubspot: "hubspot",
+  googlesheets: "googlesheets", googledocs: "googledocs", excel: "excel", one_drive: "one_drive",
+  dropbox: "dropbox", box: "box", onenote: "onenote", airtable: "airtable", todoist: "todoist",
+  googletasks: "googletasks", asana: "asana", trello: "trello", clickup: "clickup", monday: "monday",
+  miro: "miro", calendly: "calendly", zoom: "zoom", googlemeet: "googlemeet", microsoft_teams: "microsoft_teams",
+  webex: "webex", telegram: "telegram", discord: "discord", linkedin: "linkedin", reddit: "reddit",
+  youtube: "youtube", instagram: "instagram", twitter: "twitter", spotify: "spotify", salesforce: "salesforce",
+  pipedrive: "pipedrive", zoho: "zoho", zendesk: "zendesk", intercom: "intercom", freshdesk: "freshdesk",
+  shopify: "shopify", stripe: "stripe", square: "square", quickbooks: "quickbooks", xero: "xero",
+  typeform: "typeform", jotform: "jotform", mailchimp: "mailchimp", sendgrid: "sendgrid", klaviyo: "klaviyo",
+};
+// True when a step needs a real connector that isn't in the user's connected set.
+function appMissing(app: string | undefined, connectedSlugs: string[]): boolean {
+  const slug = APP_TO_SLUG[app || ""];
+  return !!slug && !connectedSlugs.includes(slug);
+}
+
 const ALLOWED_ORIGINS = new Set([
   "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
   "http://localhost:5173", "http://localhost:4173",
@@ -93,7 +113,7 @@ async function memoryEnabled(uid: string): Promise<boolean> {
   }
 }
 
-type Step = { id: string; label: string };
+type Step = { id: string; label: string; app?: string };
 type StepResult = { id: string; ok: boolean; output: string };
 
 // Tolerant JSON parse: handles code fences and surrounding prose.
@@ -117,7 +137,7 @@ async function runInstruction(uid: string, instruction: string, tz: string, step
   const outFmt = wantSteps
     ? `\n\nWhen finished, reply with ONLY a JSON object (no prose, no code fences), shaped EXACTLY:\n{"summary":"2-3 plain sentences on the overall outcome","steps":[{"id":"<step id>","ok":true,"output":"one short line: what this step produced, or why it failed"}]}\nInclude exactly one entry per step id listed above, in the same order. No markdown or emoji inside any value.`
     : ` Then reply with a SHORT summary of what you did and the outcome — at most 2-3 sentences. Plain text only: no markdown, no emoji, no code blocks.`;
-  const system = `You are Go Farther, running a saved automation for the user as a TEST. Carry out the steps in order using the connected tools as needed.${stepList} Use the user's local timezone (${tz}).${outFmt}${memSys}`;
+  const system = `You are Go Farther, running a saved automation for the user as a TEST. Carry out the steps in order using the connected tools as needed.${stepList} Use the user's local timezone (${tz}). Be strictly honest about outcomes: if a step needs an app/tool you don't have or a tool call fails, mark that step ok:false and say what's missing — NEVER claim a step succeeded when it didn't.${outFmt}${memSys}`;
 
   const reqBody: Record<string, unknown> = {
     model: MODEL,
@@ -147,6 +167,8 @@ async function runInstruction(uid: string, instruction: string, tz: string, step
   if (parsed && Array.isArray(parsed.steps)) {
     const byId = new Map<string, any>(parsed.steps.map((s: any) => [String(s?.id ?? ""), s]));
     const out = steps.map((s) => {
+      // A step needing an unconnected app can't have run — override the model.
+      if (appMissing(s.app, apps)) return { id: s.id, ok: false, output: `${s.app} isn't connected — connect it to run this step.` };
       const r = byId.get(s.id);
       return { id: s.id, ok: r ? r.ok !== false : false, output: r ? String(r.output ?? "").slice(0, 600) : "no result reported" };
     });
@@ -156,7 +178,11 @@ async function runInstruction(uid: string, instruction: string, tz: string, step
   // first step so the user can read what happened.
   return {
     summary: (text || "(no output)").slice(0, 600),
-    steps: steps.map((s, i) => ({ id: s.id, ok: true, output: i === 0 ? text.slice(0, 600) : "" })),
+    steps: steps.map((s, i) => (
+      appMissing(s.app, apps)
+        ? { id: s.id, ok: false, output: `${s.app} isn't connected — connect it to run this step.` }
+        : { id: s.id, ok: true, output: i === 0 ? text.slice(0, 600) : "" }
+    )),
   };
 }
 
@@ -187,7 +213,7 @@ Deno.serve(async (req: Request) => {
     if (typeof b.tz === "string" && b.tz) tz = b.tz;
     if (Array.isArray(b.steps)) {
       steps = b.steps.slice(0, 40)
-        .map((s: any) => ({ id: String(s?.id || ""), label: String(s?.label || "").slice(0, 200) }))
+        .map((s: any) => ({ id: String(s?.id || ""), label: String(s?.label || "").slice(0, 200), app: String(s?.app || "") }))
         .filter((s: Step) => s.id);
     }
   } catch { /* fallthrough */ }
