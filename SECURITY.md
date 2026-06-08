@@ -30,46 +30,23 @@ history; the few open items below need attention before a wide public launch.
 - **DB hardening.** `workflow_runs(user_id)` index added; `conversations` RLS
   policies use `(select auth.uid())` to avoid per-row re-evaluation. All user
   tables have own-row RLS.
-- **Reduced attack surface.** The unused legacy `ghost` function had its custom
-  JWT/secret logic removed (now a harmless health stub). Stale `gmail_tokens`
-  table dropped. ~10 one-off debug/test functions were neutralised (see below).
+- **Reduced attack surface.** The legacy `ghost` function plus 10 one-off
+  debug/test functions were **deleted** (11 total); the stale `gmail_tokens`
+  table was dropped. Production functions only: `chat`, `gmail-oauth`,
+  `gmail-mcp`, `send-push`, `run-workflows`, `build-workflow`, `test-workflow`.
+- **No raw errors to clients.** `chat`, `build-workflow`, `gmail-oauth`,
+  `gmail-mcp`, and `run-workflows` log exceptions server-side and return a
+  generic message instead of echoing raw exception / upstream-API text. (The
+  `gmail-mcp` tool-call results keep detail — the agent needs it to self-correct
+  — but now also log server-side.)
+- **`main` branch protected.** A repository ruleset blocks force-pushes and
+  deletions on `main`. Note: ruleset/branch protection blocks the GitHub App that
+  this hosted environment pushes through, so once protection is on, commits to
+  `main` must come from a local admin push (or a bypass actor added to the rule).
 
-## Open — need dashboard / CLI access (no code change available here)
+## Open
 
-### 1. Delete the neutralised debug/test functions
-These were one-off probes during development. Each is now either gated by
-`verify_jwt` or an inert stub, and **none are referenced** by the app or any
-other function (greped). Removing them is pure attack-surface cleanup. There is
-no delete API in the MCP tooling, so run the Supabase CLI:
-
-```bash
-supabase login                       # one time, with a personal access token
-for f in ghost composio-catalog bw-test wftest appscan toolscan \
-         attdebug gmailtest esctest probe excelscan; do
-  supabase functions delete "$f" --project-ref lkpfeqrelvziltfwpuxi
-done
-```
-
-Keep (production): `chat`, `gmail-oauth`, `gmail-mcp`, `send-push`,
-`run-workflows`, `build-workflow`, `test-workflow`.
-
-### 2. Branch-protect `main`
-OTA and the App Store build both ship from `main`, so write access to `main` =
-code on every install. There's no branch-protection API in the tooling; set it
-in **GitHub → Settings → Branches** (or with the `gh` CLI):
-
-```bash
-gh api -X PUT repos/canias7/isibi-ai/branches/main/protection \
-  -H "Accept: application/vnd.github+json" \
-  -f "required_pull_request_reviews[required_approving_review_count]=1" \
-  -F "enforce_admins=true" \
-  -F "required_status_checks=null" \
-  -F "restrictions=null"
-```
-
-Also keep collaborators minimal and require reviews.
-
-### 3. (Optional) Signed OTA bundles — defense-in-depth
+### 1. (Optional) Signed OTA bundles — defense-in-depth
 The app applies OTA via `@capgo/capacitor-updater` from the locked `ota` bucket.
 With the bucket write-locked, the remaining risk is a CI / service-key
 compromise. Capgo end-to-end signing closes that: CI signs each bundle with a
@@ -84,13 +61,13 @@ GitHub Actions secret, embed the public key in `capacitor.config.ts`, and have
 the OTA workflow sign the bundle. Ask and I'll wire up the code + workflow in
 one pass alongside the secret.
 
-### 4. Rate limiting / cost controls (deferred by request)
+### 2. Rate limiting / cost controls (deferred by request)
 `chat` is reachable by anyone with the public anon key. It can't touch user data
 (JWT-gated), but unauthenticated/abusive calls still cost Anthropic + Composio
 money. Before heavy promotion: per-user/per-IP request limits, a max payload
 size on `chat`, and a daily usage cap.
 
-### 5. Production OAuth (deferred)
+### 3. Production OAuth (deferred)
 Connectors use Composio's **managed** OAuth apps (great for prototyping). For
 production scale/compliance, bring your own OAuth credentials per provider
 (Google, Slack, etc.) in the Composio dashboard.
