@@ -518,7 +518,10 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
     if (testing) return;
     const inst = compileInstruction(title.trim(), graph);
     if (!inst.trim()) return;
-    const steps = orderedNodes(graph).filter((n) => n.kind !== 'trigger').map((n) => ({ id: n.id, label: n.label }));
+    // Test runs the workflow for REAL (it can send emails / post messages / change
+    // things in connected apps), so confirm before doing it.
+    if (!window.confirm('Run this workflow now for real? It can send emails, post messages, or change things in your connected apps.')) return;
+    const steps = orderedNodes(graph).filter((n) => n.kind !== 'trigger').map((n) => ({ id: n.id, label: n.label, app: n.app }));
     setTesting(true); setEdgeState('run'); setResults({});
     const r = await testWorkflow(inst, savedIdRef.current, steps);
     setTesting(false);
@@ -563,12 +566,9 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
     }
   }
 
-  // Create a fresh draft once on open so it persists without a Save button.
-  useEffect(() => {
-    if (mode === 'draft' && !savedIdRef.current) void persist();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  // Debounced auto-save on any edit (skips the initial mount run).
+  // Auto-save (debounced) on any edit; skips the initial mount run. A draft is
+  // created lazily on the first real edit (or when turned on) — merely opening an
+  // AI draft and backing out without touching it leaves nothing saved.
   useEffect(() => {
     if (!initedRef.current) { initedRef.current = true; return; }
     const t = setTimeout(() => { void persist(); }, 700);

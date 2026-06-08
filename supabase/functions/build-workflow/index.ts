@@ -298,7 +298,8 @@ You have already asked ${askedCount} time(s); ask at most twice total, then buil
     system,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     tools: [ASK_TOOL, EMIT_TOOL],
-    tool_choice: { type: "any" },
+    // Hard cap: after two question rounds, force a build (stop asking).
+    tool_choice: askedCount >= 2 ? { type: "tool", name: "emit_workflow" } : { type: "any" },
   };
 
   let res: Response;
@@ -371,6 +372,14 @@ You have already asked ${askedCount} time(s); ask at most twice total, then buil
   const trigger = (plan.trigger && typeof plan.trigger === "object") ? plan.trigger : { type: "schedule" };
   if (trigger.type === "schedule") {
     trigger.schedule = { freq: "daily", hour: 8, minute: 0, weekday: 1, ...(trigger.schedule || {}), tz };
+  } else if (trigger.type === "event") {
+    // An event trigger must watch a real, connected app or it would never fire
+    // (silently). Fall back to the first connected app, else to a daily schedule.
+    const ev = (trigger.event && typeof trigger.event === "object") ? trigger.event : {};
+    let app = String(ev.app || "");
+    if (!APP_TO_SLUG[app] || !apps.includes(app)) app = apps[0] || "";
+    if (app) trigger.event = { app, filter: String(ev.filter || "") };
+    else { trigger.type = "schedule"; trigger.schedule = { freq: "daily", hour: 8, minute: 0, weekday: 1, tz }; }
   }
 
   const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content || "";

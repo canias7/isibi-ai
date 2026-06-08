@@ -143,17 +143,44 @@ const APP_TO_SLUG: Record<string, string> = {
   typeform: "typeform", jotform: "jotform", mailchimp: "mailchimp", sendgrid: "sendgrid", klaviyo: "klaviyo",
 };
 
+// Real-connector apps a workflow's graph needs (frontend ids, from action nodes).
+function neededApps(graph: any): string[] {
+  const nodes = graph && Array.isArray(graph.nodes) ? graph.nodes : [];
+  return [...new Set(nodes
+    .filter((n: any) => n?.kind !== "trigger" && APP_TO_SLUG[n?.app])
+    .map((n: any) => String(n.app)))] as string[];
+}
+
+// Atomically claim a due workflow by advancing next_run_at, but ONLY if it's
+// still at the value we read (compare-and-swap). Stops two overlapping cron
+// invocations from running the same workflow twice. True = we claimed it.
+async function claimDue(id: string, currentNextRunAt: string | null, next: Date | null): Promise<boolean> {
+  const cond = currentNextRunAt === null ? "next_run_at=is.null" : `next_run_at=eq.${encodeURIComponent(currentNextRunAt)}`;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/workflows?id=eq.${id}&${cond}`, {
+      method: "PATCH",
+      headers: { ...sbHeaders, prefer: "return=representation" },
+      body: JSON.stringify({ next_run_at: next ? next.toISOString() : null }),
+    });
+    if (!r.ok) return false;
+    const rows = await r.json().catch(() => []);
+    return Array.isArray(rows) && rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 // App-agnostic poller: ask the model to list, via the app's own tools, the most
 // recent items matching the user's condition, each with a STABLE id from the tool
 // result. The runner dedupes by id so only genuinely new items fire — this works
 // for every connector without per-app code.
 interface DetectedItem { id: string; line: string }
-async function detectItems(uid: string, ev: any): Promise<DetectedItem[]> {
-  if (!ANTHROPIC_KEY || !COMPOSIO_API_KEY) return [];
+async function detectItems(uid: string, ev: any): Promise<DetectedItem[] | null> {
+  if (!ANTHROPIC_KEY || !COMPOSIO_API_KEY) return null;
   const slug = APP_TO_SLUG[ev?.app] || String(ev?.app || "");
-  if (!slug) return [];
+  if (!slug) return null; // no/unknown app -> can't watch
   const connected = await connectedToolkits(uid);
-  if (!connected.includes(slug)) return []; // app not connected -> nothing to watch
+  if (!connected.includes(slug)) return null; // can't watch (app not connected) -> skip, don't baseline
   const filter = String(ev?.filter || "").trim() || "any new item";
   const url = `${MCP_URL}?apps=${encodeURIComponent(slug)}&user=${encodeURIComponent(uid)}&mem=0`;
   const system = `You check whether a trigger condition is currently met in a connected app. Use ONLY the available tools to look up the most recent items that match the user's condition. Then reply with ONLY a compact JSON array (no prose, no markdown, no code fences) of up to 15 items, newest first, each shaped {"id":"<the item's stable unique id straight from the tool result>","line":"<short one-line description>"}. Use the real ids returned by the tools — never invent them. If nothing matches, reply exactly [].`;
@@ -171,30 +198,31 @@ async function detectItems(uid: string, ev: any): Promise<DetectedItem[]> {
       headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "anthropic-beta": "mcp-client-2025-11-20" },
       body: JSON.stringify(reqBody),
     });
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const data = await res.json();
     const text = (data.content || []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join("").trim();
     const m = text.match(/\[[\s\S]*\]/);
-    if (!m) return [];
+    if (!m) return null; // couldn't parse a result -> "couldn't check", not "nothing"
     const arr = JSON.parse(m[0]);
-    if (!Array.isArray(arr)) return [];
+    if (!Array.isArray(arr)) return null;
     return arr
       .map((x: any) => ({ id: String(x?.id ?? "").trim(), line: String(x?.line ?? "").trim() }))
       .filter((x: DetectedItem) => x.id);
   } catch {
-    return [];
+    return null;
   }
 }
 
 // Run one workflow's instruction through Claude (with the user's connectors).
-async function runInstruction(uid: string, instruction: string): Promise<string> {
+async function runInstruction(uid: string, instruction: string, connected?: string[]): Promise<string> {
   if (!ANTHROPIC_KEY) throw new Error("assistant not configured");
-  const [apps, memOn] = await Promise.all([connectedToolkits(uid), memoryEnabled(uid)]);
+  const apps = connected ?? await connectedToolkits(uid);
+  const memOn = await memoryEnabled(uid);
   const mems = memOn ? await fetchMemories(uid) : []; // respect the user's pause toggle
   const memSys = mems.length
     ? `\n\nWHAT YOU KNOW ABOUT THIS USER (saved memories; honor them):\n${mems.map((m) => `• ${m}`).join("\n")}`
     : "";
-  const system = `You are Go Farther, running a saved automation for the user (no one is watching live). Carry out the instruction using the connected tools as needed, then reply with a clear, concise result the user can read in a notification and a saved summary. Reply in PLAIN TEXT only — no code blocks or special card formats. Use the user's local timezone for any times.${memSys}`;
+  const system = `You are Go Farther, running a saved automation for the user (no one is watching live). Carry out the instruction using the connected tools as needed, then reply with a clear, concise result the user can read in a notification and a saved summary. Be strictly honest: if a needed app/tool isn't available or a tool call fails, say plainly what didn't happen — never claim you did something you couldn't. Reply in PLAIN TEXT only — no code blocks or special card formats. Use the user's local timezone for any times.${memSys}`;
   const reqBody: Record<string, unknown> = {
     model: MODEL,
     max_tokens: 4096,
@@ -249,32 +277,36 @@ Deno.serve(async (req: Request) => {
   const due: any[] = await r.json();
 
   let ran = 0, init = 0, failed = 0;
-  for (const wf of due) {
+  async function runScheduled(wf: any): Promise<void> {
     try {
-      // First time we see it: just schedule its first run (don't fire immediately).
-      if (!wf.next_run_at) {
-        const next = computeNext(now, wf.schedule);
-        await patchWorkflow(wf.id, { next_run_at: next ? next.toISOString() : null });
-        init++;
-        continue;
-      }
-      let text = "", ok = true;
-      try {
-        text = await runInstruction(wf.user_id, wf.instruction);
-      } catch (e) {
+      const next = computeNext(now, wf.schedule);
+      // Atomically claim it (CAS on next_run_at) so an overlapping cron tick can't run it twice.
+      if (!(await claimDue(wf.id, wf.next_run_at ?? null, next))) return;
+      // First time we've seen it: we just scheduled its first run — don't fire now.
+      if (!wf.next_run_at) { init++; return; }
+      const connected = await connectedToolkits(wf.user_id);
+      const missing = neededApps(wf.graph).filter((a) => !connected.includes(APP_TO_SLUG[a]));
+      let text: string, ok: boolean;
+      if (missing.length) {
         ok = false;
-        console.error("scheduled workflow error:", e);
-        text = "Couldn't finish this workflow.";
+        text = `Couldn't run — ${missing.join(", ")} ${missing.length > 1 ? "aren't" : "isn't"} connected. Connect ${missing.length > 1 ? "them" : "it"} and it'll run next time.`;
+      } else {
+        try { text = await runInstruction(wf.user_id, wf.instruction, connected); ok = true; }
+        catch (e) { ok = false; console.error("scheduled workflow error:", e); text = "Couldn't finish this workflow."; }
       }
       await insertRun(wf.id, wf.user_id, text, ok);
       const summary = text.replace(/```[\s\S]*?```/g, " ").replace(/\s+/g, " ").trim().slice(0, 140) || (ok ? "Done." : "Failed.");
       await pushUser(wf.user_id, wf.title || "Workflow", summary);
-      const next = computeNext(now, wf.schedule);
-      await patchWorkflow(wf.id, { last_run_at: nowIso, next_run_at: next ? next.toISOString() : null });
+      await patchWorkflow(wf.id, { last_run_at: nowIso });
       ok ? ran++ : failed++;
     } catch {
       failed++;
     }
+  }
+  // Bounded concurrency: each workflow claims its own row, so running a few at once is safe.
+  const CONC = 3;
+  for (let i = 0; i < due.length; i += CONC) {
+    await Promise.all(due.slice(i, i + CONC).map(runScheduled));
   }
 
   // EVENT workflows: fire when a new matching item appears in the chosen app.
@@ -287,6 +319,7 @@ Deno.serve(async (req: Request) => {
       for (const wf of evs) {
         try {
           const items = await detectItems(wf.user_id, wf.event || {});
+          if (items === null) continue; // couldn't actually check this cycle — don't baseline or fire
           // First check: record what's already there, don't fire on the backlog.
           if (!wf.cursor) {
             await patchWorkflow(wf.id, { cursor: { seen: items.map((i) => i.id).slice(0, 200) } });
@@ -296,20 +329,22 @@ Deno.serve(async (req: Request) => {
           const seenSet = new Set(seen);
           const fresh = items.filter((i) => !seenSet.has(i.id));
           if (!fresh.length) continue;
+          const connected = await connectedToolkits(wf.user_id);
+          const missing = neededApps(wf.graph).filter((a) => !connected.includes(APP_TO_SLUG[a]));
           const ctx = fresh.slice(0, 8).map((i) => `• ${i.line} [id: ${i.id}]`).join("\n");
           const prompt = `Your trigger fired — these new item(s) were just detected in the user's connected app (their tool ids are in brackets, use them to act on the exact item):\n${ctx}\n\nUsing whatever tools across the user's apps you need (e.g. read the item, reply, send an email, create something), do the following about the item(s) above: ${wf.instruction}`;
-          let text = "", ok = true;
-          try {
-            text = await runInstruction(wf.user_id, prompt);
-          } catch (e) {
+          let text: string, ok: boolean;
+          if (missing.length) {
             ok = false;
-            console.error("event workflow error:", e);
-            text = "Couldn't finish this workflow.";
+            text = `Triggered, but ${missing.join(", ")} ${missing.length > 1 ? "aren't" : "isn't"} connected — connect ${missing.length > 1 ? "them" : "it"} to run this.`;
+          } else {
+            try { text = await runInstruction(wf.user_id, prompt, connected); ok = true; }
+            catch (e) { ok = false; console.error("event workflow error:", e); text = "Couldn't finish this workflow."; }
           }
           await insertRun(wf.id, wf.user_id, text, ok);
           const summary = text.replace(/```[\s\S]*?```/g, " ").replace(/\s+/g, " ").trim().slice(0, 140) || (ok ? "Done." : "Failed.");
           await pushUser(wf.user_id, wf.title || "Workflow", summary);
-          // Remember everything currently seen (fresh + prior), capped.
+          // Remember everything currently seen (fresh + prior), capped — even on failure, so it doesn't re-fire endlessly.
           const merged = [...fresh.map((i) => i.id), ...seen].slice(0, 200);
           await patchWorkflow(wf.id, { cursor: { seen: merged }, last_run_at: nowIso });
           eventFired++;

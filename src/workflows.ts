@@ -85,7 +85,7 @@ export function triggerLabel(w: Workflow): string {
 export async function testWorkflow(
   instruction: string,
   workflowId?: string,
-  steps?: { id: string; label: string }[],
+  steps?: { id: string; label: string; app?: string }[],
 ): Promise<{ ok: boolean; result: string; steps: StepResult[] } | null> {
   try {
     const { data, error } = await supabase.functions.invoke('test-workflow', {
