@@ -1757,6 +1757,30 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .wfx-continue:disabled { opacity: 0.35; cursor: default; }
 .wfx-continue:active:not(:disabled) { opacity: 0.8; }
 
+/* "1 of N" progress for the one-at-a-time clarifying questions. */
+.wfx-steps { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.wfx-steps-count { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-dim); text-transform: uppercase; }
+.wfx-steps-dots { display: flex; gap: 6px; }
+.wfx-step-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.18); transition: background 0.2s ease, transform 0.2s ease; }
+.wfx-step-dot.done { background: rgba(224, 161, 58, 0.55); }
+.wfx-step-dot.on { background: var(--accent, #e0a13a); transform: scale(1.25); }
+/* Each question slides in as you step through. */
+.wfx-q-step { animation: wfxStepIn 0.22s ease both; }
+@keyframes wfxStepIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+
+/* Bottom stepper: Back + Next/Continue. */
+.wfx-stepper { display: flex; align-items: center; gap: 10px; max-width: 640px; margin: 0 auto; }
+.wfx-stepper .wfx-continue { flex: 1; margin: 0; }
+.wfx-step-back {
+  flex-shrink: 0; min-height: 48px; padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 26px;
+  background: transparent; color: var(--text); font: inherit; font-size: 16px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s ease, opacity 0.15s ease;
+}
+.wfx-step-back:disabled { opacity: 0.35; cursor: default; }
+.wfx-step-back:active:not(:disabled) { background: rgba(255, 255, 255, 0.08); }
+@media (prefers-reduced-motion: reduce) { .wfx-q-step { animation: none; } }
+
 /* Typing dots while the builder thinks. */
 .wfx-typing { display: inline-flex; gap: 4px; align-items: center; padding: 2px 0; }
 .wfx-typing i {

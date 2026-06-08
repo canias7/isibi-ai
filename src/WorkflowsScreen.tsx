@@ -172,6 +172,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
   const [convo, setConvo] = useState<ChatMsg[]>([]); // back-and-forth while the builder clarifies
   const [picks, setPicks] = useState<Record<number, string>>({});      // selected option label per question (last turn)
   const [otherText, setOtherText] = useState<Record<number, string>>({}); // free-text per question when "Other" is picked
+  const [step, setStep] = useState(0);                                  // which clarifying question is on screen (one at a time)
   const chatRef = useRef<HTMLDivElement>(null);
   const OTHER = '__other__';
 
@@ -210,14 +211,14 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
     if (!res) { setErr("Couldn't build that — try describing it a little differently."); return; }
     if (res.kind === 'questions') {
       setConvo([...next, { role: 'assistant', text: res.questions.map((q) => q.text).join('\n'), questions: res.questions }]);
-      setPicks({}); setOtherText({}); // fresh form for the new questions
+      setPicks({}); setOtherText({}); setStep(0); // fresh form, back to question 1
       return;
     }
     setConvo([]);
     setDraft({ title: res.draft.title, instruction: res.draft.instruction, trigger: res.draft.trigger, graph: res.draft.graph });
   }
 
-  function resetConvo() { setConvo([]); setErr(''); setPicks({}); setOtherText({}); }
+  function resetConvo() { setConvo([]); setErr(''); setPicks({}); setOtherText({}); setStep(0); }
 
   // The last turn being a question means the user is mid-clarification.
   const awaiting = convo.length > 0 && convo[convo.length - 1].role === 'assistant';
@@ -232,22 +233,36 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
     if (openEnded || picks[i] === OTHER) return (otherText[i] ?? '').trim();
     return picks[i] ?? '';
   };
-  const allAnswered = lastQs.length > 0 && lastQs.every((_q, i) => answerOf(i).length > 0);
+  const isLastStep = step >= lastQs.length - 1;
+  const currentAnswered = awaiting && answerOf(step).length > 0;
 
-  // Tap an option. Single-question multiple-choice submits on tap; otherwise we
-  // collect picks and the user taps Continue.
-  function choose(i: number, label: string) {
-    setPicks((s) => ({ ...s, [i]: label }));
-    if (label !== OTHER && lastQs.length === 1) void send(label);
-  }
-
-  // Turn the picked answers into one message and send it.
-  function submitAnswers() {
-    if (!allAnswered || building) return;
+  // Combine every answer into one message and send it. `override` lets a just-made
+  // pick count immediately (setState is async, so the last tap isn't in `picks` yet).
+  function submitAnswers(override?: { idx: number; val: string }) {
+    if (building) return;
+    const ans = (i: number) => (override && override.idx === i ? override.val : answerOf(i));
+    if (!lastQs.every((_q, i) => ans(i).length > 0)) return; // need them all
     const text = lastQs
-      .map((q, i) => (lastQs.length > 1 ? `${q.header || q.text}: ${answerOf(i)}` : answerOf(i)))
+      .map((q, i) => (lastQs.length > 1 ? `${q.header || q.text}: ${ans(i)}` : ans(i)))
       .join(lastQs.length > 1 ? '\n' : ' ');
     void send(text);
+  }
+
+  // Tap an option for the question on screen. A concrete pick advances to the next
+  // question (or submits on the last); "Other" waits for typed text + Next/Continue.
+  function choose(i: number, label: string) {
+    setPicks((s) => ({ ...s, [i]: label }));
+    if (label === OTHER) return;
+    if (i < lastQs.length - 1) setStep(i + 1);
+    else submitAnswers({ idx: i, val: label });
+  }
+
+  // The Next / Continue button (used for typed "Other" answers and as the explicit
+  // control): advance a step, or submit on the last.
+  function advanceOrSubmit() {
+    if (!currentAnswered || building) return;
+    if (isLastStep) submitAnswers();
+    else setStep(step + 1);
   }
 
   async function toggle(w: Workflow) {
@@ -347,41 +362,47 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
                     </div>
                   );
                 }
-                // Current questions render as a tap-to-answer multiple-choice form.
+                // Current questions: one on screen at a time, with "1 of N" progress.
+                const qi = Math.min(step, qs.length - 1);
+                const q = qs[qi];
+                const hasOpts = !!(q.options && q.options.length);
                 return (
                   <div key={i} className="wfx-form">
-                    {qs.map((q, qi) => {
-                      const hasOpts = !!(q.options && q.options.length);
-                      return (
-                        <div key={qi} className="wfx-q">
-                          {q.header && <div className="wfx-q-head">{q.header}</div>}
-                          <div className="wfx-q-text">{q.text}</div>
-                          {hasOpts && (
-                            <div className="wfx-opts">
-                              {q.options!.map((opt, k) => (
-                                <button key={k} className={`wfx-opt ${picks[qi] === opt.label ? 'sel' : ''}`}
-                                  onClick={() => choose(qi, opt.label)} disabled={building}>
-                                  <span className="wfx-opt-label">{opt.label}</span>
-                                  {opt.description && <span className="wfx-opt-desc">{opt.description}</span>}
-                                </button>
-                              ))}
-                              <button className={`wfx-opt wfx-opt-other ${picks[qi] === OTHER ? 'sel' : ''}`}
-                                onClick={() => choose(qi, OTHER)} disabled={building}>
-                                <span className="wfx-opt-label">Other…</span>
-                              </button>
-                            </div>
-                          )}
-                          {(picks[qi] === OTHER || !hasOpts) && (
-                            <input className="wfx-other-input"
-                              value={otherText[qi] ?? ''}
-                              onChange={(e) => setOtherText((s) => ({ ...s, [qi]: e.target.value }))}
-                              onKeyDown={(e) => { if (e.key === 'Enter') submitAnswers(); }}
-                              placeholder="Type your answer…" maxLength={500} disabled={building}
-                              autoFocus={picks[qi] === OTHER} />
-                          )}
+                    {qs.length > 1 && (
+                      <div className="wfx-steps">
+                        <span className="wfx-steps-count">{qi + 1} of {qs.length}</span>
+                        <div className="wfx-steps-dots">
+                          {qs.map((_, k) => <span key={k} className={`wfx-step-dot ${k === qi ? 'on' : ''} ${k < qi ? 'done' : ''}`} />)}
                         </div>
-                      );
-                    })}
+                      </div>
+                    )}
+                    <div key={qi} className="wfx-q wfx-q-step">
+                      {q.header && <div className="wfx-q-head">{q.header}</div>}
+                      <div className="wfx-q-text">{q.text}</div>
+                      {hasOpts && (
+                        <div className="wfx-opts">
+                          {q.options!.map((opt, k) => (
+                            <button key={k} className={`wfx-opt ${picks[qi] === opt.label ? 'sel' : ''}`}
+                              onClick={() => choose(qi, opt.label)} disabled={building}>
+                              <span className="wfx-opt-label">{opt.label}</span>
+                              {opt.description && <span className="wfx-opt-desc">{opt.description}</span>}
+                            </button>
+                          ))}
+                          <button className={`wfx-opt wfx-opt-other ${picks[qi] === OTHER ? 'sel' : ''}`}
+                            onClick={() => choose(qi, OTHER)} disabled={building}>
+                            <span className="wfx-opt-label">Other…</span>
+                          </button>
+                        </div>
+                      )}
+                      {(picks[qi] === OTHER || !hasOpts) && (
+                        <input className="wfx-other-input"
+                          value={otherText[qi] ?? ''}
+                          onChange={(e) => setOtherText((s) => ({ ...s, [qi]: e.target.value }))}
+                          onKeyDown={(e) => { if (e.key === 'Enter') advanceOrSubmit(); }}
+                          placeholder="Type your answer…" maxLength={500} disabled={building}
+                          autoFocus={picks[qi] === OTHER} />
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -400,9 +421,14 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
           )}
           <div className="memg-compose-wrap">
             {awaiting ? (
-              <button className="wfx-continue" onClick={submitAnswers} disabled={!allAnswered || building}>
-                {building ? <span className="wfx-spin" /> : 'Continue'}
-              </button>
+              <div className="wfx-stepper">
+                {step > 0 && (
+                  <button className="wfx-step-back" onClick={() => setStep(step - 1)} disabled={building}>Back</button>
+                )}
+                <button className="wfx-continue" onClick={advanceOrSubmit} disabled={!currentAnswered || building}>
+                  {building ? <span className="wfx-spin" /> : (isLastStep ? 'Continue' : 'Next')}
+                </button>
+              </div>
             ) : (
               <div className="memg-compose">
                 <input
