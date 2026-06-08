@@ -493,6 +493,8 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
   savedIdRef.current = savedId;
   const creatingRef = useRef(false); // guards against a double create on first save
   const initedRef = useRef(false);   // skip the very first auto-save effect run
+  const savedTriggerRef = useRef(JSON.stringify(initial.trigger)); // last-persisted trigger — only resend when it changes
+  const dirtyRef = useRef(false);    // unsaved edits pending (flushed on close)
 
   // Modal-lock is owned by the parent WorkflowsScreen (this renders inside it).
   useEffect(() => { if (savedId) void listRuns(savedId).then(setRuns); }, [savedId]);
@@ -557,11 +559,17 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
   async function persist(extra: { enabled?: boolean } = {}) {
     const instruction = compileInstruction(title.trim(), graph);
     if (savedIdRef.current) {
-      await updateWorkflow(savedIdRef.current, { title: title.trim(), instruction, trigger, graph, ...extra });
+      // Only resend `trigger` when it actually changed — updateWorkflow resets
+      // next_run_at / cursor on a trigger change, so sending it on every edit
+      // would reschedule (and skip runs / drop event dedupe) on trivial edits.
+      const fields: Parameters<typeof updateWorkflow>[1] = { title: title.trim(), instruction, graph, ...extra };
+      const tStr = JSON.stringify(trigger);
+      if (tStr !== savedTriggerRef.current) { fields.trigger = trigger; savedTriggerRef.current = tStr; }
+      await updateWorkflow(savedIdRef.current, fields);
     } else if (!creatingRef.current) {
       creatingRef.current = true;
       const w = await createWorkflow(title.trim(), instruction, trigger, graph, extra.enabled ?? enabled);
-      if (w) { savedIdRef.current = w.id; setSavedId(w.id); }
+      if (w) { savedIdRef.current = w.id; setSavedId(w.id); savedTriggerRef.current = JSON.stringify(trigger); }
       creatingRef.current = false;
     }
   }
@@ -571,7 +579,8 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
   // AI draft and backing out without touching it leaves nothing saved.
   useEffect(() => {
     if (!initedRef.current) { initedRef.current = true; return; }
-    const t = setTimeout(() => { void persist(); }, 700);
+    dirtyRef.current = true;
+    const t = setTimeout(async () => { await persist(); dirtyRef.current = false; }, 700);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, trigger, graph]);
@@ -581,6 +590,14 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
     const next = !enabled;
     setEnabled(next);
     await persist({ enabled: next });
+  }
+
+  // Flush a pending (debounced) edit before closing, so a quick edit -> back
+  // never loses changes. Only persists when there are actually unsaved edits, so
+  // backing out of an untouched draft still saves nothing.
+  async function close() {
+    if (dirtyRef.current) { dirtyRef.current = false; await persist(); }
+    onClose();
   }
 
   async function remove() {
@@ -595,7 +612,7 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
   return createPortal(
     <div className="memg wfx-plan" role="dialog" aria-label={mode === 'draft' ? 'New workflow' : 'Edit workflow'}>
       <div className="memg-top">
-        <button className="memg-back" onClick={onClose} aria-label="Back"><IconArrowLeft size={22} /></button>
+        <button className="memg-back" onClick={() => void close()} aria-label="Back"><IconArrowLeft size={22} /></button>
         <div className="memg-titles">
           <input className="wfx-title-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Untitled workflow" maxLength={80} />
           <p className="memg-sub">{mode === 'draft' ? 'Draft · tap a step to edit' : 'Tap a step to edit'}</p>
