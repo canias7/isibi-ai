@@ -23,7 +23,7 @@ name: iOS Build
 # filename-casing fix that broke the macOS tsc build.)
 on:
   push:
-    branches: [claude/zealous-sagan-TA5qG]
+    branches: [main]
     paths:
       - 'ios/**'
       - 'capacitor.config.ts'

@@ -10,7 +10,7 @@ name: Web OTA bundle
 # unset.
 on:
   push:
-    branches: [claude/zealous-sagan-TA5qG]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
