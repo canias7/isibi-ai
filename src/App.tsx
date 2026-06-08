@@ -1024,12 +1024,6 @@ export default function App() {
           <button className={`side-item ${view === 'chat' ? 'active' : ''}`} onClick={() => go('chat')}>
             <span className="ico"><IconChat size={18} /></span> Chat
           </button>
-          <button className={`side-item ${view === 'connectors' ? 'active' : ''}`} onClick={() => go('connectors')}>
-            <span className="ico"><IconConnectors size={18} /></span> Connectors
-          </button>
-          <button className={`side-item ${memOpen ? 'active' : ''}`} onClick={openMemory}>
-            <span className="ico"><IconMemory size={18} /></span> Memory
-          </button>
           <button className={`side-item ${view === 'settings' ? 'active' : ''}`} onClick={() => go('settings')}>
             <span className="ico"><IconSettings size={18} /></span> Settings
           </button>
