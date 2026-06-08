@@ -5,7 +5,8 @@ import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API, byId, type Connector } from './connectorData';
-import { BrandLogo, hasBrand } from './brandLogos';
+import { BrandLogo } from './brandLogos';
+import { hasBrand } from './brandData';
 import ToolManager from './ToolManager';
 import { IconArrowLeft, IconSpark } from './icons';
 

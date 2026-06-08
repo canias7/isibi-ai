@@ -1,16 +1,13 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { streamChat, sendTestPush, extractMemory, type ChatMessage, type Attach } from './api';
 import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API } from './connectorData';
-import ConnectorsGraph from './ConnectorsGraph';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow } from './icons';
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
-import MemoryGraph from './MemoryGraph';
-import WorkflowsScreen from './WorkflowsScreen';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { tap } from './haptics';
@@ -18,6 +15,12 @@ import { biometryAvailable, unlock } from './biometric';
 import { registerPush, pushStatus } from './push';
 import { fileToAttachment } from './attach';
 import { slimMessages, isNetworkError, serverIsMoreComplete, titleFrom, cleanForDisplay, modelShort, plainText } from './chatUtils';
+
+// Heavy, on-demand screens are code-split: their JS downloads only when first
+// opened, shrinking the initial bundle and speeding up launch.
+const ConnectorsGraph = lazy(() => import('./ConnectorsGraph'));
+const MemoryGraph = lazy(() => import('./MemoryGraph'));
+const WorkflowsScreen = lazy(() => import('./WorkflowsScreen'));
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -1045,7 +1048,7 @@ export default function App() {
       </header>
 
       {view === 'connectors' ? (
-        <ConnectorsGraph onClose={() => go('chat')} />
+        <Suspense fallback={null}><ConnectorsGraph onClose={() => go('chat')} /></Suspense>
       ) : view === 'settings' ? (
         <div className="page">
           <div className="page-inner">
@@ -1242,20 +1245,26 @@ export default function App() {
       )}
 
       {memOpen && (
-        <MemoryGraph
-          memories={memories}
-          loaded={memLoaded}
-          enabled={memEnabled}
-          onAdd={addMem}
-          onAddFile={addMemFile}
-          onUpdate={updateMem}
-          onDelete={delMem}
-          onToggle={toggleMem}
-          onClose={closeMemory}
-        />
+        <Suspense fallback={null}>
+          <MemoryGraph
+            memories={memories}
+            loaded={memLoaded}
+            enabled={memEnabled}
+            onAdd={addMem}
+            onAddFile={addMemFile}
+            onUpdate={updateMem}
+            onDelete={delMem}
+            onToggle={toggleMem}
+            onClose={closeMemory}
+          />
+        </Suspense>
       )}
 
-      {wfOpen && <WorkflowsScreen connApps={connApps} onClose={() => setWfOpen(false)} />}
+      {wfOpen && (
+        <Suspense fallback={null}>
+          <WorkflowsScreen connApps={connApps} onClose={() => setWfOpen(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }

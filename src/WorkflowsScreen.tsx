@@ -5,7 +5,8 @@ import {
   IconClock, IconBolt, IconBranch, IconSpark, IconCheck,
 } from './icons';
 import { byId } from './connectorData';
-import { BrandLogo, hasBrand } from './brandLogos';
+import { BrandLogo } from './brandLogos';
+import { hasBrand } from './brandData';
 import {
   listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow, testWorkflow,
   triggerLabel, deviceTz, appLabel, compileInstruction, orderedNodes,

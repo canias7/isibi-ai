@@ -34,7 +34,7 @@ export interface EmailMessage {
 // Which mailbox a card belongs to. The post-processor stamps `app` on the card;
 // if it's missing we infer from the message-id shape (Gmail ids are short hex,
 // Outlook ids are long) so the theme + reader routing are never wrong.
-export function providerOf(app?: string, id?: string): 'gmail' | 'outlook' {
+function providerOf(app?: string, id?: string): 'gmail' | 'outlook' {
   if (app === 'gmail' || app === 'outlook') return app;
   if (id && !/^[0-9a-f]{10,24}$/i.test(id)) return 'outlook';
   return 'gmail';

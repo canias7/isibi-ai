@@ -1,0 +1,771 @@
+/* ---- Inbox list (email-list replies) ---- */
+.gf-emails {
+  white-space: normal;
+  margin: 4px 0 6px;
+  background: #181a1f;
+  border: 1px solid #ffffff14;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.gf-email {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid #ffffff0f;
+}
+.gf-email:first-child { border-top: none; }
+.gf-email.unread { background: #ffffff08; }
+.gf-email.tappable { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.gf-email.tappable:active { background: #ffffff14; }
+
+.gf-num { width: 15px; flex-shrink: 0; text-align: center; color: var(--text-dim); font-size: 11px; }
+
+.gf-avwrap { position: relative; flex-shrink: 0; }
+.gf-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center; overflow: hidden; background: #fff;
+}
+.gf-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.gf-avatar-mono { color: #fff; font-size: 13px; font-weight: 700; }
+/* unread badge dot on the avatar corner */
+.gf-dot {
+  position: absolute; top: -2px; right: -2px;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #3a86ff; border: 2.5px solid #181a1f;
+}
+.gf-email.unread .gf-dot { border-color: #1d2027; }
+
+.gf-main { flex: 1; min-width: 0; }
+.gf-line1 { display: flex; align-items: center; gap: 8px; }
+.gf-from {
+  flex: 1; min-width: 0; font-weight: 600; font-size: 14px; color: var(--text-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gf-email.unread .gf-from { color: var(--text); font-weight: 700; }
+.gf-time { flex-shrink: 0; color: var(--text-dim); font-size: 12px; white-space: nowrap; }
+
+.gf-subject {
+  margin-top: 1px; font-size: 13px; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gf-email.unread .gf-subject { font-weight: 600; }
+
+.gf-snippet {
+  margin-top: 2px; color: var(--text-dim); font-size: 12px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ---- Contacts card (gf-contacts: people / contact-search results) ---- */
+.gf-contacts {
+  white-space: normal;
+  margin: 4px 0 6px;
+  background: #181a1f;
+  border: 1px solid #ffffff14;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.gf-contact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid #ffffff0f;
+}
+.gf-contact:first-child { border-top: none; }
+.gf-contact-name {
+  font-weight: 600; font-size: 14px; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gf-contact-sub {
+  margin-top: 1px; color: var(--text-dim); font-size: 12px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ---- Single opened email (gf-message reader) ---- */
+.gf-msg {
+  white-space: normal;
+  margin: 4px 0 6px;
+  background: #14161b;
+  border: 1px solid #ffffff14;
+  border-radius: 16px;
+  padding: 14px;
+}
+.gf-msg-head { display: flex; align-items: flex-start; gap: 11px; padding-bottom: 12px; border-bottom: 1px solid #ffffff12; }
+.gf-msg-head .gf-avatar { width: 42px; height: 42px; }
+.gf-msg-who { flex: 1; min-width: 0; }
+.gf-msg-name { font-weight: 700; font-size: 15px; }
+.gf-msg-addr, .gf-msg-to {
+  color: var(--text-dim); font-size: 12.5px; margin-top: 1px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gf-msg-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.gf-msg-time { color: var(--text-dim); font-size: 12px; white-space: nowrap; }
+.gf-msg-pill {
+  font-size: 11px; font-weight: 600; color: #8fb6ff;
+  background: #3a86ff1f; border: 1px solid #3a86ff44; padding: 3px 10px; border-radius: 999px;
+}
+.gf-msg-subject { font-size: 17px; font-weight: 700; line-height: 1.3; margin: 14px 0 10px; }
+.gf-msg-body { font-size: 14px; line-height: 1.6; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.gf-body-loading { color: var(--text-dim); }
+.gf-body-wrap { margin-top: 8px; }
+.gf-body-frame { width: 100%; border: 0; min-height: 140px; background: #fff; border-radius: 10px; display: block; }
+
+.gf-att-list { margin-top: 12px; }
+.gf-att { display: flex; align-items: center; gap: 11px; }
+.gf-att + .gf-att { margin-top: 12px; }
+.gf-att-thumb { width: 46px; height: 46px; border-radius: 9px; object-fit: cover; flex-shrink: 0; background: #fff; }
+.gf-att-icon {
+  width: 40px; height: 40px; border-radius: 9px; flex-shrink: 0;
+  display: grid; place-items: center; color: #fff; font-size: 9.5px; font-weight: 800; letter-spacing: 0.3px;
+}
+.gf-att-info { flex: 1; min-width: 0; }
+.gf-att-name { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gf-att-size { color: var(--text-dim); font-size: 12px; margin-top: 1px; }
+.gf-att-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.gf-att-btn {
+  width: 34px; height: 34px; border-radius: 9px; border: 1px solid #ffffff1f;
+  background: #ffffff0a; color: var(--text); display: grid; place-items: center; cursor: pointer;
+}
+.gf-att-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* Full-screen attachment preview */
+.gf-lightbox {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.gf-lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+
+/* skeleton while the block streams in */
+.gf-skel-box { background: #ffffff14; }
+.gf-skel-line { height: 10px; border-radius: 5px; background: #ffffff14; margin: 7px 0; }
+.gf-skel-line.w40 { width: 40%; }
+.gf-skel-line.w70 { width: 70%; }
+.gf-skel-line.w90 { width: 90%; }
+.gf-skel { animation: gfpulse 1.2s ease-in-out infinite; }
+@keyframes gfpulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+/* ---- Per-mailbox glass theming (Gmail = frosted white, Outlook = frosted blue).
+   The card is tinted by its provider; the email body iframe stays white (real HTML).
+   backdrop-filter refracts the app's ambient orb glow behind the chat. ---- */
+.gf-emails.gf-gmail, .gf-msg.gf-gmail, .gf-contacts.gf-gmail {
+  background: linear-gradient(160deg, rgba(255,255,255,.82), rgba(248,250,253,.66));
+  -webkit-backdrop-filter: blur(26px) saturate(150%); backdrop-filter: blur(26px) saturate(150%);
+  border: 1px solid rgba(255,255,255,.60);
+  box-shadow: 0 10px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.85);
+}
+.gf-gmail .gf-contact { border-top-color: rgba(0,0,0,.07); }
+.gf-gmail .gf-contact-sub { color: #4b5563; }
+.gf-gmail .gf-contact-name { color: #15181d; }
+.gf-gmail .gf-email { border-top-color: rgba(0,0,0,.07); }
+.gf-gmail .gf-email.unread { background: rgba(255,255,255,.30); }
+.gf-gmail .gf-num, .gf-gmail .gf-time, .gf-gmail .gf-snippet, .gf-gmail .gf-from,
+.gf-gmail .gf-msg-addr, .gf-gmail .gf-msg-to, .gf-gmail .gf-msg-time, .gf-gmail .gf-att-size { color: #4b5563; }
+.gf-gmail .gf-email.unread .gf-from, .gf-gmail .gf-subject, .gf-gmail .gf-msg-name,
+.gf-gmail .gf-msg-subject, .gf-gmail .gf-att-name { color: #15181d; }
+.gf-gmail .gf-email.unread .gf-dot { background: #1a73e8; border-color: #eef2f7; }
+.gf-gmail .gf-msg-head { border-bottom-color: rgba(0,0,0,.08); }
+.gf-gmail .gf-msg-pill { color: #1a73e8; background: rgba(26,115,232,.12); border-color: rgba(26,115,232,.30); }
+.gf-gmail .gf-att-btn { border-color: rgba(0,0,0,.16); background: rgba(0,0,0,.03); color: #444; }
+
+.gf-emails.gf-outlook, .gf-msg.gf-outlook {
+  background: linear-gradient(160deg, rgba(16,118,212,.62), rgba(3,80,160,.46));
+  -webkit-backdrop-filter: blur(26px) saturate(150%); backdrop-filter: blur(26px) saturate(150%);
+  border: 1px solid rgba(255,255,255,.30);
+  box-shadow: 0 10px 40px rgba(0,0,0,.40), inset 0 1px 0 rgba(255,255,255,.40);
+}
+.gf-outlook .gf-email { border-top-color: rgba(255,255,255,.18); }
+.gf-outlook .gf-email.unread { background: rgba(255,255,255,.12); }
+.gf-outlook .gf-num, .gf-outlook .gf-time, .gf-outlook .gf-snippet, .gf-outlook .gf-from,
+.gf-outlook .gf-msg-addr, .gf-outlook .gf-msg-to, .gf-outlook .gf-msg-time, .gf-outlook .gf-att-size { color: rgba(255,255,255,.82); }
+.gf-outlook .gf-email.unread .gf-from, .gf-outlook .gf-subject, .gf-outlook .gf-msg-name,
+.gf-outlook .gf-msg-subject, .gf-outlook .gf-att-name { color: #ffffff; }
+.gf-outlook .gf-email.unread .gf-dot { background: #fff; border-color: #2f6fb0; }
+.gf-outlook .gf-msg-head { border-bottom-color: rgba(255,255,255,.22); }
+.gf-outlook .gf-msg-pill { color: #fff; background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.45); }
+.gf-outlook .gf-att-btn { border-color: rgba(255,255,255,.45); background: rgba(255,255,255,.14); color: #fff; }
+
+/* "Draft" badge — amber, readable on every card theme (placed last to win) */
+.gf-draft-pill {
+  flex-shrink: 0;
+  font-size: 10px; font-weight: 700; letter-spacing: .3px;
+  color: #8a5a00; background: #ffe2a6; border: 1px solid #e9c277;
+  padding: 1px 7px; border-radius: 999px; white-space: nowrap;
+}
+.gf-msg-pill.gf-draft-pill { font-size: 11px; padding: 3px 10px; color: #8a5a00; background: #ffe2a6; border-color: #e9c277; }
+
+/* ---- Connector card actions (tools gear) ---- */
+.conn-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.conn-tools {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ffffff22;
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.conn-tools:active { opacity: 0.7; }
+.conn-tools:hover { color: var(--text); border-color: #ffffff44; }
+
+/* ---- Manage tools (per-app tool permissions) ---- */
+.tm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 260;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+.tm-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: max(10px, env(safe-area-inset-top)) 12px 10px;
+  border-bottom: 1px solid #ffffff12;
+  flex-shrink: 0;
+}
+.tm-x {
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 22px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.tm-x:active { opacity: 0.6; }
+.tm-title { flex: 1; min-width: 0; font-weight: 700; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-save {
+  flex-shrink: 0;
+  border: none;
+  background: var(--accent);
+  color: #000;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.tm-save:disabled { opacity: 0.4; cursor: default; }
+.tm-save:active { opacity: 0.7; }
+/* Auto-save status (replaces the Save button) */
+.tm-status {
+  flex-shrink: 0;
+  min-width: 56px;
+  text-align: right;
+  font-size: 14px;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  font-family: inherit;
+}
+.tm-status.err { color: #ff8a8a; font-weight: 600; cursor: pointer; }
+.tm-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px max(16px, env(safe-area-inset-left)) max(24px, env(safe-area-inset-bottom));
+  max-width: 768px;
+  width: 100%;
+  margin: 0 auto;
+}
+.tm-msg { color: var(--text-dim); text-align: center; padding: 48px 16px; font-size: 14px; }
+.tm-sub { color: var(--text-dim); font-size: 13px; line-height: 1.55; margin: 0 0 20px; }
+.tm-empty {
+  background: #ffffff0d;
+  border: 1px solid #ffffff1a;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin: 0 0 18px;
+}
+.tm-group { margin-bottom: 22px; }
+.tm-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 0 4px 8px;
+}
+.tm-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: #ffffff14;
+  border-radius: 9px;
+  padding: 1px 7px;
+}
+/* Grouped card: rows share one rounded container with hairline dividers */
+.tm-list { background: var(--bubble-user); border-radius: 14px; overflow: hidden; }
+.tm-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 15px;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text);
+}
+.tm-row:not(:last-child) { box-shadow: inset 0 -1px 0 #ffffff0d; }
+.tm-row:active { background: #ffffff0a; }
+.tm-name { flex: 1; min-width: 0; font-size: 15px; }
+.tm-info-btn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.tm-info-btn:active { color: var(--text); }
+.tm-info-backdrop { position: fixed; inset: 0; z-index: 80; }
+.tm-info-pop {
+  position: fixed;
+  z-index: 81;
+  width: 260px;
+  background: rgba(52, 52, 58, 0.98);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+}
+
+/* ---- Workflows: AI builder (home chatbox, node canvas, edit sheet) ---- */
+.memg-titles { flex: 1; min-width: 0; }
+
+/* flush top-right corner button (Projects / run history) */
+.wfx-corner {
+  position: absolute;
+  top: 8px; right: 14px;
+  width: 34px; height: 34px;
+  border: none; background: rgba(255, 255, 255, 0.06);
+  color: var(--text); border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+}
+.wfx-corner:active { background: rgba(255, 255, 255, 0.14); }
+.wfx-projects-count {
+  position: absolute; top: -4px; right: -4px;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05;
+  font-size: 10px; font-weight: 800; border-radius: 9px;
+  display: grid; place-items: center;
+}
+
+/* home (chatbox) */
+.wfx-home { flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; overflow-x: hidden; }
+.wfx-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px 28px; gap: 12px; touch-action: none; }
+.wfx-hero-mark {
+  width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center;
+  color: #2a1c05; background: linear-gradient(160deg, #ffce6f, #e0951f);
+  box-shadow: 0 0 40px 6px rgba(224, 161, 58, 0.35);
+}
+.wfx-hero-title { font-size: 20px; font-weight: 700; }
+.wfx-hero-sub { font-size: 14px; color: var(--text-dim); max-width: 320px; line-height: 1.5; }
+.wfx-err { color: #ff8f8f; font-size: 13px; margin-top: 4px; }
+
+/* Clarify chat — when the builder isn't sure, it asks 1-3 short questions here
+   before drafting, and the composer becomes the answer box. */
+.wfx-chat {
+  flex: 1; min-height: 0; min-width: 0; overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; touch-action: pan-y;
+  width: 100%; max-width: 640px; margin: 0 auto;
+  padding: 18px 16px 8px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.wfx-msg {
+  max-width: 82%; padding: 10px 14px; border-radius: 18px;
+  font-size: 15px; line-height: 1.45; word-wrap: break-word; overflow-wrap: anywhere;
+  animation: wfxMsgIn 0.24s ease both;
+}
+.wfx-msg.user {
+  align-self: flex-end; background: #fff; color: #000;
+  border-bottom-right-radius: 6px;
+}
+.wfx-msg.assistant {
+  align-self: flex-start; background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.10); color: var(--text);
+  border-bottom-left-radius: 6px;
+}
+.wfx-msg-q + .wfx-msg-q { margin-top: 8px; }
+@keyframes wfxMsgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Multiple-choice answer form (Claude-style tap-to-select). The form spans the
+   full chat width rather than sitting in a chat bubble. */
+.wfx-form { align-self: stretch; width: 100%; display: flex; flex-direction: column; gap: 18px; animation: wfxMsgIn 0.24s ease both; }
+.wfx-q-head { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+.wfx-q-text { font-size: 16px; font-weight: 600; line-height: 1.4; margin-bottom: 10px; }
+.wfx-opts { display: flex; flex-direction: column; gap: 8px; }
+.wfx-opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  width: 100%; text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text); font: inherit;
+  padding: 12px 14px; border-radius: 14px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+.wfx-opt:active:not(:disabled) { transform: scale(0.99); }
+.wfx-opt.sel { border-color: var(--accent, #e0a13a); background: rgba(224, 161, 58, 0.15); }
+.wfx-opt:disabled { opacity: 0.5; cursor: default; }
+.wfx-opt-label { font-size: 15px; font-weight: 600; }
+.wfx-opt-desc { font-size: 13px; color: var(--text-dim); line-height: 1.35; }
+.wfx-opt-other .wfx-opt-label { color: var(--text-dim); font-weight: 500; }
+.wfx-other-input {
+  width: 100%; margin-top: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px; color: var(--text); font: inherit; font-size: 15px; padding: 11px 13px;
+}
+.wfx-other-input:focus { outline: none; border-color: rgba(255, 255, 255, 0.3); }
+.wfx-other-input::placeholder { color: var(--text-dim); }
+
+/* Continue CTA — submits the picked answers (replaces the composer mid-clarify). */
+.wfx-continue {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; max-width: 640px; margin: 0 auto; min-height: 48px;
+  border: none; border-radius: 26px;
+  background: #fff; color: #000; font: inherit; font-size: 16px; font-weight: 600;
+  cursor: pointer; transition: opacity 0.15s ease;
+}
+.wfx-continue:disabled { opacity: 0.35; cursor: default; }
+.wfx-continue:active:not(:disabled) { opacity: 0.8; }
+
+/* "1 of N" progress for the one-at-a-time clarifying questions. */
+.wfx-steps { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.wfx-steps-count { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-dim); text-transform: uppercase; }
+.wfx-steps-dots { display: flex; gap: 6px; }
+.wfx-step-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.18); transition: background 0.2s ease, transform 0.2s ease; }
+.wfx-step-dot.done { background: rgba(224, 161, 58, 0.55); }
+.wfx-step-dot.on { background: var(--accent, #e0a13a); transform: scale(1.25); }
+/* Each question slides in as you step through. */
+.wfx-q-step { animation: wfxStepIn 0.22s ease both; }
+@keyframes wfxStepIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+
+/* Bottom stepper: Back + Next/Continue. */
+.wfx-stepper { display: flex; align-items: center; gap: 10px; max-width: 640px; margin: 0 auto; }
+.wfx-stepper .wfx-continue { flex: 1; margin: 0; }
+.wfx-step-back {
+  flex-shrink: 0; min-height: 48px; padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 26px;
+  background: transparent; color: var(--text); font: inherit; font-size: 16px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s ease, opacity 0.15s ease;
+}
+.wfx-step-back:disabled { opacity: 0.35; cursor: default; }
+.wfx-step-back:active:not(:disabled) { background: rgba(255, 255, 255, 0.08); }
+@media (prefers-reduced-motion: reduce) { .wfx-q-step { animation: none; } }
+
+/* Typing dots while the builder thinks. */
+.wfx-typing { display: inline-flex; gap: 4px; align-items: center; padding: 2px 0; }
+.wfx-typing i {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim);
+  display: inline-block; animation: wfxTyping 1.2s infinite ease-in-out both;
+}
+.wfx-typing i:nth-child(2) { animation-delay: 0.18s; }
+.wfx-typing i:nth-child(3) { animation-delay: 0.36s; }
+@keyframes wfxTyping { 0%, 70%, 100% { opacity: 0.3; transform: translateY(0); } 35% { opacity: 1; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .wfx-msg { animation: none; }
+  .wfx-typing i { animation: none; opacity: 0.6; }
+}
+
+/* Cycling typewriter prompt (replaces the static title). Fixed min-height so the
+   layout doesn't jump as prompts of different lengths type in and out. */
+.wfx-prompt {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 3.4em; max-width: 320px; line-height: 1.45;
+  font-size: 17px; font-weight: 600; color: var(--text);
+}
+.wfx-prompt-caret {
+  display: inline-block; width: 2px; height: 1.05em; margin-left: 2px;
+  background: #e0a13a; border-radius: 1px; vertical-align: text-bottom;
+  animation: wfxCaret 1s steps(1) infinite;
+}
+@keyframes wfxCaret { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .wfx-prompt-caret { animation: none; } }
+.wfx-spin {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.25); border-top-color: #2a1c05;
+  display: inline-block; animation: wfxSpin 0.7s linear infinite;
+}
+@keyframes wfxSpin { to { transform: rotate(360deg); } }
+
+/* canvas */
+.wfx-title-input {
+  width: 100%; max-width: 62vw; margin: 0 auto; display: block;
+  border: none; background: transparent; color: var(--text);
+  font: inherit; font-size: 18px; font-weight: 700; text-align: center;
+}
+.wfx-title-input:focus { outline: none; }
+.wfx-canvas { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; overscroll-behavior: none; }
+.wfx-surface { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+.wfx-edges { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
+.wfx-edge { fill: none; stroke: rgba(255, 255, 255, 0.22); stroke-width: 2; transition: stroke 0.3s ease; }
+.wfx-edge.run { stroke: #e0a13a; stroke-dasharray: 6 7; animation: wfxFlow 0.55s linear infinite; transition: none; }
+@keyframes wfxFlow { to { stroke-dashoffset: -26; } }
+.wfx-edge.pass { stroke: #46d17f; }
+.wfx-edge.fail { stroke: #ff6b6b; }
+.wfx-edge-tag { fill: var(--text-dim); font-size: 10px; text-anchor: middle; }
+.wfx-edge-tag.yes { fill: #6fe09a; }
+.wfx-edge-tag.no { fill: #ff8f8f; }
+
+.wfx-node {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 96px; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none;
+}
+.wfx-node:active { cursor: grabbing; }
+.wfx-chip {
+  position: relative;
+  width: 60px; height: 60px; border-radius: 16px;
+  background: rgba(40, 40, 46, 0.96); border: 1px solid rgba(255, 255, 255, 0.14);
+  display: grid; place-items: center; color: var(--text);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+/* Per-node Test result: a ring on the chip + a corner badge. */
+.wfx-node.ran-ok .wfx-chip { border-color: rgba(70, 209, 127, 0.7); box-shadow: 0 0 0 1px rgba(70, 209, 127, 0.5), 0 6px 18px rgba(0, 0, 0, 0.4); }
+.wfx-node.ran-bad .wfx-chip { border-color: rgba(255, 107, 107, 0.8); box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.55), 0 6px 18px rgba(0, 0, 0, 0.4); }
+.wfx-node-status {
+  position: absolute; top: -7px; right: -7px;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 2px solid #161618;
+}
+.wfx-node-status.ok { background: #46d17f; color: #08160d; }
+.wfx-node-status.bad { background: #ff6b6b; color: #2a0707; }
+
+/* A tapped node's last Test result, shown in the edit sheet. */
+.wfx-result { margin: 4px 0 10px; border-radius: 12px; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.04); }
+.wfx-result.ok { border-color: rgba(70, 209, 127, 0.45); }
+.wfx-result.bad { border-color: rgba(255, 107, 107, 0.5); }
+.wfx-result-head { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
+.wfx-result.ok .wfx-result-head { color: #6fe09a; }
+.wfx-result.bad .wfx-result-head { color: #ff8f8f; }
+.wfx-result-out { margin: 8px 0 0; white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.45; color: var(--text); max-height: 200px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.wfx-node.trigger .wfx-chip { background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05; border-color: rgba(255, 255, 255, 0.25); }
+/* App nodes carry a real brand logo — sit it on a light tile so it always reads. */
+.wfx-chip.logo { background: #f7f7fa; border-color: rgba(0, 0, 0, 0.12); }
+.wfx-node.decision .wfx-chip { transform: rotate(45deg); }
+.wfx-node.decision .wfx-chip > * { transform: rotate(-45deg); }
+.wfx-logo { width: 30px; height: 30px; object-fit: contain; pointer-events: none; }
+.wfx-node-label { font-size: 12px; font-weight: 600; text-align: center; line-height: 1.2; max-width: 96px; }
+.wfx-node-app { font-size: 10px; color: var(--text-dim); }
+
+/* Decorative animated mini-graph in the Workflows empty state. */
+.wfx-hf { position: relative; width: min(232px, 72vw); aspect-ratio: 240 / 250; margin: 2px auto 14px; touch-action: none; }
+.wfx-hf-wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.wfx-hf-wire { fill: none; stroke: rgba(224, 161, 58, 0.5); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 4 7; animation: wfxFlow 0.7s linear infinite; }
+.wfx-hf-node {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 42px; height: 42px; border-radius: 13px;
+  display: grid; place-items: center;
+  background: rgba(40, 40, 46, 0.96); border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45); color: var(--text);
+  touch-action: none; cursor: grab;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.wfx-hf-node:active { cursor: grabbing; }
+/* Inner glyphs never grab the pointer (the node owns the drag) and can't be dragged as images. */
+.wfx-hf-node svg, .wfx-hf-ic { pointer-events: none; -webkit-user-drag: none; }
+.wfx-hf-node .wfx-logo { width: 24px; height: 24px; }
+/* Logo swap animation when an app node cycles to the next app. */
+.wfx-hf-ic { display: grid; place-items: center; animation: wfxHfPop 0.5s ease both; }
+@keyframes wfxHfPop {
+  0% { transform: scale(0.2) rotate(-20deg); opacity: 0; }
+  55% { transform: scale(1.12) rotate(6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+/* App nodes get a light tile so every brand logo (incl. dark ones like Notion) stays crisp. */
+.wfx-hf-node:not(.b) { background: #f7f7fa; border-color: rgba(0, 0, 0, 0.12); }
+.wfx-hf-node.b {
+  width: 56px; height: 56px; border-radius: 17px;
+  background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05;
+  border-color: rgba(255, 255, 255, 0.28);
+  animation: wfxHfPulse 2.4s ease-in-out infinite;
+}
+@keyframes wfxHfPulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(224, 149, 31, 0.35), 0 8px 22px rgba(0, 0, 0, 0.5); }
+  50% { box-shadow: 0 0 30px rgba(224, 149, 31, 0.65), 0 8px 22px rgba(0, 0, 0, 0.5); }
+}
+@media (prefers-reduced-motion: reduce) { .wfx-hf-wire, .wfx-hf-node.b, .wfx-hf-ic { animation: none; } }
+
+/* Workflow preview showcase: a mock chat box types the prompt, sends, the graph builds. */
+.wfx-wp-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; }
+/* Mock chat box the prompt types into. */
+.wfx-wp-chat {
+  display: flex; align-items: center; gap: 8px;
+  width: min(330px, 88vw); min-height: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px; padding: 10px 10px 10px 16px;
+}
+.wfx-wp-chat-text { flex: 1; text-align: left; font-size: 15px; line-height: 1.35; color: var(--text); min-width: 0; }
+.wfx-wp-send { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); color: var(--text); display: grid; place-items: center; transition: background 0.2s ease, transform 0.15s ease; }
+.wfx-wp-send.sending { background: #e0a13a; color: #2a1c05; transform: scale(0.9); }
+/* Stage where the workflow "loads" — fixed size so nothing jumps. */
+.wfx-wp-stage { position: relative; width: min(300px, 84vw); aspect-ratio: 300 / 240; }
+.wfx-wp-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--text-dim); font-size: 13px; }
+.wfx-wp { position: absolute; inset: 0; transition: opacity 0.35s ease, transform 0.35s ease; }
+.wfx-wp.leaving { opacity: 0; transform: scale(0.96); }
+.wfx-wp .wfx-hf-node { cursor: default; }
+/* Node pops in (keeps the -50%,-50% centering so it can't jump to the corner). */
+.wfx-pin { animation: wfxNodePop 0.45s ease both; }
+@keyframes wfxNodePop {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  55% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .wfx-wp { transition: none; } .wfx-pin { animation: none; } }
+
+.wfx-zoom { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
+.wfx-zoom button {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(30, 30, 34, 0.9);
+  color: var(--text); display: grid; place-items: center; cursor: pointer;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.wfx-zoom button:active { background: rgba(255, 255, 255, 0.14); }
+
+/* bottom action bar */
+.wfx-bar { flex-shrink: 0; display: flex; gap: 10px; padding: 10px 16px calc(14px + env(safe-area-inset-bottom)); z-index: 3; }
+.wfx-bar-save {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; border-radius: 14px; padding: 14px;
+  background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05;
+  font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.wfx-bar-save:disabled { opacity: 0.5; }
+.wfx-bar-del {
+  width: 50px; border: 1px solid rgba(255, 90, 90, 0.4); background: rgba(255, 90, 90, 0.08);
+  color: #ff8f8f; border-radius: 14px; display: grid; place-items: center; cursor: pointer;
+}
+
+/* node edit sheet + runs sheet */
+.wfx-sheet-scrim { position: fixed; inset: 0; z-index: 210; background: rgba(0, 0, 0, 0.5); display: flex; align-items: flex-end; animation: memgIn 0.18s ease; }
+.wfx-sheet {
+  width: 100%; max-height: 80vh; overflow-y: auto;
+  background: #161618; border-top-left-radius: 20px; border-top-right-radius: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 14px 16px calc(20px + env(safe-area-inset-bottom));
+  animation: wfxSheetUp 0.22s ease;
+}
+@keyframes wfxSheetUp { from { transform: translateY(30px); opacity: 0.6; } to { transform: translateY(0); opacity: 1; } }
+.wfx-sheet-head { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+
+.wfx-apps { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
+.wfx-app {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.04);
+  color: var(--text); border-radius: 10px; padding: 7px 10px; font: inherit; font-size: 13px; cursor: pointer;
+}
+.wfx-app.on { border-color: #e0a13a; background: rgba(224, 161, 58, 0.16); }
+.wfx-app-ic { display: grid; place-items: center; }
+.wfx-app-ic img { width: 16px; height: 16px; object-fit: contain; }
+
+/* Test button + result banner */
+.wfx-test {
+  position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 14px;
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+  border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.08);
+  color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.wfx-test:active { background: rgba(255, 255, 255, 0.16); }
+.wfx-test:disabled { opacity: 0.6; }
+.wfx-spin-l { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.3); border-top-color: var(--text); display: inline-block; animation: wfxSpin 0.7s linear infinite; }
+
+.wfx-result-title { display: inline-flex; align-items: center; gap: 8px; }
+.wfx-result-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.wfx-result-title.ok { color: #bfeecf; }
+.wfx-result-title.bad { color: #ffc9c9; }
+.wfx-result-title.ok .wfx-result-dot { background: #46d17f; box-shadow: 0 0 8px rgba(70, 209, 127, 0.6); }
+.wfx-result-title.bad .wfx-result-dot { background: #ff6b6b; box-shadow: 0 0 8px rgba(255, 107, 107, 0.6); }
+.wfx-result-body { font-size: 14px; line-height: 1.55; color: var(--text); }
+.wfx-result-body p { margin: 0 0 8px; }
+.wfx-result-body p:last-child { margin-bottom: 0; }
+
+.wfx-bar-hist { width: 50px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.05); color: var(--text); border-radius: 14px; display: grid; place-items: center; cursor: pointer; }
+
+/* ---- Connectors constellation (reuses the .memg shell + stage/world/core/lines) ---- */
+.cg-mono { width: 100%; height: 100%; border-radius: 9px; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 16px; }
+.cg-node {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 12px 6px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(20, 20, 24, 0.72);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border-radius: 16px; cursor: grab; color: var(--text);
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  animation: memgPop 0.32s cubic-bezier(0.2, 0.7, 0.2, 1.2) backwards;
+}
+.cg-node:active { cursor: grabbing; }
+.cg-node.dragging { z-index: 6; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); animation: none; }
+.cg-tile {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 11px; background: #f6f7f9;
+  display: grid; place-items: center; box-shadow: 0 0 0 2px rgba(70, 209, 127, 0.9);
+}
+.cg-name { font-size: 14px; font-weight: 600; white-space: nowrap; }
+/* the "+" add node */
+.cg-node.cg-add { padding: 0; background: rgba(255, 255, 255, 0.05); border: 1.5px dashed rgba(255, 255, 255, 0.28); box-shadow: none; }
+.cg-add-tile { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; color: var(--accent, #e0a13a); }
+.cg-hint { position: absolute; left: 0; right: 0; bottom: 26px; text-align: center; font-size: 14px; color: var(--text-dim); z-index: 1; }
+.cg-hint b { color: var(--accent, #e0a13a); }
+
+/* connect picker — the page with all the apps */
+.cg-picker {
+  position: fixed; inset: 0; z-index: 240; display: flex; flex-direction: column;
+  background: radial-gradient(420px 420px at 50% 44%, rgba(224, 161, 58, 0.10), transparent 70%), #08080a;
+  padding-top: env(safe-area-inset-top); overflow: hidden; animation: memgIn 0.2s ease;
+}
+.cg-pick-body { flex: 1; min-height: 0; min-width: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 6px 16px 40px; width: 100%; max-width: 640px; margin: 0 auto; }
+.cg-row { display: flex; align-items: center; gap: 13px; background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 16px; padding: 11px 14px; margin-bottom: 10px; }
+.cg-row-tile { flex-shrink: 0; width: 42px; height: 42px; border-radius: 12px; background: #f6f7f9; display: grid; place-items: center; border: 1px solid rgba(0, 0, 0, 0.06); }
+.cg-row-meta { flex: 1; min-width: 0; }
+.cg-row-name { font-size: 16px; font-weight: 600; }
+.cg-row-desc { font-size: 13px; color: var(--text-dim); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cg-connect { flex-shrink: 0; border: 1px solid rgba(255, 255, 255, 0.18); background: transparent; color: var(--text); font: inherit; font-size: 14px; font-weight: 600; padding: 8px 16px; border-radius: 16px; cursor: pointer; }
+.cg-connect:active { background: rgba(255, 255, 255, 0.08); }
+.cg-connected-tag { flex-shrink: 0; font-size: 13px; font-weight: 600; color: #6fe09a; }
+.cg-pick-empty { text-align: center; color: var(--text-dim); font-size: 14px; padding: 40px 16px; }
+
+/* tapped-app action sheet */
+.cg-sheet-backdrop { position: fixed; inset: 0; z-index: 250; background: rgba(0, 0, 0, 0.5); animation: memgIn 0.15s ease; }
+.cg-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 251;
+  background: #141417; border-top: 1px solid rgba(255, 255, 255, 0.12); border-radius: 22px 22px 0 0;
+  padding: 14px 16px calc(20px + env(safe-area-inset-bottom)); max-width: 640px; margin: 0 auto;
+  animation: cgSheetUp 0.24s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@keyframes cgSheetUp { from { transform: translateY(100%); } to { transform: none; } }
+.cg-sheet-head { display: flex; align-items: center; gap: 12px; padding: 6px 4px 12px; }
+.cg-sheet-head .cg-tile { width: 40px; height: 40px; box-shadow: 0 0 0 2px rgba(70, 209, 127, 0.9); }
+.cg-sheet-head b { font-size: 17px; font-weight: 700; display: block; }
+.cg-sheet-head small { font-size: 13px; color: var(--text-dim); }
+.cg-sheet-btn { width: 100%; text-align: left; border: none; border-radius: 14px; background: rgba(255, 255, 255, 0.06); color: var(--text); font: inherit; font-size: 16px; font-weight: 600; padding: 14px 16px; margin-top: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+.cg-sheet-btn:active { background: rgba(255, 255, 255, 0.12); }
+.cg-sheet-btn.danger { color: #ff8f8f; }
