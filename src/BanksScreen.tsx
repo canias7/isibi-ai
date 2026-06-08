@@ -1,42 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Browser } from '@capacitor/browser';
 import { IconArrowLeft } from './icons';
 import { supabase } from './supabase';
 
-// Banks — bank-account linking via Plaid. Deliberately SEPARATE from the Composio
-// connectors: its own screen, its own backend (`plaid` Edge Function), read-only.
-
-type PlaidExit = { error_code?: string; error_message?: string; display_message?: string } | null;
-interface PlaidLink {
-  create(opts: {
-    token: string;
-    onSuccess: (publicToken: string) => void;
-    onExit?: (err: PlaidExit) => void;
-  }): { open: () => void };
-}
-declare global { interface Window { Plaid?: PlaidLink } }
-
-const PLAID_SCRIPT = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
-function loadPlaid(): Promise<PlaidLink> {
-  return new Promise((resolve, reject) => {
-    if (window.Plaid) return resolve(window.Plaid);
-    const done = () => (window.Plaid ? resolve(window.Plaid) : reject(new Error('Failed to load Plaid')));
-    const existing = document.querySelector(`script[src="${PLAID_SCRIPT}"]`);
-    if (existing) {
-      existing.addEventListener('load', done);
-      existing.addEventListener('error', () => reject(new Error('Failed to load Plaid')));
-      return;
-    }
-    const s = document.createElement('script');
-    s.src = PLAID_SCRIPT; s.async = true;
-    s.onload = done;
-    s.onerror = () => reject(new Error('Failed to load Plaid'));
-    document.head.appendChild(s);
-  });
-}
+// Banks — bank-account linking via Plaid Hosted Link (Plaid hosts the Link page, so
+// real OAuth banks work on a phone). SEPARATE from the Composio connectors: own
+// screen, own backend (`plaid` Edge Function), read-only.
 
 type Bank = { id: string; institution: string; linked_at: string };
 type Acct = { bank: string; name: string; mask?: string; type?: string; available?: number; current?: number; currency?: string; error?: string };
 type Txn = { bank: string; name: string; amount: number; date: string; currency?: string; pending?: boolean; error?: string };
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function call(action: string, extra: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
   const { data, error } = await supabase.functions.invoke('plaid', { body: { action, ...extra } });
@@ -66,20 +41,28 @@ export default function BanksScreen({ onClose }: { onClose: () => void }) {
     setErr(''); setLinking(true);
     try {
       const d = await call('create_link_token');
+      const url = d.hosted_link_url as string | undefined;
       const linkToken = d.link_token as string | undefined;
-      if (!linkToken) throw new Error('Could not start linking.');
-      const Plaid = await loadPlaid();
-      const handler = Plaid.create({
-        token: linkToken,
-        onSuccess: (publicToken: string) => {
-          void (async () => {
-            try { await call('exchange', { public_token: publicToken }); await refresh(); }
-            catch (e) { setErr(String((e as Error).message)); }
-          })();
-        },
-        onExit: (e: PlaidExit) => { if (e) setErr(e.display_message || e.error_message || ''); },
-      });
-      handler.open();
+      if (!url || !linkToken) throw new Error('Could not start linking.');
+      await Browser.open({ url });
+
+      // Plaid hosts the Link page in the browser; poll the backend until the
+      // session completes (a public token is exchanged + stored server-side).
+      let closedAt = 0;
+      const sub = await Browser.addListener('browserFinished', () => { closedAt = Date.now(); });
+      const start = Date.now();
+      let done = false;
+      while (!done) {
+        await sleep(2500);
+        try {
+          const c = await call('complete', { link_token: linkToken });
+          if (c.ok) { done = true; break; }
+        } catch { /* keep polling */ }
+        if ((closedAt && Date.now() - closedAt > 12000) || Date.now() - start > 300000) break;
+      }
+      await sub.remove();
+      if (done) { await Browser.close().catch(() => {}); await refresh(); }
+      else setErr("Linking didn't finish — give it another try.");
     } catch (e) {
       setErr(String((e as Error).message));
     } finally {
@@ -117,7 +100,7 @@ export default function BanksScreen({ onClose }: { onClose: () => void }) {
         <p className="page-sub">Link a bank account (read-only) through Plaid. Sandbox mode — at the test bank use <b>user_good</b> / <b>pass_good</b>.</p>
 
         <button className="bank-link-btn" onClick={() => void linkBank()} disabled={linking}>
-          {linking ? 'Opening…' : '+ Link a bank account'}
+          {linking ? 'Linking… (finish in the browser)' : '+ Link a bank account'}
         </button>
 
         {err && <div className="bank-err">{err}</div>}
