@@ -10,7 +10,7 @@ import { hasBrand } from './brandData';
 import {
   listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow, testWorkflow,
   triggerLabel, deviceTz, appLabel, compileInstruction, orderedNodes,
-  type Workflow, type WorkflowRun, type Schedule, type Trigger, type WfGraph, type WfNode, type BuildMsg, type AskQuestion,
+  type Workflow, type WorkflowRun, type Schedule, type Trigger, type EventCfg, type WfGraph, type WfNode, type BuildMsg, type AskQuestion,
 } from './workflows';
 
 type NodeResult = { ok: boolean; output: string };
@@ -934,15 +934,21 @@ function TriggerEditor({ trigger, connApps, onChange }: { trigger: Trigger; conn
   const sched: Schedule = trigger.type === 'schedule' ? trigger.schedule : { freq: 'daily', hour: 8, minute: 0, weekday: 1, tz: deviceTz() };
   const evApp = trigger.type === 'event' ? trigger.event.app : (connApps[0] ?? '');
   const evFilter = trigger.type === 'event' ? (trigger.event.filter ?? '') : '';
+  const evWindow = trigger.type === 'event' ? (trigger.event.window ?? null) : null;
   const timeVal = `${String(sched.hour).padStart(2, '0')}:${String(sched.minute).padStart(2, '0')}`;
   const setSched = (s: Schedule) => onChange({ type: 'schedule', schedule: s });
+  // Merge a patch into the event config, preserving app / filter / window.
+  const setEvent = (patch: Partial<EventCfg>) =>
+    onChange({ type: 'event', event: { app: evApp, filter: evFilter, ...(evWindow ? { window: evWindow } : {}), ...patch } });
+  const fmtMin = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  const parseTime = (v: string) => { const [h, m] = v.split(':').map((x) => parseInt(x, 10)); return isNaN(h) || isNaN(m) ? null : h * 60 + m; };
 
   return (
     <>
       <label className="wf-label">Trigger</label>
       <div className="wf-seg">
         <button className={`wf-seg-btn ${kind === 'schedule' ? 'on' : ''}`} onClick={() => setSched(sched)}>On a schedule</button>
-        <button className={`wf-seg-btn ${kind === 'event' ? 'on' : ''}`} onClick={() => onChange({ type: 'event', event: { app: evApp, filter: evFilter } })} disabled={connApps.length === 0}>When it arrives</button>
+        <button className={`wf-seg-btn ${kind === 'event' ? 'on' : ''}`} onClick={() => setEvent({})} disabled={connApps.length === 0}>When it arrives</button>
       </div>
 
       {kind === 'schedule' ? (
@@ -978,13 +984,37 @@ function TriggerEditor({ trigger, connApps, onChange }: { trigger: Trigger; conn
           <label className="wf-label">In which app</label>
           <div className="wfx-apps">
             {connApps.map((id) => (
-              <button key={id} className={`wfx-app ${evApp === id ? 'on' : ''}`} onClick={() => onChange({ type: 'event', event: { app: id, filter: evFilter } })}>
+              <button key={id} className={`wfx-app ${evApp === id ? 'on' : ''}`} onClick={() => setEvent({ app: id })}>
                 <span className="wfx-app-ic"><NodeIcon app={id} size={16} /></span>{byId(id)?.name ?? id}
               </button>
             ))}
           </div>
           <label className="wf-label">Trigger when…</label>
-          <input className="wf-input" value={evFilter} onChange={(e) => onChange({ type: 'event', event: { app: evApp, filter: e.target.value } })} placeholder="e.g. an email from boss@company.com" maxLength={160} />
+          <input className="wf-input" value={evFilter} onChange={(e) => setEvent({ filter: e.target.value })} placeholder="e.g. an email from boss@company.com" maxLength={160} />
+
+          <label className="wf-label">Active hours</label>
+          <div className="wf-seg">
+            <button className={`wf-seg-btn ${!evWindow ? 'on' : ''}`} onClick={() => setEvent({ window: null })}>All day</button>
+            <button className={`wf-seg-btn ${evWindow ? 'on' : ''}`} onClick={() => setEvent({ window: evWindow ?? { start: 540, end: 1020, days: [], tz: deviceTz() } })}>Set hours</button>
+          </div>
+          {evWindow && (
+            <>
+              <div className="wf-time-row">
+                <span className="wf-time-label">From</span>
+                <input className="wf-input wf-time" type="time" value={fmtMin(evWindow.start)} onChange={(e) => { const m = parseTime(e.target.value); if (m !== null) setEvent({ window: { ...evWindow, start: m } }); }} />
+                <span className="wf-time-label">to</span>
+                <input className="wf-input wf-time" type="time" value={fmtMin(evWindow.end)} onChange={(e) => { const m = parseTime(e.target.value); if (m !== null) setEvent({ window: { ...evWindow, end: m } }); }} />
+              </div>
+              <div className="wf-dow">
+                {DOW.map((d, i) => {
+                  const days = evWindow.days ?? [];
+                  const on = days.includes(i);
+                  return <button key={d} className={`wf-dow-btn ${on ? 'on' : ''}`} onClick={() => setEvent({ window: { ...evWindow, days: on ? days.filter((x) => x !== i) : [...days, i] } })}>{d[0]}</button>;
+                })}
+              </div>
+              <p className="wf-hint">Only checks during these hours, so it costs much less. Anything new is caught at the next check. No days selected = every day.</p>
+            </>
+          )}
         </>
       )}
     </>

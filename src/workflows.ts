@@ -10,10 +10,20 @@ export interface Schedule {
   weekday?: number;      // 0=Sun .. 6=Sat (weekly only)
   tz: string;            // IANA timezone
 }
+// Optional active window for an event trigger. When set, the runner only polls
+// the app during these local hours/days — outside the window it's asleep (no
+// cost). Anything that arrived since the last check is caught at the next one.
+export interface EventWindow {
+  start: number;      // minutes from local midnight, 0-1439 (e.g. 540 = 9:00 AM)
+  end: number;        // minutes from local midnight, 0-1439 (e.g. 1020 = 5:00 PM)
+  days: number[];     // 0=Sun..6=Sat; which days the window is active. empty = every day
+  tz: string;         // IANA timezone (user local)
+}
 // Event trigger: a new item appears in a connected app matching a condition.
 export interface EventCfg {
   app: string;        // frontend connector id (e.g. 'gmail', 'slack', 'gcal')
   filter?: string;    // natural-language condition, e.g. "from boss@co.com" / "in #general"
+  window?: EventWindow | null; // active hours; absent/null = watches all day, every day
 }
 export type Trigger =
   | { type: 'schedule'; schedule: Schedule }
@@ -70,12 +80,34 @@ export function scheduleLabel(s: Schedule | null): string {
   if (s.freq === 'weekly') return `${DOW[s.weekday ?? 0]} · ${t}`;
   return `Daily · ${t}`;
 }
+// "9:00 AM" from minutes-since-midnight.
+function minLabel(min: number): string {
+  const h = Math.floor(min / 60) % 24, m = min % 60;
+  const h12 = (h % 12) || 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+}
+// Short summary of an event's active window, e.g. "9:00 AM–5:00 PM" or
+// "Mon–Fri 9:00 AM–5:00 PM". Empty string when it watches all day.
+export function windowLabel(win?: EventWindow | null): string {
+  if (!win || typeof win.start !== 'number' || typeof win.end !== 'number') return '';
+  const time = `${minLabel(win.start)}–${minLabel(win.end)}`;
+  const days = Array.isArray(win.days) ? win.days : [];
+  if (!days.length || days.length === 7) return time;
+  const sorted = [...new Set(days)].filter((d) => d >= 0 && d <= 6).sort((a, b) => a - b);
+  const contiguous = sorted.every((d, i) => i === 0 || d === sorted[i - 1] + 1);
+  const dayStr = contiguous && sorted.length > 1
+    ? `${DOW[sorted[0]]}–${DOW[sorted[sorted.length - 1]]}`
+    : sorted.map((d) => DOW[d]).join(', ');
+  return `${dayStr} ${time}`;
+}
 // One-line trigger description for the list card.
 export function triggerLabel(w: Workflow): string {
   if (w.trigger_type === 'event') {
     const app = byId(w.event?.app ?? '')?.name ?? 'an app';
     const f = w.event?.filter?.trim();
-    return f ? `${app}: ${f}` : `New in ${app}`;
+    const win = windowLabel(w.event?.window);
+    const base = f ? `${app}: ${f}` : `New in ${app}`;
+    return win ? `${base} · ${win}` : base;
   }
   return scheduleLabel(w.schedule);
 }

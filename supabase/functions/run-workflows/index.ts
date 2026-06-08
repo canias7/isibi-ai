@@ -107,6 +107,27 @@ function localDow(date: Date, tz: string): number {
   const wd = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(date);
   return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(wd);
 }
+// Is `now` inside an event trigger's active window? No window = always on (24/7).
+// Window is in the user's local tz; an empty `days` means every day. A window
+// whose end is <= start crosses midnight (e.g. 10 PM–6 AM); the after-midnight
+// portion belongs to the day the window started on.
+function inWindow(now: Date, w: any): boolean {
+  if (!w || typeof w !== "object") return true;
+  const tz = (typeof w.tz === "string" && w.tz) ? w.tz : "UTC";
+  const clamp = (n: number) => Math.min(1439, Math.max(0, Math.floor(Number(n) || 0)));
+  const start = clamp(w.start), end = clamp(w.end);
+  if (start === end) return false; // zero-length window = never active
+  const days: number[] = Array.isArray(w.days) ? w.days.map(Number).filter((d) => d >= 0 && d <= 6) : [];
+  const anyDay = days.length === 0;
+  const p = localParts(now, tz);
+  const mins = p.hour * 60 + p.minute;
+  const dow = localDow(now, tz);
+  if (start < end) return (anyDay || days.includes(dow)) && mins >= start && mins < end;
+  // crosses midnight
+  if (mins >= start) return anyDay || days.includes(dow);             // evening portion (today)
+  if (mins < end) return anyDay || days.includes((dow + 6) % 7);      // morning portion (prev day's window)
+  return false;
+}
 // Next UTC instant strictly after `from` that matches the schedule.
 function computeNext(from: Date, sched: any): Date | null {
   if (!sched || typeof sched !== "object") return null;
@@ -338,6 +359,9 @@ Deno.serve(async (req: Request) => {
       eventChecked = evs.length;
       for (const wf of evs) {
         try {
+          // Active-window gate: outside the user's set hours we don't poll at all
+          // (the cost saver). Anything new is caught at the next in-window check.
+          if (!inWindow(now, wf.event?.window)) continue;
           const evApp = String(wf.event?.app || "");
           const slug = APP_TO_SLUG[evApp] || "";
           const connected = await connectedToolkits(wf.user_id);
