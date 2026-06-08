@@ -9,7 +9,7 @@ import { BrandLogo, hasBrand } from './brandLogos';
 import {
   listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow, testWorkflow,
   triggerLabel, deviceTz, appLabel, compileInstruction, orderedNodes,
-  type Workflow, type WorkflowRun, type Schedule, type Trigger, type WfGraph, type WfNode,
+  type Workflow, type WorkflowRun, type Schedule, type Trigger, type WfGraph, type WfNode, type BuildMsg,
 } from './workflows';
 
 type NodeResult = { ok: boolean; output: string };
@@ -166,11 +166,19 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
   const [desc, setDesc] = useState('');
   const [building, setBuilding] = useState(false);
   const [err, setErr] = useState('');
+  const [convo, setConvo] = useState<BuildMsg[]>([]); // back-and-forth while the builder clarifies
+  const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     document.documentElement.classList.add('gf-modal-open');
     return () => document.documentElement.classList.remove('gf-modal-open');
   }, []);
+
+  // Keep the clarify chat pinned to the latest message.
+  useEffect(() => {
+    const el = chatRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [convo, building]);
 
   async function load() {
     setLoaded(false);
@@ -179,17 +187,30 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
   }
   useEffect(() => { void load(); }, []);
 
+  // Send the user's text (a request or an answer) to the builder. It either comes
+  // back with short clarifying questions — which we show as a chat and let the
+  // user answer — or with a finished draft, which opens the editable canvas.
   async function build() {
     const d = desc.trim();
     if (!d || building) return;
+    const next: BuildMsg[] = [...convo, { role: 'user', text: d }];
+    setConvo(next);
+    setDesc('');
     setBuilding(true);
     setErr('');
-    const draftWf = await buildWorkflow(d);
+    const res = await buildWorkflow(next);
     setBuilding(false);
-    if (!draftWf) { setErr("Couldn't build that — try describing it a little differently."); return; }
-    setDraft({ title: draftWf.title, instruction: draftWf.instruction, trigger: draftWf.trigger, graph: draftWf.graph });
-    setDesc('');
+    if (!res) { setErr("Couldn't build that — try describing it a little differently."); return; }
+    if (res.kind === 'questions') {
+      setConvo([...next, { role: 'assistant', text: res.questions.join('\n') }]);
+      return;
+    }
+    setConvo([]);
+    setDraft({ title: res.draft.title, instruction: res.draft.instruction, trigger: res.draft.trigger, graph: res.draft.graph });
   }
+
+  // The last turn being a question means the user is mid-clarification.
+  const awaiting = convo.length > 0 && convo[convo.length - 1].role === 'assistant';
 
   async function toggle(w: Workflow) {
     setItems((prev) => prev.map((x) => (x.id === w.id ? { ...x, enabled: !x.enabled } : x)));
@@ -231,12 +252,14 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
       <div className="memg-top">
         {view === 'projects' ? (
           <button className="memg-back" onClick={() => setView('home')} aria-label="Back"><IconArrowLeft size={22} /></button>
+        ) : convo.length > 0 ? (
+          <button className="memg-back" onClick={() => { setConvo([]); setErr(''); }} aria-label="Start over"><IconArrowLeft size={22} /></button>
         ) : (
           <button className="memg-back" onClick={onClose} aria-label="Close"><IconX size={20} /></button>
         )}
         <div className="memg-titles">
           <h1 className="memg-title">{view === 'projects' ? 'Projects' : 'Workflows'}</h1>
-          <p className="memg-sub">{view === 'projects' ? `${items.length} saved` : 'Describe an automation and I’ll build it'}</p>
+          <p className="memg-sub">{view === 'projects' ? `${items.length} saved` : awaiting ? 'A couple of quick questions' : 'Describe an automation and I’ll build it'}</p>
         </div>
         {view === 'home' ? (
           <button className="wfx-corner wfx-projects" onClick={() => setView('projects')} aria-label="Projects">
@@ -270,10 +293,28 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
         </div>
       ) : (
         <div className="wfx-home">
-          <div className="wfx-hero">
-            <WorkflowPreview />
-            {err && <div className="wfx-err">{err}</div>}
-          </div>
+          {convo.length > 0 ? (
+            <div className="wfx-chat" ref={chatRef}>
+              {convo.map((m, i) => (
+                <div key={i} className={`wfx-msg ${m.role}`}>
+                  {m.role === 'assistant'
+                    ? m.text.split('\n').filter(Boolean).map((q, j) => <div key={j} className="wfx-msg-q">{q}</div>)
+                    : m.text}
+                </div>
+              ))}
+              {building && (
+                <div className="wfx-msg assistant">
+                  <span className="wfx-typing"><i /><i /><i /></span>
+                </div>
+              )}
+              {err && <div className="wfx-err">{err}</div>}
+            </div>
+          ) : (
+            <div className="wfx-hero">
+              <WorkflowPreview />
+              {err && <div className="wfx-err">{err}</div>}
+            </div>
+          )}
           <div className="memg-compose-wrap">
             <div className="memg-compose">
               <input
@@ -281,15 +322,15 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
                 value={desc}
                 onChange={(e) => setDesc(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') void build(); }}
-                placeholder="Describe your workflow…"
+                placeholder={awaiting ? 'Type your answer…' : 'Describe your workflow…'}
                 maxLength={2000}
                 disabled={building}
               />
-              <button className="memg-send" onClick={() => void build()} disabled={!desc.trim() || building} aria-label="Build">
+              <button className="memg-send" onClick={() => void build()} disabled={!desc.trim() || building} aria-label={awaiting ? 'Send' : 'Build'}>
                 {building ? <span className="wfx-spin" /> : <IconArrowUp size={20} />}
               </button>
             </div>
-            {building && <div className="memg-reading">Designing your workflow…</div>}
+            {building && convo.length === 0 && <div className="memg-reading">Designing your workflow…</div>}
           </div>
         </div>
       )}

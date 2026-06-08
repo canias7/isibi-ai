@@ -158,23 +158,42 @@ export function compileInstruction(title: string, graph: WfGraph): string {
 
 const SEL = 'id,title,instruction,trigger_type,schedule,event,graph,enabled,next_run_at,last_run_at,created_at';
 
-// Ask the AI builder (Opus) to turn a natural-language description into a draft
-// workflow: a title, a trigger, the visual graph, and the compiled instruction.
-export async function buildWorkflow(description: string): Promise<WorkflowDraft | null> {
+// One turn in the build conversation. assistant turns are the clarifying
+// questions the builder asked; user turns are the request and the answers.
+export interface BuildMsg { role: 'user' | 'assistant'; text: string }
+// The builder either needs more info (questions) or has a finished draft.
+export type BuildResult =
+  | { kind: 'questions'; questions: string[] }
+  | { kind: 'draft'; draft: WorkflowDraft };
+
+// Ask the AI builder (Opus) to turn the conversation into a draft workflow. If
+// it isn't sure (ambiguous request, missing recipient/account/scope, an app the
+// user hasn't connected…) it asks 1-3 short questions first instead of guessing,
+// the way a careful assistant would. Pass the running conversation each time;
+// returns either the questions to show or the finished draft.
+export async function buildWorkflow(messages: BuildMsg[]): Promise<BuildResult | null> {
   try {
     const { data, error } = await supabase.functions.invoke('build-workflow', {
-      body: { description: description.trim(), tz: deviceTz() },
+      body: { messages: messages.map((m) => ({ role: m.role, text: m.text })), tz: deviceTz() },
     });
     if (error || !data) return null;
     const d = data as Record<string, unknown> & { error?: string };
     if (d.error) return null;
+    if (Array.isArray(d.questions)) {
+      const qs = (d.questions as unknown[]).map((q) => String(q ?? '').trim()).filter(Boolean).slice(0, 3);
+      if (qs.length) return { kind: 'questions', questions: qs };
+    }
     const graph = d.graph as WfGraph | undefined;
     if (!graph || !Array.isArray(graph.nodes)) return null;
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.text ?? '';
     return {
-      title: String(d.title || ''),
-      instruction: String(d.instruction || description),
-      trigger: d.trigger as Trigger,
-      graph: { nodes: graph.nodes, edges: Array.isArray(graph.edges) ? graph.edges : [] },
+      kind: 'draft',
+      draft: {
+        title: String(d.title || ''),
+        instruction: String(d.instruction || lastUser),
+        trigger: d.trigger as Trigger,
+        graph: { nodes: graph.nodes, edges: Array.isArray(graph.edges) ? graph.edges : [] },
+      },
     };
   } catch {
     return null;

@@ -1,10 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// Workflow builder: turn a natural-language description into a structured
-// workflow GRAPH (trigger + nodes + edges) PLUS a compiled `instruction` the
-// runner executes. The graph is what the user sees/drags/edits; the instruction
-// is what actually runs (so run-workflows needs no changes). Uses Opus — this is
-// a low-frequency, structure-heavy task where decomposition quality matters.
+// Workflow builder: turn a natural-language request into a structured workflow
+// GRAPH (trigger + nodes + edges) PLUS a compiled `instruction` the runner
+// executes. If the request is ambiguous or missing key details, it ASKS short
+// clarifying questions first (like a careful assistant) instead of guessing.
+// Accepts the running conversation so answers refine the build. Uses Opus.
 
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
@@ -78,8 +78,19 @@ async function connectedApps(uid: string): Promise<string[]> {
   }
 }
 
-// Single tool that forces Claude to return a valid, structured workflow.
-const TOOL = {
+// Two tools: ask clarifying questions, or emit the finished workflow.
+const ASK_TOOL = {
+  name: "ask",
+  description: "Ask the user 1-3 SHORT clarifying questions when the request is ambiguous or missing a detail that would change what the workflow does, who it contacts, or which account it uses. Prefer this over guessing on anything that matters.",
+  input_schema: {
+    type: "object",
+    properties: {
+      questions: { type: "array", items: { type: "string" }, description: "1-3 concise questions, plain text." },
+    },
+    required: ["questions"],
+  },
+};
+const EMIT_TOOL = {
   name: "emit_workflow",
   description: "Return the structured workflow you designed.",
   input_schema: {
@@ -203,37 +214,56 @@ Deno.serve(async (req: Request) => {
   const uid = userFromJwt(req);
   if (!uid) return J({ error: "unauthorized" }, 401);
 
-  let description = "", tz = "UTC";
+  // Accept either a single `description` or the running `messages` conversation
+  // ([{role:'user'|'assistant', text}]). The assistant turns are prior questions.
+  let tz = "UTC";
+  let messages: { role: "user" | "assistant"; content: string }[] = [];
   try {
     const b = await req.json();
-    description = String(b.description || "").trim().slice(0, 2000);
     if (typeof b.tz === "string" && b.tz) tz = b.tz;
+    if (Array.isArray(b.messages)) {
+      messages = b.messages
+        .map((m: any) => ({ role: m?.role === "assistant" ? "assistant" : "user", content: String(m?.text ?? m?.content ?? "").slice(0, 2000) }))
+        .filter((m: { content: string }) => m.content);
+    } else if (b.description) {
+      messages = [{ role: "user", content: String(b.description).slice(0, 2000) }];
+    }
   } catch { /* fallthrough */ }
-  if (!description) return J({ error: "Describe what you want the workflow to do." }, 400);
+  if (!messages.length || messages[messages.length - 1].role !== "user") {
+    return J({ error: "Describe what you want the workflow to do." }, 400);
+  }
 
   const apps = await connectedApps(uid);
   const appList = apps.length ? apps.join(", ") : "(none connected yet)";
+  const askedCount = messages.filter((m) => m.role === "assistant").length;
   const system = `You design automations for the Go Farther mobile app. Turn the user's request into a workflow as a GRAPH of steps, read top-to-bottom like a flowchart.
 
-Rules:
-- The user's CONNECTED apps (use ONLY these connector ids for app steps): ${appList}.
-- The FIRST node is the trigger: kind "trigger", app "schedule" (time-based) or "event" (fires when something new arrives in an app).
-- For a step that is pure reasoning (summarize, draft text, decide wording) use app "ai". For an if/branch use kind "decision", app "decision".
-- For app steps use the connector id from the connected list. If the request needs an app the user has NOT connected, still include the step but set app to the closest connected app or "ai", and say so in detail.
-- Labels: 2-4 words. detail: one short sentence describing that step.
-- edges connect node ids in execution order. A decision node has exactly two outgoing edges, branch "yes" and "no".
-- trigger detail: if time-based, fill schedule {freq, hour 0-23, minute, weekday 0-6 when weekly} interpreted in the user's timezone (${tz}). If arrival-based, fill event {app: <connector id>, filter: <short condition>}.
-- instruction: a single clear paragraph the assistant will follow each time this runs, naming the apps. This is the real executable spec — make it self-contained.
+The user's CONNECTED apps (use ONLY these connector ids for app steps): ${appList}.
 
-Call emit_workflow with the complete result.`;
+FIRST decide whether you can build the RIGHT workflow, or need to ask. Call the "ask" tool with 1-3 short questions (don't guess) when:
+- more than one connected app could do it and the choice matters (e.g. both Gmail and Outlook connected for "email me"),
+- a key detail is missing with no safe default: who/where (recipient, which Slack channel, which list/board), WHICH items ("my emails" = all? unread? from a sender/label?), or the exact event condition,
+- the request needs an app the user has NOT connected,
+- it would delete, pay, or message people at scale (confirm scope first),
+- the request is too vague to act on.
+Do NOT ask about things that have a sensible default the user can tweak later (e.g. an unspecified run time — just pick a reasonable one); the graph is fully editable. You have already asked ${askedCount} time(s); ask at most twice total, then build your best guess with emit_workflow.
+
+When building, call emit_workflow:
+- The FIRST node is the trigger: kind "trigger", app "schedule" (time-based) or "event" (fires when something new arrives in an app).
+- Pure-reasoning steps (summarize, draft, decide wording) use app "ai". An if/branch is kind "decision", app "decision".
+- App steps use the connector id from the connected list. If an unconnected app is needed, use the closest connected app or "ai" and say so in detail.
+- Labels: 2-4 words. detail: one short sentence.
+- edges connect node ids in execution order; a decision node has exactly two outgoing edges, branch "yes" and "no".
+- trigger detail: if time-based, fill schedule {freq, hour 0-23, minute, weekday 0-6 when weekly} in the user's timezone (${tz}). If arrival-based, fill event {app: <connector id>, filter: <short condition>}.
+- instruction: one clear, self-contained paragraph the assistant follows each run, naming the apps. This is the real executable spec.`;
 
   const reqBody: Record<string, unknown> = {
     model: MODEL,
     max_tokens: 3000,
     system,
-    messages: [{ role: "user", content: description }],
-    tools: [TOOL],
-    tool_choice: { type: "tool", name: "emit_workflow" },
+    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    tools: [ASK_TOOL, EMIT_TOOL],
+    tool_choice: { type: "any" },
   };
 
   let res: Response;
@@ -249,7 +279,17 @@ Call emit_workflow with the complete result.`;
   if (!res.ok) return J({ error: `builder ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}` }, 502);
 
   const data = await res.json();
-  const tu = (data.content || []).find((b: any) => b?.type === "tool_use" && b?.name === "emit_workflow");
+  const content = data.content || [];
+
+  // Clarifying questions path.
+  const ask = content.find((b: any) => b?.type === "tool_use" && b?.name === "ask");
+  if (ask?.input?.questions && Array.isArray(ask.input.questions)) {
+    const questions = ask.input.questions.map((q: any) => String(q || "").trim()).filter(Boolean).slice(0, 3);
+    if (questions.length) return J({ questions });
+  }
+
+  // Build path.
+  const tu = content.find((b: any) => b?.type === "tool_use" && b?.name === "emit_workflow");
   if (!tu || !tu.input) return J({ error: "Couldn't draft a workflow from that — try describing it a bit more." }, 502);
   const plan = tu.input as any;
 
@@ -269,9 +309,10 @@ Call emit_workflow with the complete result.`;
     trigger.schedule = { freq: "daily", hour: 8, minute: 0, weekday: 1, ...(trigger.schedule || {}), tz };
   }
 
+  const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content || "";
   const out = {
-    title: String(plan.title || description.slice(0, 40)),
-    instruction: String(plan.instruction || description),
+    title: String(plan.title || lastUser.slice(0, 40)),
+    instruction: String(plan.instruction || lastUser),
     trigger,
     graph: { nodes: layout(nodes, edges), edges },
   };
