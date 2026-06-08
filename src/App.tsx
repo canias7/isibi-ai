@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { streamChat, sendTestPush, extractMemory, type ChatMessage, type Attach } from './api';
 import { supabase } from './supabase';
-import { CONNECTORS, CONNECT_API, byId } from './connectorData';
+import { CONNECTORS, CONNECT_API } from './connectorData';
 import ConnectorsGraph from './ConnectorsGraph';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
@@ -305,7 +305,6 @@ export default function App() {
   const [connApps, setConnApps] = useState<string[]>([]);
   const [enabled, setEnabled] = useState<Set<string>>(new Set());
   const [connLoaded, setConnLoaded] = useState(false);
-  const [connMenu, setConnMenu] = useState(false);
   const [plusOpen, setPlusOpen] = useState(false);
   const [attachments, setAttachments] = useState<Attach[]>([]);
   const [attachErr, setAttachErr] = useState('');
@@ -357,14 +356,6 @@ export default function App() {
     void loadConnectors();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid]);
-
-  function toggleApp(id: string) {
-    setEnabled((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }
 
   // Load this user's chats on login (local cache instantly, then cloud sync).
   useEffect(() => {
@@ -1247,13 +1238,12 @@ export default function App() {
             <div className="net-banner">You're offline — messages will send when you reconnect.</div>
           )}
           <div className="composer-wrap">
-            {(plusOpen || connMenu) && (
+            {plusOpen && (
               <div
-                className={`conn-pop-backdrop ${plusOpen ? 'radial-scrim' : ''}`}
+                className="conn-pop-backdrop radial-scrim"
                 onClick={() => {
                   if (Date.now() - menuOpenedAt.current < 400) return; // ignore the tap's ghost-click
                   setPlusOpen(false);
-                  setConnMenu(false);
                 }}
               />
             )}
@@ -1274,33 +1264,9 @@ export default function App() {
                 <button className="radial-item" style={{ left: 72, bottom: 120, animationDelay: '50ms' }} onClick={() => { setPlusOpen(false); void loadConnectors(); setWfOpen(true); }}>
                   <IconWorkflow size={20} /><span className="radial-label">Workflows</span>
                 </button>
-                <button className="radial-item" style={{ left: 96, bottom: 60, animationDelay: '0ms' }} onClick={() => { menuOpenedAt.current = Date.now(); setPlusOpen(false); setConnMenu(true); }}>
+                <button className="radial-item" style={{ left: 96, bottom: 60, animationDelay: '0ms' }} onClick={() => { setPlusOpen(false); go('connectors'); }}>
                   <IconConnectors size={20} /><span className="radial-label">Connectors</span>
                 </button>
-              </div>
-            )}
-
-            {/* Per-chat connectors toggle (opened from the "+" sheet) */}
-            {connMenu && (
-              <div className="conn-pop" role="menu">
-                <div className="conn-pop-head">Connectors · this chat</div>
-                {connApps.length === 0 ? (
-                  <button className="conn-pop-empty" onClick={() => { setConnMenu(false); go('connectors'); }}>
-                    No apps connected — open Connectors →
-                  </button>
-                ) : (
-                  connApps.map((id) => {
-                    const c = byId(id);
-                    if (!c) return null;
-                    const on = enabled.has(id);
-                    return (
-                      <button key={id} className="conn-pop-row" onClick={() => toggleApp(id)} aria-pressed={on}>
-                        <span className="conn-pop-name">{c.name}</span>
-                        <span className={`tgl ${on ? 'on' : ''}`}><span className="tgl-knob" /></span>
-                      </button>
-                    );
-                  })
-                )}
               </div>
             )}
 
@@ -1321,7 +1287,7 @@ export default function App() {
               <div className="composer-row">
                 <button
                   className={`plus-btn ${plusOpen ? 'open' : ''}`}
-                  onClick={() => { menuOpenedAt.current = Date.now(); setConnMenu(false); setPlusOpen((o) => !o); }}
+                  onClick={() => { menuOpenedAt.current = Date.now(); setPlusOpen((o) => !o); }}
                   aria-label="Add attachment or connectors"
                 >
                   +
