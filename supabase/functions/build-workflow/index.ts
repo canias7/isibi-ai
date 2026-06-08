@@ -81,11 +81,26 @@ async function connectedApps(uid: string): Promise<string[]> {
 // Two tools: ask clarifying questions, or emit the finished workflow.
 const ASK_TOOL = {
   name: "ask",
-  description: "Ask the user 1-3 SHORT clarifying questions when the request is ambiguous or missing a detail that would change what the workflow does, who it contacts, or which account it uses. Prefer this over guessing on anything that matters.",
+  description: "Ask the user 1-3 SHORT clarifying questions when the request is ambiguous or missing a detail that would change what the workflow does, who it contacts, or which account it uses. Ask EVERYTHING you're unsure about in this single call. Prefer this over guessing on anything that matters.",
   input_schema: {
     type: "object",
     properties: {
-      questions: { type: "array", items: { type: "string" }, description: "1-3 concise questions, plain text." },
+      questions: {
+        type: "array",
+        description: "1-3 concise questions, asked together in one round.",
+        items: {
+          type: "object",
+          properties: {
+            question: { type: "string", description: "One short, plain-language question." },
+            options: {
+              type: "array",
+              items: { type: "string" },
+              description: "If the answer is a small fixed set of choices, list them here (e.g. [\"Gmail\",\"Outlook\"]) so the user can tap instead of type. Omit for open-ended questions.",
+            },
+          },
+          required: ["question"],
+        },
+      },
     },
     required: ["questions"],
   },
@@ -236,26 +251,37 @@ Deno.serve(async (req: Request) => {
   const apps = await connectedApps(uid);
   const appList = apps.length ? apps.join(", ") : "(none connected yet)";
   const askedCount = messages.filter((m) => m.role === "assistant").length;
-  const system = `You design automations for the Go Farther mobile app. Turn the user's request into a workflow as a GRAPH of steps, read top-to-bottom like a flowchart.
+  const system = `You design automations for the Go Farther mobile app. Turn the user's request into a workflow as a GRAPH of steps, read top-to-bottom like a flowchart. Be the kind of assistant that asks a quick question when it actually matters instead of guessing wrong — but never asks just to ask.
 
 The user's CONNECTED apps (use ONLY these connector ids for app steps): ${appList}.
 
-FIRST decide whether you can build the RIGHT workflow, or need to ask. Call the "ask" tool with 1-3 short questions (don't guess) when:
+## First: build, or ask?
+Call the "ask" tool (don't guess) when:
 - more than one connected app could do it and the choice matters (e.g. both Gmail and Outlook connected for "email me"),
 - a key detail is missing with no safe default: who/where (recipient, which Slack channel, which list/board), WHICH items ("my emails" = all? unread? from a sender/label?), or the exact event condition,
-- the request needs an app the user has NOT connected,
+- the workflow's CORE purpose needs an app the user has NOT connected (ask, and offer the closest connected app as an option),
 - it would delete, pay, or message people at scale (confirm scope first),
 - the request is too vague to act on.
-Do NOT ask about things that have a sensible default the user can tweak later (e.g. an unspecified run time — just pick a reasonable one); the graph is fully editable. You have already asked ${askedCount} time(s); ask at most twice total, then build your best guess with emit_workflow.
+Do NOT ask when:
+- exactly one connected app fits the job — just use it,
+- the detail has a sensible default the user can tweak later (run time, wording, layout) — pick a reasonable one; the graph is fully editable,
+- a needed app is only peripheral — substitute the closest connected app or "ai" and note it in that step's detail.
 
-When building, call emit_workflow:
+## How to ask (this matters)
+- Gather EVERYTHING you're unsure about and ask it in ONE round. Don't ask, get an answer, then ask again.
+- Make each question specific and easy to answer. When the answer is a small fixed set of choices, put them in "options" (e.g. ["Gmail","Outlook"]) so the user can tap instead of type.
+- Keep questions short and plain — no jargon, don't restate the whole request.
+- Never re-ask something already answered earlier in the conversation.
+You have already asked ${askedCount} time(s); ask at most twice total, then build your best guess with emit_workflow.
+
+## When building, call emit_workflow
 - The FIRST node is the trigger: kind "trigger", app "schedule" (time-based) or "event" (fires when something new arrives in an app).
 - Pure-reasoning steps (summarize, draft, decide wording) use app "ai". An if/branch is kind "decision", app "decision".
-- App steps use the connector id from the connected list. If an unconnected app is needed, use the closest connected app or "ai" and say so in detail.
+- App steps use the connector id from the connected list.
 - Labels: 2-4 words. detail: one short sentence.
 - edges connect node ids in execution order; a decision node has exactly two outgoing edges, branch "yes" and "no".
-- trigger detail: if time-based, fill schedule {freq, hour 0-23, minute, weekday 0-6 when weekly} in the user's timezone (${tz}). If arrival-based, fill event {app: <connector id>, filter: <short condition>}.
-- instruction: one clear, self-contained paragraph the assistant follows each run, naming the apps. This is the real executable spec.`;
+- trigger: if time-based, fill schedule {freq, hour 0-23, minute, weekday 0-6 when weekly} in the user's timezone (${tz}); default to a daily 8:00 AM run when unspecified. If arrival-based, fill event {app: <connector id>, filter: <short condition>}.
+- instruction: one clear, self-contained paragraph the assistant follows each run, naming the apps. Make every step handle the empty case gracefully (if there's nothing to act on, do nothing or send a brief "nothing today" — never error). This is the real executable spec.`;
 
   const reqBody: Record<string, unknown> = {
     model: MODEL,
@@ -281,10 +307,19 @@ When building, call emit_workflow:
   const data = await res.json();
   const content = data.content || [];
 
-  // Clarifying questions path.
+  // Clarifying questions path. Each question can carry tappable `options`.
   const ask = content.find((b: any) => b?.type === "tool_use" && b?.name === "ask");
   if (ask?.input?.questions && Array.isArray(ask.input.questions)) {
-    const questions = ask.input.questions.map((q: any) => String(q || "").trim()).filter(Boolean).slice(0, 3);
+    const questions = ask.input.questions
+      .map((q: any) => {
+        const text = String((q && typeof q === "object" ? (q.question ?? q.text) : q) ?? "").trim();
+        const opts = q && typeof q === "object" && Array.isArray(q.options)
+          ? q.options.map((o: any) => String(o ?? "").trim()).filter(Boolean).slice(0, 6)
+          : [];
+        return opts.length ? { text, options: opts } : { text };
+      })
+      .filter((q: { text: string }) => q.text)
+      .slice(0, 3);
     if (questions.length) return J({ questions });
   }
 

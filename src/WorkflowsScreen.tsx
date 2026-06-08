@@ -9,10 +9,13 @@ import { BrandLogo, hasBrand } from './brandLogos';
 import {
   listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, listRuns, buildWorkflow, testWorkflow,
   triggerLabel, deviceTz, appLabel, compileInstruction, orderedNodes,
-  type Workflow, type WorkflowRun, type Schedule, type Trigger, type WfGraph, type WfNode, type BuildMsg,
+  type Workflow, type WorkflowRun, type Schedule, type Trigger, type WfGraph, type WfNode, type BuildMsg, type AskQuestion,
 } from './workflows';
 
 type NodeResult = { ok: boolean; output: string };
+// A turn in the clarify chat; assistant turns carry the structured questions
+// (with any tappable options) so we can render chips, not just text.
+type ChatMsg = BuildMsg & { questions?: AskQuestion[] };
 
 // Full-screen Workflows: describe an automation in the chatbox -> the AI drafts
 // it as a node graph (each node tagged with the app it uses) -> drag/zoom/edit
@@ -166,7 +169,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
   const [desc, setDesc] = useState('');
   const [building, setBuilding] = useState(false);
   const [err, setErr] = useState('');
-  const [convo, setConvo] = useState<BuildMsg[]>([]); // back-and-forth while the builder clarifies
+  const [convo, setConvo] = useState<ChatMsg[]>([]); // back-and-forth while the builder clarifies
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -187,13 +190,14 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
   }
   useEffect(() => { void load(); }, []);
 
-  // Send the user's text (a request or an answer) to the builder. It either comes
-  // back with short clarifying questions — which we show as a chat and let the
-  // user answer — or with a finished draft, which opens the editable canvas.
-  async function build() {
-    const d = desc.trim();
+  // Send the user's text (a request, or an answer to a question / a tapped chip)
+  // to the builder. It either comes back with short clarifying questions — which
+  // we show as a chat and let the user answer — or with a finished draft, which
+  // opens the editable canvas.
+  async function send(text: string) {
+    const d = text.trim();
     if (!d || building) return;
-    const next: BuildMsg[] = [...convo, { role: 'user', text: d }];
+    const next: ChatMsg[] = [...convo, { role: 'user', text: d }];
     setConvo(next);
     setDesc('');
     setBuilding(true);
@@ -202,7 +206,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
     setBuilding(false);
     if (!res) { setErr("Couldn't build that — try describing it a little differently."); return; }
     if (res.kind === 'questions') {
-      setConvo([...next, { role: 'assistant', text: res.questions.join('\n') }]);
+      setConvo([...next, { role: 'assistant', text: res.questions.map((q) => q.text).join('\n'), questions: res.questions }]);
       return;
     }
     setConvo([]);
@@ -295,13 +299,30 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
         <div className="wfx-home">
           {convo.length > 0 ? (
             <div className="wfx-chat" ref={chatRef}>
-              {convo.map((m, i) => (
-                <div key={i} className={`wfx-msg ${m.role}`}>
-                  {m.role === 'assistant'
-                    ? m.text.split('\n').filter(Boolean).map((q, j) => <div key={j} className="wfx-msg-q">{q}</div>)
-                    : m.text}
-                </div>
-              ))}
+              {convo.map((m, i) => {
+                const isLast = i === convo.length - 1;
+                const qs: AskQuestion[] = m.role !== 'assistant' ? []
+                  : m.questions?.length ? m.questions
+                  : m.text.split('\n').filter(Boolean).map((t) => ({ text: t }));
+                return (
+                  <div key={i} className={`wfx-msg ${m.role}`}>
+                    {m.role === 'assistant'
+                      ? qs.map((q, j) => (
+                          <div key={j} className="wfx-q">
+                            <div className="wfx-msg-q">{q.text}</div>
+                            {isLast && q.options && q.options.length > 0 && (
+                              <div className="wfx-chips">
+                                {q.options.map((opt, k) => (
+                                  <button key={k} className="wfx-chip" onClick={() => void send(opt)} disabled={building}>{opt}</button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      : m.text}
+                  </div>
+                );
+              })}
               {building && (
                 <div className="wfx-msg assistant">
                   <span className="wfx-typing"><i /><i /><i /></span>
@@ -321,12 +342,12 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
                 className="memg-cinput"
                 value={desc}
                 onChange={(e) => setDesc(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') void build(); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') void send(desc); }}
                 placeholder={awaiting ? 'Type your answer…' : 'Describe your workflow…'}
                 maxLength={2000}
                 disabled={building}
               />
-              <button className="memg-send" onClick={() => void build()} disabled={!desc.trim() || building} aria-label={awaiting ? 'Send' : 'Build'}>
+              <button className="memg-send" onClick={() => void send(desc)} disabled={!desc.trim() || building} aria-label={awaiting ? 'Send' : 'Build'}>
                 {building ? <span className="wfx-spin" /> : <IconArrowUp size={20} />}
               </button>
             </div>

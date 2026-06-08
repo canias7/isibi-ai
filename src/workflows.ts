@@ -161,9 +161,11 @@ const SEL = 'id,title,instruction,trigger_type,schedule,event,graph,enabled,next
 // One turn in the build conversation. assistant turns are the clarifying
 // questions the builder asked; user turns are the request and the answers.
 export interface BuildMsg { role: 'user' | 'assistant'; text: string }
+// A clarifying question; options (when present) render as tappable chips.
+export interface AskQuestion { text: string; options?: string[] }
 // The builder either needs more info (questions) or has a finished draft.
 export type BuildResult =
-  | { kind: 'questions'; questions: string[] }
+  | { kind: 'questions'; questions: AskQuestion[] }
   | { kind: 'draft'; draft: WorkflowDraft };
 
 // Ask the AI builder (Opus) to turn the conversation into a draft workflow. If
@@ -180,7 +182,17 @@ export async function buildWorkflow(messages: BuildMsg[]): Promise<BuildResult |
     const d = data as Record<string, unknown> & { error?: string };
     if (d.error) return null;
     if (Array.isArray(d.questions)) {
-      const qs = (d.questions as unknown[]).map((q) => String(q ?? '').trim()).filter(Boolean).slice(0, 3);
+      const qs: AskQuestion[] = (d.questions as unknown[])
+        .map((q) => {
+          const o = q as { text?: unknown; question?: unknown; options?: unknown } | string;
+          const text = String((typeof o === 'object' && o ? (o.text ?? o.question) : o) ?? '').trim();
+          const options = typeof o === 'object' && o && Array.isArray(o.options)
+            ? o.options.map((x) => String(x ?? '').trim()).filter(Boolean)
+            : undefined;
+          return options && options.length ? { text, options } : { text };
+        })
+        .filter((q) => q.text)
+        .slice(0, 3);
       if (qs.length) return { kind: 'questions', questions: qs };
     }
     const graph = d.graph as WfGraph | undefined;

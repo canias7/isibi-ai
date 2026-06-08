@@ -1710,7 +1710,21 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   border-bottom-left-radius: 6px;
 }
 .wfx-msg-q + .wfx-msg-q { margin-top: 8px; }
+.wfx-q + .wfx-q { margin-top: 12px; }
 @keyframes wfxMsgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Tappable answer chips under a question with discrete options. */
+.wfx-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.wfx-chip {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text); font: inherit; font-size: 14px; font-weight: 500;
+  padding: 7px 14px; border-radius: 16px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.wfx-chip:active:not(:disabled) { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.3); }
+.wfx-chip:disabled { opacity: 0.4; cursor: default; }
 
 /* Typing dots while the builder thinks. */
 .wfx-typing { display: inline-flex; gap: 4px; align-items: center; padding: 2px 0; }
