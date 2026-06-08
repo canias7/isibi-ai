@@ -199,16 +199,29 @@ Deno.serve(async (req: Request) => {
       const items = await itemsFor(uid);
       const out: any[] = [];
       for (const it of items) {
-        try {
-          const at = await decToken(it.access_token);
-          const d = await plaid("/transactions/sync", { access_token: at, count: 30 });
-          for (const t of (d.added || [])) {
-            out.push({
-              bank: it.institution_name || "Bank", name: t.name, amount: t.amount,
-              date: t.date, currency: t.iso_currency_code || "USD", pending: !!t.pending,
-            });
+        let err = "";
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const at = await decToken(it.access_token);
+            const d = await plaid("/transactions/sync", { access_token: at, count: 50 });
+            for (const t of (d.added || [])) {
+              out.push({
+                bank: it.institution_name || "Bank", name: t.name, amount: t.amount,
+                date: t.date, currency: t.iso_currency_code || "USD", pending: !!t.pending,
+              });
+            }
+            err = ""; break;
+          } catch (e) {
+            err = String((e as Error).message);
+            // Just-linked items are still importing history upstream — retry once.
+            if (attempt === 0 && /503|NOT_READY|RATE_LIMIT/.test(err)) { await new Promise((r) => setTimeout(r, 2500)); continue; }
+            break;
           }
-        } catch (e) { out.push({ bank: it.institution_name || "Bank", error: String((e as Error).message) }); }
+        }
+        if (err) {
+          const friendly = /503|NOT_READY/.test(err) ? "Still importing transactions — give it a minute and tap again." : err;
+          out.push({ bank: it.institution_name || "Bank", error: friendly });
+        }
       }
       out.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
       return J({ transactions: out.slice(0, 50) });
