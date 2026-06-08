@@ -412,6 +412,16 @@ async function listTools(apps: string[], prefs: Record<string, string[]>, memOn:
   return out;
 }
 
+// The exact set of Composio slugs a user may EXECUTE = what listTools would serve
+// for the connected apps (their saved selection, or the full catalog if uncustomized).
+// Enforced on tools/call so the model can't reach an un-advertised/destructive slug.
+async function allowedSlugs(apps: string[], prefs: Record<string, string[]>): Promise<Set<string>> {
+  const lists = await Promise.all(apps.map((tk) => prefs[tk] !== undefined ? Promise.resolve(prefs[tk]) : fullCatalogSlugs(tk)));
+  const set = new Set<string>();
+  for (const l of lists) for (const s of l) set.add(s);
+  return set;
+}
+
 async function execTool(name: string, args: unknown, userId: string): Promise<string> {
   const res = await fetch(`${BASE}/v3/tools/execute/${encodeURIComponent(name)}`, {
     method: "POST",
@@ -428,9 +438,12 @@ async function execTool(name: string, args: unknown, userId: string): Promise<st
   // email didn't go through. (Reads that legitimately 413 still surface as errors
   // below, so the model can paginate/filter.)
   const eo = body?.error as { code?: number; slug?: string; status?: number } | undefined;
-  const tooLarge = res.status === 413 || !!(eo && (eo.code === 1613 || eo.slug === "Upstream_PayloadTooLarge" || eo.status === 413));
+  // Require the SPECIFIC upstream "response too large" marker — it means the action
+  // ran but Composio couldn't echo the big result. A bare 413 can be a pre-execution
+  // reject (oversized request) where nothing was sent, so don't claim success on it.
+  const ranButTooLarge = !!(eo && (eo.code === 1613 || eo.slug === "Upstream_PayloadTooLarge"));
   const isMutation = /SEND|REPLY|UPLOAD|CREATE_[A-Z_]*DRAFT/.test(name.toUpperCase());
-  if (tooLarge && isMutation) {
+  if (ranButTooLarge && isMutation) {
     return "Done — it completed successfully. (The provider returned more confirmation detail than could be included, but the action went through.)";
   }
 
@@ -498,9 +511,6 @@ Deno.serve(async (req: Request) => {
   }
   if (method === "tools/call") {
     const p = msg.params || {};
-    if (!reqUser) {
-      return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "Error: no user context" }], isError: true } });
-    }
     // Built-in memory tools — handled locally, not forwarded to Composio.
     if (p.name === "GF_SAVE_MEMORY") {
       try {
@@ -524,6 +534,13 @@ Deno.serve(async (req: Request) => {
         await logUsage(p.name, false, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "That action couldn't be completed — please try again." }], isError: true } });
       }
+    }
+    // Only execute a tool actually served for this user's connected apps — never a
+    // slug the user didn't enable or that wasn't advertised in tools/list.
+    const allowed = await allowedSlugs(apps, await userToolPrefs(reqUser));
+    if (!allowed.has(p.name)) {
+      console.error("blocked tool not in allowlist:", p.name);
+      return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "That tool isn't enabled for this account." }], isError: true } });
     }
     try {
       const text = await execTool(p.name, p.arguments || {}, reqUser);
