@@ -16,13 +16,25 @@
     display:flex; justify-content:center; align-items:flex-start;
   }
   .screen{ position:relative; width:100%; max-width:412px; min-height:100vh; background:var(--bg); overflow:hidden; }
-  .status{display:flex; justify-content:space-between; align-items:center; padding:10px 22px 2px; font-size:14px; font-weight:600; color:#fff;}
+
+  /* ---- the real living background: drifting white glows on black ---- */
+  .live-bg{ position:absolute; inset:0; z-index:0; overflow:hidden; background:#000; pointer-events:none; }
+  .live-bg .orb{ position:absolute; border-radius:50%; }
+  .orb1{ width:78vw; height:78vw; left:-20vw; top:-12vh; background:radial-gradient(circle at center, rgba(255,255,255,0.10), rgba(255,255,255,0) 65%); animation:drift1 24s ease-in-out infinite; }
+  .orb2{ width:88vw; height:88vw; right:-28vw; bottom:-10vh; background:radial-gradient(circle at center, rgba(255,255,255,0.07), rgba(255,255,255,0) 65%); animation:drift2 30s ease-in-out infinite; }
+  .orb3{ width:62vw; height:62vw; left:19vw; top:24vh; background:radial-gradient(circle at center, rgba(255,255,255,0.13), rgba(255,255,255,0) 60%); animation:breathe 7s ease-in-out infinite; }
+  .orb4{ width:130vw; height:52vh; left:-15vw; bottom:-24vh; background:radial-gradient(ellipse at center, rgba(255,255,255,0.06), rgba(255,255,255,0) 60%); animation:breathe 9s ease-in-out infinite; }
+  @keyframes drift1{ 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(9vw,6vh) scale(1.15);} }
+  @keyframes drift2{ 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-11vw,-5vh) scale(1.12);} }
+  @keyframes breathe{ 0%,100%{transform:scale(1); opacity:.5;} 50%{transform:scale(1.18); opacity:.9;} }
+  .status{position:relative; z-index:2; display:flex; justify-content:space-between; align-items:center; padding:10px 22px 2px; font-size:14px; font-weight:600; color:#fff;}
   .status .dots{display:flex; gap:6px; align-items:center; opacity:.9;}
   .status .batt{width:22px;height:11px;border:1.5px solid #fff;border-radius:3px;position:relative;opacity:.9;}
   .status .batt::after{content:"";position:absolute;left:1.5px;top:1.5px;bottom:1.5px;width:60%;background:#fff;border-radius:1px;}
 
   /* ---- the real .auth styles ---- */
   .auth{
+    position:relative; z-index:1;
     min-height:calc(100vh - 30px);
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:18px; padding:24px 16px;
@@ -46,6 +58,12 @@
 </head>
 <body>
   <div class="screen">
+    <div class="live-bg" aria-hidden="true">
+      <div class="orb orb1"></div>
+      <div class="orb orb2"></div>
+      <div class="orb orb3"></div>
+      <div class="orb orb4"></div>
+    </div>
     <div class="status">
       <span>9:41</span>
       <span class="dots">
