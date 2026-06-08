@@ -40,9 +40,10 @@ history; the few open items below need attention before a wide public launch.
   `gmail-mcp` tool-call results keep detail — the agent needs it to self-correct
   — but now also log server-side.)
 - **`main` branch protected.** A repository ruleset blocks force-pushes and
-  deletions on `main`. Note: ruleset/branch protection blocks the GitHub App that
-  this hosted environment pushes through, so once protection is on, commits to
-  `main` must come from a local admin push (or a bypass actor added to the rule).
+  deletions on `main`. Note: protection also blocks the `claude` user account the
+  hosted Claude environment pushes through (rulesets can't bypass an individual
+  user), so with protection on, changes to `main` must be pushed from a local
+  machine — not from the hosted environment.
 
 ## Open
 
