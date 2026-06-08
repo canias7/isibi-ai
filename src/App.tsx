@@ -4,6 +4,7 @@ import { streamChat, sendTestPush, extractMemory, type ChatMessage, type Attach 
 import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API } from './connectorData';
 import ConnectorsGraph from './ConnectorsGraph';
+import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow } from './icons';
@@ -210,7 +211,7 @@ function plainText(s: string): string {
 // skips the login UI and uses a silent anonymous "guest" session, so identity
 // (per-user connectors + history) still works without a sign-in wall.
 // Requires "Allow anonymous sign-ins" enabled in Supabase → Authentication.
-const REQUIRE_LOGIN = false;
+const REQUIRE_LOGIN = true;
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -975,15 +976,7 @@ export default function App() {
       </div>
     );
   }
-  // Login screen deactivated for now — show the neutral splash while the silent
-  // (persisted or guest) session establishes, never a sign-in wall.
-  if (!session) {
-    return (
-      <div className="auth">
-        <div className="auth-brand">Go Farther</div>
-      </div>
-    );
-  }
+  if (!session) return <Login />;
 
   const isGuest = !!session.user.is_anonymous;
   const title = view === 'connectors' ? 'Connectors' : view === 'settings' ? 'Settings' : 'Go Farther';
