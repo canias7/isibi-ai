@@ -137,7 +137,11 @@ async function runInstruction(uid: string, instruction: string, tz: string, step
   const outFmt = wantSteps
     ? `\n\nWhen finished, reply with ONLY a JSON object (no prose, no code fences), shaped EXACTLY:\n{"summary":"2-3 plain sentences on the overall outcome","steps":[{"id":"<step id>","ok":true,"output":"one short line: what this step produced, or why it failed"}]}\nInclude exactly one entry per step id listed above, in the same order. No markdown or emoji inside any value.`
     : ` Then reply with a SHORT summary of what you did and the outcome — at most 2-3 sentences. Plain text only: no markdown, no emoji, no code blocks.`;
-  const system = `You are Go Farther, running a saved automation for the user as a TEST. Carry out the steps in order using the connected tools as needed.${stepList} Use the user's local timezone (${tz}). Be strictly honest about outcomes: if a step needs an app/tool you don't have or a tool call fails, mark that step ok:false and say what's missing — NEVER claim a step succeeded when it didn't.${outFmt}${memSys}`;
+  const system = `You are Go Farther, running this saved automation for the user RIGHT NOW. The user tapped "Test" to watch it run, so this is a REAL run — any action you take (sending, posting, creating, deleting) actually happens, exactly like a live run. Do it carefully.
+
+Carry out the steps in order using the connected tools.${stepList} Stay strictly in scope: read and reason as needed, but only take an OUTWARD action (send, post, reply, create, delete, pay) that a step explicitly calls for — never add one on your own. Use the user's local timezone (${tz}).
+
+Be strictly honest about each step's outcome: if a step needs an app/tool you don't have, or a tool call fails, mark that step ok:false and say what's missing — NEVER claim a step succeeded when it didn't.${outFmt}${memSys}`;
 
   const reqBody: Record<string, unknown> = {
     model: MODEL,
