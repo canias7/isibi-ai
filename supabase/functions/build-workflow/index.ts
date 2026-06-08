@@ -263,6 +263,8 @@ Deno.serve(async (req: Request) => {
 
 The user's CONNECTED apps (use ONLY these connector ids for app steps): ${appList}.
 
+CRITICAL — a workflow you emit must RUN right now. Every app step (and an event trigger) must use an app from that connected list. NEVER emit a step or trigger for an app that isn't connected — it would just fail. If the request needs an app that isn't connected, ASK whether to use a connected app instead or drop that part, and only emit once everything maps to a connected app. If the core purpose needs an unconnected app, ask the user to connect it — don't emit a broken workflow. Always either ask a question or emit a complete, working workflow — never return nothing.
+
 ## First: build, or ask?
 When you're not sure, ASK — one quick question beats building the wrong thing. Call the "ask" tool (don't guess) when ANY of these hold:
 - TWO OR MORE connected apps could do a step and the user didn't say which — e.g. Gmail AND Outlook both connected and they said "email me" / "send an email": you MUST ask which account, never silently pick one.
@@ -281,7 +283,7 @@ Do NOT ask when:
 - Give each option a short label, plus a one-line description when it adds clarity. Give each question a 1-2 word header (e.g. "Account", "Scope").
 - Keep questions short and plain — no jargon, don't restate the whole request.
 - Never re-ask something already answered earlier in the conversation.
-You have already asked ${askedCount} time(s); ask at most twice total, then build your best guess with emit_workflow.
+You have already asked ${askedCount} time(s). KEEP ASKING until you have everything you need to build a workflow that will actually run (the right account, recipient, scope, and only connected apps) — but never re-ask what's already been answered. Don't emit a half-working workflow just to avoid a question.
 
 ## When building, call emit_workflow
 - The FIRST node is the trigger: kind "trigger", app "schedule" (time-based) or "event" (fires when something new arrives in an app).
@@ -298,8 +300,10 @@ You have already asked ${askedCount} time(s); ask at most twice total, then buil
     system,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     tools: [ASK_TOOL, EMIT_TOOL],
-    // Hard cap: after two question rounds, force a build (stop asking).
-    tool_choice: askedCount >= 2 ? { type: "tool", name: "emit_workflow" } : { type: "any" },
+    // Never FORCE a build — a forced build can produce a workflow that won't run.
+    // The model keeps asking until it can emit one that actually works (enforced
+    // by the system prompt + the connected-apps check below).
+    tool_choice: { type: "any" },
   };
 
   let res: Response;
@@ -355,7 +359,10 @@ You have already asked ${askedCount} time(s); ask at most twice total, then buil
 
   // Build path.
   const tu = content.find((b: any) => b?.type === "tool_use" && b?.name === "emit_workflow");
-  if (!tu || !tu.input) return J({ error: "Couldn't draft a workflow from that — try describing it a bit more." }, 502);
+  if (!tu || !tu.input) {
+    // No emit and no usable question — ask instead of dead-ending with an error.
+    return J({ questions: [{ header: "Quick check", text: "Tell me a bit more — what should this workflow do, and which of your connected apps should it use?" }] });
+  }
   const plan = tu.input as any;
 
   const nodes = (Array.isArray(plan.nodes) ? plan.nodes : []).map((n: any, i: number) => ({
@@ -383,6 +390,28 @@ You have already asked ${askedCount} time(s); ask at most twice total, then buil
     if (!APP_TO_SLUG[app]) app = apps[0] || "";
     if (app) trigger.event = { app, filter: String(ev.filter || "") };
     else { trigger.type = "schedule"; trigger.schedule = { freq: "daily", hour: 8, minute: 0, weekday: 1, tz }; }
+  }
+
+  // Don't create a workflow that can't run: every app step (and an event trigger)
+  // must use a connected app. If the model slipped one in, ask instead of emitting.
+  const unconnected = [...new Set(
+    nodes.filter((n: any) => n.kind !== "trigger" && APP_TO_SLUG[n.app] && !apps.includes(n.app)).map((n: any) => String(n.app)),
+  )] as string[];
+  if (trigger.type === "event" && trigger.event?.app && APP_TO_SLUG[trigger.event.app]
+      && !apps.includes(trigger.event.app) && !unconnected.includes(String(trigger.event.app))) {
+    unconnected.push(String(trigger.event.app));
+  }
+  if (unconnected.length) {
+    const names = unconnected.join(", ");
+    const plural = unconnected.length > 1;
+    return J({ questions: [{
+      header: "Not connected",
+      text: `This needs ${names}, which ${plural ? "aren't" : "isn't"} connected, so it wouldn't run yet. How should I handle ${plural ? "them" : "it"}?`,
+      options: [
+        { label: plural ? "I'll connect them" : `I'll connect ${unconnected[0]}`, description: "Connect first, then describe it to me again" },
+        { label: "Use only my connected apps", description: "Build it without those steps" },
+      ],
+    }] });
   }
 
   const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content || "";

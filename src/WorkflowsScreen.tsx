@@ -209,7 +209,8 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
     setDesc('');
     setBuilding(true);
     setErr('');
-    const res = await buildWorkflow(next);
+    let res = await buildWorkflow(next);
+    if (!res) res = await buildWorkflow(next); // one retry — the builder occasionally returns nothing
     setBuilding(false);
     if (!res) { setErr("Couldn't build that — try describing it a little differently."); return; }
     if (res.kind === 'questions') {
