@@ -9,6 +9,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
 const COMPOSIO_BASE = "https://backend.composio.dev/api";
+const SB_URL = Deno.env.get("SUPABASE_URL");
+const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const MODEL = "claude-opus-4-8";
 
 const ALLOWED_ORIGINS = new Set([
@@ -76,6 +78,36 @@ async function connectedApps(uid: string): Promise<string[]> {
     return [...new Set(ids)];
   } catch {
     return [];
+  }
+}
+
+// The user's saved long-term memories (service role, scoped to their uid), fed to
+// the builder so it can resolve a person/preference it already knows — memory is
+// the first place to look. Respects the user's memory-pause toggle.
+async function fetchMemories(uid: string): Promise<string[]> {
+  if (!SB_URL || !SB_KEY || !uid) return [];
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/user_memory?user_id=eq.${encodeURIComponent(uid)}&select=content&order=created_at.asc`, {
+      headers: { apikey: SB_KEY, authorization: `Bearer ${SB_KEY}` },
+    });
+    if (!r.ok) return [];
+    const rows = await r.json();
+    return Array.isArray(rows) ? rows.map((x: { content?: string }) => (x?.content || "").trim()).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+async function memoryEnabled(uid: string): Promise<boolean> {
+  if (!SB_URL || !SB_KEY || !uid) return true;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/user_settings?user_id=eq.${encodeURIComponent(uid)}&select=memory_on`, {
+      headers: { apikey: SB_KEY, authorization: `Bearer ${SB_KEY}` },
+    });
+    if (!r.ok) return true;
+    const rows = await r.json();
+    return Array.isArray(rows) && rows.length ? !!rows[0].memory_on : true;
+  } catch {
+    return true;
   }
 }
 
@@ -327,6 +359,13 @@ Deno.serve(async (req: Request) => {
   const apps = await connectedApps(uid);
   const appList = apps.length ? apps.join(", ") : "(none connected yet)";
   const askedCount = messages.filter((m) => m.role === "assistant").length;
+  // Memory FIRST: give the builder what the user already told us, so it can resolve
+  // a person/recipient/preference from a saved fact before any lookup or question.
+  const memOn = await memoryEnabled(uid);
+  const mems = memOn ? await fetchMemories(uid) : [];
+  const memBlock = mems.length
+    ? ` You already KNOW these facts about the user (saved memories — use them to resolve a person, recipient, or preference BEFORE looking anything up or asking):\n${mems.map((m) => `• ${m}`).join("\n")}`
+    : "";
   const system = `You design automations for the Go Farther mobile app. Turn the user's request into a workflow as a GRAPH of steps, read top-to-bottom like a flowchart. Be the kind of assistant that asks a quick question when it actually matters instead of guessing wrong — but never asks just to ask.
 
 Use ONLY the user's connected apps for app steps and event triggers — their connector ids are listed at the end of these instructions.
@@ -334,10 +373,10 @@ Use ONLY the user's connected apps for app steps and event triggers — their co
 CRITICAL — a workflow you emit must RUN right now. Every app step (and an event trigger) must use an app from that connected list. NEVER emit a step or trigger for an app that isn't connected — it would just fail. If the request needs an app that isn't connected, ASK whether to use a connected app instead or drop that part, and only emit once everything maps to a connected app. If the core purpose needs an unconnected app, ask the user to connect it — don't emit a broken workflow. Always either ask a question or emit a complete, working workflow — never return nothing.
 
 ## First: build, or ask?
-When you're not sure, ASK — one quick question beats building the wrong thing. NEVER silently guess or assume a detail, identity, recipient, or account you aren't certain of: if you can look it up with a tool (use find_contact to resolve a named person), do that FIRST; if you still aren't sure, ASK. A workflow built on a guess is a broken workflow. Call the "ask" tool when ANY of these hold:
+When you're not sure, ASK — one quick question beats building the wrong thing. NEVER silently guess or assume a detail, identity, recipient, or account you aren't certain of. Resolve it in this order: (1) if you already KNOW it from the user's saved memories (listed below), use that; (2) else look it up with a tool (use find_contact to resolve a named person); (3) if you still aren't sure, ASK. A workflow built on a guess is a broken workflow. Call the "ask" tool when ANY of these hold:
 - TWO OR MORE connected apps could do a step and the user didn't say which — e.g. Gmail AND Outlook both connected and they said "email me" / "send an email": you MUST ask which account, never silently pick one.
 - a key detail is missing with no safe default: who/where (recipient, which Slack channel, which list/board), WHICH items ("my emails" = all? unread? from a sender/label?), or the exact event condition,
-- the user names a PERSON/contact without an email or handle (e.g. "from Jhon", "reply to Sarah"): FIRST call find_contact to resolve them — exactly one clear match → use that exact address in the trigger filter and the instruction; several plausible → ASK which (offer the addresses as options); none found → ASK for their email. NEVER leave a trigger as just "from <name>" — the runner can't reliably tell who that is,
+- the user names a PERSON/contact without an email or handle (e.g. "from Jhon", "reply to Sarah"): FIRST check the saved memories below — if they already tell you this person's email, use it. If not, call find_contact to resolve them — exactly one clear match → use that exact address in the trigger filter and the instruction; several plausible → ASK which (offer the addresses as options); none found → ASK for their email. NEVER leave a trigger as just "from <name>" — the runner can't reliably tell who that is,
 - the trigger is an EVENT (arrival-based) and the user hasn't said WHEN to watch — ALWAYS ask the active hours, because watching 24/7 costs much more than a narrow window. Offer tappable options that fit their case (e.g. work hours, a specific window) plus "All day", then set event.window from their answer,
 - the workflow's CORE purpose needs an app the user has NOT connected (ask, and offer the closest connected app as an option),
 - it would delete, pay, or message people at scale (confirm scope first),
@@ -375,7 +414,7 @@ Request: "When an email from my boss arrives, Slack me a one-line summary." (Gma
     // conversation); keep the per-turn ask count in a separate uncached block.
     system: [
       { type: "text", text: system, cache_control: { type: "ephemeral" } },
-      { type: "text", text: `The user's connected apps (use ONLY these connector ids for app steps and event triggers): ${appList}. The user's timezone is ${tz}. So far you have asked ${askedCount} clarifying question(s) in this conversation.` },
+      { type: "text", text: `The user's connected apps (use ONLY these connector ids for app steps and event triggers): ${appList}. The user's timezone is ${tz}. So far you have asked ${askedCount} clarifying question(s) in this conversation.${memBlock}` },
     ],
     tools: [FIND_CONTACT_TOOL, ASK_TOOL, EMIT_TOOL],
     // Never FORCE a build — a forced build can produce a workflow that won't run.
