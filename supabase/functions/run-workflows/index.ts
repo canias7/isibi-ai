@@ -183,7 +183,11 @@ async function detectItems(uid: string, ev: any, connectedArg?: string[]): Promi
   if (!connected.includes(slug)) return null; // can't watch (app not connected) -> skip, don't baseline
   const filter = String(ev?.filter || "").trim() || "any new item";
   const url = `${MCP_URL}?apps=${encodeURIComponent(slug)}&user=${encodeURIComponent(uid)}&mem=0`;
-  const system = `You check whether a trigger condition is currently met in a connected app. Use ONLY the available tools to look up the most recent items that match the user's condition. Then reply with ONLY a compact JSON array (no prose, no markdown, no code fences) of up to 15 items, newest first, each shaped {"id":"<the item's stable unique id straight from the tool result>","line":"<short one-line description>"}. Use the real ids returned by the tools — never invent them. If nothing matches, reply exactly [].`;
+  const system = `You check whether a trigger condition is currently met in a connected app. Use ONLY the available tools to look up the most recent items that match the user's condition. Then reply with ONLY a compact JSON array (no prose, no markdown, no code fences) of up to 15 items, newest first, each shaped {"id":"<item id>","line":"<short one-line description>"}.
+
+The "id" MUST be the item's stable, unique identifier exactly as the tool returned it (e.g. a Gmail message id, a calendar event id, a database row id, a Slack message ts) — NOT a subject line, title, date, sender name, or anything you wrote yourself. The SAME item must produce the SAME id every time it's checked, or the trigger will fire repeatedly or miss it. Never invent or reformat an id; if you can't get a real id for an item, leave that item out. If nothing matches, reply exactly [].
+
+Example: [{"id":"199c1f2a7b8e4d10","line":"Invoice #4521 from Acme"},{"id":"199c1f0e5a3b22ff","line":"Reschedule from Sam, Fri 3pm"}]`;
   const reqBody: Record<string, unknown> = {
     model: MODEL,
     max_tokens: 1024,
