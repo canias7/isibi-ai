@@ -94,7 +94,9 @@ function WorkflowPreview() {
   const wf = WORKFLOWS[wi % WORKFLOWS.length];
 
   useEffect(() => {
-    const full = wf.prompt;
+    // Read the prompt straight from the source array (keyed by wi, already a dep)
+    // so the effect doesn't depend on the derived `wf` object identity.
+    const full = WORKFLOWS[wi % WORKFLOWS.length].prompt;
     if (phase === 'type') {
       if (text.length < full.length) {
         const t = setTimeout(() => setText(full.slice(0, text.length + 1)), 42);

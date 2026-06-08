@@ -23,7 +23,10 @@ export default tseslint.config(
       // The headline rules: enforce the Rules of Hooks and flag missing
       // effect/memo/callback dependencies (the stale-closure bug class).
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      // error (not warn) so a missing effect dependency fails the build — that's
+      // the "buggy hooks can't ship" gate. Intentional exceptions use an explicit
+      // // eslint-disable-next-line react-hooks/exhaustive-deps comment.
+      'react-hooks/exhaustive-deps': 'error',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       // Allow the codebase's intentional patterns: `cond ? a() : b()` and
       // `cond && fn()` as statements, and `_`-prefixed deliberately-unused args
