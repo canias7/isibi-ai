@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { streamChat, sendTestPush, extractMemory, type ChatMessage, type Attach } from './api';
 import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API, byId } from './connectorData';
-import Connectors from './Connectors';
+import ConnectorsGraph from './ConnectorsGraph';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow } from './icons';
@@ -1129,7 +1129,7 @@ export default function App() {
       </header>
 
       {view === 'connectors' ? (
-        <Connectors />
+        <ConnectorsGraph onClose={() => go('chat')} />
       ) : view === 'settings' ? (
         <div className="page">
           <div className="page-inner">
