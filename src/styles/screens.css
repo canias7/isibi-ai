@@ -232,6 +232,43 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
    send button pinned to the bottom as the box gets taller. */
 .wfx-compose { align-items: flex-end; }
 .wfx-cgrow { resize: none; overflow-y: auto; max-height: 132px; line-height: 1.35; display: block; }
+
+/* ---- Banks (Plaid bank-linking; separate from Connectors) ---- */
+.bank-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.bank-back { border: none; background: transparent; color: var(--text); padding: 4px; display: grid; place-items: center; cursor: pointer; }
+.bank-link-btn {
+  width: 100%; margin: 16px 0 4px; padding: 14px; border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.06);
+  color: var(--text); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.bank-link-btn:active:not(:disabled) { opacity: 0.7; }
+.bank-link-btn:disabled { opacity: 0.5; }
+.bank-err { color: #ff8f8f; font-size: 13px; margin: 8px 0; }
+.bank-err-inline { color: #ff8f8f; font-size: 13px; }
+.bank-empty { color: var(--text-dim); font-size: 14px; padding: 16px 2px; }
+.bank-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.bank-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px; border-radius: 12px; background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.bank-name { font-size: 15px; font-weight: 600; }
+.bank-unlink { border: none; background: transparent; color: #e5757a; font: inherit; font-size: 13px; cursor: pointer; }
+.bank-actions { display: flex; gap: 8px; margin-top: 14px; }
+.bank-actions button {
+  flex: 1; padding: 12px; border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.06);
+  color: var(--text); font: inherit; font-size: 14px; cursor: pointer;
+}
+.bank-actions button:disabled { opacity: 0.5; }
+.bank-data { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.bank-data-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.04);
+  font-size: 13px; color: var(--text);
+}
+.bank-txn-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bank-amt { flex-shrink: 0; color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .memg-send {
   flex-shrink: 0;
   width: 38px; height: 38px;

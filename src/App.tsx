@@ -6,7 +6,7 @@ import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow } from './icons';
+import { IconMenu, IconCompose, IconChat, IconConnectors, IconBank, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow } from './icons';
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
@@ -19,10 +19,11 @@ import { slimMessages, isNetworkError, serverIsMoreComplete, titleFrom, cleanFor
 // Heavy, on-demand screens are code-split: their JS downloads only when first
 // opened, shrinking the initial bundle and speeding up launch.
 const ConnectorsGraph = lazy(() => import('./ConnectorsGraph'));
+const BanksScreen = lazy(() => import('./BanksScreen'));
 const MemoryGraph = lazy(() => import('./MemoryGraph'));
 const WorkflowsScreen = lazy(() => import('./WorkflowsScreen'));
 
-type View = 'chat' | 'connectors' | 'settings';
+type View = 'chat' | 'connectors' | 'banks' | 'settings';
 
 interface Conversation {
   id: string;
@@ -926,7 +927,7 @@ export default function App() {
   if (!session) return <Login />;
 
   const isGuest = !!session.user.is_anonymous;
-  const title = view === 'connectors' ? 'Connectors' : view === 'settings' ? 'Settings' : 'Go Farther';
+  const title = view === 'connectors' ? 'Connectors' : view === 'banks' ? 'Banks' : view === 'settings' ? 'Settings' : 'Go Farther';
   // Recent chats: pinned first, then newest. Filtered by the search box (title +
   // message text).
   const q = chatSearch.trim().toLowerCase();
@@ -1049,6 +1050,8 @@ export default function App() {
 
       {view === 'connectors' ? (
         <Suspense fallback={null}><ConnectorsGraph onClose={() => go('chat')} /></Suspense>
+      ) : view === 'banks' ? (
+        <Suspense fallback={null}><BanksScreen onClose={() => go('chat')} /></Suspense>
       ) : view === 'settings' ? (
         <div className="page">
           <div className="page-inner">
@@ -1180,17 +1183,20 @@ export default function App() {
                 staggered bottom-to-top; labels sit to the right (no overlap) */}
             {plusOpen && (
               <div className="radial" role="menu">
-                <button className="radial-item" style={{ left: 0, bottom: 300, animationDelay: '200ms' }} onClick={() => { setPlusOpen(false); openMemory(); }}>
+                <button className="radial-item" style={{ left: 0, bottom: 300, animationDelay: '250ms' }} onClick={() => { setPlusOpen(false); openMemory(); }}>
                   <IconMemory size={20} /><span className="radial-label">Memory</span>
                 </button>
-                <button className="radial-item" style={{ left: 24, bottom: 240, animationDelay: '150ms' }} onClick={() => openPicker('camera')}>
+                <button className="radial-item" style={{ left: 19, bottom: 252, animationDelay: '200ms' }} onClick={() => openPicker('camera')}>
                   <IconCamera size={20} /><span className="radial-label">Camera</span>
                 </button>
-                <button className="radial-item" style={{ left: 48, bottom: 180, animationDelay: '100ms' }} onClick={() => openPicker('attachments')}>
+                <button className="radial-item" style={{ left: 38, bottom: 204, animationDelay: '150ms' }} onClick={() => openPicker('attachments')}>
                   <IconFiles size={20} /><span className="radial-label">Attachments</span>
                 </button>
-                <button className="radial-item" style={{ left: 72, bottom: 120, animationDelay: '50ms' }} onClick={() => { setPlusOpen(false); void loadConnectors(); setWfOpen(true); }}>
+                <button className="radial-item" style={{ left: 58, bottom: 156, animationDelay: '100ms' }} onClick={() => { setPlusOpen(false); void loadConnectors(); setWfOpen(true); }}>
                   <IconWorkflow size={20} /><span className="radial-label">Workflows</span>
+                </button>
+                <button className="radial-item" style={{ left: 77, bottom: 108, animationDelay: '50ms' }} onClick={() => { setPlusOpen(false); go('banks'); }}>
+                  <IconBank size={20} /><span className="radial-label">Banks</span>
                 </button>
                 <button className="radial-item" style={{ left: 96, bottom: 60, animationDelay: '0ms' }} onClick={() => { setPlusOpen(false); go('connectors'); }}>
                   <IconConnectors size={20} /><span className="radial-label">Connectors</span>
