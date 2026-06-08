@@ -49,6 +49,12 @@ export default function Login() {
 
   return (
     <div className="auth">
+      <div className="live-bg" aria-hidden="true">
+        <span className="orb orb1" />
+        <span className="orb orb2" />
+        <span className="orb orb3" />
+        <span className="orb orb4" />
+      </div>
       <div className="auth-card">
         <div className="auth-brand">Go Farther</div>
         <p className="auth-sub">

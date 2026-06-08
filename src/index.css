@@ -878,8 +878,10 @@ body { background: var(--bg); color: var(--text); }
   gap: 18px;
   padding: 24px max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-bottom));
 }
-.auth-brand { font-size: 26px; font-weight: 700; }
+.auth-brand { font-size: 34px; font-weight: 700; }
 .auth-card {
+  position: relative; /* sit above the living-background orbs */
+  z-index: 1;
   width: 100%;
   max-width: 360px;
   display: flex;
