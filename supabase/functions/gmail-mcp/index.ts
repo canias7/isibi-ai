@@ -18,12 +18,46 @@ const API_KEY = Deno.env.get("COMPOSIO_API_KEY")!;
 const BASE = "https://backend.composio.dev/api";
 const CATALOG_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-oauth?catalog=";
 
-// Bearer that gates this server, DERIVED at runtime from a server-only secret
-// (not stored in the repo). Must match the same derivation in the chat function.
-async function mcpToken(): Promise<string> {
+// Per-user MCP auth: callers sign a short-lived token binding the acting user id;
+// we verify it here and DERIVE the uid from it, so identity can't be forged via a
+// query param. Secret is MCP_SHARED_SECRET if set, else derived (never empty).
+async function mcpSecret(): Promise<string> {
+  const s = Deno.env.get("MCP_SHARED_SECRET");
+  if (s) return s;
   const base = (Deno.env.get("COMPOSIO_API_KEY") ?? "") + "::gofarther-mcp-v1";
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(base));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function mcpB64url(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+function mcpB64urlToBytes(s: string): Uint8Array {
+  s = s.replaceAll("-", "+").replaceAll("_", "/");
+  while (s.length % 4) s += "=";
+  return Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+}
+async function mcpHmac(msg: string): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(await mcpSecret()), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg)));
+}
+// Verify a per-user token; returns its uid, or null if missing/invalid/expired.
+async function verifyUserToken(token: string): Promise<string | null> {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+  const [payload, sig] = parts;
+  const expected = mcpB64url(await mcpHmac(payload));
+  if (sig.length !== expected.length) return null;
+  let diff = 0;
+  for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ expected.charCodeAt(i); // constant-time
+  if (diff !== 0) return null;
+  try {
+    const o = JSON.parse(new TextDecoder().decode(mcpB64urlToBytes(payload)));
+    if (!o || typeof o.u !== "string" || !o.u || typeof o.exp !== "number") return null;
+    if (o.exp < Math.floor(Date.now() / 1000)) return null;
+    return o.u;
+  } catch {
+    return null;
+  }
 }
 
 // RECOMMENDED tools per toolkit (~6 each) — a suggested starting set, NOT
@@ -419,7 +453,8 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
   const auth = req.headers.get("authorization") || "";
-  if (auth !== "Bearer " + (await mcpToken())) {
+  const tokenUid = await verifyUserToken(auth.replace(/^Bearer\s+/i, "").trim());
+  if (!tokenUid) {
     return new Response(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32001, message: "Unauthorized" } }), {
       status: 401,
       headers: { "content-type": "application/json" },
@@ -428,7 +463,7 @@ Deno.serve(async (req: Request) => {
 
   const reqUrl = new URL(req.url);
   const apps = (reqUrl.searchParams.get("apps") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  const reqUser = reqUrl.searchParams.get("user") || "";
+  const reqUser = tokenUid; // identity comes from the verified token, never a URL param
   const memOn = reqUrl.searchParams.get("mem") !== "0"; // memory tool on unless the chat fn paused it
 
   let msg: any;
@@ -475,7 +510,7 @@ Deno.serve(async (req: Request) => {
       } catch (e) {
         console.error("memory tool error:", p.name, e);
         await logUsage(p.name, false, reqUser);
-        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "Error: " + (e instanceof Error ? e.message : String(e)) }], isError: true } });
+        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "That action couldn't be completed — please try again." }], isError: true } });
       }
     }
     if (p.name === "GF_GET_MEMORY_FILE") {
@@ -487,7 +522,7 @@ Deno.serve(async (req: Request) => {
       } catch (e) {
         console.error("memory tool error:", p.name, e);
         await logUsage(p.name, false, reqUser);
-        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "Error: " + (e instanceof Error ? e.message : String(e)) }], isError: true } });
+        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "That action couldn't be completed — please try again." }], isError: true } });
       }
     }
     try {
@@ -500,7 +535,7 @@ Deno.serve(async (req: Request) => {
       return J({
         jsonrpc: "2.0",
         id,
-        result: { content: [{ type: "text", text: "Error: " + (e instanceof Error ? e.message : String(e)) }], isError: true },
+        result: { content: [{ type: "text", text: "That action couldn't be completed — please try again." }], isError: true },
       });
     }
   }

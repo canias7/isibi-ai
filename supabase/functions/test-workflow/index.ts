@@ -62,10 +62,26 @@ function userFromJwt(req: Request): string | null {
   }
 }
 
-async function mcpToken(): Promise<string> {
+// Per-user MCP auth: a short-lived HMAC-signed token binding the acting user id,
+// so gmail-mcp derives identity from the token, not a forgeable query param.
+// Secret is MCP_SHARED_SECRET if set, else derived (never the empty string).
+async function mcpSecret(): Promise<string> {
+  const s = Deno.env.get("MCP_SHARED_SECRET");
+  if (s) return s;
   const base = (COMPOSIO_API_KEY ?? "") + "::gofarther-mcp-v1";
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(base));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function mcpB64url(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+async function mcpHmac(msg: string): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(await mcpSecret()), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg)));
+}
+async function mintUserToken(uid: string): Promise<string> {
+  const payload = mcpB64url(new TextEncoder().encode(JSON.stringify({ u: uid, exp: Math.floor(Date.now() / 1000) + 1800 })));
+  return `${payload}.${mcpB64url(await mcpHmac(payload))}`;
 }
 
 const sbHeaders = { apikey: SB_KEY ?? "", authorization: `Bearer ${SB_KEY ?? ""}`, "content-type": "application/json" };
@@ -152,7 +168,7 @@ Be strictly honest about each step's outcome: if a step needs an app/tool you do
   const extra: Record<string, string> = {};
   if (apps.length) {
     const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(uid)}&mem=0`;
-    reqBody.mcp_servers = [{ type: "url", url, name: "connectors", authorization_token: await mcpToken() }];
+    reqBody.mcp_servers = [{ type: "url", url, name: "connectors", authorization_token: await mintUserToken(uid) }];
     // cache_control caches the (large) MCP tool schemas across the model's tool-use turns.
     reqBody.tools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
     extra["anthropic-beta"] = "mcp-client-2025-11-20";
