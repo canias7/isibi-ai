@@ -171,6 +171,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
   const [open, setOpen] = useState<Workflow | null>(null); // a saved workflow being viewed/edited
   const [desc, setDesc] = useState('');
   const [building, setBuilding] = useState(false);
+  const [composing, setComposing] = useState(false); // compose box focused/typing — hide the looping demo
   const [err, setErr] = useState('');
   const [convo, setConvo] = useState<ChatMsg[]>([]); // back-and-forth while the builder clarifies
   const [picks, setPicks] = useState<Record<number, string>>({});      // selected option label per question (last turn)
@@ -416,6 +417,9 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
               )}
               {err && <div className="wfx-err">{err}</div>}
             </div>
+          ) : (composing || desc.trim() || building) ? (
+            // Composing your own prompt (or building) — drop the looping demo; keep a clean space above the box.
+            <div className="wfx-hero">{err && <div className="wfx-err">{err}</div>}</div>
           ) : (
             <div className="wfx-hero">
               <WorkflowPreview />
@@ -439,6 +443,8 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
                   value={desc}
                   onChange={(e) => setDesc(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') void send(desc); }}
+                  onFocus={() => setComposing(true)}
+                  onBlur={() => setComposing(false)}
                   placeholder="Describe your workflow…"
                   maxLength={2000}
                   disabled={building}
