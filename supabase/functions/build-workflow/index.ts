@@ -264,14 +264,14 @@ Deno.serve(async (req: Request) => {
 The user's CONNECTED apps (use ONLY these connector ids for app steps): ${appList}.
 
 ## First: build, or ask?
-Call the "ask" tool (don't guess) when:
-- more than one connected app could do it and the choice matters (e.g. both Gmail and Outlook connected for "email me"),
+When you're not sure, ASK — one quick question beats building the wrong thing. Call the "ask" tool (don't guess) when ANY of these hold:
+- TWO OR MORE connected apps could do a step and the user didn't say which — e.g. Gmail AND Outlook both connected and they said "email me" / "send an email": you MUST ask which account, never silently pick one.
 - a key detail is missing with no safe default: who/where (recipient, which Slack channel, which list/board), WHICH items ("my emails" = all? unread? from a sender/label?), or the exact event condition,
 - the workflow's CORE purpose needs an app the user has NOT connected (ask, and offer the closest connected app as an option),
 - it would delete, pay, or message people at scale (confirm scope first),
 - the request is too vague to act on.
 Do NOT ask when:
-- exactly one connected app fits the job — just use it,
+- only ONE connected app fits the step — just use it,
 - the detail has a sensible default the user can tweak later (run time, wording, layout) — pick a reasonable one; the graph is fully editable,
 - a needed app is only peripheral — substitute the closest connected app or "ai" and note it in that step's detail.
 

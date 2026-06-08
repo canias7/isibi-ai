@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   IconX, IconTrash, IconArrowLeft, IconArrowUp, IconLayers, IconPlay,
@@ -610,6 +610,23 @@ function Canvas({ graph, results, onChange, onSelect, edgeState }: { graph: WfGr
     | null
   >(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Fit the whole graph into the viewport on mount: pick a zoom that shows every
+  // node and center it, so opening a draft never lands cropped or shoved to one
+  // side (branching graphs are wider/taller than the fixed Z0 assumed).
+  useLayoutEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const cw = el.clientWidth, ch = el.clientHeight;
+    if (!cw || !ch) return;
+    const M = 24; // breathing room around the graph
+    const z = +clamp(Math.min((cw - M * 2) / W, (ch - M * 2) / H), 0.45, 1).toFixed(3);
+    const x = Math.round((cw - W * z) / 2);
+    const y = H * z <= ch - M * 2 ? Math.round((ch - H * z) / 2) : M; // center if it fits, else top-align
+    setZoom(z);
+    setPan({ x, y });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const nodes = graph.nodes;
   const px = (n: WfNode) => n.x + offX;
