@@ -12,6 +12,10 @@ const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const MCP_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-mcp";
 const PUSH_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/send-push";
 const MODEL = "claude-sonnet-4-6";
+// Cron ticks every 5 min (scheduled workflows need that granularity), but event
+// triggers are polled with an LLM call per workflow — the dominant cost. Gate the
+// event phase to once every EVENT_EVERY_MIN to cut that ~3x without slowing schedules.
+const EVENT_EVERY_MIN = 15;
 
 const json = (obj: unknown, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json" } });
@@ -324,8 +328,9 @@ Deno.serve(async (req: Request) => {
   }
 
   // EVENT workflows: fire when a new matching item appears in the chosen app.
+  // Only poll on the EVENT_EVERY_MIN cadence (e.g. :00/:15/:30/:45), not every 5-min tick.
   let eventChecked = 0, eventFired = 0;
-  try {
+  if (now.getMinutes() % EVENT_EVERY_MIN < 5) try {
     const er = await fetch(`${SB_URL}/rest/v1/workflows?enabled=eq.true&trigger_type=eq.event&select=*&limit=50`, { headers: sbHeaders });
     if (er.ok) {
       const evs: any[] = await er.json();
