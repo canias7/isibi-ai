@@ -457,7 +457,8 @@ Deno.serve(async (req: Request) => {
       const prefs = await userToolPrefs(reqUser);
       return J({ jsonrpc: "2.0", id, result: { tools: await listTools(apps, prefs, memOn) } });
     } catch (e) {
-      return J({ jsonrpc: "2.0", id, error: { code: -32000, message: e instanceof Error ? e.message : String(e) } });
+      console.error("tools/list failed:", e);
+      return J({ jsonrpc: "2.0", id, error: { code: -32000, message: "internal error" } });
     }
   }
   if (method === "tools/call") {
@@ -472,6 +473,7 @@ Deno.serve(async (req: Request) => {
         await logUsage(p.name, true, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
       } catch (e) {
+        console.error("memory tool error:", p.name, e);
         await logUsage(p.name, false, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "Error: " + (e instanceof Error ? e.message : String(e)) }], isError: true } });
       }
@@ -483,6 +485,7 @@ Deno.serve(async (req: Request) => {
         await logUsage(p.name, true, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
       } catch (e) {
+        console.error("memory tool error:", p.name, e);
         await logUsage(p.name, false, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "Error: " + (e instanceof Error ? e.message : String(e)) }], isError: true } });
       }
@@ -492,6 +495,7 @@ Deno.serve(async (req: Request) => {
       await logUsage(p.name, true, reqUser);
       return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
     } catch (e) {
+      console.error("tool exec error:", p.name, e);
       await logUsage(p.name, false, reqUser);
       return J({
         jsonrpc: "2.0",

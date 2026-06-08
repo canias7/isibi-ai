@@ -309,9 +309,13 @@ You have already asked ${askedCount} time(s); ask at most twice total, then buil
       body: JSON.stringify(reqBody),
     });
   } catch (e) {
-    return J({ error: `builder request failed: ${e instanceof Error ? e.message : String(e)}` }, 502);
+    console.error("builder request failed:", e);
+    return J({ error: "The builder is temporarily unavailable. Please try again." }, 502);
   }
-  if (!res.ok) return J({ error: `builder ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}` }, 502);
+  if (!res.ok) {
+    console.error(`builder ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
+    return J({ error: "The builder is temporarily unavailable. Please try again." }, 502);
+  }
 
   const data = await res.json();
   const content = data.content || [];

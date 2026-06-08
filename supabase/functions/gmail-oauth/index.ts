@@ -645,12 +645,13 @@ Deno.serve(async (req: Request) => {
         }),
       });
       const data = await res.json();
-      if (!res.ok) return page(`❌ Composio link failed: ${data.message || data.error || res.status}`);
+      if (!res.ok) { console.error("composio link failed:", res.status, data?.message || data?.error || ""); return page("❌ Couldn't start the connection. Please try again."); }
       const redirect = data.redirect_url || data.redirectUrl;
       if (!redirect) return page("❌ Composio did not return a redirect URL.");
       return Response.redirect(redirect, 302);
     } catch (e) {
-      return page(`❌ ${e instanceof Error ? e.message : String(e)}`);
+      console.error("connect start error:", e);
+      return page("❌ Couldn't start the connection. Please try again.");
     }
   }
 
@@ -722,7 +723,8 @@ Deno.serve(async (req: Request) => {
       }
       return json(req, { ok: true, removed });
     } catch (e) {
-      return json(req, { error: e instanceof Error ? e.message : String(e) });
+      console.error("disconnect error:", e);
+      return json(req, { error: "Couldn't disconnect. Please try again." });
     }
   }
 
@@ -738,7 +740,8 @@ Deno.serve(async (req: Request) => {
       const r = app === "outlook" ? await fetchOutlookMessageHtml(uid, id) : await fetchMessageHtml(uid, id);
       return json(req, { ...r, app });
     } catch (e) {
-      return json(req, { error: e instanceof Error ? e.message : String(e) });
+      console.error("message fetch error:", e);
+      return json(req, { error: "Couldn't load this message." });
     }
   }
 
@@ -755,7 +758,8 @@ Deno.serve(async (req: Request) => {
     try {
       return json(req, app === "outlook" ? await getOutlookAttachment(uid, mid, aid, name) : await getAttachment(uid, mid, aid, name));
     } catch (e) {
-      return json(req, { error: e instanceof Error ? e.message : String(e) });
+      console.error("attachment fetch error:", e);
+      return json(req, { error: "Couldn't load this attachment." });
     }
   }
 

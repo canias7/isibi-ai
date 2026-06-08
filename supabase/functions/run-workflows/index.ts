@@ -263,7 +263,8 @@ Deno.serve(async (req: Request) => {
         text = await runInstruction(wf.user_id, wf.instruction);
       } catch (e) {
         ok = false;
-        text = `Couldn't finish this workflow: ${e instanceof Error ? e.message : String(e)}`;
+        console.error("scheduled workflow error:", e);
+        text = "Couldn't finish this workflow.";
       }
       await insertRun(wf.id, wf.user_id, text, ok);
       const summary = text.replace(/```[\s\S]*?```/g, " ").replace(/\s+/g, " ").trim().slice(0, 140) || (ok ? "Done." : "Failed.");
@@ -302,7 +303,8 @@ Deno.serve(async (req: Request) => {
             text = await runInstruction(wf.user_id, prompt);
           } catch (e) {
             ok = false;
-            text = `Couldn't finish this workflow: ${e instanceof Error ? e.message : String(e)}`;
+            console.error("event workflow error:", e);
+            text = "Couldn't finish this workflow.";
           }
           await insertRun(wf.id, wf.user_id, text, ok);
           const summary = text.replace(/```[\s\S]*?```/g, " ").replace(/\s+/g, " ").trim().slice(0, 140) || (ok ? "Done." : "Failed.");

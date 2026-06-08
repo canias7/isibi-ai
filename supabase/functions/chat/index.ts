@@ -561,7 +561,8 @@ Deno.serve(async (req: Request) => {
 
   if (!upstream.ok || !upstream.body) {
     const errText = await upstream.text().catch(() => "");
-    return new Response(`Assistant error ${upstream.status}: ${errText}`, { status: 502, headers: cors });
+    console.error(`anthropic upstream ${upstream.status}: ${errText.slice(0, 500)}`);
+    return new Response(`Assistant error (${upstream.status})`, { status: 502, headers: cors });
   }
 
   // For an explicit "open / read / show / try again" on an email we suppress the
@@ -697,7 +698,8 @@ Deno.serve(async (req: Request) => {
         // A confirmed successful action — append a guaranteed receipt card.
         if (receipt) emit(`\n\n\`\`\`gf-receipt\n${JSON.stringify(receipt)}\n\`\`\``);
       } catch (e) {
-        emit(`\n⚠️ ${e instanceof Error ? e.message : String(e)}`);
+        console.error("chat stream error:", e);
+        emit(`\n⚠️ Something went wrong on our end. Please try again.`);
       } finally {
         try { controller.close(); } catch { /* already closed (client gone) */ }
       }
