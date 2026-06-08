@@ -142,6 +142,16 @@ const EMIT_TOOL = {
             properties: {
               app: { type: "string", description: "connector id of the app to watch" },
               filter: { type: "string", description: "short natural-language condition" },
+              window: {
+                type: "object",
+                description: "OPTIONAL active hours. Set ONLY when the user implied specific times/days (overnight, work hours, weekdays, etc.). Omit to watch all day. Narrowing the window lowers cost. Times are the user's local timezone.",
+                properties: {
+                  start: { type: "integer", description: "window start, minutes from midnight 0-1439 (e.g. 540 = 9:00 AM)" },
+                  end: { type: "integer", description: "window end, minutes from midnight 0-1439 (e.g. 1020 = 5:00 PM); for an overnight window the end may be smaller than start" },
+                  days: { type: "array", items: { type: "integer" }, description: "0=Sun..6=Sat; days the window is active. Omit/empty = every day" },
+                },
+                required: ["start", "end"],
+              },
             },
           },
         },
@@ -226,6 +236,19 @@ function layout(nodes: any[], edges: any[]): any[] {
   return nodes;
 }
 
+// Normalize an emitted event window: clamp times, dedupe days, inject the user's
+// tz (server-side, so the model can't get it wrong). Returns null if unusable.
+function normWindow(w: any, tz: string): any | null {
+  if (!w || typeof w !== "object") return null;
+  const clamp = (n: number) => Math.min(1439, Math.max(0, Math.floor(Number(n) || 0)));
+  const start = clamp(w.start), end = clamp(w.end);
+  if (start === end) return null;
+  const days = Array.isArray(w.days)
+    ? [...new Set(w.days.map(Number).filter((d: number) => d >= 0 && d <= 6))]
+    : [];
+  return { start, end, days, tz };
+}
+
 Deno.serve(async (req: Request) => {
   const cors = corsFor(req);
   const J = (obj: unknown, status = 200) =>
@@ -291,7 +314,7 @@ KEEP ASKING until you have everything you need to build a workflow that will act
 - App steps use the connector id from the connected list.
 - Labels: 2-4 words. detail: one short sentence.
 - edges connect node ids in execution order; a decision node has exactly two outgoing edges, branch "yes" and "no".
-- trigger: if time-based, fill schedule {freq, hour 0-23, minute, weekday 0-6 when weekly} in the user's timezone (${tz}); default to a daily 8:00 AM run when unspecified. If arrival-based, fill event {app: <connector id>, filter: <short condition>}.
+- trigger: if time-based, fill schedule {freq, hour 0-23, minute, weekday 0-6 when weekly} in the user's timezone (${tz}); default to a daily 8:00 AM run when unspecified. If arrival-based, fill event {app: <connector id>, filter: <short condition>}. If the user said WHEN they care (overnight, work hours, weekdays, etc.), also set event.window {start, end as minutes from midnight; days 0-6, omit for every day} to limit watch hours — this lowers cost; otherwise omit window (watches all day, which the user can narrow later).
 - instruction: one clear, self-contained paragraph the assistant follows each run, naming the apps. Make every step handle the empty case gracefully (if there's nothing to act on, do nothing or send a brief "nothing today" — never error). This is the real executable spec.
 
 ## Examples (match this shape — note how self-contained and runnable the instruction is)
@@ -397,7 +420,10 @@ Request: "When an email from my boss arrives, Slack me a one-line summary." (Gma
     // waits until the user connects it). Only replace an empty/unknown app — never
     // silently switch the trigger to a different app.
     if (!APP_TO_SLUG[app]) app = apps[0] || "";
-    if (app) trigger.event = { app, filter: String(ev.filter || "") };
+    if (app) {
+      const win = normWindow(ev.window, tz);
+      trigger.event = win ? { app, filter: String(ev.filter || ""), window: win } : { app, filter: String(ev.filter || "") };
+    }
     else { trigger.type = "schedule"; trigger.schedule = { freq: "daily", hour: 8, minute: 0, weekday: 1, tz }; }
   }
 
