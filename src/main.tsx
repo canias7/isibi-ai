@@ -2,7 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import ErrorBoundary from './ErrorBoundary';
-import './index.css';
+// Styles, split by feature for maintainability. Import order = cascade order
+// (this is exactly the old single index.css, sliced in place).
+import './styles/base.css';
+import './styles/chat.css';
+import './styles/sidebar.css';
+import './styles/auth.css';
+import './styles/screens.css';
+import './styles/email.css';
 import { initOta } from './ota';
 
 // Lock the WebView viewport. iOS auto-zooms when a sub-16px input is focused (our

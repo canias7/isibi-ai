@@ -1,0 +1,359 @@
+/* ---- Generic page (Connectors / Settings) ---- */
+.page { flex: 1; overflow-y: auto; }
+.page-inner { max-width: 768px; margin: 0 auto; padding: 12px 16px 32px; }
+.page-title { font-size: 24px; font-weight: 700; margin: 8px 0 6px; }
+.page-sub { color: var(--text-dim); margin: 0 0 22px; font-size: 14px; line-height: 1.55; }
+
+/* ---- Connectors ---- */
+.conn-list { display: flex; flex-direction: column; gap: 10px; }
+.conn-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bubble-user);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.conn-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #fff;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.conn-logo img { width: 26px; height: 26px; object-fit: contain; }
+.conn-mono { color: #fff; font-weight: 700; font-size: 18px; text-transform: uppercase; }
+.conn-meta { flex: 1; min-width: 0; }
+.conn-name { font-weight: 600; font-size: 15px; }
+.conn-desc { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+.conn-btn {
+  flex-shrink: 0;
+  border: 1px solid #ffffff33;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.conn-btn:active { opacity: 0.7; }
+.conn-btn.on { background: var(--accent); color: #000; border-color: var(--accent); }
+.conn-btn.danger { background: #e5484d; color: #fff; border-color: #e5484d; }
+
+/* ---- Memory (constellation modal) ---- */
+.memg {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+  background:
+    radial-gradient(420px 420px at 50% 44%, rgba(224, 161, 58, 0.10), transparent 70%),
+    #08080a;
+  padding-top: env(safe-area-inset-top);
+  overflow: hidden;            /* never scrollable — kills the drift */
+  overscroll-behavior: none;   /* stop iOS rubber-band from dragging it */
+  animation: memgIn 0.22s ease;
+}
+/* While the modal is open, lock the page behind it (belt-and-suspenders). */
+html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behavior: none; }
+@keyframes memgIn { from { opacity: 0; } to { opacity: 1; } }
+/* faint dot grid */
+.memg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 22px 22px;
+  pointer-events: none;
+}
+
+.memg-top { position: relative; flex-shrink: 0; padding: 12px 16px 8px; text-align: center; z-index: 2; }
+.memg-title { font-size: 19px; font-weight: 700; margin: 0; }
+.memg-sub { font-size: 13px; color: var(--text-dim); margin: 4px 0 0; }
+/* These controls sit inside .memg-top, which is already pushed below the safe
+   area by .memg's padding-top — so they offset from the header, not the screen
+   top (adding env(safe-area-inset-top) here would double-count and shove them
+   down into the content). */
+.memg-close {
+  position: absolute;
+  top: 8px; right: 14px;
+  width: 34px; height: 34px;
+  border: none; background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-radius: 50%;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.memg-close:active { background: rgba(255, 255, 255, 0.14); }
+.memg-back {
+  position: absolute;
+  top: 8px; left: 14px;
+  width: 34px; height: 34px;
+  border: none; background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-radius: 50%;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.memg-back:active { background: rgba(255, 255, 255, 0.14); }
+.memg-toggle {
+  position: absolute;
+  top: 13px; right: 58px;
+  border: none; background: transparent; padding: 0;
+  cursor: pointer;
+  display: grid; place-items: center;
+}
+
+.memg-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; overscroll-behavior: none; }
+.memg-stage.paused .memg-core,
+.memg-stage.paused .memg-node,
+.memg-stage.paused .memg-lines { opacity: 0.4; }
+
+.memg-world { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
+.memg-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.memg-line { stroke: rgba(255, 255, 255, 0.12); stroke-width: 1; animation: memgFade 0.5s ease backwards; }
+.memg-line.on { stroke: rgba(224, 161, 58, 0.55); }
+
+.memg-core {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px; height: 60px;
+  border-radius: 18px;
+  display: grid; place-items: center;
+  color: #2a1c05;
+  background: linear-gradient(160deg, #ffce6f, #e0951f);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 0 40px 6px rgba(224, 161, 58, 0.45);
+  animation: memgPulse 3.5s ease-in-out infinite;
+}
+@keyframes memgPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 0 36px 4px rgba(224, 161, 58, 0.40); }
+  50% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.30), 0 0 52px 10px rgba(224, 161, 58, 0.55); }
+}
+
+.memg-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 42vw;
+  padding: 6px 10px 6px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(20, 20, 24, 0.72);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  cursor: grab;
+  color: var(--text);
+  text-align: left;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none; /* let pointer-drag move the node instead of scrolling */
+  animation: memgPop 0.32s cubic-bezier(0.2, 0.7, 0.2, 1.2) backwards;
+}
+.memg-node.sel { border-color: rgba(224, 161, 58, 0.8); box-shadow: 0 0 0 1px rgba(224, 161, 58, 0.5); }
+.memg-node.dragging {
+  cursor: grabbing;
+  z-index: 6;
+  border-color: rgba(231, 178, 78, 0.6);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  animation: none; /* don't fight the live drag position */
+}
+.memg-ico {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  color: #e7b24e;                              /* one consistent node icon */
+  border: 1.5px solid rgba(231, 178, 78, 0.65);
+  background: rgba(231, 178, 78, 0.10);
+  display: grid; place-items: center;
+}
+.memg-pill {
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--text);
+  white-space: nowrap;        /* one-line preview — never wrap/stretch the node */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+@keyframes memgPop { from { opacity: 0; transform: translate(-50%, -50%) scale(0.6); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes memgFade { from { opacity: 0; } to { opacity: 1; } }
+
+.memg-empty { position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); text-align: center; width: 80%; }
+.memg-empty-title { font-size: 15px; font-weight: 600; }
+.memg-empty-sub { font-size: 13px; color: var(--text-dim); margin-top: 4px; line-height: 1.5; }
+
+.memg-compose-wrap { flex-shrink: 0; padding: 8px 16px calc(14px + env(safe-area-inset-bottom)); z-index: 2; }
+.memg-editing { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-dim); padding: 0 6px 6px; }
+.memg-cancel { border: none; background: transparent; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; }
+.memg-compose {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 26px;
+  padding: 6px 6px 6px 8px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.memg-trash {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
+  border: none; background: transparent;
+  color: #e5757a;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.memg-trash:active { background: rgba(229, 72, 77, 0.15); }
+.memg-cinput {
+  flex: 1; min-width: 0;
+  background: transparent; border: none;
+  color: var(--text); font: inherit; font-size: 15px;
+  padding: 8px 6px;
+  touch-action: auto; /* keep normal caret/typing behavior on the locked modal */
+}
+.memg-cinput:focus { outline: none; }
+.memg-cinput::placeholder { color: var(--text-dim); }
+.memg-send {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
+  border: none;
+  background: #fff; color: #000;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.memg-send:disabled { opacity: 0.35; cursor: default; }
+.memg-send:active:not(:disabled) { opacity: 0.7; }
+.memg-clip {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
+  border: none; background: transparent;
+  color: var(--text-dim);
+  border-radius: 50%;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.memg-clip:disabled { opacity: 0.4; cursor: default; }
+.memg-clip:active:not(:disabled) { background: rgba(255, 255, 255, 0.08); }
+.memg-attach-chip {
+  display: flex; align-items: center; gap: 8px;
+  max-width: 640px; margin: 0 auto 8px;
+  width: fit-content;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px; padding: 8px 12px;
+  color: var(--text); font: inherit; font-size: 13px;
+  cursor: pointer;
+}
+.memg-attach-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.memg-attach-open { color: var(--accent); font-weight: 600; margin-left: 2px; }
+.memg-attach-x {
+  border: none; background: transparent; color: var(--text-dim);
+  padding: 2px; display: grid; place-items: center; cursor: pointer; border-radius: 6px;
+}
+.memg-reading { max-width: 640px; margin: 0 auto 8px; font-size: 12px; color: var(--text-dim); }
+.memg-att-err { color: #f4a261; }
+
+@media (prefers-reduced-motion: reduce) {
+  .memg, .memg-core, .memg-node, .memg-line { animation: none; }
+}
+
+/* ---- Workflows screen (uses the .memg overlay shell) ---- */
+.wf-stage { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 8px 16px calc(20px + env(safe-area-inset-bottom)); max-width: 640px; width: 100%; margin: 0 auto; }
+.wf-new {
+  width: 100%;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font: inherit; font-size: 15px; font-weight: 600;
+  padding: 14px; border-radius: 14px; cursor: pointer; margin-bottom: 14px;
+}
+.wf-new:active { background: rgba(255, 255, 255, 0.08); }
+.wf-empty { text-align: center; padding: 32px 12px; }
+.wf-empty-title { font-size: 16px; font-weight: 600; }
+.wf-empty-sub { font-size: 13px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
+.wf-list { display: flex; flex-direction: column; gap: 10px; }
+.wf-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bubble-user);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px; padding: 14px 16px; cursor: pointer;
+}
+.wf-card:active { background: rgba(255, 255, 255, 0.06); }
+.wf-card-main { flex: 1; min-width: 0; }
+.wf-card-title { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-card-sub { font-size: 12.5px; color: var(--text-dim); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* editor */
+.wf-editor { display: flex; flex-direction: column; }
+.wf-back { align-self: flex-start; background: none; border: none; color: var(--accent); font: inherit; font-size: 15px; padding: 4px 0 10px; cursor: pointer; }
+.wf-label { font-size: 13px; color: var(--text-dim); margin: 12px 2px 6px; }
+.wf-input {
+  width: 100%; box-sizing: border-box;
+  background: var(--bubble-user);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px; padding: 12px 14px;
+  color: var(--text); font: inherit; font-size: 15px;
+}
+.wf-input::placeholder { color: var(--text-dim); }
+.wf-input:focus { outline: none; border-color: rgba(255, 255, 255, 0.28); }
+.wf-area { resize: none; line-height: 1.45; }
+.wf-seg { display: flex; gap: 8px; }
+.wf-seg-btn {
+  flex: 1; border: 1px solid rgba(255, 255, 255, 0.12); background: var(--bubble-user);
+  color: var(--text-dim); font: inherit; font-size: 14px; font-weight: 600;
+  padding: 10px; border-radius: 10px; cursor: pointer;
+}
+.wf-seg-btn.on { background: var(--accent); color: #000; border-color: var(--accent); }
+.wf-apps { display: flex; flex-wrap: wrap; gap: 8px; }
+.wf-app-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12); background: var(--bubble-user);
+  color: var(--text-dim); font: inherit; font-size: 13px; font-weight: 600;
+  padding: 8px 14px; border-radius: 20px; cursor: pointer;
+}
+.wf-app-btn.on { background: var(--accent); color: #000; border-color: var(--accent); }
+.wf-dow { display: flex; gap: 6px; margin-top: 10px; }
+.wf-dow-btn {
+  flex: 1; aspect-ratio: 1; border: 1px solid rgba(255, 255, 255, 0.12); background: var(--bubble-user);
+  color: var(--text-dim); font: inherit; font-size: 13px; font-weight: 600; border-radius: 50%; cursor: pointer;
+}
+.wf-dow-btn.on { background: var(--accent); color: #000; border-color: var(--accent); }
+.wf-time-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.wf-time-label { font-size: 14px; color: var(--text-dim); }
+.wf-time { width: auto; flex: 0 0 auto; }
+.wf-hint { font-size: 13px; color: var(--text-dim); margin: 12px 2px 0; }
+.wf-save {
+  margin-top: 22px; border: none; background: var(--accent); color: #000;
+  font: inherit; font-size: 15px; font-weight: 600; padding: 14px; border-radius: 14px; cursor: pointer;
+}
+.wf-save:disabled { opacity: 0.4; cursor: default; }
+.wf-save:active:not(:disabled) { opacity: 0.8; }
+.wf-delete {
+  margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid rgba(229, 72, 77, 0.4); background: transparent; color: #e5757a;
+  font: inherit; font-size: 14px; font-weight: 600; padding: 12px; border-radius: 14px; cursor: pointer;
+}
+.wf-delete:active { background: rgba(229, 72, 77, 0.12); }
+.wf-runs { margin-top: 26px; }
+.wf-runs-head { font-size: 13px; color: var(--text-dim); font-weight: 600; margin-bottom: 10px; }
+.wf-runs-empty { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+.wf-run { background: var(--bubble-user); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; border-left: 2px solid rgba(231, 178, 78, 0.6); }
+.wf-run.bad { border-left-color: #e5484d; }
+.wf-run-time { font-size: 11.5px; color: var(--text-dim); margin-bottom: 4px; }
+.wf-run-text { font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+
