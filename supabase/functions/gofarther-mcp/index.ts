@@ -416,7 +416,8 @@ async function listTools(apps: string[], prefs: Record<string, string[]>, memOn:
   if (memOn) { out.push(MEMORY_TOOL); out.push(MEMORY_FILE_TOOL); }
   if (bankOn) {
     out.push(BANK_BALANCES_TOOL, BANK_TRANSACTIONS_TOOL, BANK_RECURRING_TOOL,
-      BANK_LIABILITIES_TOOL, BANK_INVESTMENTS_TOOL, BANK_IDENTITY_TOOL);
+      BANK_LIABILITIES_TOOL, BANK_INVESTMENTS_TOOL, BANK_IDENTITY_TOOL,
+      BANK_AUTH_TOOL, BANK_INV_TXNS_TOOL, BANK_INSIGHTS_TOOL);
   }
   return out;
 }
@@ -617,6 +618,98 @@ async function bankIdentity(uid: string): Promise<string> {
   }
   return out.join("\n") || "No identity info found.";
 }
+function isoDaysAgo(days: number): string { return new Date(Date.now() - days * 86400000).toISOString().slice(0, 10); }
+function isoToday(): string { return new Date().toISOString().slice(0, 10); }
+async function getTxnsRange(at: string, days: number): Promise<any[]> {
+  const d = await plaidCall("/transactions/get", { access_token: at, start_date: isoDaysAgo(days), end_date: isoToday(), options: { count: 500, offset: 0 } });
+  return d.transactions || [];
+}
+async function bankAuth(uid: string): Promise<string> {
+  const items = await plaidItems(uid);
+  if (!items.length) return "No bank accounts are linked.";
+  const out: string[] = [];
+  for (const it of items) {
+    try {
+      const at = await plaidDecToken(it.access_token);
+      const d = await plaidCall("/auth/get", { access_token: at });
+      const nm = new Map<string, string>((d.accounts || []).map((a: any) => [a.account_id, `${a.name}${a.mask ? ` ••${a.mask}` : ""}`]));
+      for (const n of (d.numbers?.ach || [])) out.push(`${it.institution_name || "Bank"} ${nm.get(n.account_id) || ""}: routing ${n.routing}, account ${n.account}`);
+    } catch (e) { out.push(`${it.institution_name || "Bank"}: ${bankErr(e)}`); }
+  }
+  return out.join("\n") || "No account/routing numbers available.";
+}
+async function bankInvestmentTxns(uid: string, days: number): Promise<string> {
+  const items = await plaidItems(uid);
+  if (!items.length) return "No bank accounts are linked.";
+  const out: string[] = [];
+  for (const it of items) {
+    try {
+      const at = await plaidDecToken(it.access_token);
+      const d = await plaidCall("/investments/transactions/get", { access_token: at, start_date: isoDaysAgo(days || 90), end_date: isoToday() });
+      const sec = new Map<string, any>((d.securities || []).map((s: any) => [s.security_id, s]));
+      for (const t of (d.investment_transactions || [])) {
+        const s = sec.get(t.security_id) || {};
+        out.push(`${t.date} | ${it.institution_name || "Bank"} | ${t.type}${t.subtype ? "/" + t.subtype : ""} | ${s.ticker_symbol || s.name || t.name || "?"} | qty ${t.quantity ?? "?"} | ${t.iso_currency_code || "USD"} ${t.amount}`);
+      }
+    } catch (e) { out.push(`${it.institution_name || "Bank"}: ${bankErr(e)}`); }
+  }
+  return out.length ? "date | bank | type | security | qty | amount\n" + out.join("\n") : "No investment transactions found.";
+}
+async function bankInsights(uid: string, mode: string, days: number): Promise<string> {
+  const items = await plaidItems(uid);
+  if (!items.length) return "No bank accounts are linked.";
+  const win = days && days > 0 ? days : 30;
+  if (mode === "net_worth") {
+    let assets = 0, debts = 0; const errs: string[] = [];
+    for (const it of items) {
+      try {
+        const at = await plaidDecToken(it.access_token);
+        const d = await plaidCall("/accounts/balance/get", { access_token: at });
+        for (const a of (d.accounts || [])) {
+          const bal = Number(a.balances?.current ?? 0);
+          if (a.type === "credit" || a.type === "loan") debts += bal; else assets += bal;
+        }
+      } catch (e) { errs.push(`${it.institution_name || "Bank"}: ${bankErr(e)}`); }
+    }
+    return `Net worth ≈ USD ${(assets - debts).toFixed(2)} (assets ${assets.toFixed(2)} − debts ${debts.toFixed(2)})${errs.length ? "\n" + errs.join("\n") : ""}`;
+  }
+  if (mode === "spending" || mode === "cash_flow") {
+    let inflow = 0, outflow = 0; const byCat: Record<string, number> = {}; const errs: string[] = [];
+    for (const it of items) {
+      try {
+        const at = await plaidDecToken(it.access_token);
+        for (const t of await getTxnsRange(at, win)) {
+          const amt = Number(t.amount) || 0;
+          if (amt >= 0) { outflow += amt; const c = t.personal_finance_category?.primary || (Array.isArray(t.category) ? t.category[0] : "Other"); byCat[c] = (byCat[c] || 0) + amt; }
+          else inflow += -amt;
+        }
+      } catch (e) { errs.push(`${it.institution_name || "Bank"}: ${bankErr(e)}`); }
+    }
+    if (mode === "cash_flow") return `Last ${win} days — in: USD ${inflow.toFixed(2)}, out: USD ${outflow.toFixed(2)}, net: USD ${(inflow - outflow).toFixed(2)}${errs.length ? "\n" + errs.join("\n") : ""}`;
+    const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([c, v]) => `  ${c}: USD ${v.toFixed(2)}`);
+    return `Spending by category, last ${win} days (total USD ${outflow.toFixed(2)}):\n${cats.join("\n") || "  (none)"}${errs.length ? "\n" + errs.join("\n") : ""}`;
+  }
+  if (mode === "upcoming_bills") {
+    const bills: string[] = [];
+    for (const it of items) {
+      try {
+        const at = await plaidDecToken(it.access_token);
+        try {
+          const r = await plaidCall("/transactions/recurring/get", { access_token: at });
+          for (const s of (r.outflow_streams || [])) if (s.is_active !== false) bills.push(`${s.merchant_name || s.description || "?"}: ~USD ${s.average_amount?.amount ?? "?"} ${s.frequency || ""} (recurring)`);
+        } catch { /* recurring optional */ }
+        try {
+          const l = await plaidCall("/liabilities/get", { access_token: at });
+          for (const c of (l.liabilities?.credit || [])) if (c.next_payment_due_date) bills.push(`Credit card due ${c.next_payment_due_date}: min USD ${c.minimum_payment_amount ?? "?"}`);
+          for (const m of (l.liabilities?.mortgage || [])) if (m.next_payment_due_date) bills.push(`Mortgage due ${m.next_payment_due_date}`);
+          for (const s of (l.liabilities?.student || [])) if (s.next_payment_due_date) bills.push(`Student loan due ${s.next_payment_due_date}: min USD ${s.minimum_payment_amount ?? "?"}`);
+        } catch { /* liabilities needs re-link */ }
+      } catch { /* skip item */ }
+    }
+    return bills.length ? "Upcoming bills:\n - " + bills.join("\n - ") : "No upcoming bills detected yet (needs recurring detection or a linked card/loan).";
+  }
+  return "Unknown insight. Use mode: net_worth, spending, cash_flow, or upcoming_bills.";
+}
 const BANK_BALANCES_TOOL: Tool = {
   name: "GF_BANK_BALANCES",
   description: "Get the user's linked bank account balances in real time (their REAL bank, via Plaid). Use when the user asks about their balance, how much money they have, or available funds. Read-only — cannot move money.",
@@ -646,6 +739,21 @@ const BANK_IDENTITY_TOOL: Tool = {
   name: "GF_BANK_IDENTITY",
   description: "Get the account-holder identity on file at the user's bank (name, email, phone, address). Use when the user asks what contact info their bank has on file. Read-only.",
   inputSchema: { type: "object", properties: {} },
+};
+const BANK_AUTH_TOOL: Tool = {
+  name: "GF_BANK_AUTH",
+  description: "Get the user's account and routing numbers for their linked bank accounts (for direct deposit / ACH setup). Read-only.",
+  inputSchema: { type: "object", properties: {} },
+};
+const BANK_INV_TXNS_TOOL: Tool = {
+  name: "GF_BANK_INVESTMENT_TRANSACTIONS",
+  description: "Get the user's investment activity — buys, sells, dividends — from linked brokerage accounts (date, type, security, quantity, amount). Read-only.",
+  inputSchema: { type: "object", properties: { days: { type: "integer", description: "Look-back window in days (default 90)." } } },
+};
+const BANK_INSIGHTS_TOOL: Tool = {
+  name: "GF_BANK_INSIGHTS",
+  description: "Computed money insights from the user's linked accounts (no re-link needed). mode='net_worth' (assets minus debts across accounts), 'spending' (totals by category over a window), 'cash_flow' (money in vs out), 'upcoming_bills' (due dates from recurring + liabilities). Read-only.",
+  inputSchema: { type: "object", properties: { mode: { type: "string", enum: ["net_worth", "spending", "cash_flow", "upcoming_bills"] }, days: { type: "integer", description: "Window in days for spending/cash_flow (default 30)." } }, required: ["mode"] },
 };
 
 Deno.serve(async (req: Request) => {
@@ -741,6 +849,9 @@ Deno.serve(async (req: Request) => {
         else if (p.name === "GF_BANK_LIABILITIES") text = await bankLiabilities(reqUser);
         else if (p.name === "GF_BANK_INVESTMENTS") text = await bankInvestments(reqUser);
         else if (p.name === "GF_BANK_IDENTITY") text = await bankIdentity(reqUser);
+        else if (p.name === "GF_BANK_AUTH") text = await bankAuth(reqUser);
+        else if (p.name === "GF_BANK_INVESTMENT_TRANSACTIONS") text = await bankInvestmentTxns(reqUser, Number((p.arguments || {}).days) || 90);
+        else if (p.name === "GF_BANK_INSIGHTS") text = await bankInsights(reqUser, String((p.arguments || {}).mode || ""), Number((p.arguments || {}).days) || 30);
         else text = "Unknown bank tool.";
         await logUsage(p.name, true, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
