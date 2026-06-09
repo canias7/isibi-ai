@@ -138,7 +138,7 @@ Deno.serve(async (req: Request) => {
         products: ["transactions"],
         // Optional so Link won't fail if an institution/account doesn't support them;
         // granted on (re)link, enabling the liabilities/investments/identity tools.
-        optional_products: ["liabilities", "investments", "identity"],
+        optional_products: ["liabilities", "investments", "identity", "auth"],
         country_codes: ["US"],
         language: "en",
         hosted_link: hosted,
