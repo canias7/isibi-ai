@@ -108,10 +108,10 @@ export default function Login() {
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
-              placeholder="123456"
-              maxLength={6}
+              placeholder="Code"
+              maxLength={10}
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
             />
             {error && <div className="auth-error">⚠️ {error}</div>}
             {notice && <div className="auth-notice">✅ {notice}</div>}
