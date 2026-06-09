@@ -1,5 +1,6 @@
 import { supabase, SUPABASE_ANON_KEY } from './supabase';
 import { CONNECT_API } from './connectorData';
+import type { GeoLoc } from './geo';
 
 export interface MsgAttachment {
   name: string;
@@ -99,6 +100,7 @@ export async function streamChat(
   conversationId?: string,
   onModel?: (model: string) => void,
   memoryOn?: boolean,
+  location?: GeoLoc,
 ): Promise<void> {
   // Send the signed-in user's access token so the backend acts as *this* user
   // (their connected apps), not a shared identity. Falls back to anon.
@@ -125,7 +127,7 @@ export async function streamChat(
     // so the backend only emits them to bundles that know how to display them.
     // `memory: false` pauses the whole memory feature for this turn (no injection,
     // and the save-memory tool is dropped). Omitted when on (server defaults to on).
-    body: JSON.stringify({ messages, tz, cards: true, ...(apps ? { apps } : {}), ...(conversationId ? { conversationId } : {}), ...(memoryOn === false ? { memory: false } : {}) }),
+    body: JSON.stringify({ messages, tz, cards: true, ...(apps ? { apps } : {}), ...(conversationId ? { conversationId } : {}), ...(memoryOn === false ? { memory: false } : {}), ...(location ? { location } : {}) }),
     signal,
   });
 

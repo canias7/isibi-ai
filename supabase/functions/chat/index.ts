@@ -517,6 +517,7 @@ Deno.serve(async (req: Request) => {
   let clientCards = false;
   let conversationId = ""; // for server-side persistence of the finished turn
   let memoryOn = true;     // false = user paused the whole memory feature (no inject, no tool)
+  let location: { lat: number; lon: number; label?: string } | null = null; // device location for "here/near me"
   try {
     const body = await req.json();
     messages = body.messages;
@@ -525,6 +526,8 @@ Deno.serve(async (req: Request) => {
     if (body.cards === true) clientCards = true; // client can render rich blocks (inbox cards)
     if (typeof body.conversationId === "string") conversationId = body.conversationId;
     if (body.memory === false) memoryOn = false; // memory paused for this turn
+    const L = body.location;
+    if (L && typeof L.lat === "number" && typeof L.lon === "number") location = { lat: L.lat, lon: L.lon, ...(typeof L.label === "string" && L.label ? { label: L.label } : {}) };
     if (!Array.isArray(messages) || messages.length === 0) throw new Error("bad body");
   } catch {
     return new Response("Invalid request body — expected { messages: [...] }.", { status: 400, headers: cors });
@@ -623,10 +626,19 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // The user's device location (only sent for location-relevant turns) — let the
+  // assistant resolve "here / near me / weather / directions" without asking.
+  let locationSystem = "";
+  if (location) {
+    const where = location.label || `${location.lat}, ${location.lon}`;
+    const coords = `${location.lat},${location.lon}`;
+    locationSystem = `\n\nUSER'S CURRENT LOCATION: ${where} (coordinates ${coords}). When the user says "here", "near me", "nearby", "my area", or asks about weather, places, or directions without naming a place, use THIS location instead of asking where they are: pass "${where}" to GF_WEATHER, use "${coords}" as the GF_MAPS directions origin for "from here", and search GF_MAPS places near "${where}". Refer to the place by name, not raw coordinates, unless asked.`;
+  }
+
   const reqBody: Record<string, unknown> = {
     model,
     max_tokens: 8192,
-    system: baseSystem + memorySystem + (emailUI ? emailCardsSystem : ""),
+    system: baseSystem + locationSystem + memorySystem + (emailUI ? emailCardsSystem : ""),
     messages: messages.map((m) => ({ role: m.role, content: buildContent(m) })),
     stream: true,
   };

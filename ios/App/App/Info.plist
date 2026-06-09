@@ -39,6 +39,8 @@
 	<string>Go Farther uses the camera so you can take a photo to send in chat.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Go Farther needs access to your photos so you can attach them in chat.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Go Farther uses your location to answer "here" questions — local weather, places near you, and directions.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
