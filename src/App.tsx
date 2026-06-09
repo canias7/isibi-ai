@@ -1279,22 +1279,22 @@ export default function App() {
                 staggered bottom-to-top; labels sit to the right (no overlap) */}
             {plusOpen && (
               <div className="radial" role="menu">
-                <button className="radial-item" style={{ left: 0, bottom: 300, animationDelay: '250ms' }} onClick={() => { setPlusOpen(false); openMemory(); }}>
+                <button className="radial-item" style={{ left: 0, bottom: 388, animationDelay: '250ms' }} onClick={() => { setPlusOpen(false); openMemory(); }}>
                   <IconMemory size={20} /><span className="radial-label">Memory</span>
                 </button>
-                <button className="radial-item" style={{ left: 15, bottom: 262, animationDelay: '210ms' }} onClick={() => { setPlusOpen(false); openReminders(); }}>
+                <button className="radial-item" style={{ left: 17, bottom: 330, animationDelay: '210ms' }} onClick={() => { setPlusOpen(false); openReminders(); }}>
                   <IconClock size={20} /><span className="radial-label">Reminders</span>
                 </button>
-                <button className="radial-item" style={{ left: 31, bottom: 224, animationDelay: '170ms' }} onClick={() => openPicker('camera')}>
+                <button className="radial-item" style={{ left: 34, bottom: 272, animationDelay: '170ms' }} onClick={() => openPicker('camera')}>
                   <IconCamera size={20} /><span className="radial-label">Camera</span>
                 </button>
-                <button className="radial-item" style={{ left: 46, bottom: 186, animationDelay: '130ms' }} onClick={() => openPicker('attachments')}>
+                <button className="radial-item" style={{ left: 50, bottom: 214, animationDelay: '130ms' }} onClick={() => openPicker('attachments')}>
                   <IconFiles size={20} /><span className="radial-label">Attachments</span>
                 </button>
-                <button className="radial-item" style={{ left: 62, bottom: 148, animationDelay: '90ms' }} onClick={() => { setPlusOpen(false); void loadConnectors(); setWfOpen(true); }}>
+                <button className="radial-item" style={{ left: 65, bottom: 156, animationDelay: '90ms' }} onClick={() => { setPlusOpen(false); void loadConnectors(); setWfOpen(true); }}>
                   <IconWorkflow size={20} /><span className="radial-label">Workflows</span>
                 </button>
-                <button className="radial-item" style={{ left: 77, bottom: 110, animationDelay: '50ms' }} onClick={() => { setPlusOpen(false); go('connectors'); }}>
+                <button className="radial-item" style={{ left: 79, bottom: 98, animationDelay: '50ms' }} onClick={() => { setPlusOpen(false); go('connectors'); }}>
                   <IconConnectors size={20} /><span className="radial-label">Connectors</span>
                 </button>
               </div>
