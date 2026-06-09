@@ -18,9 +18,10 @@ name: iOS Build
 # version when something NATIVE actually changes (the iOS project, Capacitor
 # config, dependencies), or when triggered manually (use this for releases).
 #
-# Rebuild: bake in the Supabase-Storage-aware OTA (src/ota.ts) so installed
-# apps switch to the reliable Storage host immediately. (Retry after a
-# filename-casing fix that broke the macOS tsc build.)
+# Rebuild: ship the latest native build (voice + reminders + location purpose
+# string) to TestFlight. Retrying after revoking the duplicate "Created via API"
+# development certs that had maxed out the account's certificate limit and broke
+# automatic signing at the archive step.
 on:
   push:
     branches: [main]
