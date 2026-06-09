@@ -8,12 +8,18 @@ import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 // (Authentication → Hooks → Send Email) with verify_jwt OFF — the request is
 // authenticated by the Standard Webhooks signature, not a user JWT.
 
-const HOOK_SECRET = (Deno.env.get("SEND_EMAIL_HOOK_SECRET") || "").replace("v1,whsec_", "");
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+// Read an env var tolerantly: underscores (the convention) OR hyphens, since a
+// dashboard secret can get entered as RESEND-API-KEY instead of RESEND_API_KEY.
+function env(name: string): string | undefined {
+  return Deno.env.get(name) ?? Deno.env.get(name.replaceAll("_", "-"));
+}
+
+const HOOK_SECRET = (env("SEND_EMAIL_HOOK_SECRET") || "").replace("v1,whsec_", "");
+const RESEND_API_KEY = env("RESEND_API_KEY");
 // Sender must be on a Resend-VERIFIED domain to reach real users. For a quick
 // self-test, Resend allows "onboarding@resend.dev" (to your own account email).
-const RESEND_FROM = Deno.env.get("RESEND_FROM") || "Go Farther <onboarding@resend.dev>";
-const SB_URL = Deno.env.get("SUPABASE_URL") || "https://lkpfeqrelvziltfwpuxi.supabase.co";
+const RESEND_FROM = env("RESEND_FROM") || "Go Farther <onboarding@resend.dev>";
+const SB_URL = env("SUPABASE_URL") || "https://lkpfeqrelvziltfwpuxi.supabase.co";
 
 interface EmailData {
   token: string;
