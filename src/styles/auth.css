@@ -72,3 +72,16 @@
   padding: 10px 12px;
 }
 
+/* Passwordless code entry */
+.auth-code {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 10px;
+  padding-left: 24px; /* offset the trailing letter-spacing so digits look centred */
+  font-variant-numeric: tabular-nums;
+}
+.auth-row { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
+.auth-row .auth-toggle { padding: 6px 2px; }
+
+
