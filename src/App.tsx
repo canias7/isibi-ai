@@ -14,6 +14,7 @@ import { tap } from './haptics';
 import { biometryAvailable, unlock } from './biometric';
 import { registerPush, pushStatus } from './push';
 import { fileToAttachment } from './attach';
+import { getLocation } from './geo';
 import { slimMessages, isNetworkError, serverIsMoreComplete, titleFrom, cleanForDisplay, modelShort, plainText } from './chatUtils';
 
 // Heavy, on-demand screens are code-split: their JS downloads only when first
@@ -32,6 +33,8 @@ interface Conversation {
 }
 
 const MAX_CHATS = 50;
+// A message looks location-relevant → capture device location for it (see geo.ts).
+const LOCATION_RE = /\b(here|near\s?me|nearby|around me|close by|closest|nearest|my (location|area|city|place|spot)|where am i|directions|commute|weather|forecast|temperature|raining|umbrella)\b/i;
 const chatsKey = (uid: string) => `gf_chats_${uid}`;
 // Backgrounded for longer than this → resume into a fresh chat instead of the
 // old conversation. Shorter trips away keep you where you left off.
@@ -466,6 +469,10 @@ export default function App() {
     // Tell the backend which connectors are active this session. Undefined until
     // loaded so the first message still gets all connected apps.
     const apps = connLoaded ? [...enabled] : undefined;
+    // Only fetch device location when the message looks location-relevant, so the
+    // permission prompt appears in context and we never send whereabouts unasked.
+    const lastUserText = [...history].reverse().find((m) => m.role === 'user')?.content ?? '';
+    const location = LOCATION_RE.test(lastUserText) ? ((await getLocation()) ?? undefined) : undefined;
     try {
       await streamChat(
         history,
@@ -489,6 +496,7 @@ export default function App() {
           });
         },
         memEnabled,
+        location,
       );
       // Clear transient tool-activity markers from the finished reply so storage,
       // copy, and search stay clean (they're only meant to show live).
