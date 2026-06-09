@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import AppIntents
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -51,4 +52,41 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
     }
 
+}
+
+// MARK: - Voice call App Shortcut
+//
+// Makes "Start a Call" appear natively in the Action Button picker, Spotlight,
+// and Siri — no manually-built Shortcut required. It opens the app's existing
+// gofarther://call deep link, which the web layer turns into a hands-free voice
+// call (see App.tsx). iOS 16+ only; older versions fall back to a manual
+// Shortcut or the in-app call button, both of which still work.
+@available(iOS 16.0, *)
+struct StartCallIntent: AppIntent {
+    static var title: LocalizedStringResource = "Start a Call"
+    static var description = IntentDescription("Open Go Farther and start a hands-free voice call.")
+    static var openAppWhenRun: Bool = true
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        if let url = URL(string: "gofarther://call") {
+            await UIApplication.shared.open(url)
+        }
+        return .result()
+    }
+}
+
+@available(iOS 16.0, *)
+struct GoFartherShortcuts: AppShortcutsProvider {
+    static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+            intent: StartCallIntent(),
+            phrases: [
+                "Start a call with \(.applicationName)",
+                "Call \(.applicationName)"
+            ],
+            shortTitle: "Start a Call",
+            systemImageName: "phone.fill"
+        )
+    }
 }
