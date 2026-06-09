@@ -25,10 +25,23 @@ function corsFor(req: Request): Record<string, string> {
   };
 }
 
-const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
+// Read an env var forgivingly: ignore case and collapse any run of - or _, so a
+// dashboard secret entered as OPENAI-API-KEY still matches OPENAI_API_KEY.
+function env(name: string): string | undefined {
+  const direct = Deno.env.get(name);
+  if (direct) return direct;
+  const norm = (s: string) => s.toLowerCase().replace(/[-_]+/g, "_");
+  const target = norm(name);
+  for (const [k, v] of Object.entries(Deno.env.toObject())) {
+    if (norm(k) === target && v) return v;
+  }
+  return undefined;
+}
+
+const OPENAI_KEY = env("OPENAI_API_KEY");
 // whisper-1 is broadly available with no org verification. Override to a newer
 // model (e.g. gpt-4o-mini-transcribe) via OPENAI_TRANSCRIBE_MODEL when you want.
-const MODEL = Deno.env.get("OPENAI_TRANSCRIBE_MODEL") || "whisper-1";
+const MODEL = env("OPENAI_TRANSCRIBE_MODEL") || "whisper-1";
 
 function b64ToBytes(b64: string): Uint8Array {
   const bin = atob(b64);
