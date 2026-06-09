@@ -136,6 +136,9 @@ Deno.serve(async (req: Request) => {
         client_name: "Go Farther",
         user: { client_user_id: uid },
         products: ["transactions"],
+        // Optional so Link won't fail if an institution/account doesn't support them;
+        // granted on (re)link, enabling the liabilities/investments/identity tools.
+        optional_products: ["liabilities", "investments", "identity"],
         country_codes: ["US"],
         language: "en",
         hosted_link: hosted,
