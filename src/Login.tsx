@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect, type FormEvent } from 'react';
 import { supabase } from './supabase';
 
-// Passwordless auth: one unified flow for sign-in AND sign-up. Enter your email,
-// we send a 6-digit code (the branded email goes out via the auth-email hook →
-// Resend), type it in, you're in. New emails are auto-signed-up; existing ones
-// sign in. No passwords.
+// Passwordless auth, with separate Sign in / Sign up screens. Both use an email
+// code (sent branded via the auth-email → Resend hook): enter email → get a
+// code → verify. The only real difference is shouldCreateUser — Sign up creates
+// new accounts; Sign in only admits existing ones.
+type Mode = 'signin' | 'signup';
 type Step = 'email' | 'code';
 
 export default function Login() {
+  const [mode, setMode] = useState<Mode>('signin');
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -16,12 +18,23 @@ export default function Login() {
   const [notice, setNotice] = useState<string | null>(null);
   const codeRef = useRef<HTMLInputElement>(null);
 
-  // Focus the code box when we move to that step.
   useEffect(() => { if (step === 'code') codeRef.current?.focus(); }, [step]);
 
-  async function send(mail: string): Promise<boolean> {
-    const { error } = await supabase.auth.signInWithOtp({ email: mail, options: { shouldCreateUser: true } });
-    if (error) { setError(error.message); return false; }
+  async function requestCode(mail: string): Promise<boolean> {
+    const { error } = await supabase.auth.signInWithOtp({
+      email: mail,
+      options: { shouldCreateUser: mode === 'signup' },
+    });
+    if (error) {
+      const m = error.message.toLowerCase();
+      // On Sign in, the usual cause is "this email has no account yet".
+      if (mode === 'signin' && !m.includes('rate') && !m.includes('limit') && !m.includes('valid')) {
+        setError('No account found for that email — tap “Sign up” below to create one.');
+      } else {
+        setError(error.message);
+      }
+      return false;
+    }
     return true;
   }
 
@@ -32,9 +45,9 @@ export default function Login() {
     const mail = email.trim();
     if (!mail) { setError('Enter your email.'); return; }
     setBusy(true);
-    const ok = await send(mail);
+    const ok = await requestCode(mail);
     setBusy(false);
-    if (ok) { setStep('code'); setNotice(`We emailed a 6-digit code to ${mail}.`); }
+    if (ok) { setStep('code'); setNotice(`We emailed a code to ${mail}.`); }
   }
 
   async function verify(e: FormEvent) {
@@ -42,7 +55,7 @@ export default function Login() {
     if (busy) return;
     setError(null);
     const token = code.trim();
-    if (token.length < 6) { setError('Enter the 6-digit code.'); return; }
+    if (token.length < 6) { setError('Enter the code from the email.'); return; }
     setBusy(true);
     try {
       const { error } = await supabase.auth.verifyOtp({ email: email.trim(), token, type: 'email' });
@@ -59,11 +72,15 @@ export default function Login() {
     if (busy) return;
     setError(null); setNotice(null);
     setBusy(true);
-    const ok = await send(email.trim());
+    const ok = await requestCode(email.trim());
     setBusy(false);
     if (ok) setNotice('Sent a new code.');
   }
 
+  function switchMode() {
+    setMode((m) => (m === 'signin' ? 'signup' : 'signin'));
+    setStep('email'); setCode(''); setError(null); setNotice(null);
+  }
   function restart() {
     setStep('email'); setCode(''); setError(null); setNotice(null);
   }
@@ -79,7 +96,9 @@ export default function Login() {
       <div className="auth-card">
         <div className="auth-brand">Go Farther</div>
         <p className="auth-sub">
-          {step === 'email' ? 'Sign in or create your account' : 'Enter the code we emailed you'}
+          {step === 'code'
+            ? 'Enter the code we emailed you'
+            : mode === 'signin' ? 'Sign in to continue' : 'Create your account'}
         </p>
 
         {step === 'email' ? (
@@ -97,7 +116,7 @@ export default function Login() {
             {error && <div className="auth-error">⚠️ {error}</div>}
             {notice && <div className="auth-notice">✅ {notice}</div>}
             <button className="auth-btn" type="submit" disabled={busy}>
-              {busy ? 'Sending…' : 'Send me a code'}
+              {busy ? 'Sending…' : mode === 'signin' ? 'Sign in' : 'Create account'}
             </button>
           </form>
         ) : (
@@ -123,6 +142,12 @@ export default function Login() {
               <button type="button" className="auth-toggle" onClick={restart} disabled={busy}>Use a different email</button>
             </div>
           </form>
+        )}
+
+        {step === 'email' && (
+          <button className="auth-toggle" onClick={switchMode}>
+            {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+          </button>
         )}
       </div>
     </div>
