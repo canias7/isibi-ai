@@ -8,7 +8,8 @@ import { CONNECTORS, CONNECT_API, byId, type Connector } from './connectorData';
 import { BrandLogo } from './brandLogos';
 import { hasBrand } from './brandData';
 import ToolManager from './ToolManager';
-import { IconArrowLeft, IconSpark, IconBank } from './icons';
+import { IconArrowLeft, IconSpark } from './icons';
+import { PLAID_LOGO } from './plaidLogo';
 
 // Full-screen "constellation" of connected apps (mirrors the Memory screen): a
 // glowing hub with each connected app as a draggable node, plus "+" nodes to add
@@ -41,7 +42,7 @@ function layout(n: number): XY[] {
 const CATALOG = CONNECTORS.filter((c) => hasBrand(c.id) || c.id === 'plaid');
 
 function Tile({ id, size = 22 }: { id: string; size?: number }) {
-  if (id === 'plaid') return <IconBank size={size} />; // Plaid uses the bundled bank glyph
+  if (id === 'plaid') return <img src={PLAID_LOGO} width={size} height={size} alt="Plaid" style={{ display: 'block', borderRadius: '50%' }} />; // Plaid's real brand mark
   if (hasBrand(id)) return <BrandLogo app={id} size={size} />;
   const c = byId(id);
   return <span className="cg-mono" style={{ background: c?.color }}>{(c?.name ?? '?').charAt(0)}</span>;
