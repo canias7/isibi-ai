@@ -8,10 +8,18 @@ import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 // (Authentication → Hooks → Send Email) with verify_jwt OFF — the request is
 // authenticated by the Standard Webhooks signature, not a user JWT.
 
-// Read an env var tolerantly: underscores (the convention) OR hyphens, since a
-// dashboard secret can get entered as RESEND-API-KEY instead of RESEND_API_KEY.
+// Read an env var forgivingly: ignore case and collapse any run of - or _, so
+// dashboard secrets entered as RESEND-API-KEY or SEND_EMAIL__HOOK_SECRET still
+// match RESEND_API_KEY / SEND_EMAIL_HOOK_SECRET.
 function env(name: string): string | undefined {
-  return Deno.env.get(name) ?? Deno.env.get(name.replaceAll("_", "-"));
+  const direct = Deno.env.get(name);
+  if (direct) return direct;
+  const norm = (s: string) => s.toLowerCase().replace(/[-_]+/g, "_");
+  const target = norm(name);
+  for (const [k, v] of Object.entries(Deno.env.toObject())) {
+    if (norm(k) === target && v) return v;
+  }
+  return undefined;
 }
 
 const HOOK_SECRET = (env("SEND_EMAIL_HOOK_SECRET") || "").replace("v1,whsec_", "");
