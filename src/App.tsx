@@ -6,8 +6,9 @@ import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone } from './icons';
+import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock } from './icons';
 import { primeAudio, closeAudio } from './voice';
+import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, type Reminder, type RepeatKind } from './reminders';
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
@@ -24,6 +25,7 @@ const ConnectorsGraph = lazy(() => import('./ConnectorsGraph'));
 const MemoryGraph = lazy(() => import('./MemoryGraph'));
 const WorkflowsScreen = lazy(() => import('./WorkflowsScreen'));
 const CallScreen = lazy(() => import('./CallScreen'));
+const RemindersGraph = lazy(() => import('./RemindersGraph'));
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -218,6 +220,9 @@ export default function App() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [memLoaded, setMemLoaded] = useState(false);
   const [memOpen, setMemOpen] = useState(false);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [remLoaded, setRemLoaded] = useState(false);
+  const [remOpen, setRemOpen] = useState(false);
   // Whole-feature on/off (paused = not fed into chats and the save tool is dropped).
   const [memEnabled, setMemEnabled] = useState(() => { try { return localStorage.getItem('gf_memory_on') !== '0'; } catch { return true; } });
   const [wfOpen, setWfOpen] = useState(false); // Workflows screen (placeholder for now)
@@ -461,6 +466,14 @@ export default function App() {
     if (notif) void registerPush();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-arm reminder notifications on launch so the device's schedule matches the
+  // table (covers edits made on another device and any OS purge). Best-effort,
+  // native-only — a no-op on web.
+  useEffect(() => {
+    if (!uid) return;
+    void listReminders().then(syncReminders);
+  }, [uid]);
 
   // Persist the active conversation once a turn finishes (not on every token).
   useEffect(() => {
@@ -875,6 +888,58 @@ export default function App() {
     void setMemoryEnabled(next); // persist server-side so workflows respect it too
   }
 
+  // ---- Reminders ----
+  function openReminders() {
+    setRemOpen(true);
+    setSidebarOpen(false);
+    void loadRems();
+  }
+  function closeReminders() { setRemOpen(false); }
+
+  async function loadRems() {
+    if (!uid) return;
+    setRemLoaded(false);
+    const list = await listReminders();
+    setReminders(list);
+    setRemLoaded(true);
+  }
+
+  async function addRem(title: string, remind_at: string, repeat: RepeatKind): Promise<boolean> {
+    await ensureNotifyPermission(); // ask for notification permission in context
+    const r = await addReminder(title.trim(), remind_at, repeat);
+    if (r) { setReminders((prev) => [...prev, r]); void scheduleReminder(r); return true; }
+    flashNote("Couldn't save that reminder — try again.");
+    return false;
+  }
+
+  async function updateRem(id: string, fields: { title: string; remind_at: string; repeat: RepeatKind }): Promise<boolean> {
+    const existing = reminders.find((r) => r.id === id);
+    const ok = await updateReminder(id, fields);
+    if (ok) {
+      setReminders((prev) => prev.map((r) => (r.id === id ? { ...r, ...fields } : r)));
+      const enabled = existing?.enabled ?? true;
+      await cancelReminder(id);
+      if (enabled) void scheduleReminder({ id, enabled, created_at: existing?.created_at ?? new Date().toISOString(), ...fields });
+    } else {
+      flashNote("Couldn't update that reminder — try again.");
+    }
+    return ok;
+  }
+
+  function delRem(id: string) {
+    setReminders((prev) => prev.filter((r) => r.id !== id)); // optimistic
+    void cancelReminder(id);
+    void deleteReminder(id).then((okay) => { if (!okay) void loadRems(); }); // restore on failure
+  }
+
+  function toggleRem(id: string, enabled: boolean) {
+    const r = reminders.find((x) => x.id === id);
+    setReminders((prev) => prev.map((x) => (x.id === id ? { ...x, enabled } : x)));
+    void updateReminder(id, { enabled });
+    if (enabled && r) void scheduleReminder({ ...r, enabled: true });
+    else void cancelReminder(id);
+  }
+
   function newChat() {
     stopStream();
     setCurrentId(cid());
@@ -1217,16 +1282,19 @@ export default function App() {
                 <button className="radial-item" style={{ left: 0, bottom: 300, animationDelay: '250ms' }} onClick={() => { setPlusOpen(false); openMemory(); }}>
                   <IconMemory size={20} /><span className="radial-label">Memory</span>
                 </button>
-                <button className="radial-item" style={{ left: 19, bottom: 252, animationDelay: '200ms' }} onClick={() => openPicker('camera')}>
+                <button className="radial-item" style={{ left: 15, bottom: 262, animationDelay: '210ms' }} onClick={() => { setPlusOpen(false); openReminders(); }}>
+                  <IconClock size={20} /><span className="radial-label">Reminders</span>
+                </button>
+                <button className="radial-item" style={{ left: 31, bottom: 224, animationDelay: '170ms' }} onClick={() => openPicker('camera')}>
                   <IconCamera size={20} /><span className="radial-label">Camera</span>
                 </button>
-                <button className="radial-item" style={{ left: 38, bottom: 204, animationDelay: '150ms' }} onClick={() => openPicker('attachments')}>
+                <button className="radial-item" style={{ left: 46, bottom: 186, animationDelay: '130ms' }} onClick={() => openPicker('attachments')}>
                   <IconFiles size={20} /><span className="radial-label">Attachments</span>
                 </button>
-                <button className="radial-item" style={{ left: 58, bottom: 156, animationDelay: '100ms' }} onClick={() => { setPlusOpen(false); void loadConnectors(); setWfOpen(true); }}>
+                <button className="radial-item" style={{ left: 62, bottom: 148, animationDelay: '90ms' }} onClick={() => { setPlusOpen(false); void loadConnectors(); setWfOpen(true); }}>
                   <IconWorkflow size={20} /><span className="radial-label">Workflows</span>
                 </button>
-                <button className="radial-item" style={{ left: 77, bottom: 108, animationDelay: '50ms' }} onClick={() => { setPlusOpen(false); go('connectors'); }}>
+                <button className="radial-item" style={{ left: 77, bottom: 110, animationDelay: '50ms' }} onClick={() => { setPlusOpen(false); go('connectors'); }}>
                   <IconConnectors size={20} /><span className="radial-label">Connectors</span>
                 </button>
               </div>
@@ -1298,6 +1366,20 @@ export default function App() {
             onDelete={delMem}
             onToggle={toggleMem}
             onClose={closeMemory}
+          />
+        </Suspense>
+      )}
+
+      {remOpen && (
+        <Suspense fallback={null}>
+          <RemindersGraph
+            reminders={reminders}
+            loaded={remLoaded}
+            onAdd={addRem}
+            onUpdate={updateRem}
+            onDelete={delRem}
+            onToggle={toggleRem}
+            onClose={closeReminders}
           />
         </Suspense>
       )}
