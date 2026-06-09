@@ -6,7 +6,8 @@ import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow } from './icons';
+import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone } from './icons';
+import { primeAudio, closeAudio } from './voice';
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
@@ -22,6 +23,7 @@ import { slimMessages, isNetworkError, serverIsMoreComplete, titleFrom, cleanFor
 const ConnectorsGraph = lazy(() => import('./ConnectorsGraph'));
 const MemoryGraph = lazy(() => import('./MemoryGraph'));
 const WorkflowsScreen = lazy(() => import('./WorkflowsScreen'));
+const CallScreen = lazy(() => import('./CallScreen'));
 
 type View = 'chat' | 'connectors' | 'settings';
 
@@ -219,6 +221,7 @@ export default function App() {
   // Whole-feature on/off (paused = not fed into chats and the save tool is dropped).
   const [memEnabled, setMemEnabled] = useState(() => { try { return localStorage.getItem('gf_memory_on') !== '0'; } catch { return true; } });
   const [wfOpen, setWfOpen] = useState(false); // Workflows screen (placeholder for now)
+  const [callOpen, setCallOpen] = useState(false); // voice "call mode" overlay
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -1228,6 +1231,14 @@ export default function App() {
                 >
                   +
                 </button>
+                <button
+                  className="call-btn"
+                  onClick={() => { tap(); void primeAudio(); setPlusOpen(false); setCallOpen(true); }}
+                  disabled={busy}
+                  aria-label="Talk to Go Farther"
+                >
+                  <IconPhone size={20} />
+                </button>
                 <textarea
                   ref={taRef}
                   value={input}
@@ -1271,6 +1282,19 @@ export default function App() {
       {wfOpen && (
         <Suspense fallback={null}>
           <WorkflowsScreen connApps={connApps} onClose={() => setWfOpen(false)} />
+        </Suspense>
+      )}
+
+      {callOpen && (
+        <Suspense fallback={null}>
+          <CallScreen
+            baseHistory={messages}
+            apps={connLoaded ? [...enabled] : undefined}
+            conversationId={currentId}
+            memoryOn={memEnabled}
+            onTurn={(h) => { dirtyRef.current = true; setMessages(h); }}
+            onClose={() => { setCallOpen(false); closeAudio(); }}
+          />
         </Suspense>
       )}
     </div>

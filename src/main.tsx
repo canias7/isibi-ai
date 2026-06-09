@@ -10,6 +10,7 @@ import './styles/sidebar.css';
 import './styles/auth.css';
 import './styles/screens.css';
 import './styles/email.css';
+import './styles/call.css';
 import { initOta } from './ota';
 
 // Lock the WebView viewport. iOS auto-zooms when a sub-16px input is focused (our
