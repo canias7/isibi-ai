@@ -27,8 +27,10 @@ export default function Login() {
     });
     if (error) {
       const m = error.message.toLowerCase();
-      // On Sign in, the usual cause is "this email has no account yet".
-      if (mode === 'signin' && !m.includes('rate') && !m.includes('limit') && !m.includes('valid')) {
+      // GoTrue answers "Signups not allowed for otp" when the email has no
+      // account and shouldCreateUser is false — map only THAT to a friendly
+      // hint; every other error (rate limit, network) shows as-is.
+      if (mode === 'signin' && /signup|sign-up|not allowed/.test(m)) {
         setError('No account found for that email — tap “Sign up” below to create one.');
       } else {
         setError(error.message);

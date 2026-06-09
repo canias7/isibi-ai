@@ -156,7 +156,23 @@ export default function CallScreen({
     listenCtrlRef.current?.abort();
     stopSpeaking();
     const input = camRef.current;
-    if (input) { input.value = ''; input.click(); } else { capturingRef.current = false; }
+    if (!input) { capturingRef.current = false; return; }
+    input.value = '';
+    // Cancelling the camera fires no `change` on some platforms, which would
+    // leave the loop paused forever. Resume on the input's `cancel` event or
+    // once the app regains focus after the camera sheet closes (slightly
+    // delayed so a real `change` lands first — re-clearing is harmless).
+    const resume = () => { cleanup(); setTimeout(() => { capturingRef.current = false; }, 400); };
+    const onVis = () => { if (document.visibilityState === 'visible') resume(); };
+    const cleanup = () => {
+      input.removeEventListener('cancel', resume);
+      window.removeEventListener('focus', resume);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+    input.addEventListener('cancel', resume, { once: true });
+    window.addEventListener('focus', resume, { once: true });
+    document.addEventListener('visibilitychange', onVis);
+    input.click();
   }
   async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
