@@ -77,6 +77,8 @@
 }
 .call-error .call-caption, .call-screen.call-error .call-caption { color: #ff9a9a; }
 
+.call-controls { display: flex; align-items: center; gap: 28px; flex: 0 0 auto; }
+
 .call-end {
   width: 68px;
   height: 68px;
@@ -92,6 +94,33 @@
   transition: transform 0.12s ease, background 0.15s ease;
 }
 .call-end:active { transform: scale(0.92); }
+
+/* "Show it something" — snap a photo to ask about, hands-free. */
+.call-cam {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 1px solid #ffffff2a;
+  background: #ffffff14;
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+.call-cam:active { transform: scale(0.92); background: #ffffff24; }
+
+.call-photo-chip {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 5px 12px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--text);
+}
 
 /* The composer's call button — matches the "+" affordance, accent-tinted. */
 .call-btn {

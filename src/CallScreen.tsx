@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { listenOnce, transcribe, speak, speakable, stopSpeaking, micSupported } from './voice';
-import { streamChat, type ChatMessage } from './api';
-import { IconPhoneOff } from './icons';
+import { streamChat, type ChatMessage, type Attach } from './api';
+import { fileToAttachment } from './attach';
+import { IconPhoneOff, IconCamera } from './icons';
 
 type Phase = 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
 
@@ -26,11 +27,16 @@ export default function CallScreen({
   const [reply, setReply] = useState('');       // assistant's current spoken reply
   const [level, setLevel] = useState(0);        // mic level 0..1 for the orb
   const [err, setErr] = useState('');
+  const [hasPhoto, setHasPhoto] = useState(false); // a snapped photo rides on the next thing you say
 
   const runningRef = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
+  const listenCtrlRef = useRef<AbortController | null>(null);
   const historyRef = useRef<ChatMessage[]>(baseHistory);
   const phaseRef = useRef<Phase>('connecting');
+  const camRef = useRef<HTMLInputElement>(null);
+  const pendingImageRef = useRef<Attach | null>(null);
+  const capturingRef = useRef(false);
   const setPhaseBoth = (p: Phase) => { phaseRef.current = p; setPhase(p); };
 
   useEffect(() => {
@@ -44,6 +50,7 @@ export default function CallScreen({
     return () => {
       runningRef.current = false;
       abortRef.current?.abort();
+      listenCtrlRef.current?.abort();
       stopSpeaking();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -54,12 +61,17 @@ export default function CallScreen({
     try { await speak('Hi, how can I help?'); } catch { /* */ }
 
     while (runningRef.current) {
+      // Hold off listening while the camera is open for a photo.
+      if (capturingRef.current) { await new Promise((r) => setTimeout(r, 150)); continue; }
+
       // 1) Listen until the user goes quiet.
       setPhaseBoth('listening');
       setCaption('');
       let audio: Blob | null = null;
+      const lc = new AbortController();
+      listenCtrlRef.current = lc;
       try {
-        audio = await listenOnce({ onLevel: setLevel });
+        audio = await listenOnce({ signal: lc.signal, onLevel: setLevel });
       } catch {
         setErr('I couldn’t access the microphone — check the app’s mic permission in Settings.');
         setPhaseBoth('error');
@@ -85,7 +97,11 @@ export default function CallScreen({
       setCaption(text);
 
       // 3) Ask the assistant (same streaming backend → keeps all tools/memory).
-      const userMsg: ChatMessage = { role: 'user', content: text, id: cid() };
+      //    A photo snapped during the call rides along, so "what's this?" works.
+      const photo = pendingImageRef.current;
+      pendingImageRef.current = null;
+      setHasPhoto(false);
+      const userMsg: ChatMessage = { role: 'user', content: text, id: cid(), ...(photo ? { attachments: [photo] } : {}) };
       historyRef.current = [...historyRef.current, userMsg];
       onTurn(historyRef.current);
 
@@ -128,8 +144,28 @@ export default function CallScreen({
   function hangUp() {
     runningRef.current = false;
     abortRef.current?.abort();
+    listenCtrlRef.current?.abort();
     stopSpeaking();
     onClose();
+  }
+
+  // Snap a photo to ask about, hands-free: pause the loop, free the mic, open the
+  // device camera. The shot attaches to the next thing you say (see the loop).
+  function snapPhoto() {
+    capturingRef.current = true;
+    listenCtrlRef.current?.abort();
+    stopSpeaking();
+    const input = camRef.current;
+    if (input) { input.value = ''; input.click(); } else { capturingRef.current = false; }
+  }
+  async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (f) {
+      const { attach } = await fileToAttachment(f);
+      if (attach) { pendingImageRef.current = attach; setHasPhoto(true); }
+    }
+    capturingRef.current = false; // resume listening (the loop picks back up)
   }
 
   // Tap the orb while it's talking to interrupt and start listening (barge-in):
@@ -165,11 +201,20 @@ export default function CallScreen({
         <span className="call-orb-ring" />
       </button>
 
+      {hasPhoto && <div className="call-photo-chip">📷 Photo attached — now ask about it</div>}
+
       <div className="call-caption">{bodyText || ' '}</div>
 
-      <button type="button" className="call-end" onClick={hangUp} aria-label="End call">
-        <IconPhoneOff size={26} />
-      </button>
+      <div className="call-controls">
+        <button type="button" className="call-cam" onClick={snapPhoto} aria-label="Take a photo to ask about">
+          <IconCamera size={24} />
+        </button>
+        <button type="button" className="call-end" onClick={hangUp} aria-label="End call">
+          <IconPhoneOff size={26} />
+        </button>
+      </div>
+
+      <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={onPhoto} />
     </div>
   );
 }
