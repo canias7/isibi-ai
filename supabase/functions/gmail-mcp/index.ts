@@ -16,6 +16,11 @@ import { crypto as stdCrypto } from "jsr:@std/crypto"; // for MD5 (WebCrypto lac
 
 const API_KEY = Deno.env.get("COMPOSIO_API_KEY")!;
 const BASE = "https://backend.composio.dev/api";
+const PLAID_CLIENT_ID = Deno.env.get("PLAID_CLIENT_ID");
+const PLAID_SECRET = Deno.env.get("PLAID_SECRET");
+const PLAID_ENV = (Deno.env.get("PLAID_ENV") || "sandbox").toLowerCase();
+const PLAID_BASE = PLAID_ENV === "production" ? "https://production.plaid.com"
+  : PLAID_ENV === "development" ? "https://development.plaid.com" : "https://sandbox.plaid.com";
 const CATALOG_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-oauth?catalog=";
 
 // Per-user MCP auth: callers sign a short-lived token binding the acting user id;
@@ -396,7 +401,7 @@ async function fullCatalogSlugs(toolkit: string): Promise<string[]> {
   }
 }
 
-async function listTools(apps: string[], prefs: Record<string, string[]>, memOn: boolean): Promise<Tool[]> {
+async function listTools(apps: string[], prefs: Record<string, string[]>, memOn: boolean, bankOn: boolean): Promise<Tool[]> {
   const out: Tool[] = [];
   // The user's saved selection wins. If they haven't customized an app (no row),
   // default to the WHOLE catalog — everything on until they trim it. Build all
@@ -409,6 +414,7 @@ async function listTools(apps: string[], prefs: Record<string, string[]>, memOn:
   // Long-term memory is available with or without connectors — unless paused
   // (the chat function passes &mem=0 when the user turned the feature off).
   if (memOn) { out.push(MEMORY_TOOL); out.push(MEMORY_FILE_TOOL); }
+  if (bankOn) { out.push(BANK_BALANCES_TOOL); out.push(BANK_TRANSACTIONS_TOOL); }
   return out;
 }
 
@@ -452,6 +458,89 @@ async function execTool(name: string, args: unknown, userId: string): Promise<st
   const data = body.data ?? body;
   return typeof data === "string" ? data : JSON.stringify(data, null, 2);
 }
+
+// ---- Plaid bank tools (READ-ONLY), scoped to the verified user. Tokens decrypt
+// with the same AES-GCM scheme the `plaid` function uses to store them. ----
+function pb64ToBytes(s: string): Uint8Array { return Uint8Array.from(atob(s), (c) => c.charCodeAt(0)); }
+async function plaidDecToken(stored: string): Promise<string> {
+  if (!stored.startsWith("enc:")) return stored;
+  const raw = Deno.env.get("PLAID_ENC_KEY");
+  if (!raw || raw.length < 64) throw new Error("ENC_KEY_MISSING");
+  const bytes = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) bytes[i] = parseInt(raw.slice(i * 2, i * 2 + 2), 16);
+  const key = await crypto.subtle.importKey("raw", bytes, { name: "AES-GCM" }, false, ["decrypt"]);
+  const [, ivb, ctb] = stored.split(":");
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: pb64ToBytes(ivb) }, key, pb64ToBytes(ctb));
+  return new TextDecoder().decode(pt);
+}
+async function plaidCall(path: string, body: Record<string, unknown>): Promise<any> {
+  const res = await fetch(`${PLAID_BASE}${path}`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ client_id: PLAID_CLIENT_ID, secret: PLAID_SECRET, ...body }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error_code || `HTTP_${res.status}`);
+  return data;
+}
+async function plaidItems(uid: string): Promise<any[]> {
+  const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key || !uid) return [];
+  try {
+    const r = await fetch(`${url}/rest/v1/plaid_items?user_id=eq.${encodeURIComponent(uid)}&select=item_id,access_token,institution_name`, { headers: { apikey: key, authorization: `Bearer ${key}` } });
+    if (!r.ok) return [];
+    const rows = await r.json();
+    return Array.isArray(rows) ? rows : [];
+  } catch { return []; }
+}
+async function userHasBanks(uid: string): Promise<boolean> {
+  if (!PLAID_CLIENT_ID || !PLAID_SECRET) return false;
+  return (await plaidItems(uid)).length > 0;
+}
+async function bankBalances(uid: string): Promise<string> {
+  const items = await plaidItems(uid);
+  if (!items.length) return "No bank accounts are linked.";
+  const lines: string[] = [];
+  for (const it of items) {
+    try {
+      const at = await plaidDecToken(it.access_token);
+      const d = await plaidCall("/accounts/balance/get", { access_token: at });
+      for (const a of (d.accounts || [])) {
+        const c = a.balances?.iso_currency_code || "USD";
+        lines.push(`${it.institution_name || "Bank"} — ${a.name}${a.mask ? ` (••${a.mask})` : ""} [${a.subtype || a.type}]: current ${c} ${a.balances?.current ?? "?"}${a.balances?.available != null ? `, available ${c} ${a.balances.available}` : ""}`);
+      }
+    } catch (e) { lines.push(`${it.institution_name || "Bank"}: couldn't read (${String((e as Error).message)})`); }
+  }
+  return lines.join("\n") || "No accounts found.";
+}
+async function bankTransactions(uid: string, count: number): Promise<string> {
+  const items = await plaidItems(uid);
+  if (!items.length) return "No bank accounts are linked.";
+  const n = Math.min(Math.max(count || 50, 1), 200);
+  const rows: { date: string; line: string }[] = [];
+  for (const it of items) {
+    try {
+      const at = await plaidDecToken(it.access_token);
+      const d = await plaidCall("/transactions/sync", { access_token: at, count: n });
+      for (const t of (d.added || [])) {
+        const cat = t.personal_finance_category?.primary || (Array.isArray(t.category) ? t.category.join("/") : "");
+        rows.push({ date: t.date || "", line: `${t.date} | ${it.institution_name || "Bank"} | ${t.name} | ${t.iso_currency_code || "USD"} ${t.amount}${cat ? ` | ${cat}` : ""}${t.pending ? " | pending" : ""}` });
+      }
+    } catch (e) { rows.push({ date: "", line: `${it.institution_name || "Bank"}: couldn't read (${String((e as Error).message)})` }); }
+  }
+  if (!rows.length) return "No transactions yet — a freshly linked bank can take a few minutes to import history.";
+  rows.sort((a, b) => b.date.localeCompare(a.date));
+  return "amounts: positive = money out (spending), negative = money in.\ndate | bank | merchant | amount | category\n" + rows.slice(0, n).map((r) => r.line).join("\n");
+}
+const BANK_BALANCES_TOOL: Tool = {
+  name: "GF_BANK_BALANCES",
+  description: "Get the user's linked bank account balances in real time (their REAL bank, via Plaid). Use when the user asks about their balance, how much money they have, or available funds. Read-only — cannot move money.",
+  inputSchema: { type: "object", properties: {} },
+};
+const BANK_TRANSACTIONS_TOOL: Tool = {
+  name: "GF_BANK_TRANSACTIONS",
+  description: "Get the user's recent REAL bank transactions (date, merchant, amount, category) from their linked bank via Plaid. Use for spending questions, recent activity, or finding recurring charges/subscriptions. Amounts: POSITIVE = money out (spending), NEGATIVE = money in. Read-only.",
+  inputSchema: { type: "object", properties: { count: { type: "integer", description: "How many recent transactions to fetch (default 50, max 200)." } } },
+};
 
 Deno.serve(async (req: Request) => {
   if (req.method === "GET") {
@@ -503,7 +592,8 @@ Deno.serve(async (req: Request) => {
       const d = msg.params?.discover;
       if (d) return J({ jsonrpc: "2.0", id, result: { tools: [], _discover: await discover(String(d), !!msg.params?.important) } });
       const prefs = await userToolPrefs(reqUser);
-      return J({ jsonrpc: "2.0", id, result: { tools: await listTools(apps, prefs, memOn) } });
+      const bankOn = await userHasBanks(reqUser);
+      return J({ jsonrpc: "2.0", id, result: { tools: await listTools(apps, prefs, memOn, bankOn) } });
     } catch (e) {
       console.error("tools/list failed:", e);
       return J({ jsonrpc: "2.0", id, error: { code: -32000, message: "internal error" } });
@@ -533,6 +623,20 @@ Deno.serve(async (req: Request) => {
         console.error("memory tool error:", p.name, e);
         await logUsage(p.name, false, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "That action couldn't be completed — please try again." }], isError: true } });
+      }
+    }
+    // Built-in bank (Plaid) tools — handled locally, read-only, scoped to the user.
+    if (p.name === "GF_BANK_BALANCES" || p.name === "GF_BANK_TRANSACTIONS") {
+      try {
+        const text = p.name === "GF_BANK_BALANCES"
+          ? await bankBalances(reqUser)
+          : await bankTransactions(reqUser, Number((p.arguments || {}).count) || 50);
+        await logUsage(p.name, true, reqUser);
+        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
+      } catch (e) {
+        console.error("bank tool error:", p.name, e);
+        await logUsage(p.name, false, reqUser);
+        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "Couldn't read your bank data right now." }], isError: true } });
       }
     }
     // Only execute a tool actually served for this user's connected apps — never a
