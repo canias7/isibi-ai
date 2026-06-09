@@ -19,6 +19,10 @@ export const CONNECTORS: Connector[] = [
   { id: 'gdrive', name: 'Google Drive', logo: si('googledrive'), color: '#1FA463', desc: 'Search and read your files' },
   { id: 'gmail', name: 'Gmail', logo: si('gmail'), color: '#EA4335', desc: 'Read, search and draft emails' },
   { id: 'gcal', name: 'Google Calendar', logo: si('googlecalendar'), color: '#4285F4', desc: 'Check and create events' },
+  // Plaid is NOT a Composio connector — it links a bank via the `plaid` Edge
+  // Function (hosted Link). ConnectorsGraph special-cases this id for connect/
+  // status/disconnect; the chat & workflow `apps` list stays Composio-only.
+  { id: 'plaid', name: 'Plaid', logo: si('plaid'), color: '#111111', desc: 'Link your bank — balances & transactions' },
   { id: 'canva', name: 'Canva', logo: fav('canva.com'), color: '#00C4CC', desc: 'Designs and brand assets' },
   { id: 'figma', name: 'Figma', logo: si('figma'), color: '#F24E1E', desc: 'Design files and prototypes' },
   { id: 'notion', name: 'Notion', logo: si('notion'), color: '#111111', desc: 'Search and edit your workspace' },
