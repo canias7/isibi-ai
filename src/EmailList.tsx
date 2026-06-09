@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Browser } from '@capacitor/browser';
 import { fetchEmailHtml, fetchAttachment, type MsgAttachment, type EmailMeta } from './api';
 
 // Rich email rendering for chat replies. The assistant emits a fenced JSON block
@@ -218,6 +219,33 @@ export function ReceiptCard({ data }: { data: ReceiptData }) {
         {data.detail && <div className="gf-receipt-detail">{data.detail}</div>}
       </div>
     </div>
+  );
+}
+
+// ---- Generated file (gf-file: a download the code-execution sandbox produced) ----
+export interface FileData { name: string; mime?: string; size?: number; url: string }
+export function FileCard({ data }: { data: FileData }) {
+  const sz = data.size
+    ? (data.size < 1024 * 1024 ? `${Math.max(1, Math.round(data.size / 1024))} KB` : `${(data.size / 1024 / 1024).toFixed(1)} MB`)
+    : '';
+  const open = () => { try { void Browser.open({ url: data.url }); } catch { window.open(data.url, '_blank'); } };
+  return (
+    <button className="gf-file" onClick={open}>
+      <span className="gf-file-ico">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" />
+        </svg>
+      </span>
+      <span className="gf-file-text">
+        <span className="gf-file-name">{data.name}</span>
+        <span className="gf-file-sub">{sz ? `${sz} · ` : ''}Tap to download</span>
+      </span>
+      <span className="gf-file-dl" aria-hidden>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" />
+        </svg>
+      </span>
+    </button>
   );
 }
 

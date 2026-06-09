@@ -92,6 +92,41 @@ async function uploadToFiles(dataB64: string, mediaType: string, name: string, a
   } catch (e) { console.error("files upload err", e); return null; }
 }
 
+// A file the code execution sandbox generated: fetch its metadata + bytes from
+// the Files API, stash it in the private chat-files Storage bucket, and return a
+// signed URL the client opens as a download. Null if unavailable/oversized.
+async function deliverGeneratedFile(uid: string, fileId: string, apiKey: string): Promise<{ name: string; mime: string; size: number; url: string } | null> {
+  if (!SB_URL || !SB_SERVICE_KEY || !uid) return null;
+  const fh = { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-beta": "files-api-2025-04-14" };
+  try {
+    const metaRes = await fetch(`https://api.anthropic.com/v1/files/${encodeURIComponent(fileId)}`, { headers: fh });
+    if (!metaRes.ok) return null;
+    const meta = await metaRes.json();
+    const name = String(meta?.filename || "file");
+    const mime = String(meta?.mime_type || "application/octet-stream");
+    const size = Number(meta?.size_bytes || 0);
+    if (size > 45 * 1024 * 1024) return null; // under the bucket's 50 MB cap
+    const binRes = await fetch(`https://api.anthropic.com/v1/files/${encodeURIComponent(fileId)}/content`, { headers: fh });
+    if (!binRes.ok) return null;
+    const bytes = new Uint8Array(await binRes.arrayBuffer());
+    const ext = (name.match(/\.([A-Za-z0-9]{1,8})$/) || [])[1] || "";
+    const key = `${uid}/${crypto.randomUUID()}${ext ? "." + ext : ""}`;
+    const auth = { apikey: SB_SERVICE_KEY!, authorization: `Bearer ${SB_SERVICE_KEY}` };
+    const up = await fetch(`${SB_URL}/storage/v1/object/chat-files/${key}`, {
+      method: "POST", headers: { ...auth, "content-type": mime, "x-upsert": "true" }, body: bytes,
+    });
+    if (!up.ok) { console.error("stash upload", up.status, (await up.text().catch(() => "")).slice(0, 120)); return null; }
+    const sign = await fetch(`${SB_URL}/storage/v1/object/sign/chat-files/${key}`, {
+      method: "POST", headers: { ...auth, "content-type": "application/json" }, body: JSON.stringify({ expiresIn: 604800 }),
+    });
+    if (!sign.ok) return null;
+    const sj = await sign.json();
+    const signed = String(sj?.signedURL ?? sj?.signedUrl ?? "");
+    if (!signed) return null;
+    return { name, mime, size, url: `${SB_URL}/storage/v1${signed.startsWith("/") ? "" : "/"}${signed}` };
+  } catch (e) { console.error("deliverGeneratedFile", e); return null; }
+}
+
 // ---- Model routing: Sonnet by default, Opus for complex/long tasks ----
 const MODELS = {
   sonnet: "claude-sonnet-4-6",
@@ -553,7 +588,7 @@ Deno.serve(async (req: Request) => {
     tz = "UTC";
     nowLocal = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", dateStyle: "full", timeStyle: "short" }).format(new Date());
   }
-  const baseSystem = `You are Go Farther, a helpful, friendly assistant inside a mobile app. It is currently ${nowLocal} in the user's timezone (${tz}); use this for anything time-related (e.g. calendar date ranges) instead of guessing, and ALWAYS show times to the user in their local timezone (${tz}) — never UTC. You're on a narrow phone screen: keep formatting simple. Be clear and concise. When connector tools are available (Gmail, Google Calendar, Google Drive, etc.), use them to act on the user's behalf — search and read email, check and create calendar events, find and read files. Always confirm details before sending an email or creating/changing anything. When more than one connected app could handle the same request and the user didn't say which — for ANY request, whether a read/list/search OR an action (send, create, change, delete, pay) — do NOT guess, do NOT default to one, and do NOT silently combine them: ASK which app or account to use first, in one short line (e.g. "Which mailbox — Gmail or Outlook?"), then wait. Only once the user picks (or if they name one up front, like "in QuickBooks" or "my Outlook") do you act, using just that app. When the user EXPLICITLY asks you to remember something about them for the future (e.g. "remember that…", "keep in mind…", "from now on…", "don't forget…"), call the GF_SAVE_MEMORY tool with a concise, self-contained statement, then briefly confirm in plain text — do NOT use it for ordinary chatter or one-off task details. You can also search the web for current information (web search), open and read a web page or link the user shares (web fetch), and run code to do precise math or analyze numbers like their bank transactions (code execution) — use these whenever they help. You also have built-in tools (when available) for the weather/forecast anywhere (GF_WEATHER) and, where configured, finding places and directions via Google Maps (GF_MAPS). Images and PDFs the user attaches are visible to you directly; a Word, Excel, CSV, or other non-PDF document is placed in your code sandbox, so read it with the code execution tool (e.g. python-docx, openpyxl, or pandas) before answering about it.`;
+  const baseSystem = `You are Go Farther, a helpful, friendly assistant inside a mobile app. It is currently ${nowLocal} in the user's timezone (${tz}); use this for anything time-related (e.g. calendar date ranges) instead of guessing, and ALWAYS show times to the user in their local timezone (${tz}) — never UTC. You're on a narrow phone screen: keep formatting simple. Be clear and concise. When connector tools are available (Gmail, Google Calendar, Google Drive, etc.), use them to act on the user's behalf — search and read email, check and create calendar events, find and read files. Always confirm details before sending an email or creating/changing anything. When more than one connected app could handle the same request and the user didn't say which — for ANY request, whether a read/list/search OR an action (send, create, change, delete, pay) — do NOT guess, do NOT default to one, and do NOT silently combine them: ASK which app or account to use first, in one short line (e.g. "Which mailbox — Gmail or Outlook?"), then wait. Only once the user picks (or if they name one up front, like "in QuickBooks" or "my Outlook") do you act, using just that app. When the user EXPLICITLY asks you to remember something about them for the future (e.g. "remember that…", "keep in mind…", "from now on…", "don't forget…"), call the GF_SAVE_MEMORY tool with a concise, self-contained statement, then briefly confirm in plain text — do NOT use it for ordinary chatter or one-off task details. You can also search the web for current information (web search), open and read a web page or link the user shares (web fetch), and run code to do precise math or analyze numbers like their bank transactions (code execution) — use these whenever they help. You also have built-in tools (when available) for the weather/forecast anywhere (GF_WEATHER) and, where configured, finding places and directions via Google Maps (GF_MAPS). Images and PDFs the user attaches are visible to you directly; a Word, Excel, CSV, or other non-PDF document is placed in your code sandbox, so read it with the code execution tool (e.g. python-docx, openpyxl, or pandas) before answering about it. When the user wants a file as the OUTPUT — a spreadsheet, PDF, chart/image, or document — create it with the code execution tool and save it to a file; the app delivers any file you generate as a download, so produce a real file instead of pasting a big table as text.`;
   // When an email app is in scope, render inbox listings as rich cards: the app
   // turns a ```gf-emails JSON block into a styled email list.
   const emailCardsSystem = `\n\nEMAIL DISPLAY — when an email tool is available, follow these rules EXACTLY:\n• Whenever you present multiple emails — the inbox, search results, OR a set of emails for the user to choose from (e.g. "which one?") — render them as a single fenced code block tagged gf-emails containing ONLY a JSON array (one object per email) with keys "from", "email", "subject", "snippet" (≤ 12 words), "time" (short label in the user's timezone, e.g. "9:41 AM", "Yesterday", "May 19"), "unread" (boolean), "id" (the Gmail message id, used to open the email). NEVER list emails as a plain numbered or bulleted list. You may write at most one short line (such as a question) before the block, but the emails themselves must be inside the block.\n• To open, read, show, view, or re-open ONE specific email — including "open it", "read that email", "show me the email", or tapping or hitting "try again" on an email — your ENTIRE reply MUST be a single fenced code block tagged gf-message containing one JSON object whose only required key is "id" (the Gmail message id); the app loads the sender, subject, body and attachments itself. That block is the ONLY acceptable way to show an email: do NOT type out the From/To/Date/Subject or the body as text or markdown, do NOT add any words before or after the block, and do NOT summarize unless explicitly asked. If a user message contains a marker like [[gfid:ID]], they tapped an email — reply with the gf-message block for that exact id.\n• When you show the user's existing drafts, use the SAME cards (gf-emails for the list, gf-message for one), with "draft": true on each item and its "id" set to the draft's message id so it still opens. ANY display of email content — inbox, search, drafts, or a single message — is ALWAYS a card; NEVER write emails out as plain text or a raw JSON dump.\n• To look up people or contacts (find someone's email or phone, check whether a contact exists, "do I have a contact for X", etc.), CALL the contacts/people search tool, then reply with AT MOST one short lead-in line (e.g. "Here's what I found:"). Do NOT write the contacts out yourself and do NOT put them in a code block — the app renders the matching contacts as a card automatically (with each person's photo where they have one).\n• Only when the user EXPLICITLY asks to summarize, draft, reply to, or send an email do you reply in normal text (no code block).`;
@@ -579,13 +614,12 @@ Deno.serve(async (req: Request) => {
   // that the code execution tool reads (python-docx / openpyxl / pandas). Only the
   // current turn carries data — older turns are stripped on persist — so this is
   // at most a couple of small uploads per message.
-  let hasContainerFiles = false;
   for (const m of messages) {
     if (m.role !== "user" || !Array.isArray(m.attachments)) continue;
     for (const a of m.attachments) {
       if (a.kind !== "file" || a.fileId || !a.data) continue;
       const id = await uploadToFiles(a.data, a.mediaType || "application/octet-stream", a.name || "file", apiKey);
-      if (id) { a.fileId = id; hasContainerFiles = true; }
+      if (id) a.fileId = id;
     }
   }
 
@@ -606,8 +640,7 @@ Deno.serve(async (req: Request) => {
     { type: "web_fetch_20250910", name: "web_fetch", max_uses: 5 },
     { type: "code_execution_20250825", name: "code_execution" },
   ];
-  const betas = ["code-execution-2025-08-25"];
-  if (hasContainerFiles) betas.push("files-api-2025-04-14"); // container_upload (Office/CSV) reading
+  const betas = ["code-execution-2025-08-25", "files-api-2025-04-14"]; // files-api: read uploaded Office/CSV + retrieve files the sandbox generates
   if (mcpServers) betas.push("mcp-client-2025-11-20");
   extraHeaders["anthropic-beta"] = betas.join(",");
 
@@ -659,6 +692,7 @@ Deno.serve(async (req: Request) => {
       let peopleArgs: unknown = {};                   // args of that people-search call
       const actionById: Record<string, string> = {}; // tool_use id -> receipt kind (action tools only)
       let receipt: { kind: string; title: string } | null = null; // a confirmed successful action
+      const generatedFileIds = new Set<string>(); // files the code-execution sandbox created
       try {
         for (;;) {
           const { done, value } = await reader.read();
@@ -696,6 +730,17 @@ Deno.serve(async (req: Request) => {
                 const tid = String(evt.content_block.tool_use_id ?? "");
                 const ak = tid && actionById[tid];
                 if (ak && evt.content_block.is_error !== true) receipt = receiptFor(ak);
+              }
+              // Files the code execution sandbox created — collect their ids to
+              // deliver as downloads after the stream. (Block types vary by tool
+              // version: code_execution_tool_result / bash_code_execution_tool_result.)
+              if (evt.type === "content_block_start" && evt.content_block) {
+                const cbt = String(evt.content_block.type ?? "");
+                if (cbt.includes("code_execution") && cbt.endsWith("_result")) {
+                  const inner = (evt.content_block as { content?: unknown }).content as { content?: unknown[] } | unknown[] | undefined;
+                  const arr = Array.isArray(inner) ? inner : (inner && Array.isArray(inner.content) ? inner.content : []);
+                  for (const it of arr) { const fid = (it as { file_id?: unknown })?.file_id; if (typeof fid === "string" && fid) generatedFileIds.add(fid); }
+                }
               }
               if (evt.type === "content_block_delta" && evt.delta?.type === "input_json_delta" && evt.index in toolJson) {
                 toolJson[evt.index] += evt.delta.partial_json ?? "";
@@ -758,6 +803,13 @@ Deno.serve(async (req: Request) => {
         }
         // A confirmed successful action — append a guaranteed receipt card.
         if (receipt) emit(`\n\n\`\`\`gf-receipt\n${JSON.stringify(receipt)}\n\`\`\``);
+        // Hand back any files the sandbox generated, as downloadable chips.
+        let nf = 0;
+        for (const fid of generatedFileIds) {
+          if (nf >= 5) break;
+          const gfile = await deliverGeneratedFile(appUser ?? "", fid, apiKey);
+          if (gfile) { emit(`\n\n\`\`\`gf-file\n${JSON.stringify(gfile)}\n\`\`\``); nf++; }
+        }
       } catch (e) {
         console.error("chat stream error:", e);
         emit(`\n⚠️ Something went wrong on our end. Please try again.`);

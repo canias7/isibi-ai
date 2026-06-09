@@ -252,6 +252,24 @@
 .gf-receipt-title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.2; }
 .gf-receipt-detail { font-size: 12px; color: var(--text-dim); margin-top: 1px; }
 
+/* Generated file download (gf-file) */
+.gf-file {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  text-align: left; white-space: normal; margin: 8px 0;
+  padding: 10px 12px; cursor: pointer; color: var(--text);
+  background: #181a1f; border: 1px solid #ffffff14; border-radius: 12px;
+}
+.gf-file:active { opacity: .85; }
+.gf-file-ico {
+  width: 34px; height: 34px; flex-shrink: 0;
+  display: grid; place-items: center; border-radius: 8px;
+  background: rgba(122, 68, 255, .15); color: #a98bff;
+}
+.gf-file-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.gf-file-name { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gf-file-sub { font-size: 12px; color: var(--text-dim); margin-top: 1px; }
+.gf-file-dl { flex-shrink: 0; color: var(--text-dim); }
+
 /* Memory attachment surfaced in a reply (gf-memory) */
 .mc-load, .mc-err { white-space: normal; margin: 6px 0; font-size: 13px; color: var(--text-dim); }
 .mc-img { display: block; margin: 6px 0; max-width: 240px; }
