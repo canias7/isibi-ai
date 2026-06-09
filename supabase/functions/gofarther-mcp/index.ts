@@ -414,7 +414,10 @@ async function listTools(apps: string[], prefs: Record<string, string[]>, memOn:
   // Long-term memory is available with or without connectors — unless paused
   // (the chat function passes &mem=0 when the user turned the feature off).
   if (memOn) { out.push(MEMORY_TOOL); out.push(MEMORY_FILE_TOOL); }
-  if (bankOn) { out.push(BANK_BALANCES_TOOL); out.push(BANK_TRANSACTIONS_TOOL); }
+  if (bankOn) {
+    out.push(BANK_BALANCES_TOOL, BANK_TRANSACTIONS_TOOL, BANK_RECURRING_TOOL,
+      BANK_LIABILITIES_TOOL, BANK_INVESTMENTS_TOOL, BANK_IDENTITY_TOOL);
+  }
   return out;
 }
 
@@ -531,6 +534,89 @@ async function bankTransactions(uid: string, count: number): Promise<string> {
   rows.sort((a, b) => b.date.localeCompare(a.date));
   return "amounts: positive = money out (spending), negative = money in.\ndate | bank | merchant | amount | category\n" + rows.slice(0, n).map((r) => r.line).join("\n");
 }
+// Friendly mapping for product-scope errors (liabilities/investments/identity not
+// granted yet → the user needs to re-link to consent to that data).
+function bankErr(e: unknown): string {
+  const m = String((e as Error)?.message || "");
+  if (/NOT_AUTHORIZED|NOT_SUPPORTED|INVALID_PRODUCT|CONSENT|ADDITIONAL/.test(m)) return "needs a re-link to enable this data (Banks → Unlink → Link again).";
+  if (/NOT_READY/.test(m)) return "still importing — try again in a minute.";
+  return `couldn't read (${m})`;
+}
+async function bankRecurring(uid: string): Promise<string> {
+  const items = await plaidItems(uid);
+  if (!items.length) return "No bank accounts are linked.";
+  const out: string[] = [];
+  for (const it of items) {
+    try {
+      const at = await plaidDecToken(it.access_token);
+      const d = await plaidCall("/transactions/recurring/get", { access_token: at });
+      const fmt = (s: any) => `${s.merchant_name || s.description || "?"}: ${s.average_amount?.iso_currency_code || "USD"} ${s.average_amount?.amount ?? "?"} ${s.frequency || ""}`;
+      const subs = (d.outflow_streams || []).filter((s: any) => s.is_active !== false).map(fmt);
+      const inc = (d.inflow_streams || []).filter((s: any) => s.is_active !== false).map(fmt);
+      out.push(`${it.institution_name || "Bank"}\n  Subscriptions/recurring bills:${subs.length ? "\n   - " + subs.join("\n   - ") : " none"}\n  Recurring income:${inc.length ? "\n   - " + inc.join("\n   - ") : " none"}`);
+    } catch (e) { out.push(`${it.institution_name || "Bank"}: ${bankErr(e)}`); }
+  }
+  return out.join("\n");
+}
+async function bankLiabilities(uid: string): Promise<string> {
+  const items = await plaidItems(uid);
+  if (!items.length) return "No bank accounts are linked.";
+  const out: string[] = [];
+  for (const it of items) {
+    try {
+      const at = await plaidDecToken(it.access_token);
+      const d = await plaidCall("/liabilities/get", { access_token: at });
+      const nm = new Map<string, string>((d.accounts || []).map((a: any) => [a.account_id, `${a.name}${a.mask ? ` ••${a.mask}` : ""}`]));
+      const L = d.liabilities || {};
+      for (const c of (L.credit || [])) {
+        const apr = (c.aprs || []).map((a: any) => `${a.apr_percentage}%`).join("/");
+        out.push(`${it.institution_name || "Bank"} credit card ${nm.get(c.account_id) || ""}: statement ${c.last_statement_balance ?? "?"}, min ${c.minimum_payment_amount ?? "?"}, due ${c.next_payment_due_date || "?"}${apr ? `, APR ${apr}` : ""}${c.is_overdue ? " (OVERDUE)" : ""}`);
+      }
+      for (const s of (L.student || [])) out.push(`${it.institution_name || "Bank"} student loan ${nm.get(s.account_id) || ""}: due ${s.next_payment_due_date || "?"}, min ${s.minimum_payment_amount ?? "?"}`);
+      for (const mo of (L.mortgage || [])) out.push(`${it.institution_name || "Bank"} mortgage ${nm.get(mo.account_id) || ""}: due ${mo.next_payment_due_date || "?"}, rate ${mo.interest_rate?.percentage ?? "?"}%`);
+    } catch (e) { out.push(`${it.institution_name || "Bank"}: ${bankErr(e)}`); }
+  }
+  return out.join("\n") || "No credit cards or loans found on the linked accounts.";
+}
+async function bankInvestments(uid: string): Promise<string> {
+  const items = await plaidItems(uid);
+  if (!items.length) return "No bank accounts are linked.";
+  const out: string[] = [];
+  for (const it of items) {
+    try {
+      const at = await plaidDecToken(it.access_token);
+      const d = await plaidCall("/investments/holdings/get", { access_token: at });
+      const sec = new Map<string, any>((d.securities || []).map((s: any) => [s.security_id, s]));
+      const nm = new Map<string, string>((d.accounts || []).map((a: any) => [a.account_id, `${a.name}${a.mask ? ` ••${a.mask}` : ""}`]));
+      for (const h of (d.holdings || [])) {
+        const s = sec.get(h.security_id) || {};
+        out.push(`${it.institution_name || "Bank"} ${nm.get(h.account_id) || ""}: ${s.ticker_symbol || s.name || "?"} x${h.quantity} = ${h.iso_currency_code || "USD"} ${h.institution_value ?? "?"}`);
+      }
+    } catch (e) { out.push(`${it.institution_name || "Bank"}: ${bankErr(e)}`); }
+  }
+  return out.join("\n") || "No investment holdings found.";
+}
+async function bankIdentity(uid: string): Promise<string> {
+  const items = await plaidItems(uid);
+  if (!items.length) return "No bank accounts are linked.";
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const it of items) {
+    try {
+      const at = await plaidDecToken(it.access_token);
+      const d = await plaidCall("/identity/get", { access_token: at });
+      for (const a of (d.accounts || [])) for (const o of (a.owners || [])) {
+        const name = (o.names || []).join(", ");
+        const email = (o.emails || []).map((x: any) => x.data).join(", ");
+        const phone = (o.phone_numbers || []).map((x: any) => x.data).join(", ");
+        const addr = (o.addresses || []).map((x: any) => [x.data?.street, x.data?.city, x.data?.region, x.data?.postal_code].filter(Boolean).join(" ")).join("; ");
+        const line = `${it.institution_name || "Bank"} — ${name}${email ? ` | ${email}` : ""}${phone ? ` | ${phone}` : ""}${addr ? ` | ${addr}` : ""}`;
+        if (!seen.has(line)) { seen.add(line); out.push(line); }
+      }
+    } catch (e) { out.push(`${it.institution_name || "Bank"}: ${bankErr(e)}`); }
+  }
+  return out.join("\n") || "No identity info found.";
+}
 const BANK_BALANCES_TOOL: Tool = {
   name: "GF_BANK_BALANCES",
   description: "Get the user's linked bank account balances in real time (their REAL bank, via Plaid). Use when the user asks about their balance, how much money they have, or available funds. Read-only — cannot move money.",
@@ -540,6 +626,26 @@ const BANK_TRANSACTIONS_TOOL: Tool = {
   name: "GF_BANK_TRANSACTIONS",
   description: "Get the user's recent REAL bank transactions (date, merchant, amount, category) from their linked bank via Plaid. Use for spending questions, recent activity, or finding recurring charges/subscriptions. Amounts: POSITIVE = money out (spending), NEGATIVE = money in. Read-only.",
   inputSchema: { type: "object", properties: { count: { type: "integer", description: "How many recent transactions to fetch (default 50, max 200)." } } },
+};
+const BANK_RECURRING_TOOL: Tool = {
+  name: "GF_BANK_RECURRING",
+  description: "Detect the user's recurring bank activity — subscriptions & recurring bills (outflows) and recurring income like paychecks (inflows), with merchant, amount, and frequency. Use for 'my subscriptions', 'recurring bills', 'when/how much do I get paid'. Read-only.",
+  inputSchema: { type: "object", properties: {} },
+};
+const BANK_LIABILITIES_TOOL: Tool = {
+  name: "GF_BANK_LIABILITIES",
+  description: "Get the user's credit cards (statement balance, minimum payment, due date, APR, overdue), student loans, and mortgages from their linked bank. Use for 'when is my card due', 'my APR', 'loan/mortgage details'. Read-only.",
+  inputSchema: { type: "object", properties: {} },
+};
+const BANK_INVESTMENTS_TOOL: Tool = {
+  name: "GF_BANK_INVESTMENTS",
+  description: "Get the user's investment holdings (ticker, quantity, value) from linked brokerage accounts. Use for 'my portfolio', 'what do I hold'. Read-only.",
+  inputSchema: { type: "object", properties: {} },
+};
+const BANK_IDENTITY_TOOL: Tool = {
+  name: "GF_BANK_IDENTITY",
+  description: "Get the account-holder identity on file at the user's bank (name, email, phone, address). Use when the user asks what contact info their bank has on file. Read-only.",
+  inputSchema: { type: "object", properties: {} },
 };
 
 Deno.serve(async (req: Request) => {
@@ -626,11 +732,16 @@ Deno.serve(async (req: Request) => {
       }
     }
     // Built-in bank (Plaid) tools — handled locally, read-only, scoped to the user.
-    if (p.name === "GF_BANK_BALANCES" || p.name === "GF_BANK_TRANSACTIONS") {
+    if (typeof p.name === "string" && p.name.startsWith("GF_BANK_")) {
       try {
-        const text = p.name === "GF_BANK_BALANCES"
-          ? await bankBalances(reqUser)
-          : await bankTransactions(reqUser, Number((p.arguments || {}).count) || 50);
+        let text = "";
+        if (p.name === "GF_BANK_BALANCES") text = await bankBalances(reqUser);
+        else if (p.name === "GF_BANK_TRANSACTIONS") text = await bankTransactions(reqUser, Number((p.arguments || {}).count) || 50);
+        else if (p.name === "GF_BANK_RECURRING") text = await bankRecurring(reqUser);
+        else if (p.name === "GF_BANK_LIABILITIES") text = await bankLiabilities(reqUser);
+        else if (p.name === "GF_BANK_INVESTMENTS") text = await bankInvestments(reqUser);
+        else if (p.name === "GF_BANK_IDENTITY") text = await bankIdentity(reqUser);
+        else text = "Unknown bank tool.";
         await logUsage(p.name, true, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
       } catch (e) {
