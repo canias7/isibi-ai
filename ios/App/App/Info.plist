@@ -41,6 +41,8 @@
 	<string>Go Farther needs access to your photos so you can attach them in chat.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Go Farther uses your location to answer "here" questions — local weather, places near you, and directions.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Go Farther uses your location to answer "here" questions — local weather, places near you, and directions.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Go Farther uses the microphone so you can talk to the assistant in voice call mode.</string>
 	<key>LSRequiresIPhoneOS</key>
