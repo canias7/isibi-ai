@@ -75,10 +75,10 @@
 /* Passwordless code entry */
 .auth-code {
   text-align: center;
-  font-size: 28px;
+  font-size: 23px;
   font-weight: 700;
-  letter-spacing: 10px;
-  padding-left: 24px; /* offset the trailing letter-spacing so digits look centred */
+  letter-spacing: 6px;
+  padding-left: 20px; /* offset the trailing letter-spacing so digits look centred */
   font-variant-numeric: tabular-nums;
 }
 .auth-row { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
