@@ -11,7 +11,7 @@ const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
 const SB_URL = Deno.env.get("SUPABASE_URL");
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-const MCP_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-mcp";
+const MCP_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gofarther-mcp";
 const MODEL = "claude-sonnet-4-6";
 
 // frontend connector id -> Composio toolkit slug (a step's `app` is the frontend id)
@@ -63,7 +63,7 @@ function userFromJwt(req: Request): string | null {
 }
 
 // Per-user MCP auth: a short-lived HMAC-signed token binding the acting user id,
-// so gmail-mcp derives identity from the token, not a forgeable query param.
+// so gofarther-mcp derives identity from the token, not a forgeable query param.
 // Secret is MCP_SHARED_SECRET if set, else derived (never the empty string).
 async function mcpSecret(): Promise<string> {
   const s = Deno.env.get("MCP_SHARED_SECRET");
