@@ -249,6 +249,13 @@ export function FileCard({ data }: { data: FileData }) {
   );
 }
 
+// ---- Generated image (gf-image: an image the assistant created) ----
+export interface ImageData { url: string; prompt?: string }
+export function GenImage({ data }: { data: ImageData }) {
+  const open = () => { try { void Browser.open({ url: data.url }); } catch { window.open(data.url, '_blank'); } };
+  return <img className="gf-image" src={data.url} alt={data.prompt || 'Generated image'} loading="lazy" onClick={open} />;
+}
+
 // ---- Attachments ----
 const ATT_COLORS: Record<string, string> = {
   pdf: '#E8453C', doc: '#2B7CD3', docx: '#2B7CD3', txt: '#5b6470',
