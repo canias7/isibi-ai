@@ -406,6 +406,29 @@ export default function App() {
     return () => { handle?.remove(); };
   }, []);
 
+  // Deep link: gofarther://call opens voice call mode straight away — that's what
+  // the Action Button / Back Tap (iOS) or a home-screen shortcut (Android) map to
+  // via a one-time Shortcut. Only the "call" link is claimed here, so any auth
+  // redirects on the same scheme are left untouched.
+  useEffect(() => {
+    let handle: { remove: () => void } | undefined;
+    const isCallLink = (url: string) => {
+      try {
+        const u = new URL(url);
+        if (u.protocol !== 'gofarther:') return false;
+        return (u.host || u.pathname.replace(/^\/+/, '')).toLowerCase() === 'call';
+      } catch { return false; }
+    };
+    const openFromLink = (url: string) => {
+      if (!isCallLink(url)) return;
+      void primeAudio(); // best-effort audio unlock (cold launch isn't a gesture)
+      setCallOpen(true);
+    };
+    void CapApp.getLaunchUrl().then((res) => { if (res?.url) openFromLink(res.url); }).catch(() => {});
+    void CapApp.addListener('appUrlOpen', ({ url }) => openFromLink(url)).then((h) => { handle = h; });
+    return () => { handle?.remove(); };
+  }, []);
+
   // Auto-grow the composer textarea.
   useEffect(() => {
     const ta = taRef.current;
