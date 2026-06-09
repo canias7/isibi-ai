@@ -49,7 +49,7 @@ function corsFor(req: Request): Record<string, string> {
   };
 }
 
-interface Attach { kind?: string; mediaType?: string; data?: string; name?: string }
+interface Attach { kind?: string; mediaType?: string; data?: string; name?: string; fileId?: string }
 interface Msg { role: string; content: string; attachments?: Attach[] }
 
 // Build a Claude message `content` from text + optional image/PDF attachments.
@@ -63,6 +63,8 @@ function buildContent(m: Msg): unknown {
   for (const a of atts) {
     if (a.kind === "pdf" || a.mediaType === "application/pdf") {
       blocks.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: a.data } });
+    } else if (a.kind === "file") {
+      if (a.fileId) blocks.push({ type: "container_upload", file_id: a.fileId }); // Office/CSV — read via code execution
     } else {
       const mt = ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(a.mediaType ?? "") ? a.mediaType : "image/jpeg";
       blocks.push({ type: "image", source: { type: "base64", media_type: mt, data: a.data } });
@@ -70,6 +72,24 @@ function buildContent(m: Msg): unknown {
   }
   if (m.content && m.content.trim()) blocks.push({ type: "text", text: m.content });
   return blocks;
+}
+
+// Upload a base64 Office/CSV/other file to the Anthropic Files API so the code
+// execution tool can read it from its container. Returns the file id, or null.
+async function uploadToFiles(dataB64: string, mediaType: string, name: string, apiKey: string): Promise<string | null> {
+  try {
+    const bytes = Uint8Array.from(atob(dataB64), (c) => c.charCodeAt(0));
+    const fd = new FormData();
+    fd.append("file", new Blob([bytes], { type: mediaType }), name);
+    const r = await fetch("https://api.anthropic.com/v1/files", {
+      method: "POST",
+      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-beta": "files-api-2025-04-14" },
+      body: fd,
+    });
+    if (!r.ok) { console.error("files upload", r.status, (await r.text().catch(() => "")).slice(0, 150)); return null; }
+    const d = await r.json();
+    return typeof d?.id === "string" ? d.id : null;
+  } catch (e) { console.error("files upload err", e); return null; }
 }
 
 // ---- Model routing: Sonnet by default, Opus for complex/long tasks ----
@@ -533,7 +553,7 @@ Deno.serve(async (req: Request) => {
     tz = "UTC";
     nowLocal = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", dateStyle: "full", timeStyle: "short" }).format(new Date());
   }
-  const baseSystem = `You are Go Farther, a helpful, friendly assistant inside a mobile app. It is currently ${nowLocal} in the user's timezone (${tz}); use this for anything time-related (e.g. calendar date ranges) instead of guessing, and ALWAYS show times to the user in their local timezone (${tz}) — never UTC. You're on a narrow phone screen: keep formatting simple. Be clear and concise. When connector tools are available (Gmail, Google Calendar, Google Drive, etc.), use them to act on the user's behalf — search and read email, check and create calendar events, find and read files. Always confirm details before sending an email or creating/changing anything. When more than one connected app could handle the same request and the user didn't say which — for ANY request, whether a read/list/search OR an action (send, create, change, delete, pay) — do NOT guess, do NOT default to one, and do NOT silently combine them: ASK which app or account to use first, in one short line (e.g. "Which mailbox — Gmail or Outlook?"), then wait. Only once the user picks (or if they name one up front, like "in QuickBooks" or "my Outlook") do you act, using just that app. When the user EXPLICITLY asks you to remember something about them for the future (e.g. "remember that…", "keep in mind…", "from now on…", "don't forget…"), call the GF_SAVE_MEMORY tool with a concise, self-contained statement, then briefly confirm in plain text — do NOT use it for ordinary chatter or one-off task details. You can also open and read a web page when the user gives you a link (web fetch), and run code to do precise math or analyze numbers like their bank transactions (code execution) — use these whenever they help.`;
+  const baseSystem = `You are Go Farther, a helpful, friendly assistant inside a mobile app. It is currently ${nowLocal} in the user's timezone (${tz}); use this for anything time-related (e.g. calendar date ranges) instead of guessing, and ALWAYS show times to the user in their local timezone (${tz}) — never UTC. You're on a narrow phone screen: keep formatting simple. Be clear and concise. When connector tools are available (Gmail, Google Calendar, Google Drive, etc.), use them to act on the user's behalf — search and read email, check and create calendar events, find and read files. Always confirm details before sending an email or creating/changing anything. When more than one connected app could handle the same request and the user didn't say which — for ANY request, whether a read/list/search OR an action (send, create, change, delete, pay) — do NOT guess, do NOT default to one, and do NOT silently combine them: ASK which app or account to use first, in one short line (e.g. "Which mailbox — Gmail or Outlook?"), then wait. Only once the user picks (or if they name one up front, like "in QuickBooks" or "my Outlook") do you act, using just that app. When the user EXPLICITLY asks you to remember something about them for the future (e.g. "remember that…", "keep in mind…", "from now on…", "don't forget…"), call the GF_SAVE_MEMORY tool with a concise, self-contained statement, then briefly confirm in plain text — do NOT use it for ordinary chatter or one-off task details. You can also search the web for current information (web search), open and read a web page or link the user shares (web fetch), and run code to do precise math or analyze numbers like their bank transactions (code execution) — use these whenever they help. You also have built-in tools (when available) for the weather/forecast anywhere (GF_WEATHER) and, where configured, finding places and directions via Google Maps (GF_MAPS). Images and PDFs the user attaches are visible to you directly; a Word, Excel, CSV, or other non-PDF document is placed in your code sandbox, so read it with the code execution tool (e.g. python-docx, openpyxl, or pandas) before answering about it.`;
   // When an email app is in scope, render inbox listings as rich cards: the app
   // turns a ```gf-emails JSON block into a styled email list.
   const emailCardsSystem = `\n\nEMAIL DISPLAY — when an email tool is available, follow these rules EXACTLY:\n• Whenever you present multiple emails — the inbox, search results, OR a set of emails for the user to choose from (e.g. "which one?") — render them as a single fenced code block tagged gf-emails containing ONLY a JSON array (one object per email) with keys "from", "email", "subject", "snippet" (≤ 12 words), "time" (short label in the user's timezone, e.g. "9:41 AM", "Yesterday", "May 19"), "unread" (boolean), "id" (the Gmail message id, used to open the email). NEVER list emails as a plain numbered or bulleted list. You may write at most one short line (such as a question) before the block, but the emails themselves must be inside the block.\n• To open, read, show, view, or re-open ONE specific email — including "open it", "read that email", "show me the email", or tapping or hitting "try again" on an email — your ENTIRE reply MUST be a single fenced code block tagged gf-message containing one JSON object whose only required key is "id" (the Gmail message id); the app loads the sender, subject, body and attachments itself. That block is the ONLY acceptable way to show an email: do NOT type out the From/To/Date/Subject or the body as text or markdown, do NOT add any words before or after the block, and do NOT summarize unless explicitly asked. If a user message contains a marker like [[gfid:ID]], they tapped an email — reply with the gf-message block for that exact id.\n• When you show the user's existing drafts, use the SAME cards (gf-emails for the list, gf-message for one), with "draft": true on each item and its "id" set to the draft's message id so it still opens. ANY display of email content — inbox, search, drafts, or a single message — is ALWAYS a card; NEVER write emails out as plain text or a raw JSON dump.\n• To look up people or contacts (find someone's email or phone, check whether a contact exists, "do I have a contact for X", etc.), CALL the contacts/people search tool, then reply with AT MOST one short lead-in line (e.g. "Here's what I found:"). Do NOT write the contacts out yourself and do NOT put them in a code block — the app renders the matching contacts as a card automatically (with each person's photo where they have one).\n• Only when the user EXPLICITLY asks to summarize, draft, reply to, or send an email do you reply in normal text (no code block).`;
@@ -553,6 +573,22 @@ Deno.serve(async (req: Request) => {
   // else. A single default model keeps the cached tool-schema prefix warm.
   const model = pickModel(messages);
   console.log(`routed model=${model.replace(/^claude-/, "")}`);
+
+  // Office/CSV/text attachments can't be sent inline (only images + PDFs can), so
+  // upload them to the Files API and reference them with a container_upload block
+  // that the code execution tool reads (python-docx / openpyxl / pandas). Only the
+  // current turn carries data — older turns are stripped on persist — so this is
+  // at most a couple of small uploads per message.
+  let hasContainerFiles = false;
+  for (const m of messages) {
+    if (m.role !== "user" || !Array.isArray(m.attachments)) continue;
+    for (const a of m.attachments) {
+      if (a.kind !== "file" || a.fileId || !a.data) continue;
+      const id = await uploadToFiles(a.data, a.mediaType || "application/octet-stream", a.name || "file", apiKey);
+      if (id) { a.fileId = id; hasContainerFiles = true; }
+    }
+  }
+
   const reqBody: Record<string, unknown> = {
     model,
     max_tokens: 8192,
@@ -566,10 +602,12 @@ Deno.serve(async (req: Request) => {
   // toolset so the cached tools prefix stays intact.
   reqBody.tools = [
     ...(mcpTools || []),
+    { type: "web_search_20250305", name: "web_search", max_uses: 5 },
     { type: "web_fetch_20250910", name: "web_fetch", max_uses: 5 },
     { type: "code_execution_20250825", name: "code_execution" },
   ];
   const betas = ["code-execution-2025-08-25"];
+  if (hasContainerFiles) betas.push("files-api-2025-04-14"); // container_upload (Office/CSV) reading
   if (mcpServers) betas.push("mcp-client-2025-11-20");
   extraHeaders["anthropic-beta"] = betas.join(",");
 

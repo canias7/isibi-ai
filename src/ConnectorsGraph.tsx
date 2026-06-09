@@ -8,7 +8,7 @@ import { CONNECTORS, CONNECT_API, byId, type Connector } from './connectorData';
 import { BrandLogo } from './brandLogos';
 import { hasBrand } from './brandData';
 import ToolManager from './ToolManager';
-import { IconArrowLeft, IconSpark } from './icons';
+import { IconArrowLeft, IconSpark, IconBank } from './icons';
 
 // Full-screen "constellation" of connected apps (mirrors the Memory screen): a
 // glowing hub with each connected app as a draggable node, plus "+" nodes to add
@@ -38,9 +38,10 @@ function layout(n: number): XY[] {
 
 // Apps offered in the connect picker: those with a crisp bundled logo (the native
 // webview can't load the remote CDN logos, so we only surface ones that render).
-const CATALOG = CONNECTORS.filter((c) => hasBrand(c.id));
+const CATALOG = CONNECTORS.filter((c) => hasBrand(c.id) || c.id === 'plaid');
 
 function Tile({ id, size = 22 }: { id: string; size?: number }) {
+  if (id === 'plaid') return <IconBank size={size} />; // Plaid uses the bundled bank glyph
   if (hasBrand(id)) return <BrandLogo app={id} size={size} />;
   const c = byId(id);
   return <span className="cg-mono" style={{ background: c?.color }}>{(c?.name ?? '?').charAt(0)}</span>;
@@ -74,6 +75,39 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     return data.session?.access_token ?? null;
   }
 
+  // Plaid lives outside Composio (its own Edge Function). We special-case the
+  // `plaid` connector id for connect / status / disconnect throughout.
+  async function plaidCall(action: string, extra: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+    const { data, error } = await supabase.functions.invoke('plaid', { body: { action, ...extra } });
+    if (error) throw new Error(error.message || 'Request failed');
+    const d = (data || {}) as Record<string, unknown>;
+    if (d.error) throw new Error(String(d.error));
+    return d;
+  }
+  // Plaid Hosted Link: open Plaid's page in the in-app browser, then poll the
+  // backend until the bank is linked (public token exchanged + stored server-side).
+  async function connectPlaid() {
+    try {
+      const d = await plaidCall('create_link_token');
+      const url = d.hosted_link_url as string | undefined;
+      const linkToken = d.link_token as string | undefined;
+      if (!url || !linkToken) throw new Error('Could not start linking.');
+      await Browser.open({ url });
+      let closedAt = 0;
+      const sub = await Browser.addListener('browserFinished', () => { closedAt = Date.now(); });
+      const start = Date.now();
+      let done = false;
+      while (!done) {
+        await new Promise((r) => setTimeout(r, 2500));
+        try { const c = await plaidCall('complete', { link_token: linkToken }); if (c.ok) { done = true; break; } } catch { /* keep polling */ }
+        if ((closedAt && Date.now() - closedAt > 12000) || Date.now() - start > 300000) break;
+      }
+      await sub.remove();
+      if (done) await Browser.close().catch(() => {});
+    } catch (e) { console.error('plaid link', e); }
+    await refreshAll();
+  }
+
   // One batched call returns every connected app for this user. If we were waiting
   // on a just-connected app, open its tool picker so they choose tools first.
   async function refreshAll() {
@@ -86,10 +120,16 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       const map: Record<string, { email?: string | null }> = j.connected ?? {};
       const next: Record<string, Status> = {};
       for (const c of CONNECTORS) next[c.id] = { connected: !!map[c.id], email: map[c.id]?.email ?? null };
+      // Plaid's connected state comes from its own backend, not Composio.
+      try {
+        const pd = await plaidCall('list');
+        const banks = (pd.banks as unknown[]) ?? [];
+        next.plaid = { connected: banks.length > 0, email: banks.length ? `${banks.length} bank${banks.length > 1 ? 's' : ''} linked` : null };
+      } catch { next.plaid = next.plaid ?? { connected: false, email: null }; }
       if (!aliveRef.current) return;
       setStatus(next);
       const pend = pendingConnect.current;
-      if (pend && next[pend]?.connected) {
+      if (pend && pend !== 'plaid' && next[pend]?.connected) {
         pendingConnect.current = null;
         const c = byId(pend);
         if (c) setManage(c); // first connect -> pick tools
@@ -127,6 +167,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   }, []);
 
   async function connect(id: string) {
+    if (id === 'plaid') { setPicker(false); void connectPlaid(); return; }
     const t = await token();
     if (!t) return;
     pendingConnect.current = id; // open the tool picker once it's connected
@@ -156,9 +197,16 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
 
   async function disconnect(id: string) {
     setDetail(null);
+    setStatus((s) => ({ ...s, [id]: { connected: false, email: null } })); // optimistic
+    if (id === 'plaid') {
+      // Unlink every linked bank (Plaid item) for this user.
+      try { const d = await plaidCall('list'); for (const b of ((d.banks as { id: string }[]) ?? [])) await plaidCall('unlink', { id: b.id }); }
+      catch { /* refreshAll reconciles */ }
+      setTimeout(refreshAll, 800);
+      return;
+    }
     const t = await token();
     if (!t) return;
-    setStatus((s) => ({ ...s, [id]: { connected: false, email: null } })); // optimistic
     try {
       await fetch(`${CONNECT_API}/disconnect?app=${id}`, { method: 'POST', headers: { authorization: `Bearer ${t}` } });
     } catch { /* refreshAll reconciles */ }
@@ -377,13 +425,22 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
               <span className="cg-tile"><Tile id={detail.id} size={22} /></span>
               <div>
                 <b>{detail.name}</b>
-                <small>{status[detail.id]?.email ? `Connected as ${status[detail.id]?.email}` : 'Connected'}</small>
+                <small>{detail.id === 'plaid'
+                  ? (status[detail.id]?.email || 'Bank linked')
+                  : (status[detail.id]?.email ? `Connected as ${status[detail.id]?.email}` : 'Connected')}</small>
               </div>
             </div>
-            <button className="cg-sheet-btn" onClick={() => { const c = detail; setDetail(null); setManage(c); }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 7a2 2 0 104 0 2 2 0 10-4 0M6 17a2 2 0 104 0 2 2 0 10-4 0" /></svg>
-              Choose tools
-            </button>
+            {detail.id === 'plaid' ? (
+              <button className="cg-sheet-btn" onClick={() => { setDetail(null); void connectPlaid(); }}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                Link another bank
+              </button>
+            ) : (
+              <button className="cg-sheet-btn" onClick={() => { const c = detail; setDetail(null); setManage(c); }}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 7a2 2 0 104 0 2 2 0 10-4 0M6 17a2 2 0 104 0 2 2 0 10-4 0" /></svg>
+                Choose tools
+              </button>
+            )}
             <button className="cg-sheet-btn danger" onClick={() => disconnect(detail.id)}>
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
               Disconnect
