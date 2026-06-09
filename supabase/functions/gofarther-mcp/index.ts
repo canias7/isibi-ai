@@ -2,8 +2,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { crypto as stdCrypto } from "jsr:@std/crypto"; // for MD5 (WebCrypto lacks it)
 
 // Generic MCP server Claude connects to (via the chat function's mcp_servers).
-// NOTE: the function slug is still `gmail-mcp` for historical reasons, but it
-// now proxies MULTIPLE Composio toolkits (Gmail, Calendar, Drive, ...).
+// Slug: `gofarther-mcp`. It proxies MULTIPLE Composio toolkits (Gmail, Calendar,
+// Drive, ...) plus built-in memory and read-only bank (Plaid) tools.
 //
 // It's a THIN PROXY: Claude talks to us over MCP (Bearer SHARED_SECRET, which
 // is all Anthropic's native MCP connector supports), and we forward tool calls

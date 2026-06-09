@@ -1,11 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const MCP_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-mcp";
+const MCP_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gofarther-mcp";
 const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
 const SB_URL = Deno.env.get("SUPABASE_URL");
 const SB_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-// Per-user MCP auth: each call to gmail-mcp carries a short-lived HMAC-signed
+// Per-user MCP auth: each call to gofarther-mcp carries a short-lived HMAC-signed
 // token binding the acting user id, so the user identity is derived from a value
 // the caller can't forge (not a query param). Secret is MCP_SHARED_SECRET if set,
 // else derived from a server-only secret (never the empty string).
@@ -390,7 +390,7 @@ async function persistTurn(uid: string, convId: string, history: Msg[], reply: s
 async function firePush(authHeader: string, body: string): Promise<void> {
   if (!authHeader) return;
   try {
-    await fetch(MCP_URL.replace("/gmail-mcp", "/send-push"), {
+    await fetch(MCP_URL.replace("/gofarther-mcp", "/send-push"), {
       method: "POST",
       headers: { authorization: authHeader, "content-type": "application/json" },
       body: JSON.stringify({ title: "Go Farther", body }),

@@ -7,10 +7,11 @@ history; the few open items below need attention before a wide public launch.
 - **Per-user identity + auth.** Real login (Supabase Auth, email+password). The
   backend derives the user from the verified JWT; an anon key alone reaches no
   one's connected data. The `chat` function runs with `verify_jwt = true`.
-- **No secrets in the repo.** The chat↔gmail-mcp bearer is derived at runtime
-  from a server-only secret (`COMPOSIO_API_KEY`) by both functions, so they stay
-  in sync with nothing stored. `gmail-mcp` enforces it: a bad/missing bearer
-  returns `401 Unauthorized` (verified live). No `MCP_SHARED_SECRET` is needed.
+- **Per-user MCP auth.** Calls to `gofarther-mcp` (the generic MCP proxy) carry a
+  short-lived, HMAC-signed token that binds the acting user id, so identity can't
+  be forged via a query param. Signed with `MCP_SHARED_SECRET` (server-only); a
+  bad/missing/expired token returns `401 Unauthorized` (verified live). Stored
+  bank (Plaid) access tokens are AES-GCM encrypted at rest.
 - **Connect/status are authenticated.** `gmail-oauth` verifies the caller's
   Supabase token server-side (via GoTrue) instead of trusting a client-supplied
   user id. The OAuth `/start` link carries a short-lived (~5 min) HMAC one-time
@@ -32,13 +33,11 @@ history; the few open items below need attention before a wide public launch.
   tables have own-row RLS.
 - **Reduced attack surface.** The legacy `ghost` function plus 10 one-off
   debug/test functions were **deleted** (11 total); the stale `gmail_tokens`
-  table was dropped. Production functions only: `chat`, `gmail-oauth`,
-  `gmail-mcp`, `send-push`, `run-workflows`, `build-workflow`, `test-workflow`.
+  table was dropped. Production functions: `chat`, `gmail-oauth`,
+  `gofarther-mcp`, `plaid`, `send-push`, `run-workflows`, `build-workflow`, `test-workflow`.
 - **No raw errors to clients.** `chat`, `build-workflow`, `gmail-oauth`,
-  `gmail-mcp`, and `run-workflows` log exceptions server-side and return a
-  generic message instead of echoing raw exception / upstream-API text. (The
-  `gmail-mcp` tool-call results keep detail — the agent needs it to self-correct
-  — but now also log server-side.)
+  `gofarther-mcp`, and `run-workflows` log exceptions server-side and return a
+  generic message instead of echoing raw exception / upstream-API text.
 - **`main` branch protected.** A repository ruleset blocks force-pushes and
   deletions on `main`. Note: protection also blocks the `claude` user account the
   hosted Claude environment pushes through (rulesets can't bypass an individual
