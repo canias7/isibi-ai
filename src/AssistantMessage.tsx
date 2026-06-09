@@ -1,8 +1,8 @@
 import { memo } from 'react';
 import Markdown from './Markdown';
 import {
-  EmailList, EmailSkeleton, EmailDetail, EmailDetailSkeleton, ContactsList, ReceiptCard, FileCard,
-  type EmailItem, type EmailMessage, type ContactItem, type ReceiptData, type FileData,
+  EmailList, EmailSkeleton, EmailDetail, EmailDetailSkeleton, ContactsList, ReceiptCard, FileCard, GenImage,
+  type EmailItem, type EmailMessage, type ContactItem, type ReceiptData, type FileData, type ImageData,
 } from './EmailList';
 import { MemoryAttachmentCard } from './MemoryCard';
 
@@ -111,6 +111,8 @@ function AssistantMessage(
   const isMemoryCard = f.lang === 'gf-memory' && obj && typeof (parsed as { id?: unknown }).id === 'string';
   // Generated file (gf-file): a {name,url,…} object — a downloadable the sandbox made.
   const isFile = f.lang === 'gf-file' && obj && typeof (parsed as { url?: unknown }).url === 'string';
+  // Generated image (gf-image): a {url} object — an image the assistant created.
+  const isImage = f.lang === 'gf-image' && obj && typeof (parsed as { url?: unknown }).url === 'string';
   const list = gf
     ? (Array.isArray(parsed) && parsed.length > 0)
     : (Array.isArray(parsed) && parsed.length > 0 && parsed.every(isEmailItem));
@@ -133,7 +135,9 @@ function AssistantMessage(
   return (
     <>
       {f.before.trim() && <Markdown text={f.before} />}
-      {isFile
+      {isImage
+        ? <GenImage data={parsed as ImageData} />
+        : isFile
         ? <FileCard data={parsed as FileData} />
         : isMemoryCard
         ? <MemoryAttachmentCard id={(parsed as { id: string }).id} />

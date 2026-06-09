@@ -25,6 +25,11 @@ const CATALOG_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail
 // Optional: Google Maps Platform key (Places API New + Directions API). When set,
 // the GF_MAPS tool is advertised; until then it stays hidden (dormant).
 const MAPS_KEY = Deno.env.get("GOOGLE_MAPS_API_KEY");
+// Optional: OpenAI key for image generation. When set, GF_IMAGE is advertised.
+// OPENAI_IMAGE_MODEL is the fallback model when the assistant doesn't pick one
+// (set it to "dall-e-3" if your org isn't verified for the gpt-image models).
+const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
+const OPENAI_IMAGE_MODEL = Deno.env.get("OPENAI_IMAGE_MODEL") || "gpt-image-2";
 
 // Per-user MCP auth: callers sign a short-lived token binding the acting user id;
 // we verify it here and DERIVE the uid from it, so identity can't be forged via a
@@ -422,9 +427,10 @@ async function listTools(apps: string[], prefs: Record<string, string[]>, memOn:
       BANK_LIABILITIES_TOOL, BANK_INVESTMENTS_TOOL, BANK_IDENTITY_TOOL,
       BANK_AUTH_TOOL, BANK_INV_TXNS_TOOL, BANK_INSIGHTS_TOOL);
   }
-  // General-purpose built-ins: weather (keyless) always; maps only when a key is set.
+  // General-purpose built-ins: weather (keyless) always; maps & image-gen only when their key is set.
   out.push(WEATHER_TOOL);
   if (MAPS_KEY) out.push(MAPS_TOOL);
+  if (OPENAI_KEY) out.push(IMAGE_TOOL);
   return out;
 }
 
@@ -886,6 +892,75 @@ const MAPS_TOOL: Tool = {
   }, required: ["mode"] },
 };
 
+// ---- Image generation (OpenAI; only when OPENAI_API_KEY is set) -------------
+// Store generated PNG bytes in the private chat-files bucket and return a long-
+// lived signed URL the chat renders inline.
+async function stashImage(uid: string, bytes: Uint8Array): Promise<string | null> {
+  const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return null;
+  try {
+    const objKey = `${uid}/img/${crypto.randomUUID()}.png`;
+    const auth = { apikey: key, authorization: `Bearer ${key}` };
+    const up = await fetch(`${url}/storage/v1/object/chat-files/${objKey}`, {
+      method: "POST", headers: { ...auth, "content-type": "image/png", "x-upsert": "true" }, body: bytes,
+    });
+    if (!up.ok) { console.error("img stash", up.status, (await up.text().catch(() => "")).slice(0, 120)); return null; }
+    const sign = await fetch(`${url}/storage/v1/object/sign/chat-files/${objKey}`, {
+      method: "POST", headers: { ...auth, "content-type": "application/json" }, body: JSON.stringify({ expiresIn: 31536000 }),
+    });
+    if (!sign.ok) return null;
+    const sj = await sign.json();
+    const signed = String(sj?.signedURL ?? sj?.signedUrl ?? "");
+    return signed ? `${url}/storage/v1${signed.startsWith("/") ? "" : "/"}${signed}` : null;
+  } catch (e) { console.error("stashImage", e); return null; }
+}
+// Call OpenAI's image API (model chosen by the assistant), host the results.
+async function generateImages(uid: string, prompt: string, model: string, size: string, n: number): Promise<string[]> {
+  const m = model || OPENAI_IMAGE_MODEL;
+  const body: Record<string, unknown> = { model: m, prompt, n: m === "dall-e-3" ? 1 : Math.min(Math.max(n || 1, 1), 4) };
+  if (size) body.size = size;
+  if (m.startsWith("dall-e")) body.response_format = "b64_json"; // the gpt-image family returns b64 already (and rejects this param)
+  const r = await fetch("https://api.openai.com/v1/images/generations", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${OPENAI_KEY}` },
+    body: JSON.stringify(body),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j?.error?.message || `OpenAI HTTP ${r.status}`);
+  const urls: string[] = [];
+  for (const d of (j?.data || [])) {
+    const b64 = d?.b64_json;
+    if (!b64) continue;
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const u = await stashImage(uid, bytes);
+    if (u) urls.push(u);
+  }
+  return urls;
+}
+async function imageTool(uid: string, args: any): Promise<string> {
+  if (!OPENAI_KEY) return "Image generation isn't configured on the server yet.";
+  const prompt = String(args?.prompt || "").trim();
+  if (!prompt) return "Please describe the image to generate.";
+  try {
+    const urls = await generateImages(uid, prompt, String(args?.model || ""), String(args?.size || ""), Number(args?.n) || 1);
+    if (!urls.length) return "The image couldn't be generated.";
+    const blocks = urls.map((u) => "```gf-image\n" + JSON.stringify({ url: u }) + "\n```").join("\n");
+    return `Image ready. Show it to the user by replying with the following block(s) exactly (a short caption before them is fine, but do NOT write the URL as text):\n${blocks}`;
+  } catch (e) {
+    return `Couldn't generate the image: ${String((e as Error).message)}`;
+  }
+}
+const IMAGE_TOOL: Tool = {
+  name: "GF_IMAGE",
+  description: "Generate an image from a text description (OpenAI). Choose the model that fits the request: \"gpt-image-2\" (default — latest, highest quality and prompt-fidelity, best for detailed/photorealistic scenes or text in the image), \"gpt-image-1-mini\" (cheaper/faster gpt-image), \"dall-e-3\" (vivid, artistic/stylized), or \"dall-e-2\" (cheapest; fine for simple or draft images and multiple variations). gpt-image-1 and gpt-image-1.5 are also valid model ids. Use ONLY when the user asks to create/generate/draw/make an image or picture. After it runs, show the image to the user exactly as the tool result instructs (a gf-image block) — never write the image URL as plain text.",
+  inputSchema: { type: "object", properties: {
+    prompt: { type: "string", description: "A vivid, detailed description of the image to create." },
+    model: { type: "string", description: "Image model id, chosen for the request: gpt-image-2 (default), gpt-image-1-mini, gpt-image-1, gpt-image-1.5, dall-e-3, or dall-e-2." },
+    size: { type: "string", description: "Size: 1024x1024 (square), 1536x1024 / 1024x1536 (gpt-image-1 landscape/portrait), or 1792x1024 / 1024x1792 (dall-e-3)." },
+    n: { type: "integer", description: "Number of images, 1-4 (only gpt-image-1 and dall-e-2 support more than 1)." },
+  }, required: ["prompt"] },
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === "GET") {
     // Non-sensitive: expose the RECOMMENDED tool slugs for a toolkit (optional
@@ -992,10 +1067,12 @@ Deno.serve(async (req: Request) => {
       }
     }
     // Built-in general tools — handled locally (no Composio, no connection needed).
-    if (p.name === "GF_WEATHER" || p.name === "GF_MAPS") {
+    if (p.name === "GF_WEATHER" || p.name === "GF_MAPS" || p.name === "GF_IMAGE") {
       try {
         const a = p.arguments || {};
-        const text = p.name === "GF_WEATHER" ? await weatherLookup(a.location, String(a.units || "fahrenheit")) : await mapsTool(a);
+        const text = p.name === "GF_WEATHER" ? await weatherLookup(a.location, String(a.units || "fahrenheit"))
+          : p.name === "GF_MAPS" ? await mapsTool(a)
+          : await imageTool(reqUser, a);
         await logUsage(p.name, true, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
       } catch (e) {
