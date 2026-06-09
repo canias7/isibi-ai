@@ -70,10 +70,30 @@ function imageToJpeg(f: File): Promise<string> {
   });
 }
 
+// Documents the code execution tool can read (Word/Excel/CSV/text). Mapped by
+// extension so it works even when the browser/webview reports no/wrong MIME type.
+const DOC_EXT_MIME: Record<string, string> = {
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  csv: 'text/csv',
+  txt: 'text/plain',
+};
+function docMime(f: File): string | null {
+  const ext = (f.name.match(/\.([^.]+)$/)?.[1] || '').toLowerCase();
+  if (DOC_EXT_MIME[ext]) return DOC_EXT_MIME[ext];
+  if (Object.values(DOC_EXT_MIME).includes(f.type)) return f.type; // browser gave the office MIME directly
+  return null;
+}
+
 export async function fileToAttachment(f: File): Promise<AttachResult> {
   const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
   const isImg = f.type.startsWith('image/');
-  if (!isImg && !isPdf) return { error: "That file type isn't supported — try an image or PDF." };
+  const docMimeType = (!isImg && !isPdf) ? docMime(f) : null;
+  if (!isImg && !isPdf && !docMimeType) {
+    return { error: "That file type isn't supported — try an image, PDF, Word, Excel, CSV, or text file." };
+  }
   if (f.size > MAX_BYTES) {
     return { error: `That file is too big (${Math.round(f.size / 1024 / 1024)} MB). Max is 20 MB.` };
   }
@@ -82,8 +102,12 @@ export async function fileToAttachment(f: File): Promise<AttachResult> {
       const data = await imageToJpeg(f);
       return { attach: { kind: 'image', mediaType: 'image/jpeg', data, name: (f.name || 'image').replace(/\.[^.]+$/, '') + '.jpg' } };
     }
+    if (isPdf) {
+      const data = stripPrefix(await readAsDataUrl(f));
+      return { attach: { kind: 'pdf', mediaType: 'application/pdf', data, name: f.name || 'document.pdf' } };
+    }
     const data = stripPrefix(await readAsDataUrl(f));
-    return { attach: { kind: 'pdf', mediaType: 'application/pdf', data, name: f.name || 'document.pdf' } };
+    return { attach: { kind: 'file', mediaType: docMimeType!, data, name: f.name || 'document' } };
   } catch {
     return { error: "Couldn't read that file — try another." };
   }

@@ -58,13 +58,17 @@ export async function fetchAttachment(mid: string, aid: string, name = 'file', a
 
 export type Role = 'user' | 'assistant';
 
-// A user-attached image or PDF. `data` is base64 WITHOUT the data-URL prefix.
-// (Stripped from `data` before persisting to localStorage to avoid quota bloat.)
+// A user-attached image, PDF, or document (Word/Excel/CSV/text -> kind 'file').
+// `data` is base64 WITHOUT the data-URL prefix. (Stripped from `data` before
+// persisting to localStorage to avoid quota bloat.) For 'file' kinds the backend
+// uploads the bytes to the Files API and stamps `fileId` so the code execution
+// tool can read the document.
 export interface Attach {
-  kind: 'image' | 'pdf';
+  kind: 'image' | 'pdf' | 'file';
   mediaType: string;
   data: string;
   name: string;
+  fileId?: string;
 }
 
 export interface ChatMessage {

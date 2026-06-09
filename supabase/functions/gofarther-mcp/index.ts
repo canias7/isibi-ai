@@ -22,6 +22,9 @@ const PLAID_ENV = (Deno.env.get("PLAID_ENV") || "sandbox").toLowerCase();
 const PLAID_BASE = PLAID_ENV === "production" ? "https://production.plaid.com"
   : PLAID_ENV === "development" ? "https://development.plaid.com" : "https://sandbox.plaid.com";
 const CATALOG_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-oauth?catalog=";
+// Optional: Google Maps Platform key (Places API New + Directions API). When set,
+// the GF_MAPS tool is advertised; until then it stays hidden (dormant).
+const MAPS_KEY = Deno.env.get("GOOGLE_MAPS_API_KEY");
 
 // Per-user MCP auth: callers sign a short-lived token binding the acting user id;
 // we verify it here and DERIVE the uid from it, so identity can't be forged via a
@@ -419,6 +422,9 @@ async function listTools(apps: string[], prefs: Record<string, string[]>, memOn:
       BANK_LIABILITIES_TOOL, BANK_INVESTMENTS_TOOL, BANK_IDENTITY_TOOL,
       BANK_AUTH_TOOL, BANK_INV_TXNS_TOOL, BANK_INSIGHTS_TOOL);
   }
+  // General-purpose built-ins: weather (keyless) always; maps only when a key is set.
+  out.push(WEATHER_TOOL);
+  if (MAPS_KEY) out.push(MAPS_TOOL);
   return out;
 }
 
@@ -756,6 +762,130 @@ const BANK_INSIGHTS_TOOL: Tool = {
   inputSchema: { type: "object", properties: { mode: { type: "string", enum: ["net_worth", "spending", "cash_flow", "upcoming_bills"] }, days: { type: "integer", description: "Window in days for spending/cash_flow (default 30)." } }, required: ["mode"] },
 };
 
+// ---- Weather (Open-Meteo, keyless) -----------------------------------------
+// WMO weather codes -> short descriptions (https://open-meteo.com/en/docs).
+const WMO: Record<number, string> = {
+  0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+  45: "Fog", 48: "Rime fog", 51: "Light drizzle", 53: "Drizzle", 55: "Dense drizzle",
+  56: "Freezing drizzle", 57: "Freezing drizzle", 61: "Light rain", 63: "Rain", 65: "Heavy rain",
+  66: "Freezing rain", 67: "Freezing rain", 71: "Light snow", 73: "Snow", 75: "Heavy snow",
+  77: "Snow grains", 80: "Light showers", 81: "Showers", 82: "Violent showers",
+  85: "Snow showers", 86: "Heavy snow showers", 95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Thunderstorm with hail",
+};
+async function weatherLookup(location: string, units: string): Promise<string> {
+  const loc = String(location || "").trim();
+  if (!loc) return "Please provide a place name (e.g. a city).";
+  const tempUnit = units === "celsius" ? "celsius" : "fahrenheit";
+  const windUnit = units === "celsius" ? "kmh" : "mph";
+  const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1&language=en&format=json`);
+  const gj = await g.json().catch(() => ({}));
+  const place = (gj?.results || [])[0];
+  if (!place) return `Couldn't find a place called "${loc}".`;
+  const where = [place.name, place.admin1, place.country].filter(Boolean).join(", ");
+  const u = new URL("https://api.open-meteo.com/v1/forecast");
+  u.searchParams.set("latitude", String(place.latitude));
+  u.searchParams.set("longitude", String(place.longitude));
+  u.searchParams.set("current", "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m");
+  u.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max");
+  u.searchParams.set("timezone", "auto");
+  u.searchParams.set("forecast_days", "7");
+  u.searchParams.set("temperature_unit", tempUnit);
+  u.searchParams.set("wind_speed_unit", windUnit);
+  const f = await fetch(u.toString());
+  const fj = await f.json().catch(() => ({}));
+  const c = fj?.current;
+  if (!c) return `Couldn't get the weather for ${where} right now.`;
+  const tU = fj.current_units?.temperature_2m || "°";
+  const wU = fj.current_units?.wind_speed_10m || "";
+  const pU = fj.current_units?.precipitation || "mm";
+  const lines: string[] = [];
+  lines.push(`Weather for ${where} (local time ${c.time}):`);
+  lines.push(`Now: ${WMO[c.weather_code] ?? `code ${c.weather_code}`}, ${c.temperature_2m}${tU} (feels ${c.apparent_temperature}${tU}), humidity ${c.relative_humidity_2m}%, wind ${c.wind_speed_10m} ${wU}, precip ${c.precipitation} ${pU}.`);
+  const d = fj.daily;
+  if (d?.time?.length) {
+    lines.push("Forecast:");
+    for (let i = 0; i < d.time.length; i++) {
+      lines.push(`  ${d.time[i]}: ${WMO[d.weather_code[i]] ?? `code ${d.weather_code[i]}`}, high ${d.temperature_2m_max[i]}${tU} / low ${d.temperature_2m_min[i]}${tU}, precip chance ${d.precipitation_probability_max?.[i] ?? "?"}%`);
+    }
+  }
+  return lines.join("\n");
+}
+const WEATHER_TOOL: Tool = {
+  name: "GF_WEATHER",
+  description: "Get current weather and a 7-day forecast for any place by name (city, town, or 'City, Region'). Use for 'what's the weather', 'will it rain', 'forecast for …'. No setup needed; works worldwide.",
+  inputSchema: { type: "object", properties: {
+    location: { type: "string", description: "Place name, e.g. 'Paris', 'Austin, TX', 'Tokyo'." },
+    units: { type: "string", enum: ["fahrenheit", "celsius"], description: "Temperature units (default fahrenheit)." },
+  }, required: ["location"] },
+};
+
+// ---- Maps (Google Maps Platform; only when GOOGLE_MAPS_API_KEY is set) ------
+async function mapsPlaces(query: string, near: string, openNow: boolean): Promise<string> {
+  const q = String(query || "").trim();
+  if (!q) return "Please say what to search for (e.g. 'coffee shop').";
+  const body: Record<string, unknown> = { textQuery: near ? `${q} near ${near}` : q, maxResultCount: 8 };
+  if (openNow) body.openNow = true;
+  const r = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "X-Goog-Api-Key": MAPS_KEY!,
+      "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.currentOpeningHours.openNow,places.priceLevel,places.nationalPhoneNumber,places.websiteUri",
+    },
+    body: JSON.stringify(body),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) return `Maps error: ${j?.error?.message || `HTTP ${r.status}`}. (Ensure "Places API (New)" is enabled for the key.)`;
+  const places = j.places || [];
+  if (!places.length) return `No places found for "${q}"${near ? ` near ${near}` : ""}.`;
+  return places.map((p: any) => {
+    const nm = p.displayName?.text || "?";
+    const rt = p.rating ? ` — ${p.rating}★ (${p.userRatingCount || 0})` : "";
+    const open = p.currentOpeningHours?.openNow === true ? " — open now" : p.currentOpeningHours?.openNow === false ? " — closed" : "";
+    const price = typeof p.priceLevel === "string" ? ` — ${p.priceLevel.replace("PRICE_LEVEL_", "").toLowerCase().replace(/_/g, " ")}` : "";
+    const phone = p.nationalPhoneNumber ? ` | ${p.nationalPhoneNumber}` : "";
+    const web = p.websiteUri ? ` | ${p.websiteUri}` : "";
+    return `${nm}${rt}${open}${price}\n  ${p.formattedAddress || ""}${phone}${web}`;
+  }).join("\n");
+}
+async function mapsDirections(origin: string, destination: string, travelMode: string): Promise<string> {
+  const o = String(origin || "").trim(), dst = String(destination || "").trim();
+  if (!o || !dst) return "Please give both an origin and a destination.";
+  const mode = ["driving", "walking", "bicycling", "transit"].includes(travelMode) ? travelMode : "driving";
+  const u = new URL("https://maps.googleapis.com/maps/api/directions/json");
+  u.searchParams.set("origin", o);
+  u.searchParams.set("destination", dst);
+  u.searchParams.set("mode", mode);
+  u.searchParams.set("key", MAPS_KEY!);
+  const r = await fetch(u.toString());
+  const j = await r.json().catch(() => ({}));
+  if (j.status !== "OK") return `Maps error: ${j.error_message || j.status || `HTTP ${r.status}`}. (Ensure the "Directions API" is enabled for the key.)`;
+  const leg = j.routes?.[0]?.legs?.[0];
+  if (!leg) return "No route found.";
+  const steps = (leg.steps || []).map((s: any, i: number) => `  ${i + 1}. ${String(s.html_instructions || "").replace(/<[^>]+>/g, "")} (${s.distance?.text || ""})`).join("\n");
+  return `${mode} from ${leg.start_address} to ${leg.end_address}:\nDistance ${leg.distance?.text}, about ${leg.duration?.text}.\n${steps}`;
+}
+async function mapsTool(args: any): Promise<string> {
+  if (!MAPS_KEY) return "Maps isn't configured on the server yet.";
+  const mode = String(args?.mode || "");
+  if (mode === "places") return await mapsPlaces(args?.query, args?.near, !!args?.open_now);
+  if (mode === "directions") return await mapsDirections(args?.origin, args?.destination, String(args?.travel_mode || "driving"));
+  return "Unknown maps mode. Use 'places' or 'directions'.";
+}
+const MAPS_TOOL: Tool = {
+  name: "GF_MAPS",
+  description: "Find places or get directions with Google Maps. mode='places' searches businesses/points of interest (set query, e.g. 'sushi restaurant', and optional near, e.g. 'Soho, NYC'; open_now to filter to open); mode='directions' returns a route between origin and destination (optional travel_mode driving/walking/bicycling/transit). Use for 'find a … near …', 'directions from … to …', 'how long to drive from … to …'.",
+  inputSchema: { type: "object", properties: {
+    mode: { type: "string", enum: ["places", "directions"] },
+    query: { type: "string", description: "What to search for (places mode), e.g. 'pharmacy'." },
+    near: { type: "string", description: "Where to search near (places mode), e.g. 'Austin, TX'." },
+    open_now: { type: "boolean", description: "Only return places open now (places mode)." },
+    origin: { type: "string", description: "Start address/place (directions mode)." },
+    destination: { type: "string", description: "End address/place (directions mode)." },
+    travel_mode: { type: "string", enum: ["driving", "walking", "bicycling", "transit"], description: "Travel mode (directions mode, default driving)." },
+  }, required: ["mode"] },
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === "GET") {
     // Non-sensitive: expose the RECOMMENDED tool slugs for a toolkit (optional
@@ -859,6 +989,19 @@ Deno.serve(async (req: Request) => {
         console.error("bank tool error:", p.name, e);
         await logUsage(p.name, false, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "Couldn't read your bank data right now." }], isError: true } });
+      }
+    }
+    // Built-in general tools — handled locally (no Composio, no connection needed).
+    if (p.name === "GF_WEATHER" || p.name === "GF_MAPS") {
+      try {
+        const a = p.arguments || {};
+        const text = p.name === "GF_WEATHER" ? await weatherLookup(a.location, String(a.units || "fahrenheit")) : await mapsTool(a);
+        await logUsage(p.name, true, reqUser);
+        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
+      } catch (e) {
+        console.error("builtin tool error:", p.name, e);
+        await logUsage(p.name, false, reqUser);
+        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "That action couldn't be completed — please try again." }], isError: true } });
       }
     }
     // Only execute a tool actually served for this user's connected apps — never a

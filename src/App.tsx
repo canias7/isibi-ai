@@ -720,7 +720,7 @@ export default function App() {
       input.setAttribute('capture', 'environment'); // open the camera, not the menu
     } else {
       input.multiple = true;
-      input.accept = 'image/*,application/pdf';
+      input.accept = 'image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain';
       input.removeAttribute('capture');
     }
     input.click();
