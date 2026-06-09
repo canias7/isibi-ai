@@ -79,6 +79,10 @@ export async function listenOnce(opts: ListenOpts = {}): Promise<Blob | null> {
   mute.gain.value = 0;
 
   const chunks: Float32Array[] = [];
+  // Rolling pre-roll (~0.5s): kept while waiting so the first syllable isn't
+  // clipped — speech is only DETECTED mid-word, but we prepend what came before.
+  const preroll: Float32Array[] = [];
+  const PREROLL_CHUNKS = 6;
   const inRate = ctx.sampleRate;
   const SPEECH = 0.015; // RMS above this counts as speech
   let started = false;
@@ -111,8 +115,16 @@ export async function listenOnce(opts: ListenOpts = {}): Promise<Blob | null> {
       const rms = Math.sqrt(sum / input.length);
       if (onLevel) onLevel(Math.min(1, rms * 8));
       const now = Date.now();
-      if (rms > SPEECH) { started = true; lastVoice = now; }
-      if (started) chunks.push(new Float32Array(input)); // only keep audio once speech begins
+      if (rms > SPEECH) {
+        if (!started) { started = true; chunks.push(...preroll); preroll.length = 0; }
+        lastVoice = now;
+      }
+      if (started) {
+        chunks.push(new Float32Array(input));
+      } else {
+        preroll.push(new Float32Array(input));
+        if (preroll.length > PREROLL_CHUNKS) preroll.shift();
+      }
       if (started && now - lastVoice > silenceMs) { finish(); return; }
       if (started && now - t0 > maxMs) { finish(); return; }
       if (!started && now - t0 > startTimeoutMs) { cleanup(); resolve(null); }

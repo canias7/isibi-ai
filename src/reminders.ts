@@ -100,8 +100,15 @@ function every(repeat: RepeatKind): 'day' | 'week' | undefined {
 export async function scheduleReminder(r: Reminder): Promise<void> {
   try {
     const at = new Date(r.remind_at);
-    // A one-off whose time has already passed can never fire — skip it.
-    if (r.repeat === 'none' && at.getTime() <= Date.now()) return;
+    // A one-off whose time has already passed can never fire — skip it. A
+    // repeating one rolls forward to its next occurrence, so re-arming (e.g. on
+    // launch) never triggers an immediate spurious notification.
+    if (r.repeat === 'none') {
+      if (at.getTime() <= Date.now()) return;
+    } else {
+      const step = r.repeat === 'daily' ? 86_400_000 : 7 * 86_400_000;
+      while (at.getTime() <= Date.now()) at.setTime(at.getTime() + step);
+    }
     await LocalNotifications.schedule({
       notifications: [{
         id: notifId(r.id),

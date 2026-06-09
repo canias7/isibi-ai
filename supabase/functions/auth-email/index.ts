@@ -27,7 +27,6 @@ const RESEND_API_KEY = env("RESEND_API_KEY");
 // Sender must be on a Resend-VERIFIED domain to reach real users. For a quick
 // self-test, Resend allows "onboarding@resend.dev" (to your own account email).
 const RESEND_FROM = env("RESEND_FROM") || "Go Farther <onboarding@resend.dev>";
-const SB_URL = env("SUPABASE_URL") || "https://lkpfeqrelvziltfwpuxi.supabase.co";
 
 interface EmailData {
   token: string;
@@ -43,43 +42,31 @@ interface HookPayload {
   email_data: EmailData;
 }
 
-// Per-action copy. Link types show a button; code-only types (reauthentication,
-// generic email) show the 6-digit code.
-const COPY: Record<string, { subject: string; title: string; intro: string; cta?: string }> = {
-  signup: { subject: "Confirm your email", title: "Confirm your email", intro: "Tap below to confirm your address and finish setting up Go Farther.", cta: "Confirm email" },
-  recovery: { subject: "Reset your password", title: "Reset your password", intro: "Tap below to choose a new password. Didn't ask for this? You can safely ignore this email.", cta: "Reset password" },
-  magiclink: { subject: "Your sign-in link", title: "Sign in to Go Farther", intro: "Tap below to sign in. This link works once and expires shortly.", cta: "Sign in" },
-  email_change: { subject: "Confirm your new email", title: "Confirm your new email", intro: "Tap below to confirm this new email address for your Go Farther account.", cta: "Confirm email" },
-  invite: { subject: "You're invited to Go Farther", title: "You're invited", intro: "You've been invited to Go Farther. Tap below to accept and set up your account.", cta: "Accept invite" },
-  reauthentication: { subject: "Confirm it's you", title: "Confirm it's you", intro: "Use the code below to confirm this action." },
-  email: { subject: "Your verification code", title: "Your verification code", intro: "Use the code below to continue." },
+// Per-action copy. The app signs in with the CODE (passwordless, native), so
+// every email makes the code the hero — no buttons: the verify links resolve
+// against the project's Site URL, which doesn't apply to the native app.
+const COPY: Record<string, { subject: string; title: string; intro: string }> = {
+  signup: { subject: "Confirm your email", title: "Confirm your email", intro: "Enter this code in the app to finish setting up Go Farther." },
+  recovery: { subject: "Your sign-in code", title: "Get back in", intro: "Enter this code in the app to sign back in." },
+  magiclink: { subject: "Your sign-in code", title: "Sign in to Go Farther", intro: "Enter this code in the app. It works once and expires shortly." },
+  email_change: { subject: "Confirm your new email", title: "Confirm your new email", intro: "Enter this code in the app to confirm this new address." },
+  invite: { subject: "You're invited to Go Farther", title: "You're invited", intro: "Download Go Farther and enter this code to set up your account." },
+  reauthentication: { subject: "Confirm it's you", title: "Confirm it's you", intro: "Enter this code in the app to confirm this action." },
+  email: { subject: "Your verification code", title: "Your verification code", intro: "Enter this code in the app to continue." },
 };
-
-function verifyLink(d: EmailData): string {
-  const params = new URLSearchParams({
-    token: d.token_hash,
-    type: d.email_action_type,
-    redirect_to: d.redirect_to || "",
-  });
-  return `${SB_URL}/auth/v1/verify?${params.toString()}`;
-}
 
 function renderEmail(d: EmailData): { subject: string; html: string } {
   const c = COPY[d.email_action_type] || COPY.email;
-  const link = verifyLink(d);
-  const button = c.cta
-    ? `<a href="${link}" style="display:inline-block;background:#e7b24e;color:#111;text-decoration:none;font-weight:600;font-size:16px;padding:14px 28px;border-radius:12px;">${c.cta}</a>`
-    : "";
-  const code = `<div style="margin:18px 0 4px;font-size:13px;color:#8a8f98;">${c.cta ? "Or use this code:" : "Your code:"}</div>
-    <div style="font-size:30px;font-weight:700;letter-spacing:6px;color:#111;">${d.token}</div>`;
   const html = `<!doctype html><html><body style="margin:0;background:#f4f5f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <div style="max-width:480px;margin:0 auto;padding:32px 20px;">
     <div style="text-align:center;font-size:22px;font-weight:700;color:#111;margin-bottom:18px;">Go&nbsp;Farther</div>
     <div style="background:#ffffff;border-radius:18px;padding:32px 28px;box-shadow:0 1px 4px rgba(0,0,0,0.06);text-align:center;">
       <h1 style="margin:0 0 12px;font-size:21px;color:#111;">${c.title}</h1>
       <p style="margin:0 0 22px;font-size:15px;line-height:1.55;color:#454a52;">${c.intro}</p>
-      ${button}
-      ${code}
+      <div style="display:inline-block;background:#f4f5f7;border-radius:14px;padding:16px 26px;">
+        <span style="font-size:34px;font-weight:700;letter-spacing:8px;color:#111;font-variant-numeric:tabular-nums;">${d.token}</span>
+      </div>
+      <p style="margin:18px 0 0;font-size:12.5px;color:#8a8f98;">This code expires in about an hour.</p>
     </div>
     <p style="text-align:center;font-size:12px;color:#9aa0a8;margin:20px 0 0;line-height:1.5;">
       If you didn't request this, you can ignore this email — no changes were made.
