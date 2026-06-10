@@ -147,13 +147,15 @@ const ALLOWED: Record<string, string[]> = {
     "HUBSPOT_CREATE_CONTACT",
   ],
   outlook: [
-    // Composio's real Outlook slugs use a double OUTLOOK_OUTLOOK_ prefix.
-    "OUTLOOK_OUTLOOK_LIST_MESSAGES",
-    "OUTLOOK_OUTLOOK_SEARCH_MESSAGES",
-    "OUTLOOK_OUTLOOK_GET_MESSAGE",
-    "OUTLOOK_OUTLOOK_SEND_EMAIL",
-    "OUTLOOK_OUTLOOK_CREATE_DRAFT",
-    "OUTLOOK_OUTLOOK_REPLY_EMAIL",
+    // Composio renamed Outlook to single-prefix slugs in its tools LISTING
+    // (catalog/picker/served schemas) while EXECUTE still wants the legacy
+    // OUTLOOK_OUTLOOK_ double prefix — execTool bridges that at call time.
+    "OUTLOOK_LIST_MESSAGES",
+    "OUTLOOK_SEARCH_MESSAGES",
+    "OUTLOOK_GET_MESSAGE",
+    "OUTLOOK_SEND_EMAIL",
+    "OUTLOOK_CREATE_DRAFT",
+    "OUTLOOK_REPLY_EMAIL",
   ],
   googlesheets: ["GOOGLESHEETS_SEARCH_SPREADSHEETS", "GOOGLESHEETS_BATCH_GET", "GOOGLESHEETS_GET_SHEET_NAMES", "GOOGLESHEETS_GET_SPREADSHEET_INFO", "GOOGLESHEETS_LOOKUP_SPREADSHEET_ROW", "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND", "GOOGLESHEETS_FIND_REPLACE"],
   googledocs: ["GOOGLEDOCS_GET_DOCUMENT_PLAINTEXT", "GOOGLEDOCS_LIST_SPREADSHEET_CHARTS", "GOOGLEDOCS_COPY_DOCUMENT", "GOOGLEDOCS_CREATE_DOCUMENT2", "GOOGLEDOCS_CREATE_DOCUMENT_MARKDOWN", "GOOGLEDOCS_CREATE_FOOTER"],
@@ -452,13 +454,26 @@ async function allowedSlugs(apps: string[], prefs: Record<string, string[]>): Pr
   return set;
 }
 
-async function execTool(name: string, args: unknown, userId: string): Promise<string> {
+async function execOnce(name: string, args: unknown, userId: string): Promise<{ res: Response; body: any }> {
   const res = await fetch(`${BASE}/v3/tools/execute/${encodeURIComponent(name)}`, {
     method: "POST",
     headers: { "x-api-key": API_KEY, "content-type": "application/json" },
     body: JSON.stringify({ user_id: userId, arguments: args ?? {} }),
   });
   const body = await res.json().catch(() => ({}));
+  return { res, body };
+}
+
+async function execTool(name: string, args: unknown, userId: string): Promise<string> {
+  // Composio split-brain (seen 2026-06-07): its tools LISTING renamed Outlook to
+  // single-prefix slugs (OUTLOOK_LIST_MESSAGES) — which is what we serve — but
+  // EXECUTE still only accepts the legacy double prefix (OUTLOOK_OUTLOOK_…).
+  // Call the legacy name first; if Composio finishes the rename and the legacy
+  // slug disappears, the not-found retry flips us to the served name automatically.
+  const legacy = /^OUTLOOK_(?!OUTLOOK_)/.test(name) ? "OUTLOOK_OUTLOOK_" + name.slice("OUTLOOK_".length) : null;
+  const notFound = (b: any) => b?.error?.code === 2401 || b?.error?.slug === "Tool_ToolNotFound";
+  let { res, body } = await execOnce(legacy ?? name, args, userId);
+  if (legacy && notFound(body)) ({ res, body } = await execOnce(name, args, userId));
 
   // Composio caps the size of the response it returns to us. For a SEND/REPLY/
   // upload/draft, the action already happened upstream (e.g. Gmail accepted the
