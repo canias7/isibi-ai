@@ -1253,35 +1253,56 @@ export default function App() {
       {view === 'connectors' ? (
         <Suspense fallback={null}><ConnectorsGraph onClose={() => go('chat')} /></Suspense>
       ) : view === 'settings' ? (
-        <div className="page">
+        <div className="page settings-page">
           <div className="page-inner">
-            <h1 className="page-title">Settings</h1>
-            <p className="page-sub">
-              {isGuest ? 'Using a guest session on this device.' : `Signed in as ${session.user.email}.`}
-            </p>
-            {Capacitor.getPlatform() !== 'web' && (
-              <div className="set-row" onClick={toggleFaceId} role="button" tabIndex={0} aria-pressed={faceId}>
-                <div className="set-row-text">
-                  <div className="set-row-title">Require Face ID</div>
-                  <div className="set-row-sub">Lock the app when you open or return to it.</div>
-                </div>
-                <span className={`tgl ${faceId ? 'on' : ''}`}><span className="tgl-knob" /></span>
+            <div className="set-account">
+              <span className="set-account-av">{(session.user.email ?? 'G').charAt(0).toUpperCase()}</span>
+              <div className="set-account-text">
+                <div className="set-account-name">{isGuest || !session.user.email ? 'Guest' : session.user.email.split('@')[0].replace(/^./, (ch) => ch.toUpperCase())}</div>
+                <div className="set-account-sub">{isGuest || !session.user.email ? 'Guest session on this device' : session.user.email}</div>
               </div>
-            )}
+            </div>
+
             {Capacitor.getPlatform() !== 'web' && (
-              <div className="set-row" onClick={toggleNotif} role="button" tabIndex={0} aria-pressed={notif}>
-                <div className="set-row-text">
-                  <div className="set-row-title">Notifications</div>
-                  <div className="set-row-sub">Get push alerts from Go Farther.</div>
+              <>
+                <div className="set-label">Preferences</div>
+                <div className="set-card">
+                  <div className="set-row" onClick={toggleFaceId} role="button" tabIndex={0} aria-pressed={faceId}>
+                    <div className="set-row-text">
+                      <div className="set-row-title">Require Face ID</div>
+                      <div className="set-row-sub">Lock the app when you open or return to it.</div>
+                    </div>
+                    <span className={`tgl ${faceId ? 'on' : ''}`}><span className="tgl-knob" /></span>
+                  </div>
+                  <div className="set-row" onClick={toggleNotif} role="button" tabIndex={0} aria-pressed={notif}>
+                    <div className="set-row-text">
+                      <div className="set-row-title">Notifications</div>
+                      <div className="set-row-sub">Get push alerts from Go Farther.</div>
+                    </div>
+                    <span className={`tgl ${notif ? 'on' : ''}`}><span className="tgl-knob" /></span>
+                  </div>
                 </div>
-                <span className={`tgl ${notif ? 'on' : ''}`}><span className="tgl-knob" /></span>
-              </div>
+                {notif && (
+                  <button className="set-test-btn" onClick={testPush}>Send a test notification</button>
+                )}
+              </>
             )}
-            {Capacitor.getPlatform() !== 'web' && notif && (
-              <button className="set-test-btn" onClick={testPush}>Send a test notification</button>
-            )}
+
             {noteMsg && <p className="set-note">{noteMsg}</p>}
-            {!isGuest && <button className="conn-btn" onClick={signOut}>Sign out</button>}
+
+            {!isGuest && (
+              <>
+                <div className="set-label">Account</div>
+                <div className="set-card">
+                  <button className="set-row set-row-tap danger" onClick={signOut}>
+                    <div className="set-row-title">Sign out</div>
+                    <span className="set-row-ico"><IconLogout size={18} /></span>
+                  </button>
+                </div>
+              </>
+            )}
+
+            <div className="set-version">Go Farther</div>
           </div>
         </div>
       ) : (
