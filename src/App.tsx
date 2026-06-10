@@ -276,6 +276,8 @@ export default function App() {
   const faceIdRef = useRef(faceId);
   faceIdRef.current = faceId;
   const [bioStatus, setBioStatus] = useState<BiometryStatus | 'unknown'>('unknown'); // gates the Face ID row
+  const [confirmDelete, setConfirmDelete] = useState(false); // delete-account confirm sheet
+  const [deleting, setDeleting] = useState(false);
   const lockRef = useRef<() => void>(() => {});
   const sendTextRef = useRef<(raw: string, atts?: Attach[]) => Promise<void>>(async () => {}); // latest sendText, for the stable openEmail callback
   const [notif, setNotif] = useState(() => { try { return localStorage.getItem('gf_notif') === '1'; } catch { return false; } });
@@ -1105,10 +1107,50 @@ export default function App() {
     }
   }
 
+  // Wipe this account's data off the device — chats and pins can contain bank /
+  // email content, so they must not survive a sign-out (esp. on a shared phone).
+  // Device-only prefs (Face ID, notifications, graph positions) are kept.
+  function wipeLocalData() {
+    try {
+      if (uid) { localStorage.removeItem(chatsKey(uid)); localStorage.removeItem(pinsKey(uid)); }
+    } catch { /* ignore */ }
+    setChats([]);
+    setPinned(new Set());
+    setMessages([]);
+    setCurrentId(cid());
+    setChatSearch('');
+  }
+
   async function signOut() {
     stopStream();
     setSidebarOpen(false);
+    wipeLocalData();
     await supabase.auth.signOut();
+  }
+
+  // Permanently delete the account: server wipes every row this user owns and
+  // removes the auth user; then we clear the device and drop to the login screen.
+  async function deleteAccount() {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      const res = await fetch(`${CONNECT_API.replace('/gmail-oauth', '')}/delete-account`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token ?? ''}`, 'content-type': 'application/json' },
+      });
+      if (!res.ok) throw new Error(`server returned ${res.status}`);
+      stopStream();
+      setConfirmDelete(false);
+      setSidebarOpen(false);
+      wipeLocalData();
+      await supabase.auth.signOut();
+    } catch (e) {
+      flashNote(`Couldn't delete your account: ${e instanceof Error ? e.message : 'please try again'}.`, 7000);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   // ---- Gate on auth ----
@@ -1265,6 +1307,20 @@ export default function App() {
           </div>
         </>
       )}
+      {/* Delete-account confirmation */}
+      {confirmDelete && (
+        <>
+          <div className="sheet-scrim" onClick={() => !deleting && setConfirmDelete(false)} />
+          <div className="chat-sheet" role="alertdialog" aria-label="Delete account">
+            <div className="chat-sheet-title">Delete account?</div>
+            <p className="confirm-body">This permanently erases your chats, memories, connected-app links, and bank connections. It can’t be undone.</p>
+            <button className="chat-sheet-row danger" disabled={deleting} onClick={() => void deleteAccount()}>
+              <IconTrash size={16} /> {deleting ? 'Deleting…' : 'Delete everything'}
+            </button>
+            <button className="chat-sheet-row cancel" disabled={deleting} onClick={() => setConfirmDelete(false)}>Cancel</button>
+          </div>
+        </>
+      )}
 
       <header className="topbar">
         <button className="icon-btn" onClick={() => { void tap(); setSidebarOpen(true); }} aria-label="Open menu">
@@ -1322,11 +1378,16 @@ export default function App() {
               <>
                 <div className="set-label">Account</div>
                 <div className="set-card">
-                  <button className="set-row set-row-tap danger" onClick={signOut}>
+                  <button className="set-row set-row-tap" onClick={signOut}>
                     <div className="set-row-title">Sign out</div>
                     <span className="set-row-ico"><IconLogout size={18} /></span>
                   </button>
+                  <button className="set-row set-row-tap danger" onClick={() => { void tap(); setConfirmDelete(true); }}>
+                    <div className="set-row-title">Delete account</div>
+                    <span className="set-row-ico"><IconTrash size={18} /></span>
+                  </button>
                 </div>
+                <p className="set-foot-note">Deleting your account permanently removes your chats, memories, connected-app links, and bank connections. This can’t be undone.</p>
               </>
             )}
 
