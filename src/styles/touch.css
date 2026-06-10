@@ -1,0 +1,59 @@
+/* ---- Touch feel -------------------------------------------------------------
+   One global interaction layer so every tappable feels alive: press = quick
+   squish down, release = springy bounce back (Apple-style overshoot curve).
+   Imported LAST in main.tsx on purpose — these transitions must win over the
+   per-component `transition: background …` rules in earlier stylesheets. */
+
+button,
+[role="button"],
+.tappable,
+.icon-btn, .sug, .send, .plus-btn, .plus-row, .conn-pop-row, .radial-item,
+.msg-act, .msg-retry, .chat-act, .set-row, .set-test-btn, .side-item, .tgl {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.18s ease,
+    border-color 0.18s ease,
+    opacity 0.2s ease;
+}
+
+button:active,
+[role="button"]:active,
+.tappable:active,
+.icon-btn:active, .sug:active, .send:active, .plus-btn:active, .radial-item:active,
+.msg-act:active, .msg-retry:active, .chat-act:active, .set-test-btn:active, .tgl:active {
+  transform: scale(0.95);
+  /* Squish fast; the slow springy part happens on release via the rule above. */
+  transition: transform 0.07s ease-out, background 0.06s ease;
+}
+
+/* Wide, full-width rows squish less so they don't feel rubbery. */
+.plus-row:active, .conn-pop-row:active, .set-row:active, .side-item:active,
+.gf-email.tappable:active, .gf-contact:active {
+  transform: scale(0.98);
+  transition: transform 0.07s ease-out, background 0.06s ease;
+}
+
+/* The send button pops in with a spring when typing makes it usable. */
+.send:disabled { transform: scale(0.8); }
+
+/* Chat messages slide up softly as they arrive (one-time, on mount). */
+.msg {
+  animation: gf-msg-in 0.3s cubic-bezier(0.21, 1.02, 0.73, 1) backwards;
+}
+@keyframes gf-msg-in {
+  from { opacity: 0; transform: translateY(10px); }
+}
+
+/* Respect users who turn animations off. */
+@media (prefers-reduced-motion: reduce) {
+  .msg { animation: none; }
+  button, [role="button"], .tappable,
+  .icon-btn, .sug, .send, .plus-btn, .plus-row, .conn-pop-row, .radial-item,
+  .msg-act, .msg-retry, .chat-act, .set-row, .set-test-btn, .side-item, .tgl {
+    transition: background 0.15s ease, opacity 0.15s ease;
+  }
+}

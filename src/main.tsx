@@ -11,6 +11,7 @@ import './styles/auth.css';
 import './styles/screens.css';
 import './styles/email.css';
 import './styles/call.css';
+import './styles/touch.css'; // global touch feel — must stay LAST so its transitions win
 import { initOta } from './ota';
 
 // Lock the WebView viewport. iOS auto-zooms when a sub-16px input is focused (our
