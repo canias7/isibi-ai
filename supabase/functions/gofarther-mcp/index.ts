@@ -548,19 +548,77 @@ async function stashTable(uid: string, t: BankTable): Promise<string | null> {
     return typeof id === "string" ? id : null;
   } catch { return null; }
 }
-async function loadStash(uid: string, id: string): Promise<{ source: string; columns: string[]; rows: (string | number)[][]; totalColumns: number[] } | null> {
+async function loadStash(uid: string, id: string): Promise<{ source: string; columns: string[]; rows: (string | number)[][]; totalColumns: number[]; raw: unknown } | null> {
   const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key || !uid || !/^[0-9a-f-]{36}$/i.test(id)) return null;
   try {
-    const r = await fetch(`${url}/rest/v1/tool_data_stash?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(uid)}&select=source,columns,rows,total_columns`, {
+    const r = await fetch(`${url}/rest/v1/tool_data_stash?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(uid)}&select=source,columns,rows,total_columns,raw`, {
       headers: { apikey: key, authorization: `Bearer ${key}` },
     });
     if (!r.ok) return null;
     const rows = await r.json();
     const m = Array.isArray(rows) && rows[0];
     if (!m || !Array.isArray(m.columns) || !Array.isArray(m.rows)) return null;
-    return { source: String(m.source || "Sheet"), columns: m.columns, rows: m.rows, totalColumns: Array.isArray(m.total_columns) ? m.total_columns : [] };
+    return { source: String(m.source || "Sheet"), columns: m.columns, rows: m.rows, totalColumns: Array.isArray(m.total_columns) ? m.total_columns : [], raw: m.raw ?? null };
   } catch { return null; }
+}
+
+// ---- Connector data (Phase 2): stash the RAW Composio result so the model can
+// export it by mapping fields->columns, never retyping the values. ------------
+// Stash a raw JSON result under a handle (columns/rows empty; `raw` carries it).
+async function stashRaw(uid: string, source: string, raw: unknown): Promise<string | null> {
+  const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key || !uid) return null;
+  try {
+    const auth = { apikey: key, authorization: `Bearer ${key}` };
+    fetch(`${url}/rest/v1/tool_data_stash?created_at=lt.${encodeURIComponent(new Date(Date.now() - 2 * 3600 * 1000).toISOString())}`, { method: "DELETE", headers: auth }).catch(() => {});
+    const r = await fetch(`${url}/rest/v1/tool_data_stash`, {
+      method: "POST",
+      headers: { ...auth, "content-type": "application/json", prefer: "return=representation" },
+      body: JSON.stringify({ user_id: uid, source, columns: [], rows: [], total_columns: [], raw }),
+    });
+    if (!r.ok) return null;
+    const rows = await r.json();
+    const id = Array.isArray(rows) ? rows[0]?.id : rows?.id;
+    return typeof id === "string" ? id : null;
+  } catch { return null; }
+}
+function tryParseJson(text: string): unknown {
+  try { const v = JSON.parse(text); return (v && typeof v === "object") ? v : null; } catch { return null; }
+}
+// Walk a dot-path (e.g. "customer.email") into a record; returns a primitive or "".
+function getPath(rec: unknown, path: string): unknown {
+  let cur: any = rec;
+  for (const part of String(path || "").split(".")) {
+    if (cur == null || typeof cur !== "object") return "";
+    cur = cur[part];
+  }
+  return cur == null || typeof cur === "object" ? "" : cur;
+}
+// Find the array of record-objects in a Composio result, plus its dot-path: tries
+// common keys first, else the largest array-of-objects within a few levels.
+function detectRecords(raw: unknown): { path: string; records: any[] } | null {
+  if (Array.isArray(raw) && raw.some((x) => x && typeof x === "object")) return { path: "", records: raw };
+  if (!raw || typeof raw !== "object") return null;
+  const prefer = new Set(["data", "items", "results", "records", "messages", "transactions", "charges", "value", "rows", "list"]);
+  let best: { path: string; records: any[] } | null = null;
+  let stop = false;
+  const visit = (obj: any, base: string, depth: number) => {
+    if (stop || !obj || typeof obj !== "object" || depth > 4) return;
+    for (const k of Object.keys(obj)) {
+      if (stop) return;
+      const v = obj[k];
+      const path = base ? `${base}.${k}` : k;
+      if (Array.isArray(v) && v.some((x) => x && typeof x === "object" && !Array.isArray(x))) {
+        if (prefer.has(k)) { best = { path, records: v }; stop = true; return; } // strong match
+        if (!best || v.length > best.records.length) best = { path, records: v };
+      } else if (v && typeof v === "object" && !Array.isArray(v)) {
+        visit(v, path, depth + 1);
+      }
+    }
+  };
+  visit(raw, "", 0);
+  return best;
 }
 async function bankBalances(uid: string): Promise<BankResult> {
   const items = await plaidItems(uid);
@@ -1108,13 +1166,40 @@ async function saveTable(uid: string, args: any): Promise<string> {
   const handle = String(args?.data_handle || "").trim();
   if (handle) {
     // Deterministic path: build from the EXACT stashed tool result. The model
-    // only names the handle — the values never pass back through it, so a
-    // dropped row or wrong total is impossible.
+    // only names the handle (and, for connector data, which fields -> columns);
+    // the values never pass back through it, so a dropped row or wrong total
+    // is impossible.
     const got = await loadStash(uid, handle);
     if (!got) return "That data_handle wasn't found or has expired — run the data tool again to get a fresh handle, or pass columns and rows explicitly.";
-    columns = got.columns.map((c) => String(c ?? ""));
-    rows = got.rows.filter((r): r is (string | number)[] => Array.isArray(r));
-    totalCols = got.totalColumns.map((n) => Number(n)).filter((n) => Number.isInteger(n) && n >= 0 && n < columns.length);
+    if (got.rows.length) {
+      // Structured stash (e.g. bank) — rows are ready to write.
+      columns = got.columns.map((c) => String(c ?? ""));
+      rows = got.rows.filter((r): r is (string | number)[] => Array.isArray(r));
+      totalCols = got.totalColumns.map((n) => Number(n)).filter((n) => Number.isInteger(n) && n >= 0 && n < columns.length);
+    } else {
+      // Raw connector stash — the model maps fields -> columns; we pull the values
+      // out of the stored result so it never has to retype them.
+      const fields = (Array.isArray(args?.fields) ? args.fields : [])
+        .map((f: any) => ({ header: String(f?.header ?? f?.path ?? "").trim(), path: String(f?.path ?? "").trim(), divide: Number(f?.divide) > 0 ? Number(f.divide) : 0 }))
+        .filter((f: { path: string }) => f.path);
+      if (!fields.length) return "This handle holds raw data — tell me which columns to include by passing `fields`: an array of {header, path} where path is a field name from each record (dot-paths like \"customer.email\" work; add \"divide\":100 for amounts in cents). Optionally pass record_path and total_columns.";
+      let records: any[] = detectRecords(got.raw)?.records ?? [];
+      const recPath = String(args?.record_path || "").trim();
+      if (recPath) {
+        let cur: any = got.raw;
+        for (const part of recPath.split(".")) cur = (cur && typeof cur === "object") ? cur[part] : undefined;
+        if (Array.isArray(cur)) records = cur;
+      }
+      if (!records.length) return "Couldn't find the list of records to export in that data — pass record_path pointing at the array of items.";
+      columns = fields.map((f: { header: string; path: string }) => f.header || f.path);
+      rows = records.slice(0, 5000).map((rec) => fields.map((f: { path: string; divide: number }) => {
+        const v = getPath(rec, f.path);
+        if (f.divide && typeof v !== "object") { const n = parseFloat(String(v).replace(/[^0-9.\-]/g, "")); if (!isNaN(n)) return Math.round((n / f.divide) * 100) / 100; }
+        return v as string | number;
+      }));
+      totalCols = (Array.isArray(args?.total_columns) ? args.total_columns : [])
+        .map((n: unknown) => Number(n)).filter((n: number) => Number.isInteger(n) && n >= 0 && n < columns.length);
+    }
     defaultTitle = got.source;
   } else {
     columns = Array.isArray(args?.columns) ? args.columns.map((c: unknown) => String(c ?? "")) : [];
@@ -1159,15 +1244,25 @@ async function saveTable(uid: string, args: any): Promise<string> {
 }
 const SAVE_TABLE_TOOL: Tool = {
   name: "GF_SAVE_TABLE",
-  description: "Save tabular data as a downloadable spreadsheet (Excel .xlsx or .csv) BUILT SERVER-SIDE — columns are auto-sized and any total is computed in real code, so the file's layout and math are always exact. TWO ways to use it: (1) BEST — when a tool result included a [data_handle: …] marker, pass that id as data_handle: the file is built from the EXACT data that tool returned, zero retyping; ALWAYS prefer this when exporting data you just fetched. (2) Otherwise pass columns + rows yourself, listing EVERY row in full — never summarize or omit any. Use whenever the user wants a list/table saved or exported as a spreadsheet, Excel, or CSV (e.g. \"put my subscriptions in a spreadsheet\"). PREFER this over writing spreadsheet code with code execution. After it runs, show the file by replying with the gf-file block exactly as the tool result instructs.",
+  description: "Save tabular data as a downloadable spreadsheet (Excel .xlsx or .csv) BUILT SERVER-SIDE — columns are auto-sized and any total is computed in real code, so the file's layout and math are always exact. THREE ways to use it (always prefer a data_handle so values never get retyped): (1) BANK data — when a bank tool's [data_handle: …] marker has ready columns, just pass that data_handle. (2) CONNECTOR data (Stripe, Gmail, Notion, etc.) — when a tool's [data_handle: …] marker holds raw records, pass that data_handle PLUS `fields` (which columns to pull) and, if the marker named one, `record_path`. (3) Data you typed yourself — pass columns + rows, listing EVERY row in full. Use whenever the user wants a list/table saved or exported as a spreadsheet, Excel, or CSV. PREFER this over writing spreadsheet code with code execution. After it runs, show the file by replying with the gf-file block exactly as the tool result instructs.",
   inputSchema: {
     type: "object",
     properties: {
-      data_handle: { type: "string", description: "The id from a [data_handle: …] marker in a previous tool result. When set, the server builds the file from that exact stored data; columns/rows/total_columns are ignored." },
+      data_handle: { type: "string", description: "The id from a [data_handle: …] marker in a previous tool result. The server builds the file from that exact stored data." },
+      fields: {
+        type: "array",
+        description: "For a CONNECTOR data_handle (raw records): which columns to include, in order. Each is {header, path} where path is a field name in each record (dot-paths like \"customer.email\" work). Add \"divide\":100 when the value is stored in cents (e.g. Stripe amount) to show dollars.",
+        items: { type: "object", properties: {
+          header: { type: "string", description: "Column header shown in the file." },
+          path: { type: "string", description: "Field name / dot-path to read from each record." },
+          divide: { type: "number", description: "Optional: divide this numeric field by N (e.g. 100 for cents → dollars)." },
+        }, required: ["header", "path"] },
+      },
+      record_path: { type: "string", description: "For a CONNECTOR data_handle: dot-path to the array of records (e.g. \"data\"). Use the path the [data_handle] marker showed. Omit to auto-detect." },
       title: { type: "string", description: "Short title / file name for the sheet, e.g. \"Subscriptions\"." },
-      columns: { type: "array", items: { type: "string" }, description: "Column headers, in order, e.g. [\"Subscription\", \"Monthly Cost\"]. Required when no data_handle is given." },
-      rows: { type: "array", description: "The data rows. Each row is an array of cell values in the same order as the columns. Include EVERY row — never summarize or omit any. Required when no data_handle is given.", items: { type: "array", items: {} } },
-      total_columns: { type: "array", items: { type: "integer" }, description: "OPTIONAL: 0-based index(es) of numeric columns to sum into a TOTAL row at the bottom (computed in code). Ignored when data_handle is set." },
+      columns: { type: "array", items: { type: "string" }, description: "Column headers, in order. Required only when passing rows directly (no data_handle)." },
+      rows: { type: "array", description: "The data rows, each an array of cell values matching columns. Include EVERY row. Required only when no data_handle is given.", items: { type: "array", items: {} } },
+      total_columns: { type: "array", items: { type: "integer" }, description: "OPTIONAL: 0-based index(es) of numeric columns to sum into a TOTAL row (computed in code). Works with fields too." },
       format: { type: "string", enum: ["xlsx", "csv"], description: "File format — \"xlsx\" (default) or \"csv\"." },
     },
     required: [],
@@ -1317,7 +1412,24 @@ Deno.serve(async (req: Request) => {
       return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "That tool isn't enabled for this account." }], isError: true } });
     }
     try {
-      const text = await execTool(p.name, p.arguments || {}, reqUser);
+      let text = await execTool(p.name, p.arguments || {}, reqUser);
+      // If this read returned a table-shaped result, stash the RAW data and tell
+      // the model a handle, so an export is built from the EXACT result (the model
+      // only maps fields->columns, never retypes the values). Best-effort + capped.
+      try {
+        const parsed = tryParseJson(text);
+        if (parsed && text.length < 600000) {
+          const det = detectRecords(parsed);
+          if (det && det.records.length) {
+            const hid = await stashRaw(reqUser, p.name, parsed);
+            if (hid) {
+              const keys = new Set<string>();
+              for (const rec of det.records.slice(0, 5)) if (rec && typeof rec === "object") for (const k of Object.keys(rec)) { if (keys.size < 30) keys.add(k); }
+              text += `\n\n[data_handle: ${hid} — the ${det.records.length} record(s) above${det.path ? ` (at "${det.path}")` : ""}. To save/export THIS as a spreadsheet or CSV, call GF_SAVE_TABLE with {"data_handle":"${hid}"${det.path ? `, "record_path":"${det.path}"` : ""}, "fields":[{"header":"…","path":"<field>"}, …]} — choose the columns the user wants (path is a field name, dot-paths like "customer.email" work; add "divide":100 for amounts stored in cents). The file is built server-side from the exact data, so do NOT retype the rows. Available fields: ${[...keys].join(", ")}.]`;
+            }
+          }
+        }
+      } catch { /* stashing is best-effort; never block the tool result */ }
       await logUsage(p.name, true, reqUser);
       return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
     } catch (e) {
