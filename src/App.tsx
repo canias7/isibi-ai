@@ -91,6 +91,26 @@ async function copyText(s: string): Promise<boolean> {
   } catch { return false; }
 }
 
+// Relative label + date bucket for sidebar chat rows.
+function dayStart(t: number): number {
+  const d = new Date(t);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+function chatWhen(ts: number): string {
+  if (!ts) return '';
+  const diff = Math.round((dayStart(Date.now()) - dayStart(ts)) / 86400000);
+  if (diff <= 0) return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (diff === 1) return 'Yesterday';
+  return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+function chatGroup(ts: number): string {
+  const diff = Math.round((dayStart(Date.now()) - dayStart(ts || Date.now())) / 86400000);
+  if (diff <= 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  if (diff < 7) return 'Previous 7 days';
+  return 'Older';
+}
+
 // ---- Cloud sync (conversations table, RLS-scoped to this user) ----
 async function syncLoad(uid: string): Promise<Conversation[] | null> {
   try {
@@ -214,6 +234,9 @@ export default function App() {
   const [chatSearch, setChatSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [menuChat, setMenuChat] = useState<Conversation | null>(null); // long-press chat actions sheet
+  const pressTimer = useRef<number | null>(null);
+  const pressFired = useRef(false); // swallow the click that follows a long-press
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [noteMsg, setNoteMsg] = useState(''); // transient Settings note (e.g. why a toggle didn't stick)
   // App-level memory (manual; global across chats). Loaded when the Memory screen opens.
@@ -990,8 +1013,8 @@ export default function App() {
     go('chat');
   }
 
-  function deleteChat(id: string, e: React.MouseEvent) {
-    e.stopPropagation();
+  function deleteChat(id: string, e?: React.MouseEvent) {
+    e?.stopPropagation();
     if (id === currentId) stopStream(); // abort any in-flight reply before dropping its chat
     setChats((prev) => {
       const next = prev.filter((c) => c.id !== id);
@@ -1005,8 +1028,8 @@ export default function App() {
     }
   }
 
-  function togglePin(id: string, e: React.MouseEvent) {
-    e.stopPropagation();
+  function togglePin(id: string, e?: React.MouseEvent) {
+    e?.stopPropagation();
     setPinned((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
@@ -1015,8 +1038,8 @@ export default function App() {
     });
   }
 
-  function startRename(c: Conversation, e: React.MouseEvent) {
-    e.stopPropagation();
+  function startRename(c: Conversation, e?: React.MouseEvent) {
+    e?.stopPropagation();
     setEditingId(c.id);
     setEditingTitle(c.title || '');
   }
@@ -1032,6 +1055,20 @@ export default function App() {
       if (uid && c) void syncSave(uid, c);
       return next;
     });
+  }
+
+  // Long-press a chat row (or right-click on web) opens the actions sheet.
+  function rowPressStart(c: Conversation) {
+    pressFired.current = false;
+    pressTimer.current = window.setTimeout(() => {
+      pressTimer.current = null;
+      pressFired.current = true;
+      void tap();
+      setMenuChat(c);
+    }, 450);
+  }
+  function rowPressCancel() {
+    if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; }
   }
 
   async function copyMsg(i: number, text: string) {
@@ -1071,6 +1108,20 @@ export default function App() {
       if (pa !== pb) return pb - pa; // pinned to the top
       return (b.updatedAt || 0) - (a.updatedAt || 0);
     });
+  // Sidebar display groups: Pinned first, then recency buckets (search stays flat).
+  const chatSections: { label: string; items: Conversation[] }[] = [];
+  if (q) {
+    if (recentChats.length) chatSections.push({ label: 'Results', items: recentChats });
+  } else {
+    const pinnedItems = recentChats.filter((c) => pinned.has(c.id));
+    if (pinnedItems.length) chatSections.push({ label: 'Pinned', items: pinnedItems });
+    for (const c of recentChats.filter((c) => !pinned.has(c.id))) {
+      const g = chatGroup(c.updatedAt || 0);
+      const last = chatSections[chatSections.length - 1];
+      if (last && last.label === g) last.items.push(c);
+      else chatSections.push({ label: g, items: [c] });
+    }
+  }
 
   return (
     <div className="app">
@@ -1083,7 +1134,20 @@ export default function App() {
       {/* Sidebar + backdrop */}
       <div className={`backdrop ${sidebarOpen ? 'show' : ''}`} onClick={() => setSidebarOpen(false)} />
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="side-head">Go Farther</div>
+        <div className="side-search">
+          <IconSearch size={15} />
+          <input
+            value={chatSearch}
+            onChange={(e) => setChatSearch(e.target.value)}
+            placeholder="Search"
+            aria-label="Search chats"
+          />
+          {chatSearch && (
+            <button className="side-search-x" onClick={() => setChatSearch('')} aria-label="Clear search">
+              <IconX size={13} />
+            </button>
+          )}
+        </div>
         <button className="side-item primary" onClick={() => { void tap(); newChat(); }}>
           <span className="ico"><IconCompose size={18} /></span> New chat
         </button>
@@ -1096,34 +1160,25 @@ export default function App() {
           </button>
         </nav>
 
-        {chats.length > 0 && (
-          <div className="side-chats">
-            <div className="side-search">
-              <IconSearch size={15} />
-              <input
-                value={chatSearch}
-                onChange={(e) => setChatSearch(e.target.value)}
-                placeholder="Search chats"
-                aria-label="Search chats"
-              />
-              {chatSearch && (
-                <button className="side-search-x" onClick={() => setChatSearch('')} aria-label="Clear search">
-                  <IconX size={13} />
-                </button>
-              )}
-            </div>
-            <div className="side-label">{q ? 'Results' : 'Recent chats'}</div>
-            {recentChats.length === 0 ? (
-              <div className="side-empty">No chats match that.</div>
-            ) : (
-              recentChats.map((c) => {
-                const isPinned = pinned.has(c.id);
+        <div className="side-chats">
+          {q && chatSections.length === 0 && <div className="side-empty">No chats match that.</div>}
+          {chatSections.map((sec) => (
+            <div key={sec.label} className="side-group">
+              <div className="side-label">{sec.label}</div>
+              {sec.items.map((c) => {
                 const isEditing = editingId === c.id;
                 return (
                   <div
                     key={c.id}
                     className={`side-item chat-item ${view === 'chat' && c.id === currentId ? 'active' : ''}`}
-                    onClick={() => { if (!isEditing) selectChat(c.id); }}
+                    onClick={() => {
+                      if (pressFired.current) { pressFired.current = false; return; }
+                      if (!isEditing) selectChat(c.id);
+                    }}
+                    onTouchStart={() => rowPressStart(c)}
+                    onTouchEnd={rowPressCancel}
+                    onTouchMove={rowPressCancel}
+                    onContextMenu={(e) => { e.preventDefault(); setMenuChat(c); }}
                     role="button"
                     tabIndex={0}
                   >
@@ -1138,37 +1193,52 @@ export default function App() {
                         onBlur={commitRename}
                       />
                     ) : (
-                      <span className="chat-title">{c.title || 'New chat'}</span>
-                    )}
-                    {!isEditing && (
-                      <span className="chat-acts">
-                        <span role="button" aria-label={isPinned ? 'Unpin chat' : 'Pin chat'} className={`chat-act ${isPinned ? 'on' : ''}`} onClick={(e) => togglePin(c.id, e)}>
-                          <IconPin size={14} />
-                        </span>
-                        <span role="button" aria-label="Rename chat" className="chat-act" onClick={(e) => startRename(c, e)}>
-                          <IconEdit size={14} />
-                        </span>
-                        <span role="button" aria-label="Delete chat" className="chat-act" onClick={(e) => deleteChat(c.id, e)}>
-                          <IconTrash size={14} />
-                        </span>
-                      </span>
+                      <>
+                        <span className="chat-title">{c.title || 'New chat'}</span>
+                        <span className="chat-time">{chatWhen(c.updatedAt || 0)}</span>
+                      </>
                     )}
                   </div>
                 );
-              })
-            )}
-          </div>
-        )}
+              })}
+            </div>
+          ))}
+        </div>
 
         <div className="side-foot">
-          <div className="side-user" title={session.user.email ?? ''}>{session.user.email ?? 'Guest'}</div>
-          {!isGuest && (
-            <button className="side-item" onClick={signOut}>
-              <span className="ico"><IconLogout size={18} /></span> Sign out
-            </button>
-          )}
+          <div className="side-profile" role="button" tabIndex={0} onClick={() => { void tap(); go('settings'); }}>
+            <span className="side-avatar">{(session.user.email ?? 'G').charAt(0).toUpperCase()}</span>
+            <span className="side-who">
+              <span className="side-name">{isGuest || !session.user.email ? 'Guest' : session.user.email.split('@')[0].replace(/^./, (ch) => ch.toUpperCase())}</span>
+              {session.user.email && <span className="side-mail">{session.user.email}</span>}
+            </span>
+            {!isGuest && (
+              <button className="side-out" onClick={(e) => { e.stopPropagation(); void signOut(); }} aria-label="Sign out">
+                <IconLogout size={17} />
+              </button>
+            )}
+          </div>
         </div>
       </aside>
+      {/* Long-press chat actions sheet */}
+      {menuChat && (
+        <>
+          <div className="sheet-scrim" onClick={() => setMenuChat(null)} />
+          <div className="chat-sheet" role="menu" aria-label="Chat actions">
+            <div className="chat-sheet-title">{menuChat.title || 'New chat'}</div>
+            <button className="chat-sheet-row" onClick={() => { togglePin(menuChat.id); setMenuChat(null); }}>
+              <IconPin size={16} /> {pinned.has(menuChat.id) ? 'Unpin' : 'Pin'}
+            </button>
+            <button className="chat-sheet-row" onClick={() => { startRename(menuChat); setMenuChat(null); }}>
+              <IconEdit size={16} /> Rename
+            </button>
+            <button className="chat-sheet-row danger" onClick={() => { deleteChat(menuChat.id); setMenuChat(null); }}>
+              <IconTrash size={16} /> Delete
+            </button>
+            <button className="chat-sheet-row cancel" onClick={() => setMenuChat(null)}>Cancel</button>
+          </div>
+        </>
+      )}
 
       <header className="topbar">
         <button className="icon-btn" onClick={() => { void tap(); setSidebarOpen(true); }} aria-label="Open menu">
