@@ -328,20 +328,32 @@
 .lock-btn:active { background: #ffffff26; }
 
 /* Settings row with a toggle */
+/* Settings rows live inside a .set-card: dividers BETWEEN rows, not on each. */
 .set-row {
   display: flex; align-items: center; gap: 14px;
-  padding: 14px 0; margin-top: 6px;
-  border-top: 1px solid #ffffff14;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  padding: 15px 16px;
   cursor: pointer;
 }
+.set-card .set-row + .set-row { border-top: 1px solid #ffffff12; }
+.set-row:active { background: #ffffff0c; }
 .set-row-text { flex: 1; min-width: 0; }
-.set-row-title { font-size: 15px; color: var(--text); }
-.set-row-sub { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
-.set-note { margin: 12px 2px 0; font-size: 13px; line-height: 1.45; color: #f4a261; }
+.set-row-title { font-size: 15.5px; color: var(--text); }
+.set-row-sub { font-size: 13px; color: var(--text-dim); margin-top: 3px; line-height: 1.4; }
+.set-row-tap { justify-content: space-between; }
+.set-row-tap.danger .set-row-title { color: #ff6b6b; }
+.set-row-ico { color: var(--text-dim); display: grid; place-items: center; }
+.set-row-tap.danger .set-row-ico { color: #ff6b6b; }
+.set-note { margin: 14px 4px 0; font-size: 13px; line-height: 1.45; color: #f4a261; }
 .set-test-btn {
-  margin-top: 14px; align-self: flex-start;
-  background: #ffffff0f; border: 1px solid #ffffff24; color: var(--text);
-  font: inherit; font-size: 14px; font-weight: 600; padding: 9px 14px; border-radius: 10px; cursor: pointer;
+  margin: 12px 0 0; align-self: flex-start;
+  background: #ffffff0f; border: 1px solid #ffffff1f; color: var(--text);
+  font: inherit; font-size: 14px; font-weight: 600; padding: 10px 16px; border-radius: 12px; cursor: pointer;
 }
 .set-test-btn:active { background: #ffffff1f; }
 
