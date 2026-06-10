@@ -15,8 +15,10 @@ import {
 
 type NodeResult = { ok: boolean; output: string };
 // A turn in the clarify chat; assistant turns carry the structured questions
-// (with any tappable options) so we can render chips, not just text.
-type ChatMsg = BuildMsg & { questions?: AskQuestion[] };
+// (with any tappable options) so we can render chips, not just text. A `blocked`
+// assistant turn is terminal (can't build) — rendered as a plain note, never an
+// answerable question, so the clarify flow can't loop.
+type ChatMsg = BuildMsg & { questions?: AskQuestion[]; blocked?: boolean };
 
 // Full-screen Workflows: describe an automation in the chatbox -> the AI drafts
 // it as a node graph (each node tagged with the app it uses) -> drag/zoom/edit
@@ -226,14 +228,22 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
       setPicks({}); setOtherText({}); setStep(0); // fresh form, back to question 1
       return;
     }
+    if (res.kind === 'blocked') {
+      // Terminal: show the note and drop back to the composer (no answer form) so
+      // the user can connect the app or describe something else — never re-asked.
+      setConvo([...next, { role: 'assistant', text: res.message, blocked: true }]);
+      setPicks({}); setOtherText({}); setStep(0);
+      return;
+    }
     setConvo([]);
     setDraft({ title: res.draft.title, instruction: res.draft.instruction, trigger: res.draft.trigger, graph: res.draft.graph });
   }
 
   function resetConvo() { setConvo([]); setErr(''); setPicks({}); setOtherText({}); setStep(0); }
 
-  // The last turn being a question means the user is mid-clarification.
-  const awaiting = convo.length > 0 && convo[convo.length - 1].role === 'assistant';
+  // The last turn being a question means the user is mid-clarification. A blocked
+  // turn is terminal, so it doesn't count as awaiting an answer (shows composer).
+  const awaiting = convo.length > 0 && convo[convo.length - 1].role === 'assistant' && !convo[convo.length - 1].blocked;
   // The questions currently being answered (last assistant turn).
   const lastMsg = convo[convo.length - 1];
   const lastQs: AskQuestion[] = awaiting
@@ -365,11 +375,14 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
                 const qs: AskQuestion[] = m.questions?.length
                   ? m.questions
                   : m.text.split('\n').filter(Boolean).map((t) => ({ text: t }));
-                // Older question turns render as plain read-only text.
-                if (!isLast) {
+                // Older question turns, and any terminal "can't build" note, render
+                // as plain read-only text (a blocked note is never answerable).
+                if (!isLast || m.blocked) {
                   return (
-                    <div key={i} className="wfx-msg assistant">
-                      {qs.map((q, j) => <div key={j} className="wfx-msg-q">{q.text}</div>)}
+                    <div key={i} className={`wfx-msg assistant${m.blocked ? ' wfx-msg-blocked' : ''}`}>
+                      {m.blocked
+                        ? <div className="wfx-msg-q">{m.text}</div>
+                        : qs.map((q, j) => <div key={j} className="wfx-msg-q">{q.text}</div>)}
                     </div>
                   );
                 }

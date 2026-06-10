@@ -267,6 +267,20 @@ const FIND_CONTACT_TOOL = {
   },
 };
 
+// Terminal "can't build" signal. Use INSTEAD of asking again when there's no path
+// to a runnable workflow — so we never loop the same question at the user.
+const CANNOT_BUILD_TOOL = {
+  name: "cannot_build",
+  description: "Use this INSTEAD of asking another question when you cannot produce a workflow that would actually run: the workflow's CORE purpose needs an app the user hasn't connected and no connected app can substitute, OR the request can't be built safely (e.g. emailing many recipients at high frequency — that's spam). Give a short, friendly explanation and the concrete next step (e.g. which app to connect). Never loop on the same question.",
+  input_schema: {
+    type: "object",
+    properties: {
+      reason: { type: "string", description: "One or two short, friendly sentences: why it can't be built, and what to do next (e.g. \"You haven't connected an email app yet — connect Gmail in the Connectors screen, then describe this again.\")." },
+    },
+    required: ["reason"],
+  },
+};
+
 // Top-down tree layout: BFS depth from the trigger sets the row; siblings spread
 // horizontally. Gives the client sensible starting positions (the user can drag).
 function layout(nodes: any[], edges: any[]): any[] {
@@ -370,7 +384,7 @@ Deno.serve(async (req: Request) => {
 
 Use ONLY the user's connected apps for app steps and event triggers — their connector ids are listed at the end of these instructions.
 
-CRITICAL — a workflow you emit must RUN right now. Every app step (and an event trigger) must use an app from that connected list. NEVER emit a step or trigger for an app that isn't connected — it would just fail. If the request needs an app that isn't connected, ASK whether to use a connected app instead or drop that part, and only emit once everything maps to a connected app. If the core purpose needs an unconnected app, ask the user to connect it — don't emit a broken workflow. Always either ask a question or emit a complete, working workflow — never return nothing.
+CRITICAL — a workflow you emit must RUN right now. Every app step (and an event trigger) must use an app from that connected list. NEVER emit a step or trigger for an app that isn't connected — it would just fail. If the request needs an app that isn't connected, ASK whether to use a connected app instead or drop that part, and only emit once everything maps to a connected app. If the workflow's CORE purpose needs an app the user hasn't connected and no connected app can substitute, do NOT keep re-asking the same thing — call cannot_build with a short, friendly message naming the app to connect (e.g. an email app like Gmail). Also call cannot_build, rather than looping, when the request can't be built safely (e.g. emailing many people at high frequency — that's spam). Always either ask a question, emit a complete working workflow, or call cannot_build — never return nothing and never repeat a question you've already asked.
 
 ## First: build, or ask?
 When you're not sure, ASK — one quick question beats building the wrong thing. NEVER silently guess or assume a detail, identity, recipient, or account you aren't certain of. Resolve it in this order: (1) if you already KNOW it from the user's saved memories (listed below), use that; (2) else look it up with a tool (use find_contact to resolve a named person); (3) if you still aren't sure, ASK. A workflow built on a guess is a broken workflow. Call the "ask" tool when ANY of these hold:
@@ -416,7 +430,7 @@ Request: "When an email from my boss arrives, Slack me a one-line summary." (Gma
       { type: "text", text: system, cache_control: { type: "ephemeral" } },
       { type: "text", text: `The user's connected apps (use ONLY these connector ids for app steps and event triggers): ${appList}. The user's timezone is ${tz}. So far you have asked ${askedCount} clarifying question(s) in this conversation.${memBlock}` },
     ],
-    tools: [FIND_CONTACT_TOOL, ASK_TOOL, EMIT_TOOL],
+    tools: [FIND_CONTACT_TOOL, ASK_TOOL, EMIT_TOOL, CANNOT_BUILD_TOOL],
     // Never FORCE a build — a forced build can produce a workflow that won't run.
     // The model keeps asking (or looks a person up) until it can emit one that
     // actually works, enforced by the system prompt + the connected-apps check.
@@ -488,10 +502,23 @@ Request: "When an email from my boss arrives, Slack me a one-line summary." (Gma
     if (questions.length) return J({ questions });
   }
 
+  // Terminal "can't build" — the model decided there's no runnable workflow
+  // (needed app not connected, or unsafe request). Return a clear final message
+  // instead of looping on questions.
+  const cant = content.find((b: any) => b?.type === "tool_use" && b?.name === "cannot_build");
+  if (cant?.input?.reason) {
+    return J({ blocked: { message: String(cant.input.reason).slice(0, 500) } });
+  }
+
   // Build path.
   const tu = content.find((b: any) => b?.type === "tool_use" && b?.name === "emit_workflow");
   if (!tu || !tu.input) {
-    // No emit and no usable question — ask instead of dead-ending with an error.
+    // No emit, no usable question, no explicit block. If we've already asked at
+    // least once and STILL can't proceed, stop looping with a terminal message;
+    // only on a first dead-end do we gently re-ask.
+    if (askedCount >= 1) {
+      return J({ blocked: { message: "I couldn't set this up with your connected apps. Connect the app this needs — for example an email app like Gmail — in the Connectors screen, then describe it again." } });
+    }
     return J({ questions: [{ header: "Quick check", text: "Tell me a bit more — what should this workflow do, and which of your connected apps should it use?" }] });
   }
   const plan = tu.input as any;
