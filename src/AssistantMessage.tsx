@@ -106,18 +106,24 @@ function AssistantMessage(
   // its own tag so it renders as people rows, not email rows.
   const isContacts = f.lang === 'gf-contacts' && Array.isArray(parsed) && parsed.length > 0;
   // Receipt card (gf-receipt): a {kind,title} object confirming a completed action.
-  const isReceipt = f.lang === 'gf-receipt' && obj;
+  const isReceipt = f.lang === 'gf-receipt' && obj && typeof (parsed as { title?: unknown }).title === 'string';
   // Memory attachment (gf-memory): a {id} object — surface a saved photo/file.
   const isMemoryCard = f.lang === 'gf-memory' && obj && typeof (parsed as { id?: unknown }).id === 'string';
   // Generated file (gf-file): a {name,url,…} object — a downloadable the sandbox made.
   const isFile = f.lang === 'gf-file' && obj && typeof (parsed as { url?: unknown }).url === 'string';
   // Generated image (gf-image): a {url} object — an image the assistant created.
   const isImage = f.lang === 'gf-image' && obj && typeof (parsed as { url?: unknown }).url === 'string';
+  // A block whose tag claims one of these specific cards either matches that
+  // card's shape or renders as NOTHING — it must never fall through to the
+  // email card below (a gf-file missing its url once ghost-rendered as an
+  // "Unknown" email). The email fallback is only for email-ish gf-* tags.
+  const claimsCard = ['gf-contacts', 'gf-receipt', 'gf-memory', 'gf-file', 'gf-image'].includes(f.lang);
+  const cardMatched = isContacts || isReceipt || isMemoryCard || isFile || isImage;
   const list = gf
     ? (Array.isArray(parsed) && parsed.length > 0)
     : (Array.isArray(parsed) && parsed.length > 0 && parsed.every(isEmailItem));
   const msg = gf ? obj : isEmailMessage(parsed);
-  if (!list && !msg) {
+  if ((claimsCard && !cardMatched) || (!list && !msg)) {
     // A gf-* block we couldn't parse — never dump raw JSON on the user; show any
     // surrounding prose, and recurse into what follows so a *second* card still
     // renders. Untagged blocks render normally (real code).
