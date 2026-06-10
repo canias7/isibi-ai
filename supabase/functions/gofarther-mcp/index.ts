@@ -1374,11 +1374,17 @@ Deno.serve(async (req: Request) => {
         else if (p.name === "GF_BANK_INVESTMENT_TRANSACTIONS") take(await bankInvestmentTxns(reqUser, Number((p.arguments || {}).days) || 90));
         else if (p.name === "GF_BANK_INSIGHTS") text = await bankInsights(reqUser, String((p.arguments || {}).mode || ""), Number((p.arguments || {}).days) || 30);
         else text = "Unknown bank tool.";
-        // Stash each structured table server-side and tell the model the handle,
-        // so an export is built from the EXACT data above — never retyped rows.
+        // For each table: give the model the EXACT total (summed in code) so it
+        // quotes the right figure instead of re-adding rows in its head (and
+        // getting it wrong), then stash it + hand over an export handle.
         for (const tb of tables) {
+          for (const ci of tb.totalColumns) {
+            let sum = 0;
+            for (const r of tb.rows) { const n = parseFloat(String(r[ci] ?? "").replace(/[^0-9.\-]/g, "")); if (!isNaN(n)) sum += n; }
+            text += `\n\nServer-computed total for ${tb.label} (${tb.columns[ci]}, ${tb.rows.length} items): ${sum.toFixed(2)} — quote THIS exact total to the user; do not re-add the rows yourself.`;
+          }
           const hid = await stashTable(reqUser, tb);
-          if (hid) text += `\n\n[data_handle: ${hid} — the ${tb.label} above as structured data. To save/export THIS as a spreadsheet or CSV, call GF_SAVE_TABLE with {"data_handle": "${hid}"} (plus optional title/format) — the file is built server-side from the exact data, so do NOT retype the rows.]`;
+          if (hid) text += `\n[data_handle: ${hid} — the ${tb.label} above as structured data. To save/export THIS as a spreadsheet or CSV, call GF_SAVE_TABLE with {"data_handle": "${hid}"} (plus optional title/format) — the file is built server-side from the exact data, so do NOT retype the rows.]`;
         }
         await logUsage(p.name, true, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
