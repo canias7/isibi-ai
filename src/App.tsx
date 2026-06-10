@@ -244,6 +244,9 @@ export default function App() {
   const retryingRef = useRef(false);                          // a retry is mid-flight (serializes online + manual taps)
   const retryRef = useRef<() => void>(() => {});              // latest retryPending, for the online listener
   const resumeRef = useRef<() => void>(() => {});             // refresh current chat on resume (server-finished turn)
+  const bgWaitRef = useRef<{ convId: string; msgs: ChatMessage[] } | null>(null); // a turn the SERVER is still finishing after we backgrounded — adopt its reply, never re-run it
+  const bgPollSeqRef = useRef(0);                             // newest pollServerTurn loop wins (no stacked timers)
+  const bgPollRef = useRef<(firstDelay?: number) => void>(() => {}); // latest pollServerTurn, for the resume listener
   // Face ID / biometric lock (opt-in; native-only; fails open).
   const [faceId, setFaceId] = useState(() => { try { return localStorage.getItem('gf_faceid') === '1'; } catch { return false; } });
   const [locked, setLocked] = useState(() => { try { return localStorage.getItem('gf_faceid') === '1' && Capacitor.getPlatform() !== 'web'; } catch { return false; } });
@@ -404,8 +407,10 @@ export default function App() {
         setMessages([]);
         setView('chat');
         setSidebarOpen(false);
+        bgPollRef.current(); // a turn left finishing still lands in its (now background) chat
       } else {
         void resumeRef.current(); // pick up a turn that finished server-side while away
+        bgPollRef.current();      // and keep watching for one that's still running
       }
     }).then((h) => { handle = h; });
     return () => { handle?.remove(); };
@@ -493,6 +498,7 @@ export default function App() {
   // message). An empty assistant bubble is appended for the streamed reply.
   async function runTurn(history: ChatMessage[]) {
     dirtyRef.current = true; // a real turn — the persist effect should save it
+    if (bgWaitRef.current?.convId === currentId) bgWaitRef.current = null; // a new turn here supersedes the awaited one
     setMessages([...history, { role: 'assistant', content: '', id: cid() }]);
     setBusy(true);
 
@@ -555,6 +561,7 @@ export default function App() {
       if (bgAbortRef.current) {
         bgAbortRef.current = false;
         dirtyRef.current = false;
+        bgWaitRef.current = { convId: currentId, msgs: history }; // the server owes this chat a reply — watch for it on resume
         setMessages((m) => {
           const copy = m.slice();
           const l = copy[copy.length - 1];
@@ -620,6 +627,7 @@ export default function App() {
   function adoptConversation(cur: Conversation) {
     if (!uid) return;
     pendingTurnRef.current = null;
+    if (bgWaitRef.current?.convId === cur.id) bgWaitRef.current = null; // the awaited reply arrived
     setChats((prev) => { const next = [cur, ...prev.filter((c) => c.id !== cur.id)]; saveChats(uid, next); return next; });
     if (cur.id !== currentIdRef.current) return; // not the open chat — list updated, don't disturb the view
     jumpRef.current = true;
@@ -679,6 +687,29 @@ export default function App() {
     };
     window.setTimeout(tick, 4000);
   }
+
+  // A turn we backgrounded out of is finished by the SERVER (it completes and
+  // saves the reply even though our connection is gone). On resume, keep checking
+  // until that reply lands — file/code turns can take a couple of minutes — then
+  // adopt it: into the open chat, or just the saved list if the user moved on.
+  // Unlike retry, this NEVER re-runs the turn (that could duplicate its action).
+  function pollServerTurn(firstDelay = 1500) {
+    const wait = bgWaitRef.current;
+    if (!wait || !uid) return;
+    const seq = ++bgPollSeqRef.current;
+    let n = 0;
+    const tick = async () => {
+      if (seq !== bgPollSeqRef.current || bgWaitRef.current !== wait) return; // adopted / superseded / re-polled
+      const remote = await syncLoad(uid);
+      if (seq !== bgPollSeqRef.current || bgWaitRef.current !== wait) return;
+      const cur = remote?.find((c) => c.id === wait.convId);
+      const local = wait.convId === currentIdRef.current ? messagesRef.current : wait.msgs;
+      if (cur && serverIsMoreComplete(local, cur.messages)) { adoptConversation(cur); return; }
+      if (++n < 30) window.setTimeout(tick, 5000); // keep watching ~2.5 min
+    };
+    window.setTimeout(tick, firstDelay);
+  }
+  bgPollRef.current = pollServerTurn;
 
   // Biometric lock: engage if enabled AND available, otherwise fail open (we
   // never trap the user behind a lock we can't satisfy — e.g. plugin not yet in
@@ -1224,8 +1255,8 @@ export default function App() {
                             ) : (
                               <div className="msg-working">
                                 <span className="gf-status-spin" aria-hidden />
-                                <span>Finishing in the background — I'll notify you when it's ready.</span>
-                                <button className="msg-retry" onClick={retryPending}>Refresh</button>
+                                <span>Finishing in the background — it'll appear here when ready.</span>
+                                <button className="msg-retry" onClick={() => { void retryPending(); pollServerTurn(0); }}>Refresh</button>
                               </div>
                             )
                           ) : (
