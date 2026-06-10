@@ -18,10 +18,9 @@ name: iOS Build
 # version when something NATIVE actually changes (the iOS project, Capacitor
 # config, dependencies), or when triggered manually (use this for releases).
 #
-# Rebuild: ship the latest native build (voice + reminders + location purpose
-# string) to TestFlight. Retrying after revoking the duplicate "Created via API"
-# development certs that had maxed out the account's certificate limit and broke
-# automatic signing at the archive step.
+# Rebuild: cut a fresh TestFlight build with the latest web bundle baked in
+# (passwordless login, sign-up/reminder UX fixes) so external testers get it on
+# first launch without waiting for an OTA pull.
 on:
   push:
     branches: [main]
