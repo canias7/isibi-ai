@@ -358,3 +358,21 @@
 }
 .tgl.on .tgl-knob { transform: translateX(16px); background: #1a1a1a; }
 
+
+/* Composer mic (sits in the send slot while there's nothing to send) */
+.send.mic {
+  background: #ffffff14;
+  color: var(--text);
+}
+.send.mic.rec {
+  background: #e5484d;
+  color: #fff;
+  animation: mic-pulse 1.4s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(229, 72, 77, 0.45); }
+  50% { box-shadow: 0 0 0 7px rgba(229, 72, 77, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .send.mic.rec { animation: none; } }
+.send.mic.tx { background: #ffffff14; }
+.send.mic.tx .gf-status-spin { width: 15px; height: 15px; }
