@@ -20,7 +20,19 @@ export default function Login() {
 
   useEffect(() => { if (step === 'code') codeRef.current?.focus(); }, [step]);
 
-  async function requestCode(mail: string): Promise<boolean> {
+  // 'new' = code sent to a fresh account; 'existing' = the email already had an
+  // account (Sign up told the truth and sent a sign-in code); 'fail' = error shown.
+  type SendResult = 'new' | 'existing' | 'fail';
+
+  async function requestCode(mail: string): Promise<SendResult> {
+    if (mode === 'signup') {
+      // Probe with creation disabled: success means the email already has an
+      // account (and the code it just sent signs them in). The "signups not
+      // allowed" error means it's genuinely new — fall through and create it.
+      const { error: probe } = await supabase.auth.signInWithOtp({ email: mail, options: { shouldCreateUser: false } });
+      if (!probe) return 'existing';
+      if (!/signup|sign-up|not allowed/i.test(probe.message)) { setError(probe.message); return 'fail'; }
+    }
     const { error } = await supabase.auth.signInWithOtp({
       email: mail,
       options: { shouldCreateUser: mode === 'signup' },
@@ -35,9 +47,9 @@ export default function Login() {
       } else {
         setError(error.message);
       }
-      return false;
+      return 'fail';
     }
-    return true;
+    return 'new';
   }
 
   async function sendCode(e: FormEvent) {
@@ -47,9 +59,13 @@ export default function Login() {
     const mail = email.trim();
     if (!mail) { setError('Enter your email.'); return; }
     setBusy(true);
-    const ok = await requestCode(mail);
+    const r = await requestCode(mail);
     setBusy(false);
-    if (ok) { setStep('code'); setNotice(`We emailed a code to ${mail}.`); }
+    if (r === 'fail') return;
+    setStep('code');
+    setNotice(r === 'existing'
+      ? `You already have an account — we sent a sign-in code to ${mail}.`
+      : `We emailed a code to ${mail}.`);
   }
 
   async function verify(e: FormEvent) {
@@ -74,9 +90,9 @@ export default function Login() {
     if (busy) return;
     setError(null); setNotice(null);
     setBusy(true);
-    const ok = await requestCode(email.trim());
+    const r = await requestCode(email.trim());
     setBusy(false);
-    if (ok) setNotice('Sent a new code.');
+    if (r !== 'fail') setNotice('Sent a new code.');
   }
 
   function switchMode() {
