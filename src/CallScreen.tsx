@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { listenOnce, transcribe, speak, speakable, stopSpeaking, micSupported } from './voice';
 import { streamChat, type ChatMessage, type Attach } from './api';
-import { fileToAttachment } from './attach';
 import { IconPhoneOff, IconCamera } from './icons';
 
 type Phase = 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
@@ -27,16 +26,16 @@ export default function CallScreen({
   const [reply, setReply] = useState('');       // assistant's current spoken reply
   const [level, setLevel] = useState(0);        // mic level 0..1 for the orb
   const [err, setErr] = useState('');
-  const [hasPhoto, setHasPhoto] = useState(false); // a snapped photo rides on the next thing you say
+  const [lensOn, setLensOn] = useState(false); // Live Lens: camera preview; each question carries the current frame
 
   const runningRef = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
   const listenCtrlRef = useRef<AbortController | null>(null);
   const historyRef = useRef<ChatMessage[]>(baseHistory);
   const phaseRef = useRef<Phase>('connecting');
-  const camRef = useRef<HTMLInputElement>(null);
-  const pendingImageRef = useRef<Attach | null>(null);
-  const capturingRef = useRef(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const lensStreamRef = useRef<MediaStream | null>(null);
+  const lensOnRef = useRef(false); // the loop reads this (it's a long-lived closure)
   const setPhaseBoth = (p: Phase) => { phaseRef.current = p; setPhase(p); };
 
   useEffect(() => {
@@ -52,6 +51,7 @@ export default function CallScreen({
       abortRef.current?.abort();
       listenCtrlRef.current?.abort();
       stopSpeaking();
+      stopLens();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -61,9 +61,6 @@ export default function CallScreen({
     try { await speak('Hi, how can I help?'); } catch { /* */ }
 
     while (runningRef.current) {
-      // Hold off listening while the camera is open for a photo.
-      if (capturingRef.current) { await new Promise((r) => setTimeout(r, 150)); continue; }
-
       // 1) Listen until the user goes quiet.
       setPhaseBoth('listening');
       setCaption('');
@@ -81,6 +78,10 @@ export default function CallScreen({
       if (!runningRef.current) return;
       if (!audio) continue; // no speech detected — keep listening
 
+      // Live Lens: capture the frame from the moment they finished speaking, so
+      // "what am I looking at?" refers to what the camera saw right then.
+      const liveFrame = lensOnRef.current ? grabFrame() : null;
+
       // 2) Transcribe.
       setPhaseBoth('thinking');
       let text = '';
@@ -97,11 +98,9 @@ export default function CallScreen({
       setCaption(text);
 
       // 3) Ask the assistant (same streaming backend → keeps all tools/memory).
-      //    A photo snapped during the call rides along, so "what's this?" works.
-      const photo = pendingImageRef.current;
-      pendingImageRef.current = null;
-      setHasPhoto(false);
-      const userMsg: ChatMessage = { role: 'user', content: text, id: cid(), ...(photo ? { attachments: [photo] } : {}) };
+      //    With Live Lens on, the current camera frame rides along, so
+      //    "what's this?" is answered about what you're pointing at.
+      const userMsg: ChatMessage = { role: 'user', content: text, id: cid(), ...(liveFrame ? { attachments: [liveFrame] } : {}) };
       historyRef.current = [...historyRef.current, userMsg];
       onTurn(historyRef.current);
 
@@ -149,39 +148,51 @@ export default function CallScreen({
     onClose();
   }
 
-  // Snap a photo to ask about, hands-free: pause the loop, free the mic, open the
-  // device camera. The shot attaches to the next thing you say (see the loop).
-  function snapPhoto() {
-    capturingRef.current = true;
-    listenCtrlRef.current?.abort();
-    stopSpeaking();
-    const input = camRef.current;
-    if (!input) { capturingRef.current = false; return; }
-    input.value = '';
-    // Cancelling the camera fires no `change` on some platforms, which would
-    // leave the loop paused forever. Resume on the input's `cancel` event or
-    // once the app regains focus after the camera sheet closes (slightly
-    // delayed so a real `change` lands first — re-clearing is harmless).
-    const resume = () => { cleanup(); setTimeout(() => { capturingRef.current = false; }, 400); };
-    const onVis = () => { if (document.visibilityState === 'visible') resume(); };
-    const cleanup = () => {
-      input.removeEventListener('cancel', resume);
-      window.removeEventListener('focus', resume);
-      document.removeEventListener('visibilitychange', onVis);
-    };
-    input.addEventListener('cancel', resume, { once: true });
-    window.addEventListener('focus', resume, { once: true });
-    document.addEventListener('visibilitychange', onVis);
-    input.click();
-  }
-  async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    e.target.value = '';
-    if (f) {
-      const { attach } = await fileToAttachment(f);
-      if (attach) { pendingImageRef.current = attach; setHasPhoto(true); }
+  // ---- Live Lens: a live camera preview on the call; every question you ask
+  // automatically carries the current frame ("what am I looking at?"). ----
+  async function toggleLens() {
+    if (lensOnRef.current) { stopLens(); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      lensStreamRef.current = stream;
+      lensOnRef.current = true;
+      setLensOn(true);
+      // The <video> mounts on the state flip; attach the stream right after.
+      requestAnimationFrame(() => {
+        const v = videoRef.current;
+        if (v) { v.srcObject = stream; v.play().catch(() => { /* autoplay quirk — preview still attaches */ }); }
+      });
+    } catch {
+      setCaption('Couldn’t open the camera — check the app’s camera permission.');
     }
-    capturingRef.current = false; // resume listening (the loop picks back up)
+  }
+
+  function stopLens() {
+    lensOnRef.current = false;
+    setLensOn(false);
+    const s = lensStreamRef.current;
+    lensStreamRef.current = null;
+    if (s) for (const t of s.getTracks()) t.stop();
+    const v = videoRef.current;
+    if (v) v.srcObject = null;
+  }
+
+  // Downscaled JPEG of what the camera sees right now (same vision budget as a
+  // composer photo). Null while the preview hasn't produced frames yet.
+  function grabFrame(): Attach | null {
+    const v = videoRef.current;
+    if (!lensOnRef.current || !v || v.videoWidth === 0) return null;
+    const MAX_EDGE = 1280;
+    const scale = Math.min(1, MAX_EDGE / Math.max(v.videoWidth, v.videoHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(v.videoWidth * scale));
+    canvas.height = Math.max(1, Math.round(v.videoHeight * scale));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    const data = dataUrl.slice(dataUrl.indexOf(',') + 1);
+    return data ? { kind: 'image', mediaType: 'image/jpeg', data, name: 'live-lens.jpg' } : null;
   }
 
   // Tap the orb while it's talking to interrupt and start listening (barge-in):
@@ -200,7 +211,7 @@ export default function CallScreen({
   const bodyText = phase === 'error' ? err : phase === 'speaking' ? reply : caption;
 
   return (
-    <div className="call-screen" role="dialog" aria-label="Voice call with Go Farther">
+    <div className={`call-screen ${lensOn ? 'lens-on' : ''}`} role="dialog" aria-label="Voice call with Go Farther">
       <div className="call-top">
         <div className="call-name">Go Farther</div>
         <div className="call-status">{statusLabel}</div>
@@ -217,20 +228,24 @@ export default function CallScreen({
         <span className="call-orb-ring" />
       </button>
 
-      {hasPhoto && <div className="call-photo-chip">📷 Photo attached — now ask about it</div>}
+      {lensOn && <video ref={videoRef} className="call-lens" autoPlay playsInline muted />}
 
       <div className="call-caption">{bodyText || ' '}</div>
 
       <div className="call-controls">
-        <button type="button" className="call-cam" onClick={snapPhoto} aria-label="Take a photo to ask about">
+        <button
+          type="button"
+          className={`call-cam ${lensOn ? 'on' : ''}`}
+          onClick={() => void toggleLens()}
+          aria-label={lensOn ? 'Turn off Live Lens' : 'Turn on Live Lens'}
+          aria-pressed={lensOn}
+        >
           <IconCamera size={24} />
         </button>
         <button type="button" className="call-end" onClick={hangUp} aria-label="End call">
           <IconPhoneOff size={26} />
         </button>
       </div>
-
-      <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={onPhoto} />
     </div>
   );
 }

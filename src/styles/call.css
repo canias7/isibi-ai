@@ -111,16 +111,19 @@
 }
 .call-cam:active { transform: scale(0.92); background: #ffffff24; }
 
-.call-photo-chip {
-  display: inline-block;
-  margin-bottom: 10px;
-  padding: 5px 12px;
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: 999px;
-  font-size: 13px;
-  color: var(--text);
+/* Live Lens: camera preview shown on the call while active. The orb shrinks to
+   make room; the camera button glows accent while the lens is on. */
+.call-lens {
+  width: min(86vw, 340px);
+  max-height: 30vh;
+  border-radius: 16px;
+  object-fit: cover;
+  background: #000;
+  border: 1px solid #ffffff22;
+  flex: 0 1 auto;
 }
+.call-screen.lens-on .call-orb { transform: scale(0.55); margin: -36px 0; }
+.call-cam.on { background: var(--accent); color: #000; border-color: var(--accent); }
 
 /* The composer's call button — matches the "+" affordance, accent-tinted. */
 .call-btn {
