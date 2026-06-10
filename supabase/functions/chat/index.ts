@@ -244,6 +244,40 @@ function userFromJwt(req: Request): string | null {
   }
 }
 
+// Kill switch: feature_flags rows (key, enabled), read with the service role.
+// A missing row or ANY error counts as enabled (fail-open) — a flags hiccup
+// must never take the product down with it.
+async function flagEnabled(key: string): Promise<boolean> {
+  if (!SB_URL || !SB_SERVICE_KEY) return true;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/feature_flags?key=eq.${encodeURIComponent(key)}&select=enabled`, {
+      headers: { apikey: SB_SERVICE_KEY, authorization: `Bearer ${SB_SERVICE_KEY}` },
+    });
+    if (!r.ok) return true;
+    const rows = await r.json();
+    return Array.isArray(rows) && rows[0] ? rows[0].enabled !== false : true;
+  } catch {
+    return true;
+  }
+}
+
+// Cost telemetry: one ai_usage row per turn (the ops monitor sums these into a
+// daily spend estimate). Fire-and-forget — never slows or breaks a reply.
+function logAiUsage(uid: string | null, model: string, u: Record<string, unknown>, outTokens: number): void {
+  if (!SB_URL || !SB_SERVICE_KEY) return;
+  fetch(`${SB_URL}/rest/v1/ai_usage`, {
+    method: "POST",
+    headers: { apikey: SB_SERVICE_KEY, authorization: `Bearer ${SB_SERVICE_KEY}`, "content-type": "application/json", prefer: "return=minimal" },
+    body: JSON.stringify({
+      user_id: uid, source: "chat", model,
+      in_tokens: Number(u.input_tokens) || 0,
+      cache_write_tokens: Number(u.cache_creation_input_tokens) || 0,
+      cache_read_tokens: Number(u.cache_read_input_tokens) || 0,
+      out_tokens: outTokens || Number(u.output_tokens) || 0,
+    }),
+  }).catch(() => {});
+}
+
 // Which toolkits has this user connected? Served from the user_connections row
 // in our own DB (one fast local read) so a turn doesn't wait on a Composio
 // round trip before Claude can start. gmail-oauth rewrites that row whenever
@@ -552,6 +586,15 @@ Deno.serve(async (req: Request) => {
     return new Response("The assistant isn't configured yet (ANTHROPIC_API_KEY missing on the server).", { status: 500, headers: cors });
   }
 
+  // Master kill switch (feature_flags key "chat"): lets the owner take the
+  // assistant offline instantly — e.g. a runaway-spend incident — without a
+  // deploy. The app shows this body verbatim.
+  if (!(await flagEnabled("chat"))) {
+    return new Response("Go Farther is briefly down for maintenance — please try again in a little while.", {
+      status: 503, headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
   let messages: Msg[];
   let requestedApps: string[] | undefined;
   let tz = "UTC";
@@ -735,6 +778,8 @@ Deno.serve(async (req: Request) => {
       const reader = upstream.body!.getReader();
       let buf = "";
       let fullText = "";                             // text streamed to the client this turn
+      let usageIn: Record<string, unknown> | null = null; // token usage from message_start
+      let usageOut = 0;                              // final output tokens (message_delta is cumulative)
       const toolName: Record<number, string> = {};   // tool name per content-block index
       const toolJson: Record<number, string> = {};   // accumulated input JSON per index
       const openedIds = new Set<string>();            // single emails the model fetched by id
@@ -764,7 +809,11 @@ Deno.serve(async (req: Request) => {
               // so caching can be verified and spend tracked from the logs.
               if (evt.type === "message_start" && evt.message?.usage) {
                 const u = evt.message.usage;
+                usageIn = u;
                 console.log(`usage in=${u.input_tokens ?? 0} cache_write=${u.cache_creation_input_tokens ?? 0} cache_read=${u.cache_read_input_tokens ?? 0} out=${u.output_tokens ?? 0}`);
+              }
+              if (evt.type === "message_delta" && typeof evt.usage?.output_tokens === "number") {
+                usageOut = evt.usage.output_tokens;
               }
               // Watch tool calls so we can tell when the model opened ONE email.
               if (evt.type === "content_block_start" && evt.content_block &&
@@ -869,8 +918,9 @@ Deno.serve(async (req: Request) => {
       } finally {
         try { controller.close(); } catch { /* already closed (client gone) */ }
       }
-      // Turn finished — persist it (so it survives the app being closed) and, if
-      // the user had left mid-turn, push them that it's ready.
+      // Turn finished — record its cost, persist it (so it survives the app
+      // being closed) and, if the user had left mid-turn, push them it's ready.
+      if (usageIn) logAiUsage(appUser, String(reqBody.model), usageIn, usageOut);
       await persistTurn(appUser ?? "", conversationId, messages, persistOut);
       if (!clientOpen) await firePush(authHeader, "Your reply is ready.");
       };

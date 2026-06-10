@@ -8,6 +8,7 @@ import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic } from './icons';
 import { primeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
+import { track } from './analytics';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, type Reminder, type RepeatKind } from './reminders';
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
 import { App as CapApp } from '@capacitor/app';
@@ -345,6 +346,11 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid]);
 
+  // Product analytics: one app_open per signed-in launch/login (counts, no content).
+  useEffect(() => {
+    if (uid) track('app_open');
+  }, [uid]);
+
   // Load this user's chats on login (local cache instantly, then cloud sync).
   useEffect(() => {
     if (!uid) {
@@ -558,6 +564,7 @@ export default function App() {
     if (bgWaitRef.current?.convId === currentId) bgWaitRef.current = null; // a new turn here supersedes the awaited one
     setMessages([...history, { role: 'assistant', content: '', id: cid() }]);
     setBusy(true);
+    track('message_sent');
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -849,6 +856,7 @@ export default function App() {
     }
     void tap();
     void primeAudio(); // iOS: audio must start inside the tap gesture
+    track('voice_dictate');
     const fin = new AbortController();
     micFinishRef.current = fin;
     setMicState('rec');
@@ -1604,7 +1612,7 @@ export default function App() {
                 </button>
                 <button
                   className="call-btn"
-                  onClick={() => { tap(); void primeAudio(); setPlusOpen(false); setCallOpen(true); }}
+                  onClick={() => { tap(); void primeAudio(); setPlusOpen(false); setCallOpen(true); track('voice_call'); }}
                   disabled={busy}
                   aria-label="Talk to Go Farther"
                 >

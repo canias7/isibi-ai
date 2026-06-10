@@ -22,6 +22,36 @@ const json = (obj: unknown, status = 200) =>
 
 const sbHeaders = { apikey: SB_KEY, authorization: `Bearer ${SB_KEY}`, "content-type": "application/json" };
 
+// Kill switch (feature_flags key "workflows"): lets the owner pause ALL
+// background runs instantly without a deploy. Fail-open on any error.
+async function flagEnabled(key: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/feature_flags?key=eq.${encodeURIComponent(key)}&select=enabled`, { headers: sbHeaders });
+    if (!r.ok) return true;
+    const rows = await r.json();
+    return Array.isArray(rows) && rows[0] ? rows[0].enabled !== false : true;
+  } catch {
+    return true;
+  }
+}
+
+// Cost telemetry: one ai_usage row per model call (the ops monitor sums these
+// into a daily spend estimate). Fire-and-forget.
+function logAiUsage(uid: string, source: string, model: string, u: any): void {
+  if (!u || typeof u !== "object") return;
+  fetch(`${SB_URL}/rest/v1/ai_usage`, {
+    method: "POST",
+    headers: { ...sbHeaders, prefer: "return=minimal" },
+    body: JSON.stringify({
+      user_id: uid, source, model,
+      in_tokens: Number(u.input_tokens) || 0,
+      cache_write_tokens: Number(u.cache_creation_input_tokens) || 0,
+      cache_read_tokens: Number(u.cache_read_input_tokens) || 0,
+      out_tokens: Number(u.output_tokens) || 0,
+    }),
+  }).catch(() => {});
+}
+
 // Per-user MCP auth: a short-lived HMAC-signed token binding the acting user id,
 // so gofarther-mcp derives identity from the token, not a forgeable query param.
 // Secret is MCP_SHARED_SECRET if set, else derived (never the empty string).
@@ -285,6 +315,7 @@ Example: [{"id":"199c1f2a7b8e4d10","line":"Invoice #4521 from Acme"},{"id":"199c
     });
     if (!res.ok) return null;
     const data = await res.json();
+    logAiUsage(uid, "detector", DETECTOR_MODEL, data?.usage);
     const text = (data.content || []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join("").trim();
     const m = text.match(/\[[\s\S]*\]/);
     if (!m) return null; // couldn't parse a result -> "couldn't check", not "nothing"
@@ -342,6 +373,7 @@ Example result: "Sent your morning digest — 12 unread emails grouped by sender
   });
   if (!res.ok) throw new Error(`anthropic ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
   const data = await res.json();
+  logAiUsage(uid, "workflow", MODEL, data?.usage);
   const text = (data.content || []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join("").trim();
   return text || "(no output)";
 }
@@ -369,6 +401,9 @@ Deno.serve(async (req: Request) => {
   const bearer = (req.headers.get("authorization") || "").replace(/^bearer\s+/i, "").trim();
   const secret = await expectedSecret();
   if (!secret || bearer !== secret) return new Response("unauthorized", { status: 401 });
+
+  // Kill switch: with "workflows" off, skip the whole tick (both phases).
+  if (!(await flagEnabled("workflows"))) return json({ disabled: true });
 
   const now = new Date();
   const nowIso = now.toISOString();
