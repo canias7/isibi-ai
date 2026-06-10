@@ -18,6 +18,7 @@ import { registerPush, pushStatus } from './push';
 import { fileToAttachment } from './attach';
 import { getLocation } from './geo';
 import { slimMessages, isNetworkError, serverIsMoreComplete, titleFrom, cleanForDisplay, modelShort, plainText } from './chatUtils';
+import { FORCE_UPDATE_EVENT, type ForceUpdateMode } from './ota';
 
 // Heavy, on-demand screens are code-split: their JS downloads only when first
 // opened, shrinking the initial bundle and speeding up launch.
@@ -278,6 +279,7 @@ export default function App() {
   const [bioStatus, setBioStatus] = useState<BiometryStatus | 'unknown'>('unknown'); // gates the Face ID row
   const [confirmDelete, setConfirmDelete] = useState(false); // delete-account confirm sheet
   const [deleting, setDeleting] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState<ForceUpdateMode | null>(null); // hard update gate (from ota.ts)
   const lockRef = useRef<() => void>(() => {});
   const sendTextRef = useRef<(raw: string, atts?: Attach[]) => Promise<void>>(async () => {}); // latest sendText, for the stable openEmail callback
   const [notif, setNotif] = useState(() => { try { return localStorage.getItem('gf_notif') === '1'; } catch { return false; } });
@@ -490,6 +492,16 @@ export default function App() {
   // Engage the biometric lock on launch (no-op unless Face ID is on + supported).
   useEffect(() => {
     if (faceIdRef.current) void lockRef.current();
+  }, []);
+
+  // The OTA layer fires this when the running bundle is below a required floor.
+  useEffect(() => {
+    const onForce = (e: Event) => {
+      const mode = (e as CustomEvent<{ mode: ForceUpdateMode }>).detail?.mode;
+      setForceUpdate(mode === 'appstore' ? 'appstore' : 'updating');
+    };
+    window.addEventListener(FORCE_UPDATE_EVENT, onForce);
+    return () => window.removeEventListener(FORCE_UPDATE_EVENT, onForce);
   }, []);
 
   // Resolve real biometric availability once, so Settings can show a working
@@ -1151,6 +1163,23 @@ export default function App() {
     } finally {
       setDeleting(false);
     }
+  }
+
+  // ---- Hard update gate (overrides everything, incl. auth) ----
+  if (forceUpdate) {
+    return (
+      <div className="lock-screen update-gate">
+        <div className="lock-brand">Go Farther</div>
+        {forceUpdate === 'updating' ? (
+          <>
+            <span className="gf-status-spin" aria-hidden />
+            <p className="update-msg">Updating to the latest version…</p>
+          </>
+        ) : (
+          <p className="update-msg">A new version of Go Farther is required. Please update it in the App Store to continue.</p>
+        )}
+      </div>
+    );
   }
 
   // ---- Gate on auth ----

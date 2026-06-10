@@ -16,6 +16,18 @@ const MANIFEST_URLS = [
 interface Manifest {
   version?: string;
   url?: string;
+  // OPTIONAL hard floor: if the running bundle's version is below `min`, the app
+  // must update before it can be used (e.g. a breaking backend contract change).
+  // Absent/0 = no floor. The publisher sets this only for breaking releases.
+  min?: string;
+}
+
+// React can't import OTA logic cleanly (it runs before mount), so a forced update
+// is announced via a window event the app listens for.
+export type ForceUpdateMode = 'updating' | 'appstore';
+export const FORCE_UPDATE_EVENT = 'gf-force-update';
+function announceForce(mode: ForceUpdateMode) {
+  try { window.dispatchEvent(new CustomEvent(FORCE_UPDATE_EVENT, { detail: { mode } })); } catch { /* no window */ }
 }
 
 async function fetchManifest(): Promise<Manifest | null> {
@@ -47,11 +59,28 @@ export async function initOta(): Promise<void> {
     const manifest = await fetchManifest();
     if (!manifest || !manifest.version || !manifest.url) return;
 
-    // Only move forward: skip if the published bundle isn't newer than the one
-    // running (which includes the version baked into this native build). This
-    // prevents both redundant re-downloads and accidental downgrades.
     const running = Number(__APP_VERSION__) || 0;
     const available = Number(manifest.version) || 0;
+    const min = Number(manifest.min) || 0;
+
+    // Forced update: the running bundle is below the hard floor.
+    if (running < min) {
+      if (available >= min) {
+        // A published OTA bundle CAN satisfy the floor — apply it now and reload,
+        // behind a blocking screen, instead of waiting for a manual relaunch.
+        announceForce('updating');
+        const bundle = await CapacitorUpdater.download({ url: manifest.url, version: manifest.version });
+        await CapacitorUpdater.set(bundle); // activates + reloads into the new bundle
+      } else {
+        // Even the latest OTA bundle is below the floor → only an App Store
+        // (native) update can fix it. Block with a "please update" screen.
+        announceForce('appstore');
+      }
+      return;
+    }
+
+    // Only move forward: skip if the published bundle isn't newer than the one
+    // running. Prevents redundant re-downloads and accidental downgrades.
     if (available <= running) return;
 
     const bundle = await CapacitorUpdater.download({
