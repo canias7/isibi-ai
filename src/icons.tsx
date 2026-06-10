@@ -279,3 +279,11 @@ export const IconPhoneOff = ({ size }: { size?: number }) => (
     <path d="m2 2 20 20" />
   </Svg>
 );
+
+export const IconMic = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+    <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+    <line x1="12" y1="18" x2="12" y2="22" />
+  </Svg>
+);

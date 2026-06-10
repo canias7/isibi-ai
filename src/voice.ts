@@ -53,7 +53,8 @@ export function micSupported(): boolean {
 // ---- Recording one spoken turn, ending on silence (hands-free) ----
 
 export interface ListenOpts {
-  signal?: AbortSignal;
+  signal?: AbortSignal;       // abort = CANCEL: discard whatever was captured
+  finishSignal?: AbortSignal; // abort = STOP EARLY: keep + return what was captured
   silenceMs?: number;      // quiet (after speech) that ends the turn
   maxMs?: number;          // hard cap on one utterance
   startTimeoutMs?: number; // give up if no speech ever starts
@@ -64,7 +65,7 @@ export interface ListenOpts {
 // (so the caller can keep waiting). Ends automatically on a stretch of silence —
 // no per-turn button press.
 export async function listenOnce(opts: ListenOpts = {}): Promise<Blob | null> {
-  const { signal, silenceMs = 1100, maxMs = 20000, startTimeoutMs = 8000, onLevel } = opts;
+  const { signal, finishSignal, silenceMs = 1100, maxMs = 20000, startTimeoutMs = 8000, onLevel } = opts;
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
   });
@@ -100,6 +101,7 @@ export async function listenOnce(opts: ListenOpts = {}): Promise<Blob | null> {
       try { source.disconnect(); } catch { /* */ }
       for (const t of stream.getTracks()) t.stop(); // release the mic (don't close the shared ctx)
       if (signal) signal.removeEventListener('abort', onAbort);
+      if (finishSignal) finishSignal.removeEventListener('abort', onFinishEarly);
     };
     const onAbort = () => { cleanup(); resolve(null); };
     if (signal) {
@@ -107,6 +109,10 @@ export async function listenOnce(opts: ListenOpts = {}): Promise<Blob | null> {
       signal.addEventListener('abort', onAbort);
     }
     const finish = () => { const wav = encodeWav(mergeChunks(chunks), inRate, 16000); cleanup(); resolve(wav); };
+    // Stop-early (composer mic's tap-to-stop): return what we have, or null if
+    // the user never actually spoke.
+    const onFinishEarly = () => { if (started && chunks.length) finish(); else { cleanup(); resolve(null); } };
+    if (finishSignal) finishSignal.addEventListener('abort', onFinishEarly);
 
     processor.onaudioprocess = (e) => {
       const input = e.inputBuffer.getChannelData(0);

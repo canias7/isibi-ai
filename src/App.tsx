@@ -6,8 +6,8 @@ import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock } from './icons';
-import { primeAudio, closeAudio } from './voice';
+import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic } from './icons';
+import { primeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, type Reminder, type RepeatKind } from './reminders';
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
 import { App as CapApp } from '@capacitor/app';
@@ -280,6 +280,8 @@ export default function App() {
   const [confirmDelete, setConfirmDelete] = useState(false); // delete-account confirm sheet
   const [deleting, setDeleting] = useState(false);
   const [forceUpdate, setForceUpdate] = useState<ForceUpdateMode | null>(null); // hard update gate (from ota.ts)
+  const [micState, setMicState] = useState<'idle' | 'rec' | 'tx'>('idle'); // composer dictation
+  const micFinishRef = useRef<AbortController | null>(null);
   const lockRef = useRef<() => void>(() => {});
   const sendTextRef = useRef<(raw: string, atts?: Attach[]) => Promise<void>>(async () => {}); // latest sendText, for the stable openEmail callback
   const [notif, setNotif] = useState(() => { try { return localStorage.getItem('gf_notif') === '1'; } catch { return false; } });
@@ -832,6 +834,41 @@ export default function App() {
       flashNote(`APNs rejected it (${d.status}): ${why || 'unknown'}`, 12000);
     } catch {
       flashNote('Couldn’t reach the server — try again.');
+    }
+  }
+
+  // Composer mic: record one utterance (ends on silence, or tap again to stop),
+  // transcribe it server-side, and drop the text into the input for review.
+  async function dictate() {
+    if (micState === 'rec') { micFinishRef.current?.abort(); return; } // tap-to-stop
+    if (micState === 'tx') return;
+    if (!micSupported()) {
+      setAttachErr('Voice input isn\u2019t available on this device.');
+      setTimeout(() => setAttachErr(''), 4000);
+      return;
+    }
+    void tap();
+    void primeAudio(); // iOS: audio must start inside the tap gesture
+    const fin = new AbortController();
+    micFinishRef.current = fin;
+    setMicState('rec');
+    try {
+      // Longer pauses allowed than call mode \u2014 dictation has thinking gaps.
+      const audio = await listenOnce({ finishSignal: fin.signal, silenceMs: 1600, maxMs: 30000, startTimeoutMs: 6000 });
+      if (!audio) return; // never spoke \u2014 just go back to idle
+      setMicState('tx');
+      const text = await transcribe(audio);
+      if (text) setInput((cur) => (cur.trim() ? cur.replace(/\s+$/, '') + ' ' + text : text));
+      taRef.current?.focus();
+    } catch (e) {
+      const m = e instanceof Error ? e.message : '';
+      setAttachErr(/denied|permission|notallowed/i.test(m)
+        ? 'Allow microphone access for Go Farther in iOS Settings to dictate.'
+        : 'Couldn\u2019t transcribe that \u2014 please try again.');
+      setTimeout(() => setAttachErr(''), 5000);
+    } finally {
+      micFinishRef.current = null;
+      setMicState('idle');
     }
   }
 
@@ -1581,14 +1618,24 @@ export default function App() {
                   placeholder="Message Go Farther…"
                   rows={1}
                 />
-                <button
-                  className="send"
-                  onClick={() => { if (busy) { void tap(); stopStream(); } else void send(); }}
-                  disabled={!busy && !input.trim() && attachments.length === 0}
-                  aria-label={busy ? 'Stop generating' : 'Send'}
-                >
-                  {busy ? <span className="stop-sq" /> : '↑'}
-                </button>
+                {!busy && (micState !== 'idle' || (!input.trim() && attachments.length === 0)) ? (
+                  <button
+                    className={`send mic ${micState}`}
+                    onClick={() => void dictate()}
+                    aria-label={micState === 'rec' ? 'Stop recording' : micState === 'tx' ? 'Transcribing' : 'Dictate a message'}
+                  >
+                    {micState === 'tx' ? <span className="gf-status-spin" aria-hidden /> : <IconMic size={17} />}
+                  </button>
+                ) : (
+                  <button
+                    className="send"
+                    onClick={() => { if (busy) { void tap(); stopStream(); } else void send(); }}
+                    disabled={!busy && !input.trim() && attachments.length === 0}
+                    aria-label={busy ? 'Stop generating' : 'Send'}
+                  >
+                    {busy ? <span className="stop-sq" /> : '↑'}
+                  </button>
+                )}
               </div>
             </div>
             <input ref={fileRef} type="file" hidden onChange={onFiles} />
