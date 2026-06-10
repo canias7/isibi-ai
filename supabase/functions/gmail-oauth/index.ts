@@ -870,14 +870,17 @@ Deno.serve(async (req: Request) => {
       toolkitCatalog(toolkit),
       getPrefs(uid, toolkit),
     ]);
+    // A saved selection can predate a tool dying upstream — never resurface a
+    // known-dead slug from prefs (the catalog already excludes them).
+    const savedLive = saved === null ? null : saved.filter((s) => !BROKEN_TOOLS.has(s));
     // Nothing is enabled by default — only the user's saved selection counts.
     // Surface any saved slug that isn't in the catalog so it stays toggleable.
     const have = new Set(catalog.map((t) => t.slug));
-    for (const s of (saved ?? [])) if (!have.has(s)) catalog.push({ slug: s, name: prettyName(s), desc: "" });
+    for (const s of (savedLive ?? [])) if (!have.has(s)) catalog.push({ slug: s, name: prettyName(s), desc: "" });
     const tools = catalog.map((t) => ({ slug: t.slug, name: t.name, desc: t.desc, write: isWrite(t.slug) }));
     // Uncustomized = everything on by default (matches gmail-mcp), so show all
     // toggles enabled; the user trims from there and that saves their selection.
-    return json(req, { tools, enabled: saved ?? catalog.map((t) => t.slug), customized: saved !== null });
+    return json(req, { tools, enabled: savedLive ?? catalog.map((t) => t.slug), customized: saved !== null });
   }
 
   // 3) The app polls this to show connection state (verified via Bearer token).
