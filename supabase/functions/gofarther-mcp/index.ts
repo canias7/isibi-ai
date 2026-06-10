@@ -580,8 +580,8 @@ async function stashTable(uid: string, t: BankTable): Promise<string | null> {
   if (!url || !key || !uid || !t.rows.length) return null;
   try {
     const auth = { apikey: key, authorization: `Bearer ${key}` };
-    // Opportunistic TTL cleanup (fire-and-forget): drop stashes older than 2h.
-    fetch(`${url}/rest/v1/tool_data_stash?created_at=lt.${encodeURIComponent(new Date(Date.now() - 2 * 3600 * 1000).toISOString())}`, { method: "DELETE", headers: auth }).catch(() => {});
+    // Rows expire after 2h — the `prune-tool-data-stash` pg_cron job sweeps them
+    // (one scheduled delete for everyone, not a redundant delete on every call).
     const r = await fetch(`${url}/rest/v1/tool_data_stash`, {
       method: "POST",
       headers: { ...auth, "content-type": "application/json", prefer: "return=representation" },
@@ -616,7 +616,6 @@ async function stashRaw(uid: string, source: string, raw: unknown): Promise<stri
   if (!url || !key || !uid) return null;
   try {
     const auth = { apikey: key, authorization: `Bearer ${key}` };
-    fetch(`${url}/rest/v1/tool_data_stash?created_at=lt.${encodeURIComponent(new Date(Date.now() - 2 * 3600 * 1000).toISOString())}`, { method: "DELETE", headers: auth }).catch(() => {});
     const r = await fetch(`${url}/rest/v1/tool_data_stash`, {
       method: "POST",
       headers: { ...auth, "content-type": "application/json", prefer: "return=representation" },

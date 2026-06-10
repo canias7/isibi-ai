@@ -17,7 +17,7 @@ const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
 const USER_TABLES = [
   "conversations", "user_memory", "tool_prefs", "plaid_items", "device_tokens",
   "tool_data_stash", "tool_usage", "user_reminders", "user_settings",
-  "workflows", "workflow_runs",
+  "workflows", "workflow_runs", "user_connections",
 ];
 
 const ALLOWED_ORIGINS = new Set([

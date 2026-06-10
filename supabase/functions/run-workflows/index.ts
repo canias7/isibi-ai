@@ -60,23 +60,55 @@ async function expectedSecret(): Promise<string> {
 // null if Composio couldn't be reached — callers must treat null as "couldn't
 // check" (skip/retry), NOT as "nothing connected", or an outage looks like the
 // user disconnecting every app.
+//
+// Served from the user_connections cache first, so a tick over many workflows
+// isn't N Composio round trips. The TTL is long on purpose: workflows run for
+// users who may not open the app for days (a short TTL would re-ask Composio
+// every tick anyway), gmail-oauth rewrites the row the moment connections
+// actually change, and the only drift this delays noticing is an out-of-band
+// revocation — which a run already surfaces gracefully as a failed tool call.
+const CONN_TTL_MS = 6 * 3600 * 1000;
+async function cachedConnections(uid: string): Promise<{ toolkits: string[]; fresh: boolean } | null> {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/user_connections?user_id=eq.${encodeURIComponent(uid)}&select=toolkits,updated_at`, { headers: sbHeaders });
+    if (!r.ok) return null;
+    const rows = await r.json();
+    const row = Array.isArray(rows) && rows[0];
+    if (!row || !Array.isArray(row.toolkits)) return null;
+    const age = Date.now() - new Date(row.updated_at).getTime();
+    return { toolkits: row.toolkits.filter((s: unknown): s is string => typeof s === "string"), fresh: age >= 0 && age < CONN_TTL_MS };
+  } catch {
+    return null;
+  }
+}
+function saveConnections(uid: string, toolkits: string[]): void {
+  fetch(`${SB_URL}/rest/v1/user_connections?on_conflict=user_id`, {
+    method: "POST",
+    headers: { ...sbHeaders, prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ user_id: uid, toolkits, updated_at: new Date().toISOString() }),
+  }).catch(() => {});
+}
 async function connectedToolkits(uid: string): Promise<string[] | null> {
-  if (!COMPOSIO_API_KEY) return [];
+  const cached = await cachedConnections(uid);
+  if (cached?.fresh) return cached.toolkits;
+  if (!COMPOSIO_API_KEY) return cached ? cached.toolkits : [];
   try {
     const u = new URL("https://backend.composio.dev/api/v3.1/connected_accounts");
     u.searchParams.set("user_ids", uid);
     u.searchParams.set("statuses", "ACTIVE");
     const res = await fetch(u.toString(), { headers: { "x-api-key": COMPOSIO_API_KEY } });
-    if (!res.ok) return null;
+    if (!res.ok) return cached ? cached.toolkits : null;
     const body = await res.json();
     const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
     const slugs = items
       .filter((x) => (x.status ?? "ACTIVE").toUpperCase() === "ACTIVE")
       .map((x) => x.toolkit?.slug ?? x.toolkit_slug ?? (typeof x.toolkit === "string" ? x.toolkit : null))
       .filter((s): s is string => !!s);
-    return [...new Set(slugs)];
+    const out = [...new Set(slugs)];
+    saveConnections(uid, out);
+    return out;
   } catch {
-    return null;
+    return cached ? cached.toolkits : null;
   }
 }
 
@@ -340,12 +372,15 @@ Deno.serve(async (req: Request) => {
 
   const now = new Date();
   const nowIso = now.toISOString();
-  const q = `${SB_URL}/rest/v1/workflows?enabled=eq.true&trigger_type=eq.schedule&or=(next_run_at.is.null,next_run_at.lte.${encodeURIComponent(nowIso)})&select=*&limit=50`;
-  const r = await fetch(q, { headers: sbHeaders });
-  if (!r.ok) return json({ error: `query ${r.status}` }, 500);
-  const due: any[] = await r.json();
+  // Wall-time budget: stop STARTING new work well before the platform's request
+  // kill, so an in-flight run always gets to finish (a workflow claimed and then
+  // killed mid-run would be a silently lost run). Whatever is still due just
+  // waits for the next 5-minute tick.
+  const startedAt = Date.now();
+  const BUDGET_MS = 210_000;
+  const inBudget = () => Date.now() - startedAt < BUDGET_MS;
 
-  let ran = 0, init = 0, failed = 0;
+  let ran = 0, init = 0, failed = 0, checked = 0;
   async function runScheduled(wf: any): Promise<void> {
     try {
       const next = computeNext(now, wf.schedule);
@@ -379,20 +414,41 @@ Deno.serve(async (req: Request) => {
       failed++;
     }
   }
-  // Bounded concurrency: each workflow claims its own row, so running a few at once is safe.
-  const CONC = 3;
-  for (let i = 0; i < due.length; i += CONC) {
-    await Promise.all(due.slice(i, i + CONC).map(runScheduled));
+  // Drain due workflows in pages instead of one fixed batch: run a page, then
+  // re-query — claimed rows advanced their next_run_at, so each query returns
+  // the NEXT page — until nothing is due or the budget is spent. Oldest due
+  // first, so a backlog can't starve the same workflows every tick. MAX_PAGES
+  // bounds a pathological row that stays due (e.g. its claim PATCH keeps
+  // failing). Bounded concurrency: each workflow claims its own row, so running
+  // a few at once is safe.
+  const CONC = 3, BATCH = 50, MAX_PAGES = 20;
+  for (let page = 0; page < MAX_PAGES && inBudget(); page++) {
+    const q = `${SB_URL}/rest/v1/workflows?enabled=eq.true&trigger_type=eq.schedule&or=(next_run_at.is.null,next_run_at.lte.${encodeURIComponent(nowIso)})&select=*&order=next_run_at.asc.nullsfirst&limit=${BATCH}`;
+    const r = await fetch(q, { headers: sbHeaders });
+    if (!r.ok) { if (page === 0) return json({ error: `query ${r.status}` }, 500); break; }
+    const due: any[] = await r.json();
+    if (!due.length) break;
+    checked += due.length;
+    for (let i = 0; i < due.length && inBudget(); i += CONC) {
+      await Promise.all(due.slice(i, i + CONC).map(runScheduled));
+    }
+    if (due.length < BATCH) break; // drained
   }
 
   // EVENT workflows: fire when a new matching item appears in the chosen app.
+  // Paged like the scheduled phase and gated by the same budget. Event rows
+  // aren't claimed/advanced by a check, so pages walk a stable id order; one
+  // skipped tick just means the next tick catches the same new items.
   let eventChecked = 0, eventFired = 0;
   try {
-    const er = await fetch(`${SB_URL}/rest/v1/workflows?enabled=eq.true&trigger_type=eq.event&select=*&limit=50`, { headers: sbHeaders });
-    if (er.ok) {
+    for (let off = 0; inBudget(); off += 50) {
+      const er = await fetch(`${SB_URL}/rest/v1/workflows?enabled=eq.true&trigger_type=eq.event&select=*&order=id.asc&offset=${off}&limit=50`, { headers: sbHeaders });
+      if (!er.ok) break;
       const evs: any[] = await er.json();
-      eventChecked = evs.length;
+      if (!evs.length) break;
       for (const wf of evs) {
+        if (!inBudget()) break;
+        eventChecked++;
         try {
           // Active-window gate: outside the user's set hours we don't poll at all
           // (the cost saver). Anything new is caught at the next in-window check.
@@ -452,8 +508,9 @@ Deno.serve(async (req: Request) => {
           eventFired++;
         } catch { /* skip this one */ }
       }
+      if (evs.length < 50) break; // no more event workflows
     }
   } catch { /* ignore event phase errors */ }
 
-  return json({ checked: due.length, ran, init, failed, eventChecked, eventFired });
+  return json({ checked, ran, init, failed, eventChecked, eventFired });
 });
