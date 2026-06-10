@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { crypto as stdCrypto } from "jsr:@std/crypto"; // for MD5 (WebCrypto lacks it)
+import * as XLSX from "npm:xlsx@0.18.5"; // server-side spreadsheet build (deterministic — the model never retypes the data into code)
 
 // Generic MCP server Claude connects to (via the chat function's mcp_servers).
 // Slug: `gofarther-mcp`. It proxies MULTIPLE Composio toolkits (Gmail, Calendar,
@@ -432,8 +433,10 @@ async function listTools(apps: string[], prefs: Record<string, string[]>, memOn:
     const pick = prefs["plaid"];
     for (const t of allBank) if (pick === undefined || pick.includes(t.name)) out.push(t);
   }
-  // General-purpose built-ins: weather (keyless) always; maps & image-gen only when their key is set.
+  // General-purpose built-ins: weather + save-table (keyless) always; maps &
+  // image-gen only when their key is set.
   out.push(WEATHER_TOOL);
+  out.push(SAVE_TABLE_TOOL);
   if (MAPS_KEY) out.push(MAPS_TOOL);
   if (OPENAI_KEY) out.push(IMAGE_TOOL);
   return out;
@@ -966,6 +969,111 @@ const IMAGE_TOOL: Tool = {
   }, required: ["prompt"] },
 };
 
+// ---- Spreadsheet/CSV export (server-built, so totals + formatting are exact) ----
+// The model hands over the rows; WE build the file in code — columns sized to fit,
+// and any TOTAL row computed with real arithmetic — so a hand-typed/miscounted
+// total or cramped columns simply can't happen. (The model could still omit a row
+// it didn't pass, but it never does the math or the layout.)
+function csvCell(v: unknown): string {
+  const s = v === null || v === undefined ? "" : String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function buildCsvBytes(aoa: unknown[][]): Uint8Array {
+  const csv = aoa.map((r) => (Array.isArray(r) ? r : [r]).map(csvCell).join(",")).join("\r\n");
+  return new TextEncoder().encode("\uFEFF" + csv); // BOM so Excel opens UTF-8 correctly
+}
+function buildXlsxBytes(aoa: unknown[][], colCount: number, title: string): Uint8Array {
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  // Size each column to its widest cell so nothing is cramped or cut off.
+  const cols: { wch: number }[] = [];
+  for (let ci = 0; ci < colCount; ci++) {
+    let w = 8;
+    for (const r of aoa) { const len = String((r as unknown[])[ci] ?? "").length; if (len > w) w = len; }
+    cols.push({ wch: Math.min(w + 2, 60) });
+  }
+  ws["!cols"] = cols;
+  const wb = XLSX.utils.book_new();
+  const sheet = (title || "Sheet").replace(/[\\/?*\[\]:]/g, " ").slice(0, 31) || "Sheet";
+  XLSX.utils.book_append_sheet(wb, ws, sheet);
+  return new Uint8Array(XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer);
+}
+// Stash arbitrary bytes in the private chat-files bucket; return the gf-file shape
+// the chat app renders as a download chip ({name, mime, size, url}).
+async function stashFile(uid: string, bytes: Uint8Array, ext: string, mime: string, name: string): Promise<{ name: string; mime: string; size: number; url: string } | null> {
+  const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return null;
+  try {
+    const objKey = `${uid}/file/${crypto.randomUUID()}.${ext}`;
+    const auth = { apikey: key, authorization: `Bearer ${key}` };
+    const up = await fetch(`${url}/storage/v1/object/chat-files/${objKey}`, {
+      method: "POST", headers: { ...auth, "content-type": mime, "x-upsert": "true" }, body: bytes,
+    });
+    if (!up.ok) { console.error("file stash", up.status, (await up.text().catch(() => "")).slice(0, 120)); return null; }
+    const sign = await fetch(`${url}/storage/v1/object/sign/chat-files/${objKey}`, {
+      method: "POST", headers: { ...auth, "content-type": "application/json" }, body: JSON.stringify({ expiresIn: 604800 }),
+    });
+    if (!sign.ok) return null;
+    const sj = await sign.json();
+    const signed = String(sj?.signedURL ?? sj?.signedUrl ?? "");
+    return signed ? { name, mime, size: bytes.length, url: `${url}/storage/v1${signed.startsWith("/") ? "" : "/"}${signed}` } : null;
+  } catch (e) { console.error("stashFile", e); return null; }
+}
+async function saveTable(uid: string, args: any): Promise<string> {
+  const columns = Array.isArray(args?.columns) ? args.columns.map((c: unknown) => String(c ?? "")) : [];
+  const rows = (Array.isArray(args?.rows) ? args.rows : []).filter((r: unknown) => Array.isArray(r)) as unknown[][];
+  if (!columns.length || !rows.length) return "Nothing to save — provide the columns and at least one row.";
+  const title = (String(args?.title || "Sheet").trim() || "Sheet").slice(0, 60);
+  const fmt = args?.format === "csv" ? "csv" : "xlsx";
+  // A TOTAL row, summed IN CODE (never a number the model typed) so it always
+  // matches the rows actually included.
+  const totalCols: number[] = (Array.isArray(args?.total_columns) ? args.total_columns : [])
+    .map((n: unknown) => Number(n)).filter((n: number) => Number.isInteger(n) && n >= 0 && n < columns.length);
+  let totalRow: (string | number)[] | null = null;
+  if (totalCols.length) {
+    totalRow = columns.map(() => "" as string | number);
+    totalRow[0] = "TOTAL";
+    for (const ci of totalCols) {
+      let sum = 0;
+      for (const r of rows) { const n = parseFloat(String(r[ci] ?? "").replace(/[^0-9.\-]/g, "")); if (!isNaN(n)) sum += n; }
+      totalRow[ci] = Math.round(sum * 100) / 100;
+    }
+  }
+  const aoa: unknown[][] = [columns, ...rows, ...(totalRow ? [totalRow] : [])];
+  const base = title.replace(/[^\w .\-]+/g, "_").trim().slice(0, 50) || "table";
+  let bytes: Uint8Array, ext: string, mime: string;
+  if (fmt === "csv") {
+    bytes = buildCsvBytes(aoa); ext = "csv"; mime = "text/csv";
+  } else {
+    try {
+      bytes = buildXlsxBytes(aoa, columns.length, title);
+      ext = "xlsx"; mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    } catch (e) {
+      console.error("xlsx build failed, using csv:", e);
+      bytes = buildCsvBytes(aoa); ext = "csv"; mime = "text/csv";
+    }
+  }
+  const fileName = `${base}.${ext}`;
+  const stashed = await stashFile(uid, bytes, ext, mime, fileName);
+  if (!stashed) return "The file couldn't be saved right now — please try again.";
+  const block = "```gf-file\n" + JSON.stringify(stashed) + "\n```";
+  return `File ready (${fileName}, ${rows.length} rows${totalRow ? " + a computed total" : ""}). Show it to the user by replying with the following block EXACTLY (a short caption before it is fine, but do NOT write the URL as text):\n${block}`;
+}
+const SAVE_TABLE_TOOL: Tool = {
+  name: "GF_SAVE_TABLE",
+  description: "Save tabular data as a downloadable spreadsheet (Excel .xlsx or .csv) BUILT SERVER-SIDE — columns are auto-sized and any total is computed in real code, so the file's layout and math are always exact. Use this WHENEVER the user wants a list or table saved/exported as a spreadsheet, Excel, or CSV (e.g. \"put my subscriptions in a spreadsheet\", \"export these transactions to Excel\"). ALWAYS pass the complete data: list EVERY row in `rows`, in full. PREFER this over writing spreadsheet code yourself with code execution — it cannot drop the total or produce cramped columns. To add a summed TOTAL row, put the index(es) of the numeric column(s) in `total_columns`. After it runs, show the file by replying with the gf-file block exactly as the tool result instructs.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      title: { type: "string", description: "Short title / file name for the sheet, e.g. \"Subscriptions\"." },
+      columns: { type: "array", items: { type: "string" }, description: "Column headers, in order, e.g. [\"Subscription\", \"Monthly Cost\"]." },
+      rows: { type: "array", description: "The data rows. Each row is an array of cell values in the same order as the columns. Include EVERY row — never summarize or omit any.", items: { type: "array", items: {} } },
+      total_columns: { type: "array", items: { type: "integer" }, description: "OPTIONAL: 0-based index(es) of numeric columns to sum into a TOTAL row at the bottom (computed in code)." },
+      format: { type: "string", enum: ["xlsx", "csv"], description: "File format — \"xlsx\" (default) or \"csv\"." },
+    },
+    required: ["columns", "rows"],
+  },
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === "GET") {
     // Non-sensitive: expose the RECOMMENDED tool slugs for a toolkit (optional
@@ -1078,11 +1186,12 @@ Deno.serve(async (req: Request) => {
       }
     }
     // Built-in general tools — handled locally (no Composio, no connection needed).
-    if (p.name === "GF_WEATHER" || p.name === "GF_MAPS" || p.name === "GF_IMAGE") {
+    if (p.name === "GF_WEATHER" || p.name === "GF_MAPS" || p.name === "GF_IMAGE" || p.name === "GF_SAVE_TABLE") {
       try {
         const a = p.arguments || {};
         const text = p.name === "GF_WEATHER" ? await weatherLookup(a.location, String(a.units || "fahrenheit"))
           : p.name === "GF_MAPS" ? await mapsTool(a)
+          : p.name === "GF_SAVE_TABLE" ? await saveTable(reqUser, a)
           : await imageTool(reqUser, a);
         await logUsage(p.name, true, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
