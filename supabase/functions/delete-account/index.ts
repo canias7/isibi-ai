@@ -1,0 +1,123 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+// Permanently delete the calling user's account and ALL their data.
+// Identity is verified SERVER-SIDE from the caller's Supabase access token, so a
+// client can never delete someone else's account. Steps:
+//   1) verify the token -> uid
+//   2) best-effort: revoke the user's Composio connected accounts (app links)
+//   3) delete every row this uid owns across our tables (service role)
+//   4) delete the auth user itself (GoTrue admin)
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
+
+// Every table that stores per-user rows (all keyed by user_id).
+const USER_TABLES = [
+  "conversations", "user_memory", "tool_prefs", "plaid_items", "device_tokens",
+  "tool_data_stash", "tool_usage", "user_reminders", "user_settings",
+  "workflows", "workflow_runs",
+];
+
+const ALLOWED_ORIGINS = new Set([
+  "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
+  "http://localhost:5173", "http://localhost:4173",
+]);
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin");
+  const allow = !origin || ALLOWED_ORIGINS.has(origin) ? (origin ?? "*") : "null";
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Headers": "authorization, content-type, apikey",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
+// Verify the caller's access token and return their user id (never trust a body).
+async function verifyUser(token: string | null): Promise<string | null> {
+  if (!token || !SUPABASE_URL || !ANON_KEY) return null;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: ANON_KEY, authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const u = await res.json();
+    return typeof u?.id === "string" ? u.id : null;
+  } catch {
+    return null;
+  }
+}
+
+// Best-effort: revoke this user's Composio connected accounts so external app
+// authorizations don't linger after the account is gone.
+async function revokeComposio(uid: string): Promise<void> {
+  if (!COMPOSIO_API_KEY) return;
+  try {
+    const q = new URL("https://backend.composio.dev/api/v3.1/connected_accounts");
+    q.searchParams.set("user_ids", uid);
+    const res = await fetch(q.toString(), { headers: { "x-api-key": COMPOSIO_API_KEY } });
+    if (!res.ok) return;
+    const body = await res.json().catch(() => ({}));
+    const items: { id?: string; nanoid?: string }[] = body.items ?? body.data ?? [];
+    for (const it of items) {
+      const id = it.id ?? it.nanoid;
+      if (!id) continue;
+      await fetch(`https://backend.composio.dev/api/v3.1/connected_accounts/${id}`, {
+        method: "DELETE", headers: { "x-api-key": COMPOSIO_API_KEY },
+      }).catch(() => {});
+    }
+  } catch { /* best effort */ }
+}
+
+Deno.serve(async (req: Request) => {
+  const cors = corsFor(req);
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: cors });
+
+  const J = (obj: unknown, status = 200) =>
+    new Response(JSON.stringify(obj), { status, headers: { ...cors, "content-type": "application/json" } });
+
+  if (!SERVICE_KEY || !SUPABASE_URL) return J({ error: "server not configured" }, 500);
+
+  const auth = req.headers.get("authorization") || "";
+  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
+  const uid = await verifyUser(token);
+  if (!uid) return J({ error: "unauthorized" }, 401);
+
+  // 2) Revoke external app links first (best-effort; never blocks deletion).
+  await revokeComposio(uid);
+
+  // 3) Delete every owned row. We continue past individual failures so one bad
+  // table can't strand the account half-deleted.
+  const headers = { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}` };
+  const failed: string[] = [];
+  for (const table of USER_TABLES) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?user_id=eq.${encodeURIComponent(uid)}`, {
+        method: "DELETE", headers: { ...headers, prefer: "return=minimal" },
+      });
+      if (!r.ok && r.status !== 404) failed.push(`${table}:${r.status}`);
+    } catch {
+      failed.push(`${table}:err`);
+    }
+  }
+
+  // 4) Delete the auth user itself (GoTrue admin; requires the service role).
+  let userDeleted = false;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${encodeURIComponent(uid)}`, {
+      method: "DELETE", headers: { ...headers, "content-type": "application/json" },
+    });
+    userDeleted = r.ok;
+    if (!r.ok) failed.push(`auth_user:${r.status}`);
+  } catch {
+    failed.push("auth_user:err");
+  }
+
+  // The account is functionally gone once the auth user is deleted; report any
+  // non-fatal table issues so they're visible in logs.
+  if (!userDeleted) return J({ error: "Could not fully delete the account.", failed }, 500);
+  return J({ ok: true, ...(failed.length ? { warnings: failed } : {}) });
+});
