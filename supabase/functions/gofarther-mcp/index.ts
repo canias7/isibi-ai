@@ -454,6 +454,31 @@ async function allowedSlugs(apps: string[], prefs: Record<string, string[]>): Pr
   return set;
 }
 
+// Friendly app label for a Composio tool name (what the user sees in Connectors).
+const APP_LABELS: Record<string, string> = {
+  GMAIL: "Gmail", GOOGLECALENDAR: "Google Calendar", GOOGLEDRIVE: "Google Drive",
+  GOOGLESHEETS: "Google Sheets", GOOGLEDOCS: "Google Docs", OUTLOOK: "Outlook",
+  EXCEL: "Excel", ONE_DRIVE: "OneDrive", ONENOTE: "OneNote", SLACK: "Slack",
+  NOTION: "Notion", JIRA: "Jira", HUBSPOT: "HubSpot", SALESFORCE: "Salesforce",
+  STRIPE: "Stripe", SHOPIFY: "Shopify", QUICKBOOKS: "QuickBooks", XERO: "Xero",
+  CANVA: "Canva", FIGMA: "Figma", AIRTABLE: "Airtable", TODOIST: "Todoist",
+  ASANA: "Asana", TRELLO: "Trello", NOTION_DB: "Notion",
+};
+function appLabel(name: string): string {
+  const up = String(name || "").toUpperCase();
+  for (const k of Object.keys(APP_LABELS)) if (up.startsWith(k + "_")) return APP_LABELS[k];
+  const first = up.split("_")[0];
+  return first ? first.charAt(0) + first.slice(1).toLowerCase() : "that app";
+}
+// Does a Composio result look like an expired/disconnected OAuth connection (vs a
+// normal tool error)? Used to tell the user to RECONNECT instead of a generic fail.
+function isAuthError(status: number, body: any): boolean {
+  if (status === 401 || status === 403) return true;
+  const msg = String(body?.error?.message ?? body?.error ?? body?.message ?? "").toLowerCase();
+  if (!msg) return false;
+  return /no connected account|not connected|connected account not found|reconnect|re-?auth|expired|invalid[_ ]?grant|token (is )?(expired|revoked|invalid)|unauthorized|forbidden|account.*inactive|inactive.*account/.test(msg);
+}
+
 async function execOnce(name: string, args: unknown, userId: string): Promise<{ res: Response; body: any }> {
   const res = await fetch(`${BASE}/v3/tools/execute/${encodeURIComponent(name)}`, {
     method: "POST",
@@ -492,6 +517,11 @@ async function execTool(name: string, args: unknown, userId: string): Promise<st
     return "Done — it completed successfully. (The provider returned more confirmation detail than could be included, but the action went through.)";
   }
 
+  // An expired/revoked OAuth connection → tag it so the caller can tell the user
+  // to reconnect (a real, fixable problem) instead of a vague "try again".
+  if ((!res.ok || body.successful === false || body.error) && isAuthError(res.status, body)) {
+    throw new Error(`GF_REAUTH:${appLabel(name)}`);
+  }
   if (!res.ok) throw new Error(`Composio execute ${res.status}: ${JSON.stringify(body)}`);
   if (body.successful === false || body.error) throw new Error(String(body.error || "Tool execution failed"));
   const data = body.data ?? body;
@@ -1456,6 +1486,12 @@ Deno.serve(async (req: Request) => {
     } catch (e) {
       console.error("tool exec error:", p.name, e);
       await logUsage(p.name, false, reqUser);
+      const m = String((e as Error)?.message || "");
+      if (m.startsWith("GF_REAUTH:")) {
+        const app = m.slice("GF_REAUTH:".length) || "that app";
+        // Not isError: let the model relay this so the user gets a clear next step.
+        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: `The user's ${app} connection has expired or been disconnected, so this couldn't run. Tell them to reconnect ${app} in Connectors (tap ${app} → reconnect), then try again — do NOT retry the tool until they do.` }] } });
+      }
       return J({
         jsonrpc: "2.0",
         id,
