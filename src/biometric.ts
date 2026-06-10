@@ -5,7 +5,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 // build actually bundles the plugin (see NATIVE_SETUP.md). Install in that build:
 //   npm i @aparajita/capacitor-biometric-auth && npx cap sync ios
 interface BiometricPlugin {
-  checkBiometry(): Promise<{ isAvailable: boolean }>;
+  checkBiometry(): Promise<{ isAvailable: boolean; code?: string; reason?: string }>;
   authenticate(opts?: {
     reason?: string;
     iosFallbackTitle?: string;
@@ -14,16 +14,32 @@ interface BiometricPlugin {
 }
 const BiometricAuth = registerPlugin<BiometricPlugin>('BiometricAuth');
 
-// Can this device actually do biometrics right now? FAIL-SAFE: any error — plugin
-// not in this binary, no hardware, web — returns false, so the lock is simply
-// never engaged (we never trap the user behind a lock we can't satisfy).
-export async function biometryAvailable(): Promise<boolean> {
-  if (Capacitor.getPlatform() === 'web') return false;
+// Three honest outcomes, so the UI can show the RIGHT thing instead of a toggle
+// that errors:
+//   'ready'       – biometrics are usable now → show a working toggle.
+//   'unenrolled'  – hardware is there but Face ID/Touch ID isn't set up → tell
+//                   the user to enroll it in iOS Settings.
+//   'unavailable' – web, no hardware, OR the native plugin isn't in this build
+//                   yet → hide the control (don't offer what we can't deliver).
+export type BiometryStatus = 'ready' | 'unenrolled' | 'unavailable';
+export async function biometryStatus(): Promise<BiometryStatus> {
+  if (Capacitor.getPlatform() === 'web') return 'unavailable';
   try {
-    return !!(await BiometricAuth.checkBiometry()).isAvailable;
+    const r = await BiometricAuth.checkBiometry();
+    if (r.isAvailable) return 'ready';
+    // Plugin present + hardware present, but the user hasn't enrolled a face/finger.
+    if (String(r.code || '') === 'biometryNotEnrolled') return 'unenrolled';
+    return 'unavailable';
   } catch {
-    return false;
+    // Throw = the plugin isn't registered in this native binary → treat as N/A.
+    return 'unavailable';
   }
+}
+
+// Can this device actually do biometrics right now? FAIL-SAFE: anything but a
+// clean 'ready' returns false, so the lock is never engaged when we can't satisfy it.
+export async function biometryAvailable(): Promise<boolean> {
+  return (await biometryStatus()) === 'ready';
 }
 
 // Prompt to unlock. Resolves true only on a real success. On cancel/failure

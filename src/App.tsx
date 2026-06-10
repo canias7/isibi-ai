@@ -13,7 +13,7 @@ import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, 
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { tap } from './haptics';
-import { biometryAvailable, unlock } from './biometric';
+import { biometryAvailable, biometryStatus, unlock, type BiometryStatus } from './biometric';
 import { registerPush, pushStatus } from './push';
 import { fileToAttachment } from './attach';
 import { getLocation } from './geo';
@@ -275,6 +275,7 @@ export default function App() {
   const [locked, setLocked] = useState(() => { try { return localStorage.getItem('gf_faceid') === '1' && Capacitor.getPlatform() !== 'web'; } catch { return false; } });
   const faceIdRef = useRef(faceId);
   faceIdRef.current = faceId;
+  const [bioStatus, setBioStatus] = useState<BiometryStatus | 'unknown'>('unknown'); // gates the Face ID row
   const lockRef = useRef<() => void>(() => {});
   const sendTextRef = useRef<(raw: string, atts?: Attach[]) => Promise<void>>(async () => {}); // latest sendText, for the stable openEmail callback
   const [notif, setNotif] = useState(() => { try { return localStorage.getItem('gf_notif') === '1'; } catch { return false; } });
@@ -487,6 +488,23 @@ export default function App() {
   // Engage the biometric lock on launch (no-op unless Face ID is on + supported).
   useEffect(() => {
     if (faceIdRef.current) void lockRef.current();
+  }, []);
+
+  // Resolve real biometric availability once, so Settings can show a working
+  // toggle, an "enroll it" hint, or hide the row — never a toggle that errors.
+  useEffect(() => {
+    let alive = true;
+    void biometryStatus().then((s) => {
+      if (!alive) return;
+      setBioStatus(s);
+      // A stale "on" pref on a device that can no longer do biometrics would trap
+      // the user behind a lock we can't satisfy — clear it.
+      if (s !== 'ready' && faceIdRef.current) {
+        setFaceId(false);
+        try { localStorage.setItem('gf_faceid', '0'); } catch { /* ignore */ }
+      }
+    });
+    return () => { alive = false; };
   }, []);
 
   // Refresh the push registration on launch if notifications are enabled.
@@ -750,9 +768,17 @@ export default function App() {
   async function toggleFaceId() {
     void tap();
     const next = !faceIdRef.current;
-    if (next && !(await biometryAvailable())) {
-      flashNote('Face ID / Touch ID isn’t set up on this device.');
-      return;
+    if (next) {
+      const s = await biometryStatus();
+      setBioStatus(s);
+      if (s === 'unenrolled') {
+        flashNote('Turn on Face ID / Touch ID in iOS Settings, then come back to enable this.');
+        return;
+      }
+      if (s !== 'ready') {
+        flashNote('Face ID isn’t available in this version yet — it arrives in the next app update.');
+        return;
+      }
     }
     try { localStorage.setItem('gf_faceid', next ? '1' : '0'); } catch { /* ignore */ }
     setFaceId(next);
@@ -1267,13 +1293,15 @@ export default function App() {
               <>
                 <div className="set-label">Preferences</div>
                 <div className="set-card">
-                  <div className="set-row" onClick={toggleFaceId} role="button" tabIndex={0} aria-pressed={faceId}>
-                    <div className="set-row-text">
-                      <div className="set-row-title">Require Face ID</div>
-                      <div className="set-row-sub">Lock the app when you open or return to it.</div>
+                  {(bioStatus === 'ready' || bioStatus === 'unenrolled') && (
+                    <div className="set-row" onClick={toggleFaceId} role="button" tabIndex={0} aria-pressed={faceId}>
+                      <div className="set-row-text">
+                        <div className="set-row-title">Require Face ID</div>
+                        <div className="set-row-sub">{bioStatus === 'unenrolled' ? 'Set up Face ID in iOS Settings to use this.' : 'Lock the app when you open or return to it.'}</div>
+                      </div>
+                      <span className={`tgl ${faceId ? 'on' : ''}`}><span className="tgl-knob" /></span>
                     </div>
-                    <span className={`tgl ${faceId ? 'on' : ''}`}><span className="tgl-knob" /></span>
-                  </div>
+                  )}
                   <div className="set-row" onClick={toggleNotif} role="button" tabIndex={0} aria-pressed={notif}>
                     <div className="set-row-text">
                       <div className="set-row-title">Notifications</div>
