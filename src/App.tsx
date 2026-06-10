@@ -725,6 +725,7 @@ export default function App() {
   // Turning Face ID on only sticks if the device can actually do biometrics —
   // otherwise the toggle would read "on" while the lock silently never engages.
   async function toggleFaceId() {
+    void tap();
     const next = !faceIdRef.current;
     if (next && !(await biometryAvailable())) {
       flashNote('Face ID / Touch ID isn’t set up on this device.');
@@ -737,6 +738,7 @@ export default function App() {
   // Same for notifications: only show "on" if permission was actually granted, so
   // the toggle never lies about whether pushes will arrive.
   async function toggleNotif() {
+    void tap();
     const next = !notif;
     if (next && !(await registerPush())) {
       flashNote('Allow notifications for Go Farther in iOS Settings to turn this on.');
@@ -1033,6 +1035,7 @@ export default function App() {
   }
 
   async function copyMsg(i: number, text: string) {
+    void tap();
     if (await copyText(text)) {
       setCopiedIdx(i);
       setTimeout(() => setCopiedIdx((cur) => (cur === i ? null : cur)), 1500);
@@ -1081,7 +1084,7 @@ export default function App() {
       <div className={`backdrop ${sidebarOpen ? 'show' : ''}`} onClick={() => setSidebarOpen(false)} />
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="side-head">Go Farther</div>
-        <button className="side-item primary" onClick={newChat}>
+        <button className="side-item primary" onClick={() => { void tap(); newChat(); }}>
           <span className="ico"><IconCompose size={18} /></span> New chat
         </button>
         <nav className="side-nav">
@@ -1168,7 +1171,7 @@ export default function App() {
       </aside>
 
       <header className="topbar">
-        <button className="icon-btn" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+        <button className="icon-btn" onClick={() => { void tap(); setSidebarOpen(true); }} aria-label="Open menu">
           <IconMenu />
         </button>
         <span className="title">{view === 'chat' && messages.length === 0 ? '' : title}</span>
@@ -1228,7 +1231,7 @@ export default function App() {
                 </div>
                 <div className="home-suggest">
                   {SUGGESTIONS.map((s) => (
-                    <button key={s} className="sug" onClick={() => void sendText(s)}>
+                    <button key={s} className="sug" onClick={() => { void tap(); void sendText(s); }}>
                       {s}
                     </button>
                   ))}
@@ -1348,7 +1351,7 @@ export default function App() {
               <div className="composer-row">
                 <button
                   className={`plus-btn ${plusOpen ? 'open' : ''}`}
-                  onClick={() => { menuOpenedAt.current = Date.now(); setPlusOpen((o) => !o); }}
+                  onClick={() => { void tap(); menuOpenedAt.current = Date.now(); setPlusOpen((o) => !o); }}
                   aria-label="Add attachment or connectors"
                 >
                   +
@@ -1371,7 +1374,7 @@ export default function App() {
                 />
                 <button
                   className="send"
-                  onClick={() => (busy ? stopStream() : void send())}
+                  onClick={() => { if (busy) { void tap(); stopStream(); } else void send(); }}
                   disabled={!busy && !input.trim() && attachments.length === 0}
                   aria-label={busy ? 'Stop generating' : 'Send'}
                 >
