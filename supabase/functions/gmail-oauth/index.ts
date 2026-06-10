@@ -653,6 +653,37 @@ async function setPrefs(uid: string, toolkit: string, slugs: string[]): Promise<
   }
 }
 
+// ---- Connected-apps cache (user_connections) --------------------------------
+// chat and run-workflows read this row instead of asking Composio on every turn
+// / every workflow tick. THIS function is where connections actually change, so
+// it owns the writes: `list` rewrites the row from data it already fetched (the
+// app calls it on launch and on the Connectors screen), and status/disconnect
+// trigger a full refresh — so the cache is fresh the moment the UI knows.
+function saveConnections(uid: string, toolkits: string[]): void {
+  if (!SR || !SUPABASE_URL) return;
+  fetch(`${SUPABASE_URL}/rest/v1/user_connections?on_conflict=user_id`, {
+    method: "POST",
+    headers: { apikey: SR, authorization: `Bearer ${SR}`, "content-type": "application/json", prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ user_id: uid, toolkits, updated_at: new Date().toISOString() }),
+  }).catch(() => {});
+}
+async function refreshConnections(uid: string): Promise<void> {
+  try {
+    const q = new URL(`${BASE}/connected_accounts`);
+    q.searchParams.set("user_ids", uid);
+    q.searchParams.set("statuses", "ACTIVE");
+    const res = await fetch(q.toString(), { headers: { "x-api-key": API_KEY } });
+    if (!res.ok) return; // can't confirm → leave the cache alone (TTL self-heals)
+    const body = await res.json();
+    const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
+    const slugs = items
+      .filter((x) => (x.status ?? "ACTIVE").toUpperCase() === "ACTIVE")
+      .map(pickSlug)
+      .filter((s): s is string => !!s);
+    saveConnections(uid, [...new Set(slugs)]);
+  } catch { /* cache refresh is best effort */ }
+}
+
 // Plaid isn't a Composio toolkit — its tools are the built-in GF_BANK_* set that
 // gofarther-mcp serves (read-only, scoped to the user). We list them here so the
 // SAME Manage Tools UI can toggle them; the selection persists under the `plaid`
@@ -771,6 +802,14 @@ Deno.serve(async (req: Request) => {
         const email = it?.data?.email ?? it?.meta?.email ?? it?.params?.email ?? it?.data?.emailAddress ?? null;
         connected[appId] = { email };
       }
+      // Rewrite the connected-apps cache from the data already in hand. ALL
+      // active toolkit slugs go in (not just APP_FOR_SLUG-known ones), matching
+      // what chat used to compute straight from Composio.
+      const slugs = items
+        .filter((x) => (x.status ?? "ACTIVE").toUpperCase() === "ACTIVE")
+        .map(pickSlug)
+        .filter((s): s is string => !!s);
+      saveConnections(uid, [...new Set(slugs)]);
       return json(req, { connected });
     } catch {
       return json(req, { connected: {} });
@@ -800,6 +839,9 @@ Deno.serve(async (req: Request) => {
         const dr = await api(`/connected_accounts/${id}`, { method: "DELETE" }).catch(() => null);
         if (dr && dr.ok) removed++;
       }
+      // Awaited on purpose: the user expects the app gone NOW — a stale cache
+      // here would keep exposing its tools to chat until the TTL expired.
+      await refreshConnections(uid);
       return json(req, { ok: true, removed });
     } catch (e) {
       console.error("disconnect error:", e);
@@ -902,6 +944,9 @@ Deno.serve(async (req: Request) => {
       const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
       const active = items.find((x) => (x.status ?? "").toUpperCase() === "ACTIVE") ?? items[0];
       const email = active?.data?.email ?? active?.meta?.email ?? active?.params?.email ?? active?.data?.emailAddress ?? null;
+      // A client polling status learns "connected" right here (e.g. just after
+      // OAuth) — make sure chat learns it at the same moment, not a TTL later.
+      if (active) await refreshConnections(uid);
       return json(req, { connected: !!active, email });
     } catch {
       return json(req, { connected: false });

@@ -244,25 +244,61 @@ function userFromJwt(req: Request): string | null {
   }
 }
 
-// Which toolkits has this user connected? Ask Composio (the source of truth).
+// Which toolkits has this user connected? Served from the user_connections row
+// in our own DB (one fast local read) so a turn doesn't wait on a Composio
+// round trip before Claude can start. gmail-oauth rewrites that row whenever
+// connections change (list/status/disconnect), so it's fresh the moment the app
+// itself shows "Connected"; the TTL below only bounds out-of-band drift (e.g.
+// access revoked from the provider's side). Miss or stale → ask Composio (the
+// source of truth) and refresh the row. Composio unreachable → serve the stale
+// row rather than pretending the user has nothing connected.
+const CONN_TTL_MS = 10 * 60 * 1000;
+async function cachedConnections(userId: string): Promise<{ toolkits: string[]; fresh: boolean } | null> {
+  if (!SB_URL || !SB_SERVICE_KEY) return null;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/user_connections?user_id=eq.${encodeURIComponent(userId)}&select=toolkits,updated_at`, {
+      headers: { apikey: SB_SERVICE_KEY, authorization: `Bearer ${SB_SERVICE_KEY}` },
+    });
+    if (!r.ok) return null;
+    const rows = await r.json();
+    const row = Array.isArray(rows) && rows[0];
+    if (!row || !Array.isArray(row.toolkits)) return null;
+    const age = Date.now() - new Date(row.updated_at).getTime();
+    return { toolkits: row.toolkits.filter((s: unknown): s is string => typeof s === "string"), fresh: age >= 0 && age < CONN_TTL_MS };
+  } catch {
+    return null;
+  }
+}
+function saveConnections(userId: string, toolkits: string[]): void {
+  if (!SB_URL || !SB_SERVICE_KEY) return;
+  fetch(`${SB_URL}/rest/v1/user_connections?on_conflict=user_id`, {
+    method: "POST",
+    headers: { apikey: SB_SERVICE_KEY, authorization: `Bearer ${SB_SERVICE_KEY}`, "content-type": "application/json", prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ user_id: userId, toolkits, updated_at: new Date().toISOString() }),
+  }).catch(() => {});
+}
 // Returns the toolkit slugs (e.g. ["gmail","googlecalendar"]) of ACTIVE accounts.
 async function connectedToolkits(userId: string): Promise<string[]> {
-  if (!COMPOSIO_API_KEY) return [];
+  const cached = await cachedConnections(userId);
+  if (cached?.fresh) return cached.toolkits;
+  if (!COMPOSIO_API_KEY) return cached ? cached.toolkits : [];
   try {
     const u = new URL("https://backend.composio.dev/api/v3.1/connected_accounts");
     u.searchParams.set("user_ids", userId);
     u.searchParams.set("statuses", "ACTIVE");
     const res = await fetch(u.toString(), { headers: { "x-api-key": COMPOSIO_API_KEY } });
-    if (!res.ok) return [];
+    if (!res.ok) return cached ? cached.toolkits : [];
     const body = await res.json();
     const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
     const slugs = items
       .filter((x) => (x.status ?? "ACTIVE").toUpperCase() === "ACTIVE")
       .map((x) => x.toolkit?.slug ?? x.toolkit_slug ?? (typeof x.toolkit === "string" ? x.toolkit : null))
       .filter((s): s is string => !!s);
-    return [...new Set(slugs)];
+    const out = [...new Set(slugs)];
+    saveConnections(userId, out);
+    return out;
   } catch {
-    return [];
+    return cached ? cached.toolkits : [];
   }
 }
 
