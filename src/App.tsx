@@ -1401,7 +1401,7 @@ export default function App() {
               </>
             )}
 
-            {noteMsg && <p className="set-note">{noteMsg}</p>}
+            {noteMsg && <p className="set-note" role="status" aria-live="polite">{noteMsg}</p>}
 
             {!isGuest && (
               <>
@@ -1505,7 +1505,7 @@ export default function App() {
           </div>
 
           {!online && (
-            <div className="net-banner">You're offline — messages will send when you reconnect.</div>
+            <div className="net-banner" role="status" aria-live="polite">You're offline — messages will send when you reconnect.</div>
           )}
           <div className="composer-wrap">
             {plusOpen && (
