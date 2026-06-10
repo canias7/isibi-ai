@@ -33,8 +33,10 @@ function toLocalInput(iso: string): string {
   const d = new Date(iso);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+// Default the picker to (almost) now — a "+1 hour" default read like a wrong
+// clock. A few minutes ahead so saving without touching it is still in the future.
 function defaultWhen(): string {
-  const d = new Date(Date.now() + 60 * 60 * 1000);
+  const d = new Date(Date.now() + 5 * 60 * 1000);
   d.setSeconds(0, 0);
   return toLocalInput(d.toISOString());
 }
