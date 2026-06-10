@@ -57,3 +57,17 @@ button:active,
     transition: background 0.15s ease, opacity 0.15s ease;
   }
 }
+
+/* Keyboard / switch-control focus ring (touch users never see it — :focus-visible
+   only fires for non-pointer focus). The tap-highlight removal above can't hide
+   this, so keyboard users keep a clear focus indicator. */
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+.tappable:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  border-radius: 8px;
+}

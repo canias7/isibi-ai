@@ -59,7 +59,7 @@ function AssistantMessage(
   if (streaming && !clean.trim()) {
     if (liveStatus) {
       return (
-        <div className="gf-status">
+        <div className="gf-status" role="status" aria-live="polite">
           <span className="gf-status-spin" aria-hidden />
           <span>{liveStatus}</span>
         </div>
