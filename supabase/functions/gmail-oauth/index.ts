@@ -591,6 +591,23 @@ async function setPrefs(uid: string, toolkit: string, slugs: string[]): Promise<
   }
 }
 
+// Plaid isn't a Composio toolkit — its tools are the built-in GF_BANK_* set that
+// gofarther-mcp serves (read-only, scoped to the user). We list them here so the
+// SAME Manage Tools UI can toggle them; the selection persists under the `plaid`
+// toolkit key (by tool name) and gofarther-mcp honors it (advertise + execute).
+// Keep slugs/order in sync with gofarther-mcp's bank tools.
+const BANK_TOOLS: { slug: string; name: string; desc: string }[] = [
+  { slug: "GF_BANK_BALANCES", name: "Balances", desc: "See your linked bank account balances in real time." },
+  { slug: "GF_BANK_TRANSACTIONS", name: "Transactions", desc: "Read recent transactions — date, merchant, amount, category." },
+  { slug: "GF_BANK_RECURRING", name: "Recurring & subscriptions", desc: "Detect subscriptions, recurring bills, and recurring income." },
+  { slug: "GF_BANK_LIABILITIES", name: "Cards & loans", desc: "Credit cards, student loans and mortgages — balances, due dates, APR." },
+  { slug: "GF_BANK_INVESTMENTS", name: "Investment holdings", desc: "Brokerage holdings — ticker, quantity and value." },
+  { slug: "GF_BANK_IDENTITY", name: "Identity on file", desc: "The name, email, phone and address your bank has on file." },
+  { slug: "GF_BANK_AUTH", name: "Account & routing numbers", desc: "Account and routing numbers for direct deposit / ACH." },
+  { slug: "GF_BANK_INVESTMENT_TRANSACTIONS", name: "Investment activity", desc: "Buys, sells and dividends from brokerage accounts." },
+  { slug: "GF_BANK_INSIGHTS", name: "Money insights", desc: "Net worth, spending by category, cash flow and upcoming bills." },
+];
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
 
@@ -768,7 +785,20 @@ Deno.serve(async (req: Request) => {
     const auth = req.headers.get("authorization") || "";
     const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
     const uid = await verifyUser(token);
-    if (!uid || !toolkit) return json(req, { error: "unauthorized" });
+    if (!uid) return json(req, { error: "unauthorized" });
+    // Plaid: built-in bank tools (not Composio), same GET/POST contract. Saved
+    // under the `plaid` toolkit key; uncustomized = all on (matches gofarther-mcp).
+    if (app === "plaid") {
+      if (req.method === "POST") {
+        const body = await req.json().catch(() => ({}));
+        const enabled = Array.isArray(body.enabled) ? body.enabled.filter((s: unknown) => typeof s === "string") : [];
+        return json(req, { ok: await setPrefs(uid, "plaid", enabled) });
+      }
+      const saved = await getPrefs(uid, "plaid");
+      const tools = BANK_TOOLS.map((t) => ({ slug: t.slug, name: t.name, desc: t.desc, write: false }));
+      return json(req, { tools, enabled: saved ?? BANK_TOOLS.map((t) => t.slug), customized: saved !== null });
+    }
+    if (!toolkit) return json(req, { error: "unauthorized" });
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       const enabled = Array.isArray(body.enabled) ? body.enabled.filter((s: unknown) => typeof s === "string") : [];
