@@ -136,6 +136,11 @@ const MODELS = {
 // Keeping a single default model (Sonnet) also lets the cached tool-schema prefix
 // read turn-to-turn instead of fragmenting across models.
 const COMPLEX_RE = /\b(analy[sz]e|analysis|plan|planning|strategy|strategi|compare|comparison|comprehensive|in[- ]?depth|detailed (report|plan|breakdown|analysis)|research|debug|refactor|coding|algorithm|step[- ]by[- ]step|reason through|pros and cons|trade[- ]?offs|evaluate|forecast|optimi[sz]e)\b/i;
+// File/export asks route to Opus too: building a real file means faithfully
+// transcribing the data into code, where Sonnet sometimes drops or rounds rows.
+// Opus is far more reliable at copying every row exactly, so spreadsheets/PDFs/
+// docs come out complete. Worth the upgrade since these are the ones that bite.
+const FILE_RE = /\b(excel|spread ?sheet|xlsx|\.csv|csv file|pdf|power ?point|pptx|keynote|slide ?deck|presentation|\.docx|word doc(ument)?|export|download)\b/i;
 
 function latestUser(messages: Msg[]): { text: string; hasAtt: boolean } {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -153,7 +158,7 @@ function latestUser(messages: Msg[]): { text: string; hasAtt: boolean } {
 // instant, and Sonnet handles the vast majority including all email/tool work.
 function pickModel(messages: Msg[]): string {
   const { text } = latestUser(messages);
-  if (COMPLEX_RE.test(text) || text.trim().length > 900) return MODELS.opus;
+  if (COMPLEX_RE.test(text) || FILE_RE.test(text) || text.trim().length > 900) return MODELS.opus;
   return MODELS.sonnet;
 }
 
