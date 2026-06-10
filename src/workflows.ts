@@ -198,9 +198,11 @@ export interface AskOption { label: string; description?: string }
 // A clarifying question; multiple-choice when it has options (the UI also adds
 // an "Other" choice). `header` is a short category label (e.g. "Account").
 export interface AskQuestion { text: string; header?: string; options?: AskOption[] }
-// The builder either needs more info (questions) or has a finished draft.
+// The builder either needs more info (questions), has a finished draft, or is
+// blocked (can't build a runnable workflow — e.g. a needed app isn't connected).
 export type BuildResult =
   | { kind: 'questions'; questions: AskQuestion[] }
+  | { kind: 'blocked'; message: string }
   | { kind: 'draft'; draft: WorkflowDraft };
 
 // Ask the AI builder (Opus) to turn the conversation into a draft workflow. If
@@ -216,6 +218,13 @@ export async function buildWorkflow(messages: BuildMsg[]): Promise<BuildResult |
     if (error || !data) return null;
     const d = data as Record<string, unknown> & { error?: string };
     if (d.error) return null;
+    // Terminal "can't build" message (e.g. a needed app isn't connected) — shown
+    // as a final note, not another answerable question, so the flow can't loop.
+    const blk = d.blocked as { message?: unknown } | undefined;
+    if (blk && typeof blk === 'object') {
+      const message = String(blk.message ?? '').trim();
+      if (message) return { kind: 'blocked', message };
+    }
     if (Array.isArray(d.questions)) {
       const qs: AskQuestion[] = (d.questions as unknown[])
         .map((q) => {
