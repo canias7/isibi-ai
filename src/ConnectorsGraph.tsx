@@ -431,15 +431,14 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
                   : (status[detail.id]?.email ? `Connected as ${status[detail.id]?.email}` : 'Connected')}</small>
               </div>
             </div>
-            {detail.id === 'plaid' ? (
+            <button className="cg-sheet-btn" onClick={() => { const c = detail; setDetail(null); setManage(c); }}>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 7a2 2 0 104 0 2 2 0 10-4 0M6 17a2 2 0 104 0 2 2 0 10-4 0" /></svg>
+              Choose tools
+            </button>
+            {detail.id === 'plaid' && (
               <button className="cg-sheet-btn" onClick={() => { setDetail(null); void connectPlaid(); }}>
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                 Link another bank
-              </button>
-            ) : (
-              <button className="cg-sheet-btn" onClick={() => { const c = detail; setDetail(null); setManage(c); }}>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 7a2 2 0 104 0 2 2 0 10-4 0M6 17a2 2 0 104 0 2 2 0 10-4 0" /></svg>
-                Choose tools
               </button>
             )}
             <button className="cg-sheet-btn danger" onClick={() => disconnect(detail.id)}>

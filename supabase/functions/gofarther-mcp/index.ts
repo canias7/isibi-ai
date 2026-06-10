@@ -423,9 +423,14 @@ async function listTools(apps: string[], prefs: Record<string, string[]>, memOn:
   // (the chat function passes &mem=0 when the user turned the feature off).
   if (memOn) { out.push(MEMORY_TOOL); out.push(MEMORY_FILE_TOOL); }
   if (bankOn) {
-    out.push(BANK_BALANCES_TOOL, BANK_TRANSACTIONS_TOOL, BANK_RECURRING_TOOL,
+    const allBank = [BANK_BALANCES_TOOL, BANK_TRANSACTIONS_TOOL, BANK_RECURRING_TOOL,
       BANK_LIABILITIES_TOOL, BANK_INVESTMENTS_TOOL, BANK_IDENTITY_TOOL,
-      BANK_AUTH_TOOL, BANK_INV_TXNS_TOOL, BANK_INSIGHTS_TOOL);
+      BANK_AUTH_TOOL, BANK_INV_TXNS_TOOL, BANK_INSIGHTS_TOOL];
+    // Per-tool bank selection (Manage Tools → Plaid), saved under the `plaid`
+    // toolkit key by tool name. No row = uncustomized = everything on, exactly
+    // like every Composio app; trimming in Manage Tools removes a tool here.
+    const pick = prefs["plaid"];
+    for (const t of allBank) if (pick === undefined || pick.includes(t.name)) out.push(t);
   }
   // General-purpose built-ins: weather (keyless) always; maps & image-gen only when their key is set.
   out.push(WEATHER_TOOL);
@@ -1046,6 +1051,12 @@ Deno.serve(async (req: Request) => {
     }
     // Built-in bank (Plaid) tools — handled locally, read-only, scoped to the user.
     if (typeof p.name === "string" && p.name.startsWith("GF_BANK_")) {
+      // Honor the user's per-tool Plaid selection (no row = uncustomized = all on),
+      // so a tool turned off in Manage Tools can't be reached even if model-requested.
+      const bankPick = (await userToolPrefs(reqUser))["plaid"];
+      if (bankPick !== undefined && !bankPick.includes(p.name)) {
+        return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "That tool isn't enabled for this account." }], isError: true } });
+      }
       try {
         let text = "";
         if (p.name === "GF_BANK_BALANCES") text = await bankBalances(reqUser);
