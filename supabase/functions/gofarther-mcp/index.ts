@@ -520,10 +520,53 @@ async function userHasBanks(uid: string): Promise<boolean> {
   if (!PLAID_CLIENT_ID || !PLAID_SECRET) return false;
   return (await plaidItems(uid)).length > 0;
 }
-async function bankBalances(uid: string): Promise<string> {
+
+// ---- Data handles: route the data AROUND the model -------------------------
+// A bank read returns its result as text for the model to reason over, AND the
+// same data as structured rows which we stash server-side under a handle id.
+// When the user wants the data as a file, the model passes just the handle to
+// GF_SAVE_TABLE and the file is built from THIS stash — the values never pass
+// back through the model, so a dropped row or wrong total can't happen.
+type BankTable = { label: string; source: string; columns: string[]; rows: (string | number)[][]; totalColumns: number[] };
+type BankResult = { text: string; tables?: BankTable[] };
+
+async function stashTable(uid: string, t: BankTable): Promise<string | null> {
+  const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key || !uid || !t.rows.length) return null;
+  try {
+    const auth = { apikey: key, authorization: `Bearer ${key}` };
+    // Opportunistic TTL cleanup (fire-and-forget): drop stashes older than 2h.
+    fetch(`${url}/rest/v1/tool_data_stash?created_at=lt.${encodeURIComponent(new Date(Date.now() - 2 * 3600 * 1000).toISOString())}`, { method: "DELETE", headers: auth }).catch(() => {});
+    const r = await fetch(`${url}/rest/v1/tool_data_stash`, {
+      method: "POST",
+      headers: { ...auth, "content-type": "application/json", prefer: "return=representation" },
+      body: JSON.stringify({ user_id: uid, source: t.source, columns: t.columns, rows: t.rows.slice(0, 5000), total_columns: t.totalColumns }),
+    });
+    if (!r.ok) return null;
+    const rows = await r.json();
+    const id = Array.isArray(rows) ? rows[0]?.id : rows?.id;
+    return typeof id === "string" ? id : null;
+  } catch { return null; }
+}
+async function loadStash(uid: string, id: string): Promise<{ source: string; columns: string[]; rows: (string | number)[][]; totalColumns: number[] } | null> {
+  const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key || !uid || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+  try {
+    const r = await fetch(`${url}/rest/v1/tool_data_stash?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(uid)}&select=source,columns,rows,total_columns`, {
+      headers: { apikey: key, authorization: `Bearer ${key}` },
+    });
+    if (!r.ok) return null;
+    const rows = await r.json();
+    const m = Array.isArray(rows) && rows[0];
+    if (!m || !Array.isArray(m.columns) || !Array.isArray(m.rows)) return null;
+    return { source: String(m.source || "Sheet"), columns: m.columns, rows: m.rows, totalColumns: Array.isArray(m.total_columns) ? m.total_columns : [] };
+  } catch { return null; }
+}
+async function bankBalances(uid: string): Promise<BankResult> {
   const items = await plaidItems(uid);
-  if (!items.length) return "No bank accounts are linked.";
+  if (!items.length) return { text: "No bank accounts are linked." };
   const lines: string[] = [];
+  const rows: (string | number)[][] = [];
   for (const it of items) {
     try {
       const at = await plaidDecToken(it.access_token);
@@ -531,29 +574,40 @@ async function bankBalances(uid: string): Promise<string> {
       for (const a of (d.accounts || [])) {
         const c = a.balances?.iso_currency_code || "USD";
         lines.push(`${it.institution_name || "Bank"} — ${a.name}${a.mask ? ` (••${a.mask})` : ""} [${a.subtype || a.type}]: current ${c} ${a.balances?.current ?? "?"}${a.balances?.available != null ? `, available ${c} ${a.balances.available}` : ""}`);
+        rows.push([it.institution_name || "Bank", `${a.name}${a.mask ? ` ••${a.mask}` : ""}`, String(a.subtype || a.type || ""), c, Number(a.balances?.current ?? 0), a.balances?.available != null ? Number(a.balances.available) : ""]);
       }
     } catch (e) { lines.push(`${it.institution_name || "Bank"}: couldn't read (${String((e as Error).message)})`); }
   }
-  return lines.join("\n") || "No accounts found.";
+  const text = lines.join("\n") || "No accounts found.";
+  if (!rows.length) return { text };
+  return { text, tables: [{ label: "account balances", source: "Balances", columns: ["Bank", "Account", "Type", "Currency", "Current", "Available"], rows, totalColumns: [4] }] };
 }
-async function bankTransactions(uid: string, count: number): Promise<string> {
+async function bankTransactions(uid: string, count: number): Promise<BankResult> {
   const items = await plaidItems(uid);
-  if (!items.length) return "No bank accounts are linked.";
+  if (!items.length) return { text: "No bank accounts are linked." };
   const n = Math.min(Math.max(count || 50, 1), 200);
-  const rows: { date: string; line: string }[] = [];
+  const recs: { date: string; line: string; row: (string | number)[] | null }[] = [];
   for (const it of items) {
     try {
       const at = await plaidDecToken(it.access_token);
       const d = await plaidCall("/transactions/sync", { access_token: at, count: n });
       for (const t of (d.added || [])) {
         const cat = t.personal_finance_category?.primary || (Array.isArray(t.category) ? t.category.join("/") : "");
-        rows.push({ date: t.date || "", line: `${t.date} | ${it.institution_name || "Bank"} | ${t.name} | ${t.iso_currency_code || "USD"} ${t.amount}${cat ? ` | ${cat}` : ""}${t.pending ? " | pending" : ""}` });
+        recs.push({
+          date: t.date || "",
+          line: `${t.date} | ${it.institution_name || "Bank"} | ${t.name} | ${t.iso_currency_code || "USD"} ${t.amount}${cat ? ` | ${cat}` : ""}${t.pending ? " | pending" : ""}`,
+          row: [String(t.date || ""), it.institution_name || "Bank", String(t.name ?? ""), Number(t.amount ?? 0), t.iso_currency_code || "USD", cat, t.pending ? "yes" : ""],
+        });
       }
-    } catch (e) { rows.push({ date: "", line: `${it.institution_name || "Bank"}: couldn't read (${String((e as Error).message)})` }); }
+    } catch (e) { recs.push({ date: "", line: `${it.institution_name || "Bank"}: couldn't read (${String((e as Error).message)})`, row: null }); }
   }
-  if (!rows.length) return "No transactions yet — a freshly linked bank can take a few minutes to import history.";
-  rows.sort((a, b) => b.date.localeCompare(a.date));
-  return "amounts: positive = money out (spending), negative = money in.\ndate | bank | merchant | amount | category\n" + rows.slice(0, n).map((r) => r.line).join("\n");
+  if (!recs.length) return { text: "No transactions yet — a freshly linked bank can take a few minutes to import history." };
+  recs.sort((a, b) => b.date.localeCompare(a.date));
+  const top = recs.slice(0, n);
+  const text = "amounts: positive = money out (spending), negative = money in.\ndate | bank | merchant | amount | category\n" + top.map((r) => r.line).join("\n");
+  const rows = top.map((r) => r.row).filter((r): r is (string | number)[] => !!r);
+  if (!rows.length) return { text };
+  return { text, tables: [{ label: "transactions", source: "Transactions", columns: ["Date", "Bank", "Merchant", "Amount", "Currency", "Category", "Pending"], rows, totalColumns: [3] }] };
 }
 // Friendly mapping for product-scope errors (liabilities/investments/identity not
 // granted yet → the user needs to re-link to consent to that data).
@@ -563,26 +617,37 @@ function bankErr(e: unknown): string {
   if (/NOT_READY/.test(m)) return "still importing — try again in a minute.";
   return `couldn't read (${m})`;
 }
-async function bankRecurring(uid: string): Promise<string> {
+async function bankRecurring(uid: string): Promise<BankResult> {
   const items = await plaidItems(uid);
-  if (!items.length) return "No bank accounts are linked.";
+  if (!items.length) return { text: "No bank accounts are linked." };
   const out: string[] = [];
+  const subRows: (string | number)[][] = [];
+  const incRows: (string | number)[][] = [];
   for (const it of items) {
     try {
       const at = await plaidDecToken(it.access_token);
       const d = await plaidCall("/transactions/recurring/get", { access_token: at });
       const fmt = (s: any) => `${s.merchant_name || s.description || "?"}: ${s.average_amount?.iso_currency_code || "USD"} ${s.average_amount?.amount ?? "?"} ${s.frequency || ""}`;
-      const subs = (d.outflow_streams || []).filter((s: any) => s.is_active !== false).map(fmt);
-      const inc = (d.inflow_streams || []).filter((s: any) => s.is_active !== false).map(fmt);
+      const subsAll = (d.outflow_streams || []).filter((s: any) => s.is_active !== false);
+      const incAll = (d.inflow_streams || []).filter((s: any) => s.is_active !== false);
+      const subs = subsAll.map(fmt);
+      const inc = incAll.map(fmt);
+      for (const s of subsAll) subRows.push([it.institution_name || "Bank", String(s.merchant_name || s.description || "?"), Number(s.average_amount?.amount ?? 0), s.average_amount?.iso_currency_code || "USD", String(s.frequency || "")]);
+      for (const s of incAll) incRows.push([it.institution_name || "Bank", String(s.merchant_name || s.description || "?"), Number(s.average_amount?.amount ?? 0), s.average_amount?.iso_currency_code || "USD", String(s.frequency || "")]);
       out.push(`${it.institution_name || "Bank"}\n  Subscriptions/recurring bills:${subs.length ? "\n   - " + subs.join("\n   - ") : " none"}\n  Recurring income:${inc.length ? "\n   - " + inc.join("\n   - ") : " none"}`);
     } catch (e) { out.push(`${it.institution_name || "Bank"}: ${bankErr(e)}`); }
   }
-  return out.join("\n");
+  const tables: BankTable[] = [];
+  const cols = ["Bank", "Name", "Amount", "Currency", "Frequency"];
+  if (subRows.length) tables.push({ label: "subscriptions & recurring bills", source: "Subscriptions", columns: cols, rows: subRows, totalColumns: [2] });
+  if (incRows.length) tables.push({ label: "recurring income", source: "Recurring Income", columns: cols, rows: incRows, totalColumns: [2] });
+  return { text: out.join("\n"), ...(tables.length ? { tables } : {}) };
 }
-async function bankLiabilities(uid: string): Promise<string> {
+async function bankLiabilities(uid: string): Promise<BankResult> {
   const items = await plaidItems(uid);
-  if (!items.length) return "No bank accounts are linked.";
+  if (!items.length) return { text: "No bank accounts are linked." };
   const out: string[] = [];
+  const rows: (string | number)[][] = [];
   for (const it of items) {
     try {
       const at = await plaidDecToken(it.access_token);
@@ -592,17 +657,27 @@ async function bankLiabilities(uid: string): Promise<string> {
       for (const c of (L.credit || [])) {
         const apr = (c.aprs || []).map((a: any) => `${a.apr_percentage}%`).join("/");
         out.push(`${it.institution_name || "Bank"} credit card ${nm.get(c.account_id) || ""}: statement ${c.last_statement_balance ?? "?"}, min ${c.minimum_payment_amount ?? "?"}, due ${c.next_payment_due_date || "?"}${apr ? `, APR ${apr}` : ""}${c.is_overdue ? " (OVERDUE)" : ""}`);
+        rows.push([it.institution_name || "Bank", "Credit card", nm.get(c.account_id) || "", Number(c.last_statement_balance ?? 0), Number(c.minimum_payment_amount ?? 0), String(c.next_payment_due_date || ""), apr, c.is_overdue ? "yes" : ""]);
       }
-      for (const s of (L.student || [])) out.push(`${it.institution_name || "Bank"} student loan ${nm.get(s.account_id) || ""}: due ${s.next_payment_due_date || "?"}, min ${s.minimum_payment_amount ?? "?"}`);
-      for (const mo of (L.mortgage || [])) out.push(`${it.institution_name || "Bank"} mortgage ${nm.get(mo.account_id) || ""}: due ${mo.next_payment_due_date || "?"}, rate ${mo.interest_rate?.percentage ?? "?"}%`);
+      for (const s of (L.student || [])) {
+        out.push(`${it.institution_name || "Bank"} student loan ${nm.get(s.account_id) || ""}: due ${s.next_payment_due_date || "?"}, min ${s.minimum_payment_amount ?? "?"}`);
+        rows.push([it.institution_name || "Bank", "Student loan", nm.get(s.account_id) || "", "", Number(s.minimum_payment_amount ?? 0), String(s.next_payment_due_date || ""), "", ""]);
+      }
+      for (const mo of (L.mortgage || [])) {
+        out.push(`${it.institution_name || "Bank"} mortgage ${nm.get(mo.account_id) || ""}: due ${mo.next_payment_due_date || "?"}, rate ${mo.interest_rate?.percentage ?? "?"}%`);
+        rows.push([it.institution_name || "Bank", "Mortgage", nm.get(mo.account_id) || "", "", "", String(mo.next_payment_due_date || ""), mo.interest_rate?.percentage != null ? `${mo.interest_rate.percentage}%` : "", ""]);
+      }
     } catch (e) { out.push(`${it.institution_name || "Bank"}: ${bankErr(e)}`); }
   }
-  return out.join("\n") || "No credit cards or loans found on the linked accounts.";
+  const text = out.join("\n") || "No credit cards or loans found on the linked accounts.";
+  if (!rows.length) return { text };
+  return { text, tables: [{ label: "cards & loans", source: "Cards and Loans", columns: ["Bank", "Type", "Account", "Statement Balance", "Min Payment", "Due Date", "APR/Rate", "Overdue"], rows, totalColumns: [] }] };
 }
-async function bankInvestments(uid: string): Promise<string> {
+async function bankInvestments(uid: string): Promise<BankResult> {
   const items = await plaidItems(uid);
-  if (!items.length) return "No bank accounts are linked.";
+  if (!items.length) return { text: "No bank accounts are linked." };
   const out: string[] = [];
+  const rows: (string | number)[][] = [];
   for (const it of items) {
     try {
       const at = await plaidDecToken(it.access_token);
@@ -612,10 +687,13 @@ async function bankInvestments(uid: string): Promise<string> {
       for (const h of (d.holdings || [])) {
         const s = sec.get(h.security_id) || {};
         out.push(`${it.institution_name || "Bank"} ${nm.get(h.account_id) || ""}: ${s.ticker_symbol || s.name || "?"} x${h.quantity} = ${h.iso_currency_code || "USD"} ${h.institution_value ?? "?"}`);
+        rows.push([it.institution_name || "Bank", nm.get(h.account_id) || "", String(s.name || ""), String(s.ticker_symbol || ""), Number(h.quantity ?? 0), Number(h.institution_value ?? 0), h.iso_currency_code || "USD"]);
       }
     } catch (e) { out.push(`${it.institution_name || "Bank"}: ${bankErr(e)}`); }
   }
-  return out.join("\n") || "No investment holdings found.";
+  const text = out.join("\n") || "No investment holdings found.";
+  if (!rows.length) return { text };
+  return { text, tables: [{ label: "investment holdings", source: "Holdings", columns: ["Bank", "Account", "Security", "Ticker", "Quantity", "Value", "Currency"], rows, totalColumns: [5] }] };
 }
 async function bankIdentity(uid: string): Promise<string> {
   const items = await plaidItems(uid);
@@ -658,10 +736,11 @@ async function bankAuth(uid: string): Promise<string> {
   }
   return out.join("\n") || "No account/routing numbers available.";
 }
-async function bankInvestmentTxns(uid: string, days: number): Promise<string> {
+async function bankInvestmentTxns(uid: string, days: number): Promise<BankResult> {
   const items = await plaidItems(uid);
-  if (!items.length) return "No bank accounts are linked.";
+  if (!items.length) return { text: "No bank accounts are linked." };
   const out: string[] = [];
+  const rows: (string | number)[][] = [];
   for (const it of items) {
     try {
       const at = await plaidDecToken(it.access_token);
@@ -670,10 +749,13 @@ async function bankInvestmentTxns(uid: string, days: number): Promise<string> {
       for (const t of (d.investment_transactions || [])) {
         const s = sec.get(t.security_id) || {};
         out.push(`${t.date} | ${it.institution_name || "Bank"} | ${t.type}${t.subtype ? "/" + t.subtype : ""} | ${s.ticker_symbol || s.name || t.name || "?"} | qty ${t.quantity ?? "?"} | ${t.iso_currency_code || "USD"} ${t.amount}`);
+        rows.push([String(t.date || ""), it.institution_name || "Bank", `${t.type}${t.subtype ? "/" + t.subtype : ""}`, String(s.ticker_symbol || s.name || t.name || "?"), Number(t.quantity ?? 0), Number(t.amount ?? 0), t.iso_currency_code || "USD"]);
       }
     } catch (e) { out.push(`${it.institution_name || "Bank"}: ${bankErr(e)}`); }
   }
-  return out.length ? "date | bank | type | security | qty | amount\n" + out.join("\n") : "No investment transactions found.";
+  const text = out.length ? "date | bank | type | security | qty | amount\n" + out.join("\n") : "No investment transactions found.";
+  if (!rows.length) return { text };
+  return { text, tables: [{ label: "investment activity", source: "Investment Activity", columns: ["Date", "Bank", "Type", "Security", "Quantity", "Amount", "Currency"], rows, totalColumns: [5] }] };
 }
 async function bankInsights(uid: string, mode: string, days: number): Promise<string> {
   const items = await plaidItems(uid);
@@ -1019,15 +1101,32 @@ async function stashFile(uid: string, bytes: Uint8Array, ext: string, mime: stri
   } catch (e) { console.error("stashFile", e); return null; }
 }
 async function saveTable(uid: string, args: any): Promise<string> {
-  const columns = Array.isArray(args?.columns) ? args.columns.map((c: unknown) => String(c ?? "")) : [];
-  const rows = (Array.isArray(args?.rows) ? args.rows : []).filter((r: unknown) => Array.isArray(r)) as unknown[][];
-  if (!columns.length || !rows.length) return "Nothing to save — provide the columns and at least one row.";
-  const title = (String(args?.title || "Sheet").trim() || "Sheet").slice(0, 60);
+  let columns: string[];
+  let rows: unknown[][];
+  let totalCols: number[];
+  let defaultTitle = "Sheet";
+  const handle = String(args?.data_handle || "").trim();
+  if (handle) {
+    // Deterministic path: build from the EXACT stashed tool result. The model
+    // only names the handle — the values never pass back through it, so a
+    // dropped row or wrong total is impossible.
+    const got = await loadStash(uid, handle);
+    if (!got) return "That data_handle wasn't found or has expired — run the data tool again to get a fresh handle, or pass columns and rows explicitly.";
+    columns = got.columns.map((c) => String(c ?? ""));
+    rows = got.rows.filter((r): r is (string | number)[] => Array.isArray(r));
+    totalCols = got.totalColumns.map((n) => Number(n)).filter((n) => Number.isInteger(n) && n >= 0 && n < columns.length);
+    defaultTitle = got.source;
+  } else {
+    columns = Array.isArray(args?.columns) ? args.columns.map((c: unknown) => String(c ?? "")) : [];
+    rows = (Array.isArray(args?.rows) ? args.rows : []).filter((r: unknown) => Array.isArray(r)) as unknown[][];
+    // A TOTAL row, summed IN CODE (never a number the model typed) so it always
+    // matches the rows actually included.
+    totalCols = (Array.isArray(args?.total_columns) ? args.total_columns : [])
+      .map((n: unknown) => Number(n)).filter((n: number) => Number.isInteger(n) && n >= 0 && n < columns.length);
+  }
+  if (!columns.length || !rows.length) return "Nothing to save — pass a data_handle from a tool result, or the columns and at least one row.";
+  const title = (String(args?.title || defaultTitle).trim() || "Sheet").slice(0, 60);
   const fmt = args?.format === "csv" ? "csv" : "xlsx";
-  // A TOTAL row, summed IN CODE (never a number the model typed) so it always
-  // matches the rows actually included.
-  const totalCols: number[] = (Array.isArray(args?.total_columns) ? args.total_columns : [])
-    .map((n: unknown) => Number(n)).filter((n: number) => Number.isInteger(n) && n >= 0 && n < columns.length);
   let totalRow: (string | number)[] | null = null;
   if (totalCols.length) {
     totalRow = columns.map(() => "" as string | number);
@@ -1056,21 +1155,22 @@ async function saveTable(uid: string, args: any): Promise<string> {
   const stashed = await stashFile(uid, bytes, ext, mime, fileName);
   if (!stashed) return "The file couldn't be saved right now — please try again.";
   const block = "```gf-file\n" + JSON.stringify(stashed) + "\n```";
-  return `File ready (${fileName}, ${rows.length} rows${totalRow ? " + a computed total" : ""}). Show it to the user by replying with the following block EXACTLY (a short caption before it is fine, but do NOT write the URL as text):\n${block}`;
+  return `File ready (${fileName}, ${rows.length} rows${totalRow ? " + a computed total" : ""}${handle ? ", built from the exact tool data" : ""}). Show it to the user by replying with the following block EXACTLY (a short caption before it is fine, but do NOT write the URL as text):\n${block}`;
 }
 const SAVE_TABLE_TOOL: Tool = {
   name: "GF_SAVE_TABLE",
-  description: "Save tabular data as a downloadable spreadsheet (Excel .xlsx or .csv) BUILT SERVER-SIDE — columns are auto-sized and any total is computed in real code, so the file's layout and math are always exact. Use this WHENEVER the user wants a list or table saved/exported as a spreadsheet, Excel, or CSV (e.g. \"put my subscriptions in a spreadsheet\", \"export these transactions to Excel\"). ALWAYS pass the complete data: list EVERY row in `rows`, in full. PREFER this over writing spreadsheet code yourself with code execution — it cannot drop the total or produce cramped columns. To add a summed TOTAL row, put the index(es) of the numeric column(s) in `total_columns`. After it runs, show the file by replying with the gf-file block exactly as the tool result instructs.",
+  description: "Save tabular data as a downloadable spreadsheet (Excel .xlsx or .csv) BUILT SERVER-SIDE — columns are auto-sized and any total is computed in real code, so the file's layout and math are always exact. TWO ways to use it: (1) BEST — when a tool result included a [data_handle: …] marker, pass that id as data_handle: the file is built from the EXACT data that tool returned, zero retyping; ALWAYS prefer this when exporting data you just fetched. (2) Otherwise pass columns + rows yourself, listing EVERY row in full — never summarize or omit any. Use whenever the user wants a list/table saved or exported as a spreadsheet, Excel, or CSV (e.g. \"put my subscriptions in a spreadsheet\"). PREFER this over writing spreadsheet code with code execution. After it runs, show the file by replying with the gf-file block exactly as the tool result instructs.",
   inputSchema: {
     type: "object",
     properties: {
+      data_handle: { type: "string", description: "The id from a [data_handle: …] marker in a previous tool result. When set, the server builds the file from that exact stored data; columns/rows/total_columns are ignored." },
       title: { type: "string", description: "Short title / file name for the sheet, e.g. \"Subscriptions\"." },
-      columns: { type: "array", items: { type: "string" }, description: "Column headers, in order, e.g. [\"Subscription\", \"Monthly Cost\"]." },
-      rows: { type: "array", description: "The data rows. Each row is an array of cell values in the same order as the columns. Include EVERY row — never summarize or omit any.", items: { type: "array", items: {} } },
-      total_columns: { type: "array", items: { type: "integer" }, description: "OPTIONAL: 0-based index(es) of numeric columns to sum into a TOTAL row at the bottom (computed in code)." },
+      columns: { type: "array", items: { type: "string" }, description: "Column headers, in order, e.g. [\"Subscription\", \"Monthly Cost\"]. Required when no data_handle is given." },
+      rows: { type: "array", description: "The data rows. Each row is an array of cell values in the same order as the columns. Include EVERY row — never summarize or omit any. Required when no data_handle is given.", items: { type: "array", items: {} } },
+      total_columns: { type: "array", items: { type: "integer" }, description: "OPTIONAL: 0-based index(es) of numeric columns to sum into a TOTAL row at the bottom (computed in code). Ignored when data_handle is set." },
       format: { type: "string", enum: ["xlsx", "csv"], description: "File format — \"xlsx\" (default) or \"csv\"." },
     },
-    required: ["columns", "rows"],
+    required: [],
   },
 };
 
@@ -1167,16 +1267,24 @@ Deno.serve(async (req: Request) => {
       }
       try {
         let text = "";
-        if (p.name === "GF_BANK_BALANCES") text = await bankBalances(reqUser);
-        else if (p.name === "GF_BANK_TRANSACTIONS") text = await bankTransactions(reqUser, Number((p.arguments || {}).count) || 50);
-        else if (p.name === "GF_BANK_RECURRING") text = await bankRecurring(reqUser);
-        else if (p.name === "GF_BANK_LIABILITIES") text = await bankLiabilities(reqUser);
-        else if (p.name === "GF_BANK_INVESTMENTS") text = await bankInvestments(reqUser);
+        let tables: BankTable[] = [];
+        const take = (r: BankResult) => { text = r.text; tables = r.tables ?? []; };
+        if (p.name === "GF_BANK_BALANCES") take(await bankBalances(reqUser));
+        else if (p.name === "GF_BANK_TRANSACTIONS") take(await bankTransactions(reqUser, Number((p.arguments || {}).count) || 50));
+        else if (p.name === "GF_BANK_RECURRING") take(await bankRecurring(reqUser));
+        else if (p.name === "GF_BANK_LIABILITIES") take(await bankLiabilities(reqUser));
+        else if (p.name === "GF_BANK_INVESTMENTS") take(await bankInvestments(reqUser));
         else if (p.name === "GF_BANK_IDENTITY") text = await bankIdentity(reqUser);
         else if (p.name === "GF_BANK_AUTH") text = await bankAuth(reqUser);
-        else if (p.name === "GF_BANK_INVESTMENT_TRANSACTIONS") text = await bankInvestmentTxns(reqUser, Number((p.arguments || {}).days) || 90);
+        else if (p.name === "GF_BANK_INVESTMENT_TRANSACTIONS") take(await bankInvestmentTxns(reqUser, Number((p.arguments || {}).days) || 90));
         else if (p.name === "GF_BANK_INSIGHTS") text = await bankInsights(reqUser, String((p.arguments || {}).mode || ""), Number((p.arguments || {}).days) || 30);
         else text = "Unknown bank tool.";
+        // Stash each structured table server-side and tell the model the handle,
+        // so an export is built from the EXACT data above — never retyped rows.
+        for (const tb of tables) {
+          const hid = await stashTable(reqUser, tb);
+          if (hid) text += `\n\n[data_handle: ${hid} — the ${tb.label} above as structured data. To save/export THIS as a spreadsheet or CSV, call GF_SAVE_TABLE with {"data_handle": "${hid}"} (plus optional title/format) — the file is built server-side from the exact data, so do NOT retype the rows.]`;
+        }
         await logUsage(p.name, true, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
       } catch (e) {
