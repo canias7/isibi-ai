@@ -80,6 +80,11 @@ function json(body: unknown, status: number): Response {
 }
 
 Deno.serve(async (req: Request) => {
+  // Config healthcheck: shows which sender is active and whether the secrets are
+  // readable (booleans only — never the values; the sender is public anyway).
+  if (req.method === "GET") {
+    return json({ ok: true, from: RESEND_FROM, resendKeySet: !!RESEND_API_KEY, hookSecretSet: !!HOOK_SECRET }, 200);
+  }
   if (req.method !== "POST") return json({ error: { http_code: 405, message: "Method not allowed" } }, 405);
   if (!RESEND_API_KEY) return json({ error: { http_code: 500, message: "RESEND_API_KEY not set on the server" } }, 500);
   if (!HOOK_SECRET) return json({ error: { http_code: 500, message: "SEND_EMAIL_HOOK_SECRET not set on the server" } }, 500);
