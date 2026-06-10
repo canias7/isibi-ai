@@ -71,6 +71,48 @@ async function revokeComposio(uid: string): Promise<void> {
   } catch { /* best effort */ }
 }
 
+// Purge the user's Storage objects — generated files/images (chat-files) and
+// memory attachments (memory). Deleting the DB rows alone is NOT enough: the
+// actual bytes would otherwise outlive the account. Walks each bucket under the
+// user's prefix (folders come back with a null id), then bulk-deletes by key.
+// Failures are recorded as warnings; they never block the account deletion.
+async function purgeStorage(uid: string, headers: Record<string, string>, failed: string[]): Promise<void> {
+  for (const bucket of ["chat-files", "memory"]) {
+    try {
+      const keys: string[] = [];
+      const walk = async (prefix: string, depth: number): Promise<void> => {
+        if (depth > 3 || keys.length >= 3000) return; // safety caps, far beyond real usage
+        for (let off = 0; off < 3000; off += 100) {
+          const r = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${bucket}`, {
+            method: "POST",
+            headers: { ...headers, "content-type": "application/json" },
+            body: JSON.stringify({ prefix, limit: 100, offset: off }),
+          });
+          if (!r.ok) { failed.push(`${bucket}:list:${r.status}`); return; }
+          const items: { name: string; id?: string | null }[] = await r.json().catch(() => []);
+          if (!Array.isArray(items) || !items.length) return;
+          for (const it of items) {
+            if (it.id == null) await walk(`${prefix}${it.name}/`, depth + 1); // a folder
+            else keys.push(`${prefix}${it.name}`);
+          }
+          if (items.length < 100) return;
+        }
+      };
+      await walk(`${uid}/`, 0);
+      for (let i = 0; i < keys.length; i += 100) {
+        const dr = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}`, {
+          method: "DELETE",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify({ prefixes: keys.slice(i, i + 100) }),
+        });
+        if (!dr.ok) { failed.push(`${bucket}:delete:${dr.status}`); break; }
+      }
+    } catch {
+      failed.push(`${bucket}:err`);
+    }
+  }
+}
+
 Deno.serve(async (req: Request) => {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -103,6 +145,10 @@ Deno.serve(async (req: Request) => {
       failed.push(`${table}:err`);
     }
   }
+
+  // 3b) Purge the user's Storage objects (their generated files, AI images, and
+  // memory attachments) — "delete my account" must remove the bytes too.
+  await purgeStorage(uid, headers, failed);
 
   // 4) Delete the auth user itself (GoTrue admin; requires the service role).
   let userDeleted = false;

@@ -683,6 +683,26 @@ async function refreshConnections(uid: string): Promise<void> {
     saveConnections(uid, [...new Set(slugs)]);
   } catch { /* cache refresh is best effort */ }
 }
+// Composio unreachable: serve the last-known connection map from the cache so an
+// outage doesn't paint every app as disconnected in the Connectors screen.
+// Account emails aren't cached, so they come back null (the UI tolerates that).
+async function cachedConnectedMap(uid: string): Promise<Record<string, { email: string | null }>> {
+  const out: Record<string, { email: string | null }> = {};
+  if (!SR || !SUPABASE_URL) return out;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/user_connections?user_id=eq.${encodeURIComponent(uid)}&select=toolkits`, {
+      headers: { apikey: SR, authorization: `Bearer ${SR}` },
+    });
+    if (!r.ok) return out;
+    const rows = await r.json();
+    const slugs: unknown[] = Array.isArray(rows) && rows[0] && Array.isArray(rows[0].toolkits) ? rows[0].toolkits : [];
+    for (const s of slugs) {
+      const appId = APP_FOR_SLUG[String(s).toLowerCase()];
+      if (appId) out[appId] = { email: null };
+    }
+  } catch { /* serve empty */ }
+  return out;
+}
 
 // Plaid isn't a Composio toolkit — its tools are the built-in GF_BANK_* set that
 // gofarther-mcp serves (read-only, scoped to the user). We list them here so the
@@ -791,7 +811,7 @@ Deno.serve(async (req: Request) => {
       q.searchParams.set("user_ids", uid);
       q.searchParams.set("statuses", "ACTIVE");
       const res = await fetch(q.toString(), { headers: { "x-api-key": API_KEY } });
-      if (!res.ok) return json(req, { connected: {} });
+      if (!res.ok) return json(req, { connected: await cachedConnectedMap(uid) });
       const body = await res.json();
       const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
       const connected: Record<string, { email: string | null }> = {};
@@ -812,7 +832,7 @@ Deno.serve(async (req: Request) => {
       saveConnections(uid, [...new Set(slugs)]);
       return json(req, { connected });
     } catch {
-      return json(req, { connected: {} });
+      return json(req, { connected: await cachedConnectedMap(uid) });
     }
   }
 
