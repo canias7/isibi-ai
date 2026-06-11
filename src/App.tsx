@@ -635,9 +635,15 @@ export default function App() {
 
   // Run one chat turn for a message history (its last item = the user's new
   // message). An empty assistant bubble is appended for the streamed reply.
-  async function runTurn(history: ChatMessage[]) {
+  async function runTurn(rawHistory: ChatMessage[]) {
     dirtyRef.current = true; // a real turn — the persist effect should save it
     if (bgWaitRef.current?.convId === currentId) bgWaitRef.current = null; // a new turn here supersedes the awaited one
+    // A new send supersedes any turn still queued for retry: its unanswered
+    // question rides along as a user message in THIS history (so the model can
+    // still address it), while the dead recovery bubble disappears — re-sending
+    // a superseded snapshot later would rewind the conversation.
+    pendingTurnRef.current = null;
+    const history = withoutPlaceholders(rawHistory);
     setMessages([...history, { role: 'assistant', content: '', id: cid() }]);
     setBusy(true);
     track('message_sent');
@@ -660,9 +666,7 @@ export default function App() {
     const location = LOCATION_RE.test(lastUserText) ? ((await getLocation()) ?? undefined) : undefined;
     try {
       await streamChat(
-        // Placeholder bubbles (failed/empty assistant turns) stay visible locally
-        // but never go to the model — they'd make it answer a stale question.
-        withoutPlaceholders(history),
+        history, // already placeholder-free (cleaned at the top of runTurn)
         (tok) => {
           setMessages((m) => {
             const copy = m.slice();
@@ -839,12 +843,13 @@ export default function App() {
     });
   }
 
-  // Recover a failed turn on its own. Sent turns: the server is finishing them —
-  // poll for the saved reply (~1 min; tool turns can be slow) and adopt it.
+  // Recover a failed turn on its own — quietly; the bubble just reads as still
+  // thinking while this runs. Sent turns: the server is finishing them — poll
+  // for the saved reply (~3 min; tool/file turns can be slow) and adopt it.
   // Unsent turns: nothing exists server-side — re-send automatically, with a few
-  // spaced attempts (just-resumed radios usually wake within seconds). Either
-  // way, when recovery runs out the bubble flips to a terminal state instead of
-  // spinning forever. Stops the moment the turn is adopted, retried, or replaced.
+  // spaced attempts (just-resumed radios usually wake within seconds). Only when
+  // recovery truly runs out does the bubble flip to a terminal state with a
+  // button. Stops the moment the turn is adopted, retried, or replaced.
   function recoverPending(pend: { msgs: ChatMessage[]; sent: boolean }) {
     if (pend.sent) {
       let n = 0;
@@ -852,7 +857,7 @@ export default function App() {
         if (pendingTurnRef.current !== pend) return;
         await refreshCurrent();
         if (pendingTurnRef.current !== pend) return;
-        if (++n < 12) window.setTimeout(tick, 5000);
+        if (++n < 30) window.setTimeout(tick, 6000);
         else markPendingStalled(pend);
       };
       window.setTimeout(tick, 4000);
@@ -862,7 +867,9 @@ export default function App() {
     for (const at of attempts) {
       window.setTimeout(() => { if (pendingTurnRef.current === pend && navigator.onLine) retryRef.current(); }, at);
     }
-    window.setTimeout(() => markPendingStalled(pend), 26000);
+    // While offline, never stall — the offline bubble explains itself and the
+    // reconnect listener re-sends the turn the moment the network returns.
+    window.setTimeout(() => { if (navigator.onLine) markPendingStalled(pend); }, 26000);
   }
 
   // A turn we backgrounded out of is finished by the SERVER (it completes and
@@ -1648,31 +1655,19 @@ export default function App() {
                         {m.role === 'assistant' ? (
                           m.failed ? (
                             m.stalled ? (
-                              // Recovery gave up — no spinner, just the honest options.
+                              // Recovery genuinely gave up — the only state with a button.
                               <div className="msg-failed">
-                                <span>⚠️ {m.sent ? 'Still no reply — check again, or re-send it.' : "Couldn't reach Go Farther."}</span>
-                                {m.sent && <button className="msg-retry" onClick={() => { void refreshCurrent(); pollServerTurn(0); }}>Refresh</button>}
-                                <button className="msg-retry" onClick={() => void retryPending(true)}>Send again</button>
-                              </div>
-                            ) : m.sent ? (
-                              // The server has the turn and finishes it on its own.
-                              <div className="msg-working">
-                                <span className="gf-status-spin" aria-hidden />
-                                <span>Finishing in the background — it'll appear here when ready.</span>
-                                <button className="msg-retry" onClick={() => { void retryPending(); pollServerTurn(0); }}>Refresh</button>
+                                <span>⚠️ {m.sent ? 'No reply came back.' : "This didn't go through."}</span>
+                                <button className="msg-retry" onClick={() => void retryPending(true)}>Try again</button>
                               </div>
                             ) : m.offline ? (
                               <div className="msg-failed">
-                                <span>⚠️ You're offline — couldn't send.</span>
-                                <button className="msg-retry" onClick={() => void retryPending(true)}>Retry</button>
+                                <span>⚠️ You're offline — this will send when you're back.</span>
                               </div>
                             ) : (
-                              // Never reached the server — it re-sends itself.
-                              <div className="msg-working">
-                                <span className="gf-status-spin" aria-hidden />
-                                <span>Connection hiccup — sending it again…</span>
-                                <button className="msg-retry" onClick={() => void retryPending(true)}>Retry now</button>
-                              </div>
+                              // Recovering quietly (the server is finishing it, or we're
+                              // re-sending it) — reads as still thinking, no plumbing shown.
+                              <div className="gf-thinking" role="status">{m.sent ? 'Finishing up…' : 'Reconnecting…'}</div>
                             )
                           ) : (
                             <AssistantMessage text={m.content} streaming={streamingHere} onOpen={openEmail} />
