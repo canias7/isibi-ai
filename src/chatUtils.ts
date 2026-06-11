@@ -19,13 +19,28 @@ export function isNetworkError(e: unknown): boolean {
   return /network|failed to fetch|load failed|connection|offline|err_internet/.test(m);
 }
 
+// Drop failed/empty assistant placeholders (the "couldn't send / finishing in
+// the background" bubbles). They're UI state, not conversation content: sent to
+// the model they make it answer the wrong message, and synced to the cloud they
+// can overwrite a real reply the server saved — which permanently breaks
+// adoption (the server copy then "has no real reply"). Used on every outgoing
+// turn history and on every cloud save; the local copy keeps them so Retry
+// still works after a relaunch.
+export function withoutPlaceholders(messages: ChatMessage[]): ChatMessage[] {
+  return messages.filter((m) => !(m.role === 'assistant' && (m.failed || !m.content.trim())));
+}
+
 // Is the server's copy of a conversation a *more complete* version of what we
 // hold locally? True when it has more messages, or the same turns but a finished
 // assistant reply where ours is still empty/failed. This lets resume + retry
 // adopt a turn the backend completed while we were disconnected — instead of
 // re-running it, which would duplicate any action it performed (a second send, a
 // second delete). A shorter or empty server copy is never "more complete".
-export function serverIsMoreComplete(local: ChatMessage[], remote: ChatMessage[]): boolean {
+// The local side is compared without its placeholder bubbles (the server never
+// stores those), so stacked pending turns can't make the local copy look
+// "longer" than a server copy that actually has more real content.
+export function serverIsMoreComplete(localRaw: ChatMessage[], remote: ChatMessage[]): boolean {
+  const local = withoutPlaceholders(localRaw);
   if (remote.length === 0) return false;
   if (remote.length > local.length) return true;
   if (remote.length < local.length) return false;

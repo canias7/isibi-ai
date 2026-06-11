@@ -331,6 +331,22 @@
 .att-file-name { font-size: 0.7647rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .att-err { color: #ff9a9a; font-size: 0.7059rem; padding: 0.1176rem 0.3529rem; }
 
+/* A message queued mid-reply — sends itself when the current turn finishes */
+.queued-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin: 2px 2px 0;
+  border-radius: 12px;
+  background: #ffffff0f;
+  border: 1px solid #ffffff14;
+  color: var(--text-dim);
+  font-size: 0.7647rem;
+}
+.queued-chip .queued-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queued-chip .att-x { position: static; flex-shrink: 0; }
+
 /* Attachments shown inside a sent user bubble */
 .msg-atts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .msg-atts .att-img { max-width: 220px; max-height: 260px; border-radius: 14px; object-fit: cover; display: block; }

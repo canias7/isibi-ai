@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { streamChat, sendTestPush, extractMemory, type ChatMessage, type Attach } from './api';
+import { streamChat, sendTestPush, extractMemory, reachedServer, type ChatMessage, type Attach } from './api';
 import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
@@ -19,7 +19,7 @@ import { biometryAvailable, biometryStatus, unlock, type BiometryStatus } from '
 import { registerPush, pushStatus } from './push';
 import { fileToAttachment } from './attach';
 import { getLocation } from './geo';
-import { slimMessages, isNetworkError, serverIsMoreComplete, titleFrom, cleanForDisplay, modelShort, plainText } from './chatUtils';
+import { slimMessages, isNetworkError, serverIsMoreComplete, withoutPlaceholders, titleFrom, cleanForDisplay, modelShort, plainText } from './chatUtils';
 import { FORCE_UPDATE_EVENT, type ForceUpdateMode } from './ota';
 
 // Heavy, on-demand screens are code-split: their JS downloads only when first
@@ -140,7 +140,9 @@ async function syncSave(uid: string, c: Conversation) {
       user_id: uid,
       id: c.id,
       title: c.title,
-      messages: slimMessages(c.messages),
+      // Placeholders never go to the cloud: a failed/empty bubble synced over a
+      // reply the server saved makes that reply unadoptable (and unrecoverable).
+      messages: slimMessages(withoutPlaceholders(c.messages)),
       updated_at: new Date(c.updatedAt || Date.now()).toISOString(),
     });
   } catch {
@@ -266,9 +268,13 @@ export default function App() {
   currentIdRef.current = currentId;
   const dirtyRef = useRef(false);      // a real turn changed messages -> persist (not just open/restore)
   const [online, setOnline] = useState(true);                 // network status (drives the offline banner)
-  const pendingTurnRef = useRef<ChatMessage[] | null>(null);  // a turn that failed offline, awaiting retry
+  // A turn whose connection failed, awaiting recovery. `sent` records whether the
+  // request reached the server: if it did, the server finishes the turn and we may
+  // only ADOPT its saved reply (re-sending could run an action twice); if it never
+  // got out, re-sending is safe and is done automatically.
+  const pendingTurnRef = useRef<{ msgs: ChatMessage[]; sent: boolean } | null>(null);
   const retryingRef = useRef(false);                          // a retry is mid-flight (serializes online + manual taps)
-  const retryRef = useRef<() => void>(() => {});              // latest retryPending, for the online listener
+  const retryRef = useRef<(force?: boolean) => void>(() => {}); // latest retryPending, for the online listener
   const resumeRef = useRef<() => void>(() => {});             // refresh current chat on resume (server-finished turn)
   const bgWaitRef = useRef<{ convId: string; msgs: ChatMessage[] } | null>(null); // a turn the SERVER is still finishing after we backgrounded — adopt its reply, never re-run it
   const bgPollSeqRef = useRef(0);                             // newest pollServerTurn loop wins (no stacked timers)
@@ -298,6 +304,9 @@ export default function App() {
   const [plusOpen, setPlusOpen] = useState(false);
   const [attachments, setAttachments] = useState<Attach[]>([]);
   const [attachErr, setAttachErr] = useState('');
+  // A message composed WHILE the assistant is replying — sent automatically the
+  // moment the current turn finishes, so thinking time is never dead time.
+  const [queued, setQueued] = useState<{ text: string; atts: Attach[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const menuOpenedAt = useRef(0); // guards against the tap's ghost-click closing a just-opened menu
   const seenRef = useRef<string[]>([]);
@@ -454,7 +463,7 @@ export default function App() {
   // queued for the previous chat — otherwise the next online event / Retry tap
   // would replay that old turn into the chat now open. The failed bubble doesn't
   // survive a chat switch either, so this just matches what's on screen.
-  useEffect(() => { pendingTurnRef.current = null; retryingRef.current = false; setCopiedIdx(null); }, [currentId]);
+  useEffect(() => { pendingTurnRef.current = null; retryingRef.current = false; setCopiedIdx(null); setQueued(null); }, [currentId]);
 
   // A short-lived note in Settings (auto-clears) — used to explain why a toggle
   // didn't turn on (no biometrics, notifications denied, …).
@@ -494,6 +503,11 @@ export default function App() {
         void resumeRef.current(); // pick up a turn that finished server-side while away
         bgPollRef.current();      // and keep watching for one that's still running
       }
+      // A send that never got out (queued while the radio was down) — try it again
+      // once the connection has had a moment to come back after foregrounding.
+      // iOS networking is flaky for the first second or two after resume, which is
+      // also why retryPending never re-sends blind when its server check fails.
+      if (pendingTurnRef.current) window.setTimeout(() => retryRef.current(), 1500);
     }).then((h) => { handle = h; });
     return () => { handle?.remove(); };
   }, []);
@@ -630,7 +644,9 @@ export default function App() {
     const location = LOCATION_RE.test(lastUserText) ? ((await getLocation()) ?? undefined) : undefined;
     try {
       await streamChat(
-        history,
+        // Placeholder bubbles (failed/empty assistant turns) stay visible locally
+        // but never go to the model — they'd make it answer a stale question.
+        withoutPlaceholders(history),
         (tok) => {
           setMessages((m) => {
             const copy = m.slice();
@@ -676,7 +692,7 @@ export default function App() {
           const copy = m.slice();
           const l = copy[copy.length - 1];
           if (l && l.role === 'assistant' && l.content === '' && !l.failed) {
-            copy[copy.length - 1] = { role: 'assistant', content: '', failed: true, offline: false };
+            copy[copy.length - 1] = { role: 'assistant', content: '', failed: true, offline: false, sent: true };
           }
           return copy;
         });
@@ -691,22 +707,24 @@ export default function App() {
         });
         return;
       }
-      // Offline / network failure → queue this turn and offer retry instead of a
-      // hard error. It auto-retries when connectivity returns. The backend may
-      // still finish the turn (it keeps running after we disconnect), so we also
-      // poll briefly to adopt a completed reply without a manual retry.
+      // Offline / network failure → queue this turn and recover instead of a hard
+      // error. Two very different cases, told apart by whether the request got out:
+      //  - sent: the server HAS the turn and will finish + save it — adopt-only
+      //    (re-sending could run an action twice). Poll for its saved reply.
+      //  - not sent: the server never saw it (radio flake, just-resumed iOS) —
+      //    auto re-send it; nothing exists server-side to wait for.
       if (!timedOut && (!navigator.onLine || isNetworkError(e))) {
         dirtyRef.current = false; // don't persist a failed placeholder turn
-        pendingTurnRef.current = history;
-        // Genuinely offline vs. just backgrounded mid-reply (still online, server
-        // keeps finishing + will push). The bubble wording differs accordingly.
+        const sent = reachedServer(e);
+        const pend = { msgs: history, sent };
+        pendingTurnRef.current = pend;
         const wasOffline = !navigator.onLine;
         setMessages((m) => {
           const copy = m.slice();
-          copy[copy.length - 1] = { role: 'assistant', content: '', failed: true, offline: wasOffline };
+          copy[copy.length - 1] = { role: 'assistant', content: '', failed: true, offline: wasOffline, sent };
           return copy;
         });
-        pollForCompletion(history);
+        recoverPending(pend);
         return;
       }
       const msg = timedOut ? 'Timed out — please try again.' : e instanceof Error ? e.message : 'Something went wrong';
@@ -749,21 +767,31 @@ export default function App() {
   // First check whether the backend already finished it: re-running a completed
   // action would duplicate it (send the same email twice, delete twice), so if
   // the server already holds the reply we adopt that instead of sending again.
-  async function retryPending() {
+  async function retryPending(force = false) {
     if (retryingRef.current || busyRef.current) return; // already retrying, or a turn is in flight
-    const hist = pendingTurnRef.current;
-    if (!hist) return;
+    const pend = pendingTurnRef.current;
+    if (!pend) return;
     retryingRef.current = true; // claim it so a concurrent online event + manual tap can't both re-run the turn
     try {
       if (uid) {
         const remote = await syncLoad(uid);
-        if (pendingTurnRef.current !== hist) return; // adopted/replaced while we loaded
-        const cur = remote?.find((c) => c.id === currentId);
-        if (cur && serverIsMoreComplete(messagesRef.current, cur.messages)) { adoptConversation(cur); return; }
+        if (pendingTurnRef.current !== pend) return; // adopted/replaced while we loaded
+        if (remote) {
+          const cur = remote.find((c) => c.id === currentId);
+          if (cur && serverIsMoreComplete(messagesRef.current, cur.messages)) { adoptConversation(cur); return; }
+        }
+        // The check itself failed (flaky just-resumed radio): we can't tell what
+        // the server holds, so never re-send on a guess — a duplicated turn can
+        // duplicate its action. Stay queued; recovery/resume will try again.
+        if (!remote && !force) return;
+        // The request reached the server, which finishes turns it started — the
+        // saved reply just hasn't landed yet. Adopt-only unless the user
+        // explicitly asks to re-send from the stalled state.
+        if (pend.sent && !force) return;
       }
-      if (busyRef.current || pendingTurnRef.current !== hist) return; // a new turn started meanwhile — leave it queued
+      if (busyRef.current || pendingTurnRef.current !== pend) return; // a new turn started meanwhile — leave it queued
       pendingTurnRef.current = null;
-      void runTurn(hist);
+      void runTurn(pend.msgs);
     } finally {
       retryingRef.current = false;
     }
@@ -783,19 +811,42 @@ export default function App() {
   }
   resumeRef.current = refreshCurrent;
 
-  // After an offline failure, poll a few times (~30s) so a turn the backend is
-  // still finishing shows up on its own — the eventual reply replaces the
-  // "failed" bubble without the user having to tap Retry. Stops as soon as it
-  // adopts, gets retried, or is superseded by a newer turn.
-  function pollForCompletion(history: ChatMessage[]) {
-    let n = 0;
-    const tick = async () => {
-      if (pendingTurnRef.current !== history) return;
-      await refreshCurrent();
-      if (pendingTurnRef.current !== history) return;
-      if (++n < 6) window.setTimeout(tick, 5000);
-    };
-    window.setTimeout(tick, 4000);
+  // The pending bubble's recovery gave up — stop spinning and say so, with the
+  // honest options (Refresh checks the server; Send again re-runs the turn).
+  function markPendingStalled(pend: { msgs: ChatMessage[]; sent: boolean }) {
+    if (pendingTurnRef.current !== pend) return;
+    setMessages((m) => {
+      const copy = m.slice();
+      const l = copy[copy.length - 1];
+      if (l && l.role === 'assistant' && l.failed && !l.stalled) copy[copy.length - 1] = { ...l, stalled: true };
+      return copy;
+    });
+  }
+
+  // Recover a failed turn on its own. Sent turns: the server is finishing them —
+  // poll for the saved reply (~1 min; tool turns can be slow) and adopt it.
+  // Unsent turns: nothing exists server-side — re-send automatically, with a few
+  // spaced attempts (just-resumed radios usually wake within seconds). Either
+  // way, when recovery runs out the bubble flips to a terminal state instead of
+  // spinning forever. Stops the moment the turn is adopted, retried, or replaced.
+  function recoverPending(pend: { msgs: ChatMessage[]; sent: boolean }) {
+    if (pend.sent) {
+      let n = 0;
+      const tick = async () => {
+        if (pendingTurnRef.current !== pend) return;
+        await refreshCurrent();
+        if (pendingTurnRef.current !== pend) return;
+        if (++n < 12) window.setTimeout(tick, 5000);
+        else markPendingStalled(pend);
+      };
+      window.setTimeout(tick, 4000);
+      return;
+    }
+    const attempts = [2500, 8000, 18000];
+    for (const at of attempts) {
+      window.setTimeout(() => { if (pendingTurnRef.current === pend && navigator.onLine) retryRef.current(); }, at);
+    }
+    window.setTimeout(() => markPendingStalled(pend), 26000);
   }
 
   // A turn we backgrounded out of is finished by the SERVER (it completes and
@@ -815,7 +866,19 @@ export default function App() {
       const cur = remote?.find((c) => c.id === wait.convId);
       const local = wait.convId === currentIdRef.current ? messagesRef.current : wait.msgs;
       if (cur && serverIsMoreComplete(local, cur.messages)) { adoptConversation(cur); return; }
-      if (++n < 30) window.setTimeout(tick, 5000); // keep watching ~2.5 min
+      if (++n < 30) { window.setTimeout(tick, 5000); return; } // keep watching ~2.5 min
+      // Ran out of patience — if the waiting bubble is on screen, stop the
+      // spinner and offer Refresh / Send again instead of spinning forever.
+      if (wait.convId !== currentIdRef.current) return;
+      setMessages((m) => {
+        const copy = m.slice();
+        const l = copy[copy.length - 1];
+        if (l && l.role === 'assistant' && l.failed && !l.stalled) copy[copy.length - 1] = { ...l, stalled: true };
+        return copy;
+      });
+      // Let a manual "Send again" work from here: the bgWait turn becomes an
+      // explicit pending one (sent: the server did receive it).
+      if (!pendingTurnRef.current) pendingTurnRef.current = { msgs: wait.msgs, sent: true };
     };
     window.setTimeout(tick, firstDelay);
   }
@@ -927,15 +990,29 @@ export default function App() {
   }
 
   // Send from the composer (clears the input box + pending attachments).
+  // Mid-reply, the message is QUEUED instead and goes out the moment the current
+  // turn finishes — you can keep talking while it thinks.
   function send() {
     const text = input.trim();
-    if ((!text && attachments.length === 0) || busy) return;
+    if (!text && attachments.length === 0) return;
     void tap(); // light haptic on send (no-op until a native build includes the plugin)
     const atts = attachments;
     setInput('');
     setAttachments([]);
+    if (busy) {
+      setQueued((q) => (q ? { text: `${q.text}\n${text}`.trim(), atts: [...q.atts, ...atts].slice(-6) } : { text, atts }));
+      return;
+    }
     void sendText(text, atts);
   }
+
+  // Flush the queued message once the assistant finishes (or fails) the turn.
+  useEffect(() => {
+    if (busy || !queued) return;
+    const q = queued;
+    setQueued(null);
+    void sendTextRef.current(q.text, q.atts);
+  }, [busy, queued]);
 
   // ---- Attachments ("+" menu) ----
   // Camera jumps straight into the device camera (Take Photo); Attachments offers
@@ -1554,16 +1631,31 @@ export default function App() {
                       <div className="bubble">
                         {m.role === 'assistant' ? (
                           m.failed ? (
-                            m.offline ? (
+                            m.stalled ? (
+                              // Recovery gave up — no spinner, just the honest options.
                               <div className="msg-failed">
-                                <span>⚠️ You're offline — couldn't send.</span>
-                                <button className="msg-retry" onClick={retryPending}>Retry</button>
+                                <span>⚠️ {m.sent ? 'Still no reply — check again, or re-send it.' : "Couldn't reach Go Farther."}</span>
+                                {m.sent && <button className="msg-retry" onClick={() => { void refreshCurrent(); pollServerTurn(0); }}>Refresh</button>}
+                                <button className="msg-retry" onClick={() => void retryPending(true)}>Send again</button>
                               </div>
-                            ) : (
+                            ) : m.sent ? (
+                              // The server has the turn and finishes it on its own.
                               <div className="msg-working">
                                 <span className="gf-status-spin" aria-hidden />
                                 <span>Finishing in the background — it'll appear here when ready.</span>
                                 <button className="msg-retry" onClick={() => { void retryPending(); pollServerTurn(0); }}>Refresh</button>
+                              </div>
+                            ) : m.offline ? (
+                              <div className="msg-failed">
+                                <span>⚠️ You're offline — couldn't send.</span>
+                                <button className="msg-retry" onClick={() => void retryPending(true)}>Retry</button>
+                              </div>
+                            ) : (
+                              // Never reached the server — it re-sends itself.
+                              <div className="msg-working">
+                                <span className="gf-status-spin" aria-hidden />
+                                <span>Connection hiccup — sending it again…</span>
+                                <button className="msg-retry" onClick={() => void retryPending(true)}>Retry now</button>
                               </div>
                             )
                           ) : (
@@ -1652,6 +1744,21 @@ export default function App() {
                 </div>
               )}
               {attachErr && <div className="att-err">{attachErr}</div>}
+              {queued && (
+                <div className="queued-chip" role="status">
+                  <span className="gf-status-spin" aria-hidden />
+                  <span className="queued-text">
+                    Sends when this reply finishes — “{queued.text.length > 56 ? `${queued.text.slice(0, 56)}…` : queued.text}”
+                  </span>
+                  <button
+                    className="att-x"
+                    onClick={() => { setInput(queued.text); setAttachments(queued.atts); setQueued(null); taRef.current?.focus(); }}
+                    aria-label="Cancel queued message and edit it"
+                  >
+                    <IconX size={12} />
+                  </button>
+                </div>
+              )}
               <div className="composer-row">
                 <button
                   className={`plus-btn ${plusOpen ? 'open' : ''}`}
@@ -1686,13 +1793,15 @@ export default function App() {
                     {micState === 'tx' ? <span className="gf-status-spin" aria-hidden /> : <IconMic size={17} />}
                   </button>
                 ) : (
+                  // Mid-reply with text typed, the button sends (queues) instead of
+                  // stopping — clear the box to get Stop back.
                   <button
                     className="send"
-                    onClick={() => { if (busy) { void tap(); stopStream(); } else void send(); }}
+                    onClick={() => { if (busy && !input.trim() && attachments.length === 0) { void tap(); stopStream(); } else void send(); }}
                     disabled={!busy && !input.trim() && attachments.length === 0}
-                    aria-label={busy ? 'Stop generating' : 'Send'}
+                    aria-label={busy ? (input.trim() || attachments.length > 0 ? 'Send when this reply finishes' : 'Stop generating') : 'Send'}
                   >
-                    {busy ? <span className="stop-sq" /> : '↑'}
+                    {busy && !input.trim() && attachments.length === 0 ? <span className="stop-sq" /> : '↑'}
                   </button>
                 )}
               </div>
