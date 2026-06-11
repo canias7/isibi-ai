@@ -2,10 +2,14 @@
   "appId": "com.gofarther.app",
   "productName": "Go Farther",
   "directories": { "output": "release", "buildResources": "build" },
-  "files": ["dist/**/*", "electron/**/*"],
+  "files": ["dist/**/*", "electron/**/*", "build/tray.png"],
   "extraMetadata": { "main": "electron/main.cjs" },
+  "publish": { "provider": "github", "owner": "canias7", "repo": "isibi-ai" },
   "mac": {
-    "target": [{ "target": "dmg", "arch": ["arm64"] }],
+    "target": [
+      { "target": "dmg", "arch": ["arm64"] },
+      { "target": "zip", "arch": ["arm64"] }
+    ],
     "category": "public.app-category.productivity"
   },
   "win": {

@@ -770,8 +770,13 @@ export default function App() {
       else notifRoutesRef.current.openReminders();
     }).then((h) => { if (h) subs.push(h); });
     return () => { for (const s of subs) s.remove(); };
-     
+
   }, []);
+
+  // Desktop (Electron) tray: "New chat" — bridge injected by the preload, absent
+  // everywhere else. Ref so the handler always calls the latest newChat.
+  const newChatRef = useRef<() => void>(() => {});
+  useEffect(() => window.gfDesktop?.onNewChat(() => newChatRef.current()), []);
 
   // AI title: once a new chat has its first real reply, generate a 3-5 word
   // title to replace the raw first-message truncation in the sidebar. Once per
@@ -1450,6 +1455,7 @@ export default function App() {
     setMessages([]);
     go('chat');
   }
+  newChatRef.current = newChat;
 
   function selectChat(id: string) {
     const c = chats.find((x) => x.id === id);

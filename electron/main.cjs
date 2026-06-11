@@ -2,7 +2,7 @@
 // window. The app runs in "web mode" (Capacitor reports platform 'web'), which
 // it already fully supports: haptics no-op, voice via Web Audio, biometric/push
 // fall back gracefully. Plain CommonJS so it runs without a build step.
-const { app, BrowserWindow, shell, session } = require('electron');
+const { app, BrowserWindow, Menu, Tray, nativeImage, shell, session } = require('electron');
 const path = require('path');
 
 // In dev we point at the running Vite server; packaged, we load the bundled file.
@@ -14,6 +14,14 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   let win = null;
+  let tray = null;
+
+  function showWindow() {
+    if (!win) { createWindow(); return; }
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  }
 
   function createWindow() {
     win = new BrowserWindow({
@@ -60,9 +68,49 @@ if (!app.requestSingleInstanceLock()) {
     win.on('closed', () => { win = null; });
   }
 
-  app.on('second-instance', () => {
-    if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
-  });
+  // Tray / menu-bar presence: quick access to the window + a one-tap new chat.
+  // Best-effort — a desktop without a tray (some Linux setups) just skips it.
+  function createTray() {
+    try {
+      const img = nativeImage.createFromPath(path.join(__dirname, '..', 'build', 'tray.png'));
+      if (img.isEmpty()) return;
+      tray = new Tray(img.resize({ width: 18, height: 18 }));
+      tray.setToolTip('Go Farther');
+      tray.setContextMenu(Menu.buildFromTemplate([
+        { label: 'Open Go Farther', click: showWindow },
+        {
+          label: 'New chat',
+          click: () => {
+            showWindow();
+            // The renderer listens via the preload bridge (gfDesktop.onNewChat).
+            win?.webContents.send('gf-new-chat');
+          },
+        },
+        { type: 'separator' },
+        { label: 'Quit', click: () => app.quit() },
+      ]));
+      // Windows/Linux: a plain click opens the window (macOS opens the menu).
+      tray.on('click', () => { if (process.platform !== 'darwin') showWindow(); });
+    } catch { /* no tray support — fine, the app works without it */ }
+  }
+
+  // Self-update from the repo's GitHub Releases (electron-updater): silent
+  // download in the background, installed on quit — the desktop twin of the
+  // mobile OTA's "apply on next launch". Packaged builds only; never interrupts.
+  // macOS requires the app to be code-signed for updates to install.
+  function initAutoUpdate() {
+    if (!app.isPackaged) return;
+    let autoUpdater;
+    try { ({ autoUpdater } = require('electron-updater')); } catch { return; }
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.on('error', () => { /* offline / no release yet — try again later */ });
+    const check = () => { autoUpdater.checkForUpdates().catch(() => {}); };
+    check();
+    setInterval(check, 4 * 60 * 60 * 1000); // re-check every 4h while running
+  }
+
+  app.on('second-instance', showWindow);
 
   app.whenReady().then(() => {
     // Grant the things the app actually uses (mic for voice/dictation,
@@ -71,6 +119,8 @@ if (!app.requestSingleInstanceLock()) {
     session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(allowed.has(permission)));
 
     createWindow();
+    createTray();
+    initAutoUpdate();
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
   });
 
