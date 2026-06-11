@@ -4,6 +4,7 @@ import { bump, chime } from './haptics';
 import { listenOnce, transcribe, speak, speakable, stopSpeaking, micSupported } from './voice';
 import { streamChat, type ChatMessage, type Attach } from './api';
 import { IconPhoneOff, IconCamera } from './icons';
+import SunOrb from './SunOrb';
 
 type Phase = 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
 
@@ -232,7 +233,7 @@ export default function CallScreen({
         onClick={onOrbTap}
         aria-label="Assistant"
       >
-        <span className="call-orb-core" />
+        <SunOrb size={132} className="call-orb-core" />
         <span className="call-orb-ring" />
       </button>
 
