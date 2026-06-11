@@ -1,0 +1,23 @@
+{
+  "appId": "com.gofarther.app",
+  "productName": "Go Farther",
+  "directories": { "output": "release", "buildResources": "build" },
+  "files": ["dist/**/*", "electron/**/*"],
+  "extraMetadata": { "main": "electron/main.cjs" },
+  "mac": {
+    "target": [{ "target": "dmg", "arch": ["arm64"] }],
+    "category": "public.app-category.productivity"
+  },
+  "win": {
+    "target": ["nsis"]
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true
+  },
+  "linux": {
+    "target": ["AppImage"],
+    "category": "Utility"
+  }
+}

@@ -67,6 +67,8 @@ jobs:
       - name: Install dependencies
         if: steps.signing.outputs.present == 'true'
         run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1 # desktop devDeps unused for the iOS build
 
       # Apple requires apps to be built with the latest iOS SDK, so pick the
       # newest Xcode installed on the runner.

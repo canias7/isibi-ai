@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react';
 // APP_VERSION) baked into the bundle. ota.ts compares it against the published
 // manifest so OTA only ever moves *forward*. Defaults to 0 for local dev.
 export default defineConfig({
+  // Electron loads the bundle over file://, so it needs relative asset URLs.
+  // Web/Capacitor builds keep the absolute root base. Toggled with ELECTRON=1.
+  base: process.env.ELECTRON ? './' : '/',
   plugins: [react()],
   define: {
     __APP_VERSION__: JSON.stringify(process.env.APP_VERSION ?? '0'),
