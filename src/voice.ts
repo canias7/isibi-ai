@@ -18,7 +18,9 @@ function audioCtxCtor(): typeof AudioContext {
   const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext };
   return (w.AudioContext || w.webkitAudioContext) as typeof AudioContext;
 }
-function getCtx(): AudioContext {
+// Exported because earcons.ts plays its tones through this same context — one
+// AudioContext for the whole app means one iOS gesture-unlock covers both.
+export function getCtx(): AudioContext {
   if (sharedCtx && sharedCtx.state !== 'closed') return sharedCtx;
   sharedCtx = new (audioCtxCtor())();
   return sharedCtx;

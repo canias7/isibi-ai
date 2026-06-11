@@ -8,6 +8,7 @@ import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown } from './icons';
 import { primeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
+import { sentSound, replySound, soundsOn, setSoundsOn } from './earcons';
 import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, registerReminderActions, onReminderAction, snoozeNudge, type Reminder, type RepeatKind } from './reminders';
@@ -289,6 +290,7 @@ export default function App() {
   const lockRef = useRef<() => void>(() => {});
   const sendTextRef = useRef<(raw: string, atts?: Attach[]) => Promise<void>>(async () => {}); // latest sendText, for the stable openEmail callback
   const [notif, setNotif] = useState(() => { try { return localStorage.getItem('gf_notif') === '1'; } catch { return false; } });
+  const [sounds, setSounds] = useState(soundsOn);
 
   // ---- Per-session connectors ----
   // Which apps are connected (from the backend), which are enabled for THIS
@@ -804,6 +806,7 @@ export default function App() {
         }
         return copy;
       });
+      replySound(); // the reply landed — a soft audible cue to glance back
     } catch (e) {
       // Backgrounded mid-reply: we closed the connection on purpose so the server
       // finishes the turn and pushes "ready". Don't show an error — keep whatever
@@ -868,6 +871,7 @@ export default function App() {
   async function sendText(raw: string, atts: Attach[] = []) {
     const text = raw.trim();
     if ((!text && atts.length === 0) || busy) return;
+    sentSound(); // here (not in the composer) so queued messages blip when they actually go out
     const userMsg: ChatMessage = { role: 'user', content: text, id: cid(), ...(atts.length ? { attachments: atts } : {}) };
     await runTurn([...messages, userMsg]);
   }
@@ -1055,6 +1059,14 @@ export default function App() {
     }
     try { localStorage.setItem('gf_notif', next ? '1' : '0'); } catch { /* ignore */ }
     setNotif(next);
+  }
+
+  function toggleSounds() {
+    void tap();
+    const next = !sounds;
+    setSoundsOn(next);
+    setSounds(next);
+    if (next) sentSound(); // instant preview — and the tap gesture unlocks audio on iOS
   }
 
   // One-tap end-to-end check: ask the backend to push us a test notification.
@@ -1655,9 +1667,11 @@ export default function App() {
           bioStatus={bioStatus}
           faceId={faceId}
           notif={notif}
+          sounds={sounds}
           noteMsg={noteMsg}
           onToggleFaceId={() => void toggleFaceId()}
           onToggleNotif={() => void toggleNotif()}
+          onToggleSounds={toggleSounds}
           onTestPush={() => void testPush()}
           onSignOut={() => void signOut()}
           onDeleteAccount={() => setConfirmDelete(true)}
