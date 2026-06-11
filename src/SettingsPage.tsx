@@ -4,12 +4,13 @@ import { keyActivate } from './a11y';
 import { tap } from './haptics';
 import { IconLogout, IconTrash } from './icons';
 import { APP_VERSION, BUILD } from './version';
+import { THEMES, type SoundTheme } from './earcons';
 import type { BiometryStatus } from './biometric';
 
 // The Settings view — presentational; all state and handlers live in App.
 export default function SettingsPage({
-  session, isGuest, bioStatus, faceId, notif, sounds, noteMsg,
-  onToggleFaceId, onToggleNotif, onToggleSounds, onTestPush, onSignOut, onDeleteAccount, onOpenLegal,
+  session, isGuest, bioStatus, faceId, notif, sounds, soundTheme, noteMsg,
+  onToggleFaceId, onToggleNotif, onToggleSounds, onPickSoundTheme, onTestPush, onSignOut, onDeleteAccount, onOpenLegal,
 }: {
   session: Session;
   isGuest: boolean;
@@ -17,10 +18,12 @@ export default function SettingsPage({
   faceId: boolean;
   notif: boolean;
   sounds: boolean;
+  soundTheme: SoundTheme;
   noteMsg: string;
   onToggleFaceId: () => void;
   onToggleNotif: () => void;
   onToggleSounds: () => void;
+  onPickSoundTheme: (t: SoundTheme) => void;
   onTestPush: () => void;
   onSignOut: () => void;
   onDeleteAccount: () => void;
@@ -65,6 +68,27 @@ export default function SettingsPage({
             </div>
             <span className={`tgl ${sounds ? 'on' : ''}`}><span className="tgl-knob" /></span>
           </div>
+          {sounds && (
+            <div className="set-row set-sound-row">
+              <div className="set-row-text">
+                <div className="set-row-title">Sound style</div>
+                <div className="snd-chips" role="radiogroup" aria-label="Sound style">
+                  {THEMES.map((t) => (
+                    <button
+                      key={t.id}
+                      className={`snd-chip${soundTheme === t.id ? ' on' : ''}`}
+                      role="radio"
+                      aria-checked={soundTheme === t.id}
+                      onClick={() => onPickSoundTheme(t.id)}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="set-row-sub">Tap one to hear it.</div>
+              </div>
+            </div>
+          )}
         </div>
         {native && notif && (
           <button className="set-test-btn" onClick={onTestPush}>Send a test notification</button>
