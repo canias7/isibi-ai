@@ -17,8 +17,8 @@
 @keyframes call-in { from { opacity: 0; } to { opacity: 1; } }
 
 .call-top { text-align: center; margin-top: 8px; }
-.call-name { font-size: 22px; font-weight: 600; letter-spacing: 0.2px; }
-.call-status { margin-top: 6px; color: var(--text-dim); font-size: 14px; }
+.call-name { font-size: 1.2941rem; font-weight: 600; letter-spacing: 0.0118rem; }
+.call-status { margin-top: 0.3529rem; color: var(--text-dim); font-size: 0.8235rem; }
 
 /* The orb: a soft, breathing core with a ring that reacts to mic level. */
 .call-orb {
@@ -68,7 +68,7 @@
   max-width: 560px;
   min-height: 3.2em;
   text-align: center;
-  font-size: 18px;
+  font-size: 1.0588rem;
   line-height: 1.45;
   color: var(--text);
   overflow-y: auto;

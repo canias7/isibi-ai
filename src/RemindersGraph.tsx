@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useFocusTrap } from './a11y';
 import { type Reminder, type RepeatKind } from './reminders';
 import { IconTrash, IconArrowUp, IconArrowLeft, IconClock } from './icons';
 
@@ -66,6 +67,9 @@ function layout(n: number): XY[] {
 }
 
 export default function RemindersGraph({ reminders, loaded, onAdd, onUpdate, onDelete, onToggle, onClose }: Props) {
+  // Full-screen dialog: keep keyboard focus inside; Esc goes back.
+  const trapRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, trapRef, onClose);
   const [input, setInput] = useState('');
   const [when, setWhen] = useState(defaultWhen);
   const [repeat, setRepeat] = useState<RepeatKind>('none');
@@ -228,7 +232,7 @@ export default function RemindersGraph({ reminders, loaded, onAdd, onUpdate, onD
   const repLabel: Record<RepeatKind, string> = { none: 'Once', daily: 'Daily', weekly: 'Weekly' };
 
   return createPortal(
-    <div className="memg" role="dialog" aria-label="Reminders">
+    <div className="memg" role="dialog" aria-label="Reminders" ref={trapRef} tabIndex={-1}>
       <div className="memg-top">
         <button className="memg-back" onClick={onClose} aria-label="Back">
           <IconArrowLeft size={22} />
@@ -347,6 +351,7 @@ export default function RemindersGraph({ reminders, loaded, onAdd, onUpdate, onD
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
             placeholder={selectedId ? 'Edit this reminder' : 'Remind me to…'}
+            aria-label={selectedId ? 'Edit this reminder' : 'Add a reminder'}
             maxLength={200}
           />
           <button className="memg-send" onClick={() => void submit()} disabled={!input.trim() || saving} aria-label={selectedId ? 'Update' : 'Add'}>

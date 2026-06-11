@@ -9,6 +9,7 @@ import { BrandLogo } from './brandLogos';
 import { hasBrand } from './brandData';
 import ToolManager from './ToolManager';
 import { IconArrowLeft, IconSpark } from './icons';
+import { useFocusTrap } from './a11y';
 import { PLAID_LOGO } from './plaidLogo';
 
 // Full-screen "constellation" of connected apps (mirrors the Memory screen): a
@@ -49,6 +50,11 @@ function Tile({ id, size = 22 }: { id: string; size?: number }) {
 }
 
 export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
+  // Three stacked dialogs; each traps focus while it's the top layer, and Esc
+  // closes just that layer (sheet -> picker -> the screen itself).
+  const rootRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<Record<string, Status>>({});
   const [positions, setPositions] = useState<Record<string, XY>>(loadPositions);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -56,6 +62,9 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const [pan, setPan] = useState<XY>({ x: 0, y: 0 });
   const [picker, setPicker] = useState(false);          // the "all apps" connect page
   const [detail, setDetail] = useState<Connector | null>(null); // tapped app -> tools/disconnect sheet
+  useFocusTrap(!picker && !detail, rootRef, onClose);
+  useFocusTrap(picker && !detail, pickerRef, () => setPicker(false));
+  useFocusTrap(!!detail, sheetRef, () => setDetail(null));
   const [manage, setManage] = useState<Connector | null>(null); // ToolManager open
 
   const aliveRef = useRef(true);
@@ -318,7 +327,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   }
 
   return createPortal(
-    <div className="memg" role="dialog" aria-label="Connectors">
+    <div className="memg" role="dialog" aria-label="Connectors" ref={rootRef} tabIndex={-1}>
       <div className="memg-top">
         <button className="memg-back" onClick={onClose} aria-label="Back"><IconArrowLeft size={22} /></button>
         <div className="memg-titles">
@@ -390,7 +399,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
 
       {/* ---- connect picker: the page with all the apps ---- */}
       {picker && (
-        <div className="cg-picker" role="dialog" aria-label="Add an app">
+        <div className="cg-picker" role="dialog" aria-label="Add an app" ref={pickerRef} tabIndex={-1}>
           <div className="memg-top">
             <button className="memg-back" onClick={() => setPicker(false)} aria-label="Back"><IconArrowLeft size={22} /></button>
             <div className="memg-titles">
@@ -421,7 +430,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       {detail && (
         <>
           <div className="cg-sheet-backdrop" onClick={() => setDetail(null)} />
-          <div className="cg-sheet" role="dialog" aria-label={detail.name}>
+          <div className="cg-sheet" role="dialog" aria-label={detail.name} ref={sheetRef} tabIndex={-1}>
             <div className="cg-sheet-head">
               <span className="cg-tile"><Tile id={detail.id} size={22} /></span>
               <div>

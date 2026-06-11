@@ -1,3 +1,15 @@
+/* ---- Dynamic Type ----------------------------------------------------------
+   All font sizes in the app are rem, calibrated so 1rem = 17px (iOS's default
+   body size) — at the default setting everything renders EXACTLY as designed.
+   On iOS, `font: -apple-system-body` makes the root size follow the user's
+   text-size setting, so the whole app scales with it. Platforms that don't
+   know that keyword (Android/web) ignore the shorthand and keep the 17px
+   fallback. :root below re-asserts our font-family (the shorthand resets it). */
+html {
+  font-size: 17px;
+  font: -apple-system-body;
+}
+
 :root {
   --bg: #000000;
   --bubble-user: #1c1c1e;
@@ -44,7 +56,7 @@ body { background: var(--bg); color: var(--text); }
   mask-image: linear-gradient(to bottom, #000 48%, transparent);
   pointer-events: none;
 }
-.topbar .title { font-weight: 600; font-size: 15px; position: relative; }
+.topbar .title { font-weight: 600; font-size: 0.8824rem; position: relative; }
 
 .icon-btn {
   position: relative;
@@ -82,21 +94,21 @@ body { background: var(--bg); color: var(--text); }
   text-align: center;
 }
 .home-mark {
-  font-size: clamp(42px, 13vw, 62px);
+  font-size: clamp(2.4706rem, 13vw, 3.6471rem);
   font-weight: 800;
   letter-spacing: -0.03em;
   margin: 0;
   color: var(--text);
   text-shadow: 0 0 44px rgba(255, 255, 255, 0.16);
 }
-.home-tag { margin: 14px 0 0; color: var(--text-dim); font-size: clamp(15px, 4.2vw, 18px); }
+.home-tag { margin: 0.8235rem 0 0; color: var(--text-dim); font-size: clamp(0.8824rem, 4.2vw, 1.0588rem); }
 .home-suggest { display: flex; flex-direction: column; gap: 11px; width: 100%; max-width: 330px; }
 .sug {
   border: 1px solid #ffffff1f;
   background: #ffffff0a;
   color: var(--text);
   font: inherit;
-  font-size: 15px;
+  font-size: 0.8824rem;
   padding: 13px 18px;
   border-radius: 24px;
   cursor: pointer;

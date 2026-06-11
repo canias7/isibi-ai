@@ -2,8 +2,8 @@
 /* Clear the floating absolute topbar so content never slides underneath it. */
 .page { flex: 1; overflow-y: auto; padding-top: calc(env(safe-area-inset-top) + 52px); }
 .page-inner { max-width: 768px; margin: 0 auto; padding: 12px 16px 40px; }
-.page-title { font-size: 24px; font-weight: 700; margin: 8px 0 6px; }
-.page-sub { color: var(--text-dim); margin: 0 0 22px; font-size: 14px; line-height: 1.55; }
+.page-title { font-size: 1.4118rem; font-weight: 700; margin: 0.4706rem 0 0.3529rem; }
+.page-sub { color: var(--text-dim); margin: 0 0 1.2941rem; font-size: 0.8235rem; line-height: 1.55; }
 
 /* ---- Settings ---- */
 .set-account {
@@ -22,13 +22,13 @@
   place-items: center;
   background: linear-gradient(180deg, #F6C36B, #E8992B);
   color: #1A1206;
-  font-size: 24px;
+  font-size: 1.4118rem;
   font-weight: 700;
 }
 .set-account-text { flex: 1; min-width: 0; }
-.set-account-name { font-size: 20px; font-weight: 700; color: var(--text); }
+.set-account-name { font-size: 1.1765rem; font-weight: 700; color: var(--text); }
 .set-account-sub {
-  font-size: 13.5px;
+  font-size: 0.7941rem;
   color: var(--text-dim);
   margin-top: 2px;
   overflow: hidden;
@@ -36,7 +36,7 @@
   white-space: nowrap;
 }
 .set-label {
-  font-size: 11.5px;
+  font-size: 0.6765rem;
   font-weight: 700;
   letter-spacing: 1.2px;
   text-transform: uppercase;
@@ -52,7 +52,7 @@
 .set-version {
   text-align: center;
   color: #5a5a60;
-  font-size: 12.5px;
+  font-size: 0.7353rem;
   margin-top: 34px;
 }
 
@@ -77,17 +77,17 @@
   overflow: hidden;
 }
 .conn-logo img { width: 26px; height: 26px; object-fit: contain; }
-.conn-mono { color: #fff; font-weight: 700; font-size: 18px; text-transform: uppercase; }
+.conn-mono { color: #fff; font-weight: 700; font-size: 1.0588rem; text-transform: uppercase; }
 .conn-meta { flex: 1; min-width: 0; }
-.conn-name { font-weight: 600; font-size: 15px; }
-.conn-desc { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+.conn-name { font-weight: 600; font-size: 0.8824rem; }
+.conn-desc { color: var(--text-dim); font-size: 0.7647rem; margin-top: 0.1176rem; }
 .conn-btn {
   flex-shrink: 0;
   border: 1px solid #ffffff33;
   background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: 0.7647rem;
   font-weight: 600;
   padding: 8px 16px;
   border-radius: 20px;
@@ -128,8 +128,8 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 }
 
 .memg-top { position: relative; flex-shrink: 0; padding: 12px 16px 8px; text-align: center; z-index: 2; }
-.memg-title { font-size: 19px; font-weight: 700; margin: 0; }
-.memg-sub { font-size: 13px; color: var(--text-dim); margin: 4px 0 0; }
+.memg-title { font-size: 1.1176rem; font-weight: 700; margin: 0; }
+.memg-sub { font-size: 0.7647rem; color: var(--text-dim); margin: 0.2353rem 0 0; }
 /* These controls sit inside .memg-top, which is already pushed below the safe
    area by .memg's padding-top — so they offset from the header, not the screen
    top (adding env(safe-area-inset-top) here would double-count and shove them
@@ -231,7 +231,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   display: grid; place-items: center;
 }
 .memg-pill {
-  font-size: 12.5px;
+  font-size: 0.7353rem;
   line-height: 1.3;
   color: var(--text);
   white-space: nowrap;        /* one-line preview — never wrap/stretch the node */
@@ -243,12 +243,12 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 @keyframes memgFade { from { opacity: 0; } to { opacity: 1; } }
 
 .memg-empty { position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); text-align: center; width: 80%; }
-.memg-empty-title { font-size: 15px; font-weight: 600; }
-.memg-empty-sub { font-size: 13px; color: var(--text-dim); margin-top: 4px; line-height: 1.5; }
+.memg-empty-title { font-size: 0.8824rem; font-weight: 600; }
+.memg-empty-sub { font-size: 0.7647rem; color: var(--text-dim); margin-top: 0.2353rem; line-height: 1.5; }
 
 .memg-compose-wrap { flex-shrink: 0; padding: 8px 16px calc(14px + env(safe-area-inset-bottom)); z-index: 2; }
-.memg-editing { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-dim); padding: 0 6px 6px; }
-.memg-cancel { border: none; background: transparent; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; }
+.memg-editing { display: flex; align-items: center; justify-content: space-between; font-size: 0.7059rem; color: var(--text-dim); padding: 0 0.3529rem 0.3529rem; }
+.memg-cancel { border: none; background: transparent; color: var(--accent); font: inherit; font-size: 0.7059rem; cursor: pointer; }
 .memg-compose {
   display: flex;
   align-items: center;
@@ -273,7 +273,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .memg-cinput {
   flex: 1; min-width: 0;
   background: transparent; border: none;
-  color: var(--text); font: inherit; font-size: 15px;
+  color: var(--text); font: inherit; font-size: 0.8824rem;
   padding: 8px 6px;
   touch-action: auto; /* keep normal caret/typing behavior on the locked modal */
 }
@@ -291,33 +291,33 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .bank-link-btn {
   width: 100%; margin: 16px 0 4px; padding: 14px; border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.06);
-  color: var(--text); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+  color: var(--text); font: inherit; font-size: 0.8824rem; font-weight: 600; cursor: pointer;
 }
 .bank-link-btn:active:not(:disabled) { opacity: 0.7; }
 .bank-link-btn:disabled { opacity: 0.5; }
-.bank-err { color: #ff8f8f; font-size: 13px; margin: 8px 0; }
-.bank-err-inline { color: #ff8f8f; font-size: 13px; }
-.bank-empty { color: var(--text-dim); font-size: 14px; padding: 16px 2px; }
+.bank-err { color: #ff8f8f; font-size: 0.7647rem; margin: 0.4706rem 0; }
+.bank-err-inline { color: #ff8f8f; font-size: 0.7647rem; }
+.bank-empty { color: var(--text-dim); font-size: 0.8235rem; padding: 0.9412rem 0.1176rem; }
 .bank-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .bank-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px; border-radius: 12px; background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
-.bank-name { font-size: 15px; font-weight: 600; }
-.bank-unlink { border: none; background: transparent; color: #e5757a; font: inherit; font-size: 13px; cursor: pointer; }
+.bank-name { font-size: 0.8824rem; font-weight: 600; }
+.bank-unlink { border: none; background: transparent; color: #e5757a; font: inherit; font-size: 0.7647rem; cursor: pointer; }
 .bank-actions { display: flex; gap: 8px; margin-top: 14px; }
 .bank-actions button {
   flex: 1; padding: 12px; border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.06);
-  color: var(--text); font: inherit; font-size: 14px; cursor: pointer;
+  color: var(--text); font: inherit; font-size: 0.8235rem; cursor: pointer;
 }
 .bank-actions button:disabled { opacity: 0.5; }
 .bank-data { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
 .bank-data-row {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 10px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.04);
-  font-size: 13px; color: var(--text);
+  font-size: 0.7647rem; color: var(--text);
 }
 .bank-txn-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bank-amt { flex-shrink: 0; color: var(--text-dim); font-variant-numeric: tabular-nums; }
@@ -351,7 +351,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px; padding: 8px 12px;
-  color: var(--text); font: inherit; font-size: 13px;
+  color: var(--text); font: inherit; font-size: 0.7647rem;
   cursor: pointer;
 }
 .memg-attach-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -360,7 +360,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   border: none; background: transparent; color: var(--text-dim);
   padding: 2px; display: grid; place-items: center; cursor: pointer; border-radius: 6px;
 }
-.memg-reading { max-width: 640px; margin: 0 auto 8px; font-size: 12px; color: var(--text-dim); }
+.memg-reading { max-width: 37.6471rem; margin: 0 auto 0.4706rem; font-size: 0.7059rem; color: var(--text-dim); }
 .memg-att-err { color: #f4a261; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -374,13 +374,13 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   border: 1px dashed rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
-  font: inherit; font-size: 15px; font-weight: 600;
+  font: inherit; font-size: 0.8824rem; font-weight: 600;
   padding: 14px; border-radius: 14px; cursor: pointer; margin-bottom: 14px;
 }
 .wf-new:active { background: rgba(255, 255, 255, 0.08); }
 .wf-empty { text-align: center; padding: 32px 12px; }
-.wf-empty-title { font-size: 16px; font-weight: 600; }
-.wf-empty-sub { font-size: 13px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
+.wf-empty-title { font-size: 0.9412rem; font-weight: 600; }
+.wf-empty-sub { font-size: 0.7647rem; color: var(--text-dim); margin-top: 0.3529rem; line-height: 1.5; }
 .wf-list { display: flex; flex-direction: column; gap: 10px; }
 .wf-card {
   display: flex; align-items: center; gap: 12px;
@@ -390,19 +390,19 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 }
 .wf-card:active { background: rgba(255, 255, 255, 0.06); }
 .wf-card-main { flex: 1; min-width: 0; }
-.wf-card-title { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wf-card-sub { font-size: 12.5px; color: var(--text-dim); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-card-title { font-size: 0.8824rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-card-sub { font-size: 0.7353rem; color: var(--text-dim); margin-top: 0.1765rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* editor */
 .wf-editor { display: flex; flex-direction: column; }
-.wf-back { align-self: flex-start; background: none; border: none; color: var(--accent); font: inherit; font-size: 15px; padding: 4px 0 10px; cursor: pointer; }
-.wf-label { font-size: 13px; color: var(--text-dim); margin: 12px 2px 6px; }
+.wf-back { align-self: flex-start; background: none; border: none; color: var(--accent); font: inherit; font-size: 0.8824rem; padding: 0.2353rem 0 0.5882rem; cursor: pointer; }
+.wf-label { font-size: 0.7647rem; color: var(--text-dim); margin: 0.7059rem 0.1176rem 0.3529rem; }
 .wf-input {
   width: 100%; box-sizing: border-box;
   background: var(--bubble-user);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px; padding: 12px 14px;
-  color: var(--text); font: inherit; font-size: 15px;
+  color: var(--text); font: inherit; font-size: 0.8824rem;
 }
 .wf-input::placeholder { color: var(--text-dim); }
 .wf-input:focus { outline: none; border-color: rgba(255, 255, 255, 0.28); }
@@ -410,52 +410,52 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .wf-seg { display: flex; gap: 8px; }
 .wf-seg-btn {
   flex: 1; border: 1px solid rgba(255, 255, 255, 0.12); background: var(--bubble-user);
-  color: var(--text-dim); font: inherit; font-size: 14px; font-weight: 600;
+  color: var(--text-dim); font: inherit; font-size: 0.8235rem; font-weight: 600;
   padding: 10px; border-radius: 10px; cursor: pointer;
 }
 .wf-seg-btn.on { background: var(--accent); color: #000; border-color: var(--accent); }
 .wf-apps { display: flex; flex-wrap: wrap; gap: 8px; }
 .wf-app-btn {
   border: 1px solid rgba(255, 255, 255, 0.12); background: var(--bubble-user);
-  color: var(--text-dim); font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--text-dim); font: inherit; font-size: 0.7647rem; font-weight: 600;
   padding: 8px 14px; border-radius: 20px; cursor: pointer;
 }
 .wf-app-btn.on { background: var(--accent); color: #000; border-color: var(--accent); }
 .wf-dow { display: flex; gap: 6px; margin-top: 10px; }
 .wf-dow-btn {
   flex: 1; aspect-ratio: 1; border: 1px solid rgba(255, 255, 255, 0.12); background: var(--bubble-user);
-  color: var(--text-dim); font: inherit; font-size: 13px; font-weight: 600; border-radius: 50%; cursor: pointer;
+  color: var(--text-dim); font: inherit; font-size: 0.7647rem; font-weight: 600; border-radius: 50%; cursor: pointer;
 }
 .wf-dow-btn.on { background: var(--accent); color: #000; border-color: var(--accent); }
 .wf-time-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
-.wf-time-label { font-size: 14px; color: var(--text-dim); }
+.wf-time-label { font-size: 0.8235rem; color: var(--text-dim); }
 .wf-time { width: auto; flex: 0 0 auto; }
-.wf-hint { font-size: 13px; color: var(--text-dim); margin: 12px 2px 0; }
+.wf-hint { font-size: 0.7647rem; color: var(--text-dim); margin: 0.7059rem 0.1176rem 0; }
 .wf-save {
   margin-top: 22px; border: none; background: var(--accent); color: #000;
-  font: inherit; font-size: 15px; font-weight: 600; padding: 14px; border-radius: 14px; cursor: pointer;
+  font: inherit; font-size: 0.8824rem; font-weight: 600; padding: 0.8235rem; border-radius: 0.8235rem; cursor: pointer;
 }
 .wf-save:disabled { opacity: 0.4; cursor: default; }
 .wf-save:active:not(:disabled) { opacity: 0.8; }
 .wf-delete {
   margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
   border: 1px solid rgba(229, 72, 77, 0.4); background: transparent; color: #e5757a;
-  font: inherit; font-size: 14px; font-weight: 600; padding: 12px; border-radius: 14px; cursor: pointer;
+  font: inherit; font-size: 0.8235rem; font-weight: 600; padding: 0.7059rem; border-radius: 0.8235rem; cursor: pointer;
 }
 .wf-delete:active { background: rgba(229, 72, 77, 0.12); }
 .wf-runs { margin-top: 26px; }
-.wf-runs-head { font-size: 13px; color: var(--text-dim); font-weight: 600; margin-bottom: 10px; }
-.wf-runs-empty { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+.wf-runs-head { font-size: 0.7647rem; color: var(--text-dim); font-weight: 600; margin-bottom: 0.5882rem; }
+.wf-runs-empty { font-size: 0.7647rem; color: var(--text-dim); line-height: 1.5; }
 .wf-run { background: var(--bubble-user); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; border-left: 2px solid rgba(231, 178, 78, 0.6); }
 .wf-run.bad { border-left-color: #e5484d; }
-.wf-run-time { font-size: 11.5px; color: var(--text-dim); margin-bottom: 4px; }
-.wf-run-text { font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.wf-run-time { font-size: 0.6765rem; color: var(--text-dim); margin-bottom: 0.2353rem; }
+.wf-run-text { font-size: 0.8235rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* ---- Reminders constellation: reuses the Memory (.memg-*) look; these add the
    per-node time label and the composer's time + repeat controls. ---- */
 .memg-node.off { opacity: 0.45; }
 .rem-node .memg-pill { display: inline-flex; flex-direction: column; line-height: 1.2; }
-.rem-when { margin-top: 1px; font-size: 10px; opacity: 0.66; font-variant-numeric: tabular-nums; }
+.rem-when { margin-top: 0.0588rem; font-size: 0.5882rem; opacity: 0.66; font-variant-numeric: tabular-nums; }
 
 .rem-fields { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
 .rem-time {
@@ -467,7 +467,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   border-radius: 12px;
   padding: 9px 10px;
   font: inherit;
-  font-size: 14px;
+  font-size: 0.8235rem;
 }
 .rem-reps { display: inline-flex; gap: 6px; }
 .rem-rep {
@@ -477,7 +477,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   border-radius: 999px;
   padding: 7px 13px;
   font: inherit;
-  font-size: 13px;
+  font-size: 0.7647rem;
   cursor: pointer;
 }
 .rem-rep.on { background: var(--accent); color: #000; border-color: var(--accent); }
@@ -485,13 +485,13 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 
 
 .set-foot-note {
-  font-size: 12.5px;
+  font-size: 0.7353rem;
   color: var(--text-dim);
   line-height: 1.5;
   margin: 10px 6px 0;
 }
 .confirm-body {
-  font-size: 14px;
+  font-size: 0.8235rem;
   color: var(--text);
   line-height: 1.5;
   padding: 0 14px 8px;
