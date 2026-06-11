@@ -7,7 +7,7 @@ import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown, IconLogout } from './icons';
-import { primeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
+import { primeAudio, resumeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { sentSound, replySound, soundsOn, setSoundsOn } from './earcons';
 import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
 import { pickSuggestions } from './suggestions';
@@ -943,6 +943,7 @@ export default function App() {
   async function sendText(raw: string, atts: Attach[] = []) {
     const text = raw.trim();
     if ((!text && atts.length === 0) || busy) return;
+    if (soundsOn()) resumeAudio(); // resume audio at the earliest in-gesture point so the reply tone (async) isn't silent on iOS
     sentSound(); // here (not in the composer) so queued messages blip when they actually go out
     const userMsg: ChatMessage = { role: 'user', content: text, id: cid(), ...(atts.length ? { attachments: atts } : {}) };
     await runTurn([...messages, userMsg]);

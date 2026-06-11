@@ -52,6 +52,6 @@ function play(seq: Array<[number, number, number]>, peak: number): void {
 }
 
 // F#5 -> B5: a quick upward "off it goes".
-export const sentSound = (): void => play([[740, 0, 0.1], [988, 0.05, 0.12]], 0.05);
+export const sentSound = (): void => play([[740, 0, 0.1], [988, 0.05, 0.12]], 0.11);
 // C5 -> G5: a soft, resolved "it's here".
-export const replySound = (): void => play([[523.25, 0, 0.14], [783.99, 0.1, 0.22]], 0.055);
+export const replySound = (): void => play([[523.25, 0, 0.14], [783.99, 0.1, 0.22]], 0.12);
