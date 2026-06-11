@@ -6,7 +6,7 @@ import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus } from './icons';
+import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown } from './icons';
 import { primeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { track } from './analytics';
 import { useFocusTrap } from './a11y';
@@ -278,6 +278,8 @@ export default function App() {
   // session (toggles), and whether we've loaded yet. Disabling a connector here
   // only scopes it out of this chat — it stays connected globally.
   const [connApps, setConnApps] = useState<string[]>([]);
+  const [brokenApps, setBrokenApps] = useState<string[]>([]); // connected apps whose OAuth died
+  const [brokenDismissed, setBrokenDismissed] = useState(false);
   const [enabled, setEnabled] = useState<Set<string>>(new Set());
   const [connLoaded, setConnLoaded] = useState(false);
   const [plusOpen, setPlusOpen] = useState(false);
@@ -299,7 +301,11 @@ export default function App() {
       const r = await fetch(`${CONNECT_API}/list`, { headers: { authorization: `Bearer ${t}` } });
       if (!r.ok) return;
       const j = await r.json();
-      const ids = CONNECTORS.map((c) => c.id).filter((id) => (j.connected ?? {})[id]);
+      const conn = (j.connected ?? {}) as Record<string, { email?: string | null; broken?: boolean }>;
+      // Healthy connections drive the session toggles; broken ones (expired
+      // OAuth) surface as a "reconnect" banner instead of failing silently.
+      const ids = CONNECTORS.map((c) => c.id).filter((id) => conn[id] && !conn[id].broken);
+      setBrokenApps(CONNECTORS.filter((c) => conn[c.id]?.broken).map((c) => c.name));
       setConnApps(ids);
       // Keep existing toggles; auto-enable newly connected apps; drop gone ones.
       // Capture the previously-seen ids BEFORE updating the ref: the setEnabled
@@ -1347,6 +1353,22 @@ export default function App() {
     if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; }
   }
 
+  // Thumbs feedback on a reply: stored on the message (survives locally) and
+  // tracked in analytics, so bad replies become findable instead of folklore.
+  function voteMsg(i: number, vote: 'up' | 'down') {
+    void tap();
+    setMessages((m) => {
+      const copy = m.slice();
+      const msg = copy[i];
+      if (!msg || msg.role !== 'assistant') return m;
+      const next = msg.fb === vote ? undefined : vote;
+      copy[i] = { ...msg, fb: next };
+      if (next) track('feedback', { vote: next, model: msg.model ?? '', chars: msg.content.length });
+      return copy;
+    });
+    dirtyRef.current = true; // persist the vote with the chat
+  }
+
   async function copyMsg(i: number, text: string) {
     void tap();
     if (await copyText(text)) {
@@ -1614,6 +1636,12 @@ export default function App() {
                               <span className="msg-act-label">{copiedIdx === i ? 'Copied' : 'Copy'}</span>
                             </button>
                           )}
+                          <button className={`msg-act fb${m.fb === 'up' ? ' on' : ''}`} aria-label="Good reply" aria-pressed={m.fb === 'up'} onClick={() => voteMsg(i, 'up')}>
+                            <IconThumbUp size={14} />
+                          </button>
+                          <button className={`msg-act fb${m.fb === 'down' ? ' on' : ''}`} aria-label="Bad reply" aria-pressed={m.fb === 'down'} onClick={() => voteMsg(i, 'down')}>
+                            <IconThumbDown size={14} />
+                          </button>
                           {m.model && <span className="msg-model" title={m.model}>{modelShort(m.model)}</span>}
                         </div>
                       )}
@@ -1626,6 +1654,16 @@ export default function App() {
 
           {!online && (
             <div className="net-banner" role="status" aria-live="polite">You're offline — messages will send when you reconnect.</div>
+          )}
+          {brokenApps.length > 0 && !brokenDismissed && (
+            <div className="conn-warn" role="status">
+              <button className="conn-warn-main" onClick={() => go('connectors')}>
+                ⚠️ {brokenApps.join(', ')} {brokenApps.length === 1 ? 'needs' : 'need'} reconnecting — tap to fix
+              </button>
+              <button className="conn-warn-x" onClick={() => setBrokenDismissed(true)} aria-label="Dismiss">
+                <IconX size={13} />
+              </button>
+            </div>
           )}
           <div className="composer-wrap">
             {!atBottom && messages.length > 0 && (

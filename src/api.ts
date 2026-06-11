@@ -82,6 +82,7 @@ export interface ChatMessage {
   sent?: boolean;    // the request reached the server before the drop — it finishes the turn; never auto re-send
   stalled?: boolean; // recovery (auto-retry / polling) gave up — show a terminal state instead of a spinner
   model?: string;    // which model answered, from the x-gf-model response header
+  fb?: 'up' | 'down'; // the user's thumbs feedback on this reply (also tracked in analytics)
 }
 
 // Marks an error thrown *after* the request reached the server (response headers

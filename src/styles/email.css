@@ -802,3 +802,22 @@
 .cg-sheet-btn { width: 100%; text-align: left; border: none; border-radius: 0.8235rem; background: rgba(255, 255, 255, 0.06); color: var(--text); font: inherit; font-size: var(--fs-body); font-weight: 600; padding: 0.8235rem 0.9412rem; margin-top: 0.4706rem; cursor: pointer; display: flex; align-items: center; gap: 0.5882rem; }
 .cg-sheet-btn:active { background: rgba(255, 255, 255, 0.12); }
 .cg-sheet-btn.danger { color: var(--danger); }
+
+/* Expired-connection badge on a connector tile + the reconnect action */
+.cg-broken {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #1a1206;
+  font-size: var(--fs-label);
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+  border: 2px solid #08080a;
+}
+.cg-tile { position: relative; }
+.cg-sheet-btn.fix { color: var(--brand); }

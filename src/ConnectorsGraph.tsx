@@ -20,7 +20,7 @@ import { PLAID_LOGO } from './plaidLogo';
 // it can do first.
 
 type XY = { x: number; y: number };
-type Status = { connected: boolean; email?: string | null };
+type Status = { connected: boolean; email?: string | null; broken?: boolean };
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const POS_KEY = 'gf_connpos';
@@ -139,9 +139,9 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       const r = await fetch(`${CONNECT_API}/list`, { headers: { authorization: `Bearer ${t}` } });
       if (!r.ok) return;
       const j = await r.json();
-      const map: Record<string, { email?: string | null }> = j.connected ?? {};
+      const map: Record<string, { email?: string | null; broken?: boolean }> = j.connected ?? {};
       const next: Record<string, Status> = {};
-      for (const c of CONNECTORS) next[c.id] = { connected: !!map[c.id], email: map[c.id]?.email ?? null };
+      for (const c of CONNECTORS) next[c.id] = { connected: !!map[c.id], email: map[c.id]?.email ?? null, broken: !!map[c.id]?.broken };
       // Plaid's connected state comes from its own backend, not Composio.
       try {
         const pd = await plaidCall('list');
@@ -379,7 +379,10 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
                 onPointerUp={(e) => { e.stopPropagation(); onUp(); }}
                 onPointerCancel={() => { dragRef.current = null; setDragId(null); }}
               >
-                <span className="cg-tile"><Tile id={c.id} size={22} /></span>
+                <span className="cg-tile">
+                  <Tile id={c.id} size={22} />
+                  {status[c.id]?.broken && <span className="cg-broken" aria-label="Needs reconnecting">!</span>}
+                </span>
                 <span className="cg-name">{c.name}</span>
               </button>
             );
@@ -447,11 +450,19 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
               <span className="cg-tile"><Tile id={sheetConn.id} size={22} /></span>
               <div>
                 <b>{sheetConn.name}</b>
-                <small>{sheetConn.id === 'plaid'
-                  ? (status[sheetConn.id]?.email || 'Bank linked')
-                  : (status[sheetConn.id]?.email ? `Connected as ${status[sheetConn.id]?.email}` : 'Connected')}</small>
+                <small>{status[sheetConn.id]?.broken
+                  ? 'Connection expired — reconnect to keep using it'
+                  : sheetConn.id === 'plaid'
+                    ? (status[sheetConn.id]?.email || 'Bank linked')
+                    : (status[sheetConn.id]?.email ? `Connected as ${status[sheetConn.id]?.email}` : 'Connected')}</small>
               </div>
             </div>
+            {status[sheetConn.id]?.broken && sheetConn.id !== 'plaid' && (
+              <button className="cg-sheet-btn fix" onClick={() => { const c = sheetConn; setDetail(null); void connect(c.id); }}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 3v6h-6" /></svg>
+                Reconnect
+              </button>
+            )}
             <button className="cg-sheet-btn" onClick={() => { const c = sheetConn; setDetail(null); setManage(c); }}>
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 7a2 2 0 104 0 2 2 0 10-4 0M6 17a2 2 0 104 0 2 2 0 10-4 0" /></svg>
               Choose tools

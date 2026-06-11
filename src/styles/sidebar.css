@@ -499,3 +499,6 @@
   .backdrop { display: none; }
   .topbar .menu-btn { display: none; }
 }
+
+/* Thumbs feedback — quiet until chosen, brand-amber when selected */
+.msg-act.fb.on { color: var(--brand); }

@@ -809,18 +809,25 @@ Deno.serve(async (req: Request) => {
     try {
       const q = new URL(`${BASE}/connected_accounts`);
       q.searchParams.set("user_ids", uid);
-      q.searchParams.set("statuses", "ACTIVE");
+      // No status filter: EXPIRED/FAILED accounts must come back too, so the
+      // app can badge "needs reconnecting" instead of silently dropping them.
       const res = await fetch(q.toString(), { headers: { "x-api-key": API_KEY } });
       if (!res.ok) return json(req, { connected: await cachedConnectedMap(uid) });
       const body = await res.json();
       const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
-      const connected: Record<string, { email: string | null }> = {};
+      const connected: Record<string, { email: string | null; broken?: boolean }> = {};
+      const BROKEN = new Set(["EXPIRED", "FAILED", "INACTIVE", "ERROR", "INVALID"]);
       for (const it of items) {
-        if ((it.status ?? "").toUpperCase() !== "ACTIVE") continue;
+        const st = (it.status ?? "").toUpperCase();
         const appId = APP_FOR_SLUG[(pickSlug(it) ?? "").toLowerCase()];
         if (!appId) continue;
         const email = it?.data?.email ?? it?.meta?.email ?? it?.params?.email ?? it?.data?.emailAddress ?? null;
-        connected[appId] = { email };
+        if (st === "ACTIVE") {
+          connected[appId] = { email }; // a healthy account always wins over a stale broken one
+        } else if (BROKEN.has(st) && !connected[appId]) {
+          connected[appId] = { email, broken: true };
+        }
+        // INITIATED / abandoned OAuth flows stay invisible, as before.
       }
       // Rewrite the connected-apps cache from the data already in hand. ALL
       // active toolkit slugs go in (not just APP_FOR_SLUG-known ones), matching
