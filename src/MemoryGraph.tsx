@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { type Memory, memoryFileUrl } from './memory';
+import { useFocusTrap } from './a11y';
 import type { Attach } from './api';
 import { fileToAttachment } from './attach';
 import { IconTrash, IconArrowUp, IconSpark, IconArrowLeft, IconFiles, IconX, IconPhotos, IconDoc } from './icons';
@@ -47,6 +48,9 @@ function layout(n: number): XY[] {
 }
 
 export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFile, onUpdate, onDelete, onToggle, onClose }: Props) {
+  // Full-screen dialog: keep keyboard focus inside; Esc goes back.
+  const trapRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, trapRef, onClose);
   const [input, setInput] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -234,7 +238,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
     : `${n} ${n === 1 ? 'memory' : 'memories'} · ${enabled ? 'applied on every chat' : 'paused'}`;
 
   return createPortal(
-    <div className="memg" role="dialog" aria-label="Memory">
+    <div className="memg" role="dialog" aria-label="Memory" ref={trapRef} tabIndex={-1}>
       <div className="memg-top">
         <button className="memg-back" onClick={onClose} aria-label="Back">
           <IconArrowLeft size={22} />
@@ -350,6 +354,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
             placeholder={pending ? 'Add a note (optional)' : selectedId ? 'Edit this memory' : 'Add a memory'}
+            aria-label={selectedId ? 'Edit this memory' : 'Add a memory'}
             maxLength={500}
           />
           <button className="memg-send" onClick={() => void submit()} disabled={(!input.trim() && !pending) || saving} aria-label={selectedId ? 'Update' : 'Add'}>

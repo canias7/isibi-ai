@@ -9,7 +9,7 @@ import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic } from './icons';
 import { primeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { track } from './analytics';
-import { keyActivate } from './a11y';
+import { keyActivate, useFocusTrap } from './a11y';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, type Reminder, type RepeatKind } from './reminders';
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
 import { App as CapApp } from '@capacitor/app';
@@ -351,6 +351,51 @@ export default function App() {
   useEffect(() => {
     if (uid) track('app_open');
   }, [uid]);
+
+  // ---- Screen-reader narration of the streaming reply -----------------------
+  // VoiceOver users otherwise hear nothing while the assistant streams. A
+  // visually-hidden live region is fed complete SENTENCES (announcing every
+  // token would make the screen reader stutter unusably); when the turn ends,
+  // any unterminated tail is read out. Only turns we actually watched stream
+  // are narrated — restoring an old chat stays silent.
+  const [liveMsg, setLiveMsg] = useState('');
+  const liveCursorRef = useRef(0);  // chars of the current reply already announced
+  const liveTurnRef = useRef('');   // which turn the cursor belongs to
+  const liveArmedRef = useRef(false);
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== 'assistant') return;
+    const turnKey = `${currentId}:${messages.length}`;
+    if (liveTurnRef.current !== turnKey) {
+      liveTurnRef.current = turnKey;
+      liveCursorRef.current = 0;
+      liveArmedRef.current = false;
+    }
+    const text = plainText(last.content);
+    if (busy) {
+      liveArmedRef.current = true;
+      const fresh = text.slice(liveCursorRef.current);
+      const m = fresh.match(/^[\s\S]*?[.!?…](?=\s|$)/);
+      if (m && m[0].trim()) {
+        liveCursorRef.current += m[0].length;
+        setLiveMsg(m[0].trim());
+      }
+    } else {
+      const tail = text.slice(liveCursorRef.current).trim();
+      liveCursorRef.current = text.length;
+      if (liveArmedRef.current && tail) setLiveMsg(tail.slice(0, 500));
+      liveArmedRef.current = false;
+    }
+  }, [messages, busy, currentId]);
+
+  // Focus traps: while a sheet/menu is open, Tab stays inside it, Escape
+  // closes it, and focus returns to the control that opened it.
+  const menuSheetRef = useRef<HTMLDivElement>(null);
+  const confirmSheetRef = useRef<HTMLDivElement>(null);
+  const radialRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(!!menuChat, menuSheetRef, () => setMenuChat(null));
+  useFocusTrap(confirmDelete, confirmSheetRef, () => { if (!deleting) setConfirmDelete(false); });
+  useFocusTrap(plusOpen, radialRef, () => setPlusOpen(false));
 
   // Load this user's chats on login (local cache instantly, then cloud sync).
   useEffect(() => {
@@ -1276,7 +1321,7 @@ export default function App() {
       )}
       {/* Sidebar + backdrop */}
       <div className={`backdrop ${sidebarOpen ? 'show' : ''}`} onClick={() => setSidebarOpen(false)} />
-      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`} aria-label="Chats and navigation">
         <div className="side-search">
           <IconSearch size={15} />
           <input
@@ -1330,6 +1375,7 @@ export default function App() {
                       <input
                         className="chat-rename"
                         value={editingTitle}
+                        aria-label="Chat name"
                         autoFocus
                         onClick={(e) => e.stopPropagation()}
                         onChange={(e) => setEditingTitle(e.target.value)}
@@ -1368,7 +1414,7 @@ export default function App() {
       {menuChat && (
         <>
           <div className="sheet-scrim" onClick={() => setMenuChat(null)} />
-          <div className="chat-sheet" role="menu" aria-label="Chat actions">
+          <div className="chat-sheet" role="menu" aria-label="Chat actions" ref={menuSheetRef} tabIndex={-1}>
             <div className="chat-sheet-title">{menuChat.title || 'New chat'}</div>
             <button className="chat-sheet-row" onClick={() => { togglePin(menuChat.id); setMenuChat(null); }}>
               <IconPin size={16} /> {pinned.has(menuChat.id) ? 'Unpin' : 'Pin'}
@@ -1387,7 +1433,7 @@ export default function App() {
       {confirmDelete && (
         <>
           <div className="sheet-scrim" onClick={() => !deleting && setConfirmDelete(false)} />
-          <div className="chat-sheet" role="alertdialog" aria-label="Delete account">
+          <div className="chat-sheet" role="alertdialog" aria-label="Delete account" ref={confirmSheetRef} tabIndex={-1}>
             <div className="chat-sheet-title">Delete account?</div>
             <p className="confirm-body">This permanently erases your chats, memories, connected-app links, and bank connections. It can’t be undone.</p>
             <button className="chat-sheet-row danger" disabled={deleting} onClick={() => void deleteAccount()}>
@@ -1478,7 +1524,9 @@ export default function App() {
             <span className="orb orb3" />
             <span className="orb orb4" />
           </div>
-          <div className="messages" ref={scrollRef}>
+          {/* Hidden live region: narrates the streaming reply to screen readers. */}
+          <div className="sr-only" aria-live="polite">{liveMsg}</div>
+          <div className="messages" ref={scrollRef} aria-label="Conversation">
             {messages.length === 0 ? (
               <div className="home">
                 <div className="home-hero">
@@ -1568,7 +1616,7 @@ export default function App() {
             {/* "+" radial menu: attach options rise up from the + as circles,
                 staggered bottom-to-top; labels sit to the right (no overlap) */}
             {plusOpen && (
-              <div className="radial" role="menu">
+              <div className="radial" role="menu" aria-label="Attach and tools" ref={radialRef} tabIndex={-1}>
                 <button className="radial-item" style={{ left: 0, bottom: 388, animationDelay: '250ms' }} onClick={() => { setPlusOpen(false); openMemory(); }}>
                   <IconMemory size={20} /><span className="radial-label">Memory</span>
                 </button>
@@ -1626,6 +1674,7 @@ export default function App() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={onKeyDown}
                   placeholder="Message Go Farther…"
+                  aria-label="Message Go Farther"
                   rows={1}
                 />
                 {!busy && (micState !== 'idle' || (!input.trim() && attachments.length === 0)) ? (

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useFocusTrap } from './a11y';
 import { listenOnce, transcribe, speak, speakable, stopSpeaking, micSupported } from './voice';
 import { streamChat, type ChatMessage, type Attach } from './api';
 import { IconPhoneOff, IconCamera } from './icons';
@@ -208,10 +209,14 @@ export default function CallScreen({
           : phase === 'speaking' ? 'Speaking'
             : 'Problem';
 
+  // Full-screen dialog: focus moves in; Esc hangs up (same as the end button).
+  const trapRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, trapRef, onClose);
+
   const bodyText = phase === 'error' ? err : phase === 'speaking' ? reply : caption;
 
   return (
-    <div className={`call-screen ${lensOn ? 'lens-on' : ''}`} role="dialog" aria-label="Voice call with Go Farther">
+    <div className={`call-screen ${lensOn ? 'lens-on' : ''}`} role="dialog" aria-label="Voice call with Go Farther" ref={trapRef} tabIndex={-1}>
       <div className="call-top">
         <div className="call-name">Go Farther</div>
         <div className="call-status">{statusLabel}</div>

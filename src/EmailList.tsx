@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useFocusTrap } from './a11y';
 import { Browser } from '@capacitor/browser';
 import { fetchEmailHtml, fetchAttachment, type MsgAttachment, type EmailMeta } from './api';
 
@@ -172,7 +173,7 @@ function ContactAvatar({ label, photo }: { label: string; photo?: string }) {
   if (photo && !failed) {
     return (
       <span className="gf-avatar">
-        <img src={photo} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+        <img src={photo} alt={label} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
       </span>
     );
   }
@@ -356,6 +357,8 @@ function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fa
   const [cidMap, setCidMap] = useState<Record<string, string>>({});
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const lightboxRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(!!lightbox, lightboxRef, () => setLightbox(null));
   const frameRef = useRef<HTMLIFrameElement>(null);
   // Call the latest onMeta via a ref so the fetch effect depends only on id/app
   // (not the callback's identity) — otherwise it would re-fetch on every render.
@@ -463,8 +466,9 @@ function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fa
         />
       )}
       {lightbox && (
-        <div className="gf-lightbox" onClick={() => setLightbox(null)}>
-          <img src={lightbox} alt="" />
+        <div className="gf-lightbox" role="dialog" aria-label="Image preview" ref={lightboxRef} tabIndex={-1} onClick={() => setLightbox(null)}>
+          <button className="sr-only" onClick={() => setLightbox(null)}>Close preview</button>
+          <img src={lightbox} alt="Email image, enlarged" />
         </div>
       )}
     </>

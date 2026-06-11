@@ -128,6 +128,7 @@ export default function Login() {
               autoComplete="email"
               autoCapitalize="none"
               placeholder="Email"
+              aria-label="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -146,6 +147,7 @@ export default function Login() {
               inputMode="numeric"
               autoComplete="one-time-code"
               placeholder="Code"
+              aria-label="Verification code"
               maxLength={10}
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}

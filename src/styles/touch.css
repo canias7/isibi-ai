@@ -95,6 +95,17 @@ textarea:focus-visible,
   inset: calc((100% - 44px) / 2) 0;
 }
 
+/* Visually hidden, but read by screen readers — used for the live region that
+   narrates the assistant's streaming reply to VoiceOver. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* ---- No iOS zoom-on-focus -------------------------------------------------
    With pinch-zoom enabled (index.html), iOS auto-zooms the page when a focused
    input's font is under 16px. Bumping the size ONLY while focused keeps each

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from './supabase';
 import { CONNECT_API, type Connector } from './connectorData';
 import { IconInfo } from './icons';

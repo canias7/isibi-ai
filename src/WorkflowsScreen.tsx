@@ -5,7 +5,7 @@ import {
   IconClock, IconBolt, IconBranch, IconSpark, IconCheck,
 } from './icons';
 import { byId } from './connectorData';
-import { keyActivate } from './a11y';
+import { keyActivate, useFocusTrap } from './a11y';
 import { BrandLogo } from './brandLogos';
 import { hasBrand } from './brandData';
 import {
@@ -167,6 +167,9 @@ function WorkflowPreview() {
 }
 
 export default function WorkflowsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
+  // Full-screen dialog: keep keyboard focus inside; Esc goes back.
+  const trapRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, trapRef, onClose);
   const [items, setItems] = useState<Workflow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<'home' | 'projects'>('home');
@@ -323,7 +326,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
   }
 
   return createPortal(
-    <div className="memg" role="dialog" aria-label="Workflows">
+    <div className="memg" role="dialog" aria-label="Workflows" ref={trapRef} tabIndex={-1}>
       <div className="memg-top">
         {view === 'projects' ? (
           <button className="memg-back" onClick={() => setView('home')} aria-label="Back"><IconArrowLeft size={22} /></button>
@@ -420,7 +423,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
                         </div>
                       )}
                       {(picks[qi] === OTHER || !hasOpts) && (
-                        <input className="wfx-other-input"
+                        <input aria-label="Which app" className="wfx-other-input"
                           value={otherText[qi] ?? ''}
                           onChange={(e) => setOtherText((s) => ({ ...s, [qi]: e.target.value }))}
                           onKeyDown={(e) => { if (e.key === 'Enter') advanceOrSubmit(); }}
@@ -464,6 +467,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
                   onChange={(e) => setDesc(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(desc); } }}
                   placeholder="Describe your workflow…"
+                  aria-label="Describe your workflow"
                   maxLength={2000}
                   disabled={building}
                 />
@@ -502,6 +506,9 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
   initial: Work; mode: 'draft' | 'saved'; wfId?: string; connApps: string[]; enabled?: boolean;
   onClose: () => void; onDeleted: () => void;
 }) {
+  // Editor dialog: same trap; Esc = the back button (close() guards saving).
+  const trapRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, trapRef, () => void close());
   const [title, setTitle] = useState(initial.title);
   const [trigger, setTrigger] = useState<Trigger>(initial.trigger);
   const [graph, setGraph] = useState<WfGraph>(initial.graph);
@@ -635,11 +642,11 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
   }
 
   return createPortal(
-    <div className="memg wfx-plan" role="dialog" aria-label={mode === 'draft' ? 'New workflow' : 'Edit workflow'}>
+    <div className="memg wfx-plan" role="dialog" aria-label={mode === 'draft' ? 'New workflow' : 'Edit workflow'} ref={trapRef} tabIndex={-1}>
       <div className="memg-top">
         <button className="memg-back" onClick={() => void close()} aria-label="Back"><IconArrowLeft size={22} /></button>
         <div className="memg-titles">
-          <input className="wfx-title-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Untitled workflow" maxLength={80} />
+          <input className="wfx-title-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Untitled workflow" aria-label="Workflow title" maxLength={80} />
           <p className="memg-sub">{mode === 'draft' ? 'Draft · tap a step to edit' : 'Tap a step to edit'}</p>
         </div>
         <div className="wfx-top-actions">
@@ -924,10 +931,10 @@ function NodeSheet({ node, trigger, connApps, result, onPatch, onTrigger, onDele
         )}
 
         <label className="wf-label">Label</label>
-        <input className="wf-input" value={node.label} onChange={(e) => onPatch({ label: e.target.value })} maxLength={40} />
+        <input className="wf-input" value={node.label} onChange={(e) => onPatch({ label: e.target.value })} aria-label="Step name" maxLength={40} />
 
         <label className="wf-label">Details</label>
-        <textarea className="wf-input wf-area" rows={2} value={node.detail ?? ''} onChange={(e) => onPatch({ detail: e.target.value })} maxLength={200} placeholder="What this step does" />
+        <textarea className="wf-input wf-area" rows={2} value={node.detail ?? ''} onChange={(e) => onPatch({ detail: e.target.value })} maxLength={200} placeholder="What this step does" aria-label="What this step does" />
 
         {isTrigger ? (
           <TriggerEditor trigger={trigger} connApps={connApps} onChange={onTrigger} />

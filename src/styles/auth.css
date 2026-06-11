@@ -9,7 +9,7 @@
   gap: 18px;
   padding: 24px max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-bottom));
 }
-.auth-brand { font-size: 34px; font-weight: 700; }
+.auth-brand { font-size: 2rem; font-weight: 700; }
 .auth-card {
   position: relative; /* sit above the living-background orbs */
   z-index: 1;
@@ -20,7 +20,7 @@
   gap: 14px;
   text-align: center;
 }
-.auth-sub { color: var(--text-dim); font-size: 14px; margin: -6px 0 4px; }
+.auth-sub { color: var(--text-dim); font-size: 0.8235rem; margin: -0.3529rem 0 0.2353rem; }
 .auth-form { display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .auth-input {
   background: var(--composer);
@@ -28,7 +28,7 @@
   border-radius: 12px;
   color: var(--text);
   font: inherit;
-  font-size: 16px;
+  font-size: 0.9412rem;
   padding: 13px 14px;
   outline: none;
 }
@@ -41,7 +41,7 @@
   border: none;
   border-radius: 12px;
   font: inherit;
-  font-size: 15px;
+  font-size: 0.8824rem;
   font-weight: 600;
   padding: 13px;
   cursor: pointer;
@@ -53,21 +53,21 @@
   border: none;
   color: var(--text-dim);
   font: inherit;
-  font-size: 13px;
+  font-size: 0.7647rem;
   cursor: pointer;
   padding: 6px;
 }
 .auth-error {
   background: #5a1d1d;
   color: #ffd7d7;
-  font-size: 13px;
+  font-size: 0.7647rem;
   border-radius: 10px;
   padding: 10px 12px;
 }
 .auth-notice {
   background: #173a23;
   color: #c8f5d6;
-  font-size: 13px;
+  font-size: 0.7647rem;
   border-radius: 10px;
   padding: 10px 12px;
 }
@@ -75,7 +75,7 @@
 /* Passwordless code entry */
 .auth-code {
   text-align: center;
-  font-size: 23px;
+  font-size: 1.3529rem;
   font-weight: 700;
   letter-spacing: 6px;
   padding-left: 20px; /* offset the trailing letter-spacing so digits look centred */
