@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { type Memory, memoryFileUrl } from './memory';
 import { useFocusTrap } from './a11y';
+import { tap } from './haptics';
 import type { Attach } from './api';
 import { fileToAttachment } from './attach';
 import { IconTrash, IconArrowUp, IconSpark, IconArrowLeft, IconFiles, IconX, IconPhotos, IconDoc } from './icons';
@@ -249,7 +250,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
         </div>
         <button
           className="memg-toggle"
-          onClick={() => onToggle(!enabled)}
+          onClick={() => { void tap(); onToggle(!enabled); }}
           role="switch"
           aria-checked={enabled}
           aria-label={enabled ? 'Memory on' : 'Memory off'}

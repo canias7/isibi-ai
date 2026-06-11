@@ -14,7 +14,8 @@ import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotif
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-import { tap } from './haptics';
+import { tap, bump, thud } from './haptics';
+import { useDismiss } from './motion';
 import { biometryAvailable, biometryStatus, unlock, type BiometryStatus } from './biometric';
 import { registerPush, pushStatus } from './push';
 import { fileToAttachment } from './attach';
@@ -405,6 +406,21 @@ export default function App() {
   useFocusTrap(!!menuChat, menuSheetRef, () => setMenuChat(null));
   useFocusTrap(confirmDelete, confirmSheetRef, () => { if (!deleting) setConfirmDelete(false); });
   useFocusTrap(plusOpen, radialRef, () => setPlusOpen(false));
+
+  // Animated dismissal for every sheet/menu/overlay this component mounts —
+  // the element stays for one exit beat with a `.closing`/`.gf-out` class
+  // (see motion.ts). `lastMenuChat` latches the sheet's content so it doesn't
+  // blank out mid-exit.
+  const menuSheetUi = useDismiss(!!menuChat);
+  const lastMenuChat = useRef(menuChat);
+  if (menuChat) lastMenuChat.current = menuChat;
+  const menuSheetChat = menuChat ?? lastMenuChat.current;
+  const confirmUi = useDismiss(confirmDelete);
+  const radialUi = useDismiss(plusOpen);
+  const memUi = useDismiss(memOpen);
+  const remUi = useDismiss(remOpen);
+  const wfUi = useDismiss(wfOpen);
+  const callUi = useDismiss(callOpen);
 
   // Load this user's chats on login (local cache instantly, then cloud sync).
   useEffect(() => {
@@ -1271,7 +1287,7 @@ export default function App() {
     pressTimer.current = window.setTimeout(() => {
       pressTimer.current = null;
       pressFired.current = true;
-      void tap();
+      void bump(); // medium: a menu is opening under your finger
       setMenuChat(c);
     }, 450);
   }
@@ -1487,19 +1503,19 @@ export default function App() {
           </div>
         </div>
       </aside>
-      {/* Long-press chat actions sheet */}
-      {menuChat && (
+      {/* Long-press chat actions sheet (content latched so it doesn't blank mid-exit) */}
+      {menuSheetUi.mounted && menuSheetChat && (
         <>
-          <div className="sheet-scrim" onClick={() => setMenuChat(null)} />
-          <div className="chat-sheet" role="menu" aria-label="Chat actions" ref={menuSheetRef} tabIndex={-1}>
-            <div className="chat-sheet-title">{menuChat.title || 'New chat'}</div>
-            <button className="chat-sheet-row" onClick={() => { togglePin(menuChat.id); setMenuChat(null); }}>
-              <IconPin size={16} /> {pinned.has(menuChat.id) ? 'Unpin' : 'Pin'}
+          <div className={`sheet-scrim${menuSheetUi.closing ? ' closing' : ''}`} onClick={() => setMenuChat(null)} />
+          <div className={`chat-sheet${menuSheetUi.closing ? ' closing' : ''}`} role="menu" aria-label="Chat actions" ref={menuSheetRef} tabIndex={-1}>
+            <div className="chat-sheet-title">{menuSheetChat.title || 'New chat'}</div>
+            <button className="chat-sheet-row" onClick={() => { togglePin(menuSheetChat.id); setMenuChat(null); }}>
+              <IconPin size={16} /> {pinned.has(menuSheetChat.id) ? 'Unpin' : 'Pin'}
             </button>
-            <button className="chat-sheet-row" onClick={() => { startRename(menuChat); setMenuChat(null); }}>
+            <button className="chat-sheet-row" onClick={() => { startRename(menuSheetChat); setMenuChat(null); }}>
               <IconEdit size={16} /> Rename
             </button>
-            <button className="chat-sheet-row danger" onClick={() => { deleteChat(menuChat.id); setMenuChat(null); }}>
+            <button className="chat-sheet-row danger" onClick={() => { void thud(); deleteChat(menuSheetChat.id); setMenuChat(null); }}>
               <IconTrash size={16} /> Delete
             </button>
             <button className="chat-sheet-row cancel" onClick={() => setMenuChat(null)}>Cancel</button>
@@ -1507,13 +1523,13 @@ export default function App() {
         </>
       )}
       {/* Delete-account confirmation */}
-      {confirmDelete && (
+      {confirmUi.mounted && (
         <>
-          <div className="sheet-scrim" onClick={() => !deleting && setConfirmDelete(false)} />
-          <div className="chat-sheet" role="alertdialog" aria-label="Delete account" ref={confirmSheetRef} tabIndex={-1}>
+          <div className={`sheet-scrim${confirmUi.closing ? ' closing' : ''}`} onClick={() => !deleting && setConfirmDelete(false)} />
+          <div className={`chat-sheet${confirmUi.closing ? ' closing' : ''}`} role="alertdialog" aria-label="Delete account" ref={confirmSheetRef} tabIndex={-1}>
             <div className="chat-sheet-title">Delete account?</div>
             <p className="confirm-body">This permanently erases your chats, memories, connected-app links, and bank connections. It can’t be undone.</p>
-            <button className="chat-sheet-row danger" disabled={deleting} onClick={() => void deleteAccount()}>
+            <button className="chat-sheet-row danger" disabled={deleting} onClick={() => { void thud(); void deleteAccount(); }}>
               <IconTrash size={16} /> {deleting ? 'Deleting…' : 'Delete everything'}
             </button>
             <button className="chat-sheet-row cancel" disabled={deleting} onClick={() => setConfirmDelete(false)}>Cancel</button>
@@ -1695,9 +1711,9 @@ export default function App() {
             <div className="net-banner" role="status" aria-live="polite">You're offline — messages will send when you reconnect.</div>
           )}
           <div className="composer-wrap">
-            {plusOpen && (
+            {radialUi.mounted && (
               <div
-                className="conn-pop-backdrop radial-scrim"
+                className={`conn-pop-backdrop radial-scrim${radialUi.closing ? ' closing' : ''}`}
                 onClick={() => {
                   if (Date.now() - menuOpenedAt.current < 400) return; // ignore the tap's ghost-click
                   setPlusOpen(false);
@@ -1707,8 +1723,8 @@ export default function App() {
 
             {/* "+" radial menu: attach options rise up from the + as circles,
                 staggered bottom-to-top; labels sit to the right (no overlap) */}
-            {plusOpen && (
-              <div className="radial" role="menu" aria-label="Attach and tools" ref={radialRef} tabIndex={-1}>
+            {radialUi.mounted && (
+              <div className={`radial${radialUi.closing ? ' closing' : ''}`} role="menu" aria-label="Attach and tools" ref={radialRef} tabIndex={-1}>
                 <button className="radial-item" style={{ left: 0, bottom: 388, animationDelay: '250ms' }} onClick={() => { setPlusOpen(false); openMemory(); }}>
                   <IconMemory size={20} /><span className="radial-label">Memory</span>
                 </button>
@@ -1812,52 +1828,62 @@ export default function App() {
         </>
       )}
 
-      {memOpen && (
+      {/* Full-screen overlays: the display:contents wrapper carries .gf-out for
+          the exit beat — no box of its own, so layout is untouched. */}
+      {memUi.mounted && (
         <Suspense fallback={null}>
-          <MemoryGraph
-            memories={memories}
-            loaded={memLoaded}
-            enabled={memEnabled}
-            onAdd={addMem}
-            onAddFile={addMemFile}
-            onUpdate={updateMem}
-            onDelete={delMem}
-            onToggle={toggleMem}
-            onClose={closeMemory}
-          />
+          <div style={{ display: 'contents' }} className={memUi.closing ? 'gf-out' : undefined}>
+            <MemoryGraph
+              memories={memories}
+              loaded={memLoaded}
+              enabled={memEnabled}
+              onAdd={addMem}
+              onAddFile={addMemFile}
+              onUpdate={updateMem}
+              onDelete={delMem}
+              onToggle={toggleMem}
+              onClose={closeMemory}
+            />
+          </div>
         </Suspense>
       )}
 
-      {remOpen && (
+      {remUi.mounted && (
         <Suspense fallback={null}>
-          <RemindersGraph
-            reminders={reminders}
-            loaded={remLoaded}
-            onAdd={addRem}
-            onUpdate={updateRem}
-            onDelete={delRem}
-            onToggle={toggleRem}
-            onClose={closeReminders}
-          />
+          <div style={{ display: 'contents' }} className={remUi.closing ? 'gf-out' : undefined}>
+            <RemindersGraph
+              reminders={reminders}
+              loaded={remLoaded}
+              onAdd={addRem}
+              onUpdate={updateRem}
+              onDelete={delRem}
+              onToggle={toggleRem}
+              onClose={closeReminders}
+            />
+          </div>
         </Suspense>
       )}
 
-      {wfOpen && (
+      {wfUi.mounted && (
         <Suspense fallback={null}>
-          <WorkflowsScreen connApps={connApps} onClose={() => setWfOpen(false)} />
+          <div style={{ display: 'contents' }} className={wfUi.closing ? 'gf-out' : undefined}>
+            <WorkflowsScreen connApps={connApps} onClose={() => setWfOpen(false)} />
+          </div>
         </Suspense>
       )}
 
-      {callOpen && (
+      {callUi.mounted && (
         <Suspense fallback={null}>
-          <CallScreen
-            baseHistory={messages}
-            apps={connLoaded ? [...enabled] : undefined}
-            conversationId={currentId}
-            memoryOn={memEnabled}
-            onTurn={(h) => { dirtyRef.current = true; setMessages(h); }}
-            onClose={() => { setCallOpen(false); closeAudio(); }}
-          />
+          <div style={{ display: 'contents' }} className={callUi.closing ? 'gf-out' : undefined}>
+            <CallScreen
+              baseHistory={messages}
+              apps={connLoaded ? [...enabled] : undefined}
+              conversationId={currentId}
+              memoryOn={memEnabled}
+              onTurn={(h) => { dirtyRef.current = true; setMessages(h); }}
+              onClose={() => { setCallOpen(false); closeAudio(); }}
+            />
+          </div>
         </Suspense>
       )}
     </div>

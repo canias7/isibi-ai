@@ -12,9 +12,11 @@
   background:
     radial-gradient(120% 80% at 50% 0%, #1b2733 0%, var(--bg) 60%);
   color: var(--text);
-  animation: call-in 0.2s ease;
+  animation: call-in var(--dur-screen) var(--ease-enter);
 }
-@keyframes call-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes call-in { from { opacity: 0; transform: translateY(10px) scale(0.985); } to { opacity: 1; transform: none; } }
+.gf-out .call-screen { animation: call-out var(--dur-exit) var(--ease-exit) forwards; }
+@keyframes call-out { to { opacity: 0; transform: translateY(8px) scale(0.985); } }
 
 .call-top { text-align: center; margin-top: 8px; }
 .call-name { font-size: 1.2941rem; font-weight: 600; letter-spacing: 0.0118rem; }
@@ -38,7 +40,7 @@
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #7fd1ff, var(--accent) 60%, #2b7fb8 100%);
   box-shadow: 0 0 60px 0 color-mix(in srgb, var(--accent) 55%, transparent);
-  transition: transform 0.12s ease, box-shadow 0.2s ease;
+  transition: transform var(--dur-press) ease, box-shadow var(--dur-exit) ease;
 }
 .call-orb-ring {
   position: absolute;
@@ -91,7 +93,7 @@
   cursor: pointer;
   box-shadow: 0 8px 24px #0006;
   flex: 0 0 auto;
-  transition: transform 0.12s ease, background 0.15s ease;
+  transition: transform var(--dur-press) ease, background var(--dur-press) ease;
 }
 .call-end:active { transform: scale(0.92); }
 
@@ -107,7 +109,7 @@
   place-items: center;
   cursor: pointer;
   flex: 0 0 auto;
-  transition: transform 0.12s ease, background 0.15s ease;
+  transition: transform var(--dur-press) ease, background var(--dur-press) ease;
 }
 .call-cam:active { transform: scale(0.92); background: #ffffff24; }
 
@@ -138,7 +140,7 @@
   place-items: center;
   flex-shrink: 0;
   margin: 0 0 2px 0;
-  transition: opacity 0.15s ease, background 0.15s ease;
+  transition: opacity var(--dur-press) ease, background var(--dur-press) ease;
 }
 .call-btn:disabled { opacity: 0.3; cursor: default; }
 .call-btn:not(:disabled):active { background: #ffffff14; }
@@ -147,7 +149,7 @@
    breathing (state still reads via color and the status label) and the
    screen/buttons drop their motion transitions. */
 @media (prefers-reduced-motion: reduce) {
-  .call-screen, .call-orb-ring, .call-orb-core { animation: none; }
+  .call-screen, .gf-out .call-screen, .call-orb-ring, .call-orb-core { animation: none; }
   .call-orb-core, .call-end, .call-cam, .call-btn { transition: none; }
   .call-listening .call-orb-core { transform: none; } /* no voice-level swell */
 }

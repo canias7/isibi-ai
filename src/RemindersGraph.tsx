@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useFocusTrap } from './a11y';
+import { tap } from './haptics';
 import { type Reminder, type RepeatKind } from './reminders';
 import { IconTrash, IconArrowUp, IconArrowLeft, IconClock } from './icons';
 
@@ -307,7 +308,7 @@ export default function RemindersGraph({ reminders, loaded, onAdd, onUpdate, onD
             <span>Editing reminder</span>
             <button
               className="rem-onoff"
-              onClick={() => onToggle(selected.id, !selected.enabled)}
+              onClick={() => { void tap(); onToggle(selected.id, !selected.enabled); }}
               role="switch"
               aria-checked={selected.enabled}
               aria-label={selected.enabled ? 'Reminder on' : 'Reminder off'}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from './supabase';
+import { tap } from './haptics';
 import { CONNECT_API, type Connector } from './connectorData';
 import { IconInfo } from './icons';
 
@@ -81,6 +82,7 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
   }
 
   function toggle(slug: string) {
+    void tap();
     const next = new Set(enabled);
     next.has(slug) ? next.delete(slug) : next.add(slug);
     setEnabled(next);

@@ -6,6 +6,7 @@ import {
 } from './icons';
 import { byId } from './connectorData';
 import { keyActivate, useFocusTrap } from './a11y';
+import { tap, bump, chime } from './haptics';
 import { BrandLogo } from './brandLogos';
 import { hasBrand } from './brandData';
 import {
@@ -363,7 +364,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
                     <div className="wf-card-sub">{triggerLabel(w)}{w.last_run_at ? ` · last ran ${relTime(w.last_run_at)}` : ''}</div>
                   </div>
                   <span className={`tgl ${w.enabled ? 'on' : ''}`} role="switch" aria-checked={w.enabled}
-                    onClick={(e) => { e.stopPropagation(); void toggle(w); }}><span className="tgl-knob" /></span>
+                    onClick={(e) => { e.stopPropagation(); void tap(); void toggle(w); }}><span className="tgl-knob" /></span>
                 </div>
               ))}
             </div>
@@ -556,6 +557,7 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
     // things in connected apps), so confirm before doing it.
     if (!window.confirm('Run this workflow now for real? It can send emails, post messages, or change things in your connected apps.')) return;
     const steps = orderedNodes(graph).filter((n) => n.kind !== 'trigger').map((n) => ({ id: n.id, label: n.label, app: n.app }));
+    void bump(); // the run is real — let the hand know it started
     setTesting(true); setEdgeState('run'); setResults({});
     const r = await testWorkflow(inst, savedIdRef.current, steps);
     setTesting(false);
@@ -573,6 +575,9 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
       }
     }
     setResults(map);
+    // Success chime only when every step actually ran (incl. the overrides above).
+    const allOk = r.steps.length ? Object.values(map).every((s) => s.ok) : r.ok;
+    if (allOk) void chime();
     // With per-node results we color each cable by its target; otherwise fall
     // back to a single overall pass/fail.
     setEdgeState(r.steps.length ? 'idle' : r.ok ? 'pass' : 'fail');

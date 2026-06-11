@@ -14,10 +14,10 @@ button,
   user-select: none;
   -webkit-user-select: none;
   transition:
-    transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
-    background 0.18s ease,
-    border-color 0.18s ease,
-    opacity 0.2s ease;
+    transform var(--dur-screen) var(--ease-spring),
+    background var(--dur-exit) ease,
+    border-color var(--dur-exit) ease,
+    opacity var(--dur-exit) ease;
 }
 
 button:active,
@@ -27,14 +27,14 @@ button:active,
 .msg-act:active, .msg-retry:active, .chat-act:active, .set-test-btn:active, .tgl:active {
   transform: scale(0.95);
   /* Squish fast; the slow springy part happens on release via the rule above. */
-  transition: transform 0.07s ease-out, background 0.06s ease;
+  transition: transform var(--dur-press) ease-out, background var(--dur-press) ease;
 }
 
 /* Wide, full-width rows squish less so they don't feel rubbery. */
 .plus-row:active, .conn-pop-row:active, .set-row:active, .side-item:active,
 .gf-email.tappable:active, .gf-contact:active {
   transform: scale(0.98);
-  transition: transform 0.07s ease-out, background 0.06s ease;
+  transition: transform var(--dur-press) ease-out, background var(--dur-press) ease;
 }
 
 /* The send button pops in with a spring when typing makes it usable. */
@@ -42,7 +42,7 @@ button:active,
 
 /* Chat messages slide up softly as they arrive (one-time, on mount). */
 .msg {
-  animation: gf-msg-in 0.3s cubic-bezier(0.21, 1.02, 0.73, 1) backwards;
+  animation: gf-msg-in var(--dur-enter) var(--ease-enter) backwards;
 }
 @keyframes gf-msg-in {
   from { opacity: 0; transform: translateY(10px); }

@@ -45,7 +45,7 @@
   font-weight: 600;
   padding: 13px;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--dur-press) ease;
 }
 .auth-btn:disabled { opacity: 0.4; cursor: default; }
 .auth-toggle {
