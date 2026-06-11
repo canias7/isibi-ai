@@ -634,6 +634,7 @@ Deno.serve(async (req: Request) => {
   // tools as this same user id (passed in the URL) so users only touch their own data.
   let mcpServers: unknown[] | undefined;
   let mcpTools: unknown[] | undefined;
+  let scopedApps: string[] = []; // connector slugs in scope this turn (drives the tool-discovery prompt)
   let emailUI = false; // expose the rich inbox-card format only when an email app is in scope
   const extraHeaders: Record<string, string> = {};
   const appUser = userFromJwt(req);
@@ -654,16 +655,39 @@ Deno.serve(async (req: Request) => {
     // chat). Paused memory adds &mem=0 so the proxy drops that tool. emailUI (rich
     // inbox cards) still only turns on for an email app.
     if (apps.length || memoryOn) {
+      scopedApps = apps;
       emailUI = clientCards && (apps.includes("gmail") || apps.includes("outlook"));
       const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}${memoryOn ? "" : "&mem=0"}`;
       mcpServers = [{ type: "url", url, name: "connectors", authorization_token: await mintUserToken(appUser) }];
       // Current MCP connector format (mcp-client-2025-11-20): the toolset lives
-      // in `tools`. cache_control caches the proxy-returned tool schemas — the
-      // big, stable part of the prompt — so follow-up turns re-read them at ~10%
-      // price instead of full. Only the tools prefix is cached on purpose: the
-      // system prompt carries a per-minute timestamp, and since the cache order
-      // is tools -> system -> messages, the tools cache stays stable regardless.
-      mcpTools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
+      // in `tools`. Connector tool definitions are DEFERRED: only a server-side
+      // search index exists until the model discovers a tool with the tool
+      // search tool — the connected-apps catalog (~200k tokens for a 6-app
+      // user) stays out of the prompt entirely, instead of being (re)bought on
+      // every cache miss. The app's own built-ins stay eagerly loaded because
+      // the system prompt drives them by name (weather, maps, memory, table
+      // export) and they must work without a search round-trip; unknown names
+      // in `configs` are warning-only, so this is safe when one isn't served
+      // (e.g. memory paused, GF_MAPS dormant). cache_control (1h — bursty
+      // mobile sessions outlive the default 5m window) caches the now-small
+      // prefix: tool search + eager built-ins. Cache order is tools -> system
+      // -> messages, so the per-minute system timestamp never disturbs it.
+      mcpTools = [{
+        type: "mcp_toolset",
+        mcp_server_name: "connectors",
+        default_config: { defer_loading: true },
+        configs: {
+          // GF_IMAGE included so memory-only requests (no connector apps → no
+          // tool search attached) never end up with a deferred-but-unsearchable tool.
+          GF_SAVE_MEMORY: { defer_loading: false },
+          GF_GET_MEMORY_FILE: { defer_loading: false },
+          GF_SAVE_TABLE: { defer_loading: false },
+          GF_WEATHER: { defer_loading: false },
+          GF_MAPS: { defer_loading: false },
+          GF_IMAGE: { defer_loading: false },
+        },
+        cache_control: { type: "ephemeral", ttl: "1h" },
+      }];
     }
   }
 
@@ -719,18 +743,28 @@ Deno.serve(async (req: Request) => {
     locationSystem = `\n\nUSER'S CURRENT LOCATION: ${where} (coordinates ${coords}). When the user says "here", "near me", "nearby", "my area", or asks about weather, places, or directions without naming a place, use THIS location instead of asking where they are: pass "${where}" to GF_WEATHER, use "${coords}" as the GF_MAPS directions origin for "from here", and search GF_MAPS places near "${where}". Refer to the place by name, not raw coordinates, unless asked.`;
   }
 
+  // The connector catalog is deferred (see the mcp_toolset above), so the model
+  // can't SEE those tools until it searches — without this instruction it may
+  // wrongly tell the user it can't reach a connected app. Built-ins are exempt:
+  // they're eagerly loaded and need no search.
+  const toolSearchSystem = scopedApps.length
+    ? `\n\nTOOL DISCOVERY: the tools for the user's connected apps (${scopedApps.join(", ")}) exist but are NOT pre-loaded — only a search index is. The moment a request involves one of those apps (or the user's bank/transactions, tools named GF_BANK_*), FIRST call tool_search_tool_regex with a Python-style pattern — e.g. "(?i)gmail.*send", "(?i)calendar.*event", "(?i)gf_bank" — then call the tool(s) it returns. The already-loaded built-ins (GF_WEATHER, GF_MAPS, GF_SAVE_MEMORY, GF_GET_MEMORY_FILE, GF_SAVE_TABLE) need no search. NEVER tell the user a capability is missing until a search for it came back empty.`
+    : "";
+
   const reqBody: Record<string, unknown> = {
     model,
     max_tokens: 8192,
-    system: baseSystem + locationSystem + memorySystem + (emailUI ? emailCardsSystem : ""),
+    system: baseSystem + toolSearchSystem + locationSystem + memorySystem + (emailUI ? emailCardsSystem : ""),
     messages: messages.map((m) => ({ role: m.role, content: buildContent(m) })),
     stream: true,
   };
   if (mcpServers) reqBody.mcp_servers = mcpServers;
-  // Anthropic server tools: web fetch (read a URL the user shared) + code execution
-  // (precise math / data crunching). Always available; appended after the MCP
-  // toolset so the cached tools prefix stays intact.
+  // Tool search first (it must never be deferred and belongs inside the cached
+  // tools prefix), then the MCP toolset with its cache breakpoint, then the
+  // Anthropic server tools: web search/fetch + code execution. Server tools sit
+  // after the breakpoint so the cached prefix stays intact.
   reqBody.tools = [
+    ...(scopedApps.length ? [{ type: "tool_search_tool_regex_20251119", name: "tool_search_tool_regex" }] : []),
     ...(mcpTools || []),
     { type: "web_search_20250305", name: "web_search", max_uses: 5 },
     { type: "web_fetch_20250910", name: "web_fetch", max_uses: 5 },
@@ -741,6 +775,21 @@ Deno.serve(async (req: Request) => {
   extraHeaders["anthropic-beta"] = betas.join(",");
 
   let upstream = await callAnthropic(reqBody, apiKey, extraHeaders);
+  // Safety net for the deferred-tools shape: if the API rejects the request
+  // (400) while tool search is attached, retry the turn once with the classic
+  // eager catalog — chat must never break over a cost optimization. The extra
+  // attempt only happens on a 400, so normal turns pay nothing for it.
+  if (!upstream.ok && upstream.status === 400 && scopedApps.length) {
+    const e = await upstream.text().catch(() => "");
+    console.error(`deferred-tools request rejected (400): ${e.slice(0, 300)} — retrying with eager catalog`);
+    reqBody.tools = [
+      { type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } },
+      { type: "web_search_20250305", name: "web_search", max_uses: 5 },
+      { type: "web_fetch_20250910", name: "web_fetch", max_uses: 5 },
+      { type: "code_execution_20250825", name: "code_execution" },
+    ];
+    upstream = await callAnthropic(reqBody, apiKey, extraHeaders);
+  }
   // If the routed model isn't available/usable, fall back to Sonnet so chat never breaks.
   if (!upstream.ok && reqBody.model !== MODELS.sonnet) {
     const e = await upstream.text().catch(() => "");
@@ -814,6 +863,17 @@ Deno.serve(async (req: Request) => {
               }
               if (evt.type === "message_delta" && typeof evt.usage?.output_tokens === "number") {
                 usageOut = evt.usage.output_tokens;
+              }
+              // Server-side tools (tool search, web search/fetch, code execution)
+              // stream as server_tool_use — surface a friendly status pill so the
+              // user sees progress instead of a silent pause.
+              if (evt.type === "content_block_start" && evt.content_block?.type === "server_tool_use") {
+                const sn = String(evt.content_block.name ?? "");
+                const lbl = sn.includes("tool_search") ? "Picking the right tool…"
+                  : sn.includes("web_search") ? "Searching the web…"
+                  : sn.includes("web_fetch") ? "Reading the page…"
+                  : sn.includes("code_execution") ? "Crunching the numbers…" : "";
+                if (lbl) emit(`[[gfstatus:${lbl}]]`, false);
               }
               // Watch tool calls so we can tell when the model opened ONE email.
               if (evt.type === "content_block_start" && evt.content_block &&
