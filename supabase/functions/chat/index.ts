@@ -162,12 +162,20 @@ function pickModel(messages: Msg[]): string {
   return MODELS.sonnet;
 }
 
-function callAnthropic(reqBody: Record<string, unknown>, apiKey: string, extra: Record<string, string>): Promise<Response> {
-  return fetch("https://api.anthropic.com/v1/messages", {
+async function callAnthropic(reqBody: Record<string, unknown>, apiKey: string, extra: Record<string, string>): Promise<Response> {
+  const call = () => fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", ...extra },
     body: JSON.stringify(reqBody),
   });
+  let res = await call();
+  // One retry on transient throttle/overload (429 rate limit, 529 overloaded):
+  // a momentary blip shouldn't fail the user's turn.
+  if (res.status === 429 || res.status === 529) {
+    await new Promise((r) => setTimeout(r, 1500));
+    res = await call();
+  }
+  return res;
 }
 
 // Frontend connector id -> Composio toolkit slug (for per-session filtering).
@@ -602,6 +610,7 @@ Deno.serve(async (req: Request) => {
   let clientCards = false;
   let conversationId = ""; // for server-side persistence of the finished turn
   let memoryOn = true;     // false = user paused the whole memory feature (no inject, no tool)
+  let util = false;        // true = tiny utility call (title, memory extraction) — bare Haiku, no tools
   let location: { lat: number; lon: number; label?: string } | null = null; // device location for "here/near me"
   try {
     const body = await req.json();
@@ -611,6 +620,7 @@ Deno.serve(async (req: Request) => {
     if (body.cards === true) clientCards = true; // client can render rich blocks (inbox cards)
     if (typeof body.conversationId === "string") conversationId = body.conversationId;
     if (body.memory === false) memoryOn = false; // memory paused for this turn
+    if (body.util === true) util = true;
     const L = body.location;
     if (L && typeof L.lat === "number" && typeof L.lon === "number") location = { lat: L.lat, lon: L.lon, ...(typeof L.label === "string" && L.label ? { label: L.label } : {}) };
     if (!Array.isArray(messages) || messages.length === 0) throw new Error("bad body");
@@ -639,6 +649,67 @@ Deno.serve(async (req: Request) => {
   let emailUI = false; // expose the rich inbox-card format only when an email app is in scope
   const extraHeaders: Record<string, string> = {};
   const appUser = userFromJwt(req);
+
+  // Utility mode (chat titles, memory extraction): tiny prompts that need none of
+  // the connectors, memories, web tools, or the big system prompt — so a 5-word
+  // title doesn't pay the full chat prefix. Bare Haiku, streamed as plain text
+  // like a normal turn (vision still works for attachment extraction). Not
+  // persisted — these aren't conversations.
+  if (util) {
+    const utilModel = "claude-haiku-4-5";
+    const utilBody: Record<string, unknown> = {
+      model: utilModel,
+      max_tokens: 600,
+      messages: messages.map((m) => ({ role: m.role, content: buildContent(m) })),
+      stream: true,
+    };
+    const upstream = await callAnthropic(utilBody, apiKey, {});
+    if (!upstream.ok || !upstream.body) {
+      const errText = await upstream.text().catch(() => "");
+      console.error(`util upstream ${upstream.status}: ${errText.slice(0, 300)}`);
+      return new Response(`Assistant error (${upstream.status})`, { status: 502, headers: cors });
+    }
+    const enc = new TextEncoder();
+    const dec = new TextDecoder();
+    const reader = upstream.body.getReader();
+    const stream = new ReadableStream({
+      async start(controller) {
+        let usageIn: Record<string, unknown> | null = null;
+        let usageOut = 0;
+        let buf = "";
+        try {
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += dec.decode(value, { stream: true });
+            const lines = buf.split("\n");
+            buf = lines.pop() ?? "";
+            for (const line of lines) {
+              const s = line.trim();
+              if (!s.startsWith("data:")) continue;
+              const data = s.slice(5).trim();
+              if (data === "[DONE]" || data === "") continue;
+              try {
+                const evt = JSON.parse(data);
+                if (evt.type === "message_start" && evt.message?.usage) usageIn = evt.message.usage;
+                if (evt.type === "message_delta" && typeof evt.usage?.output_tokens === "number") usageOut = evt.usage.output_tokens;
+                if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") controller.enqueue(enc.encode(evt.delta.text));
+              } catch { /* partial json across chunks */ }
+            }
+          }
+        } catch (e) {
+          console.error("util stream error:", e);
+        } finally {
+          try { controller.close(); } catch { /* client gone */ }
+          if (usageIn) logAiUsage(appUser, utilModel, usageIn, usageOut);
+        }
+      },
+    });
+    return new Response(stream, {
+      headers: { ...cors, "Content-Type": "text/plain; charset=utf-8", "x-gf-model": utilModel, "Access-Control-Expose-Headers": "x-gf-model" },
+    });
+  }
+
   // Kick off the memory read in parallel with the connector lookup below (skip it
   // entirely when the feature is paused).
   const memPromise = (appUser && memoryOn) ? fetchMemories(appUser) : Promise.resolve([] as Mem[]);
@@ -830,6 +901,7 @@ Deno.serve(async (req: Request) => {
       let fullText = "";                             // text streamed to the client this turn
       let usageIn: Record<string, unknown> | null = null; // token usage from message_start
       let usageOut = 0;                              // final output tokens (message_delta is cumulative)
+      let stopReason = "";                            // why the model stopped (catches max_tokens cutoffs)
       const toolName: Record<number, string> = {};   // tool name per content-block index
       const toolJson: Record<number, string> = {};   // accumulated input JSON per index
       const openedIds = new Set<string>();            // single emails the model fetched by id
@@ -864,6 +936,9 @@ Deno.serve(async (req: Request) => {
               }
               if (evt.type === "message_delta" && typeof evt.usage?.output_tokens === "number") {
                 usageOut = evt.usage.output_tokens;
+              }
+              if (evt.type === "message_delta" && evt.delta?.stop_reason) {
+                stopReason = String(evt.delta.stop_reason);
               }
               // Server-side tools (tool search, web search/fetch, code execution)
               // stream as server_tool_use — surface a friendly status pill so the
@@ -972,6 +1047,11 @@ Deno.serve(async (req: Request) => {
           if (nf >= 5) break;
           const gfile = await deliverGeneratedFile(appUser ?? "", fid, apiKey);
           if (gfile) { emit(`\n\n\`\`\`gf-file\n${JSON.stringify(gfile)}\n\`\`\``); nf++; }
+        }
+        // The reply hit the hard length cap — say so honestly instead of ending
+        // mid-sentence with no explanation. "continue" re-prompts naturally.
+        if (stopReason === "max_tokens") {
+          emit(`\n\n*That reply hit my length limit — say "continue" and I'll pick up where I left off.*`);
         }
       } catch (e) {
         console.error("chat stream error:", e);

@@ -116,6 +116,7 @@ export async function streamChat(
   onModel?: (model: string) => void,
   memoryOn?: boolean,
   location?: GeoLoc,
+  util?: boolean, // tiny utility call (title, extraction): bare fast model, no tools — far cheaper
 ): Promise<void> {
   // Send the signed-in user's access token so the backend acts as *this* user
   // (their connected apps), not a shared identity. Falls back to anon.
@@ -142,7 +143,7 @@ export async function streamChat(
     // so the backend only emits them to bundles that know how to display them.
     // `memory: false` pauses the whole memory feature for this turn (no injection,
     // and the save-memory tool is dropped). Omitted when on (server defaults to on).
-    body: JSON.stringify({ messages, tz, cards: true, ...(apps ? { apps } : {}), ...(conversationId ? { conversationId } : {}), ...(memoryOn === false ? { memory: false } : {}), ...(location ? { location } : {}) }),
+    body: JSON.stringify({ messages, tz, cards: true, ...(apps ? { apps } : {}), ...(conversationId ? { conversationId } : {}), ...(memoryOn === false ? { memory: false } : {}), ...(location ? { location } : {}), ...(util ? { util: true } : {}) }),
     signal,
   });
 
@@ -189,6 +190,8 @@ export async function titleFor(userText: string, replyText: string): Promise<str
       (t) => { out += t; },
       undefined, [], undefined, undefined,
       false, // memory off for this utility call
+      undefined,
+      true, // util mode: bare fast model, no tools
     );
   } catch {
     return '';
@@ -209,6 +212,8 @@ export async function extractMemory(attach: Attach, note: string): Promise<strin
     (t) => { out += t; },
     undefined, undefined, undefined, undefined,
     false, // memory off for this utility call
+    undefined,
+    true, // util mode: bare fast model (vision-capable), no tools
   );
   return out
     .replace(/\[\[gfstatus:[^\]]*\]\]/g, '')

@@ -426,8 +426,10 @@ Request: "When an email from my boss arrives, Slack me a one-line summary." (Gma
     max_tokens: 3000,
     // Cache the static design instructions + tools (stable within a build
     // conversation); keep the per-turn ask count in a separate uncached block.
+    // 1h TTL: build chats are interactive (ask -> the user answers), and the
+    // gap between turns regularly outlives the default 5-minute window.
     system: [
-      { type: "text", text: system, cache_control: { type: "ephemeral" } },
+      { type: "text", text: system, cache_control: { type: "ephemeral", ttl: "1h" } },
       { type: "text", text: `The user's connected apps (use ONLY these connector ids for app steps and event triggers): ${appList}. The user's timezone is ${tz}. So far you have asked ${askedCount} clarifying question(s) in this conversation.${memBlock}` },
     ],
     tools: [FIND_CONTACT_TOOL, ASK_TOOL, EMIT_TOOL, CANNOT_BUILD_TOOL],
@@ -445,11 +447,17 @@ Request: "When an email from my boss arrives, Slack me a one-line summary." (Gma
     reqBody.messages = apiMessages;
     let res: Response;
     try {
-      res = await fetch("https://api.anthropic.com/v1/messages", {
+      const call = () => fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
         body: JSON.stringify(reqBody),
       });
+      res = await call();
+      // One retry on transient throttle/overload (429/529).
+      if (res.status === 429 || res.status === 529) {
+        await new Promise((r) => setTimeout(r, 1500));
+        res = await call();
+      }
     } catch (e) {
       console.error("builder request failed:", e);
       return J({ error: "The builder is temporarily unavailable. Please try again." }, 502);
