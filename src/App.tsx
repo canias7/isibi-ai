@@ -8,7 +8,7 @@ import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown, IconLogout } from './icons';
 import { primeAudio, resumeAudio, audioState, closeAudio, listenOnce, transcribe, micSupported } from './voice';
-import { sentSound, replySound, soundsOn, setSoundsOn } from './earcons';
+import { sentSound, replySound, soundsOn, setSoundsOn, soundTheme, setSoundTheme, type SoundTheme } from './earcons';
 import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
 import { pickSuggestions } from './suggestions';
 import { track } from './analytics';
@@ -307,6 +307,7 @@ export default function App() {
   const sendTextRef = useRef<(raw: string, atts?: Attach[]) => Promise<void>>(async () => {}); // latest sendText, for the stable openEmail callback
   const [notif, setNotif] = useState(() => { try { return localStorage.getItem('gf_notif') === '1'; } catch { return false; } });
   const [sounds, setSounds] = useState(soundsOn);
+  const [sndTheme, setSndTheme] = useState<SoundTheme>(soundTheme);
 
   // ---- Per-session connectors ----
   // Which apps are connected (from the backend), which are enabled for THIS
@@ -1143,6 +1144,14 @@ export default function App() {
         : `Sounds on, but audio is “${st}”. Flip the ring/silent switch off, turn up volume, then toggle again.`);
     }
   }
+  // Pick a sound style — previews the "sent" tone in the same tap.
+  function pickSoundTheme(t: SoundTheme) {
+    void tap();
+    setSoundTheme(t);
+    setSndTheme(t);
+    resumeAudio();
+    sentSound();
+  }
 
   // One-tap end-to-end check: ask the backend to push us a test notification.
   async function testPush() {
@@ -1796,6 +1805,8 @@ export default function App() {
           onToggleFaceId={() => void toggleFaceId()}
           onToggleNotif={() => void toggleNotif()}
           onToggleSounds={toggleSounds}
+          soundTheme={sndTheme}
+          onPickSoundTheme={pickSoundTheme}
           onTestPush={() => void testPush()}
           onSignOut={() => setConfirmSignOut(true)}
           onDeleteAccount={() => setConfirmDelete(true)}

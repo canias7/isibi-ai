@@ -52,6 +52,21 @@
   overflow: hidden;
 }
 .set-row-chev { color: var(--text-faint); font-size: var(--fs-title); line-height: 1; margin-left: auto; }
+/* Sound style picker — chips under the Sounds toggle; tapping previews. */
+.snd-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 4px; }
+.snd-chip {
+  border: 1px solid var(--line-2);
+  background: #ffffff0a;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+.snd-chip:active { background: #ffffff16; }
+.snd-chip.on { border-color: var(--brand); color: var(--brand); background: rgba(224, 161, 58, 0.1); }
 .set-version {
   text-align: center;
   color: var(--text-faint);
