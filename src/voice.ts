@@ -1,15 +1,20 @@
 import { supabase, SUPABASE_ANON_KEY } from './supabase';
 
 // Voice I/O for "call mode". Deliberately built on Web APIs only — getUserMedia
-// (mic), AudioContext (capture + silence detection), and speechSynthesis (the
-// voice) — so there's no native plugin to re-bump for each Capacitor release.
-// The single native requirement is the microphone-permission string. Speech is
-// transcribed by Whisper in the `transcribe` edge function (the OpenAI key lives
-// only on the server); replies are spoken with the device's built-in voices.
+// (mic), AudioContext (capture + silence detection + custom-voice playback) —
+// so there's no native plugin to re-bump for each Capacitor release. The single
+// native requirement is the microphone-permission string. Speech is transcribed
+// by Whisper in the `transcribe` edge function (the OpenAI key lives only on
+// the server); replies are spoken with the owner's own trained voice via the
+// `tts` relay, with the device's built-in voice as the offline/unset fallback.
 
 const TRANSCRIBE_API =
   (import.meta.env.VITE_TRANSCRIBE_API as string | undefined) ??
   'https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/transcribe';
+// The owner's self-hosted custom voice, relayed through the `tts` edge function
+// (which holds the real voice-server URL). 503/error here = not configured or
+// down — speak() quietly falls back to the device voice.
+const TTS_API = TRANSCRIBE_API.replace(/\/transcribe$/, '/tts');
 
 // ---- Shared audio context (iOS "must start in a user gesture" rule) ----
 
@@ -269,7 +274,49 @@ export function speakable(s: string): string {
     .trim();
 }
 
-export function speak(text: string): Promise<void> {
+// The custom-voice source currently playing, so stopSpeaking (barge-in) can cut
+// it off mid-sentence exactly like it cancels the device voice.
+let speakingSrc: AudioBufferSourceNode | null = null;
+let speakSeq = 0; // stale-guard: a newer speak()/stop supersedes an in-flight fetch
+
+// Speak with the owner's own trained voice (via the tts relay), falling back to
+// the device voice when the custom voice is unconfigured, slow, or unreachable —
+// a call should degrade to robotic, never to silent.
+export async function speak(text: string): Promise<void> {
+  if (!text) return;
+  const seq = ++speakSeq;
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token ?? SUPABASE_ANON_KEY;
+    const res = await fetch(TTS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ text }),
+      signal: AbortSignal.timeout(26000),
+    });
+    if (!res.ok) throw new Error(`tts ${res.status}`);
+    const bytes = await res.arrayBuffer();
+    if (seq !== speakSeq) return; // superseded while fetching — drop silently
+    const ctx = getCtx();
+    if (ctx.state !== 'running') await ctx.resume();
+    const buf = await ctx.decodeAudioData(bytes.slice(0));
+    if (seq !== speakSeq) return;
+    await new Promise<void>((resolve) => {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.onended = () => { if (speakingSrc === src) speakingSrc = null; resolve(); };
+      speakingSrc = src;
+      src.start();
+    });
+    return;
+  } catch { /* fall through to the device voice */ }
+  if (seq !== speakSeq) return;
+  return speakSystem(text);
+}
+
+// The previous implementation — the device's built-in voice, now the fallback.
+function speakSystem(text: string): Promise<void> {
   return new Promise((resolve) => {
     const synth = window.speechSynthesis;
     if (!synth || !text) { resolve(); return; }
@@ -285,5 +332,8 @@ export function speak(text: string): Promise<void> {
 }
 
 export function stopSpeaking(): void {
+  speakSeq++; // invalidate any in-flight custom-voice fetch/decode
+  try { speakingSrc?.stop(); } catch { /* already ended */ }
+  speakingSrc = null;
   try { window.speechSynthesis?.cancel(); } catch { /* */ }
 }
