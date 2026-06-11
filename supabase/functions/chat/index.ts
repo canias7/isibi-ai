@@ -269,6 +269,62 @@ async function flagEnabled(key: string): Promise<boolean> {
   }
 }
 
+// ---- Daily spend limit (per-user rate limiting) -----------------------------
+// A configurable daily cap (app_config.daily_limit_usd, owner-tunable live) on
+// estimated spend, enforced before the expensive call. 0 / missing = no limit.
+// Today's spend is summed by the user_spend_usd SQL function from the start of
+// the user's LOCAL day, so the cap resets at their midnight.
+let limitCache: { v: number; at: number } | null = null;
+async function dailyLimitUsd(): Promise<number> {
+  if (limitCache && Date.now() - limitCache.at < 60_000) return limitCache.v;
+  if (!SB_URL || !SB_SERVICE_KEY) return 0;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/app_config?key=eq.daily_limit_usd&select=num_value`, {
+      headers: { apikey: SB_SERVICE_KEY, authorization: `Bearer ${SB_SERVICE_KEY}` },
+    });
+    if (!r.ok) return limitCache?.v ?? 0;
+    const rows = await r.json();
+    const v = Array.isArray(rows) && rows[0] ? Number(rows[0].num_value) : 0;
+    limitCache = { v: v > 0 ? v : 0, at: Date.now() };
+    return limitCache.v;
+  } catch {
+    return limitCache?.v ?? 0;
+  }
+}
+// The UTC instant of the most recent local midnight in `tz`.
+function localDayStartIso(tz: string): string {
+  const now = new Date();
+  try {
+    const p = new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).formatToParts(now);
+    const g = (t: string) => +(p.find((x) => x.type === t)?.value || 0);
+    const offset = Date.UTC(g("year"), g("month") - 1, g("day"), g("hour"), g("minute"), g("second")) - now.getTime();
+    return new Date(Date.UTC(g("year"), g("month") - 1, g("day"), 0, 0, 0) - offset).toISOString();
+  } catch {
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
+  }
+}
+// Hours until the user's next local midnight (for the "resets in Xh" message).
+function hoursToLocalMidnight(tz: string): number {
+  const start = new Date(localDayStartIso(tz)).getTime();
+  return Math.max(1, Math.ceil((start + 86400_000 - Date.now()) / 3600_000));
+}
+// Estimated USD this user has spent since `sinceIso` (the SQL pricing function).
+async function userSpendUsd(uid: string, sinceIso: string): Promise<number> {
+  if (!SB_URL || !SB_SERVICE_KEY) return 0;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/user_spend_usd`, {
+      method: "POST",
+      headers: { apikey: SB_SERVICE_KEY, authorization: `Bearer ${SB_SERVICE_KEY}`, "content-type": "application/json" },
+      body: JSON.stringify({ p_user: uid, p_since: sinceIso }),
+    });
+    if (!r.ok) return 0; // fail-open: a metering hiccup must never block a paying turn forever
+    const v = await r.json();
+    return Number(v) || 0;
+  } catch {
+    return 0;
+  }
+}
+
 // Cost telemetry: one ai_usage row per turn (the ops monitor sums these into a
 // daily spend estimate). Fire-and-forget — never slows or breaks a reply.
 function logAiUsage(uid: string | null, model: string, u: Record<string, unknown>, outTokens: number): void {
@@ -708,6 +764,21 @@ Deno.serve(async (req: Request) => {
     return new Response(stream, {
       headers: { ...cors, "Content-Type": "text/plain; charset=utf-8", "x-gf-model": utilModel, "Access-Control-Expose-Headers": "x-gf-model" },
     });
+  }
+
+  // Daily spend limit (per-user rate limiting). Checked here — after the cheap
+  // util/tap fast-paths, before the expensive turn — so a user who's hit their
+  // cap is turned away with a clear message that resets at their local midnight.
+  if (appUser) {
+    const limit = await dailyLimitUsd();
+    if (limit > 0) {
+      const spent = await userSpendUsd(appUser, localDayStartIso(tz));
+      if (spent >= limit) {
+        const h = hoursToLocalMidnight(tz);
+        const msg = `You've reached today's usage limit (about $${limit.toFixed(2)} of AI per day). It resets at midnight — about ${h} hour${h === 1 ? "" : "s"} from now.`;
+        return new Response(msg, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8", "x-gf-limit": "1", "Access-Control-Expose-Headers": "x-gf-limit" } });
+      }
+    }
   }
 
   // Kick off the memory read in parallel with the connector lookup below (skip it
