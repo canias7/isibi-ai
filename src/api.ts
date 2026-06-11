@@ -79,7 +79,20 @@ export interface ChatMessage {
   attachments?: Attach[];
   failed?: boolean;  // a turn whose connection dropped — shows a retry/refresh affordance
   offline?: boolean; // the drop happened while genuinely offline (vs. backgrounded mid-reply)
+  sent?: boolean;    // the request reached the server before the drop — it finishes the turn; never auto re-send
+  stalled?: boolean; // recovery (auto-retry / polling) gave up — show a terminal state instead of a spinner
   model?: string;    // which model answered, from the x-gf-model response header
+}
+
+// Marks an error thrown *after* the request reached the server (response headers
+// arrived) — the backend will finish and save the turn, so a retry must adopt
+// the server's copy rather than re-send (re-running could duplicate an action).
+export function reachedServer(e: unknown): boolean {
+  return e instanceof Error && (e as Error & { gfSent?: boolean }).gfSent === true;
+}
+function tagSent(e: unknown): never {
+  if (e instanceof Error) (e as Error & { gfSent?: boolean }).gfSent = true;
+  throw e;
 }
 
 // Go Farther backend: a Supabase Edge Function running Claude (the `chat`
@@ -137,21 +150,28 @@ export async function streamChat(
   }
   if (!res.body) throw new Error('No response stream from the assistant.');
 
-  // Which model answered (server stamps it on the response; CORS-exposed).
-  if (onModel) {
-    const m = res.headers.get('x-gf-model');
-    if (m) onModel(m);
-  }
+  // From here the server HAS the request and will finish the turn even if the
+  // stream breaks (backgrounded, flaky radio) — tag any failure so the caller
+  // knows to wait for the server's copy instead of re-sending.
+  try {
+    // Which model answered (server stamps it on the response; CORS-exposed).
+    if (onModel) {
+      const m = res.headers.get('x-gf-model');
+      if (m) onModel(m);
+    }
 
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    onToken(decoder.decode(value, { stream: true }));
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      onToken(decoder.decode(value, { stream: true }));
+    }
+    const tail = decoder.decode(); // flush any bytes buffered across the final chunk (e.g. a split emoji)
+    if (tail) onToken(tail);
+  } catch (e) {
+    tagSent(e);
   }
-  const tail = decoder.decode(); // flush any bytes buffered across the final chunk (e.g. a split emoji)
-  if (tail) onToken(tail);
 }
 
 // Read an attachment (image/PDF) into a concise memory line, via the chat model's

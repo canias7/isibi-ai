@@ -4,6 +4,7 @@ import {
   slimMessages,
   isNetworkError,
   serverIsMoreComplete,
+  withoutPlaceholders,
   titleFrom,
   cleanForDisplay,
   modelShort,
@@ -102,6 +103,36 @@ describe('isNetworkError (decides retry vs hard error)', () => {
   });
   it('does not treat a real API/HTTP error as a network error', () => {
     expect(isNetworkError(new Error('Chat API error: 500'))).toBe(false);
+  });
+});
+
+describe('withoutPlaceholders (failed/empty bubbles are UI state, not content)', () => {
+  it('drops failed and empty assistant messages, keeps everything else', () => {
+    const msgs = [user('q1'), asst('a1'), user('q2'), asst('', { failed: true }), user('q3'), asst('')];
+    expect(withoutPlaceholders(msgs)).toEqual([user('q1'), asst('a1'), user('q2'), user('q3')]);
+  });
+  it('keeps a partially-streamed reply (non-empty, not failed)', () => {
+    const msgs = [user('q'), asst('partial answer that streamed before the drop')];
+    expect(withoutPlaceholders(msgs)).toEqual(msgs);
+  });
+  it('never drops user messages, even empty ones', () => {
+    const msgs = [user(''), asst('hi')];
+    expect(withoutPlaceholders(msgs)).toEqual(msgs);
+  });
+});
+
+describe('serverIsMoreComplete with stacked pending turns (the weather/Hi incident)', () => {
+  // The server stores clean history (no placeholders) — a local copy carrying
+  // failed bubbles must not look "longer" than a server copy with MORE real content.
+  it('adopts when the server answered a later turn than our placeholders cover', () => {
+    const local = [user('whats in miami'), asst('miami stuff'), user('what about the weather'), asst('', { failed: true, sent: false }), user('hi'), asst('', { failed: true, sent: true })];
+    const remote = [user('whats in miami'), asst('miami stuff'), user('what about the weather'), user('hi'), asst('here is the weather…')];
+    expect(serverIsMoreComplete(local, remote)).toBe(true);
+  });
+  it('still refuses a server copy with no real reply for our pending turn', () => {
+    const local = [user('whats in miami'), asst('miami stuff'), user('what about the weather'), asst('', { failed: true })];
+    const remote = [user('whats in miami'), asst('miami stuff')];
+    expect(serverIsMoreComplete(local, remote)).toBe(false);
   });
 });
 
