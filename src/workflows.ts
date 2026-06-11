@@ -55,6 +55,7 @@ export interface Workflow {
   event: EventCfg | null;
   graph: WfGraph | null;
   enabled: boolean;
+  model: string | null; // chosen tier: 'haiku' | 'sonnet' | 'opus'; null = default (Sonnet)
   next_run_at: string | null;
   last_run_at: string | null;
   created_at: string;
@@ -118,10 +119,11 @@ export async function testWorkflow(
   instruction: string,
   workflowId?: string,
   steps?: { id: string; label: string; app?: string }[],
+  model?: string | null,
 ): Promise<{ ok: boolean; result: string; steps: StepResult[] } | null> {
   try {
     const { data, error } = await supabase.functions.invoke('test-workflow', {
-      body: { instruction, workflow_id: workflowId, tz: deviceTz(), steps: steps ?? [] },
+      body: { instruction, workflow_id: workflowId, tz: deviceTz(), steps: steps ?? [], ...(model ? { model } : {}) },
     });
     if (error || !data) return null;
     const d = data as { ok?: boolean; result?: string; error?: string; steps?: StepResult[] };
@@ -188,7 +190,7 @@ export function compileInstruction(title: string, graph: WfGraph): string {
   return `${head}\n\nCarry out these steps in order, using the named app for each:\n${steps.join('\n')}`;
 }
 
-const SEL = 'id,title,instruction,trigger_type,schedule,event,graph,enabled,next_run_at,last_run_at,created_at';
+const SEL = 'id,title,instruction,trigger_type,schedule,event,graph,enabled,model,next_run_at,last_run_at,created_at';
 
 // One turn in the build conversation. assistant turns are the clarifying
 // questions the builder asked; user turns are the request and the answers.
@@ -284,7 +286,7 @@ export async function listWorkflows(): Promise<Workflow[]> {
   }
 }
 
-export async function createWorkflow(title: string, instruction: string, trigger: Trigger, graph?: WfGraph | null, enabled = false): Promise<Workflow | null> {
+export async function createWorkflow(title: string, instruction: string, trigger: Trigger, graph?: WfGraph | null, enabled = false, model?: string | null): Promise<Workflow | null> {
   try {
     const { data: s } = await supabase.auth.getSession();
     const uid = s.session?.user.id;
@@ -294,6 +296,7 @@ export async function createWorkflow(title: string, instruction: string, trigger
       title: title || instruction.slice(0, 40),
       instruction,
       enabled,
+      model: model ?? null,
       trigger_type: trigger.type,
       schedule: trigger.type === 'schedule' ? trigger.schedule : null,
       event: trigger.type === 'event' ? trigger.event : null,
@@ -311,7 +314,7 @@ export async function createWorkflow(title: string, instruction: string, trigger
 
 export async function updateWorkflow(
   id: string,
-  fields: { title?: string; instruction?: string; enabled?: boolean; trigger?: Trigger; graph?: WfGraph | null },
+  fields: { title?: string; instruction?: string; enabled?: boolean; trigger?: Trigger; graph?: WfGraph | null; model?: string | null },
 ): Promise<boolean> {
   try {
     const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -319,6 +322,7 @@ export async function updateWorkflow(
     if (fields.instruction !== undefined) patch.instruction = fields.instruction;
     if (fields.enabled !== undefined) patch.enabled = fields.enabled;
     if (fields.graph !== undefined) patch.graph = fields.graph;
+    if (fields.model !== undefined) patch.model = fields.model;
     if (fields.trigger) {
       patch.trigger_type = fields.trigger.type;
       if (fields.trigger.type === 'schedule') {

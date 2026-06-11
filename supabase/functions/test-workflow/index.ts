@@ -13,6 +13,14 @@ const SB_URL = Deno.env.get("SUPABASE_URL");
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const MCP_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gofarther-mcp";
 const MODEL = "claude-sonnet-4-6";
+// Per-workflow model choice (workflows.model), sent by the client. An explicit
+// pick overrides the Sonnet default; null / unknown falls back to MODEL. Keep
+// this in lockstep with the scheduled runner so Test matches a live run.
+const WF_MODELS: Record<string, string> = {
+  haiku: "claude-haiku-4-5",
+  sonnet: "claude-sonnet-4-6",
+  opus: "claude-opus-4-8",
+};
 
 // frontend connector id -> Composio toolkit slug (a step's `app` is the frontend id)
 const APP_TO_SLUG: Record<string, string> = {
@@ -142,7 +150,7 @@ function parseLoose(text: string): any | null {
   return null;
 }
 
-async function runInstruction(uid: string, instruction: string, tz: string, steps: Step[]): Promise<{ summary: string; steps: StepResult[] }> {
+async function runInstruction(uid: string, instruction: string, tz: string, steps: Step[], modelTier?: string | null): Promise<{ summary: string; steps: StepResult[] }> {
   if (!ANTHROPIC_KEY) throw new Error("assistant not configured");
   const [apps, memOn] = await Promise.all([connectedToolkits(uid), memoryEnabled(uid)]);
   const mems = memOn ? await fetchMemories(uid) : [];
@@ -165,7 +173,7 @@ Carry out the steps in order using the connected tools.${stepList} Stay strictly
 Be strictly honest about each step's outcome: if a step needs an app/tool you don't have, or a tool call fails, mark that step ok:false and say what's missing — NEVER claim a step succeeded when it didn't.${outFmt}${toolSearchSystem}${memSys}`;
 
   const reqBody: Record<string, unknown> = {
-    model: MODEL,
+    model: WF_MODELS[modelTier ?? ""] ?? MODEL,
     max_tokens: 4096,
     system,
     messages: [{ role: "user", content: instruction }],
@@ -267,13 +275,14 @@ Deno.serve(async (req: Request) => {
   const uid = userFromJwt(req);
   if (!uid) return J({ error: "unauthorized" }, 401);
 
-  let instruction = "", workflowId = "", tz = "UTC";
+  let instruction = "", workflowId = "", tz = "UTC", model = "";
   let steps: Step[] = [];
   try {
     const b = await req.json();
     instruction = String(b.instruction || "").trim().slice(0, 6000);
     workflowId = String(b.workflow_id || "");
     if (typeof b.tz === "string" && b.tz) tz = b.tz;
+    if (typeof b.model === "string") model = b.model; // workflow's chosen model tier
     if (Array.isArray(b.steps)) {
       steps = b.steps.slice(0, 40)
         .map((s: any) => ({ id: String(s?.id || ""), label: String(s?.label || "").slice(0, 200), app: String(s?.app || "") }))
@@ -284,7 +293,7 @@ Deno.serve(async (req: Request) => {
 
   let ok = true, result = "", stepsOut: StepResult[] = [];
   try {
-    const out = await runInstruction(uid, instruction, tz, steps);
+    const out = await runInstruction(uid, instruction, tz, steps, model);
     result = out.summary;
     stepsOut = out.steps;
     ok = stepsOut.length ? stepsOut.every((s) => s.ok) : true;

@@ -12,9 +12,17 @@ const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const MCP_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gofarther-mcp";
 const PUSH_URL = "https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/send-push";
 const MODEL = "claude-sonnet-4-6";
+// Per-workflow model choice (workflows.model). The user picks the tier in the
+// editor; an explicit pick overrides the Sonnet default — its cost is then their
+// deliberate choice. Null / anything unrecognized falls back to MODEL.
+const WF_MODELS: Record<string, string> = {
+  haiku: "claude-haiku-4-5",
+  sonnet: "claude-sonnet-4-6",
+  opus: "claude-opus-4-8",
+};
 // The detector only lists items and copies back their ids — a cheap, mechanical
-// task — so it runs on Haiku. The runner (which takes real outward actions) stays
-// on MODEL above, where the extra judgment matters.
+// task — so it runs on Haiku regardless of the workflow's chosen tier. The runner
+// (which takes real outward actions) honors the user's pick, where it matters.
 const DETECTOR_MODEL = "claude-haiku-4-5";
 
 const json = (obj: unknown, status = 200) =>
@@ -360,7 +368,9 @@ TOOL DISCOVERY: the app's tools are NOT pre-loaded — only a search index is. F
 }
 
 // Run one workflow's instruction through Claude (with the user's connectors).
-async function runInstruction(uid: string, instruction: string, connected?: string[]): Promise<string> {
+// `modelTier` is the workflow's chosen tier ('haiku'|'sonnet'|'opus'); unset/
+// unknown uses the Sonnet default.
+async function runInstruction(uid: string, instruction: string, connected?: string[], modelTier?: string | null): Promise<string> {
   if (!ANTHROPIC_KEY) throw new Error("assistant not configured");
   const apps = connected ?? (await connectedToolkits(uid)) ?? [];
   const memOn = await memoryEnabled(uid);
@@ -385,7 +395,7 @@ When finished, reply with a clear, concise result (1-3 sentences) the user can r
 
 Example result: "Sent your morning digest — 12 unread emails grouped by sender, 2 flagged urgent (a contract from Acme, a reschedule from Sam)."${toolSearchSystem}${memSys}`;
   const reqBody: Record<string, unknown> = {
-    model: MODEL,
+    model: WF_MODELS[modelTier ?? ""] ?? MODEL,
     max_tokens: 4096,
     system,
     messages: [{ role: "user", content: instruction }],
@@ -441,7 +451,7 @@ Example result: "Sent your morning digest — 12 unread emails grouped by sender
   }
   if (!res.ok) throw new Error(`anthropic ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
   const data = await res.json();
-  logAiUsage(uid, "workflow", MODEL, data?.usage);
+  logAiUsage(uid, "workflow", String(reqBody.model), data?.usage);
   const text = (data.content || []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join("").trim();
   return text || "(no output)";
 }
@@ -503,7 +513,7 @@ Deno.serve(async (req: Request) => {
         ok = false; notify = false; // record it, but don't push every run (would spam an hourly workflow)
         text = `Couldn't run — ${missing.join(", ")} ${missing.length > 1 ? "aren't" : "isn't"} connected. Connect ${missing.length > 1 ? "them" : "it"} and it'll run next time.`;
       } else {
-        try { text = await runInstruction(wf.user_id, wf.instruction, connected); ok = true; }
+        try { text = await runInstruction(wf.user_id, wf.instruction, connected, wf.model); ok = true; }
         catch (e) { ok = false; console.error("scheduled workflow error:", e); text = "Couldn't finish this workflow."; }
       }
       await insertRun(wf.id, wf.user_id, text, ok);
@@ -592,7 +602,7 @@ Deno.serve(async (req: Request) => {
             ok = false; notify = false; // record it, don't push repeatedly while an app stays disconnected
             text = `Triggered, but ${missing.join(", ")} ${missing.length > 1 ? "aren't" : "isn't"} connected — connect ${missing.length > 1 ? "them" : "it"} to run this.`;
           } else {
-            try { text = await runInstruction(wf.user_id, prompt, connected); ok = true; }
+            try { text = await runInstruction(wf.user_id, prompt, connected, wf.model); ok = true; }
             catch (e) { ok = false; console.error("event workflow error:", e); text = "Couldn't finish this workflow."; }
           }
           await insertRun(wf.id, wf.user_id, text, ok);
