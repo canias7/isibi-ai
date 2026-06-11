@@ -41,6 +41,17 @@ export async function primeAudio(): Promise<void> {
   } catch { /* best effort */ }
 }
 
+// Lightweight unlock for earcons: resume the shared context inside a user gesture
+// (no speech priming). Must be called synchronously from the gesture — on iOS a
+// later resume() (e.g. when the reply lands) won't unlock a suspended context, so
+// the send/reply tones would stay silent for a type-only user. Cheap + idempotent.
+export function resumeAudio(): void {
+  try {
+    const ctx = getCtx();
+    if (ctx.state === 'suspended') void ctx.resume();
+  } catch { /* best effort */ }
+}
+
 export function closeAudio(): void {
   try { sharedCtx?.close(); } catch { /* */ }
   sharedCtx = null;
