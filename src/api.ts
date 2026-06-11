@@ -83,6 +83,7 @@ export interface ChatMessage {
   stalled?: boolean; // recovery (auto-retry / polling) gave up — show a terminal state instead of a spinner
   model?: string;    // which model answered, from the x-gf-model response header
   fb?: 'up' | 'down'; // the user's thumbs feedback on this reply (also tracked in analytics)
+  ts?: number;       // when the reply finished (ms) — shown faintly, freshness for data answers
 }
 
 // Marks an error thrown *after* the request reached the server (response headers

@@ -26,6 +26,7 @@ export default function SidebarNav({
   chatSearch, setChatSearch, q, chatSections,
   editingId, editingTitle, setEditingTitle, setEditingId, commitRename,
   selectChat, newChat, go, signOut,
+  hasMore, loadingOlder, onLoadOlder,
   rowPressStart, rowPressCancel, pressFired, onMenuChat,
 }: {
   open: boolean;
@@ -47,6 +48,9 @@ export default function SidebarNav({
   newChat: () => void;
   go: (v: 'chat' | 'connectors' | 'settings') => void;
   signOut: () => void;
+  hasMore: boolean;
+  loadingOlder: boolean;
+  onLoadOlder: () => void;
   rowPressStart: (c: Conversation) => void;
   rowPressCancel: () => void;
   pressFired: MutableRefObject<boolean>;
@@ -127,6 +131,11 @@ export default function SidebarNav({
               })}
             </div>
           ))}
+          {hasMore && !q && (
+            <button className="side-item side-older" onClick={onLoadOlder} disabled={loadingOlder}>
+              {loadingOlder ? 'Loading…' : 'Load older chats'}
+            </button>
+          )}
         </div>
 
         <div className="side-foot">

@@ -97,6 +97,54 @@ function every(repeat: RepeatKind): 'day' | 'week' | undefined {
   return repeat === 'daily' ? 'day' : repeat === 'weekly' ? 'week' : undefined;
 }
 
+// Lock-screen actions on a reminder nudge: Done / Snooze 10 min. Registered at
+// app start (the plugin needs the category before a notification using it fires).
+export async function registerReminderActions(): Promise<void> {
+  try {
+    await LocalNotifications.registerActionTypes({
+      types: [{
+        id: 'gf-reminder',
+        actions: [
+          { id: 'done', title: 'Done' },
+          { id: 'snooze', title: 'Snooze 10 min' },
+        ],
+      }],
+    });
+  } catch { /* web / plugin missing — no-op */ }
+}
+
+// One-off re-nudge in 10 minutes (Snooze) — purely local, no DB change.
+export async function snoozeNudge(title: string): Promise<void> {
+  try {
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: (Date.now() % 2147483000) + 1,
+        title: 'Reminder',
+        body: title,
+        schedule: { at: new Date(Date.now() + 10 * 60 * 1000), allowWhileIdle: true },
+        actionTypeId: 'gf-reminder',
+      }],
+    });
+  } catch { /* no-op */ }
+}
+
+// Notification interactions: action buttons AND plain taps both land here.
+// actionId is 'done' / 'snooze' for the buttons, 'tap' for a plain tap.
+export async function onReminderAction(
+  cb: (actionId: string, reminderId: string | null) => void,
+): Promise<{ remove: () => void } | null> {
+  try {
+    const h = await LocalNotifications.addListener('localNotificationActionPerformed', (ev) => {
+      const extra = (ev.notification?.extra ?? {}) as Record<string, unknown>;
+      const rid = typeof extra.reminderId === 'string' ? extra.reminderId : null;
+      cb(ev.actionId ?? 'tap', rid);
+    });
+    return h;
+  } catch {
+    return null;
+  }
+}
+
 export async function scheduleReminder(r: Reminder): Promise<void> {
   try {
     const at = new Date(r.remind_at);
@@ -115,6 +163,7 @@ export async function scheduleReminder(r: Reminder): Promise<void> {
         title: 'Reminder',
         body: r.title,
         schedule: { at, every: every(r.repeat), allowWhileIdle: true },
+        actionTypeId: 'gf-reminder',
         extra: { reminderId: r.id },
       }],
     });

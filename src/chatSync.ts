@@ -75,6 +75,29 @@ export async function syncLoad(uid: string): Promise<Conversation[] | null> {
     return null;
   }
 }
+// Page older conversations (past the first MAX_CHATS): everything strictly
+// older than `before` (ms), newest first. Powers "Load older chats".
+export async function syncLoadOlder(uid: string, before: number, limit = MAX_CHATS): Promise<Conversation[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('id,title,messages,updated_at')
+      .eq('user_id', uid)
+      .lt('updated_at', new Date(before).toISOString())
+      .order('updated_at', { ascending: false })
+      .limit(limit);
+    if (error || !data) return null;
+    return data.map((r: { id: string; title: string; messages: unknown; updated_at: string }) => ({
+      id: r.id,
+      title: r.title || 'New chat',
+      messages: Array.isArray(r.messages) ? (r.messages as ChatMessage[]) : [],
+      updatedAt: new Date(r.updated_at).getTime(),
+    }));
+  } catch {
+    return null;
+  }
+}
+
 export async function syncSave(uid: string, c: Conversation) {
   try {
     await supabase.from('conversations').upsert({

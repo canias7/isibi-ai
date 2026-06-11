@@ -502,3 +502,10 @@
 
 /* Thumbs feedback — quiet until chosen, brand-amber when selected */
 .msg-act.fb.on { color: var(--brand); }
+
+/* "Load older chats" — pages past the first 50 */
+.side-older { justify-content: center; color: var(--text-dim); font-size: var(--fs-footnote); font-weight: 600; }
+.side-older:disabled { opacity: 0.5; }
+
+/* Reply finished-at stamp (freshness for data answers) */
+.msg-time-stamp { font-size: var(--fs-label); color: var(--text-dim); opacity: 0.6; font-variant-numeric: tabular-nums; }

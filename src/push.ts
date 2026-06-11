@@ -10,6 +10,7 @@ interface PushPlugin {
   register(): Promise<void>;
   addListener(event: 'registration', cb: (t: { value: string }) => void): Promise<PluginListenerHandle>;
   addListener(event: 'registrationError', cb: (e: unknown) => void): Promise<PluginListenerHandle>;
+  addListener(event: 'pushNotificationActionPerformed', cb: (ev: { notification: { data?: Record<string, unknown> } }) => void): Promise<PluginListenerHandle>;
 }
 const Push = registerPlugin<PushPlugin>('PushNotifications');
 
@@ -59,5 +60,21 @@ export async function registerPush(): Promise<boolean> {
   } catch (e) {
     lastStatus = `plugin error: ${e instanceof Error ? e.message : String(e)}`;
     return false; // plugin not in this native build yet — no-op
+  }
+}
+
+// A push was TAPPED (app opened from the notification) — hand its custom data
+// (e.g. { convId }) to the app so it can route into the right conversation.
+// No-ops on web / builds without the plugin.
+export async function onPushTap(
+  cb: (data: Record<string, unknown>) => void,
+): Promise<{ remove: () => void } | null> {
+  if (Capacitor.getPlatform() === 'web') return null;
+  try {
+    return await Push.addListener('pushNotificationActionPerformed', (ev) => {
+      cb(ev?.notification?.data ?? {});
+    });
+  } catch {
+    return null; // plugin not in this native build yet
   }
 }

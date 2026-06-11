@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { streamChat, sendTestPush, extractMemory, reachedServer, titleFor, type ChatMessage, type Attach } from './api';
 import { supabase } from './supabase';
@@ -10,17 +10,18 @@ import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles
 import { primeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { track } from './analytics';
 import { useFocusTrap } from './a11y';
-import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, type Reminder, type RepeatKind } from './reminders';
+import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, registerReminderActions, onReminderAction, snoozeNudge, type Reminder, type RepeatKind } from './reminders';
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { tap, bump, thud } from './haptics';
+import { onPushTap } from './push';
 import { useDismiss } from './motion';
 import ErrorBoundary from './ErrorBoundary';
 import RecoveryBubble from './RecoveryBubble';
 import SettingsPage from './SettingsPage';
 import SidebarNav from './SidebarNav';
-import { loadChats, saveChats, loadPins, savePins, syncLoad, syncSave, syncDelete, wipeStoredChats, loadDrafts, saveDrafts, MAX_CHATS, type Conversation } from './chatSync';
+import { loadChats, saveChats, loadPins, savePins, syncLoad, syncLoadOlder, syncSave, syncDelete, wipeStoredChats, loadDrafts, saveDrafts, MAX_CHATS, type Conversation } from './chatSync';
 import { biometryAvailable, biometryStatus, unlock, type BiometryStatus } from './biometric';
 import { registerPush, pushStatus } from './push';
 import { fileToAttachment } from './attach';
@@ -229,6 +230,22 @@ export default function App() {
   if (lightbox) lastLightbox.current = lightbox;
   const lightboxSrc = lightbox ?? lastLightbox.current;
 
+  // Long threads render only their tail (windowing): the DOM stays small no
+  // matter how long a conversation gets. "Show earlier" pages upward, holding
+  // the scroll position so nothing jumps.
+  const [visCount, setVisCount] = useState(60);
+  const prevHeightRef = useRef<number | null>(null);
+  function showEarlier() {
+    prevHeightRef.current = scrollRef.current?.scrollHeight ?? null;
+    setVisCount((c) => c + 100);
+  }
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    const prev = prevHeightRef.current;
+    prevHeightRef.current = null;
+    if (el && prev != null) el.scrollTop += el.scrollHeight - prev;
+  }, [visCount]);
+
   function jumpToLatest() {
     const el = scrollRef.current;
     if (!el) return;
@@ -280,6 +297,25 @@ export default function App() {
   const [connApps, setConnApps] = useState<string[]>([]);
   const [brokenApps, setBrokenApps] = useState<string[]>([]); // connected apps whose OAuth died
   const [brokenDismissed, setBrokenDismissed] = useState(false);
+  // Older conversations exist past the first 50 — paged in on demand.
+  const [hasMoreChats, setHasMoreChats] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  async function loadOlderChats() {
+    if (!uid || loadingOlder) return;
+    setLoadingOlder(true);
+    try {
+      const oldest = Math.min(...chats.map((c) => c.updatedAt || Date.now()));
+      const page = await syncLoadOlder(uid, oldest);
+      if (!page) return;
+      setChats((prev) => {
+        const seen = new Set(prev.map((c) => c.id));
+        return [...prev, ...page.filter((c) => !seen.has(c.id))];
+      });
+      setHasMoreChats(page.length >= MAX_CHATS);
+    } finally {
+      setLoadingOlder(false);
+    }
+  }
   const [enabled, setEnabled] = useState<Set<string>>(new Set());
   const [connLoaded, setConnLoaded] = useState(false);
   const [plusOpen, setPlusOpen] = useState(false);
@@ -434,6 +470,7 @@ export default function App() {
       const merged = [...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, MAX_CHATS);
       setChats(merged);
       saveChats(uid, merged);
+      setHasMoreChats(remote.length >= MAX_CHATS); // a full first page → probably more in the cloud
     })();
     return () => { alive = false; };
   }, [uid]);
@@ -474,6 +511,7 @@ export default function App() {
   useEffect(() => {
     pendingTurnRef.current = null; retryingRef.current = false; setCopiedIdx(null); setQueued(null);
     setInput(draftsRef.current[currentId] ?? ''); // each chat keeps its own draft
+    setVisCount(60); // windowed thread: a freshly opened chat renders its tail
      
   }, [currentId]);
 
@@ -632,6 +670,40 @@ export default function App() {
     });
   }, [messages, busy, currentId, uid]);
 
+  // Notification routing: a push tap lands in ITS conversation; reminder-nudge
+  // actions work from the lock screen (Done disables a one-off, Snooze re-nudges
+  // in 10 minutes, a plain tap opens the Reminders screen). Listeners attach
+  // once; latest handlers are read through refs.
+  const notifRoutesRef = useRef({
+    openChat: (id: string) => { selectChat(id); },
+    openReminders: () => { openReminders(); },
+    done: (id: string) => { toggleRem(id, false); },
+    title: (id: string) => remindersRef.current.find((r) => r.id === id)?.title ?? 'Reminder',
+  });
+  notifRoutesRef.current = {
+    openChat: (id) => { selectChat(id); },
+    openReminders: () => { openReminders(); },
+    done: (id) => { toggleRem(id, false); },
+    title: (id) => remindersRef.current.find((r) => r.id === id)?.title ?? 'Reminder',
+  };
+  const remindersRef = useRef<Reminder[]>([]);
+  remindersRef.current = reminders;
+  useEffect(() => {
+    void registerReminderActions();
+    const subs: { remove: () => void }[] = [];
+    void onPushTap((data) => {
+      const id = (data as Record<string, unknown>).convId;
+      if (typeof id === 'string' && id) notifRoutesRef.current.openChat(id);
+    }).then((h) => { if (h) subs.push(h); });
+    void onReminderAction((actionId, reminderId) => {
+      if (actionId === 'done' && reminderId) notifRoutesRef.current.done(reminderId);
+      else if (actionId === 'snooze' && reminderId) void snoozeNudge(notifRoutesRef.current.title(reminderId));
+      else notifRoutesRef.current.openReminders();
+    }).then((h) => { if (h) subs.push(h); });
+    return () => { for (const s of subs) s.remove(); };
+     
+  }, []);
+
   // AI title: once a new chat has its first real reply, generate a 3-5 word
   // title to replace the raw first-message truncation in the sidebar. Once per
   // chat; never fights a manual rename (only replaces the derived title).
@@ -723,8 +795,12 @@ export default function App() {
       setMessages((m) => {
         const copy = m.slice();
         const last = copy[copy.length - 1];
-        if (last && last.role === 'assistant' && last.content.includes('[[gfstatus:')) {
-          copy[copy.length - 1] = { ...last, content: last.content.replace(/\[\[gfstatus:[^\]]*\]\]/g, '') };
+        if (last && last.role === 'assistant') {
+          copy[copy.length - 1] = {
+            ...last,
+            content: last.content.includes('[[gfstatus:') ? last.content.replace(/\[\[gfstatus:[^\]]*\]\]/g, '') : last.content,
+            ts: Date.now(), // freshness stamp — "as of 9:41 PM" on data answers
+          };
         }
         return copy;
       });
@@ -1102,18 +1178,28 @@ export default function App() {
     e.preventDefault(); // image paste, not text
     for (const f of files) {
       const { attach, error } = await fileToAttachment(f);
-      if (attach) setAttachments((prev) => [...prev, attach].slice(-6));
+      if (attach) setAttachments((prev) => {
+        if (prev.length >= 6) { flagAttachCap(); return prev; }
+        return [...prev, attach];
+      });
       else if (error) { setAttachErr(error); setTimeout(() => setAttachErr(''), 4000); }
     }
   }
 
+  function flagAttachCap() {
+    setAttachErr("Up to 6 attachments per message — the extras weren't added.");
+    setTimeout(() => setAttachErr(''), 4000);
+  }
   async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
     let err = '';
     for (const f of files) {
       const { attach, error } = await fileToAttachment(f);
-      if (attach) setAttachments((prev) => [...prev, attach].slice(-6));
+      if (attach) setAttachments((prev) => {
+        if (prev.length >= 6) { flagAttachCap(); return prev; }
+        return [...prev, attach];
+      });
       else if (error) err = error;
     }
     if (err) {
@@ -1508,6 +1594,9 @@ export default function App() {
         newChat={newChat}
         go={go}
         signOut={() => void signOut()}
+        hasMore={hasMoreChats}
+        loadingOlder={loadingOlder}
+        onLoadOlder={() => void loadOlderChats()}
         rowPressStart={rowPressStart}
         rowPressCancel={rowPressCancel}
         pressFired={pressFired}
@@ -1601,7 +1690,13 @@ export default function App() {
               </div>
             ) : (
               <div className="thread">
-                {messages.map((m, i) => {
+                {messages.length > visCount && (
+                  <button className="thread-earlier" onClick={showEarlier}>
+                    Show earlier messages ({messages.length - visCount} more)
+                  </button>
+                )}
+                {messages.slice(Math.max(0, messages.length - visCount)).map((m, j) => {
+                  const i = Math.max(0, messages.length - visCount) + j;
                   const streamingHere = busy && i === messages.length - 1 && m.role === 'assistant';
                   // No visible text yet → AssistantMessage shows its own "thinking"
                   // (or tool-activity) indicator, so don't also blink the bare cursor.
@@ -1643,6 +1738,7 @@ export default function App() {
                             <IconThumbDown size={14} />
                           </button>
                           {m.model && <span className="msg-model" title={m.model}>{modelShort(m.model)}</span>}
+                          {m.ts && <span className="msg-time-stamp">{new Date(m.ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}
                         </div>
                       )}
                     </div>
