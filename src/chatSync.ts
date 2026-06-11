@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { slimMessages, withoutPlaceholders } from './chatUtils';
+import { isModelChoice, type ModelChoice } from './models';
 import type { ChatMessage } from './api';
 
 // Chat persistence — the local cache (instant on launch) and the cloud mirror.
@@ -50,6 +51,7 @@ export function wipeStoredChats(uid: string) {
     localStorage.removeItem(pinsKey(uid));
     localStorage.removeItem(draftsKey(uid));
     localStorage.removeItem(queuedKey(uid));
+    localStorage.removeItem(modelsKey(uid));
   } catch { /* ignore */ }
 }
 
@@ -138,6 +140,29 @@ export function saveDrafts(uid: string, drafts: Record<string, string>) {
   try {
     const entries = Object.entries(drafts).filter(([, t]) => typeof t === 'string' && t.trim()).slice(-20);
     localStorage.setItem(draftsKey(uid), JSON.stringify(Object.fromEntries(entries)));
+  } catch { /* storage full / unavailable */ }
+}
+
+// Per-chat model choice — which model answers in a given conversation (a chat
+// you started on Opus stays on Opus; a new one defaults to 'auto'). Device-local
+// (like drafts): the choice is a per-device preference, not synced content.
+// 'auto' entries are dropped — absence already means "let the backend route".
+const modelsKey = (uid: string) => `gf_models_${uid}`;
+export function loadChatModels(uid: string): Record<string, ModelChoice> {
+  try {
+    const v = JSON.parse(localStorage.getItem(modelsKey(uid)) || '{}');
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return {};
+    const out: Record<string, ModelChoice> = {};
+    for (const [id, m] of Object.entries(v)) if (isModelChoice(m) && m !== 'auto') out[id] = m;
+    return out;
+  } catch {
+    return {};
+  }
+}
+export function saveChatModels(uid: string, models: Record<string, ModelChoice>) {
+  try {
+    const entries = Object.entries(models).filter(([, m]) => isModelChoice(m) && m !== 'auto').slice(-50);
+    localStorage.setItem(modelsKey(uid), JSON.stringify(Object.fromEntries(entries)));
   } catch { /* storage full / unavailable */ }
 }
 

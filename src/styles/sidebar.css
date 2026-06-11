@@ -548,6 +548,29 @@
 .usage-src-top > span:first-child { color: var(--text-dim); }
 .usage-src-top > span:last-child { font-variant-numeric: tabular-nums; }
 
+/* ---- Model picker (per-chat model choice; chat-sheet base) ---- */
+.model-opt {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 11px 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.model-opt + .model-opt { border-top: 1px solid var(--line-1); }
+.model-opt:active { background: var(--fill-2); }
+.model-opt.on { background: var(--fill-1); }
+.model-opt .model-dot { width: 9px; height: 9px; }
+.model-opt-text { flex: 1; min-width: 0; }
+.model-opt-label { display: block; font-size: var(--fs-body); font-weight: 600; }
+.model-opt-sub { display: block; font-size: var(--fs-caption); color: var(--text-dim); line-height: 1.4; margin-top: 2px; }
+.model-opt > svg { color: var(--brand); flex-shrink: 0; }
+
 /* Hard update gate sits above even the lock screen. */
 .update-gate { z-index: 300; padding: 0 36px; text-align: center; }
 .update-msg { color: var(--text-dim); font-size: var(--fs-body); line-height: 1.5; max-width: 18.8235rem; margin: 0; }

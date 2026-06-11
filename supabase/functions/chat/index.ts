@@ -162,6 +162,16 @@ function pickModel(messages: Msg[]): string {
   return MODELS.sonnet;
 }
 
+// A user's explicit per-chat model pick (the composer's model chip). When set,
+// it overrides the keyword router — the model (and its cost) is then the user's
+// deliberate choice. 'auto' / anything unrecognized is absent here, so routing
+// stays in charge. Tool-schema caching still benefits when many chats share a tier.
+const EXPLICIT_MODELS: Record<string, string> = {
+  haiku: "claude-haiku-4-5",
+  sonnet: MODELS.sonnet,
+  opus: MODELS.opus,
+};
+
 async function callAnthropic(reqBody: Record<string, unknown>, apiKey: string, extra: Record<string, string>): Promise<Response> {
   const call = () => fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -667,6 +677,7 @@ Deno.serve(async (req: Request) => {
   let conversationId = ""; // for server-side persistence of the finished turn
   let memoryOn = true;     // false = user paused the whole memory feature (no inject, no tool)
   let util = false;        // true = tiny utility call (title, memory extraction) — bare Haiku, no tools
+  let modelPref = "";      // user's explicit per-chat model pick ('haiku'|'sonnet'|'opus'); '' = auto-route
   let location: { lat: number; lon: number; label?: string } | null = null; // device location for "here/near me"
   try {
     const body = await req.json();
@@ -677,6 +688,7 @@ Deno.serve(async (req: Request) => {
     if (typeof body.conversationId === "string") conversationId = body.conversationId;
     if (body.memory === false) memoryOn = false; // memory paused for this turn
     if (body.util === true) util = true;
+    if (typeof body.model === "string") modelPref = body.model; // explicit model choice for this chat
     const L = body.location;
     if (L && typeof L.lat === "number" && typeof L.lon === "number") location = { lat: L.lat, lon: L.lon, ...(typeof L.label === "string" && L.label ? { label: L.label } : {}) };
     if (!Array.isArray(messages) || messages.length === 0) throw new Error("bad body");
@@ -858,10 +870,11 @@ Deno.serve(async (req: Request) => {
       memorySystem += `\n\nSome of those memories have an attached image or file (shown as [attachment: …, id: …]). Two ways to use one: (1) to SHOW it to the user in chat, reply with a fenced code block tagged gf-memory containing ONLY {"id":"<that memory's id>"} (the app displays the image inline, or a file to open; you may put one short line before the block); (2) to SEND or ATTACH it through another app (attach to an email, upload to Slack, etc.), FIRST call the GF_GET_MEMORY_FILE tool with that memory id AND the toolkit_slug + tool_slug of the action you're about to use (e.g. "gmail" / "GMAIL_SEND_EMAIL"); it returns {s3key, mimetype, name} — pass that object straight into that same tool's attachment/file parameter. The staging tool handles large files for you, so NEVER claim a saved file is too large to attach, and NEVER tell the user to attach or send it themselves/manually when you have a send tool — just use the tool. If a send that includes an attachment errors or times out, do NOT invent a size limit and do NOT silently resend it (it may already have gone out): tell the user it may not have completed and ask them to check or confirm before retrying. When the user only asks ABOUT it, just answer from the saved description.`;
     }
   }
-  // Route this turn: Opus for genuinely complex/long asks, Sonnet for everything
-  // else. A single default model keeps the cached tool-schema prefix warm.
-  const model = pickModel(messages);
-  console.log(`routed model=${model.replace(/^claude-/, "")}`);
+  // Route this turn: an explicit per-chat pick wins; otherwise Opus for genuinely
+  // complex/long asks, Sonnet for everything else. A single default keeps the
+  // cached tool-schema prefix warm for the auto majority.
+  const model = EXPLICIT_MODELS[modelPref] ?? pickModel(messages);
+  console.log(`routed model=${model.replace(/^claude-/, "")}${modelPref && EXPLICIT_MODELS[modelPref] ? " (user pick)" : ""}`);
 
   // Office/CSV/text attachments can't be sent inline (only images + PDFs can), so
   // upload them to the Files API and reference them with a container_upload block
