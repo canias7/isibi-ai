@@ -11,6 +11,7 @@ import { primeAudio, resumeAudio, audioState, closeAudio, listenOnce, transcribe
 import { sentSound, replySound, soundsOn, setSoundsOn, soundTheme, setSoundTheme, type SoundTheme } from './earcons';
 import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
 import { pickSuggestions } from './suggestions';
+import { fetchUsage, summarize, fmtUsd, fmtTokens, sourceLabel, type UsageSummary } from './usage';
 import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, registerReminderActions, onReminderAction, snoozeNudge, type Reminder, type RepeatKind } from './reminders';
@@ -302,6 +303,8 @@ export default function App() {
   const [forceUpdate, setForceUpdate] = useState<ForceUpdateMode | null>(null); // hard update gate (from ota.ts)
   const [wnOpen, setWnOpen] = useState(false); // "What's new" sheet (once per announced edition)
   const [legalDoc, setLegalDoc] = useState<'privacy' | 'terms' | null>(null); // in-app Privacy/Terms reader
+  const [usageOpen, setUsageOpen] = useState(false);             // AI-usage sheet (the ≈$ chip bottom-right)
+  const [usageSum, setUsageSum] = useState<UsageSummary | null>(null);
   const [micState, setMicState] = useState<'idle' | 'rec' | 'tx'>('idle'); // composer dictation
   const micFinishRef = useRef<AbortController | null>(null);
   const lockRef = useRef<() => void>(() => {});
@@ -456,6 +459,8 @@ export default function App() {
   const radialRef = useRef<HTMLDivElement>(null);
   const wnRef = useRef<HTMLDivElement>(null);
   const legalRef = useRef<HTMLDivElement>(null);
+  const usageRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(usageOpen, usageRef, () => setUsageOpen(false));
   useFocusTrap(!!menuChat, menuSheetRef, () => setMenuChat(null));
   useFocusTrap(confirmDelete, confirmSheetRef, () => { if (!deleting) setConfirmDelete(false); });
   useFocusTrap(confirmSignOut, signOutSheetRef, () => setConfirmSignOut(false));
@@ -474,6 +479,7 @@ export default function App() {
   const confirmUi = useDismiss(confirmDelete);
   const signOutUi = useDismiss(confirmSignOut);
   const wnUi = useDismiss(wnOpen);
+  const usageUi = useDismiss(usageOpen);
   // Legal reader: latch the doc so the sheet doesn't blank out during its exit beat.
   const legalUi = useDismiss(!!legalDoc);
   const lastLegal = useRef(legalDoc);
@@ -483,6 +489,17 @@ export default function App() {
   function closeWhatsNew() {
     markWhatsNewSeen();
     setWnOpen(false);
+  }
+
+  // AI-usage meter: load once per sign-in (drives the ≈$ chip), refresh on open.
+  useEffect(() => {
+    if (!uid) { setUsageSum(null); return; }
+    void fetchUsage().then((rows) => { if (rows) setUsageSum(summarize(rows)); });
+  }, [uid]);
+  function openUsage() {
+    void tap();
+    setUsageOpen(true);
+    void fetchUsage().then((rows) => { if (rows) setUsageSum(summarize(rows)); });
   }
 
   // Announce a worth-mentioning OTA release once per edition (see whatsnew.ts),
@@ -1743,6 +1760,35 @@ export default function App() {
           </div>
         </>
       )}
+      {/* AI usage sheet — the ≈$ chip's detail view (estimates, not invoices) */}
+      {usageUi.mounted && (
+        <>
+          <div className={`sheet-scrim${usageUi.closing ? ' closing' : ''}`} onClick={() => setUsageOpen(false)} />
+          <div className={`chat-sheet usage-sheet${usageUi.closing ? ' closing' : ''}`} role="dialog" aria-label="AI usage" ref={usageRef} tabIndex={-1}>
+            <div className="wn-eyebrow">AI usage · estimates</div>
+            {usageSum ? (
+              <>
+                <div className="usage-row"><span>Today</span><span>{fmtUsd(usageSum.today.cost)} · {fmtTokens(usageSum.today.tokens)} tokens</span></div>
+                <div className="usage-row"><span>Last 7 days</span><span>{fmtUsd(usageSum.week.cost)} · {fmtTokens(usageSum.week.tokens)} tokens</span></div>
+                <div className="usage-row"><span>Last 30 days</span><span>{fmtUsd(usageSum.month.cost)} · {fmtTokens(usageSum.month.tokens)} tokens</span></div>
+                {usageSum.bySource.length > 0 && (
+                  <div className="usage-row">
+                    <span>By source</span>
+                    <span>{usageSum.bySource.slice(0, 3).map((s) => `${sourceLabel(s.source)} ${fmtUsd(s.cost)}`).join(' · ')}</span>
+                  </div>
+                )}
+                {usageSum.cacheSavings > 0.005 && (
+                  <div className="usage-note">Prompt caching saved ≈{fmtUsd(usageSum.cacheSavings)} in the last 30 days.</div>
+                )}
+                <div className="usage-note">Token counts × list prices — actual billing can differ.</div>
+              </>
+            ) : (
+              <div className="usage-note">Loading…</div>
+            )}
+            <button className="chat-sheet-row cancel" onClick={() => setUsageOpen(false)}>Done</button>
+          </div>
+        </>
+      )}
       {/* In-app legal reader (Privacy / Terms) */}
       {legalUi.mounted && shownLegal && (
         <LegalSheet
@@ -1921,6 +1967,11 @@ export default function App() {
             {!atBottom && messages.length > 0 && (
               <button className={`scroll-latest${unseen ? ' unseen' : ''}`} onClick={jumpToLatest} aria-label="Jump to latest message">
                 <IconArrowDown size={16} />
+              </button>
+            )}
+            {usageSum && (
+              <button className="usage-chip" onClick={openUsage} aria-label="AI usage this month">
+                ≈{fmtUsd(usageSum.month.cost)}
               </button>
             )}
             {radialUi.mounted && (
