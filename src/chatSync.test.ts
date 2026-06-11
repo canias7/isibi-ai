@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { loadDrafts, saveDrafts, loadQueuedMsg, saveQueuedMsg } from './chatSync';
+import { loadDrafts, saveDrafts, loadChatModels, saveChatModels, loadQueuedMsg, saveQueuedMsg } from './chatSync';
 
 const UID = 'user-1';
 
@@ -29,6 +29,30 @@ describe('draft persistence (per-chat composer text)', () => {
     expect(loadDrafts('someone-else')).toEqual({});
     localStorage.setItem(`gf_drafts_${UID}`, 'not json');
     expect(loadDrafts(UID)).toEqual({});
+  });
+});
+
+describe('per-chat model choice', () => {
+  it('round-trips explicit choices through localStorage', () => {
+    saveChatModels(UID, { a: 'opus', b: 'haiku' });
+    expect(loadChatModels(UID)).toEqual({ a: 'opus', b: 'haiku' });
+  });
+
+  it("drops 'auto' (the default needs no entry) and rejects junk", () => {
+    saveChatModels(UID, { a: 'opus', b: 'auto', c: 'gpt-5' as never });
+    expect(loadChatModels(UID)).toEqual({ a: 'opus' });
+  });
+
+  it('ignores junk values already in storage on load', () => {
+    localStorage.setItem(`gf_models_${UID}`, JSON.stringify({ a: 'sonnet', b: 'nope', c: 'auto' }));
+    expect(loadChatModels(UID)).toEqual({ a: 'sonnet' });
+  });
+
+  it('is per-user and survives garbage in storage', () => {
+    saveChatModels(UID, { a: 'opus' });
+    expect(loadChatModels('someone-else')).toEqual({});
+    localStorage.setItem(`gf_models_${UID}`, 'not json');
+    expect(loadChatModels(UID)).toEqual({});
   });
 });
 

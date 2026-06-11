@@ -162,6 +162,16 @@ function pickModel(messages: Msg[]): string {
   return MODELS.sonnet;
 }
 
+// A user's explicit per-chat model pick (the composer's model chip). When set,
+// it overrides the keyword router — the model (and its cost) is then the user's
+// deliberate choice. 'auto' / anything unrecognized is absent here, so routing
+// stays in charge. Tool-schema caching still benefits when many chats share a tier.
+const EXPLICIT_MODELS: Record<string, string> = {
+  haiku: "claude-haiku-4-5",
+  sonnet: MODELS.sonnet,
+  opus: MODELS.opus,
+};
+
 async function callAnthropic(reqBody: Record<string, unknown>, apiKey: string, extra: Record<string, string>): Promise<Response> {
   const call = () => fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -266,6 +276,62 @@ async function flagEnabled(key: string): Promise<boolean> {
     return Array.isArray(rows) && rows[0] ? rows[0].enabled !== false : true;
   } catch {
     return true;
+  }
+}
+
+// ---- Daily spend limit (per-user rate limiting) -----------------------------
+// A configurable daily cap (app_config.daily_limit_usd, owner-tunable live) on
+// estimated spend, enforced before the expensive call. 0 / missing = no limit.
+// Today's spend is summed by the user_spend_usd SQL function from the start of
+// the user's LOCAL day, so the cap resets at their midnight.
+let limitCache: { v: number; at: number } | null = null;
+async function dailyLimitUsd(): Promise<number> {
+  if (limitCache && Date.now() - limitCache.at < 60_000) return limitCache.v;
+  if (!SB_URL || !SB_SERVICE_KEY) return 0;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/app_config?key=eq.daily_limit_usd&select=num_value`, {
+      headers: { apikey: SB_SERVICE_KEY, authorization: `Bearer ${SB_SERVICE_KEY}` },
+    });
+    if (!r.ok) return limitCache?.v ?? 0;
+    const rows = await r.json();
+    const v = Array.isArray(rows) && rows[0] ? Number(rows[0].num_value) : 0;
+    limitCache = { v: v > 0 ? v : 0, at: Date.now() };
+    return limitCache.v;
+  } catch {
+    return limitCache?.v ?? 0;
+  }
+}
+// The UTC instant of the most recent local midnight in `tz`.
+function localDayStartIso(tz: string): string {
+  const now = new Date();
+  try {
+    const p = new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).formatToParts(now);
+    const g = (t: string) => +(p.find((x) => x.type === t)?.value || 0);
+    const offset = Date.UTC(g("year"), g("month") - 1, g("day"), g("hour"), g("minute"), g("second")) - now.getTime();
+    return new Date(Date.UTC(g("year"), g("month") - 1, g("day"), 0, 0, 0) - offset).toISOString();
+  } catch {
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
+  }
+}
+// Hours until the user's next local midnight (for the "resets in Xh" message).
+function hoursToLocalMidnight(tz: string): number {
+  const start = new Date(localDayStartIso(tz)).getTime();
+  return Math.max(1, Math.ceil((start + 86400_000 - Date.now()) / 3600_000));
+}
+// Estimated USD this user has spent since `sinceIso` (the SQL pricing function).
+async function userSpendUsd(uid: string, sinceIso: string): Promise<number> {
+  if (!SB_URL || !SB_SERVICE_KEY) return 0;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/user_spend_usd`, {
+      method: "POST",
+      headers: { apikey: SB_SERVICE_KEY, authorization: `Bearer ${SB_SERVICE_KEY}`, "content-type": "application/json" },
+      body: JSON.stringify({ p_user: uid, p_since: sinceIso }),
+    });
+    if (!r.ok) return 0; // fail-open: a metering hiccup must never block a paying turn forever
+    const v = await r.json();
+    return Number(v) || 0;
+  } catch {
+    return 0;
   }
 }
 
@@ -611,6 +677,7 @@ Deno.serve(async (req: Request) => {
   let conversationId = ""; // for server-side persistence of the finished turn
   let memoryOn = true;     // false = user paused the whole memory feature (no inject, no tool)
   let util = false;        // true = tiny utility call (title, memory extraction) — bare Haiku, no tools
+  let modelPref = "";      // user's explicit per-chat model pick ('haiku'|'sonnet'|'opus'); '' = auto-route
   let location: { lat: number; lon: number; label?: string } | null = null; // device location for "here/near me"
   try {
     const body = await req.json();
@@ -621,6 +688,7 @@ Deno.serve(async (req: Request) => {
     if (typeof body.conversationId === "string") conversationId = body.conversationId;
     if (body.memory === false) memoryOn = false; // memory paused for this turn
     if (body.util === true) util = true;
+    if (typeof body.model === "string") modelPref = body.model; // explicit model choice for this chat
     const L = body.location;
     if (L && typeof L.lat === "number" && typeof L.lon === "number") location = { lat: L.lat, lon: L.lon, ...(typeof L.label === "string" && L.label ? { label: L.label } : {}) };
     if (!Array.isArray(messages) || messages.length === 0) throw new Error("bad body");
@@ -710,6 +778,21 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Daily spend limit (per-user rate limiting). Checked here — after the cheap
+  // util/tap fast-paths, before the expensive turn — so a user who's hit their
+  // cap is turned away with a clear message that resets at their local midnight.
+  if (appUser) {
+    const limit = await dailyLimitUsd();
+    if (limit > 0) {
+      const spent = await userSpendUsd(appUser, localDayStartIso(tz));
+      if (spent >= limit) {
+        const h = hoursToLocalMidnight(tz);
+        const msg = `You've reached today's usage limit (about $${limit.toFixed(2)} of AI per day). It resets at midnight — about ${h} hour${h === 1 ? "" : "s"} from now.`;
+        return new Response(msg, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8", "x-gf-limit": "1", "Access-Control-Expose-Headers": "x-gf-limit" } });
+      }
+    }
+  }
+
   // Kick off the memory read in parallel with the connector lookup below (skip it
   // entirely when the feature is paused).
   const memPromise = (appUser && memoryOn) ? fetchMemories(appUser) : Promise.resolve([] as Mem[]);
@@ -787,10 +870,11 @@ Deno.serve(async (req: Request) => {
       memorySystem += `\n\nSome of those memories have an attached image or file (shown as [attachment: …, id: …]). Two ways to use one: (1) to SHOW it to the user in chat, reply with a fenced code block tagged gf-memory containing ONLY {"id":"<that memory's id>"} (the app displays the image inline, or a file to open; you may put one short line before the block); (2) to SEND or ATTACH it through another app (attach to an email, upload to Slack, etc.), FIRST call the GF_GET_MEMORY_FILE tool with that memory id AND the toolkit_slug + tool_slug of the action you're about to use (e.g. "gmail" / "GMAIL_SEND_EMAIL"); it returns {s3key, mimetype, name} — pass that object straight into that same tool's attachment/file parameter. The staging tool handles large files for you, so NEVER claim a saved file is too large to attach, and NEVER tell the user to attach or send it themselves/manually when you have a send tool — just use the tool. If a send that includes an attachment errors or times out, do NOT invent a size limit and do NOT silently resend it (it may already have gone out): tell the user it may not have completed and ask them to check or confirm before retrying. When the user only asks ABOUT it, just answer from the saved description.`;
     }
   }
-  // Route this turn: Opus for genuinely complex/long asks, Sonnet for everything
-  // else. A single default model keeps the cached tool-schema prefix warm.
-  const model = pickModel(messages);
-  console.log(`routed model=${model.replace(/^claude-/, "")}`);
+  // Route this turn: an explicit per-chat pick wins; otherwise Opus for genuinely
+  // complex/long asks, Sonnet for everything else. A single default keeps the
+  // cached tool-schema prefix warm for the auto majority.
+  const model = EXPLICIT_MODELS[modelPref] ?? pickModel(messages);
+  console.log(`routed model=${model.replace(/^claude-/, "")}${modelPref && EXPLICIT_MODELS[modelPref] ? " (user pick)" : ""}`);
 
   // Office/CSV/text attachments can't be sent inline (only images + PDFs can), so
   // upload them to the Files API and reference them with a container_upload block

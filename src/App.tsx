@@ -12,6 +12,7 @@ import { sentSound, replySound, soundsOn, setSoundsOn, soundTheme, setSoundTheme
 import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
 import { pickSuggestions } from './suggestions';
 import { fetchUsage, summarize, fmtUsd, fmtTokens, fmtDuration, sourceLabel, loadBudget, saveBudget, type UsageSummary } from './usage';
+import { MODEL_OPTIONS, type ModelChoice } from './models';
 import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, registerReminderActions, onReminderAction, snoozeNudge, type Reminder, type RepeatKind } from './reminders';
@@ -28,7 +29,7 @@ import SettingsPage from './SettingsPage';
 import LegalSheet from './LegalSheet';
 import { PRIVACY_MD, TERMS_MD } from './legalDocs';
 import SidebarNav from './SidebarNav';
-import { loadChats, saveChats, loadPins, savePins, syncLoad, syncLoadOlder, syncSave, syncDelete, wipeStoredChats, loadDrafts, saveDrafts, loadQueuedMsg, saveQueuedMsg, MAX_CHATS, type Conversation } from './chatSync';
+import { loadChats, saveChats, loadPins, savePins, syncLoad, syncLoadOlder, syncSave, syncDelete, wipeStoredChats, loadDrafts, saveDrafts, loadChatModels, saveChatModels, loadQueuedMsg, saveQueuedMsg, MAX_CHATS, type Conversation } from './chatSync';
 import { biometryAvailable, biometryStatus, unlock, type BiometryStatus } from './biometric';
 import { registerPush, pushStatus } from './push';
 import { fileToAttachment } from './attach';
@@ -307,6 +308,13 @@ export default function App() {
   const [usageSum, setUsageSum] = useState<UsageSummary | null>(null);
   const [budget, setBudget] = useState(loadBudget);              // self-set monthly ceiling for the spend bar
   const [editBudget, setEditBudget] = useState(false);
+  const [model, setModel] = useState<ModelChoice>('auto');       // open chat's model choice (auto = backend routes)
+  const [modelOpen, setModelOpen] = useState(false);             // model-picker sheet
+  const modelRef = useRef<ModelChoice>(model);
+  modelRef.current = model;
+  // Per-chat model choices (device-local map, like drafts): each conversation
+  // remembers the model you picked for it; a fresh chat starts back on 'auto'.
+  const modelsRef = useRef<Record<string, ModelChoice>>({});
   const [micState, setMicState] = useState<'idle' | 'rec' | 'tx'>('idle'); // composer dictation
   const micFinishRef = useRef<AbortController | null>(null);
   const lockRef = useRef<() => void>(() => {});
@@ -462,7 +470,9 @@ export default function App() {
   const wnRef = useRef<HTMLDivElement>(null);
   const legalRef = useRef<HTMLDivElement>(null);
   const usageRef = useRef<HTMLDivElement>(null);
+  const modelSheetRef = useRef<HTMLDivElement>(null);
   useFocusTrap(usageOpen, usageRef, () => setUsageOpen(false));
+  useFocusTrap(modelOpen, modelSheetRef, () => setModelOpen(false));
   useFocusTrap(!!menuChat, menuSheetRef, () => setMenuChat(null));
   useFocusTrap(confirmDelete, confirmSheetRef, () => { if (!deleting) setConfirmDelete(false); });
   useFocusTrap(confirmSignOut, signOutSheetRef, () => setConfirmSignOut(false));
@@ -482,6 +492,7 @@ export default function App() {
   const signOutUi = useDismiss(confirmSignOut);
   const wnUi = useDismiss(wnOpen);
   const usageUi = useDismiss(usageOpen);
+  const modelUi = useDismiss(modelOpen);
   // Legal reader: latch the doc so the sheet doesn't blank out during its exit beat.
   const legalUi = useDismiss(!!legalDoc);
   const lastLegal = useRef(legalDoc);
@@ -534,6 +545,7 @@ export default function App() {
     }
     setPinned(loadPins(uid));
     draftsRef.current = loadDrafts(uid);
+    modelsRef.current = loadChatModels(uid);
     // A message queued mid-reply that a crash left orphaned: fold it back into its
     // chat's draft so it's waiting in the composer (never silently re-sent).
     const orphan = loadQueuedMsg(uid);
@@ -601,6 +613,7 @@ export default function App() {
   useEffect(() => {
     pendingTurnRef.current = null; retryingRef.current = false; setCopiedIdx(null); setQueued(null);
     setInput(draftsRef.current[currentId] ?? ''); // each chat keeps its own draft
+    setModel(modelsRef.current[currentId] ?? 'auto'); // …and its own model choice
     setVisCount(60); // windowed thread: a freshly opened chat renders its tail
      
   }, [currentId]);
@@ -884,6 +897,7 @@ export default function App() {
         },
         memEnabled,
         location,
+        modelRef.current, // user's model choice ('auto' = backend routes)
       );
       // Clear transient tool-activity markers from the finished reply so storage,
       // copy, and search stay clean (they're only meant to show live).
@@ -1171,6 +1185,18 @@ export default function App() {
     setSndTheme(t);
     resumeAudio();
     sentSound();
+  }
+
+  // Choose the model for THIS conversation — remembered per chat (device-local),
+  // so each one reopens on the model you picked for it. 'auto' = the backend
+  // routes (and is the default), so we drop the entry rather than store it.
+  function pickChatModel(m: ModelChoice) {
+    void tap();
+    setModel(m);
+    if (m === 'auto') delete modelsRef.current[currentId];
+    else modelsRef.current[currentId] = m;
+    if (uid) saveChatModels(uid, modelsRef.current);
+    setModelOpen(false);
   }
 
   // One-tap end-to-end check: ask the backend to push us a test notification.
@@ -1509,6 +1535,7 @@ export default function App() {
     if (id === currentId) stopStream(); // abort any in-flight reply before dropping its chat
     delete draftsRef.current[id];
     if (uid) saveDrafts(uid, draftsRef.current);
+    if (modelsRef.current[id]) { delete modelsRef.current[id]; if (uid) saveChatModels(uid, modelsRef.current); }
     setChats((prev) => {
       const next = prev.filter((c) => c.id !== id);
       if (uid) saveChats(uid, next);
@@ -1664,6 +1691,7 @@ export default function App() {
 
   const isGuest = !!session.user.is_anonymous;
   const title = view === 'connectors' ? 'Connectors' : view === 'settings' ? 'Settings' : 'Go Farther';
+  const curModel = MODEL_OPTIONS.find((o) => o.id === model) ?? MODEL_OPTIONS[0]; // this chat's model (for the composer chip)
   // Recent chats: pinned first, then newest. Filtered by the search box (title +
   // message text).
   const q = chatSearch.trim().toLowerCase();
@@ -1822,6 +1850,33 @@ export default function App() {
               <div className="usage-note">Loading…</div>
             )}
             <button className="chat-sheet-row cancel" onClick={() => setUsageOpen(false)}>Done</button>
+          </div>
+        </>
+      )}
+      {/* Model picker — per chat. 'Auto' lets the backend route; an explicit pick
+          makes the model (and its cost) the user's deliberate choice. */}
+      {modelUi.mounted && (
+        <>
+          <div className={`sheet-scrim${modelUi.closing ? ' closing' : ''}`} onClick={() => setModelOpen(false)} />
+          <div className={`chat-sheet model-sheet${modelUi.closing ? ' closing' : ''}`} role="dialog" aria-label="Choose model for this chat" ref={modelSheetRef} tabIndex={-1}>
+            <div className="wn-eyebrow">Model · this chat</div>
+            {MODEL_OPTIONS.map((o) => (
+              <button
+                key={o.id}
+                className={`model-opt${o.id === model ? ' on' : ''}`}
+                role="menuitemradio"
+                aria-checked={o.id === model}
+                onClick={() => pickChatModel(o.id)}
+              >
+                <span className={`model-dot d${o.dots}`} aria-hidden />
+                <span className="model-opt-text">
+                  <span className="model-opt-label">{o.label}</span>
+                  <span className="model-opt-sub">{o.sub}</span>
+                </span>
+                {o.id === model && <IconCheck size={16} />}
+              </button>
+            ))}
+            <button className="chat-sheet-row cancel" onClick={() => setModelOpen(false)}>Done</button>
           </div>
         </>
       )}
@@ -2074,6 +2129,16 @@ export default function App() {
                   </button>
                 </div>
               )}
+              <div className="composer-tools">
+                <button
+                  className="model-chip"
+                  onClick={() => { void tap(); setModelOpen(true); }}
+                  aria-label={`Model for this chat: ${curModel.label}. Tap to change.`}
+                >
+                  <span className={`model-dot d${curModel.dots}`} aria-hidden />
+                  {curModel.chip}
+                </button>
+              </div>
               <div className="composer-row">
                 <button
                   className={`plus-btn ${plusOpen ? 'open' : ''}`}
