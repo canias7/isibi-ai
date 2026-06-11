@@ -310,7 +310,6 @@
   text-align: center;
 }
 .msg-failed { display: inline-flex; align-items: center; gap: 0.7059rem; flex-wrap: wrap; color: var(--text-dim); font-size: 0.8235rem; }
-.msg-working { display: inline-flex; align-items: center; gap: 0.5882rem; flex-wrap: wrap; color: var(--text-dim); font-size: 0.8235rem; }
 .msg-retry {
   background: #ffffff14;
   border: 1px solid #ffffff26;
