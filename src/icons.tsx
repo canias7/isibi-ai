@@ -202,6 +202,13 @@ export const IconArrowUp = ({ size }: { size?: number }) => (
   </Svg>
 );
 
+export const IconArrowDown = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M12 5v14" />
+    <path d="m19 12-7 7-7-7" />
+  </Svg>
+);
+
 export const IconArrowLeft = ({ size }: { size?: number }) => (
   <Svg size={size}>
     <path d="m12 19-7-7 7-7" />

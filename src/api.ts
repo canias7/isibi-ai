@@ -174,6 +174,26 @@ export async function streamChat(
   }
 }
 
+// One-shot title for a new conversation (3-5 words, sidebar-sized). Memory and
+// connectors are scoped off — this is a cheap utility call, not a user turn.
+export async function titleFor(userText: string, replyText: string): Promise<string> {
+  let out = '';
+  try {
+    await streamChat(
+      [{
+        role: 'user',
+        content: `Write a 3-5 word title for this conversation. Reply with ONLY the title - no quotes, no trailing period.\n\nUser: ${userText.slice(0, 280)}\nAssistant: ${replyText.slice(0, 280)}`,
+      }],
+      (t) => { out += t; },
+      undefined, [], undefined, undefined,
+      false, // memory off for this utility call
+    );
+  } catch {
+    return '';
+  }
+  return out.replace(/\[\[gfstatus:[^\]]*\]\]/g, '').replace(/["\u201c\u201d.]/g, '').trim().slice(0, 60);
+}
+
 // Read an attachment (image/PDF) into a concise memory line, via the chat model's
 // vision. Memory is off for this call so it doesn't pull in other memories or the
 // save tool — we just want the extracted text.

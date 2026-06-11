@@ -414,3 +414,38 @@
 @media (prefers-reduced-motion: reduce) { .send.mic.rec { animation: none; } }
 .send.mic.tx { background: #ffffff14; }
 .send.mic.tx .gf-status-spin { width: 15px; height: 15px; }
+
+/* "Jump to latest" — appears when you scroll up; dot = new reply text below */
+.scroll-latest {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  background: rgba(28, 28, 32, 0.92);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-modal);
+  animation: pillIn var(--dur-enter) var(--ease-spring) backwards;
+}
+@keyframes pillIn { from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.8); } }
+.scroll-latest.unseen::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--brand);
+  border: 2px solid #1c1c20;
+}
+@media (prefers-reduced-motion: reduce) { .scroll-latest { animation: none; } }

@@ -1,26 +1,31 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { streamChat, sendTestPush, extractMemory, reachedServer, type ChatMessage, type Attach } from './api';
+import { streamChat, sendTestPush, extractMemory, reachedServer, titleFor, type ChatMessage, type Attach } from './api';
 import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconPlus } from './icons';
+import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus } from './icons';
 import { primeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { track } from './analytics';
-import { keyActivate, useFocusTrap } from './a11y';
+import { useFocusTrap } from './a11y';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, type Reminder, type RepeatKind } from './reminders';
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { tap, bump, thud } from './haptics';
 import { useDismiss } from './motion';
+import ErrorBoundary from './ErrorBoundary';
+import RecoveryBubble from './RecoveryBubble';
+import SettingsPage from './SettingsPage';
+import SidebarNav from './SidebarNav';
+import { loadChats, saveChats, loadPins, savePins, syncLoad, syncSave, syncDelete, wipeStoredChats, MAX_CHATS, type Conversation } from './chatSync';
 import { biometryAvailable, biometryStatus, unlock, type BiometryStatus } from './biometric';
 import { registerPush, pushStatus } from './push';
 import { fileToAttachment } from './attach';
 import { getLocation } from './geo';
-import { slimMessages, isNetworkError, serverIsMoreComplete, withoutPlaceholders, titleFrom, cleanForDisplay, modelShort, plainText } from './chatUtils';
+import { isNetworkError, serverIsMoreComplete, withoutPlaceholders, titleFrom, cleanForDisplay, modelShort, plainText } from './chatUtils';
 import { FORCE_UPDATE_EVENT, type ForceUpdateMode } from './ota';
 
 // Heavy, on-demand screens are code-split: their JS downloads only when first
@@ -31,19 +36,24 @@ const WorkflowsScreen = lazy(() => import('./WorkflowsScreen'));
 const CallScreen = lazy(() => import('./CallScreen'));
 const RemindersGraph = lazy(() => import('./RemindersGraph'));
 
-type View = 'chat' | 'connectors' | 'settings';
-
-interface Conversation {
-  id: string;
-  title: string;
-  messages: ChatMessage[];
-  updatedAt: number;
+// Compact fallback for a crashed overlay: the screen closes instead of the
+// whole app white-screening (the root boundary stays as the last resort).
+function OverlayCrash({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="memg" role="alertdialog" aria-label="Screen error">
+      <div className="overlay-crash">
+        <span className="brand-orb" style={{ width: 40, height: 40 }} aria-hidden />
+        <p>This screen hit a problem.</p>
+        <button className="lock-btn" onClick={onClose}>Close</button>
+      </div>
+    </div>
+  );
 }
 
-const MAX_CHATS = 50;
+type View = 'chat' | 'connectors' | 'settings';
+
 // A message looks location-relevant → capture device location for it (see geo.ts).
 const LOCATION_RE = /\b(here|near\s?me|nearby|around me|close by|closest|nearest|my (location|area|city|place|spot)|where am i|directions|commute|weather|forecast|temperature|raining|umbrella)\b/i;
-const chatsKey = (uid: string) => `gf_chats_${uid}`;
 // Backgrounded for longer than this → resume into a fresh chat instead of the
 // old conversation. Shorter trips away keep you where you left off.
 const NEW_CHAT_AFTER_MS = 30 * 60 * 1000; // 30 minutes
@@ -51,38 +61,6 @@ const NEW_CHAT_AFTER_MS = 30 * 60 * 1000; // 30 minutes
 // Starter prompts shown on the home screen (tap to send).
 const SUGGESTIONS = ['Summarize my inbox', 'What’s on my calendar?'];
 
-function loadChats(uid: string): Conversation[] {
-  try {
-    const v = JSON.parse(localStorage.getItem(chatsKey(uid)) || '[]');
-    return Array.isArray(v) ? v : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveChats(uid: string, chats: Conversation[]) {
-  try {
-    const slim = chats.slice(0, MAX_CHATS).map((c) => ({ ...c, messages: slimMessages(c.messages) }));
-    localStorage.setItem(chatsKey(uid), JSON.stringify(slim));
-  } catch {
-    /* storage full / unavailable */
-  }
-}
-
-// Pinned chat ids (device-local — kept separate from the synced chat list so a
-// cloud merge can't wipe them).
-const pinsKey = (uid: string) => `gf_pins_${uid}`;
-function loadPins(uid: string): Set<string> {
-  try {
-    const v = JSON.parse(localStorage.getItem(pinsKey(uid)) || '[]');
-    return new Set(Array.isArray(v) ? v : []);
-  } catch {
-    return new Set();
-  }
-}
-function savePins(uid: string, pins: Set<string>) {
-  try { localStorage.setItem(pinsKey(uid), JSON.stringify([...pins])); } catch { /* ignore */ }
-}
 
 // Copy text to the clipboard, with a hidden-textarea fallback for older webviews.
 async function copyText(s: string): Promise<boolean> {
@@ -100,13 +78,6 @@ function dayStart(t: number): number {
   const d = new Date(t);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
-function chatWhen(ts: number): string {
-  if (!ts) return '';
-  const diff = Math.round((dayStart(Date.now()) - dayStart(ts)) / 86400000);
-  if (diff <= 0) return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  if (diff === 1) return 'Yesterday';
-  return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' });
-}
 function chatGroup(ts: number): string {
   const diff = Math.round((dayStart(Date.now()) - dayStart(ts || Date.now())) / 86400000);
   if (diff <= 0) return 'Today';
@@ -116,48 +87,6 @@ function chatGroup(ts: number): string {
 }
 
 // ---- Cloud sync (conversations table, RLS-scoped to this user) ----
-async function syncLoad(uid: string): Promise<Conversation[] | null> {
-  try {
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('id,title,messages,updated_at')
-      .eq('user_id', uid)
-      .order('updated_at', { ascending: false })
-      .limit(MAX_CHATS);
-    if (error || !data) return null;
-    return data.map((r: { id: string; title: string; messages: unknown; updated_at: string }) => ({
-      id: r.id,
-      title: r.title || 'New chat',
-      messages: Array.isArray(r.messages) ? (r.messages as ChatMessage[]) : [],
-      updatedAt: new Date(r.updated_at).getTime(),
-    }));
-  } catch {
-    return null;
-  }
-}
-async function syncSave(uid: string, c: Conversation) {
-  try {
-    await supabase.from('conversations').upsert({
-      user_id: uid,
-      id: c.id,
-      title: c.title,
-      // Placeholders never go to the cloud: a failed/empty bubble synced over a
-      // reply the server saved makes that reply unadoptable (and unrecoverable).
-      messages: slimMessages(withoutPlaceholders(c.messages)),
-      updated_at: new Date(c.updatedAt || Date.now()).toISOString(),
-    });
-  } catch {
-    /* offline — local copy still saved */
-  }
-}
-async function syncDelete(uid: string, id: string) {
-  try {
-    await supabase.from('conversations').delete().eq('user_id', uid).eq('id', id);
-  } catch {
-    /* offline */
-  }
-}
-
 // Attachment conversion (size cap + image downscale) lives in ./attach, shared
 // with the Memory composer.
 
@@ -257,6 +186,28 @@ export default function App() {
   const [wfOpen, setWfOpen] = useState(false); // Workflows screen (placeholder for now)
   const [callOpen, setCallOpen] = useState(false); // voice "call mode" overlay
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Scroll anchoring: only auto-follow the stream while the user is AT the
+  // bottom. Scrolled up to re-read? The chat stays put and a "jump to latest"
+  // pill appears (with a dot once new reply text lands out of view).
+  const [atBottom, setAtBottom] = useState(true);
+  const atBottomRef = useRef(true);
+  const [unseen, setUnseen] = useState(false);
+  function onThreadScroll() {
+    const el = scrollRef.current;
+    if (!el) return;
+    const near = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    if (near !== atBottomRef.current) {
+      atBottomRef.current = near;
+      setAtBottom(near);
+      if (near) setUnseen(false);
+    }
+  }
+  function jumpToLatest() {
+    const el = scrollRef.current;
+    if (!el) return;
+    setUnseen(false);
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }
   const taRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const bgAbortRef = useRef(false);    // the in-flight turn was aborted by backgrounding (vs. the Stop button)
@@ -462,12 +413,19 @@ export default function App() {
     if (!el) return;
     const jump = jumpRef.current;
     jumpRef.current = false;
+    // Reading back while a reply streams? Don't yank — light the pill instead.
+    if (!jump && !atBottomRef.current) {
+      if (busy) setUnseen(true);
+      return;
+    }
     const toBottom = () => el.scrollTo({ top: el.scrollHeight, behavior: jump ? 'auto' : 'smooth' });
     toBottom();
     // Restored cards/markdown can grow the height a frame or two later — re-pin.
     if (jump) {
       requestAnimationFrame(toBottom);
       setTimeout(toBottom, 120);
+      atBottomRef.current = true;
+      setAtBottom(true);
     }
   }, [messages, busy]);
 
@@ -624,14 +582,46 @@ export default function App() {
     if (!uid || busy || messages.length === 0) return;
     if (!dirtyRef.current) return; // only persist after a real turn — not on mere open/restore
     dirtyRef.current = false;
-    const convo: Conversation = { id: currentId, title: titleFrom(messages), messages, updatedAt: Date.now() };
     setChats((prev) => {
+      // Keep a title that was renamed or AI-generated; otherwise derive one.
+      const existing = prev.find((c) => c.id === currentId);
+      const title = existing?.title ? existing.title : titleFrom(messages);
+      const convo: Conversation = { id: currentId, title, messages, updatedAt: Date.now() };
       const next = [convo, ...prev.filter((c) => c.id !== currentId)];
       saveChats(uid, next);
+      void syncSave(uid, convo); // mirror to the cloud
       return next;
     });
-    void syncSave(uid, convo); // mirror to the cloud
   }, [messages, busy, currentId, uid]);
+
+  // AI title: once a new chat has its first real reply, generate a 3-5 word
+  // title to replace the raw first-message truncation in the sidebar. Once per
+  // chat; never fights a manual rename (only replaces the derived title).
+  const titledRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (busy || !uid) return;
+    const ms = messagesRef.current;
+    if (ms.length < 2 || ms.length > 6) return; // only early in a chat
+    const id = currentIdRef.current;
+    if (titledRef.current.has(id)) return;
+    const first = ms.find((m) => m.role === 'user');
+    const reply = ms.find((m) => m.role === 'assistant' && m.content.trim() && !m.failed);
+    if (!first || !reply) return;
+    titledRef.current.add(id);
+    void titleFor(first.content, plainText(reply.content) || reply.content).then((t) => {
+      if (!t || t.split(/\s+/).length > 8) return;
+      setChats((prev) => {
+        const cur = prev.find((c) => c.id === id);
+        if (!cur) return prev;
+        if (cur.title !== titleFrom(cur.messages)) return prev; // renamed — leave it
+        const next = prev.map((c) => (c.id === id ? { ...c, title: t } : c));
+        saveChats(uid, next);
+        void syncSave(uid, { ...cur, title: t });
+        return next;
+      });
+    });
+     
+  }, [busy, uid]);
 
   // Run one chat turn for a message history (its last item = the user's new
   // message). An empty assistant bubble is appended for the streamed reply.
@@ -643,6 +633,7 @@ export default function App() {
     // still address it), while the dead recovery bubble disappears — re-sending
     // a superseded snapshot later would rewind the conversation.
     pendingTurnRef.current = null;
+    jumpRef.current = true; // your own message always comes into view
     const history = withoutPlaceholders(rawHistory);
     setMessages([...history, { role: 'assistant', content: '', id: cid() }]);
     setBusy(true);
@@ -1058,6 +1049,21 @@ export default function App() {
     }
     input.click();
   }
+  // Paste an image straight into the composer (screenshots, copied photos).
+  async function onPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const files = Array.from(e.clipboardData?.items ?? [])
+      .filter((it) => it.kind === 'file' && it.type.startsWith('image/'))
+      .map((it) => it.getAsFile())
+      .filter((f): f is File => !!f);
+    if (!files.length) return;
+    e.preventDefault(); // image paste, not text
+    for (const f of files) {
+      const { attach, error } = await fileToAttachment(f);
+      if (attach) setAttachments((prev) => [...prev, attach].slice(-6));
+      else if (error) { setAttachErr(error); setTimeout(() => setAttachErr(''), 4000); }
+    }
+  }
+
   async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
@@ -1315,7 +1321,7 @@ export default function App() {
   // Device-only prefs (Face ID, notifications, graph positions) are kept.
   function wipeLocalData() {
     try {
-      if (uid) { localStorage.removeItem(chatsKey(uid)); localStorage.removeItem(pinsKey(uid)); }
+      if (uid) wipeStoredChats(uid);
     } catch { /* ignore */ }
     setChats([]);
     setPinned(new Set());
@@ -1421,97 +1427,31 @@ export default function App() {
           <button className="lock-btn" onClick={() => void lockRef.current()}>Unlock</button>
         </div>
       )}
-      {/* Sidebar + backdrop */}
-      <div className={`backdrop ${sidebarOpen ? 'show' : ''}`} onClick={() => setSidebarOpen(false)} />
-      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`} aria-label="Chats and navigation">
-        <div className="side-search">
-          <IconSearch size={15} />
-          <input
-            value={chatSearch}
-            onChange={(e) => setChatSearch(e.target.value)}
-            placeholder="Search"
-            aria-label="Search chats"
-          />
-          {chatSearch && (
-            <button className="side-search-x" onClick={() => setChatSearch('')} aria-label="Clear search">
-              <IconX size={13} />
-            </button>
-          )}
-        </div>
-        <button className="side-item primary" onClick={() => { void tap(); newChat(); }}>
-          <span className="ico"><IconCompose size={18} /></span> New chat
-        </button>
-        <nav className="side-nav">
-          <button className={`side-item ${view === 'chat' ? 'active' : ''}`} onClick={() => go('chat')}>
-            <span className="ico"><IconChat size={18} /></span> Chat
-          </button>
-          <button className={`side-item ${view === 'settings' ? 'active' : ''}`} onClick={() => go('settings')}>
-            <span className="ico"><IconSettings size={18} /></span> Settings
-          </button>
-        </nav>
-
-        <div className="side-chats">
-          {q && chatSections.length === 0 && <div className="side-empty">No chats match that.</div>}
-          {chatSections.map((sec) => (
-            <div key={sec.label} className="side-group">
-              <div className="side-label">{sec.label}</div>
-              {sec.items.map((c) => {
-                const isEditing = editingId === c.id;
-                return (
-                  <div
-                    key={c.id}
-                    className={`side-item chat-item ${view === 'chat' && c.id === currentId ? 'active' : ''}`}
-                    onClick={() => {
-                      if (pressFired.current) { pressFired.current = false; return; }
-                      if (!isEditing) selectChat(c.id);
-                    }}
-                    onTouchStart={() => rowPressStart(c)}
-                    onTouchEnd={rowPressCancel}
-                    onTouchMove={rowPressCancel}
-                    onContextMenu={(e) => { e.preventDefault(); setMenuChat(c); }}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={isEditing ? undefined : keyActivate(() => selectChat(c.id))}
-                  >
-                    {isEditing ? (
-                      <input
-                        className="chat-rename"
-                        value={editingTitle}
-                        aria-label="Chat name"
-                        autoFocus
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => setEditingTitle(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); else if (e.key === 'Escape') setEditingId(null); }}
-                        onBlur={commitRename}
-                      />
-                    ) : (
-                      <>
-                        <span className="chat-title">{c.title || 'New chat'}</span>
-                        <span className="chat-time">{chatWhen(c.updatedAt || 0)}</span>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
-        <div className="side-foot">
-          <div className="side-profile" role="button" tabIndex={0} onClick={() => { void tap(); go('settings'); }} onKeyDown={keyActivate(() => { void tap(); go('settings'); })}>
-            <span className="side-avatar">{(session.user.email ?? 'G').charAt(0).toUpperCase()}</span>
-            <span className="side-who">
-              <span className="side-name">{isGuest || !session.user.email ? 'Guest' : session.user.email.split('@')[0].replace(/^./, (ch) => ch.toUpperCase())}</span>
-              {session.user.email && <span className="side-mail">{session.user.email}</span>}
-            </span>
-            {!isGuest && (
-              <button className="side-out" onClick={(e) => { e.stopPropagation(); void signOut(); }} aria-label="Sign out">
-                <IconLogout size={17} />
-              </button>
-            )}
-          </div>
-        </div>
-      </aside>
+      <SidebarNav
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        session={session}
+        isGuest={isGuest}
+        view={view}
+        currentId={currentId}
+        chatSearch={chatSearch}
+        setChatSearch={setChatSearch}
+        q={q}
+        chatSections={chatSections}
+        editingId={editingId}
+        editingTitle={editingTitle}
+        setEditingTitle={setEditingTitle}
+        setEditingId={setEditingId}
+        commitRename={commitRename}
+        selectChat={selectChat}
+        newChat={newChat}
+        go={go}
+        signOut={() => void signOut()}
+        rowPressStart={rowPressStart}
+        rowPressCancel={rowPressCancel}
+        pressFired={pressFired}
+        onMenuChat={setMenuChat}
+      />
       {/* Long-press chat actions sheet (content latched so it doesn't blank mid-exit) */}
       {menuSheetUi.mounted && menuSheetChat && (
         <>
@@ -1547,7 +1487,7 @@ export default function App() {
       )}
 
       <header className="topbar">
-        <button className="icon-btn" onClick={() => { void tap(); setSidebarOpen(true); }} aria-label="Open menu">
+        <button className="icon-btn menu-btn" onClick={() => { void tap(); setSidebarOpen(true); }} aria-label="Open menu">
           <IconMenu />
         </button>
         <span className="title">{view === 'chat' && messages.length === 0 ? '' : title}</span>
@@ -1557,67 +1497,21 @@ export default function App() {
       </header>
 
       {view === 'connectors' ? (
-        <Suspense fallback={null}><ConnectorsGraph onClose={() => go('chat')} /></Suspense>
+        <Suspense fallback={null}><ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); go('chat'); }} />}><ConnectorsGraph onClose={() => go('chat')} /></ErrorBoundary></Suspense>
       ) : view === 'settings' ? (
-        <div className="page settings-page">
-          <div className="page-inner">
-            <div className="set-account">
-              <span className="set-account-av">{(session.user.email ?? 'G').charAt(0).toUpperCase()}</span>
-              <div className="set-account-text">
-                <div className="set-account-name">{isGuest || !session.user.email ? 'Guest' : session.user.email.split('@')[0].replace(/^./, (ch) => ch.toUpperCase())}</div>
-                <div className="set-account-sub">{isGuest || !session.user.email ? 'Guest session on this device' : session.user.email}</div>
-              </div>
-            </div>
-
-            {Capacitor.getPlatform() !== 'web' && (
-              <>
-                <div className="set-label">Preferences</div>
-                <div className="set-card">
-                  {(bioStatus === 'ready' || bioStatus === 'unenrolled') && (
-                    <div className="set-row" onClick={toggleFaceId} onKeyDown={keyActivate(() => void toggleFaceId())} role="button" tabIndex={0} aria-pressed={faceId}>
-                      <div className="set-row-text">
-                        <div className="set-row-title">Require Face ID</div>
-                        <div className="set-row-sub">{bioStatus === 'unenrolled' ? 'Set up Face ID in iOS Settings to use this.' : 'Lock the app when you open or return to it.'}</div>
-                      </div>
-                      <span className={`tgl ${faceId ? 'on' : ''}`}><span className="tgl-knob" /></span>
-                    </div>
-                  )}
-                  <div className="set-row" onClick={toggleNotif} onKeyDown={keyActivate(() => void toggleNotif())} role="button" tabIndex={0} aria-pressed={notif}>
-                    <div className="set-row-text">
-                      <div className="set-row-title">Notifications</div>
-                      <div className="set-row-sub">Get push alerts from Go Farther.</div>
-                    </div>
-                    <span className={`tgl ${notif ? 'on' : ''}`}><span className="tgl-knob" /></span>
-                  </div>
-                </div>
-                {notif && (
-                  <button className="set-test-btn" onClick={testPush}>Send a test notification</button>
-                )}
-              </>
-            )}
-
-            {noteMsg && <p className="set-note" role="status" aria-live="polite">{noteMsg}</p>}
-
-            {!isGuest && (
-              <>
-                <div className="set-label">Account</div>
-                <div className="set-card">
-                  <button className="set-row set-row-tap" onClick={signOut}>
-                    <div className="set-row-title">Sign out</div>
-                    <span className="set-row-ico"><IconLogout size={18} /></span>
-                  </button>
-                  <button className="set-row set-row-tap danger" onClick={() => { void tap(); setConfirmDelete(true); }}>
-                    <div className="set-row-title">Delete account</div>
-                    <span className="set-row-ico"><IconTrash size={18} /></span>
-                  </button>
-                </div>
-                <p className="set-foot-note">Deleting your account permanently removes your chats, memories, connected-app links, and bank connections. This can’t be undone.</p>
-              </>
-            )}
-
-            <div className="set-version">Go Farther</div>
-          </div>
-        </div>
+        <SettingsPage
+          session={session}
+          isGuest={isGuest}
+          bioStatus={bioStatus}
+          faceId={faceId}
+          notif={notif}
+          noteMsg={noteMsg}
+          onToggleFaceId={() => void toggleFaceId()}
+          onToggleNotif={() => void toggleNotif()}
+          onTestPush={() => void testPush()}
+          onSignOut={() => void signOut()}
+          onDeleteAccount={() => setConfirmDelete(true)}
+        />
       ) : (
         <>
           <div className="live-bg" aria-hidden="true">
@@ -1628,7 +1522,7 @@ export default function App() {
           </div>
           {/* Hidden live region: narrates the streaming reply to screen readers. */}
           <div className="sr-only" aria-live="polite">{liveMsg}</div>
-          <div className="messages" ref={scrollRef} aria-label="Conversation">
+          <div className="messages" ref={scrollRef} onScroll={onThreadScroll} aria-label="Conversation">
             {messages.length === 0 ? (
               <div className="home">
                 <div className="home-hero">
@@ -1657,21 +1551,7 @@ export default function App() {
                       <div className="bubble">
                         {m.role === 'assistant' ? (
                           m.failed ? (
-                            m.stalled ? (
-                              // Recovery genuinely gave up — the only state with a button.
-                              <div className="msg-failed">
-                                <span>⚠️ {m.sent ? 'No reply came back.' : "This didn't go through."}</span>
-                                <button className="msg-retry" onClick={() => void retryPending(true)}>Try again</button>
-                              </div>
-                            ) : m.offline ? (
-                              <div className="msg-failed">
-                                <span>⚠️ You're offline — this will send when you're back.</span>
-                              </div>
-                            ) : (
-                              // Recovering quietly (the server is finishing it, or we're
-                              // re-sending it) — reads as still thinking, no plumbing shown.
-                              <div className="gf-thinking" role="status">{m.sent ? 'Finishing up…' : 'Reconnecting…'}</div>
-                            )
+                            <RecoveryBubble m={m} onRetry={() => void retryPending(true)} />
                           ) : (
                             <AssistantMessage text={m.content} streaming={streamingHere} onOpen={openEmail} />
                           )
@@ -1709,6 +1589,11 @@ export default function App() {
             <div className="net-banner" role="status" aria-live="polite">You're offline — messages will send when you reconnect.</div>
           )}
           <div className="composer-wrap">
+            {!atBottom && messages.length > 0 && (
+              <button className={`scroll-latest${unseen ? ' unseen' : ''}`} onClick={jumpToLatest} aria-label="Jump to latest message">
+                <IconArrowDown size={16} />
+              </button>
+            )}
             {radialUi.mounted && (
               <div
                 className={`conn-pop-backdrop radial-scrim${radialUi.closing ? ' closing' : ''}`}
@@ -1794,6 +1679,7 @@ export default function App() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={onKeyDown}
+                  onPaste={(e) => void onPaste(e)}
                   placeholder="Message Go Farther…"
                   aria-label="Message Go Farther"
                   rows={1}
@@ -1831,6 +1717,7 @@ export default function App() {
       {memUi.mounted && (
         <Suspense fallback={null}>
           <div style={{ display: 'contents' }} className={memUi.closing ? 'gf-out' : undefined}>
+            <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); closeMemory(); }} />}>
             <MemoryGraph
               memories={memories}
               loaded={memLoaded}
@@ -1842,6 +1729,7 @@ export default function App() {
               onToggle={toggleMem}
               onClose={closeMemory}
             />
+            </ErrorBoundary>
           </div>
         </Suspense>
       )}
@@ -1849,6 +1737,7 @@ export default function App() {
       {remUi.mounted && (
         <Suspense fallback={null}>
           <div style={{ display: 'contents' }} className={remUi.closing ? 'gf-out' : undefined}>
+            <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); closeReminders(); }} />}>
             <RemindersGraph
               reminders={reminders}
               loaded={remLoaded}
@@ -1858,6 +1747,7 @@ export default function App() {
               onToggle={toggleRem}
               onClose={closeReminders}
             />
+            </ErrorBoundary>
           </div>
         </Suspense>
       )}
@@ -1865,7 +1755,9 @@ export default function App() {
       {wfUi.mounted && (
         <Suspense fallback={null}>
           <div style={{ display: 'contents' }} className={wfUi.closing ? 'gf-out' : undefined}>
+            <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setWfOpen(false); }} />}>
             <WorkflowsScreen connApps={connApps} onClose={() => setWfOpen(false)} />
+            </ErrorBoundary>
           </div>
         </Suspense>
       )}
@@ -1873,6 +1765,7 @@ export default function App() {
       {callUi.mounted && (
         <Suspense fallback={null}>
           <div style={{ display: 'contents' }} className={callUi.closing ? 'gf-out' : undefined}>
+            <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setCallOpen(false); closeAudio(); }} />}>
             <CallScreen
               baseHistory={messages}
               apps={connLoaded ? [...enabled] : undefined}
@@ -1881,6 +1774,7 @@ export default function App() {
               onTurn={(h) => { dirtyRef.current = true; setMessages(h); }}
               onClose={() => { setCallOpen(false); closeAudio(); }}
             />
+            </ErrorBoundary>
           </div>
         </Suspense>
       )}

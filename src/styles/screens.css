@@ -505,3 +505,16 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   margin: 0;
 }
 .chat-sheet-row:disabled { opacity: 0.5; }
+
+/* Crashed-overlay fallback (ErrorBoundary around each full-screen overlay) */
+.overlay-crash {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  color: var(--text);
+  font-size: var(--fs-body);
+}

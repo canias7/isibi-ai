@@ -488,3 +488,14 @@
 /* Hard update gate sits above even the lock screen. */
 .update-gate { z-index: 300; padding: 0 36px; text-align: center; }
 .update-msg { color: var(--text-dim); font-size: var(--fs-body); line-height: 1.5; max-width: 18.8235rem; margin: 0; }
+
+/* ---- Wide screens (iPad landscape, desktop): the drawer becomes a column ----
+   The sidebar is permanently visible; content shifts right; the hamburger and
+   backdrop disappear. Everything is CSS-only — the drawer state in App becomes
+   irrelevant at this width (transform is forced on). */
+@media (min-width: 900px) {
+  .app { margin-left: 280px; }
+  .sidebar { transform: none !important; transition: none; border-right: 1px solid var(--line-1); }
+  .backdrop { display: none; }
+  .topbar .menu-btn { display: none; }
+}
