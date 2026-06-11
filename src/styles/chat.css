@@ -452,3 +452,41 @@
 
 /* Sent images are tappable — they open the full-screen preview */
 .att-img-btn { padding: 0; border: none; background: none; display: block; cursor: zoom-in; }
+
+/* "Needs reconnecting" banner — an expired app connection, one tap to fix */
+.conn-warn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 768px;
+  margin: 0 auto 8px;
+  padding: 2px 4px;
+  border-radius: var(--r-row);
+  background: rgba(224, 161, 58, 0.12);
+  border: 1px solid rgba(224, 161, 58, 0.35);
+}
+.conn-warn-main {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--brand);
+  font: inherit;
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  padding: 8px 8px;
+  cursor: pointer;
+}
+.conn-warn-x {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: none;
+  color: var(--brand);
+  border-radius: var(--r-control);
+  cursor: pointer;
+}
