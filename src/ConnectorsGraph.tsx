@@ -81,6 +81,8 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
 
   const aliveRef = useRef(true);
   const pendingConnect = useRef<string | null>(null);   // app we just kicked off OAuth for -> open tools on return
+  const [connecting, setConnecting] = useState<string | null>(null); // OAuth in flight -> show a "finish in the browser" banner
+  const connectTimer = useRef<ReturnType<typeof setTimeout> | null>(null); // safety: clear the banner even if the poll never resolves
   const stageRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; kind: 'app' | 'add'; sx: number; sy: number; ox: number; oy: number; w: number; h: number; moved: boolean } | null>(null);
   const ptrs = useRef<Map<number, XY>>(new Map());
@@ -109,6 +111,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   // Plaid Hosted Link: open Plaid's page in the in-app browser, then poll the
   // backend until the bank is linked (public token exchanged + stored server-side).
   async function connectPlaid() {
+    setConnecting('plaid');
     try {
       const d = await plaidCall('create_link_token');
       const url = d.hosted_link_url as string | undefined;
@@ -127,6 +130,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       await sub.remove();
       if (done) await Browser.close().catch(() => {});
     } catch (e) { console.error('plaid link', e); }
+    setConnecting((c) => (c === 'plaid' ? null : c));
     await refreshAll();
   }
 
@@ -153,6 +157,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       const pend = pendingConnect.current;
       if (pend && pend !== 'plaid' && next[pend]?.connected) {
         pendingConnect.current = null;
+        setConnecting((c) => (c === pend ? null : c)); // connected — drop the banner
         const c = byId(pend);
         if (c) setManage(c); // first connect -> pick tools
       }
@@ -168,6 +173,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     return () => {
       aliveRef.current = false;
       if (ivRef.current) clearInterval(ivRef.current);
+      if (connectTimer.current) clearTimeout(connectTimer.current);
       document.documentElement.classList.remove('gf-modal-open');
       document.removeEventListener('visibilitychange', onVisible);
     };
@@ -194,6 +200,9 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     if (!t) return;
     pendingConnect.current = id; // open the tool picker once it's connected
     setPicker(false);
+    setConnecting(id); // visible feedback while the OAuth round-trip + poll runs
+    if (connectTimer.current) clearTimeout(connectTimer.current);
+    connectTimer.current = setTimeout(() => setConnecting((c) => (c === id ? null : c)), 75000);
     // Mint a one-time code so the session token never lands in the /start URL
     // (history/logs/referer). Falls back to the token param if minting fails.
     let q = `t=${encodeURIComponent(t)}`;
@@ -213,7 +222,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       n += 1;
       if (!aliveRef.current) { if (ivRef.current) clearInterval(ivRef.current); return; }
       await refreshAll();
-      if (n >= 20 && ivRef.current) clearInterval(ivRef.current);
+      if (n >= 20 && ivRef.current) { clearInterval(ivRef.current); setConnecting((c) => (c === id ? null : c)); }
     }, 3000);
   }
 
@@ -348,6 +357,13 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
         </div>
         <span style={{ width: 40 }} />
       </div>
+
+      {connecting && (
+        <div className="cg-connecting" role="status" aria-live="polite">
+          <span className="btn-spin" />
+          <span>Connecting {byId(connecting)?.name ?? 'your app'}… finish in the browser, then come back.</span>
+        </div>
+      )}
 
       <div
         ref={stageRef}

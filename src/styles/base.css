@@ -233,6 +233,24 @@ input, textarea { caret-color: var(--brand); }
 .home-continue:active { color: var(--text); }
 .home-continue:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: var(--r-control); }
 
+/* Lazy-route loading scrim — a centered spinner while a screen's chunk downloads. */
+.route-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+}
+.route-spin {
+  width: 30px; height: 30px;
+  border: 3px solid var(--line-3);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: gf-spin 0.7s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .route-spin { animation-duration: 1.6s; } }
+
 /* In-button working spinner — inherits the button's text colour (currentColor),
    so it reads on any button. Reuses the global gf-spin keyframes. */
 .btn-spin {
