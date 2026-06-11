@@ -9,6 +9,8 @@ import {
   cleanForDisplay,
   modelShort,
   plainText,
+  decideRetry,
+  mergeQueued,
 } from './chatUtils';
 
 const user = (content: string): ChatMessage => ({ role: 'user', content });
@@ -174,5 +176,65 @@ describe('modelShort', () => {
   });
   it('falls back to stripping the claude- prefix', () => {
     expect(modelShort('claude-future-9')).toBe('future-9');
+  });
+});
+
+describe('decideRetry (recover a pending turn without re-running it)', () => {
+  const d = (sent: boolean, hasRemote: boolean, serverMoreComplete: boolean, force: boolean) =>
+    decideRetry({ sent, hasRemote, serverMoreComplete, force });
+
+  it('always ADOPTS when the server already has the reply (never re-runs)', () => {
+    // serverMoreComplete short-circuits regardless of every other flag.
+    for (const sent of [true, false]) for (const hasRemote of [true, false]) for (const force of [true, false]) {
+      expect(d(sent, hasRemote, true, force)).toBe('adopt');
+    }
+  });
+
+  it('WAITS when it could not reach the server and the user did not force it', () => {
+    expect(d(false, false, false, false)).toBe('wait');
+    expect(d(true, false, false, false)).toBe('wait');
+  });
+
+  it('WAITS on a turn that reached the server (it will finish it) unless forced', () => {
+    expect(d(true, true, false, false)).toBe('wait');
+  });
+
+  it('RESENDS an unsent turn once the server is reachable', () => {
+    expect(d(false, true, false, false)).toBe('resend');
+  });
+
+  it('RESENDS when the user forces it, even with no server check', () => {
+    expect(d(true, false, false, true)).toBe('resend');
+    expect(d(true, true, false, true)).toBe('resend');
+  });
+
+  it('SAFETY: a sent turn is never resent without force or an explicit adopt', () => {
+    // The duplicate-action guarantee: for every input where the turn was already
+    // sent, we never auto-"resend" unless the user forced it.
+    for (const hasRemote of [true, false]) for (const serverMoreComplete of [true, false]) {
+      expect(d(true, hasRemote, serverMoreComplete, false)).not.toBe('resend');
+    }
+  });
+});
+
+describe('mergeQueued (stacking messages typed during a reply)', () => {
+  it('creates a fresh queue when nothing is queued', () => {
+    expect(mergeQueued<string>(null, 'hello', ['a'])).toEqual({ text: 'hello', atts: ['a'] });
+  });
+
+  it('stacks text on a newline and concatenates attachments', () => {
+    expect(mergeQueued({ text: 'first', atts: ['a'] }, 'second', ['b'])).toEqual({
+      text: 'first\nsecond',
+      atts: ['a', 'b'],
+    });
+  });
+
+  it('caps the combined attachments at the limit (keeping the most recent)', () => {
+    const existing = { text: 't', atts: [1, 2, 3, 4, 5] };
+    expect(mergeQueued(existing, 'more', [6, 7, 8]).atts).toEqual([3, 4, 5, 6, 7, 8]);
+  });
+
+  it('trims the merged text', () => {
+    expect(mergeQueued({ text: 'a', atts: [] }, '  b  ', []).text).toBe('a\n  b');
   });
 });

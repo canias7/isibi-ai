@@ -53,6 +53,35 @@ export function serverIsMoreComplete(localRaw: ChatMessage[], remote: ChatMessag
   return theirs.content.trim().length > ours.content.trim().length;
 }
 
+// What to do with a pending (failed/disconnected) turn when we get a chance to
+// recover it. This is the heart of the recovery state machine — getting it wrong
+// re-runs a turn that already happened, duplicating its action (a second send, a
+// second payment). Inputs:
+//   serverMoreComplete — the server's saved copy already has this turn's reply
+//                        (adopt it; NEVER re-run).
+//   hasRemote          — we actually reached the server to check. If false we
+//                        can't tell what it holds, so we never re-send on a guess
+//                        unless the user explicitly forces it.
+//   sent               — the request reached the server before the failure, so the
+//                        server will finish it on its own; adopt-only unless forced.
+//   force              — the user tapped "Send again" from the stalled state.
+export type RetryAction = 'adopt' | 'resend' | 'wait';
+export function decideRetry(o: { sent: boolean; hasRemote: boolean; serverMoreComplete: boolean; force: boolean }): RetryAction {
+  if (o.serverMoreComplete) return 'adopt';   // server already has the reply — take it, don't re-run
+  if (!o.hasRemote && !o.force) return 'wait'; // couldn't check; don't re-send on a guess
+  if (o.sent && !o.force) return 'wait';       // it reached the server; let the server finish it
+  return 'resend';
+}
+
+// Merge a newly-typed message into one already queued behind an in-flight reply
+// (stack the text, keep the attachments capped). Pure so the queue behaviour is
+// testable without the component.
+export function mergeQueued<A>(existing: { text: string; atts: A[] } | null, text: string, atts: A[], cap = 6): { text: string; atts: A[] } {
+  return existing
+    ? { text: `${existing.text}\n${text}`.trim(), atts: [...existing.atts, ...atts].slice(-cap) }
+    : { text, atts };
+}
+
 export function titleFrom(messages: ChatMessage[]): string {
   const first = messages.find((m) => m.role === 'user');
   const t = (first?.content ?? '').trim().replace(/\s+/g, ' ');
