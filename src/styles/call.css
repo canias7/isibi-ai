@@ -35,8 +35,7 @@
   flex: 0 0 auto;
 }
 .call-orb-core {
-  width: 132px;
-  height: 132px;
+  /* Size comes from the SunOrb canvas (inline); this class adds the halo + phase transitions. */
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, var(--brand-soft), var(--brand) 58%, var(--brand-strong) 100%);
   box-shadow: 0 0 60px 0 color-mix(in srgb, var(--brand) 55%, transparent);
@@ -44,11 +43,12 @@
 }
 .call-orb-ring {
   position: absolute;
-  width: 160px;
-  height: 160px;
+  width: 174px;
+  height: 174px;
   border-radius: 50%;
-  border: 2px solid color-mix(in srgb, var(--brand) 45%, transparent);
-  opacity: 0.5;
+  /* Strong enough to read against the sun's corona glow. */
+  border: 2px solid color-mix(in srgb, var(--brand) 70%, transparent);
+  opacity: 0.7;
 }
 
 /* Listening: the core swells with your voice (driven by --lvl, 0..1). */

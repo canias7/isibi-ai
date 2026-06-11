@@ -233,7 +233,7 @@ export default function CallScreen({
         onClick={onOrbTap}
         aria-label="Assistant"
       >
-        <SunOrb size={132} className="call-orb-core" />
+        <SunOrb size={150} className="call-orb-core" />
         <span className="call-orb-ring" />
       </button>
 

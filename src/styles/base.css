@@ -199,7 +199,7 @@ input, textarea { caret-color: var(--brand); }
   text-align: center;
 }
 /* The identity lockup: breathing amber core above the wordmark. */
-.home-orb { width: 58px; height: 58px; margin-bottom: 26px; }
+.home-orb { margin-bottom: 26px; } /* size comes from the SunOrb canvas (inline) */
 .home-mark {
   font-size: clamp(2.4706rem, 13vw, 3.6471rem);
   font-weight: 800;
