@@ -71,3 +71,35 @@ textarea:focus-visible,
   outline-offset: 2px;
   border-radius: 8px;
 }
+
+/* ---- 44pt touch targets -------------------------------------------------
+   Small visual controls keep their compact look; an invisible absolutely-
+   positioned ::after pad widens the actual hit area to the Apple HIG 44pt
+   minimum. (position:absolute keeps the pad out of grid/flex layout.) */
+.send, .plus-btn, .call-btn, .side-out, .side-search-x, .chat-del, .tm-info-btn {
+  position: relative;
+}
+.send::after, .plus-btn::after, .call-btn::after, .side-out::after,
+.side-search-x::after, .chat-del::after, .tm-info-btn::after {
+  content: '';
+  position: absolute;
+  inset: calc((100% - 44px) / 2);
+}
+/* The grouped sidebar actions (pin / rename / delete) sit 1px apart, so they
+   only expand VERTICALLY — full-width pads would overlap their neighbors and
+   make taps land on the wrong action. */
+.chat-act { position: relative; }
+.chat-act::after {
+  content: '';
+  position: absolute;
+  inset: calc((100% - 44px) / 2) 0;
+}
+
+/* ---- No iOS zoom-on-focus -------------------------------------------------
+   With pinch-zoom enabled (index.html), iOS auto-zooms the page when a focused
+   input's font is under 16px. Bumping the size ONLY while focused keeps each
+   field's resting design untouched and still defuses the zoom. !important so
+   this floor beats the per-component sizes in earlier sheets. */
+input:focus, textarea:focus, select:focus {
+  font-size: max(16px, 1em) !important;
+}

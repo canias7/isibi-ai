@@ -9,6 +9,7 @@ import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic } from './icons';
 import { primeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { track } from './analytics';
+import { keyActivate } from './a11y';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, type Reminder, type RepeatKind } from './reminders';
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
 import { App as CapApp } from '@capacitor/app';
@@ -1323,6 +1324,7 @@ export default function App() {
                     onContextMenu={(e) => { e.preventDefault(); setMenuChat(c); }}
                     role="button"
                     tabIndex={0}
+                    onKeyDown={isEditing ? undefined : keyActivate(() => selectChat(c.id))}
                   >
                     {isEditing ? (
                       <input
@@ -1348,7 +1350,7 @@ export default function App() {
         </div>
 
         <div className="side-foot">
-          <div className="side-profile" role="button" tabIndex={0} onClick={() => { void tap(); go('settings'); }}>
+          <div className="side-profile" role="button" tabIndex={0} onClick={() => { void tap(); go('settings'); }} onKeyDown={keyActivate(() => { void tap(); go('settings'); })}>
             <span className="side-avatar">{(session.user.email ?? 'G').charAt(0).toUpperCase()}</span>
             <span className="side-who">
               <span className="side-name">{isGuest || !session.user.email ? 'Guest' : session.user.email.split('@')[0].replace(/^./, (ch) => ch.toUpperCase())}</span>
@@ -1424,7 +1426,7 @@ export default function App() {
                 <div className="set-label">Preferences</div>
                 <div className="set-card">
                   {(bioStatus === 'ready' || bioStatus === 'unenrolled') && (
-                    <div className="set-row" onClick={toggleFaceId} role="button" tabIndex={0} aria-pressed={faceId}>
+                    <div className="set-row" onClick={toggleFaceId} onKeyDown={keyActivate(() => void toggleFaceId())} role="button" tabIndex={0} aria-pressed={faceId}>
                       <div className="set-row-text">
                         <div className="set-row-title">Require Face ID</div>
                         <div className="set-row-sub">{bioStatus === 'unenrolled' ? 'Set up Face ID in iOS Settings to use this.' : 'Lock the app when you open or return to it.'}</div>
@@ -1432,7 +1434,7 @@ export default function App() {
                       <span className={`tgl ${faceId ? 'on' : ''}`}><span className="tgl-knob" /></span>
                     </div>
                   )}
-                  <div className="set-row" onClick={toggleNotif} role="button" tabIndex={0} aria-pressed={notif}>
+                  <div className="set-row" onClick={toggleNotif} onKeyDown={keyActivate(() => void toggleNotif())} role="button" tabIndex={0} aria-pressed={notif}>
                     <div className="set-row-text">
                       <div className="set-row-title">Notifications</div>
                       <div className="set-row-sub">Get push alerts from Go Farther.</div>

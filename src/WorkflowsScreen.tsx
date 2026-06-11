@@ -5,6 +5,7 @@ import {
   IconClock, IconBolt, IconBranch, IconSpark, IconCheck,
 } from './icons';
 import { byId } from './connectorData';
+import { keyActivate } from './a11y';
 import { BrandLogo } from './brandLogos';
 import { hasBrand } from './brandData';
 import {
@@ -353,7 +354,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
           ) : (
             <div className="wf-list">
               {items.map((w) => (
-                <div className="wf-card" key={w.id} onClick={() => setOpen(w)} role="button">
+                <div className="wf-card" key={w.id} onClick={() => setOpen(w)} role="button" tabIndex={0} onKeyDown={keyActivate(() => setOpen(w))}>
                   <div className="wf-card-main">
                     <div className="wf-card-title">{w.title}</div>
                     <div className="wf-card-sub">{triggerLabel(w)}{w.last_run_at ? ` · last ran ${relTime(w.last_run_at)}` : ''}</div>

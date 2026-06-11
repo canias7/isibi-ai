@@ -26,7 +26,9 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
   const latest = useRef<Set<string>>(new Set());
   const dirty = useRef(false);
 
-  function openInfo(e: MouseEvent, t: ToolDef) {
+  // Accepts mouse OR keyboard events (the info chip is keyboard-activatable),
+  // so the param is the structural overlap of both.
+  function openInfo(e: { stopPropagation: () => void; currentTarget: EventTarget | null }, t: ToolDef) {
     e.stopPropagation();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const W = 260;
@@ -134,7 +136,7 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
                     return (
                       <button key={t.slug} className="tm-row" onClick={() => toggle(t.slug)} aria-pressed={on}>
                         <span className="tm-name">{t.name}</span>
-                        <span className="tm-info-btn" role="button" aria-label="What this does" onClick={(e) => openInfo(e, t)}>
+                        <span className="tm-info-btn" role="button" tabIndex={0} aria-label="What this does" onClick={(e) => openInfo(e, t)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openInfo(e, t); } }}>
                           <IconInfo size={18} />
                         </span>
                         <span className={`tgl ${on ? 'on' : ''}`}><span className="tgl-knob" /></span>
