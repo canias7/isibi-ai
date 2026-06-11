@@ -7,6 +7,7 @@ import {
 import { byId } from './connectorData';
 import { keyActivate, useFocusTrap } from './a11y';
 import { tap, bump, chime } from './haptics';
+import { BrandConstellation } from './brand';
 import { BrandLogo } from './brandLogos';
 import { hasBrand } from './brandData';
 import {
@@ -352,6 +353,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
         <div className="wf-stage">
           {loaded && items.length === 0 ? (
             <div className="wf-empty">
+              <BrandConstellation />
               <div className="wf-empty-title">No workflows yet</div>
               <div className="wf-empty-sub">Go back and describe one — it’ll show up here once you save it.</div>
             </div>

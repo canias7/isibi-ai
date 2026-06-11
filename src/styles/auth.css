@@ -9,7 +9,8 @@
   gap: 18px;
   padding: 24px max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-bottom));
 }
-.auth-brand { font-size: 2rem; font-weight: 700; }
+.auth-orb { width: 46px; height: 46px; margin: 0 auto 4px; }
+.auth-brand { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
 .auth-card {
   position: relative; /* sit above the living-background orbs */
   z-index: 1;

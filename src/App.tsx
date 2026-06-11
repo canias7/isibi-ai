@@ -6,7 +6,7 @@ import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic } from './icons';
+import { IconMenu, IconCompose, IconChat, IconConnectors, IconSettings, IconLogout, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconSearch, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconPlus } from './icons';
 import { primeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { track } from './analytics';
 import { keyActivate, useFocusTrap } from './a11y';
@@ -1360,6 +1360,7 @@ export default function App() {
   if (forceUpdate) {
     return (
       <div className="lock-screen update-gate">
+        <span className="brand-orb breathe lock-orb" aria-hidden />
         <div className="lock-brand">Go Farther</div>
         {forceUpdate === 'updating' ? (
           <>
@@ -1415,6 +1416,7 @@ export default function App() {
     <div className="app">
       {locked && (
         <div className="lock-screen">
+          <span className="brand-orb breathe lock-orb" aria-hidden />
           <div className="lock-brand">Go Farther</div>
           <button className="lock-btn" onClick={() => void lockRef.current()}>Unlock</button>
         </div>
@@ -1630,6 +1632,7 @@ export default function App() {
             {messages.length === 0 ? (
               <div className="home">
                 <div className="home-hero">
+                  <span className="brand-orb breathe home-orb" aria-hidden />
                   <h1 className="home-mark">Go Farther</h1>
                   <p className="home-tag">One chat for all your apps.</p>
                 </div>
@@ -1776,7 +1779,7 @@ export default function App() {
                   onClick={() => { void tap(); menuOpenedAt.current = Date.now(); setPlusOpen((o) => !o); }}
                   aria-label="Add attachment or connectors"
                 >
-                  +
+                  <IconPlus size={20} />
                 </button>
                 <button
                   className="call-btn"
@@ -1812,7 +1815,7 @@ export default function App() {
                     disabled={!busy && !input.trim() && attachments.length === 0}
                     aria-label={busy ? (input.trim() || attachments.length > 0 ? 'Send when this reply finishes' : 'Stop generating') : 'Send'}
                   >
-                    {busy && !input.trim() && attachments.length === 0 ? <span className="stop-sq" /> : '↑'}
+                    {busy && !input.trim() && attachments.length === 0 ? <span className="stop-sq" /> : <IconArrowUp size={17} />}
                   </button>
                 )}
               </div>

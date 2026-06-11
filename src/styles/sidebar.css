@@ -77,7 +77,7 @@
   color: #8c8c92;
   font-size: var(--fs-label);
   font-weight: 700;
-  letter-spacing: 1.2px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 14px 10px 6px;
 }
@@ -327,6 +327,7 @@
   background: #000;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
 }
+.lock-orb { width: 46px; height: 46px; margin-bottom: -4px; }
 .lock-brand { font-size: var(--fs-display); font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
 .lock-btn {
   background: #ffffff14; border: 1px solid var(--line-3); color: var(--text);
