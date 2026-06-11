@@ -120,6 +120,15 @@ input, textarea { caret-color: var(--brand); }
 }
 @media (prefers-reduced-motion: reduce) { .brand-orb.breathe { animation: none; } }
 
+/* The live procedural sun (SunOrb.tsx) standing in for the brand orb. Circular
+   clip trims the shader's outer corona, so a soft amber halo restores the bloom
+   that lets it sit in the dark page like the static orb did. */
+.sun-orb {
+  display: block;
+  border-radius: 50%;
+  box-shadow: 0 0 24px 2px rgba(224, 161, 58, 0.34);
+}
+
 /* Shared empty-state illustration (BrandConstellation in brand.tsx) */
 .gf-empty-art { display: block; margin: 0 auto 6px; }
 

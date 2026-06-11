@@ -22,6 +22,7 @@ import { onPushTap } from './push';
 import { useDismiss } from './motion';
 import ErrorBoundary from './ErrorBoundary';
 import RecoveryBubble from './RecoveryBubble';
+import SunOrb from './SunOrb';
 import SettingsPage from './SettingsPage';
 import LegalSheet from './LegalSheet';
 import { PRIVACY_MD, TERMS_MD } from './legalDocs';
@@ -1826,7 +1827,7 @@ export default function App() {
             {messages.length === 0 ? (
               <div className="home">
                 <div className="home-hero">
-                  <span className="brand-orb breathe home-orb" aria-hidden />
+                  <SunOrb size={64} className="home-orb" />
                   <h1 className="home-mark">Go Farther</h1>
                   <p className="home-tag">One chat for all your apps.</p>
                 </div>
