@@ -20,15 +20,15 @@
   gap: 14px;
   text-align: center;
 }
-.auth-sub { color: var(--text-dim); font-size: 0.8235rem; margin: -0.3529rem 0 0.2353rem; }
+.auth-sub { color: var(--text-dim); font-size: var(--fs-body-s); margin: -0.3529rem 0 0.2353rem; }
 .auth-form { display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .auth-input {
   background: var(--composer);
-  border: 1px solid #ffffff1f;
-  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-row);
   color: var(--text);
   font: inherit;
-  font-size: 0.9412rem;
+  font-size: var(--fs-body);
   padding: 13px 14px;
   outline: none;
 }
@@ -39,9 +39,9 @@
   background: var(--accent);
   color: #000;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--r-row);
   font: inherit;
-  font-size: 0.8824rem;
+  font-size: var(--fs-body);
   font-weight: 600;
   padding: 13px;
   cursor: pointer;
@@ -53,29 +53,29 @@
   border: none;
   color: var(--text-dim);
   font: inherit;
-  font-size: 0.7647rem;
+  font-size: var(--fs-footnote);
   cursor: pointer;
   padding: 6px;
 }
 .auth-error {
   background: #5a1d1d;
   color: #ffd7d7;
-  font-size: 0.7647rem;
-  border-radius: 10px;
+  font-size: var(--fs-footnote);
+  border-radius: var(--r-row);
   padding: 10px 12px;
 }
 .auth-notice {
   background: #173a23;
   color: #c8f5d6;
-  font-size: 0.7647rem;
-  border-radius: 10px;
+  font-size: var(--fs-footnote);
+  border-radius: var(--r-row);
   padding: 10px 12px;
 }
 
 /* Passwordless code entry */
 .auth-code {
   text-align: center;
-  font-size: 1.3529rem;
+  font-size: var(--fs-display);
   font-weight: 700;
   letter-spacing: 6px;
   padding-left: 20px; /* offset the trailing letter-spacing so digits look centred */
