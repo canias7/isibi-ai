@@ -59,7 +59,10 @@
 .call-thinking .call-orb-ring { animation: call-spin 1.1s linear infinite; border-top-color: var(--brand-soft); }
 .call-thinking .call-orb-core { opacity: 0.7; }
 .call-speaking .call-orb-core { animation: call-breathe 1.4s ease-in-out infinite; }
-.call-error .call-orb-core { background: radial-gradient(circle at 35% 30%, #ff9a9a, #c0392b 70%); box-shadow: none; }
+/* Error: the SunOrb core is opaque, so the red background can't show — signal the
+   fault by dimming the sun and turning the ring red instead. */
+.call-error .call-orb-core { background: radial-gradient(circle at 35% 30%, #ff9a9a, #c0392b 70%); box-shadow: none; opacity: 0.45; }
+.call-error .call-orb-ring { border-color: #ff6b6b; opacity: 0.85; animation: none; }
 .call-connecting .call-orb-core { opacity: 0.6; }
 
 @keyframes call-pulse { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.12); opacity: 0.15; } }

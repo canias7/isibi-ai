@@ -1619,7 +1619,7 @@ export default function App() {
   if (forceUpdate) {
     return (
       <div className="lock-screen update-gate">
-        <span className="brand-orb breathe lock-orb" aria-hidden />
+        <SunOrb size={46} className="lock-orb" />
         <div className="lock-brand">Go Farther</div>
         {forceUpdate === 'updating' ? (
           <>
@@ -1675,7 +1675,7 @@ export default function App() {
     <div className="app">
       {locked && (
         <div className="lock-screen">
-          <span className="brand-orb breathe lock-orb" aria-hidden />
+          <SunOrb size={46} className="lock-orb" />
           <div className="lock-brand">Go Farther</div>
           <button className="lock-btn" onClick={() => void lockRef.current()}>Unlock</button>
         </div>

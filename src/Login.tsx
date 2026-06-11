@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, type FormEvent } from 'react';
 import { supabase } from './supabase';
 import { friendlyAuthError } from './authErrors';
+import SunOrb from './SunOrb';
 
 // Passwordless auth, with separate Sign in / Sign up screens. Both use an email
 // code (sent branded via the auth-email → Resend hook): enter email → get a
@@ -125,7 +126,7 @@ export default function Login() {
         <span className="orb orb4" />
       </div>
       <div className="auth-card">
-        <span className="brand-orb breathe auth-orb" aria-hidden />
+        <SunOrb size={46} className="auth-orb" />
         <div className="auth-brand">Go Farther</div>
         <p className="auth-sub">
           {step === 'code'
