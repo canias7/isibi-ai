@@ -681,7 +681,7 @@
 
 /* bottom action bar */
 .wfx-bar { flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 10px 16px calc(14px + env(safe-area-inset-bottom)); z-index: 3; }
-.wfx-bar-status { flex: 1; display: inline-flex; align-items: center; gap: 0.3529rem; font-size: var(--fs-footnote); color: rgba(255, 255, 255, 0.5); }
+.wfx-bar-status { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.3529rem; font-size: var(--fs-footnote); color: rgba(255, 255, 255, 0.5); }
 .wfx-bar-save {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
   border: none; border-radius: var(--r-card); padding: 14px;

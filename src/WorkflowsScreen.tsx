@@ -5,6 +5,7 @@ import {
   IconClock, IconBolt, IconBranch, IconSpark, IconCheck,
 } from './icons';
 import { byId } from './connectorData';
+import { MODEL_OPTIONS } from './models';
 import { keyActivate, useFocusTrap } from './a11y';
 import { tap, bump, chime } from './haptics';
 import { BrandConstellation } from './brand';
@@ -15,6 +16,12 @@ import {
   triggerLabel, deviceTz, appLabel, compileInstruction, orderedNodes,
   type Workflow, type WorkflowRun, type Schedule, type Trigger, type EventCfg, type EventWindow, type WfGraph, type WfNode, type BuildMsg, type AskQuestion,
 } from './workflows';
+
+// Model tiers offered for a workflow — the chat catalog minus 'auto' (a workflow
+// is one fixed task, so the user picks a concrete tier; Sonnet is the default).
+const WF_MODEL_OPTIONS = MODEL_OPTIONS.filter((o) => o.id !== 'auto');
+const wfModelOpt = (id: string | null | undefined) =>
+  WF_MODEL_OPTIONS.find((o) => o.id === id) ?? WF_MODEL_OPTIONS.find((o) => o.id === 'sonnet')!;
 
 type NodeResult = { ok: boolean; output: string };
 // A turn in the clarify chat; assistant turns carry the structured questions
@@ -320,6 +327,7 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
         mode="saved"
         wfId={open.id}
         enabled={open.enabled}
+        model={open.model}
         connApps={connApps}
         onClose={() => { setOpen(null); void load(); }}
         onDeleted={() => { setOpen(null); void load(); }}
@@ -505,8 +513,8 @@ function emptyGraph(w: Workflow): WfGraph {
 }
 
 // ---- The editable canvas screen (draft or saved) ----------------------------
-function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false, onClose, onDeleted }: {
-  initial: Work; mode: 'draft' | 'saved'; wfId?: string; connApps: string[]; enabled?: boolean;
+function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false, model: modelInit, onClose, onDeleted }: {
+  initial: Work; mode: 'draft' | 'saved'; wfId?: string; connApps: string[]; enabled?: boolean; model?: string | null;
   onClose: () => void; onDeleted: () => void;
 }) {
   // Editor dialog: same trap; Esc = the back button (close() guards saving).
@@ -523,6 +531,8 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
   const [edgeState, setEdgeState] = useState<'idle' | 'run' | 'pass' | 'fail'>('idle');
   const [results, setResults] = useState<Record<string, NodeResult>>({}); // per-node test outcomes
   const [enabled, setEnabled] = useState(enabledInit);             // live on/off (top-right toggle)
+  const [model, setModel] = useState<string>(() => wfModelOpt(modelInit).id); // which model runs this workflow (default Sonnet)
+  const [modelOpen, setModelOpen] = useState(false);               // model-picker sheet
   const [savedId, setSavedId] = useState<string | undefined>(wfId); // workflow id once persisted
   const savedIdRef = useRef<string | undefined>(wfId);
   savedIdRef.current = savedId;
@@ -561,7 +571,7 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
     const steps = orderedNodes(graph).filter((n) => n.kind !== 'trigger').map((n) => ({ id: n.id, label: n.label, app: n.app }));
     void bump(); // the run is real — let the hand know it started
     setTesting(true); setEdgeState('run'); setResults({});
-    const r = await testWorkflow(inst, savedIdRef.current, steps);
+    const r = await testWorkflow(inst, savedIdRef.current, steps, model);
     setTesting(false);
     if (!r) { setEdgeState('fail'); return; }
     const map: Record<string, NodeResult> = {};
@@ -601,13 +611,13 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
       // Only resend `trigger` when it actually changed — updateWorkflow resets
       // next_run_at / cursor on a trigger change, so sending it on every edit
       // would reschedule (and skip runs / drop event dedupe) on trivial edits.
-      const fields: Parameters<typeof updateWorkflow>[1] = { title: title.trim(), instruction, graph, ...extra };
+      const fields: Parameters<typeof updateWorkflow>[1] = { title: title.trim(), instruction, graph, model, ...extra };
       const tStr = JSON.stringify(trigger);
       if (tStr !== savedTriggerRef.current) { fields.trigger = trigger; savedTriggerRef.current = tStr; }
       await updateWorkflow(savedIdRef.current, fields);
     } else if (!creatingRef.current) {
       creatingRef.current = true;
-      const w = await createWorkflow(title.trim(), instruction, trigger, graph, extra.enabled ?? enabled);
+      const w = await createWorkflow(title.trim(), instruction, trigger, graph, extra.enabled ?? enabled, model);
       if (w) { savedIdRef.current = w.id; setSavedId(w.id); savedTriggerRef.current = JSON.stringify(trigger); }
       creatingRef.current = false;
     }
@@ -622,7 +632,7 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
     const t = setTimeout(async () => { await persist(); dirtyRef.current = false; }, 700);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, trigger, graph]);
+  }, [title, trigger, graph, model]);
 
   // Top-right toggle: flip live on/off (persists immediately).
   async function toggleEnabled() {
@@ -674,7 +684,15 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
 
       {/* Bottom action bar — saving is automatic; the top-right toggle turns it live */}
       <div className="wfx-bar">
-        <span className="wfx-bar-status"><IconCheck size={15} /> Changes save automatically</span>
+        <button
+          className="model-chip"
+          onClick={() => { void tap(); setModelOpen(true); }}
+          aria-label={`Model for this workflow: ${wfModelOpt(model).label}. Tap to change.`}
+        >
+          <span className={`model-dot d${wfModelOpt(model).dots}`} aria-hidden />
+          {wfModelOpt(model).chip}
+        </button>
+        <span className="wfx-bar-status"><IconCheck size={15} /> Saved automatically</span>
         {savedId && (
           <button className="wfx-bar-hist" onClick={() => setShowRuns(true)} disabled={busy} aria-label="Run history"><IconClock size={18} /></button>
         )}
@@ -708,6 +726,32 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
                   <div className="wf-run-text">{r.result}</div>
                 </div>
               ))}
+          </div>
+        </div>
+      )}
+
+      {/* Model picker — per workflow. An explicit pick overrides the Sonnet
+          default; its cost is then the user's deliberate choice. */}
+      {modelOpen && (
+        <div className="wfx-sheet-scrim" onClick={() => setModelOpen(false)}>
+          <div className="wfx-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Choose model for this workflow">
+            <div className="wfx-sheet-head"><span>Model · this workflow</span><button className="memg-cancel" onClick={() => setModelOpen(false)}>Done</button></div>
+            {WF_MODEL_OPTIONS.map((o) => (
+              <button
+                key={o.id}
+                className={`model-opt${o.id === model ? ' on' : ''}`}
+                role="menuitemradio"
+                aria-checked={o.id === model}
+                onClick={() => { void tap(); setModel(o.id); setModelOpen(false); }}
+              >
+                <span className={`model-dot d${o.dots}`} aria-hidden />
+                <span className="model-opt-text">
+                  <span className="model-opt-label">{o.label}</span>
+                  <span className="model-opt-sub">{o.sub}</span>
+                </span>
+                {o.id === model && <IconCheck size={16} />}
+              </button>
+            ))}
           </div>
         </div>
       )}
