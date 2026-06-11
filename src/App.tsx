@@ -1827,7 +1827,7 @@ export default function App() {
             {messages.length === 0 ? (
               <div className="home">
                 <div className="home-hero">
-                  <SunOrb size={64} className="home-orb" />
+                  <SunOrb size={88} className="home-orb" />
                   <h1 className="home-mark">Go Farther</h1>
                   <p className="home-tag">One chat for all your apps.</p>
                 </div>
