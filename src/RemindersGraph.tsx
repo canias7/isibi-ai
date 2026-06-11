@@ -205,6 +205,7 @@ export default function RemindersGraph({ reminders, loaded, onAdd, onUpdate, onD
 
   async function submit() {
     if (saving) return;
+    setErr('');
     const title = input.trim();
     if (!title) return;
     if (!when) { setErr('Pick a time'); setTimeout(() => setErr(''), 3000); return; }
@@ -218,6 +219,7 @@ export default function RemindersGraph({ reminders, loaded, onAdd, onUpdate, onD
       : await onAdd(title, remind_at, repeat);
     setSaving(false);
     if (ok) deselect();
+    else setErr('Couldn’t save — check your connection and try again.');
   }
 
   const selected = selectedId ? reminders.find((r) => r.id === selectedId) : null;
@@ -356,7 +358,7 @@ export default function RemindersGraph({ reminders, loaded, onAdd, onUpdate, onD
             maxLength={200}
           />
           <button className="memg-send" onClick={() => void submit()} disabled={!input.trim() || saving} aria-label={selectedId ? 'Update' : 'Add'}>
-            <IconArrowUp size={20} />
+            {saving ? <span className="btn-spin" /> : <IconArrowUp size={20} />}
           </button>
         </div>
       </div>

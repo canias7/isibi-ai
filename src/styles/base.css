@@ -233,6 +233,18 @@ input, textarea { caret-color: var(--brand); }
 .home-continue:active { color: var(--text); }
 .home-continue:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: var(--r-control); }
 
+/* In-button working spinner — inherits the button's text colour (currentColor),
+   so it reads on any button. Reuses the global gf-spin keyframes. */
+.btn-spin {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: gf-spin 0.7s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .btn-spin { animation-duration: 1.6s; } }
+
 /* ---- Living background: drifting / breathing white glows on black ---- */
 .live-bg {
   position: fixed;

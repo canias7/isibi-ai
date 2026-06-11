@@ -57,6 +57,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
   const [saving, setSaving] = useState(false);
   const [pending, setPending] = useState<Attach | null>(null); // attachment waiting to be saved
   const [attErr, setAttErr] = useState('');
+  const [saveErr, setSaveErr] = useState(false); // a save that came back false (offline / server)
   const [positions, setPositions] = useState<Record<string, XY>>(loadPositions);
   const [dragId, setDragId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1); // pinch-zoom of the whole constellation
@@ -211,11 +212,12 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
 
   async function submit() {
     if (saving) return;
+    setSaveErr(false);
     if (pending) {
       setSaving(true);
       const ok = await onAddFile(input.trim(), pending);
       setSaving(false);
-      if (ok) deselect();
+      if (ok) deselect(); else setSaveErr(true);
       return;
     }
     const c = input.trim();
@@ -223,7 +225,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
     setSaving(true);
     const ok = selectedId ? await onUpdate(selectedId, c) : await onAdd(c);
     setSaving(false);
-    if (ok) deselect();
+    if (ok) deselect(); else setSaveErr(true);
   }
 
   async function openAttachment(path: string) {
@@ -353,6 +355,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
         )}
         {saving && pending && <div className="memg-reading">Reading attachment…</div>}
         {attErr && <div className="memg-reading memg-att-err">{attErr}</div>}
+        {saveErr && <div className="memg-reading memg-att-err" role="alert">Couldn’t save — check your connection and try again.</div>}
         <div className="memg-compose">
           {selectedId ? (
             <button className="memg-trash" onClick={remove} aria-label="Delete memory">
@@ -366,14 +369,14 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
           <input
             className="memg-cinput"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => { setInput(e.target.value); if (saveErr) setSaveErr(false); }}
             onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
             placeholder={pending ? 'Add a note (optional)' : selectedId ? 'Edit this memory' : 'Add a memory'}
             aria-label={selectedId ? 'Edit this memory' : 'Add a memory'}
             maxLength={500}
           />
           <button className="memg-send" onClick={() => void submit()} disabled={(!input.trim() && !pending) || saving} aria-label={selectedId ? 'Update' : 'Add'}>
-            <IconArrowUp size={20} />
+            {saving ? <span className="btn-spin" /> : <IconArrowUp size={20} />}
           </button>
         </div>
         <input ref={fileRef} type="file" accept="image/*,application/pdf" hidden onChange={pickFile} />

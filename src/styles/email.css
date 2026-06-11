@@ -296,7 +296,19 @@
   width: 100%;
   margin: 0 auto;
 }
-.tm-msg { color: var(--text-dim); text-align: center; padding: 2.8235rem 0.9412rem; font-size: var(--fs-body-s); }
+.tm-msg { color: var(--text-dim); text-align: center; padding: 2.8235rem 0.9412rem; font-size: var(--fs-body-s); display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.tm-retry {
+  background: #ffffff14;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-pill);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  padding: 8px 18px;
+  cursor: pointer;
+}
+.tm-retry:active { background: #ffffff22; }
 .tm-sub { color: var(--text-dim); font-size: var(--fs-footnote); line-height: 1.55; margin: 0 0 1.1765rem; }
 .tm-empty {
   background: #ffffff0d;
