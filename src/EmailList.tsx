@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFocusTrap } from './a11y';
+import { useDismiss } from './motion';
 import { Browser } from '@capacitor/browser';
 import { fetchEmailHtml, fetchAttachment, type MsgAttachment, type EmailMeta } from './api';
 
@@ -359,6 +360,10 @@ function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fa
   const [lightbox, setLightbox] = useState<string | null>(null);
   const lightboxRef = useRef<HTMLDivElement>(null);
   useFocusTrap(!!lightbox, lightboxRef, () => setLightbox(null));
+  const lightboxUi = useDismiss(!!lightbox);
+  const lastLightbox = useRef(lightbox);
+  if (lightbox) lastLightbox.current = lightbox;
+  const lightboxSrc = lightbox ?? lastLightbox.current;
   const frameRef = useRef<HTMLIFrameElement>(null);
   // Call the latest onMeta via a ref so the fetch effect depends only on id/app
   // (not the callback's identity) — otherwise it would re-fetch on every render.
@@ -465,10 +470,10 @@ function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fa
           onDownload={(i) => act(i, 'download')}
         />
       )}
-      {lightbox && (
-        <div className="gf-lightbox" role="dialog" aria-label="Image preview" ref={lightboxRef} tabIndex={-1} onClick={() => setLightbox(null)}>
+      {lightboxUi.mounted && lightboxSrc && (
+        <div className={`gf-lightbox${lightboxUi.closing ? ' closing' : ''}`} role="dialog" aria-label="Image preview" ref={lightboxRef} tabIndex={-1} onClick={() => setLightbox(null)}>
           <button className="sr-only" onClick={() => setLightbox(null)}>Close preview</button>
-          <img src={lightbox} alt="Email image, enlarged" />
+          <img src={lightboxSrc} alt="Email image, enlarged" />
         </div>
       )}
     </>

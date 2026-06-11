@@ -1,14 +1,17 @@
 /* ---- Sidebar ---- */
+/* The drawer glides open with weight (emphasized deceleration) and closes a
+   beat quicker; the backdrop breathes with it. The transition on each STATE is
+   the one that runs when entering that state. */
 .backdrop {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease;
+  transition: opacity 240ms var(--ease-exit);
   z-index: 40;
 }
-.backdrop.show { opacity: 1; pointer-events: auto; }
+.backdrop.show { opacity: 1; pointer-events: auto; transition: opacity var(--dur-screen) var(--ease-enter); }
 
 .sidebar {
   position: fixed;
@@ -20,13 +23,13 @@
   background: #171717;
   z-index: 50;
   transform: translateX(-100%);
-  transition: transform 0.22s ease;
+  transition: transform 240ms var(--ease-exit);
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: max(14px, env(safe-area-inset-top)) 10px max(14px, env(safe-area-inset-bottom));
 }
-.sidebar.open { transform: translateX(0); }
+.sidebar.open { transform: translateX(0); transition: transform var(--dur-screen) var(--ease-enter); }
 
 
 .side-item {
@@ -221,8 +224,11 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: gf-shimmer 1.6s linear infinite;
+  /* shimmer loops; the fade-in makes it dissolve in (and the reply's own
+     fade-in makes the swap to first words feel continuous, not a hard cut) */
+  animation: gf-shimmer 1.6s linear infinite, gf-fade-in var(--dur-enter) var(--ease-enter) backwards;
 }
+@keyframes gf-fade-in { from { opacity: 0; } }
 @keyframes gf-shimmer { to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) {
   .gf-thinking {
@@ -426,8 +432,10 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   z-index: 70;
-  animation: scrimfade 0.2s ease backwards;
+  animation: scrimfade var(--dur-enter) ease backwards;
 }
+.sheet-scrim.closing { animation: scrimout var(--dur-exit) ease forwards; }
+@keyframes scrimout { to { opacity: 0; } }
 .chat-sheet {
   position: fixed;
   left: 10px;
@@ -438,10 +446,12 @@
   border: 1px solid #ffffff14;
   border-radius: 18px;
   padding: 6px;
-  animation: sheetup 0.26s cubic-bezier(0.21, 1.02, 0.73, 1) backwards;
+  animation: sheetup var(--dur-enter) var(--ease-spring) backwards;
 }
 @keyframes sheetup { from { transform: translateY(26px); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .chat-sheet { animation: none; } }
+.chat-sheet.closing { animation: sheetdown var(--dur-exit) var(--ease-exit) forwards; }
+@keyframes sheetdown { to { transform: translateY(22px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .chat-sheet, .chat-sheet.closing, .sheet-scrim, .sheet-scrim.closing { animation: none; } }
 .chat-sheet-title {
   padding: 10px 14px 8px;
   font-size: 0.7353rem;

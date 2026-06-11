@@ -10,6 +10,7 @@ import { hasBrand } from './brandData';
 import ToolManager from './ToolManager';
 import { IconArrowLeft, IconSpark } from './icons';
 import { useFocusTrap } from './a11y';
+import { useDismiss } from './motion';
 import { PLAID_LOGO } from './plaidLogo';
 
 // Full-screen "constellation" of connected apps (mirrors the Memory screen): a
@@ -66,6 +67,17 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   useFocusTrap(picker && !detail, pickerRef, () => setPicker(false));
   useFocusTrap(!!detail, sheetRef, () => setDetail(null));
   const [manage, setManage] = useState<Connector | null>(null); // ToolManager open
+  // Animated dismissal for each layer; the sheet/manage content is latched so
+  // it doesn't blank out during its exit beat.
+  const pickerUi = useDismiss(picker);
+  const detailUi = useDismiss(!!detail);
+  const lastDetail = useRef(detail);
+  if (detail) lastDetail.current = detail;
+  const sheetConn = detail ?? lastDetail.current;
+  const manageUi = useDismiss(!!manage);
+  const lastManage = useRef(manage);
+  if (manage) lastManage.current = manage;
+  const manageConn = manage ?? lastManage.current;
 
   const aliveRef = useRef(true);
   const pendingConnect = useRef<string | null>(null);   // app we just kicked off OAuth for -> open tools on return
@@ -398,8 +410,8 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* ---- connect picker: the page with all the apps ---- */}
-      {picker && (
-        <div className="cg-picker" role="dialog" aria-label="Add an app" ref={pickerRef} tabIndex={-1}>
+      {pickerUi.mounted && (
+        <div className={`cg-picker${pickerUi.closing ? ' closing' : ''}`} role="dialog" aria-label="Add an app" ref={pickerRef} tabIndex={-1}>
           <div className="memg-top">
             <button className="memg-back" onClick={() => setPicker(false)} aria-label="Back"><IconArrowLeft size={22} /></button>
             <div className="memg-titles">
@@ -427,30 +439,30 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       )}
 
       {/* ---- tap an app node: choose tools / disconnect ---- */}
-      {detail && (
+      {detailUi.mounted && sheetConn && (
         <>
-          <div className="cg-sheet-backdrop" onClick={() => setDetail(null)} />
-          <div className="cg-sheet" role="dialog" aria-label={detail.name} ref={sheetRef} tabIndex={-1}>
+          <div className={`cg-sheet-backdrop${detailUi.closing ? ' closing' : ''}`} onClick={() => setDetail(null)} />
+          <div className={`cg-sheet${detailUi.closing ? ' closing' : ''}`} role="dialog" aria-label={sheetConn.name} ref={sheetRef} tabIndex={-1}>
             <div className="cg-sheet-head">
-              <span className="cg-tile"><Tile id={detail.id} size={22} /></span>
+              <span className="cg-tile"><Tile id={sheetConn.id} size={22} /></span>
               <div>
-                <b>{detail.name}</b>
-                <small>{detail.id === 'plaid'
-                  ? (status[detail.id]?.email || 'Bank linked')
-                  : (status[detail.id]?.email ? `Connected as ${status[detail.id]?.email}` : 'Connected')}</small>
+                <b>{sheetConn.name}</b>
+                <small>{sheetConn.id === 'plaid'
+                  ? (status[sheetConn.id]?.email || 'Bank linked')
+                  : (status[sheetConn.id]?.email ? `Connected as ${status[sheetConn.id]?.email}` : 'Connected')}</small>
               </div>
             </div>
-            <button className="cg-sheet-btn" onClick={() => { const c = detail; setDetail(null); setManage(c); }}>
+            <button className="cg-sheet-btn" onClick={() => { const c = sheetConn; setDetail(null); setManage(c); }}>
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 7a2 2 0 104 0 2 2 0 10-4 0M6 17a2 2 0 104 0 2 2 0 10-4 0" /></svg>
               Choose tools
             </button>
-            {detail.id === 'plaid' && (
+            {sheetConn.id === 'plaid' && (
               <button className="cg-sheet-btn" onClick={() => { setDetail(null); void connectPlaid(); }}>
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                 Link another bank
               </button>
             )}
-            <button className="cg-sheet-btn danger" onClick={() => disconnect(detail.id)}>
+            <button className="cg-sheet-btn danger" onClick={() => disconnect(sheetConn.id)}>
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
               Disconnect
             </button>
@@ -458,7 +470,11 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
         </>
       )}
 
-      {manage && <ToolManager connector={manage} onClose={() => setManage(null)} />}
+      {manageUi.mounted && manageConn && (
+        <div style={{ display: 'contents' }} className={manageUi.closing ? 'gf-out' : undefined}>
+          <ToolManager connector={manageConn} onClose={() => setManage(null)} />
+        </div>
+      )}
     </div>,
     document.body,
   );

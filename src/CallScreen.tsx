@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useFocusTrap } from './a11y';
+import { bump, chime } from './haptics';
 import { listenOnce, transcribe, speak, speakable, stopSpeaking, micSupported } from './voice';
 import { streamChat, type ChatMessage, type Attach } from './api';
 import { IconPhoneOff, IconCamera } from './icons';
@@ -59,6 +60,7 @@ export default function CallScreen({
 
   async function loop() {
     setPhaseBoth('speaking');
+    void chime(); // "call connected"
     try { await speak('Hi, how can I help?'); } catch { /* */ }
 
     while (runningRef.current) {
@@ -142,6 +144,7 @@ export default function CallScreen({
   }
 
   function hangUp() {
+    void bump();
     runningRef.current = false;
     abortRef.current?.abort();
     listenCtrlRef.current?.abort();
