@@ -323,6 +323,12 @@ TOOL DISCOVERY: the app's tools are NOT pre-loaded — only a search index is. F
       body: JSON.stringify(reqBody),
     });
     let res = await call();
+    // One retry on transient throttle/overload (429/529) — a momentary blip
+    // shouldn't cost a whole detector cycle.
+    if (res.status === 429 || res.status === 529) {
+      await new Promise((r) => setTimeout(r, 2000));
+      res = await call();
+    }
     // Safety net (mirrors chat): if the API rejects the deferred-tools shape
     // (400), retry once with the classic eager catalog — a trigger check must
     // never break over a cost optimization.
@@ -419,6 +425,12 @@ Example result: "Sent your morning digest — 12 unread emails grouped by sender
     body: JSON.stringify(reqBody),
   });
   let res = await call();
+  // One retry on transient throttle/overload (429/529) — a momentary blip
+  // shouldn't lose a scheduled run (the user only sees "failed").
+  if (res.status === 429 || res.status === 529) {
+    await new Promise((r) => setTimeout(r, 2000));
+    res = await call();
+  }
   // Safety net (mirrors chat): if the API rejects the deferred-tools shape
   // (400), retry once with the classic eager catalog — a background run must
   // never fail over a cost optimization.

@@ -149,6 +149,11 @@ async function runInstruction(uid: string, instruction: string, tz: string, step
   const memSys = mems.length ? `\n\nWHAT YOU KNOW ABOUT THIS USER (saved memories; honor them):\n${mems.map((m) => `• ${m}`).join("\n")}` : "";
 
   const wantSteps = steps.length > 0;
+  // The connector catalog is deferred (see the mcp_toolset below) — without this
+  // instruction the model may wrongly report a connected app as unavailable.
+  const toolSearchSystem = apps.length
+    ? `\n\nTOOL DISCOVERY: the tools for the user's connected apps (${apps.join(", ")}) exist but are NOT pre-loaded — only a search index is. The moment a step involves one of those apps, FIRST call tool_search_tool_regex with a Python-style pattern — e.g. "(?i)gmail.*send", "(?i)calendar.*event" — then call the tool(s) it returns. The already-loaded built-ins (GF_WEATHER, GF_MAPS, GF_GET_MEMORY_FILE, GF_SAVE_TABLE) need no search. NEVER report a needed app or tool as unavailable until a search for it came back empty.`
+    : "";
   const stepList = wantSteps ? `\n\nSTEPS (in order — "id — what it does"):\n${steps.map((s) => `${s.id} — ${s.label}`).join("\n")}` : "";
   const outFmt = wantSteps
     ? `\n\nWhen finished, reply with ONLY a JSON object (no prose, no code fences), shaped EXACTLY:\n{"summary":"2-3 plain sentences on the overall outcome","steps":[{"id":"<step id>","ok":true,"output":"one short line: what this step produced, or why it failed"}]}\nInclude exactly one entry per step id listed above, in the same order. No markdown or emoji inside any value.`
@@ -157,7 +162,7 @@ async function runInstruction(uid: string, instruction: string, tz: string, step
 
 Carry out the steps in order using the connected tools.${stepList} Stay strictly in scope: read and reason as needed, but only take an OUTWARD action (send, post, reply, create, delete, pay) that a step explicitly calls for — never add one on your own. Use the user's local timezone (${tz}).
 
-Be strictly honest about each step's outcome: if a step needs an app/tool you don't have, or a tool call fails, mark that step ok:false and say what's missing — NEVER claim a step succeeded when it didn't.${outFmt}${memSys}`;
+Be strictly honest about each step's outcome: if a step needs an app/tool you don't have, or a tool call fails, mark that step ok:false and say what's missing — NEVER claim a step succeeded when it didn't.${outFmt}${toolSearchSystem}${memSys}`;
 
   const reqBody: Record<string, unknown> = {
     model: MODEL,
@@ -169,15 +174,48 @@ Be strictly honest about each step's outcome: if a step needs an app/tool you do
   if (apps.length) {
     const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(uid)}&mem=0`;
     reqBody.mcp_servers = [{ type: "url", url, name: "connectors", authorization_token: await mintUserToken(uid) }];
-    // cache_control caches the (large) MCP tool schemas across the model's tool-use turns.
-    reqBody.tools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
+    // Deferred tool loading (same treatment as chat + the runner): only a search
+    // index of the connected-apps catalog exists until the model discovers what
+    // it needs, so a manual Test stops re-buying the whole catalog in tokens.
+    // Built-ins stay eager so a step like "check the weather" needs no search;
+    // unknown names in `configs` are warning-only. GF_SAVE_MEMORY is left out on
+    // purpose — tests always send &mem=0, so it's never served.
+    reqBody.tools = [
+      { type: "tool_search_tool_regex_20251119", name: "tool_search_tool_regex" },
+      {
+        type: "mcp_toolset",
+        mcp_server_name: "connectors",
+        default_config: { defer_loading: true },
+        configs: {
+          GF_GET_MEMORY_FILE: { defer_loading: false },
+          GF_SAVE_TABLE: { defer_loading: false },
+          GF_WEATHER: { defer_loading: false },
+          GF_MAPS: { defer_loading: false },
+          GF_IMAGE: { defer_loading: false },
+        },
+        cache_control: { type: "ephemeral", ttl: "1h" },
+      },
+    ];
     extra["anthropic-beta"] = "mcp-client-2025-11-20";
   }
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const call = () => fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", ...extra },
     body: JSON.stringify(reqBody),
   });
+  let res = await call();
+  // One retry on transient throttle/overload (429/529).
+  if (res.status === 429 || res.status === 529) {
+    await new Promise((r) => setTimeout(r, 2000));
+    res = await call();
+  }
+  // Safety net (mirrors chat + the runner): if the API rejects the deferred-tools
+  // shape (400), retry once with the classic eager catalog.
+  if (res.status === 400 && apps.length) {
+    console.error(`test deferred-tools request rejected (400): ${(await res.text().catch(() => "")).slice(0, 300)} — retrying with eager catalog`);
+    reqBody.tools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
+    res = await call();
+  }
   if (!res.ok) throw new Error(`assistant ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
   const data = await res.json();
   const text = (data.content || []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join("").trim();
