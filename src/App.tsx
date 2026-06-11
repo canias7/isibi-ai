@@ -31,7 +31,7 @@ import { biometryAvailable, biometryStatus, unlock, type BiometryStatus } from '
 import { registerPush, pushStatus } from './push';
 import { fileToAttachment } from './attach';
 import { getLocation } from './geo';
-import { isNetworkError, serverIsMoreComplete, withoutPlaceholders, titleFrom, cleanForDisplay, modelShort, plainText } from './chatUtils';
+import { isNetworkError, serverIsMoreComplete, withoutPlaceholders, titleFrom, cleanForDisplay, modelShort, plainText, decideRetry, mergeQueued } from './chatUtils';
 import { FORCE_UPDATE_EVENT, type ForceUpdateMode } from './ota';
 
 // Heavy, on-demand screens are code-split: their JS downloads only when first
@@ -972,18 +972,13 @@ export default function App() {
       if (uid) {
         const remote = await syncLoad(uid);
         if (pendingTurnRef.current !== pend) return; // adopted/replaced while we loaded
-        if (remote) {
-          const cur = remote.find((c) => c.id === currentId);
-          if (cur && serverIsMoreComplete(messagesRef.current, cur.messages)) { adoptConversation(cur); return; }
-        }
-        // The check itself failed (flaky just-resumed radio): we can't tell what
-        // the server holds, so never re-send on a guess — a duplicated turn can
-        // duplicate its action. Stay queued; recovery/resume will try again.
-        if (!remote && !force) return;
-        // The request reached the server, which finishes turns it started — the
-        // saved reply just hasn't landed yet. Adopt-only unless the user
-        // explicitly asks to re-send from the stalled state.
-        if (pend.sent && !force) return;
+        const cur = remote?.find((c) => c.id === currentId);
+        const serverMoreComplete = !!(cur && serverIsMoreComplete(messagesRef.current, cur.messages));
+        // Decision (adopt / wait / resend) lives in chatUtils so it's unit-tested —
+        // this is the line that must never re-run a turn the server already did.
+        const action = decideRetry({ sent: pend.sent, hasRemote: !!remote, serverMoreComplete, force });
+        if (action === 'adopt') { adoptConversation(cur!); return; }
+        if (action === 'wait') return;
       }
       if (busyRef.current || pendingTurnRef.current !== pend) return; // a new turn started meanwhile — leave it queued
       pendingTurnRef.current = null;
@@ -1212,7 +1207,7 @@ export default function App() {
     setDraft(currentId, '');
     setAttachments([]);
     if (busy) {
-      setQueued((q) => (q ? { text: `${q.text}\n${text}`.trim(), atts: [...q.atts, ...atts].slice(-6) } : { text, atts }));
+      setQueued((q) => mergeQueued(q, text, atts));
       return;
     }
     void sendText(text, atts);
