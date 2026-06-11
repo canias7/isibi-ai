@@ -26,7 +26,7 @@ import SettingsPage from './SettingsPage';
 import LegalSheet from './LegalSheet';
 import { PRIVACY_MD, TERMS_MD } from './legalDocs';
 import SidebarNav from './SidebarNav';
-import { loadChats, saveChats, loadPins, savePins, syncLoad, syncLoadOlder, syncSave, syncDelete, wipeStoredChats, loadDrafts, saveDrafts, MAX_CHATS, type Conversation } from './chatSync';
+import { loadChats, saveChats, loadPins, savePins, syncLoad, syncLoadOlder, syncSave, syncDelete, wipeStoredChats, loadDrafts, saveDrafts, loadQueuedMsg, saveQueuedMsg, MAX_CHATS, type Conversation } from './chatSync';
 import { biometryAvailable, biometryStatus, unlock, type BiometryStatus } from './biometric';
 import { registerPush, pushStatus } from './push';
 import { fileToAttachment } from './attach';
@@ -513,6 +513,15 @@ export default function App() {
     }
     setPinned(loadPins(uid));
     draftsRef.current = loadDrafts(uid);
+    // A message queued mid-reply that a crash left orphaned: fold it back into its
+    // chat's draft so it's waiting in the composer (never silently re-sent).
+    const orphan = loadQueuedMsg(uid);
+    if (orphan?.text) {
+      const prev = draftsRef.current[orphan.convId];
+      draftsRef.current[orphan.convId] = prev ? `${prev}\n${orphan.text}`.trim() : orphan.text;
+      saveDrafts(uid, draftsRef.current);
+      saveQueuedMsg(uid, null);
+    }
     const loaded = loadChats(uid);
     setChats(loaded);
     setCurrentId(loaded[0]?.id ?? cid());
@@ -1216,6 +1225,14 @@ export default function App() {
     setQueued(null);
     void sendTextRef.current(q.text, q.atts);
   }, [busy, queued]);
+
+  // Mirror the queued message to storage so a crash mid-reply can't lose it
+  // (text only — attachments stay in memory). Cleared the moment it flushes or is
+  // cancelled. currentId via ref so this tracks `queued`, not every chat switch.
+  useEffect(() => {
+    if (!uid) return;
+    saveQueuedMsg(uid, queued ? { convId: currentIdRef.current, text: queued.text } : null);
+  }, [queued, uid]);
 
   // ---- Attachments ("+" menu) ----
   // Camera jumps straight into the device camera (Take Photo); Attachments offers
