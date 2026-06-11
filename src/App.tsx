@@ -17,6 +17,7 @@ import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, registerReminderActions, onReminderAction, snoozeNudge, type Reminder, type RepeatKind } from './reminders';
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
+import { loadReminderSound, saveReminderSound, previewReminderSound } from './reminderSounds';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { tap, bump, thud } from './haptics';
@@ -322,6 +323,7 @@ export default function App() {
   const [notif, setNotif] = useState(() => { try { return localStorage.getItem('gf_notif') === '1'; } catch { return false; } });
   const [sounds, setSounds] = useState(soundsOn);
   const [sndTheme, setSndTheme] = useState<SoundTheme>(soundTheme);
+  const [reminderSound, setReminderSound] = useState(loadReminderSound); // notification sound for reminders
 
   // ---- Per-session connectors ----
   // Which apps are connected (from the backend), which are enabled for THIS
@@ -1191,6 +1193,16 @@ export default function App() {
     sentSound();
   }
 
+  // Pick the reminder notification sound — previews it in-app, and re-arms
+  // existing reminders so the new sound applies now, not only on next launch.
+  function pickReminderSound(id: string) {
+    void tap();
+    setReminderSound(id);
+    saveReminderSound(id);
+    previewReminderSound(id);
+    void listReminders().then(syncReminders);
+  }
+
   // Choose the model for THIS conversation — remembered per chat (device-local),
   // so each one reopens on the model you picked for it. 'auto' = the backend
   // routes (and is the default), so we drop the entry rather than store it.
@@ -1959,7 +1971,9 @@ export default function App() {
           onToggleNotif={() => void toggleNotif()}
           onToggleSounds={toggleSounds}
           soundTheme={sndTheme}
+          reminderSound={reminderSound}
           onPickSoundTheme={pickSoundTheme}
+          onPickReminderSound={pickReminderSound}
           onTestPush={() => void testPush()}
           onSignOut={() => setConfirmSignOut(true)}
           onDeleteAccount={() => setConfirmDelete(true)}

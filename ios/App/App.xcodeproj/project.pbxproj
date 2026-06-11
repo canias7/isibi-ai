@@ -15,6 +15,24 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		171E308BA2815780A75DF0C3 /* rem_bell.wav in Resources */ = {isa = PBXBuildFile; fileRef = 43CC4A6C471AF5151FAD9373 /* rem_bell.wav */; };
+		24784DA27CF89E586F44D1AC /* rem_boing.wav in Resources */ = {isa = PBXBuildFile; fileRef = 2A9199A2714EB01CE276BA96 /* rem_boing.wav */; };
+		CE38345ED24F01D8C41347A0 /* rem_british.wav in Resources */ = {isa = PBXBuildFile; fileRef = 90C88E0C87598AB33EADB4C9 /* rem_british.wav */; };
+		9A23ACFE7B0F7C57EBDF6208 /* rem_chime.wav in Resources */ = {isa = PBXBuildFile; fileRef = 56A391B28530D4DC16B1653F /* rem_chime.wav */; };
+		7877FA3346FC31740D3E25F9 /* rem_chipmunk.wav in Resources */ = {isa = PBXBuildFile; fileRef = 0A2956E187DC1B2109E9561F /* rem_chipmunk.wav */; };
+		5D6488C5BE0D7DAFE68C6E36 /* rem_deep.wav in Resources */ = {isa = PBXBuildFile; fileRef = 25B220D78B09D5F11A1F08E1 /* rem_deep.wav */; };
+		E858253E7AF53E58F2AAF895 /* rem_drop.wav in Resources */ = {isa = PBXBuildFile; fileRef = E92BE772F4F90EAD08F2B85C /* rem_drop.wav */; };
+		F484D37BF284941DF8D4AD3A /* rem_glow.wav in Resources */ = {isa = PBXBuildFile; fileRef = 10E9C2C8C66E3CD95513221D /* rem_glow.wav */; };
+		4D72E7A5A64612D6687C1097 /* rem_honk.wav in Resources */ = {isa = PBXBuildFile; fileRef = 3EEB6EB8A3360023521AF7AA /* rem_honk.wav */; };
+		48156E8F7B32A7CC4EC6993C /* rem_marimba.wav in Resources */ = {isa = PBXBuildFile; fileRef = 4BEA5F3E4B5EC9FC764FC8B8 /* rem_marimba.wav */; };
+		B107F0E45D15BF144C024317 /* rem_pulse.wav in Resources */ = {isa = PBXBuildFile; fileRef = E4B8190DED8589780EE507B8 /* rem_pulse.wav */; };
+		16FA85D573BE760CCABF0446 /* rem_scream.wav in Resources */ = {isa = PBXBuildFile; fileRef = EE9BE739898DCC3FF00987E1 /* rem_scream.wav */; };
+		9F42048CD048C8A3ED6FDEDE /* rem_tada.wav in Resources */ = {isa = PBXBuildFile; fileRef = 805ED5D59E34178275AD33AB /* rem_tada.wav */; };
+		6A847997EF870B568402F659 /* rem_tiptoe.wav in Resources */ = {isa = PBXBuildFile; fileRef = AD5073D688459618F5D74E93 /* rem_tiptoe.wav */; };
+		A9FD5AC2EF00A8057E3B2087 /* rem_trombone.wav in Resources */ = {isa = PBXBuildFile; fileRef = BA300BCB9FA78114EE8DE4C8 /* rem_trombone.wav */; };
+		DF5798A307144513B2AF1136 /* rem_wakeup.wav in Resources */ = {isa = PBXBuildFile; fileRef = C3484540D9F93FB3063A4457 /* rem_wakeup.wav */; };
+		C1B2D6601533E4EC347E3DE8 /* rem_wakey.wav in Resources */ = {isa = PBXBuildFile; fileRef = A16F449664BF63A0B738DFA2 /* rem_wakey.wav */; };
+		DFD519E27AD3C6F7CEF72E7D /* rem_whistle.wav in Resources */ = {isa = PBXBuildFile; fileRef = D0DF389A81574E9E528221F8 /* rem_whistle.wav */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +46,24 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		43CC4A6C471AF5151FAD9373 /* rem_bell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_bell.wav; sourceTree = "<group>"; };
+		2A9199A2714EB01CE276BA96 /* rem_boing.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_boing.wav; sourceTree = "<group>"; };
+		90C88E0C87598AB33EADB4C9 /* rem_british.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_british.wav; sourceTree = "<group>"; };
+		56A391B28530D4DC16B1653F /* rem_chime.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_chime.wav; sourceTree = "<group>"; };
+		0A2956E187DC1B2109E9561F /* rem_chipmunk.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_chipmunk.wav; sourceTree = "<group>"; };
+		25B220D78B09D5F11A1F08E1 /* rem_deep.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_deep.wav; sourceTree = "<group>"; };
+		E92BE772F4F90EAD08F2B85C /* rem_drop.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_drop.wav; sourceTree = "<group>"; };
+		10E9C2C8C66E3CD95513221D /* rem_glow.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_glow.wav; sourceTree = "<group>"; };
+		3EEB6EB8A3360023521AF7AA /* rem_honk.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_honk.wav; sourceTree = "<group>"; };
+		4BEA5F3E4B5EC9FC764FC8B8 /* rem_marimba.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_marimba.wav; sourceTree = "<group>"; };
+		E4B8190DED8589780EE507B8 /* rem_pulse.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_pulse.wav; sourceTree = "<group>"; };
+		EE9BE739898DCC3FF00987E1 /* rem_scream.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_scream.wav; sourceTree = "<group>"; };
+		805ED5D59E34178275AD33AB /* rem_tada.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_tada.wav; sourceTree = "<group>"; };
+		AD5073D688459618F5D74E93 /* rem_tiptoe.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_tiptoe.wav; sourceTree = "<group>"; };
+		BA300BCB9FA78114EE8DE4C8 /* rem_trombone.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_trombone.wav; sourceTree = "<group>"; };
+		C3484540D9F93FB3063A4457 /* rem_wakeup.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_wakeup.wav; sourceTree = "<group>"; };
+		A16F449664BF63A0B738DFA2 /* rem_wakey.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_wakey.wav; sourceTree = "<group>"; };
+		D0DF389A81574E9E528221F8 /* rem_whistle.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sounds/rem_whistle.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,6 +106,24 @@
 				504EC3131FED79650016851F /* Info.plist */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
+				43CC4A6C471AF5151FAD9373 /* rem_bell.wav */,
+				2A9199A2714EB01CE276BA96 /* rem_boing.wav */,
+				90C88E0C87598AB33EADB4C9 /* rem_british.wav */,
+				56A391B28530D4DC16B1653F /* rem_chime.wav */,
+				0A2956E187DC1B2109E9561F /* rem_chipmunk.wav */,
+				25B220D78B09D5F11A1F08E1 /* rem_deep.wav */,
+				E92BE772F4F90EAD08F2B85C /* rem_drop.wav */,
+				10E9C2C8C66E3CD95513221D /* rem_glow.wav */,
+				3EEB6EB8A3360023521AF7AA /* rem_honk.wav */,
+				4BEA5F3E4B5EC9FC764FC8B8 /* rem_marimba.wav */,
+				E4B8190DED8589780EE507B8 /* rem_pulse.wav */,
+				EE9BE739898DCC3FF00987E1 /* rem_scream.wav */,
+				805ED5D59E34178275AD33AB /* rem_tada.wav */,
+				AD5073D688459618F5D74E93 /* rem_tiptoe.wav */,
+				BA300BCB9FA78114EE8DE4C8 /* rem_trombone.wav */,
+				C3484540D9F93FB3063A4457 /* rem_wakeup.wav */,
+				A16F449664BF63A0B738DFA2 /* rem_wakey.wav */,
+				D0DF389A81574E9E528221F8 /* rem_whistle.wav */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -141,6 +195,24 @@
 			files = (
 				504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */,
 				50B271D11FEDC1A000F3C39B /* public in Resources */,
+				171E308BA2815780A75DF0C3 /* rem_bell.wav in Resources */,
+				24784DA27CF89E586F44D1AC /* rem_boing.wav in Resources */,
+				CE38345ED24F01D8C41347A0 /* rem_british.wav in Resources */,
+				9A23ACFE7B0F7C57EBDF6208 /* rem_chime.wav in Resources */,
+				7877FA3346FC31740D3E25F9 /* rem_chipmunk.wav in Resources */,
+				5D6488C5BE0D7DAFE68C6E36 /* rem_deep.wav in Resources */,
+				E858253E7AF53E58F2AAF895 /* rem_drop.wav in Resources */,
+				F484D37BF284941DF8D4AD3A /* rem_glow.wav in Resources */,
+				4D72E7A5A64612D6687C1097 /* rem_honk.wav in Resources */,
+				48156E8F7B32A7CC4EC6993C /* rem_marimba.wav in Resources */,
+				B107F0E45D15BF144C024317 /* rem_pulse.wav in Resources */,
+				16FA85D573BE760CCABF0446 /* rem_scream.wav in Resources */,
+				9F42048CD048C8A3ED6FDEDE /* rem_tada.wav in Resources */,
+				6A847997EF870B568402F659 /* rem_tiptoe.wav in Resources */,
+				A9FD5AC2EF00A8057E3B2087 /* rem_trombone.wav in Resources */,
+				DF5798A307144513B2AF1136 /* rem_wakeup.wav in Resources */,
+				C1B2D6601533E4EC347E3DE8 /* rem_wakey.wav in Resources */,
+				DFD519E27AD3C6F7CEF72E7D /* rem_whistle.wav in Resources */,
 				504EC30F1FED79650016851F /* Assets.xcassets in Resources */,
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,

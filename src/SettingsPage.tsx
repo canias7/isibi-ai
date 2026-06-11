@@ -2,15 +2,19 @@ import { Capacitor } from '@capacitor/core';
 import type { Session } from '@supabase/supabase-js';
 import { keyActivate } from './a11y';
 import { tap } from './haptics';
-import { IconLogout, IconTrash } from './icons';
+import { IconLogout, IconTrash, IconCheck } from './icons';
 import { APP_VERSION, BUILD } from './version';
 import { THEMES, type SoundTheme } from './earcons';
+import { REMINDER_SOUNDS } from './reminderSounds';
 import type { BiometryStatus } from './biometric';
+
+// Section headers for the reminder-sound picker, in catalog order.
+const REM_SOUND_SECTIONS = [...new Set(REMINDER_SOUNDS.map((s) => s.section))];
 
 // The Settings view — presentational; all state and handlers live in App.
 export default function SettingsPage({
-  session, isGuest, bioStatus, faceId, notif, sounds, soundTheme, noteMsg,
-  onToggleFaceId, onToggleNotif, onToggleSounds, onPickSoundTheme, onTestPush, onSignOut, onDeleteAccount, onOpenLegal,
+  session, isGuest, bioStatus, faceId, notif, sounds, soundTheme, reminderSound, noteMsg,
+  onToggleFaceId, onToggleNotif, onToggleSounds, onPickSoundTheme, onPickReminderSound, onTestPush, onSignOut, onDeleteAccount, onOpenLegal,
 }: {
   session: Session;
   isGuest: boolean;
@@ -19,11 +23,13 @@ export default function SettingsPage({
   notif: boolean;
   sounds: boolean;
   soundTheme: SoundTheme;
+  reminderSound: string;
   noteMsg: string;
   onToggleFaceId: () => void;
   onToggleNotif: () => void;
   onToggleSounds: () => void;
   onPickSoundTheme: (t: SoundTheme) => void;
+  onPickReminderSound: (id: string) => void;
   onTestPush: () => void;
   onSignOut: () => void;
   onDeleteAccount: () => void;
@@ -90,6 +96,33 @@ export default function SettingsPage({
             </div>
           )}
         </div>
+        {native && (
+          <>
+            <div className="set-label">Reminder sound</div>
+            <div className="set-card">
+              <div className="rem-snd-hint">What plays when a reminder goes off. Tap one to hear it.</div>
+              {REM_SOUND_SECTIONS.map((sec) => (
+                <div className="rem-snd-group" key={sec}>
+                  <div className="rem-snd-sec">{sec}</div>
+                  <div role="radiogroup" aria-label={`${sec} reminder sounds`}>
+                    {REMINDER_SOUNDS.filter((s) => s.section === sec).map((s) => (
+                      <button
+                        key={s.id}
+                        className={`rem-snd-row${reminderSound === s.id ? ' on' : ''}`}
+                        role="radio"
+                        aria-checked={reminderSound === s.id}
+                        onClick={() => onPickReminderSound(s.id)}
+                      >
+                        <span className="rem-snd-name">{s.label}</span>
+                        {reminderSound === s.id && <IconCheck size={16} />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         {native && notif && (
           <button className="set-test-btn" onClick={onTestPush}>Send a test notification</button>
         )}
