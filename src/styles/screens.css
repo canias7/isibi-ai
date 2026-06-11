@@ -94,6 +94,21 @@
 }
 
 /* ---- Connectors ---- */
+/* "Connecting…" banner shown while an OAuth round-trip + poll is in flight. */
+.cg-connecting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 16px 8px;
+  padding: 10px 14px;
+  background: rgba(224, 161, 58, 0.12);
+  border: 1px solid var(--brand-strong);
+  border-radius: var(--r-card);
+  color: var(--text);
+  font-size: var(--fs-footnote);
+  line-height: 1.4;
+}
+.cg-connecting .btn-spin { width: 15px; height: 15px; flex-shrink: 0; color: var(--brand); }
 .conn-list { display: flex; flex-direction: column; gap: 10px; }
 .conn-card {
   display: flex;

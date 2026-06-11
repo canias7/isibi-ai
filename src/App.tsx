@@ -6,7 +6,7 @@ import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown } from './icons';
+import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown, IconLogout } from './icons';
 import { primeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { sentSound, replySound, soundsOn, setSoundsOn } from './earcons';
 import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
@@ -52,6 +52,16 @@ function OverlayCrash({ onClose }: { onClose: () => void }) {
         <p>This screen hit a problem.</p>
         <button className="lock-btn" onClick={onClose}>Close</button>
       </div>
+    </div>
+  );
+}
+
+// Shown while a lazily-loaded screen's chunk downloads — a centered spinner over
+// a full-screen scrim instead of a blank flash.
+function RouteFallback() {
+  return (
+    <div className="route-fallback" role="status" aria-label="Loading">
+      <span className="route-spin" />
     </div>
   );
 }
@@ -286,6 +296,7 @@ export default function App() {
   faceIdRef.current = faceId;
   const [bioStatus, setBioStatus] = useState<BiometryStatus | 'unknown'>('unknown'); // gates the Face ID row
   const [confirmDelete, setConfirmDelete] = useState(false); // delete-account confirm sheet
+  const [confirmSignOut, setConfirmSignOut] = useState(false); // sign-out confirm sheet (one tap drops local data)
   const [deleting, setDeleting] = useState(false);
   const [forceUpdate, setForceUpdate] = useState<ForceUpdateMode | null>(null); // hard update gate (from ota.ts)
   const [wnOpen, setWnOpen] = useState(false); // "What's new" sheet (once per announced edition)
@@ -439,11 +450,13 @@ export default function App() {
   // closes it, and focus returns to the control that opened it.
   const menuSheetRef = useRef<HTMLDivElement>(null);
   const confirmSheetRef = useRef<HTMLDivElement>(null);
+  const signOutSheetRef = useRef<HTMLDivElement>(null);
   const radialRef = useRef<HTMLDivElement>(null);
   const wnRef = useRef<HTMLDivElement>(null);
   const legalRef = useRef<HTMLDivElement>(null);
   useFocusTrap(!!menuChat, menuSheetRef, () => setMenuChat(null));
   useFocusTrap(confirmDelete, confirmSheetRef, () => { if (!deleting) setConfirmDelete(false); });
+  useFocusTrap(confirmSignOut, signOutSheetRef, () => setConfirmSignOut(false));
   useFocusTrap(plusOpen, radialRef, () => setPlusOpen(false));
   useFocusTrap(wnOpen, wnRef, () => closeWhatsNew());
   useFocusTrap(!!legalDoc, legalRef, () => setLegalDoc(null));
@@ -457,6 +470,7 @@ export default function App() {
   if (menuChat) lastMenuChat.current = menuChat;
   const menuSheetChat = menuChat ?? lastMenuChat.current;
   const confirmUi = useDismiss(confirmDelete);
+  const signOutUi = useDismiss(confirmSignOut);
   const wnUi = useDismiss(wnOpen);
   // Legal reader: latch the doc so the sheet doesn't blank out during its exit beat.
   const legalUi = useDismiss(!!legalDoc);
@@ -1649,7 +1663,7 @@ export default function App() {
         selectChat={selectChat}
         newChat={newChat}
         go={go}
-        signOut={() => void signOut()}
+        signOut={() => setConfirmSignOut(true)}
         hasMore={hasMoreChats}
         loadingOlder={loadingOlder}
         onLoadOlder={() => void loadOlderChats()}
@@ -1703,6 +1717,20 @@ export default function App() {
           panelRef={legalRef}
         />
       )}
+      {/* Sign-out confirmation (signing out clears local chats/drafts/pins on this device) */}
+      {signOutUi.mounted && (
+        <>
+          <div className={`sheet-scrim${signOutUi.closing ? ' closing' : ''}`} onClick={() => setConfirmSignOut(false)} />
+          <div className={`chat-sheet${signOutUi.closing ? ' closing' : ''}`} role="alertdialog" aria-label="Sign out" ref={signOutSheetRef} tabIndex={-1}>
+            <div className="chat-sheet-title">Sign out?</div>
+            <p className="confirm-body">This clears your chats, drafts, and pins from this device. They’ll sync back when you sign in again.</p>
+            <button className="chat-sheet-row danger" onClick={() => { setConfirmSignOut(false); void signOut(); }}>
+              <IconLogout size={16} /> Sign out
+            </button>
+            <button className="chat-sheet-row cancel" onClick={() => setConfirmSignOut(false)}>Cancel</button>
+          </div>
+        </>
+      )}
       {/* Delete-account confirmation */}
       {confirmUi.mounted && (
         <>
@@ -1729,7 +1757,7 @@ export default function App() {
       </header>
 
       {view === 'connectors' ? (
-        <Suspense fallback={null}><ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); go('chat'); }} />}><ConnectorsGraph onClose={() => go('chat')} /></ErrorBoundary></Suspense>
+        <Suspense fallback={<RouteFallback />}><ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); go('chat'); }} />}><ConnectorsGraph onClose={() => go('chat')} /></ErrorBoundary></Suspense>
       ) : view === 'settings' ? (
         <SettingsPage
           session={session}
@@ -1743,7 +1771,7 @@ export default function App() {
           onToggleNotif={() => void toggleNotif()}
           onToggleSounds={toggleSounds}
           onTestPush={() => void testPush()}
-          onSignOut={() => void signOut()}
+          onSignOut={() => setConfirmSignOut(true)}
           onDeleteAccount={() => setConfirmDelete(true)}
           onOpenLegal={(d) => setLegalDoc(d)}
         />
@@ -1985,7 +2013,7 @@ export default function App() {
       {/* Full-screen overlays: the display:contents wrapper carries .gf-out for
           the exit beat — no box of its own, so layout is untouched. */}
       {memUi.mounted && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<RouteFallback />}>
           <div style={{ display: 'contents' }} className={memUi.closing ? 'gf-out' : undefined}>
             <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); closeMemory(); }} />}>
             <MemoryGraph
@@ -2005,7 +2033,7 @@ export default function App() {
       )}
 
       {remUi.mounted && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<RouteFallback />}>
           <div style={{ display: 'contents' }} className={remUi.closing ? 'gf-out' : undefined}>
             <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); closeReminders(); }} />}>
             <RemindersGraph
@@ -2023,7 +2051,7 @@ export default function App() {
       )}
 
       {wfUi.mounted && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<RouteFallback />}>
           <div style={{ display: 'contents' }} className={wfUi.closing ? 'gf-out' : undefined}>
             <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setWfOpen(false); }} />}>
             <WorkflowsScreen connApps={connApps} onClose={() => setWfOpen(false)} />
@@ -2033,7 +2061,7 @@ export default function App() {
       )}
 
       {callUi.mounted && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<RouteFallback />}>
           <div style={{ display: 'contents' }} className={callUi.closing ? 'gf-out' : undefined}>
             <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setCallOpen(false); closeAudio(); }} />}>
             <CallScreen
