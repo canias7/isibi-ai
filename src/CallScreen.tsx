@@ -15,13 +15,14 @@ const cid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 // so all tools/memory still work) → speak the reply → listen again. The whole
 // exchange lands in the chat thread via onTurn, so you can scroll it later.
 export default function CallScreen({
-  baseHistory, apps, conversationId, memoryOn, onTurn, onClose,
+  baseHistory, apps, conversationId, memoryOn, onTurn, onReminderSet, onClose,
 }: {
   baseHistory: ChatMessage[];
   apps?: string[];
   conversationId?: string;
   memoryOn?: boolean;
   onTurn: (history: ChatMessage[]) => void;
+  onReminderSet?: () => void; // the assistant set a reminder this turn — re-arm the device notification
   onClose: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>('connecting');
@@ -131,8 +132,9 @@ export default function CallScreen({
       abortRef.current = null;
       if (!runningRef.current) return;
 
-      // 4) Land the reply in the thread (strip transient status markers).
-      const clean = full.replace(/\[\[gfstatus:[^\]]*\]\]/g, '');
+      // 4) Land the reply in the thread (strip transient status + sync markers).
+      if (/\[\[gfsync:reminders\]\]/.test(full)) onReminderSet?.();
+      const clean = full.replace(/\[\[gf(?:status|sync):[^\]]*\]\]/g, '');
       historyRef.current = [...historyRef.current, { role: 'assistant', content: clean, id: cid() }];
       onTurn(historyRef.current);
 

@@ -52,7 +52,8 @@ function AssistantMessage(
   // (incl. a trailing partial one still arriving) so they never show as text.
   const sm = [...text.matchAll(/\[\[gfstatus:([^\]]*)\]\]/g)];
   const liveStatus = sm.length ? sm[sm.length - 1][1] : '';
-  const clean = text.replace(/\[\[gfstatus:[^\]]*\]\]/g, '').replace(/\[\[gfstatus[^\]]*$/, '');
+  // Strip status pills, the reminder-sync signal, and any trailing partial marker.
+  const clean = text.replace(/\[\[gf(?:status|sync):[^\]]*\]\]/g, '').replace(/\[\[gf(?:status|sync)[^\]]*$/, '');
 
   // Nothing to render yet while streaming → show a "thinking" indicator (the
   // bouncing dots), or a tool-activity label when a tool is running.

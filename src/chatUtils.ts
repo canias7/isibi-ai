@@ -105,5 +105,5 @@ export function modelShort(m: string): string {
 // the internal marker, so "Copy" yields readable text (and is hidden for a
 // card-only reply where there's nothing to copy).
 export function plainText(s: string): string {
-  return s.replace(/```gf[\s\S]*?```/g, '').replace(/\[\[gf(id|status):[^\]]*\]\]/g, '').trim();
+  return s.replace(/```gf[\s\S]*?```/g, '').replace(/\[\[gf(id|status|sync):[^\]]*\]\]/g, '').trim();
 }

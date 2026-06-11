@@ -155,12 +155,15 @@ async function runInstruction(uid: string, instruction: string, tz: string, step
   const [apps, memOn] = await Promise.all([connectedToolkits(uid), memoryEnabled(uid)]);
   const mems = memOn ? await fetchMemories(uid) : [];
   const memSys = mems.length ? `\n\nWHAT YOU KNOW ABOUT THIS USER (saved memories; honor them):\n${mems.map((m) => `• ${m}`).join("\n")}` : "";
+  let nowLocal: string;
+  try { nowLocal = new Intl.DateTimeFormat("en-US", { timeZone: tz, dateStyle: "full", timeStyle: "short" }).format(new Date()); }
+  catch { tz = "UTC"; nowLocal = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", dateStyle: "full", timeStyle: "short" }).format(new Date()); }
 
   const wantSteps = steps.length > 0;
   // The connector catalog is deferred (see the mcp_toolset below) — without this
   // instruction the model may wrongly report a connected app as unavailable.
   const toolSearchSystem = apps.length
-    ? `\n\nTOOL DISCOVERY: the tools for the user's connected apps (${apps.join(", ")}) exist but are NOT pre-loaded — only a search index is. The moment a step involves one of those apps, FIRST call tool_search_tool_regex with a Python-style pattern — e.g. "(?i)gmail.*send", "(?i)calendar.*event" — then call the tool(s) it returns. The already-loaded built-ins (GF_WEATHER, GF_MAPS, GF_GET_MEMORY_FILE, GF_SAVE_TABLE) need no search. NEVER report a needed app or tool as unavailable until a search for it came back empty.`
+    ? `\n\nTOOL DISCOVERY: the tools for the user's connected apps (${apps.join(", ")}) exist but are NOT pre-loaded — only a search index is. The moment a step involves one of those apps, FIRST call tool_search_tool_regex with a Python-style pattern — e.g. "(?i)gmail.*send", "(?i)calendar.*event" — then call the tool(s) it returns. The already-loaded built-ins (GF_WEATHER, GF_MAPS, GF_GET_MEMORY_FILE, GF_SAVE_TABLE, GF_SET_REMINDER) need no search. NEVER report a needed app or tool as unavailable until a search for it came back empty.`
     : "";
   const stepList = wantSteps ? `\n\nSTEPS (in order — "id — what it does"):\n${steps.map((s) => `${s.id} — ${s.label}`).join("\n")}` : "";
   const outFmt = wantSteps
@@ -168,7 +171,7 @@ async function runInstruction(uid: string, instruction: string, tz: string, step
     : ` Then reply with a SHORT summary of what you did and the outcome — at most 2-3 sentences. Plain text only: no markdown, no emoji, no code blocks.`;
   const system = `You are Go Farther, running this saved automation for the user RIGHT NOW. The user tapped "Test" to watch it run, so this is a REAL run — any action you take (sending, posting, creating, deleting) actually happens, exactly like a live run. Do it carefully.
 
-Carry out the steps in order using the connected tools.${stepList} Stay strictly in scope: read and reason as needed, but only take an OUTWARD action (send, post, reply, create, delete, pay) that a step explicitly calls for — never add one on your own. Use the user's local timezone (${tz}).
+Carry out the steps in order using the connected tools.${stepList} Stay strictly in scope: read and reason as needed, but only take an OUTWARD action (send, post, reply, create, delete, pay) that a step explicitly calls for — never add one on your own. It is currently ${nowLocal} in the user's timezone (${tz}); use it for time reasoning and show times in ${tz}. If a step asks to remind the user at a time, call GF_SET_REMINDER with a short title, an ISO 8601 datetime in ${tz}, an optional repeat, and tz "${tz}".
 
 Be strictly honest about each step's outcome: if a step needs an app/tool you don't have, or a tool call fails, mark that step ok:false and say what's missing — NEVER claim a step succeeded when it didn't.${outFmt}${toolSearchSystem}${memSys}`;
 
@@ -200,6 +203,7 @@ Be strictly honest about each step's outcome: if a step needs an app/tool you do
           GF_WEATHER: { defer_loading: false },
           GF_MAPS: { defer_loading: false },
           GF_IMAGE: { defer_loading: false },
+          GF_SET_REMINDER: { defer_loading: false },
         },
         cache_control: { type: "ephemeral", ttl: "1h" },
       },
