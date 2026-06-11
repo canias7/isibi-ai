@@ -20,7 +20,7 @@ import ErrorBoundary from './ErrorBoundary';
 import RecoveryBubble from './RecoveryBubble';
 import SettingsPage from './SettingsPage';
 import SidebarNav from './SidebarNav';
-import { loadChats, saveChats, loadPins, savePins, syncLoad, syncSave, syncDelete, wipeStoredChats, MAX_CHATS, type Conversation } from './chatSync';
+import { loadChats, saveChats, loadPins, savePins, syncLoad, syncSave, syncDelete, wipeStoredChats, loadDrafts, saveDrafts, MAX_CHATS, type Conversation } from './chatSync';
 import { biometryAvailable, biometryStatus, unlock, type BiometryStatus } from './biometric';
 import { registerPush, pushStatus } from './push';
 import { fileToAttachment } from './attach';
@@ -92,9 +92,17 @@ function chatGroup(ts: number): string {
 
 // Render one attachment — image thumbnail, or a file chip (also the fallback for
 // images whose base64 was stripped on persist).
-function AttView({ a }: { a: Attach }) {
+function AttView({ a, onTap }: { a: Attach; onTap?: (src: string) => void }) {
   if (a.kind === 'image' && a.data) {
-    return <img className="att-img" src={`data:${a.mediaType};base64,${a.data}`} alt={a.name} />;
+    const src = `data:${a.mediaType};base64,${a.data}`;
+    if (onTap) {
+      return (
+        <button className="att-img-btn" onClick={() => onTap(src)} aria-label={`View image: ${a.name}`}>
+          <img className="att-img" src={src} alt={a.name} />
+        </button>
+      );
+    }
+    return <img className="att-img" src={src} alt={a.name} />;
   }
   return (
     <span className="att-file">
@@ -202,6 +210,25 @@ export default function App() {
       if (near) setUnseen(false);
     }
   }
+  // Per-chat drafts: saved as you type (debounced), restored when a chat opens.
+  const draftsRef = useRef<Record<string, string>>({});
+  const draftTimer = useRef<number | null>(null);
+  function setDraft(id: string, text: string) {
+    if (text.trim()) draftsRef.current[id] = text; else delete draftsRef.current[id];
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    if (uid) draftTimer.current = window.setTimeout(() => saveDrafts(uid, draftsRef.current), 400);
+  }
+
+  // Full-screen viewer for images in chat bubbles (same dialog the email
+  // reader uses): trap + animated dismissal + latched src.
+  const [lightbox, setLightbox] = useState<string | null>(null);
+  const lightboxRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(!!lightbox, lightboxRef, () => setLightbox(null));
+  const lightboxUi = useDismiss(!!lightbox);
+  const lastLightbox = useRef(lightbox);
+  if (lightbox) lastLightbox.current = lightbox;
+  const lightboxSrc = lightbox ?? lastLightbox.current;
+
   function jumpToLatest() {
     const el = scrollRef.current;
     if (!el) return;
@@ -383,6 +410,7 @@ export default function App() {
       return;
     }
     setPinned(loadPins(uid));
+    draftsRef.current = loadDrafts(uid);
     const loaded = loadChats(uid);
     setChats(loaded);
     setCurrentId(loaded[0]?.id ?? cid());
@@ -437,7 +465,11 @@ export default function App() {
   // queued for the previous chat — otherwise the next online event / Retry tap
   // would replay that old turn into the chat now open. The failed bubble doesn't
   // survive a chat switch either, so this just matches what's on screen.
-  useEffect(() => { pendingTurnRef.current = null; retryingRef.current = false; setCopiedIdx(null); setQueued(null); }, [currentId]);
+  useEffect(() => {
+    pendingTurnRef.current = null; retryingRef.current = false; setCopiedIdx(null); setQueued(null);
+    setInput(draftsRef.current[currentId] ?? ''); // each chat keeps its own draft
+     
+  }, [currentId]);
 
   // A short-lived note in Settings (auto-clears) — used to explain why a toggle
   // didn't turn on (no biometrics, notifications denied, …).
@@ -989,7 +1021,11 @@ export default function App() {
       if (!audio) return; // never spoke \u2014 just go back to idle
       setMicState('tx');
       const text = await transcribe(audio);
-      if (text) setInput((cur) => (cur.trim() ? cur.replace(/\s+$/, '') + ' ' + text : text));
+      if (text) setInput((cur) => {
+        const next = cur.trim() ? cur.replace(/\s+$/, '') + ' ' + text : text;
+        setDraft(currentId, next);
+        return next;
+      });
       taRef.current?.focus();
     } catch (e) {
       const m = e instanceof Error ? e.message : '';
@@ -1012,6 +1048,7 @@ export default function App() {
     void tap(); // light haptic on send (no-op until a native build includes the plugin)
     const atts = attachments;
     setInput('');
+    setDraft(currentId, '');
     setAttachments([]);
     if (busy) {
       setQueued((q) => (q ? { text: `${q.text}\n${text}`.trim(), atts: [...q.atts, ...atts].slice(-6) } : { text, atts }));
@@ -1253,6 +1290,8 @@ export default function App() {
   function deleteChat(id: string, e?: React.MouseEvent) {
     e?.stopPropagation();
     if (id === currentId) stopStream(); // abort any in-flight reply before dropping its chat
+    delete draftsRef.current[id];
+    if (uid) saveDrafts(uid, draftsRef.current);
     setChats((prev) => {
       const next = prev.filter((c) => c.id !== id);
       if (uid) saveChats(uid, next);
@@ -1559,7 +1598,7 @@ export default function App() {
                           <>
                             {m.attachments && m.attachments.length > 0 && (
                               <div className="msg-atts">
-                                {m.attachments.map((a, ai) => <AttView key={ai} a={a} />)}
+                                {m.attachments.map((a, ai) => <AttView key={ai} a={a} onTap={setLightbox} />)}
                               </div>
                             )}
                             {cleanForDisplay(m.content)}
@@ -1651,7 +1690,7 @@ export default function App() {
                   </span>
                   <button
                     className="att-x"
-                    onClick={() => { setInput(queued.text); setAttachments(queued.atts); setQueued(null); taRef.current?.focus(); }}
+                    onClick={() => { setInput(queued.text); setDraft(currentId, queued.text); setAttachments(queued.atts); setQueued(null); taRef.current?.focus(); }}
                     aria-label="Cancel queued message and edit it"
                   >
                     <IconX size={12} />
@@ -1677,7 +1716,7 @@ export default function App() {
                 <textarea
                   ref={taRef}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => { setInput(e.target.value); setDraft(currentId, e.target.value); }}
                   onKeyDown={onKeyDown}
                   onPaste={(e) => void onPaste(e)}
                   placeholder="Message Go Farther…"
@@ -1710,6 +1749,13 @@ export default function App() {
             <p className="hint">Go Farther can make mistakes — double-check important info.</p>
           </div>
         </>
+      )}
+
+      {lightboxUi.mounted && lightboxSrc && (
+        <div className={`gf-lightbox${lightboxUi.closing ? ' closing' : ''}`} role="dialog" aria-label="Image preview" ref={lightboxRef} tabIndex={-1} onClick={() => setLightbox(null)}>
+          <button className="sr-only" onClick={() => setLightbox(null)}>Close preview</button>
+          <img src={lightboxSrc} alt="Attachment, enlarged" />
+        </div>
       )}
 
       {/* Full-screen overlays: the display:contents wrapper carries .gf-out for

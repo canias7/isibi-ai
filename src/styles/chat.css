@@ -449,3 +449,6 @@
   border: 2px solid #1c1c20;
 }
 @media (prefers-reduced-motion: reduce) { .scroll-latest { animation: none; } }
+
+/* Sent images are tappable — they open the full-screen preview */
+.att-img-btn { padding: 0; border: none; background: none; display: block; cursor: zoom-in; }
