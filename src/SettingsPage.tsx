@@ -3,12 +3,13 @@ import type { Session } from '@supabase/supabase-js';
 import { keyActivate } from './a11y';
 import { tap } from './haptics';
 import { IconLogout, IconTrash } from './icons';
+import { APP_VERSION, BUILD } from './version';
 import type { BiometryStatus } from './biometric';
 
 // The Settings view — presentational; all state and handlers live in App.
 export default function SettingsPage({
   session, isGuest, bioStatus, faceId, notif, sounds, noteMsg,
-  onToggleFaceId, onToggleNotif, onToggleSounds, onTestPush, onSignOut, onDeleteAccount,
+  onToggleFaceId, onToggleNotif, onToggleSounds, onTestPush, onSignOut, onDeleteAccount, onOpenLegal,
 }: {
   session: Session;
   isGuest: boolean;
@@ -23,6 +24,7 @@ export default function SettingsPage({
   onTestPush: () => void;
   onSignOut: () => void;
   onDeleteAccount: () => void;
+  onOpenLegal: (doc: 'privacy' | 'terms') => void;
 }) {
   const native = Capacitor.getPlatform() !== 'web';
   return (
@@ -87,7 +89,19 @@ export default function SettingsPage({
           </>
         )}
 
-        <div className="set-version">Go Farther</div>
+        <div className="set-label">About</div>
+        <div className="set-card">
+          <button className="set-row set-row-tap" onClick={() => { void tap(); onOpenLegal('privacy'); }}>
+            <div className="set-row-title">Privacy Policy</div>
+            <span className="set-row-chev" aria-hidden>›</span>
+          </button>
+          <button className="set-row set-row-tap" onClick={() => { void tap(); onOpenLegal('terms'); }}>
+            <div className="set-row-title">Terms of Service</div>
+            <span className="set-row-chev" aria-hidden>›</span>
+          </button>
+        </div>
+
+        <div className="set-version">Go Farther · v{APP_VERSION}{BUILD !== '0' ? ` (${BUILD})` : ''}</div>
       </div>
     </div>
   );

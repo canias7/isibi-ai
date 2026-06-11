@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from './supabase';
 import { tap } from './haptics';
 import { CONNECT_API, type Connector } from './connectorData';
@@ -41,25 +41,27 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
     return data.session?.access_token ?? null;
   }
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const t = await token();
-        if (!t) throw new Error('no auth');
-        const r = await fetch(`${CONNECT_API}/tools?app=${connector.id}`, { headers: { authorization: `Bearer ${t}` } });
-        const j = await r.json();
-        if (!alive) return;
-        if (j.error || !Array.isArray(j.tools)) throw new Error(j.error || 'bad');
-        setTools(j.tools);
-        setEnabled(new Set(j.enabled ?? []));
-        setLoading(false);
-      } catch {
-        if (alive) { setErr(true); setLoading(false); }
-      }
-    })();
-    return () => { alive = false; };
+  // Load the tool catalog + the user's saved selection. Extracted so the
+  // error state can offer a real "Try again" instead of a dead string.
+  const load = useCallback(async () => {
+    setErr(false);
+    setLoading(true);
+    try {
+      const t = await token();
+      if (!t) throw new Error('no auth');
+      const r = await fetch(`${CONNECT_API}/tools?app=${connector.id}`, { headers: { authorization: `Bearer ${t}` } });
+      const j = await r.json();
+      if (j.error || !Array.isArray(j.tools)) throw new Error(j.error || 'bad');
+      setTools(j.tools);
+      setEnabled(new Set(j.enabled ?? []));
+      setLoading(false);
+    } catch {
+      setErr(true);
+      setLoading(false);
+    }
   }, [connector.id]);
+
+  useEffect(() => { void load(); }, [load]);
 
   // Persist the current selection (auto-save). Marks state so the header can
   // show Saving…/Saved, and keeps `dirty` set until a save actually succeeds.
@@ -120,7 +122,10 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
         {loading ? (
           <div className="tm-msg">Loading tools…</div>
         ) : err ? (
-          <div className="tm-msg">Couldn't load tools — try again.</div>
+          <div className="tm-msg">
+            <span>Couldn't load tools.</span>
+            <button className="tm-retry" onClick={() => void load()}>Try again</button>
+          </div>
         ) : (
           <>
             <p className="tm-sub">
