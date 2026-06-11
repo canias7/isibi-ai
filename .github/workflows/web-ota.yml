@@ -29,6 +29,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        env:
+          # The desktop (Electron) devDeps aren't used for the web build — skip
+          # the ~106 MB Electron binary download so OTA CI stays fast.
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
 
       # Use the commit timestamp as a monotonic version, shared with the native
       # build (ios.yml), so ota.ts can compare them and only ever move forward.

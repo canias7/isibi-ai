@@ -7,7 +7,7 @@ import tseslint from 'typescript-eslint';
 // Lints the React frontend (src/) only. The Supabase Edge Functions under
 // supabase/functions are Deno code (different globals/imports) and are excluded.
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'android', 'ios', 'supabase', '*.config.js'] },
+  { ignores: ['dist', 'node_modules', 'android', 'ios', 'supabase', 'electron', 'release', '*.config.js'] },
   {
     files: ['src/**/*.{ts,tsx}'],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
