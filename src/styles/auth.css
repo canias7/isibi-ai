@@ -84,4 +84,9 @@
 .auth-row { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
 .auth-row .auth-toggle { padding: 6px 2px; }
 
+/* Respect users who turn animations off. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-btn { transition: none; }
+}
+
 

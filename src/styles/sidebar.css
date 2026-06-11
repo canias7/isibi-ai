@@ -97,7 +97,9 @@
   font-size: 18px;
   line-height: 1;
   color: var(--text-dim);
-  opacity: 0.5;
+  /* 0.8, not 0.5 — at half opacity the glyph fell below 3:1 and effectively
+     vanished for low-vision users. Still reads as secondary. */
+  opacity: 0.8;
 }
 .chat-item.active .chat-del { opacity: 1; }
 .chat-del:active { background: #ffffff2a; opacity: 1; }

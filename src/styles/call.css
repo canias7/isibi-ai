@@ -142,3 +142,12 @@
 }
 .call-btn:disabled { opacity: 0.3; cursor: default; }
 .call-btn:not(:disabled):active { background: #ffffff14; }
+
+/* Respect users who turn animations off: the orb stops pulsing/spinning/
+   breathing (state still reads via color and the status label) and the
+   screen/buttons drop their motion transitions. */
+@media (prefers-reduced-motion: reduce) {
+  .call-screen, .call-orb-ring, .call-orb-core { animation: none; }
+  .call-orb-core, .call-end, .call-cam, .call-btn { transition: none; }
+  .call-listening .call-orb-core { transform: none; } /* no voice-level swell */
+}
