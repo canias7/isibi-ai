@@ -296,23 +296,41 @@ async function detectItems(uid: string, ev: any, connectedArg?: string[]): Promi
 
 The "id" MUST be the item's stable, unique identifier exactly as the tool returned it (e.g. a Gmail message id, a calendar event id, a database row id, a Slack message ts) — NOT a subject line, title, date, sender name, or anything you wrote yourself. The SAME item must produce the SAME id every time it's checked, or the trigger will fire repeatedly or miss it. Never invent or reformat an id; if you can't get a real id for an item, leave that item out. If nothing matches, reply exactly [].
 
-Example: [{"id":"199c1f2a7b8e4d10","line":"Invoice #4521 from Acme"},{"id":"199c1f0e5a3b22ff","line":"Reschedule from Sam, Fri 3pm"}]`;
+Example: [{"id":"199c1f2a7b8e4d10","line":"Invoice #4521 from Acme"},{"id":"199c1f0e5a3b22ff","line":"Reschedule from Sam, Fri 3pm"}]
+
+TOOL DISCOVERY: the app's tools are NOT pre-loaded — only a search index is. FIRST call tool_search_tool_regex with a Python-style regex for the listing/search tool you need (e.g. "(?i)gmail.*(list|fetch|search)"), then call the tool(s) it returns.`;
   const reqBody: Record<string, unknown> = {
     model: DETECTOR_MODEL,
     max_tokens: 2048,
     system,
     messages: [{ role: "user", content: `Condition to watch for: ${filter}\nList the most recent matching items right now.` }],
     mcp_servers: [{ type: "url", url, name: "connectors", authorization_token: await mintUserToken(uid) }],
-    // cache_control caches the (large) MCP tool schemas across the model's
-    // internal tool-use turns and across back-to-back runs for the same user.
-    tools: [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }],
+    // Deferred tool loading (same treatment as chat): only a search index of
+    // the app's tool catalog exists until the model discovers what it needs, so
+    // a check that runs every few minutes stops re-buying the whole catalog in
+    // tokens each time. The 1h cache TTL comfortably outlives the poll
+    // interval, keeping the now-tiny prefix (tool search + system) hot between
+    // ticks.
+    tools: [
+      { type: "tool_search_tool_regex_20251119", name: "tool_search_tool_regex" },
+      { type: "mcp_toolset", mcp_server_name: "connectors", default_config: { defer_loading: true }, cache_control: { type: "ephemeral", ttl: "1h" } },
+    ],
   };
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const call = () => fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "anthropic-beta": "mcp-client-2025-11-20" },
       body: JSON.stringify(reqBody),
     });
+    let res = await call();
+    // Safety net (mirrors chat): if the API rejects the deferred-tools shape
+    // (400), retry once with the classic eager catalog — a trigger check must
+    // never break over a cost optimization.
+    if (res.status === 400) {
+      console.error(`detector deferred-tools request rejected (400): ${(await res.text().catch(() => "")).slice(0, 300)} — retrying with eager catalog`);
+      reqBody.tools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
+      res = await call();
+    }
     if (!res.ok) return null;
     const data = await res.json();
     logAiUsage(uid, "detector", DETECTOR_MODEL, data?.usage);
@@ -344,6 +362,13 @@ async function runInstruction(uid: string, instruction: string, connected?: stri
   const memSys = mems.length
     ? `\n\nWHAT YOU KNOW ABOUT THIS USER (saved memories; honor them):\n${mems.map((m) => `• ${m}`).join("\n")}`
     : "";
+  // The connector catalog is deferred (see the mcp_toolset below), so the model
+  // can't SEE those tools until it searches — without this instruction it may
+  // wrongly report a connected app as unavailable. Built-ins are exempt:
+  // they're eagerly loaded and need no search.
+  const toolSearchSystem = apps.length
+    ? `\n\nTOOL DISCOVERY: the tools for the user's connected apps (${apps.join(", ")}) exist but are NOT pre-loaded — only a search index is. The moment the instruction involves one of those apps, FIRST call tool_search_tool_regex with a Python-style pattern — e.g. "(?i)gmail.*send", "(?i)calendar.*event" — then call the tool(s) it returns. The already-loaded built-ins (GF_WEATHER, GF_MAPS, GF_GET_MEMORY_FILE, GF_SAVE_TABLE) need no search. NEVER report a needed app or tool as unavailable until a search for it came back empty.`
+    : "";
   const system = `You are Go Farther, running a saved automation for the user in the background. They won't see it happen — only the result — so get it right the first time. Carry out the instruction using the connected tools.
 
 Stay strictly in scope: read and reason as much as you need, but only take an OUTWARD action — send, post, reply, create, delete, pay — that the instruction EXPLICITLY calls for. Never add an action of your own. If there's nothing to act on, do nothing (or send the brief "nothing today" note only if the instruction asks for one).
@@ -352,7 +377,7 @@ Be strictly honest about the outcome: if a needed app or tool isn't available, o
 
 When finished, reply with a clear, concise result (1-3 sentences) the user can read in a phone notification and a saved log. Plain text only — no markdown, code blocks, or cards. Use the user's local timezone for any times.
 
-Example result: "Sent your morning digest — 12 unread emails grouped by sender, 2 flagged urgent (a contract from Acme, a reschedule from Sam)."${memSys}`;
+Example result: "Sent your morning digest — 12 unread emails grouped by sender, 2 flagged urgent (a contract from Acme, a reschedule from Sam)."${toolSearchSystem}${memSys}`;
   const reqBody: Record<string, unknown> = {
     model: MODEL,
     max_tokens: 4096,
@@ -363,14 +388,45 @@ Example result: "Sent your morning digest — 12 unread emails grouped by sender
   if (apps.length) {
     const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(uid)}&mem=0`;
     reqBody.mcp_servers = [{ type: "url", url, name: "connectors", authorization_token: await mintUserToken(uid) }];
-    reqBody.tools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
+    // Deferred tool loading (ported from chat): the full connected-apps catalog
+    // (~200k tokens for a several-app user) stays out of the prompt — only a
+    // search index — and the model discovers connector tools on demand. The
+    // built-ins stay eager so an instruction like "check the weather and…"
+    // works without a search round-trip; unknown names in `configs` are
+    // warning-only, so this is safe when one isn't served. GF_SAVE_MEMORY is
+    // left out on purpose — runs always send &mem=0, so it's never served.
+    reqBody.tools = [
+      { type: "tool_search_tool_regex_20251119", name: "tool_search_tool_regex" },
+      {
+        type: "mcp_toolset",
+        mcp_server_name: "connectors",
+        default_config: { defer_loading: true },
+        configs: {
+          GF_GET_MEMORY_FILE: { defer_loading: false },
+          GF_SAVE_TABLE: { defer_loading: false },
+          GF_WEATHER: { defer_loading: false },
+          GF_MAPS: { defer_loading: false },
+          GF_IMAGE: { defer_loading: false },
+        },
+        cache_control: { type: "ephemeral", ttl: "1h" },
+      },
+    ];
     extra["anthropic-beta"] = "mcp-client-2025-11-20";
   }
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const call = () => fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", ...extra },
     body: JSON.stringify(reqBody),
   });
+  let res = await call();
+  // Safety net (mirrors chat): if the API rejects the deferred-tools shape
+  // (400), retry once with the classic eager catalog — a background run must
+  // never fail over a cost optimization.
+  if (res.status === 400 && apps.length) {
+    console.error(`workflow deferred-tools request rejected (400): ${(await res.text().catch(() => "")).slice(0, 300)} — retrying with eager catalog`);
+    reqBody.tools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
+    res = await call();
+  }
   if (!res.ok) throw new Error(`anthropic ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
   const data = await res.json();
   logAiUsage(uid, "workflow", MODEL, data?.usage);
