@@ -23,6 +23,8 @@ import { useDismiss } from './motion';
 import ErrorBoundary from './ErrorBoundary';
 import RecoveryBubble from './RecoveryBubble';
 import SettingsPage from './SettingsPage';
+import LegalSheet from './LegalSheet';
+import { PRIVACY_MD, TERMS_MD } from './legalDocs';
 import SidebarNav from './SidebarNav';
 import { loadChats, saveChats, loadPins, savePins, syncLoad, syncLoadOlder, syncSave, syncDelete, wipeStoredChats, loadDrafts, saveDrafts, MAX_CHATS, type Conversation } from './chatSync';
 import { biometryAvailable, biometryStatus, unlock, type BiometryStatus } from './biometric';
@@ -287,6 +289,7 @@ export default function App() {
   const [deleting, setDeleting] = useState(false);
   const [forceUpdate, setForceUpdate] = useState<ForceUpdateMode | null>(null); // hard update gate (from ota.ts)
   const [wnOpen, setWnOpen] = useState(false); // "What's new" sheet (once per announced edition)
+  const [legalDoc, setLegalDoc] = useState<'privacy' | 'terms' | null>(null); // in-app Privacy/Terms reader
   const [micState, setMicState] = useState<'idle' | 'rec' | 'tx'>('idle'); // composer dictation
   const micFinishRef = useRef<AbortController | null>(null);
   const lockRef = useRef<() => void>(() => {});
@@ -438,10 +441,12 @@ export default function App() {
   const confirmSheetRef = useRef<HTMLDivElement>(null);
   const radialRef = useRef<HTMLDivElement>(null);
   const wnRef = useRef<HTMLDivElement>(null);
+  const legalRef = useRef<HTMLDivElement>(null);
   useFocusTrap(!!menuChat, menuSheetRef, () => setMenuChat(null));
   useFocusTrap(confirmDelete, confirmSheetRef, () => { if (!deleting) setConfirmDelete(false); });
   useFocusTrap(plusOpen, radialRef, () => setPlusOpen(false));
   useFocusTrap(wnOpen, wnRef, () => closeWhatsNew());
+  useFocusTrap(!!legalDoc, legalRef, () => setLegalDoc(null));
 
   // Animated dismissal for every sheet/menu/overlay this component mounts —
   // the element stays for one exit beat with a `.closing`/`.gf-out` class
@@ -453,6 +458,11 @@ export default function App() {
   const menuSheetChat = menuChat ?? lastMenuChat.current;
   const confirmUi = useDismiss(confirmDelete);
   const wnUi = useDismiss(wnOpen);
+  // Legal reader: latch the doc so the sheet doesn't blank out during its exit beat.
+  const legalUi = useDismiss(!!legalDoc);
+  const lastLegal = useRef(legalDoc);
+  if (legalDoc) lastLegal.current = legalDoc;
+  const shownLegal = legalDoc ?? lastLegal.current;
 
   function closeWhatsNew() {
     markWhatsNewSeen();
@@ -1683,6 +1693,16 @@ export default function App() {
           </div>
         </>
       )}
+      {/* In-app legal reader (Privacy / Terms) */}
+      {legalUi.mounted && shownLegal && (
+        <LegalSheet
+          title={shownLegal === 'privacy' ? 'Privacy Policy' : 'Terms of Service'}
+          body={shownLegal === 'privacy' ? PRIVACY_MD : TERMS_MD}
+          closing={legalUi.closing}
+          onClose={() => setLegalDoc(null)}
+          panelRef={legalRef}
+        />
+      )}
       {/* Delete-account confirmation */}
       {confirmUi.mounted && (
         <>
@@ -1725,6 +1745,7 @@ export default function App() {
           onTestPush={() => void testPush()}
           onSignOut={() => void signOut()}
           onDeleteAccount={() => setConfirmDelete(true)}
+          onOpenLegal={(d) => setLegalDoc(d)}
         />
       ) : (
         <>

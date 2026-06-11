@@ -18,6 +18,10 @@ html {
   /* Slightly lifted from iOS systemGray (#8e8e93) for comfortable AA contrast
      on small hint text — visually near-identical, ~7:1 on the black bg. */
   --text-dim: #98989f;
+  /* The faintest tier (timestamps, model label, version) — still AA at small
+     sizes (~6:1 on black). Use THIS instead of stacking opacity on --text-dim,
+     which silently drops dimmed text below the AA contrast floor. */
+  --text-faint: #8a8a91;
   /* --accent stays white: the quiet, OpenAI-style primary (send button, primary
      actions). --brand amber is the IDENTITY accent (graphs, active states, the
      call orb) — used for "this is Go Farther", not for every control. */
