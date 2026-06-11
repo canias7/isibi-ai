@@ -19,7 +19,9 @@ import { initOta } from './ota';
 // to one side with no way to pan back. Pinning the scale prevents that and any
 // pinch-zoom drift. Done in JS too (not just index.html) so it ships via OTA.
 (() => {
-  const content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+  // interactive-widget: on Android the keyboard RESIZES the layout (composer
+  // stays visible above it) instead of overlaying it. iOS ignores the keyword.
+  const content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content';
   let m = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
   if (!m) { m = document.createElement('meta'); m.name = 'viewport'; document.head.appendChild(m); }
   m.setAttribute('content', content);

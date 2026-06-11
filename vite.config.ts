@@ -10,4 +10,18 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(process.env.APP_VERSION ?? '0'),
   },
   server: { host: true, port: 5173 },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split the stable heavyweights out of the app chunk: they change
+        // ~never, so each OTA update re-parses a much smaller app bundle and
+        // the webview can cache the vendor chunks across versions.
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          markdown: ['react-markdown', 'remark-gfm'],
+          supabase: ['@supabase/supabase-js'],
+        },
+      },
+    },
+  },
 });
