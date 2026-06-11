@@ -18,9 +18,54 @@ html {
   /* Slightly lifted from iOS systemGray (#8e8e93) for comfortable AA contrast
      on small hint text — visually near-identical, ~7:1 on the black bg. */
   --text-dim: #98989f;
+  /* --accent stays white: the quiet, OpenAI-style primary (send button, primary
+     actions). --brand amber is the IDENTITY accent (graphs, active states, the
+     call orb) — used for "this is Go Farther", not for every control. */
   --accent: #ffffff;
+  --brand: #e0a13a;
+  --brand-strong: #b4691a;  /* deepest amber, for gradient ends */
+  --brand-soft: #ffd98a;    /* lightest amber, for gradient starts/glows */
+  /* Semantics — one color per meaning, app-wide. */
+  --success: #46d17f;
+  --danger: #ff6b6b;        /* danger TEXT / icons / hairlines */
+  --danger-solid: #e5484d;  /* destructive button fill, end-call */
+  --link: #8ab4ff;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color-scheme: dark;
+
+  /* ---- Type scale -------------------------------------------------------
+     8 steps replace 28 ad-hoc sizes. Still rem (1rem = 17px at default), so
+     iOS Dynamic Type keeps scaling the whole app together. */
+  --fs-label: 0.6471rem;    /* 11 — uppercase section labels, badges */
+  --fs-caption: 0.7059rem;  /* 12 — timestamps, fine print */
+  --fs-footnote: 0.7647rem; /* 13 — subtitles, snippets, meta */
+  --fs-body-s: 0.8235rem;   /* 14 — cards, rows, secondary content */
+  --fs-body: 0.8824rem;     /* 15 — chat text, the default voice */
+  --fs-headline: 1rem;      /* 17 — section headers */
+  --fs-title: 1.1765rem;    /* 20 — screen titles */
+  --fs-display: 1.4118rem;  /* 24 — display */
+
+  /* ---- Radius -----------------------------------------------------------
+     5 steps replace 27. (1–2px specials like the stop-square keep their own.) */
+  --r-control: 8px;   /* small chips, code blocks, tiny controls */
+  --r-row: 12px;      /* list rows, inputs, menu items */
+  --r-card: 16px;     /* cards, bubbles, panels */
+  --r-sheet: 22px;    /* bottom sheets, the composer */
+  --r-pill: 999px;    /* fully-round pills */
+
+  /* ---- Hairlines + surfaces --------------------------------------------
+     A 4-step white-alpha ladder replaces ~50 freehand values. */
+  --line-1: rgba(255, 255, 255, 0.08);  /* faintest dividers */
+  --line-2: rgba(255, 255, 255, 0.12);  /* default hairline */
+  --line-3: rgba(255, 255, 255, 0.18);  /* stronger edge */
+  --line-4: rgba(255, 255, 255, 0.30);  /* prominent edge */
+  --fill-1: rgba(255, 255, 255, 0.06);  /* subtle raised fill */
+  --fill-2: rgba(255, 255, 255, 0.10);  /* pressed / hover fill */
+
+  /* ---- Elevation --------------------------------------------------------
+     Two named shadows replace 27 one-offs. */
+  --shadow-pop: 0 10px 34px rgba(0, 0, 0, 0.5);   /* popovers, menus */
+  --shadow-modal: 0 8px 24px rgba(0, 0, 0, 0.4);  /* lifted buttons, sheets */
 
   /* ---- Motion system ----------------------------------------------------
      One shared vocabulary for every animation/transition in the app.
@@ -68,13 +113,13 @@ body { background: var(--bg); color: var(--text); }
   mask-image: linear-gradient(to bottom, #000 48%, transparent);
   pointer-events: none;
 }
-.topbar .title { font-weight: 600; font-size: 0.8824rem; position: relative; }
+.topbar .title { font-weight: 600; font-size: var(--fs-body); position: relative; }
 
 .icon-btn {
   position: relative;
   width: 38px;
   height: 38px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid var(--line-2);
   background: rgba(255, 255, 255, 0.07);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
@@ -116,13 +161,13 @@ body { background: var(--bg); color: var(--text); }
 .home-tag { margin: 0.8235rem 0 0; color: var(--text-dim); font-size: clamp(0.8824rem, 4.2vw, 1.0588rem); }
 .home-suggest { display: flex; flex-direction: column; gap: 11px; width: 100%; max-width: 330px; }
 .sug {
-  border: 1px solid #ffffff1f;
+  border: 1px solid var(--line-2);
   background: #ffffff0a;
   color: var(--text);
   font: inherit;
-  font-size: 0.8824rem;
+  font-size: var(--fs-body);
   padding: 13px 18px;
-  border-radius: 24px;
+  border-radius: var(--r-sheet);
   cursor: pointer;
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
@@ -190,7 +235,7 @@ body { background: var(--bg); color: var(--text); }
 .msg.user .bubble {
   background: var(--bubble-user);
   padding: 10px 16px;
-  border-radius: 20px;
+  border-radius: var(--r-sheet);
   max-width: 75%;
 }
 .msg.assistant .bubble { max-width: 100%; }
