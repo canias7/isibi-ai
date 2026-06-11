@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { streamChat, sendTestPush, extractMemory, reachedServer, titleFor, type ChatMessage, type Attach } from './api';
 import { supabase } from './supabase';
@@ -10,6 +10,7 @@ import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles
 import { primeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { sentSound, replySound, soundsOn, setSoundsOn } from './earcons';
 import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
+import { pickSuggestions } from './suggestions';
 import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, registerReminderActions, onReminderAction, snoozeNudge, type Reminder, type RepeatKind } from './reminders';
@@ -62,7 +63,6 @@ const LOCATION_RE = /\b(here|near\s?me|nearby|around me|close by|closest|nearest
 const NEW_CHAT_AFTER_MS = 30 * 60 * 1000; // 30 minutes
 
 // Starter prompts shown on the home screen (tap to send).
-const SUGGESTIONS = ['Summarize my inbox', 'What’s on my calendar?'];
 
 
 // Copy text to the clipboard, with a hidden-textarea fallback for older webviews.
@@ -322,6 +322,16 @@ export default function App() {
   }
   const [enabled, setEnabled] = useState<Set<string>>(new Set());
   const [connLoaded, setConnLoaded] = useState(false);
+  // Home-screen prompts: rotate per visit, weighted toward connected apps and
+  // the time of day (see suggestions.ts). Keyed on currentId so a fresh chat
+  // reshuffles them.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const homeSugs = useMemo(() => pickSuggestions(connApps, new Date().getHours()), [connApps, currentId]);
+  // "Pick up where you left off" — the most recent real conversation.
+  const lastChat = useMemo(
+    () => chats.filter((c) => c.id !== currentId && c.messages.length > 0).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0],
+    [chats, currentId],
+  );
   const [plusOpen, setPlusOpen] = useState(false);
   const [attachments, setAttachments] = useState<Attach[]>([]);
   const [attachErr, setAttachErr] = useState('');
@@ -1735,11 +1745,16 @@ export default function App() {
                   <p className="home-tag">One chat for all your apps.</p>
                 </div>
                 <div className="home-suggest">
-                  {SUGGESTIONS.map((s) => (
+                  {homeSugs.map((s) => (
                     <button key={s} className="sug" onClick={() => { void tap(); void sendText(s); }}>
                       {s}
                     </button>
                   ))}
+                  {lastChat && (
+                    <button className="home-continue" onClick={() => { void tap(); selectChat(lastChat.id); }}>
+                      Continue “{lastChat.title || 'Last chat'}”
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
