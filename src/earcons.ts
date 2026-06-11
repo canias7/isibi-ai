@@ -19,18 +19,18 @@ export function setSoundsOn(on: boolean): void {
 
 export type SoundTheme = 'chime' | 'pop' | 'glass' | 'drop';
 export const THEMES: Array<{ id: SoundTheme; label: string }> = [
+  { id: 'glass', label: 'Glass' },
   { id: 'chime', label: 'Chime' },
   { id: 'pop', label: 'Pop' },
-  { id: 'glass', label: 'Glass' },
   { id: 'drop', label: 'Drop' },
 ];
 
 export function soundTheme(): SoundTheme {
   try {
     const t = localStorage.getItem(THEME_KEY);
-    return THEMES.some((x) => x.id === t) ? (t as SoundTheme) : 'chime';
+    return THEMES.some((x) => x.id === t) ? (t as SoundTheme) : 'glass';
   } catch {
-    return 'chime';
+    return 'glass';
   }
 }
 export function setSoundTheme(t: SoundTheme): void {

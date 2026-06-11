@@ -30,19 +30,19 @@ describe('earcons (send/reply sound preference)', () => {
 });
 
 describe('sound styles (selectable themes)', () => {
-  it('defaults to chime', () => {
-    expect(soundTheme()).toBe('chime');
+  it('defaults to glass', () => {
+    expect(soundTheme()).toBe('glass');
   });
 
   it('round-trips the choice through localStorage', () => {
-    setSoundTheme('glass');
-    expect(soundTheme()).toBe('glass');
-    expect(localStorage.getItem('gf_sound_theme')).toBe('glass');
+    setSoundTheme('pop');
+    expect(soundTheme()).toBe('pop');
+    expect(localStorage.getItem('gf_sound_theme')).toBe('pop');
   });
 
-  it('falls back to chime on garbage in storage', () => {
+  it('falls back to glass on garbage in storage', () => {
     localStorage.setItem('gf_sound_theme', 'airhorn');
-    expect(soundTheme()).toBe('chime');
+    expect(soundTheme()).toBe('glass');
   });
 
   it('every offered theme plays without throwing (no Web Audio in jsdom)', () => {
