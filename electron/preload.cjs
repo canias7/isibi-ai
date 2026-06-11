@@ -1,4 +1,13 @@
-// Preload runs before the page with contextIsolation on. Nothing is exposed to
-// the page yet — the app needs no desktop-only bridge today (it runs as the web
-// build). Kept as the seam for any future renderer↔main API (e.g. a native
-// "open file" or tray integration), which would go through contextBridge here.
+// Preload runs before the page with contextIsolation on. Exposes the minimal
+// desktop bridge the renderer can feature-detect (window.gfDesktop) — absent on
+// web/mobile, so the app guards every use with optional chaining.
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('gfDesktop', {
+  // Tray → renderer: "New chat" was clicked. Returns an unsubscribe fn.
+  onNewChat(cb) {
+    const handler = () => cb();
+    ipcRenderer.on('gf-new-chat', handler);
+    return () => ipcRenderer.removeListener('gf-new-chat', handler);
+  },
+});
