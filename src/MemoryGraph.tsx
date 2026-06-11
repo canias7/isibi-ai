@@ -80,6 +80,11 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
   }, []);
 
   const n = memories.length;
+  // Past a dozen memories the constellation crowds — a filter dims non-matches.
+  const [filter, setFilter] = useState('');
+  const fq = filter.trim().toLowerCase();
+  const matches = (content: string) => !fq || content.toLowerCase().includes(fq);
+  const matchCount = fq ? memories.filter((m) => matches(m.content)).length : n;
   const coords = layout(n);
   // Stable default slots: order by creation (oldest first) so adding a memory
   // appends a new slot instead of reshuffling the ones already placed.
@@ -246,7 +251,16 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
         </button>
         <div className="memg-titles">
           <h1 className="memg-title">Memory</h1>
-          <p className="memg-sub">{sub}</p>
+          <p className="memg-sub">{fq ? `${matchCount} of ${n} match` : sub}</p>
+          {n > 12 && (
+            <input
+              className="memg-filter"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Filter memories"
+              aria-label="Filter memories"
+            />
+          )}
         </div>
         <button
           className="memg-toggle"
@@ -275,7 +289,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
               <line
                 key={m.id}
                 x1={50} y1={50} x2={p.x} y2={p.y}
-                className={`memg-line ${selectedId === m.id ? 'on' : ''}`}
+                className={`memg-line ${selectedId === m.id ? 'on' : ''} ${matches(m.content) ? '' : 'dim'}`}
                 vectorEffect="non-scaling-stroke"
               />
             );
@@ -291,7 +305,7 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
           return (
             <button
               key={m.id}
-              className={`memg-node ${selectedId === m.id ? 'sel' : ''} ${dragId === m.id ? 'dragging' : ''}`}
+              className={`memg-node ${selectedId === m.id ? 'sel' : ''} ${dragId === m.id ? 'dragging' : ''} ${matches(m.content) ? '' : 'dim'}`}
               style={{ left: `${p.x}%`, top: `${p.y}%`, animationDelay: `${60 + i * 45}ms` }}
               onPointerDown={(e) => onDown(e, m)}
               onPointerMove={onMove}

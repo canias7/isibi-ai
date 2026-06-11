@@ -815,19 +815,28 @@ Deno.serve(async (req: Request) => {
       if (!res.ok) return json(req, { connected: await cachedConnectedMap(uid) });
       const body = await res.json();
       const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
-      const connected: Record<string, { email: string | null; broken?: boolean }> = {};
+      const connected: Record<string, { email: string | null; emails?: string[]; broken?: boolean }> = {};
       const BROKEN = new Set(["EXPIRED", "FAILED", "INACTIVE", "ERROR", "INVALID"]);
+      const acc: Record<string, { actives: (string | null)[]; brokenEmail: string | null; broken: boolean }> = {};
       for (const it of items) {
         const st = (it.status ?? "").toUpperCase();
         const appId = APP_FOR_SLUG[(pickSlug(it) ?? "").toLowerCase()];
         if (!appId) continue;
         const email = it?.data?.email ?? it?.meta?.email ?? it?.params?.email ?? it?.data?.emailAddress ?? null;
-        if (st === "ACTIVE") {
-          connected[appId] = { email }; // a healthy account always wins over a stale broken one
-        } else if (BROKEN.has(st) && !connected[appId]) {
-          connected[appId] = { email, broken: true };
-        }
+        const a = (acc[appId] ??= { actives: [], brokenEmail: null, broken: false });
+        if (st === "ACTIVE") a.actives.push(email);
+        else if (BROKEN.has(st)) { a.broken = true; a.brokenEmail ??= email; }
         // INITIATED / abandoned OAuth flows stay invisible, as before.
+      }
+      for (const [appId, a] of Object.entries(acc)) {
+        if (a.actives.length) {
+          // Healthy always wins; surface every account email so the app can
+          // show that more than one is connected.
+          const emails = a.actives.filter((e): e is string => !!e);
+          connected[appId] = { email: a.actives[0] ?? null, ...(emails.length > 1 ? { emails } : {}) };
+        } else if (a.broken) {
+          connected[appId] = { email: a.brokenEmail, broken: true };
+        }
       }
       // Rewrite the connected-apps cache from the data already in hand. ALL
       // active toolkit slugs go in (not just APP_FOR_SLUG-known ones), matching

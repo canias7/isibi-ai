@@ -20,7 +20,7 @@ import { PLAID_LOGO } from './plaidLogo';
 // it can do first.
 
 type XY = { x: number; y: number };
-type Status = { connected: boolean; email?: string | null; broken?: boolean };
+type Status = { connected: boolean; email?: string | null; emails?: string[]; broken?: boolean };
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const POS_KEY = 'gf_connpos';
@@ -139,9 +139,9 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       const r = await fetch(`${CONNECT_API}/list`, { headers: { authorization: `Bearer ${t}` } });
       if (!r.ok) return;
       const j = await r.json();
-      const map: Record<string, { email?: string | null; broken?: boolean }> = j.connected ?? {};
+      const map: Record<string, { email?: string | null; emails?: string[]; broken?: boolean }> = j.connected ?? {};
       const next: Record<string, Status> = {};
-      for (const c of CONNECTORS) next[c.id] = { connected: !!map[c.id], email: map[c.id]?.email ?? null, broken: !!map[c.id]?.broken };
+      for (const c of CONNECTORS) next[c.id] = { connected: !!map[c.id], email: map[c.id]?.email ?? null, emails: map[c.id]?.emails, broken: !!map[c.id]?.broken };
       // Plaid's connected state comes from its own backend, not Composio.
       try {
         const pd = await plaidCall('list');
@@ -454,7 +454,9 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
                   ? 'Connection expired — reconnect to keep using it'
                   : sheetConn.id === 'plaid'
                     ? (status[sheetConn.id]?.email || 'Bank linked')
-                    : (status[sheetConn.id]?.email ? `Connected as ${status[sheetConn.id]?.email}` : 'Connected')}</small>
+                    : (status[sheetConn.id]?.emails?.length ?? 0) > 1
+                      ? `${status[sheetConn.id]!.emails!.length} accounts: ${status[sheetConn.id]!.emails!.join(', ')}`
+                      : (status[sheetConn.id]?.email ? `Connected as ${status[sheetConn.id]?.email}` : 'Connected')}</small>
               </div>
             </div>
             {status[sheetConn.id]?.broken && sheetConn.id !== 'plaid' && (
@@ -471,6 +473,12 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
               <button className="cg-sheet-btn" onClick={() => { setDetail(null); void connectPlaid(); }}>
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                 Link another bank
+              </button>
+            )}
+            {sheetConn.id !== 'plaid' && !status[sheetConn.id]?.broken && (
+              <button className="cg-sheet-btn" onClick={() => { const c = sheetConn; setDetail(null); void connect(c.id); }}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                Add another account
               </button>
             )}
             <button className="cg-sheet-btn danger" onClick={() => disconnect(sheetConn.id)}>

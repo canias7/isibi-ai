@@ -518,3 +518,37 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   color: var(--text);
   font-size: var(--fs-body);
 }
+
+/* Memory filter (appears once the constellation crowds) + dimmed non-matches */
+.memg-filter {
+  margin: 8px auto 0;
+  display: block;
+  width: min(260px, 70vw);
+  background: var(--fill-1);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-row);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-footnote);
+  padding: 7px 12px;
+  outline: none;
+  text-align: center;
+}
+.memg-filter:focus { border-color: var(--line-3); }
+.memg-node.dim { opacity: 0.15; pointer-events: none; }
+.memg-line.dim { opacity: 0.12; }
+
+/* "Show earlier messages" (windowed long threads) */
+.thread-earlier {
+  display: block;
+  margin: 4px auto 14px;
+  background: var(--fill-1);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-pill);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  padding: 7px 16px;
+  cursor: pointer;
+}

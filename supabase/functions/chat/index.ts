@@ -517,13 +517,14 @@ async function persistTurn(uid: string, convId: string, history: Msg[], reply: s
     });
   } catch { /* best effort — the client also persists when it's connected */ }
 }
-async function firePush(authHeader: string, body: string): Promise<void> {
+async function firePush(authHeader: string, body: string, convId = ""): Promise<void> {
   if (!authHeader) return;
   try {
     await fetch(MCP_URL.replace("/gofarther-mcp", "/send-push"), {
       method: "POST",
       headers: { authorization: authHeader, "content-type": "application/json" },
-      body: JSON.stringify({ title: "Go Farther", body }),
+      // data rides into the APNs payload — a tap deep-links into that chat.
+      body: JSON.stringify({ title: "Go Farther", body, ...(convId ? { data: { convId } } : {}) }),
     });
   } catch { /* inert until APNs is configured */ }
 }
@@ -982,7 +983,7 @@ Deno.serve(async (req: Request) => {
       // being closed) and, if the user had left mid-turn, push them it's ready.
       if (usageIn) logAiUsage(appUser, String(reqBody.model), usageIn, usageOut);
       await persistTurn(appUser ?? "", conversationId, messages, persistOut);
-      if (!clientOpen) await firePush(authHeader, "Your reply is ready.");
+      if (!clientOpen) await firePush(authHeader, "Your reply is ready.", conversationId);
       };
       const p = run();
       try { if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(p); } catch { /* not supported here */ }
