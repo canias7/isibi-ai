@@ -30,6 +30,7 @@ export function getCtx(): AudioContext {
 // (both mic capture and speech) begin from a user gesture, so we resume the
 // context and prime speech here while the gesture is still "live".
 export async function primeAudio(): Promise<void> {
+  resumeAudio(); // unlock output (silent-buffer trick) inside the gesture
   try {
     const ctx = getCtx();
     if (ctx.state === 'suspended') await ctx.resume();
@@ -41,15 +42,34 @@ export async function primeAudio(): Promise<void> {
   } catch { /* best effort */ }
 }
 
-// Lightweight unlock for earcons: resume the shared context inside a user gesture
-// (no speech priming). Must be called synchronously from the gesture — on iOS a
-// later resume() (e.g. when the reply lands) won't unlock a suspended context, so
-// the send/reply tones would stay silent for a type-only user. Cheap + idempotent.
+// Unlock + resume the shared context inside a user gesture. Calling resume()
+// alone is NOT enough on iOS WKWebView — output stays muted until an actual
+// source node has been started from a gesture. So we also start one 1-sample
+// silent buffer (the canonical iOS unlock). Only runs while the context isn't
+// already running, so it's cheap on the happy path and re-unlocks after a
+// background/suspend. Must be called synchronously from the gesture.
 export function resumeAudio(): void {
   try {
     const ctx = getCtx();
-    if (ctx.state === 'suspended') void ctx.resume();
+    if (ctx.state === 'running') return;
+    void ctx.resume();
+    const src = ctx.createBufferSource();
+    src.buffer = ctx.createBuffer(1, 1, 22050);
+    src.connect(ctx.destination);
+    src.start(0);
   } catch { /* best effort */ }
+}
+
+// Current output state for a user-facing diagnostic: 'running' should be
+// audible; 'suspended' = locked; 'unavailable' = no Web Audio in this webview.
+export function audioState(): string {
+  try {
+    const w = window as unknown as { AudioContext?: unknown; webkitAudioContext?: unknown };
+    if (!(w.AudioContext || w.webkitAudioContext)) return 'unavailable';
+    return getCtx().state;
+  } catch {
+    return 'unavailable';
+  }
 }
 
 export function closeAudio(): void {

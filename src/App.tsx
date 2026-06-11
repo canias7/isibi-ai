@@ -7,7 +7,7 @@ import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown, IconLogout } from './icons';
-import { primeAudio, resumeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
+import { primeAudio, resumeAudio, audioState, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { sentSound, replySound, soundsOn, setSoundsOn } from './earcons';
 import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
 import { pickSuggestions } from './suggestions';
@@ -1134,7 +1134,14 @@ export default function App() {
     const next = !sounds;
     setSoundsOn(next);
     setSounds(next);
-    if (next) sentSound(); // instant preview — and the tap gesture unlocks audio on iOS
+    if (next) {
+      resumeAudio();  // full unlock (silent-buffer trick) in this tap
+      sentSound();    // instant preview
+      const st = audioState();
+      flashNote(st === 'running'
+        ? 'Sounds on. No blip? Check the ring/silent switch and turn up the volume.'
+        : `Sounds on, but audio is “${st}”. Flip the ring/silent switch off, turn up volume, then toggle again.`);
+    }
   }
 
   // One-tap end-to-end check: ask the backend to push us a test notification.
