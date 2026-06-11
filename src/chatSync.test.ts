@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { loadDrafts, saveDrafts } from './chatSync';
+import { loadDrafts, saveDrafts, loadQueuedMsg, saveQueuedMsg } from './chatSync';
 
 const UID = 'user-1';
 
@@ -29,5 +29,27 @@ describe('draft persistence (per-chat composer text)', () => {
     expect(loadDrafts('someone-else')).toEqual({});
     localStorage.setItem(`gf_drafts_${UID}`, 'not json');
     expect(loadDrafts(UID)).toEqual({});
+  });
+});
+
+describe('queued-message persistence (survives a crash mid-reply)', () => {
+  it('round-trips {convId, text}', () => {
+    saveQueuedMsg(UID, { convId: 'c1', text: 'follow up' });
+    expect(loadQueuedMsg(UID)).toEqual({ convId: 'c1', text: 'follow up' });
+  });
+
+  it('clears on null and ignores empty/whitespace text', () => {
+    saveQueuedMsg(UID, { convId: 'c1', text: 'x' });
+    saveQueuedMsg(UID, null);
+    expect(loadQueuedMsg(UID)).toBeNull();
+    saveQueuedMsg(UID, { convId: 'c1', text: '   ' });
+    expect(loadQueuedMsg(UID)).toBeNull();
+  });
+
+  it('is per-user and survives garbage', () => {
+    saveQueuedMsg(UID, { convId: 'c1', text: 'mine' });
+    expect(loadQueuedMsg('someone-else')).toBeNull();
+    localStorage.setItem(`gf_queued_${UID}`, 'not json');
+    expect(loadQueuedMsg(UID)).toBeNull();
   });
 });

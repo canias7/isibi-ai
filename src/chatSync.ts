@@ -49,6 +49,7 @@ export function wipeStoredChats(uid: string) {
     localStorage.removeItem(chatsKey(uid));
     localStorage.removeItem(pinsKey(uid));
     localStorage.removeItem(draftsKey(uid));
+    localStorage.removeItem(queuedKey(uid));
   } catch { /* ignore */ }
 }
 
@@ -137,5 +138,25 @@ export function saveDrafts(uid: string, drafts: Record<string, string>) {
   try {
     const entries = Object.entries(drafts).filter(([, t]) => typeof t === 'string' && t.trim()).slice(-20);
     localStorage.setItem(draftsKey(uid), JSON.stringify(Object.fromEntries(entries)));
+  } catch { /* storage full / unavailable */ }
+}
+
+// A message typed WHILE the assistant was replying ("queued") is held in memory
+// and tied to its conversation. Persist it so a crash mid-reply can't lose it; on
+// next launch it's re-hydrated as that chat's draft (never silently auto-sent).
+const queuedKey = (uid: string) => `gf_queued_${uid}`;
+export interface QueuedMsg { convId: string; text: string }
+export function loadQueuedMsg(uid: string): QueuedMsg | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(queuedKey(uid)) || 'null');
+    return v && typeof v === 'object' && typeof v.convId === 'string' && typeof v.text === 'string' && v.text.trim() ? v : null;
+  } catch {
+    return null;
+  }
+}
+export function saveQueuedMsg(uid: string, q: QueuedMsg | null) {
+  try {
+    if (q && q.text.trim()) localStorage.setItem(queuedKey(uid), JSON.stringify({ convId: q.convId, text: q.text }));
+    else localStorage.removeItem(queuedKey(uid));
   } catch { /* storage full / unavailable */ }
 }
