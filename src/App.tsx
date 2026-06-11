@@ -11,7 +11,7 @@ import { primeAudio, resumeAudio, audioState, closeAudio, listenOnce, transcribe
 import { sentSound, replySound, soundsOn, setSoundsOn, soundTheme, setSoundTheme, type SoundTheme } from './earcons';
 import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
 import { pickSuggestions } from './suggestions';
-import { fetchUsage, summarize, fmtUsd, fmtTokens, sourceLabel, loadBudget, saveBudget, type UsageSummary } from './usage';
+import { fetchUsage, summarize, fmtUsd, fmtTokens, fmtDuration, sourceLabel, loadBudget, saveBudget, type UsageSummary } from './usage';
 import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, registerReminderActions, onReminderAction, snoozeNudge, type Reminder, type RepeatKind } from './reminders';
@@ -1790,6 +1790,20 @@ export default function App() {
                     <span className={`usage-bar-fill${usageSum.month.cost > budget ? ' over' : ''}`} style={{ width: `${Math.min(100, (usageSum.month.cost / budget) * 100)}%` }} />
                   </div>
                 </div>
+                {/* 5-hour burst window: spend in the last 5h vs a day's-budget pace. */}
+                {(() => {
+                  const cap = budget / 30; // a day's budget as the 5h ceiling (pace guard)
+                  const pct = cap > 0 ? (usageSum.fiveHour.cost / cap) * 100 : 0;
+                  return (
+                    <div className="usage-src">
+                      <div className="usage-src-top">
+                        <span>5-hour limit</span>
+                        <span>{Math.round(pct)}%{usageSum.fiveHour.resetsInMs > 0 ? ` · resets ${fmtDuration(usageSum.fiveHour.resetsInMs)}` : ''}</span>
+                      </div>
+                      <div className="usage-bar"><span className={`usage-bar-fill${pct > 100 ? ' over' : ''}`} style={{ width: `${Math.min(100, pct)}%` }} /></div>
+                    </div>
+                  );
+                })()}
                 <div className="usage-row"><span>Today</span><span>{fmtUsd(usageSum.today.cost)} · {fmtTokens(usageSum.today.tokens)} tokens</span></div>
                 <div className="usage-row"><span>Last 7 days</span><span>{fmtUsd(usageSum.week.cost)} · {fmtTokens(usageSum.week.tokens)} tokens</span></div>
                 {usageSum.bySource.length > 0 && (
@@ -1801,9 +1815,6 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-                )}
-                {usageSum.cacheSavings > 0.005 && (
-                  <div className="usage-note">Prompt caching saved ≈{fmtUsd(usageSum.cacheSavings)} this month.</div>
                 )}
                 <div className="usage-note">Token counts × list prices — actual billing can differ.</div>
               </>

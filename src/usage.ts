@@ -54,20 +54,28 @@ export interface UsageSummary {
   today: { cost: number; tokens: number };
   week: { cost: number; tokens: number };   // last 7 days
   month: { cost: number; tokens: number };  // last 30 days
+  // Rolling 5-hour burst window: spend in the last 5h, and how long until the
+  // oldest charge in it ages out (when the window frees up again).
+  fiveHour: { cost: number; tokens: number; resetsInMs: number };
   bySource: Array<{ source: string; cost: number }>; // last 30 days, desc
   cacheSavings: number;                      // last 30 days
 }
+
+const FIVE_H_MS = 5 * 3600_000;
 
 // Aggregate rows (already ≤30 days old) into the sheet's figures. `now` is
 // injectable so tests are deterministic.
 export function summarize(rows: UsageRow[], now: Date = new Date()): UsageSummary {
   const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const weekStart = now.getTime() - 7 * 86400_000;
+  const fiveStart = now.getTime() - FIVE_H_MS;
   const sums = {
     today: { cost: 0, tokens: 0 },
     week: { cost: 0, tokens: 0 },
     month: { cost: 0, tokens: 0 },
   };
+  const five = { cost: 0, tokens: 0 };
+  let oldestInWindow = Infinity; // earliest charge still inside the 5h window
   const bySrc = new Map<string, number>();
   let savings = 0;
   for (const r of rows) {
@@ -78,14 +86,26 @@ export function summarize(rows: UsageRow[], now: Date = new Date()): UsageSummar
     sums.month.cost += cost; sums.month.tokens += tok;
     if (t >= weekStart) { sums.week.cost += cost; sums.week.tokens += tok; }
     if (t >= dayStart) { sums.today.cost += cost; sums.today.tokens += tok; }
+    if (t >= fiveStart) { five.cost += cost; five.tokens += tok; if (t < oldestInWindow) oldestInWindow = t; }
     bySrc.set(r.source, (bySrc.get(r.source) ?? 0) + cost);
     savings += rowCacheSavings(r);
   }
+  // The window "frees up" 5h after its earliest charge.
+  const resetsInMs = Number.isFinite(oldestInWindow) ? Math.max(0, oldestInWindow + FIVE_H_MS - now.getTime()) : 0;
   return {
     ...sums,
+    fiveHour: { ...five, resetsInMs },
     bySource: [...bySrc.entries()].map(([source, cost]) => ({ source, cost })).sort((a, b) => b.cost - a.cost),
     cacheSavings: savings,
   };
+}
+
+// Compact "Xh Ym" / "Ym" for the 5-hour reset countdown.
+export function fmtDuration(ms: number): string {
+  const mins = Math.max(0, Math.round(ms / 60000));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
 }
 
 export const fmtUsd = (n: number): string => (n >= 100 ? `$${Math.round(n)}` : `$${n.toFixed(2)}`);

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { rowCost, rowCacheSavings, summarize, fmtUsd, fmtTokens, sourceLabel, loadBudget, saveBudget, type UsageRow } from './usage';
+import { rowCost, rowCacheSavings, summarize, fmtUsd, fmtTokens, fmtDuration, sourceLabel, loadBudget, saveBudget, type UsageRow } from './usage';
 
 const NOW = new Date('2026-06-11T15:00:00Z');
 const row = (over: Partial<UsageRow>): UsageRow => ({
@@ -63,6 +63,33 @@ describe('summarize (today / week / month windows)', () => {
   it('ignores rows with unparseable timestamps', () => {
     const s = summarize([row({ in_tokens: 1_000_000, created_at: 'garbage' })], NOW);
     expect(s.month.cost).toBe(0);
+  });
+});
+
+describe('5-hour burst window', () => {
+  it('sums only charges in the last 5h and counts down to when it frees up', () => {
+    const rows: UsageRow[] = [
+      row({ in_tokens: 1_000_000, created_at: '2026-06-11T13:00:00Z' }), // 2h ago — in window ($3)
+      row({ in_tokens: 1_000_000, created_at: '2026-06-11T09:00:00Z' }), // 6h ago — out of window
+    ];
+    const s = summarize(rows, NOW); // NOW = 15:00Z
+    expect(s.fiveHour.cost).toBeCloseTo(3);
+    // oldest in-window charge at 13:00 frees at 18:00 → 3h from NOW
+    expect(s.fiveHour.resetsInMs).toBe(3 * 3600_000);
+  });
+  it('is empty with no recent charges (no countdown)', () => {
+    const s = summarize([row({ in_tokens: 1_000_000, created_at: '2026-06-10T15:00:00Z' })], NOW);
+    expect(s.fiveHour.cost).toBe(0);
+    expect(s.fiveHour.resetsInMs).toBe(0);
+  });
+});
+
+describe('fmtDuration', () => {
+  it('formats hours and minutes compactly', () => {
+    expect(fmtDuration(3 * 3600_000)).toBe('3h');
+    expect(fmtDuration(3 * 3600_000 + 12 * 60_000)).toBe('3h 12m');
+    expect(fmtDuration(45 * 60_000)).toBe('45m');
+    expect(fmtDuration(0)).toBe('0m');
   });
 });
 
