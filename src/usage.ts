@@ -92,6 +92,17 @@ export const fmtUsd = (n: number): string => (n >= 100 ? `$${Math.round(n)}` : `
 export const fmtTokens = (n: number): string =>
   n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${Math.round(n / 1_000)}k` : String(n);
 
+// A monthly budget for the spend bar. The meter has no real plan limit to draw
+// against (it's pay-as-you-go API spend), so this is the user's OWN ceiling,
+// editable in the sheet and stored locally. Default $100.
+const BUDGET_KEY = 'gf_usage_budget';
+export function loadBudget(): number {
+  try { const v = Number(localStorage.getItem(BUDGET_KEY)); return v > 0 && Number.isFinite(v) ? v : 100; } catch { return 100; }
+}
+export function saveBudget(n: number): void {
+  try { if (n > 0 && Number.isFinite(n)) localStorage.setItem(BUDGET_KEY, String(Math.round(n))); } catch { /* private mode */ }
+}
+
 // Friendly labels for the telemetry sources.
 export function sourceLabel(s: string): string {
   if (s === 'chat') return 'Chat';

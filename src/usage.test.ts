@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { rowCost, rowCacheSavings, summarize, fmtUsd, fmtTokens, sourceLabel, type UsageRow } from './usage';
+// @vitest-environment jsdom
+import { describe, it, expect, beforeEach } from 'vitest';
+import { rowCost, rowCacheSavings, summarize, fmtUsd, fmtTokens, sourceLabel, loadBudget, saveBudget, type UsageRow } from './usage';
 
 const NOW = new Date('2026-06-11T15:00:00Z');
 const row = (over: Partial<UsageRow>): UsageRow => ({
@@ -78,5 +79,20 @@ describe('formatting', () => {
     expect(sourceLabel('chat')).toBe('Chat');
     expect(sourceLabel('detector')).toBe('Background checks');
     expect(sourceLabel('tts')).toBe('Tts');
+  });
+});
+
+describe('monthly budget', () => {
+  beforeEach(() => localStorage.clear());
+  it('defaults to $100 and round-trips a set value', () => {
+    expect(loadBudget()).toBe(100);
+    saveBudget(250);
+    expect(loadBudget()).toBe(250);
+  });
+  it('ignores junk and non-positive values', () => {
+    saveBudget(0); saveBudget(-5); saveBudget(NaN);
+    expect(loadBudget()).toBe(100);
+    localStorage.setItem('gf_usage_budget', 'lots');
+    expect(loadBudget()).toBe(100);
   });
 });

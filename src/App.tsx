@@ -11,7 +11,7 @@ import { primeAudio, resumeAudio, audioState, closeAudio, listenOnce, transcribe
 import { sentSound, replySound, soundsOn, setSoundsOn, soundTheme, setSoundTheme, type SoundTheme } from './earcons';
 import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
 import { pickSuggestions } from './suggestions';
-import { fetchUsage, summarize, fmtUsd, fmtTokens, sourceLabel, type UsageSummary } from './usage';
+import { fetchUsage, summarize, fmtUsd, fmtTokens, sourceLabel, loadBudget, saveBudget, type UsageSummary } from './usage';
 import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, registerReminderActions, onReminderAction, snoozeNudge, type Reminder, type RepeatKind } from './reminders';
@@ -305,6 +305,8 @@ export default function App() {
   const [legalDoc, setLegalDoc] = useState<'privacy' | 'terms' | null>(null); // in-app Privacy/Terms reader
   const [usageOpen, setUsageOpen] = useState(false);             // AI-usage sheet (the ≈$ chip bottom-right)
   const [usageSum, setUsageSum] = useState<UsageSummary | null>(null);
+  const [budget, setBudget] = useState(loadBudget);              // self-set monthly ceiling for the spend bar
+  const [editBudget, setEditBudget] = useState(false);
   const [micState, setMicState] = useState<'idle' | 'rec' | 'tx'>('idle'); // composer dictation
   const micFinishRef = useRef<AbortController | null>(null);
   const lockRef = useRef<() => void>(() => {});
@@ -1768,17 +1770,40 @@ export default function App() {
             <div className="wn-eyebrow">AI usage · estimates</div>
             {usageSum ? (
               <>
+                {/* Monthly budget bar (your own ceiling — tap the figure to change it) */}
+                <div className="usage-budget">
+                  <div className="usage-budget-top">
+                    <span>This month</span>
+                    {editBudget ? (
+                      <input
+                        className="usage-budget-input" type="number" inputMode="decimal" defaultValue={budget} autoFocus aria-label="Monthly budget"
+                        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                        onBlur={(e) => { const v = Number(e.target.value); if (v > 0) { setBudget(v); saveBudget(v); } setEditBudget(false); }}
+                      />
+                    ) : (
+                      <button className="usage-budget-val" onClick={() => setEditBudget(true)}>
+                        {fmtUsd(usageSum.month.cost)} of {fmtUsd(budget)} ✎
+                      </button>
+                    )}
+                  </div>
+                  <div className="usage-bar">
+                    <span className={`usage-bar-fill${usageSum.month.cost > budget ? ' over' : ''}`} style={{ width: `${Math.min(100, (usageSum.month.cost / budget) * 100)}%` }} />
+                  </div>
+                </div>
                 <div className="usage-row"><span>Today</span><span>{fmtUsd(usageSum.today.cost)} · {fmtTokens(usageSum.today.tokens)} tokens</span></div>
                 <div className="usage-row"><span>Last 7 days</span><span>{fmtUsd(usageSum.week.cost)} · {fmtTokens(usageSum.week.tokens)} tokens</span></div>
-                <div className="usage-row"><span>Last 30 days</span><span>{fmtUsd(usageSum.month.cost)} · {fmtTokens(usageSum.month.tokens)} tokens</span></div>
                 {usageSum.bySource.length > 0 && (
-                  <div className="usage-row">
-                    <span>By source</span>
-                    <span>{usageSum.bySource.slice(0, 3).map((s) => `${sourceLabel(s.source)} ${fmtUsd(s.cost)}`).join(' · ')}</span>
+                  <div className="usage-srcs">
+                    {usageSum.bySource.slice(0, 4).map((s) => (
+                      <div className="usage-src" key={s.source}>
+                        <div className="usage-src-top"><span>{sourceLabel(s.source)}</span><span>{fmtUsd(s.cost)}</span></div>
+                        <div className="usage-bar"><span className="usage-bar-fill alt" style={{ width: `${usageSum.bySource[0].cost > 0 ? (s.cost / usageSum.bySource[0].cost) * 100 : 0}%` }} /></div>
+                      </div>
+                    ))}
                   </div>
                 )}
                 {usageSum.cacheSavings > 0.005 && (
-                  <div className="usage-note">Prompt caching saved ≈{fmtUsd(usageSum.cacheSavings)} in the last 30 days.</div>
+                  <div className="usage-note">Prompt caching saved ≈{fmtUsd(usageSum.cacheSavings)} this month.</div>
                 )}
                 <div className="usage-note">Token counts × list prices — actual billing can differ.</div>
               </>

@@ -532,6 +532,22 @@
 .usage-row + .usage-row { border-top: 1px solid var(--line-1); }
 .usage-note { padding: 8px 14px 4px; font-size: var(--fs-caption); color: var(--text-faint); line-height: 1.45; }
 
+/* Progress bars (budget + per-source) */
+.usage-budget { padding: 12px 14px 10px; }
+.usage-budget-top { display: flex; justify-content: space-between; align-items: baseline; font-size: var(--fs-body-s); margin-bottom: 9px; }
+.usage-budget-top > span:first-child { color: var(--text-dim); }
+.usage-budget-val { background: none; border: none; color: var(--text); font: inherit; font-size: var(--fs-body-s); font-variant-numeric: tabular-nums; cursor: pointer; padding: 0; }
+.usage-budget-input { width: 86px; background: #ffffff14; border: 1px solid var(--line-2); border-radius: var(--r-control); color: var(--text); font: inherit; font-size: var(--fs-body-s); padding: 2px 7px; text-align: right; }
+.usage-bar { height: 6px; border-radius: var(--r-pill); background: #ffffff14; overflow: hidden; }
+.usage-bar-fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--brand); transition: width var(--dur-screen) var(--ease-enter); }
+.usage-bar-fill.alt { background: var(--link); }
+.usage-bar-fill.over { background: var(--danger); }
+.usage-srcs { padding: 4px 0 6px; }
+.usage-src { padding: 8px 14px 2px; }
+.usage-src-top { display: flex; justify-content: space-between; font-size: var(--fs-caption); margin-bottom: 5px; }
+.usage-src-top > span:first-child { color: var(--text-dim); }
+.usage-src-top > span:last-child { font-variant-numeric: tabular-nums; }
+
 /* Hard update gate sits above even the lock screen. */
 .update-gate { z-index: 300; padding: 0 36px; text-align: center; }
 .update-msg { color: var(--text-dim); font-size: var(--fs-body); line-height: 1.5; max-width: 18.8235rem; margin: 0; }
