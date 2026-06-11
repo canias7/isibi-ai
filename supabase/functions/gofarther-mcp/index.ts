@@ -313,6 +313,80 @@ async function getMemoryFile(uid: string, memoryId: string, toolkitSlug: string,
   return JSON.stringify({ s3key, mimetype, name });
 }
 
+// Built-in tool: set a reminder/alarm the user asks for. Writes to
+// public.user_reminders (scoped to the user id we were handed). The app schedules
+// the actual on-device notification when it next syncs (the client re-arms right
+// after a chat turn that set one). Available in ANY chat and to workflows.
+const REMINDER_TOOL: Tool = {
+  name: "GF_SET_REMINDER",
+  description:
+    "Set a reminder/alarm when the user asks to be reminded or nudged at a time — e.g. \"remind me to call Sam at 5pm\", \"set a reminder for my meeting tomorrow at 9\", \"ping me in 2 hours to take a break\", \"every weekday at 8 remind me to stretch\". Saves it to the user's reminders so the app alerts them at that time. Resolve relative times (\"in 2 hours\", \"tomorrow morning\") using the user's CURRENT local time given in the system prompt. After it succeeds, confirm in ONE short plain-text line (e.g. \"Done — I'll remind you at 5:00 PM.\"). Do NOT use this to save a fact about the user (that's GF_SAVE_MEMORY) or to build a recurring automation across apps (that's a workflow).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      title: { type: "string", description: "What to remind them about, as a short imperative WITHOUT \"remind me to\" — e.g. \"Call Sam\", \"Leave for the dentist\", \"Take a break\"." },
+      remind_at: { type: "string", description: "When to fire, as an ISO 8601 datetime in the user's LOCAL time — ideally with the UTC offset, e.g. \"2026-06-12T17:00:00-04:00\". A value with no offset is interpreted in `tz`." },
+      repeat: { type: "string", enum: ["none", "daily", "weekly"], description: "Repeat cadence; default \"none\" (one-off)." },
+      tz: { type: "string", description: "The user's IANA timezone from the system prompt (e.g. \"America/New_York\"), used to resolve `remind_at` when it carries no UTC offset." },
+    },
+    required: ["title", "remind_at"],
+  },
+};
+
+// UTC offset (ms) of an IANA tz at a given instant (DST-correct).
+function tzOffsetMs(tz: string, at: Date): number {
+  try {
+    const p = new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).formatToParts(at);
+    const g = (t: string) => +(p.find((x) => x.type === t)?.value || 0);
+    return Date.UTC(g("year"), g("month") - 1, g("day"), g("hour"), g("minute"), g("second")) - at.getTime();
+  } catch {
+    return 0;
+  }
+}
+// Resolve the model's remind_at into an absolute instant. An explicit offset/Z is
+// trusted as-is; a naive wall-clock time is interpreted in the user's tz.
+function resolveRemindAt(remindAt: string, tz: string): Date | null {
+  const s = String(remindAt ?? "").trim();
+  if (!s) return null;
+  if (/([zZ]|[+-]\d{2}:?\d{2})$/.test(s)) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (m) {
+    const guessUTC = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+    // One correction pass covers the rare DST-boundary case.
+    let inst = guessUTC - tzOffsetMs(tz || "UTC", new Date(guessUTC));
+    inst = guessUTC - tzOffsetMs(tz || "UTC", new Date(inst));
+    return new Date(inst);
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+// Persist one reminder for the user (service role, scoped to the passed uid).
+async function setReminder(uid: string, args: any): Promise<string> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key || !uid) throw new Error("reminders unavailable");
+  const a = args || {};
+  const title = String(a.title ?? "").trim().slice(0, 200);
+  if (!title) throw new Error("missing reminder title");
+  const tz = (String(a.tz ?? "").trim()) || "UTC";
+  const at = resolveRemindAt(String(a.remind_at ?? ""), tz);
+  if (!at) throw new Error("couldn't understand the reminder time");
+  const repeat = ["none", "daily", "weekly"].includes(String(a.repeat)) ? String(a.repeat) : "none";
+  const r = await fetch(`${url}/rest/v1/user_reminders`, {
+    method: "POST",
+    headers: { "content-type": "application/json", apikey: key, authorization: `Bearer ${key}`, prefer: "return=minimal" },
+    body: JSON.stringify({ user_id: uid, title, remind_at: at.toISOString(), repeat }),
+  });
+  if (!r.ok) throw new Error(`save failed ${r.status}: ${(await r.text().catch(() => ""))}`);
+  let when = at.toISOString();
+  try { when = new Intl.DateTimeFormat("en-US", { timeZone: tz, dateStyle: "medium", timeStyle: "short" }).format(at); } catch { /* keep ISO */ }
+  const rep = repeat === "daily" ? " (repeats daily)" : repeat === "weekly" ? " (repeats weekly)" : "";
+  return `Reminder set: "${title}" for ${when}${rep}.`;
+}
+
 function toMcp(t: any): Tool {
   return {
     name: t.slug,
@@ -435,10 +509,11 @@ async function listTools(apps: string[], prefs: Record<string, string[]>, memOn:
     const pick = prefs["plaid"];
     for (const t of allBank) if (pick === undefined || pick.includes(t.name)) out.push(t);
   }
-  // General-purpose built-ins: weather + save-table (keyless) always; maps &
-  // image-gen only when their key is set.
+  // General-purpose built-ins: weather + save-table + reminders (all keyless)
+  // always; maps & image-gen only when their key is set.
   out.push(WEATHER_TOOL);
   out.push(SAVE_TABLE_TOOL);
+  out.push(REMINDER_TOOL);
   if (MAPS_KEY) out.push(MAPS_TOOL);
   if (OPENAI_KEY) out.push(IMAGE_TOOL);
   return out;
@@ -1439,12 +1514,13 @@ Deno.serve(async (req: Request) => {
       }
     }
     // Built-in general tools — handled locally (no Composio, no connection needed).
-    if (p.name === "GF_WEATHER" || p.name === "GF_MAPS" || p.name === "GF_IMAGE" || p.name === "GF_SAVE_TABLE") {
+    if (p.name === "GF_WEATHER" || p.name === "GF_MAPS" || p.name === "GF_IMAGE" || p.name === "GF_SAVE_TABLE" || p.name === "GF_SET_REMINDER") {
       try {
         const a = p.arguments || {};
         const text = p.name === "GF_WEATHER" ? await weatherLookup(a.location, String(a.units || "fahrenheit"))
           : p.name === "GF_MAPS" ? await mapsTool(a)
           : p.name === "GF_SAVE_TABLE" ? await saveTable(reqUser, a)
+          : p.name === "GF_SET_REMINDER" ? await setReminder(reqUser, a)
           : await imageTool(reqUser, a);
         await logUsage(p.name, true, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });

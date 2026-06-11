@@ -873,10 +873,12 @@ export default function App() {
     // permission prompt appears in context and we never send whereabouts unasked.
     const lastUserText = [...history].reverse().find((m) => m.role === 'user')?.content ?? '';
     const location = LOCATION_RE.test(lastUserText) ? ((await getLocation()) ?? undefined) : undefined;
+    let streamed = ''; // full streamed text — scanned for the reminder-sync signal after the turn
     try {
       await streamChat(
         history, // already placeholder-free (cleaned at the top of runTurn)
         (tok) => {
+          streamed += tok;
           setMessages((m) => {
             const copy = m.slice();
             const last = copy[copy.length - 1];
@@ -907,12 +909,14 @@ export default function App() {
         if (last && last.role === 'assistant') {
           copy[copy.length - 1] = {
             ...last,
-            content: last.content.includes('[[gfstatus:') ? last.content.replace(/\[\[gfstatus:[^\]]*\]\]/g, '') : last.content,
+            content: /\[\[gf(?:status|sync):/.test(last.content) ? last.content.replace(/\[\[gf(?:status|sync):[^\]]*\]\]/g, '') : last.content,
             ts: Date.now(), // freshness stamp — "as of 9:41 PM" on data answers
           };
         }
         return copy;
       });
+      // The assistant set a reminder this turn — schedule its device notification now.
+      if (/\[\[gfsync:reminders\]\]/.test(streamed)) void syncRemindersFromChat();
       replySound(); // the reply landed — a soft audible cue to glance back
     } catch (e) {
       // Backgrounded mid-reply: we closed the connection on purpose so the server
@@ -1476,6 +1480,17 @@ export default function App() {
     setRemLoaded(true);
   }
 
+  // The assistant set a reminder this turn (server-side, via the chat tool).
+  // Re-fetch and re-arm so the device schedules its local notification now —
+  // not only on next launch — asking for notification permission in-context.
+  async function syncRemindersFromChat() {
+    if (!uid) return;
+    await ensureNotifyPermission();
+    const list = await listReminders();
+    setReminders(list);
+    await syncReminders(list);
+  }
+
   async function addRem(title: string, remind_at: string, repeat: RepeatKind): Promise<boolean> {
     await ensureNotifyPermission(); // ask for notification permission in context
     const r = await addReminder(title.trim(), remind_at, repeat);
@@ -1994,7 +2009,7 @@ export default function App() {
                   // No visible text yet → AssistantMessage shows its own "thinking"
                   // (or tool-activity) indicator, so don't also blink the bare cursor.
                   const thinking = streamingHere
-                    && !m.content.replace(/\[\[gfstatus:[^\]]*\]\]/g, '').replace(/\[\[gfstatus[^\]]*$/, '').trim();
+                    && !m.content.replace(/\[\[gf(?:status|sync):[^\]]*\]\]/g, '').replace(/\[\[gf(?:status|sync)[^\]]*$/, '').trim();
                   return (
                     <div key={m.id ?? i} className={`msg ${m.role}`}>
                       <div className="bubble">
@@ -2260,6 +2275,7 @@ export default function App() {
               conversationId={currentId}
               memoryOn={memEnabled}
               onTurn={(h) => { dirtyRef.current = true; setMessages(h); }}
+              onReminderSet={() => void syncRemindersFromChat()}
               onClose={() => { setCallOpen(false); closeAudio(); }}
             />
             </ErrorBoundary>

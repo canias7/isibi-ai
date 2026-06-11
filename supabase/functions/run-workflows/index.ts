@@ -369,8 +369,9 @@ TOOL DISCOVERY: the app's tools are NOT pre-loaded — only a search index is. F
 
 // Run one workflow's instruction through Claude (with the user's connectors).
 // `modelTier` is the workflow's chosen tier ('haiku'|'sonnet'|'opus'); unset/
-// unknown uses the Sonnet default.
-async function runInstruction(uid: string, instruction: string, connected?: string[], modelTier?: string | null): Promise<string> {
+// unknown uses the Sonnet default. `tz` is the user's timezone (from the
+// workflow's schedule) so time reasoning + any reminders it sets are correct.
+async function runInstruction(uid: string, instruction: string, connected?: string[], modelTier?: string | null, tz: string = "UTC"): Promise<string> {
   if (!ANTHROPIC_KEY) throw new Error("assistant not configured");
   const apps = connected ?? (await connectedToolkits(uid)) ?? [];
   const memOn = await memoryEnabled(uid);
@@ -378,14 +379,17 @@ async function runInstruction(uid: string, instruction: string, connected?: stri
   const memSys = mems.length
     ? `\n\nWHAT YOU KNOW ABOUT THIS USER (saved memories; honor them):\n${mems.map((m) => `• ${m}`).join("\n")}`
     : "";
+  let nowLocal: string;
+  try { nowLocal = new Intl.DateTimeFormat("en-US", { timeZone: tz, dateStyle: "full", timeStyle: "short" }).format(new Date()); }
+  catch { tz = "UTC"; nowLocal = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", dateStyle: "full", timeStyle: "short" }).format(new Date()); }
   // The connector catalog is deferred (see the mcp_toolset below), so the model
   // can't SEE those tools until it searches — without this instruction it may
   // wrongly report a connected app as unavailable. Built-ins are exempt:
   // they're eagerly loaded and need no search.
   const toolSearchSystem = apps.length
-    ? `\n\nTOOL DISCOVERY: the tools for the user's connected apps (${apps.join(", ")}) exist but are NOT pre-loaded — only a search index is. The moment the instruction involves one of those apps, FIRST call tool_search_tool_regex with a Python-style pattern — e.g. "(?i)gmail.*send", "(?i)calendar.*event" — then call the tool(s) it returns. The already-loaded built-ins (GF_WEATHER, GF_MAPS, GF_GET_MEMORY_FILE, GF_SAVE_TABLE) need no search. NEVER report a needed app or tool as unavailable until a search for it came back empty.`
+    ? `\n\nTOOL DISCOVERY: the tools for the user's connected apps (${apps.join(", ")}) exist but are NOT pre-loaded — only a search index is. The moment the instruction involves one of those apps, FIRST call tool_search_tool_regex with a Python-style pattern — e.g. "(?i)gmail.*send", "(?i)calendar.*event" — then call the tool(s) it returns. The already-loaded built-ins (GF_WEATHER, GF_MAPS, GF_GET_MEMORY_FILE, GF_SAVE_TABLE, GF_SET_REMINDER) need no search. NEVER report a needed app or tool as unavailable until a search for it came back empty.`
     : "";
-  const system = `You are Go Farther, running a saved automation for the user in the background. They won't see it happen — only the result — so get it right the first time. Carry out the instruction using the connected tools.
+  const system = `You are Go Farther, running a saved automation for the user in the background. They won't see it happen — only the result — so get it right the first time. Carry out the instruction using the connected tools. It is currently ${nowLocal} in the user's timezone (${tz}); use this for any time reasoning (resolving "today", "tomorrow", "in 2 hours") and show times in ${tz}. If the instruction asks to remind or nudge the user at a time, call GF_SET_REMINDER with a short title, the time as an ISO 8601 datetime in ${tz}, an optional repeat, and tz "${tz}".
 
 Stay strictly in scope: read and reason as much as you need, but only take an OUTWARD action — send, post, reply, create, delete, pay — that the instruction EXPLICITLY calls for. Never add an action of your own. If there's nothing to act on, do nothing (or send the brief "nothing today" note only if the instruction asks for one).
 
@@ -423,6 +427,7 @@ Example result: "Sent your morning digest — 12 unread emails grouped by sender
           GF_WEATHER: { defer_loading: false },
           GF_MAPS: { defer_loading: false },
           GF_IMAGE: { defer_loading: false },
+          GF_SET_REMINDER: { defer_loading: false },
         },
         cache_control: { type: "ephemeral", ttl: "1h" },
       },
@@ -513,7 +518,7 @@ Deno.serve(async (req: Request) => {
         ok = false; notify = false; // record it, but don't push every run (would spam an hourly workflow)
         text = `Couldn't run — ${missing.join(", ")} ${missing.length > 1 ? "aren't" : "isn't"} connected. Connect ${missing.length > 1 ? "them" : "it"} and it'll run next time.`;
       } else {
-        try { text = await runInstruction(wf.user_id, wf.instruction, connected, wf.model); ok = true; }
+        try { text = await runInstruction(wf.user_id, wf.instruction, connected, wf.model, wf.schedule?.tz); ok = true; }
         catch (e) { ok = false; console.error("scheduled workflow error:", e); text = "Couldn't finish this workflow."; }
       }
       await insertRun(wf.id, wf.user_id, text, ok);
@@ -602,7 +607,7 @@ Deno.serve(async (req: Request) => {
             ok = false; notify = false; // record it, don't push repeatedly while an app stays disconnected
             text = `Triggered, but ${missing.join(", ")} ${missing.length > 1 ? "aren't" : "isn't"} connected — connect ${missing.length > 1 ? "them" : "it"} to run this.`;
           } else {
-            try { text = await runInstruction(wf.user_id, prompt, connected, wf.model); ok = true; }
+            try { text = await runInstruction(wf.user_id, prompt, connected, wf.model, wf.event?.tz); ok = true; }
             catch (e) { ok = false; console.error("event workflow error:", e); text = "Couldn't finish this workflow."; }
           }
           await insertRun(wf.id, wf.user_id, text, ok);
