@@ -9,6 +9,7 @@ import type { EmailItem } from './EmailList';
 import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown } from './icons';
 import { primeAudio, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { sentSound, replySound, soundsOn, setSoundsOn } from './earcons';
+import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
 import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, registerReminderActions, onReminderAction, snoozeNudge, type Reminder, type RepeatKind } from './reminders';
@@ -285,6 +286,7 @@ export default function App() {
   const [confirmDelete, setConfirmDelete] = useState(false); // delete-account confirm sheet
   const [deleting, setDeleting] = useState(false);
   const [forceUpdate, setForceUpdate] = useState<ForceUpdateMode | null>(null); // hard update gate (from ota.ts)
+  const [wnOpen, setWnOpen] = useState(false); // "What's new" sheet (once per announced edition)
   const [micState, setMicState] = useState<'idle' | 'rec' | 'tx'>('idle'); // composer dictation
   const micFinishRef = useRef<AbortController | null>(null);
   const lockRef = useRef<() => void>(() => {});
@@ -425,9 +427,11 @@ export default function App() {
   const menuSheetRef = useRef<HTMLDivElement>(null);
   const confirmSheetRef = useRef<HTMLDivElement>(null);
   const radialRef = useRef<HTMLDivElement>(null);
+  const wnRef = useRef<HTMLDivElement>(null);
   useFocusTrap(!!menuChat, menuSheetRef, () => setMenuChat(null));
   useFocusTrap(confirmDelete, confirmSheetRef, () => { if (!deleting) setConfirmDelete(false); });
   useFocusTrap(plusOpen, radialRef, () => setPlusOpen(false));
+  useFocusTrap(wnOpen, wnRef, () => closeWhatsNew());
 
   // Animated dismissal for every sheet/menu/overlay this component mounts —
   // the element stays for one exit beat with a `.closing`/`.gf-out` class
@@ -438,6 +442,26 @@ export default function App() {
   if (menuChat) lastMenuChat.current = menuChat;
   const menuSheetChat = menuChat ?? lastMenuChat.current;
   const confirmUi = useDismiss(confirmDelete);
+  const wnUi = useDismiss(wnOpen);
+
+  function closeWhatsNew() {
+    markWhatsNewSeen();
+    setWnOpen(false);
+  }
+
+  // Announce a worth-mentioning OTA release once per edition (see whatsnew.ts),
+  // after launch settles. A Face-ID-locked launch just waits: the effect re-runs
+  // on unlock rather than popping a sheet over the lock screen.
+  useEffect(() => {
+    if (!uid || locked) return;
+    const t = setTimeout(() => {
+      if (shouldShowWhatsNew(loadChats(uid).length > 0)) {
+        void bump();
+        setWnOpen(true);
+      }
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [uid, locked]);
   const radialUi = useDismiss(plusOpen);
   const memUi = useDismiss(memOpen);
   const remUi = useDismiss(remOpen);
@@ -1630,6 +1654,22 @@ export default function App() {
               <IconTrash size={16} /> Delete
             </button>
             <button className="chat-sheet-row cancel" onClick={() => setMenuChat(null)}>Cancel</button>
+          </div>
+        </>
+      )}
+      {/* "What's new" — shown once per announced edition (see whatsnew.ts) */}
+      {wnUi.mounted && (
+        <>
+          <div className={`sheet-scrim${wnUi.closing ? ' closing' : ''}`} onClick={closeWhatsNew} />
+          <div className={`chat-sheet wn-sheet${wnUi.closing ? ' closing' : ''}`} role="dialog" aria-label="What’s new" ref={wnRef} tabIndex={-1}>
+            <div className="wn-eyebrow">What’s new</div>
+            {WN_ITEMS.map((it) => (
+              <div className="wn-item" key={it.title}>
+                <div className="wn-item-title">{it.title}</div>
+                <div className="wn-item-sub">{it.sub}</div>
+              </div>
+            ))}
+            <button className="chat-sheet-row cancel" onClick={closeWhatsNew}>Nice</button>
           </div>
         </>
       )}

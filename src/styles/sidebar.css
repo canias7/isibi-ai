@@ -485,6 +485,20 @@
   border-radius: 0 0 14px 14px;
 }
 
+/* ---- "What's new" sheet (chat-sheet base, content rows instead of actions) ---- */
+.wn-eyebrow {
+  padding: 12px 14px 4px;
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+.wn-item { padding: 9px 14px; }
+.wn-item + .wn-item { border-top: 1px solid var(--line-1); }
+.wn-item-title { font-size: var(--fs-body); font-weight: 600; }
+.wn-item-sub { font-size: var(--fs-caption); color: var(--text-dim); line-height: 1.45; margin-top: 2px; }
+
 /* Hard update gate sits above even the lock screen. */
 .update-gate { z-index: 300; padding: 0 36px; text-align: center; }
 .update-msg { color: var(--text-dim); font-size: var(--fs-body); line-height: 1.5; max-width: 18.8235rem; margin: 0; }
