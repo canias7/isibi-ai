@@ -292,7 +292,7 @@ export async function speak(text: string): Promise<void> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY },
       body: JSON.stringify({ text }),
-      signal: AbortSignal.timeout(26000),
+      signal: AbortSignal.timeout(40000), // self-hosted F5-TTS/RVC is slow; wait for the real voice before falling back
     });
     if (!res.ok) throw new Error(`tts ${res.status}`);
     const bytes = await res.arrayBuffer();

@@ -6,12 +6,16 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // app one stable, JWT-protected endpoint. Contract with the voice server:
 //   POST {TTS_URL}  body: {"text": "..."}  ->  200 + audio bytes (wav/mp3)
 // Configure with secrets:
-//   TTS_URL   (required) — the voice server endpoint
-//   TTS_AUTH  (optional) — sent as Authorization: Bearer <TTS_AUTH>
+//   TTS_URL    (required) — the voice server endpoint
+//   TTS_AUTH   (optional) — sent as Authorization: Bearer <TTS_AUTH>
+//   TTS_VOICE  (optional) — forwarded as {"voice": ...} so you can pick which
+//                           trained voice the app speaks (e.g. "Linda") without
+//                           an app change; omitted -> the server's default voice.
 // No TTS_URL set -> 503, and the app quietly falls back to the device voice.
 
 const TTS_URL = Deno.env.get("TTS_URL") ?? "";
 const TTS_AUTH = Deno.env.get("TTS_AUTH") ?? "";
+const TTS_VOICE = Deno.env.get("TTS_VOICE") ?? "";
 
 const cors = {
   "access-control-allow-origin": "*",
@@ -51,8 +55,8 @@ Deno.serve(async (req: Request) => {
         "content-type": "application/json",
         ...(TTS_AUTH ? { authorization: `Bearer ${TTS_AUTH}` } : {}),
       },
-      body: JSON.stringify({ text }),
-      signal: AbortSignal.timeout(25000),
+      body: JSON.stringify({ text, ...(TTS_VOICE ? { voice: TTS_VOICE } : {}) }),
+      signal: AbortSignal.timeout(38000),
     });
     if (!upstream.ok || !upstream.body) {
       return err(`voice server ${upstream.status}`, 502);
