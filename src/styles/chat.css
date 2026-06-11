@@ -144,6 +144,10 @@
   margin: 0 2px 2px 2px;
 }
 .plus-btn:active, .plus-btn.open { background: #ffffff1f; }
+/* The + pivots into an × while the fan is open — same spring as the fan itself. */
+.plus-btn svg { transition: transform var(--dur-enter) var(--ease-spring); }
+.plus-btn.open svg { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) { .plus-btn svg { transition: none; } }
 .plus-badge {
   position: absolute;
   top: 0;

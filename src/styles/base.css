@@ -82,7 +82,42 @@ html {
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
-body { background: var(--bg); color: var(--text); }
+body {
+  background: var(--bg);
+  color: var(--text);
+  /* crisper glyphs on dark — light-on-dark over-bolds without this */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---- Signature details ----------------------------------------------------
+   The little things that read as intent: selecting text glows brand-amber,
+   the text caret is amber, and anything numeric that lines up vertically
+   (timestamps, run times) uses tabular figures so columns don't wobble. */
+::selection { background: rgba(224, 161, 58, 0.32); color: var(--text); }
+input, textarea { caret-color: var(--brand); }
+.gf-time, .gf-msg-time, .chat-time, .wf-run-time, .msg-model { font-variant-numeric: tabular-nums; }
+
+/* The brand orb — the same warm core as the memory constellation and the call
+   orb, as a standalone mark (home hero, sign-in). Breathes gently when given
+   `.breathe`; still under prefers-reduced-motion. */
+.brand-orb {
+  display: inline-block;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--brand-soft), var(--brand) 58%, var(--brand-strong) 100%);
+  box-shadow:
+    0 0 44px rgba(224, 161, 58, 0.4),
+    inset 0 1px 5px rgba(255, 255, 255, 0.35);
+}
+.brand-orb.breathe { animation: brand-breathe 5.5s ease-in-out infinite; }
+@keyframes brand-breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 38px rgba(224, 161, 58, 0.34), inset 0 1px 5px rgba(255, 255, 255, 0.35); }
+  50% { transform: scale(1.05); box-shadow: 0 0 56px rgba(224, 161, 58, 0.5), inset 0 1px 5px rgba(255, 255, 255, 0.35); }
+}
+@media (prefers-reduced-motion: reduce) { .brand-orb.breathe { animation: none; } }
+
+/* Shared empty-state illustration (BrandConstellation in brand.tsx) */
+.gf-empty-art { display: block; margin: 0 auto 6px; }
 
 .app { display: flex; flex-direction: column; height: 100vh; position: relative; }
 
@@ -150,6 +185,8 @@ body { background: var(--bg); color: var(--text); }
   padding: 0 24px;
   text-align: center;
 }
+/* The identity lockup: breathing amber core above the wordmark. */
+.home-orb { width: 58px; height: 58px; margin-bottom: 26px; }
 .home-mark {
   font-size: clamp(2.4706rem, 13vw, 3.6471rem);
   font-weight: 800;

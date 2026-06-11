@@ -112,6 +112,7 @@ export default function Login() {
         <span className="orb orb4" />
       </div>
       <div className="auth-card">
+        <span className="brand-orb breathe auth-orb" aria-hidden />
         <div className="auth-brand">Go Farther</div>
         <p className="auth-sub">
           {step === 'code'
