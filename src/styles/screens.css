@@ -67,6 +67,28 @@
 }
 .snd-chip:active { background: #ffffff16; }
 .snd-chip.on { border-color: var(--brand); color: var(--brand); background: rgba(224, 161, 58, 0.1); }
+/* Reminder-sound picker — a sectioned list of tap-to-preview rows */
+.rem-snd-hint { padding: 11px 14px 2px; font-size: var(--fs-caption); color: var(--text-dim); line-height: 1.45; }
+.rem-snd-sec { padding: 10px 14px 4px; font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
+.rem-snd-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--line-1);
+  text-align: left;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-body-s);
+  cursor: pointer;
+}
+.rem-snd-row:active { background: var(--fill-2); }
+.rem-snd-row.on, .rem-snd-row.on > svg { color: var(--brand); }
+.rem-snd-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .set-version {
   text-align: center;
   color: var(--text-faint);

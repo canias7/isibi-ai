@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { loadReminderSound, reminderSoundLabel } from './reminderSounds';
 
 // User reminders: a title + a time, optionally repeating. Stored per-user in
 // Supabase (RLS-scoped, like Memory) so the list shows on every device, and
@@ -116,6 +117,8 @@ export async function registerReminderActions(): Promise<void> {
 // One-off re-nudge in 10 minutes (Snooze) — purely local, no DB change.
 export async function snoozeNudge(title: string): Promise<void> {
   try {
+    const soundId = loadReminderSound();
+    const channelId = await ensureReminderChannel(soundId);
     await LocalNotifications.schedule({
       notifications: [{
         id: (Date.now() % 2147483000) + 1,
@@ -123,6 +126,8 @@ export async function snoozeNudge(title: string): Promise<void> {
         body: title,
         schedule: { at: new Date(Date.now() + 10 * 60 * 1000), allowWhileIdle: true },
         actionTypeId: 'gf-reminder',
+        channelId,
+        ...(soundId === 'default' ? {} : { sound: `${soundId}.wav` }),
       }],
     });
   } catch { /* no-op */ }
@@ -145,6 +150,27 @@ export async function onReminderAction(
   }
 }
 
+// The user's chosen reminder sound (Settings). Android 8+ plays the CHANNEL's
+// sound, and a channel's sound is fixed once it exists — so we use one channel
+// per sound (the id encodes it) and schedule on it. Most people pick one sound,
+// so it's one channel. importance MAX so a reminder actually rings + peeks. iOS
+// ignores the channel and uses the notification's own `sound`. The `<id>.wav`
+// file is bundled (iOS app bundle / Android res/raw); 'default' = system sound.
+async function ensureReminderChannel(soundId: string): Promise<string> {
+  const channelId = `gf_${soundId}`;
+  try {
+    await LocalNotifications.createChannel({
+      id: channelId,
+      name: soundId === 'default' ? 'Reminders' : `Reminders · ${reminderSoundLabel(soundId)}`,
+      description: 'Reminder alerts you set',
+      importance: 5,
+      visibility: 1,
+      ...(soundId === 'default' ? {} : { sound: `${soundId}.wav` }),
+    });
+  } catch { /* web / older Android without channels */ }
+  return channelId;
+}
+
 export async function scheduleReminder(r: Reminder): Promise<void> {
   try {
     const at = new Date(r.remind_at);
@@ -157,6 +183,8 @@ export async function scheduleReminder(r: Reminder): Promise<void> {
       const step = r.repeat === 'daily' ? 86_400_000 : 7 * 86_400_000;
       while (at.getTime() <= Date.now()) at.setTime(at.getTime() + step);
     }
+    const soundId = loadReminderSound();
+    const channelId = await ensureReminderChannel(soundId);
     await LocalNotifications.schedule({
       notifications: [{
         id: notifId(r.id),
@@ -165,6 +193,8 @@ export async function scheduleReminder(r: Reminder): Promise<void> {
         schedule: { at, every: every(r.repeat), allowWhileIdle: true },
         actionTypeId: 'gf-reminder',
         extra: { reminderId: r.id },
+        channelId, // Android 8+ sound
+        ...(soundId === 'default' ? {} : { sound: `${soundId}.wav` }), // iOS + Android 7
       }],
     });
   } catch {
