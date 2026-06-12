@@ -20,6 +20,11 @@ interface Manifest {
   // must update before it can be used (e.g. a breaking backend contract change).
   // Absent/0 = no floor. The publisher sets this only for breaking releases.
   min?: string;
+  // sha256 of the zip (hex). The updater verifies the downloaded bytes against
+  // it and rejects a mismatch — a swapped/corrupted bundle can't activate.
+  // (Manifest signing — the publicKey flow — is the next step; it needs a key
+  // baked into a native build.) Absent = no verification (older manifests).
+  sha256?: string;
 }
 
 // React can't import OTA logic cleanly (it runs before mount), so a forced update
@@ -76,7 +81,7 @@ export async function initOta(): Promise<void> {
         // drop): an old bundle is recoverable, an eternal blocking spinner isn't.
         announceForce('updating');
         try {
-          const bundle = await CapacitorUpdater.download({ url: manifest.url, version: manifest.version });
+          const bundle = await CapacitorUpdater.download({ url: manifest.url, version: manifest.version, checksum: manifest.sha256 });
           await CapacitorUpdater.set(bundle); // activates + reloads into the new bundle
         } catch (e) {
           console.warn('[OTA] forced update failed — keeping the running bundle:', e);
@@ -97,6 +102,7 @@ export async function initOta(): Promise<void> {
     const bundle = await CapacitorUpdater.download({
       url: manifest.url,
       version: manifest.version,
+      checksum: manifest.sha256, // native side rejects the zip if the bytes don't hash to this
     });
     // Apply on next app start so we don't reload mid-session.
     await CapacitorUpdater.next(bundle);

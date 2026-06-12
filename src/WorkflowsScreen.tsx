@@ -622,7 +622,11 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
       // Only resend `trigger` when it actually changed — updateWorkflow resets
       // next_run_at / cursor on a trigger change, so sending it on every edit
       // would reschedule (and skip runs / drop event dedupe) on trivial edits.
-      const fields: Parameters<typeof updateWorkflow>[1] = { title: title.trim(), instruction, graph, model, ...extra };
+      // `enabled` is owned state, so it's ALWAYS sent — when it rode only on
+      // `extra`, a failed enabled-flip retried via the bar's plain persist()
+      // "succeeded" without it: the user saw Saved/Off while the DB kept the
+      // workflow live (still sending real emails).
+      const fields: Parameters<typeof updateWorkflow>[1] = { title: title.trim(), instruction, graph, model, enabled, ...extra };
       const tStr = JSON.stringify(trigger);
       const sendTrigger = tStr !== savedTriggerRef.current;
       if (sendTrigger) fields.trigger = trigger;

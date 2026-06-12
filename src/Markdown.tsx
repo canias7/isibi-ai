@@ -11,6 +11,9 @@ export default function Markdown({ text }: { text: string }) {
         components={{
           // Open links in the system browser, safely.
           a: ({ node: _n, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+          // A model-emitted image is still a remote fetch — never let it carry
+          // the app's URL out via Referer (tracking-pixel-by-prompt-injection).
+          img: ({ node: _n, ...props }) => <img {...props} referrerPolicy="no-referrer" loading="lazy" />,
           // Let wide tables scroll horizontally instead of crushing columns.
           table: ({ node: _n, ...props }) => (
             <div className="md-table-wrap">

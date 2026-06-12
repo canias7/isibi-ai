@@ -29,6 +29,12 @@ export async function biometryStatus(): Promise<BiometryStatus> {
     if (r.isAvailable) return 'ready';
     // Plugin present + hardware present, but the user hasn't enrolled a face/finger.
     if (String(r.code || '') === 'biometryNotEnrolled') return 'unenrolled';
+    // Locked out (too many failed attempts) is NOT "unavailable": authenticate()
+    // still works via the device-passcode fallback. Reporting it unavailable
+    // made five failed Face ID tries simply DROP the lock (fail-open) — the one
+    // case where the person holding the phone is exactly who it must stay
+    // locked against.
+    if (String(r.code || '') === 'biometryLockout') return 'ready';
     return 'unavailable';
   } catch {
     // Throw = the plugin isn't registered in this native binary → treat as N/A.

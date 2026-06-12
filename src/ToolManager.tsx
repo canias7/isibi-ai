@@ -26,6 +26,7 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latest = useRef<Set<string>>(new Set());
   const dirty = useRef(false);
+  const closing = useRef(false); // a close-flush is in flight — a second ← must wait for it, not bypass it
 
   // Accepts mouse OR keyboard events (the info chip is keyboard-activatable),
   // so the param is the structural overlap of both.
@@ -103,15 +104,24 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
   // unmount-flush fired the request into a dead component, so a network blip on
   // that last save had nowhere to show "Retry" and the toggles silently never stuck.
   async function close() {
-    if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
-    // First ← flushes and surfaces a failure; a second ← while the error is
-    // showing leaves anyway (the unmount backstop makes one last attempt) — a
-    // dead network must not trap anyone in this sheet.
-    if (dirty.current && saveState !== 'error') {
-      await persist(latest.current);
-      if (dirty.current) return; // save failed — stay open so Retry is visible
+    // Re-entrancy guard: persist() clears `dirty` while it runs, so a second ←
+    // tapped DURING the flush used to read dirty=false and close immediately —
+    // if that in-flight save then failed, the toggles were silently lost.
+    if (closing.current) return;
+    closing.current = true;
+    try {
+      if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+      // First ← flushes and surfaces a failure; a second ← while the error is
+      // showing leaves anyway (the unmount backstop makes one last attempt) — a
+      // dead network must not trap anyone in this sheet.
+      if (dirty.current && saveState !== 'error') {
+        await persist(latest.current);
+        if (dirty.current) return; // save failed — stay open so Retry is visible
+      }
+      onClose();
+    } finally {
+      closing.current = false;
     }
-    onClose();
   }
 
   // Backstop for the paths where the parent unmounts us directly (not via ←).

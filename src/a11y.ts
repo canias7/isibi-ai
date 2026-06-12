@@ -61,6 +61,10 @@ export function useFocusTrap(active: boolean, ref: RefObject<HTMLElement | null>
 
     function onKey(e: globalThis.KeyboardEvent) {
       if (!root) return;
+      // The biometric lock inerts the overlay this trap serves — while inert,
+      // the trap must go dormant, or it wrestles focus away from the Unlock
+      // button and Escape "closes" a sheet the user can't even see.
+      if (root.closest('[inert]')) return;
       if (e.key === 'Escape' && onClose) {
         e.stopPropagation();
         onClose();
