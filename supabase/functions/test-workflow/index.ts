@@ -78,7 +78,10 @@ async function jwksKey(kid: string): Promise<CryptoKey | null> {
   if (!SB_URL) return null;
   try {
     const r = await fetch(`${SB_URL}/auth/v1/.well-known/jwks.json`);
-    if (!r.ok) return jwksCache?.keys[kid] ?? null;
+    if (!r.ok) {
+      jwksCache = { keys: jwksCache?.keys ?? {}, at: Date.now() }; // stamp the attempt — retry ≤1/min
+      return jwksCache.keys[kid] ?? null;
+    }
     const j = await r.json();
     const keys: Record<string, CryptoKey> = {};
     for (const k of j.keys ?? []) {
@@ -88,7 +91,8 @@ async function jwksKey(kid: string): Promise<CryptoKey | null> {
     jwksCache = { keys, at: Date.now() };
     return keys[kid] ?? null;
   } catch {
-    return jwksCache?.keys[kid] ?? null; // outage — serve stale if we have it
+    jwksCache = { keys: jwksCache?.keys ?? {}, at: Date.now() }; // outage — keep stale keys, retry ≤1/min
+    return jwksCache.keys[kid] ?? null;
   }
 }
 
@@ -290,6 +294,7 @@ Be strictly honest about each step's outcome: if a step needs an app/tool you do
   }
   if (!res.ok) throw new Error(`assistant ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
   const data = await res.json();
+  logAiUsage(uid, "test", String(reqBody.model), data?.usage);
   const text = (data.content || []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join("").trim();
 
   if (!wantSteps) return { summary: text || "(no output)", steps: [] };
@@ -321,11 +326,36 @@ Be strictly honest about each step's outcome: if a step needs an app/tool you do
   };
 }
 
+// Cost telemetry: one ai_usage row per Test run — same models (incl. Opus) and
+// tool use as a live run, and the most expensive single request a user can
+// trigger on demand; without this the spend monitor silently undercounted.
+function logAiUsage(uid: string, source: string, model: string, u: any): void {
+  if (!u || typeof u !== "object" || !SB_URL || !SB_KEY) return;
+  fetch(`${SB_URL}/rest/v1/ai_usage`, {
+    method: "POST",
+    headers: { ...sbHeaders, prefer: "return=minimal" },
+    body: JSON.stringify({
+      user_id: uid, source, model,
+      in_tokens: Number(u.input_tokens) || 0,
+      cache_write_tokens: Number(u.cache_creation_input_tokens) || 0,
+      cache_read_tokens: Number(u.cache_read_input_tokens) || 0,
+      out_tokens: Number(u.output_tokens) || 0,
+    }),
+  }).catch(() => {});
+}
+
 async function saveRun(workflowId: string, uid: string, result: string, ok: boolean): Promise<void> {
   if (!SB_URL || !SB_KEY || !workflowId) return;
+  // workflow_id comes straight from the request body and these writes run with
+  // the service role (RLS bypassed) — verify shape AND ownership, or any
+  // signed-in user could attach runs to / bump another user's workflow.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workflowId)) return;
   try {
+    const own = await fetch(`${SB_URL}/rest/v1/workflows?id=eq.${workflowId}&user_id=eq.${encodeURIComponent(uid)}&select=id`, { headers: sbHeaders });
+    const rows = own.ok ? await own.json().catch(() => []) : [];
+    if (!Array.isArray(rows) || !rows.length) return; // not the caller's workflow
     await fetch(`${SB_URL}/rest/v1/workflow_runs`, { method: "POST", headers: { ...sbHeaders, prefer: "return=minimal" }, body: JSON.stringify({ workflow_id: workflowId, user_id: uid, result, ok }) });
-    await fetch(`${SB_URL}/rest/v1/workflows?id=eq.${workflowId}`, { method: "PATCH", headers: { ...sbHeaders, prefer: "return=minimal" }, body: JSON.stringify({ last_run_at: new Date().toISOString() }) });
+    await fetch(`${SB_URL}/rest/v1/workflows?id=eq.${workflowId}&user_id=eq.${encodeURIComponent(uid)}`, { method: "PATCH", headers: { ...sbHeaders, prefer: "return=minimal" }, body: JSON.stringify({ last_run_at: new Date().toISOString() }) });
   } catch { /* best effort */ }
 }
 

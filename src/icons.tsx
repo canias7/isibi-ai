@@ -280,14 +280,16 @@ export const IconPhone = ({ size }: { size?: number }) => (
   </Svg>
 );
 
-// Voice mark in the Whisper-Flow style — stacked sound bars. Replaces the old
-// telephone glyph on the composer's voice button (same tap → call screen).
+// Voice mark — vertical sound bars (center-peaked, like the call screen's live
+// wave). Replaces the old telephone glyph on the composer's voice button (same
+// tap → call screen).
 export const IconWaveform = ({ size }: { size?: number }) => (
   <Svg size={size}>
-    <path d="M9.5 4.5h5" />
-    <path d="M5.5 9h13" />
-    <path d="M4 13.5h16" />
-    <path d="M7.5 18h9" />
+    <path d="M4 10v4" />
+    <path d="M8 7v10" />
+    <path d="M12 4v16" />
+    <path d="M16 7v10" />
+    <path d="M20 10v4" />
   </Svg>
 );
 

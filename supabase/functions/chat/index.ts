@@ -272,7 +272,11 @@ async function jwksKey(kid: string): Promise<CryptoKey | null> {
   if (!SB_URL) return null;
   try {
     const r = await fetch(`${SB_URL}/auth/v1/.well-known/jwks.json`);
-    if (!r.ok) return jwksCache?.keys[kid] ?? null;
+    if (!r.ok) {
+      // Stamp the attempt so an outage can't turn into a fetch per request.
+      jwksCache = { keys: jwksCache?.keys ?? {}, at: Date.now() };
+      return jwksCache.keys[kid] ?? null;
+    }
     const j = await r.json();
     const keys: Record<string, CryptoKey> = {};
     for (const k of j.keys ?? []) {
@@ -282,7 +286,8 @@ async function jwksKey(kid: string): Promise<CryptoKey | null> {
     jwksCache = { keys, at: Date.now() };
     return keys[kid] ?? null;
   } catch {
-    return jwksCache?.keys[kid] ?? null; // outage — serve stale if we have it
+    jwksCache = { keys: jwksCache?.keys ?? {}, at: Date.now() }; // outage — keep stale keys, retry ≤1/min
+    return jwksCache.keys[kid] ?? null;
   }
 }
 
@@ -650,14 +655,26 @@ async function persistTurn(uid: string, convId: string, history: Msg[], reply: s
       ...(m.attachments?.length ? { attachments: m.attachments.map((a) => ({ ...a, data: "" })) } : {}),
     }));
     const messages = [...slim, { role: "assistant", content: reply }];
+    const auth = { apikey: SB_SERVICE_KEY, authorization: `Bearer ${SB_SERVICE_KEY}`, "content-type": "application/json" };
+    // Never blind-upsert by id: the service role bypasses RLS, so a crafted
+    // conversationId could overwrite ANOTHER user's conversation. Update only a
+    // row this user owns; insert when it's genuinely new (a duplicate-id insert
+    // for someone else's row 409s harmlessly instead of clobbering it).
+    const upd = await fetch(
+      `${SB_URL}/rest/v1/conversations?id=eq.${encodeURIComponent(convId)}&user_id=eq.${encodeURIComponent(uid)}`,
+      {
+        method: "PATCH",
+        headers: { ...auth, prefer: "return=representation" },
+        body: JSON.stringify({ title: titleOf(history), messages, updated_at: new Date().toISOString() }),
+      },
+    );
+    if (upd.ok) {
+      const rows = await upd.json().catch(() => []);
+      if (Array.isArray(rows) && rows.length) return; // updated own row
+    }
     await fetch(`${SB_URL}/rest/v1/conversations`, {
       method: "POST",
-      headers: {
-        apikey: SB_SERVICE_KEY,
-        authorization: `Bearer ${SB_SERVICE_KEY}`,
-        "content-type": "application/json",
-        prefer: "resolution=merge-duplicates",
-      },
+      headers: { ...auth, prefer: "return=minimal" },
       body: JSON.stringify({ id: convId, user_id: uid, title: titleOf(history), messages, updated_at: new Date().toISOString() }),
     });
   } catch { /* best effort — the client also persists when it's connected */ }
@@ -950,8 +967,11 @@ Deno.serve(async (req: Request) => {
   // Route this turn: an explicit per-chat pick wins; otherwise Opus for genuinely
   // complex/long asks, Sonnet for everything else. A single default keeps the
   // cached tool-schema prefix warm for the auto majority.
-  const model = EXPLICIT_MODELS[modelPref] ?? pickModel(messages);
-  console.log(`routed model=${model.replace(/^claude-/, "")}${modelPref && EXPLICIT_MODELS[modelPref] ? " (user pick)" : ""}`);
+  // hasOwn guard: a crafted body.model like "constructor" must not hit the
+  // object prototype (a non-string would crash the turn below).
+  const explicitPick = Object.hasOwn(EXPLICIT_MODELS, modelPref) ? EXPLICIT_MODELS[modelPref] : undefined;
+  const model = explicitPick ?? pickModel(messages);
+  console.log(`routed model=${model.replace(/^claude-/, "")}${explicitPick ? " (user pick)" : ""}`);
 
   // Office/CSV/text attachments can't be sent inline (only images + PDFs can), so
   // upload them to the Files API and reference them with a container_upload block
@@ -982,7 +1002,12 @@ Deno.serve(async (req: Request) => {
   // they're eagerly loaded and need no search.
   const toolSearchSystem = scopedApps.length
     ? `\n\nTOOL DISCOVERY: the tools for the user's connected apps (${scopedApps.join(", ")}) exist but are NOT pre-loaded — only a search index is. The moment a request involves one of those apps (or the user's bank/transactions, tools named GF_BANK_*), FIRST call tool_search_tool_regex with a Python-style pattern — e.g. "(?i)gmail.*send", "(?i)calendar.*event", "(?i)gf_bank" — then call the tool(s) it returns. The already-loaded built-ins (GF_WEATHER, GF_MAPS, GF_SAVE_MEMORY, GF_GET_MEMORY_FILE, GF_SAVE_TABLE, GF_SET_REMINDER) need no search. NEVER tell the user a capability is missing until a search for it came back empty.`
-    : "";
+    // No connector apps in scope, but the toolset is still attached — the user
+    // may have BANK tools (Plaid), which are deferred and undiscoverable without
+    // this hint + the search tool.
+    : mcpTools
+      ? `\n\nTOOL DISCOVERY: extra tools beyond the built-ins may exist for this user but are NOT pre-loaded — only a search index is. If the user asks about their bank, balances, or transactions (tools named GF_BANK_*), FIRST call tool_search_tool_regex with a pattern like "(?i)gf_bank", then call the tool(s) it returns. The already-loaded built-ins (GF_WEATHER, GF_MAPS, GF_SAVE_MEMORY, GF_GET_MEMORY_FILE, GF_SAVE_TABLE, GF_SET_REMINDER) need no search. NEVER tell the user a capability is missing until a search for it came back empty.`
+      : "";
 
   const reqBody: Record<string, unknown> = {
     model,
@@ -997,7 +1022,9 @@ Deno.serve(async (req: Request) => {
   // Anthropic server tools: web search/fetch + code execution. Server tools sit
   // after the breakpoint so the cached prefix stays intact.
   reqBody.tools = [
-    ...(scopedApps.length ? [{ type: "tool_search_tool_regex_20251119", name: "tool_search_tool_regex" }] : []),
+    // Attached whenever the (deferred) toolset is — not just for connector apps:
+    // bank tools are served independently of `apps` and need the search to exist.
+    ...(mcpTools ? [{ type: "tool_search_tool_regex_20251119", name: "tool_search_tool_regex" }] : []),
     ...(mcpTools || []),
     { type: "web_search_20250305", name: "web_search", max_uses: 5 },
     { type: "web_fetch_20250910", name: "web_fetch", max_uses: 5 },
@@ -1012,7 +1039,7 @@ Deno.serve(async (req: Request) => {
   // (400) while tool search is attached, retry the turn once with the classic
   // eager catalog — chat must never break over a cost optimization. The extra
   // attempt only happens on a 400, so normal turns pay nothing for it.
-  if (!upstream.ok && upstream.status === 400 && scopedApps.length) {
+  if (!upstream.ok && upstream.status === 400 && mcpTools) {
     const e = await upstream.text().catch(() => "");
     console.error(`deferred-tools request rejected (400): ${e.slice(0, 300)} — retrying with eager catalog`);
     reqBody.tools = [
@@ -1027,7 +1054,7 @@ Deno.serve(async (req: Request) => {
   // never breaks. But NEVER silently downgrade an EXPLICIT user pick — they chose
   // (and own the cost of) that model, so a Haiku/Opus pick that fails surfaces as
   // an error rather than quietly answering on a model they didn't choose.
-  if (!upstream.ok && reqBody.model !== MODELS.sonnet && !EXPLICIT_MODELS[modelPref]) {
+  if (!upstream.ok && reqBody.model !== MODELS.sonnet && !explicitPick) {
     const e = await upstream.text().catch(() => "");
     console.log(`auto model ${reqBody.model} failed ${upstream.status}; falling back to sonnet: ${e.slice(0, 100)}`);
     reqBody.model = MODELS.sonnet;
@@ -1104,6 +1131,13 @@ Deno.serve(async (req: Request) => {
               }
               if (evt.type === "message_delta" && evt.delta?.stop_reason) {
                 stopReason = String(evt.delta.stop_reason);
+              }
+              // A mid-stream API error (e.g. overloaded) used to be silently
+              // swallowed: the reply just stopped mid-sentence and was persisted
+              // as if complete. Say so honestly instead.
+              if (evt.type === "error") {
+                console.error("anthropic stream error event:", JSON.stringify(evt.error ?? {}).slice(0, 300));
+                emit(`\n\n⚠️ The reply was interrupted — please try again.`);
               }
               // Server-side tools (tool search, web search/fetch, code execution)
               // stream as server_tool_use — surface a friendly status pill so the
@@ -1199,9 +1233,12 @@ Deno.serve(async (req: Request) => {
           emit(bufferEmail ? (card || fullText) : (card ? `\n\n${card}` : ""));
         } else if (!hasGf && !summarizeIntent && emailUI && !receipt && peopleCalled) {
           // The model searched contacts but produced no card — build & inject one.
+          // MUST release the buffered text when bufferEmail withheld it: dropping
+          // it left the user a completely EMPTY reply whenever the card rebuild
+          // came back blank (and even on success, ate the model's prose).
           const json = await buildContactsCard(appUser ?? "", peopleSlug, peopleArgs);
           const card = json ? `\`\`\`gf-contacts\n${json}\n\`\`\`` : "";
-          emit(card ? `\n\n${card}` : "");
+          emit(bufferEmail ? (card || fullText) : (card ? `\n\n${card}` : ""));
         } else if (bufferEmail) {
           // Buffered but not an email turn after all — emit the held text.
           emit(fullText);

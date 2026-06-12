@@ -123,14 +123,14 @@
 .call-screen.lens-on .call-wave { transform: scale(0.55); margin: -36px 0; }
 .call-cam.on { background: var(--brand); color: #000; border-color: var(--brand); }
 
-/* The composer's call button — matches the "+" affordance, accent-tinted. */
+/* The composer's voice button — brand-amber wave, the app's identity accent. */
 .call-btn {
   width: 34px;
   height: 34px;
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: var(--accent);
+  color: var(--brand);
   cursor: pointer;
   display: grid;
   place-items: center;

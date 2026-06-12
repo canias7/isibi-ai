@@ -284,6 +284,27 @@ async function claimDue(id: string, currentNextRunAt: string | null, next: Date 
   }
 }
 
+// Atomically claim an EVENT fire by advancing last_run_at, but only if it's
+// still at the value we read (compare-and-swap, like claimDue for schedules).
+// Without this, a slow run crossing into the next cron tick let two invocations
+// see the same stale cursor and fire the same items twice — duplicating
+// outward actions like sends. True = we claimed it.
+async function claimEvent(id: string, currentLastRunAt: string | null, nowIso: string): Promise<boolean> {
+  const cond = currentLastRunAt === null ? "last_run_at=is.null" : `last_run_at=eq.${encodeURIComponent(currentLastRunAt)}`;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/workflows?id=eq.${id}&${cond}`, {
+      method: "PATCH",
+      headers: { ...sbHeaders, prefer: "return=representation" },
+      body: JSON.stringify({ last_run_at: nowIso }),
+    });
+    if (!r.ok) return false;
+    const rows = await r.json().catch(() => []);
+    return Array.isArray(rows) && rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 // App-agnostic poller: ask the model to list, via the app's own tools, the most
 // recent items matching the user's condition, each with a STABLE id from the tool
 // result. The runner dedupes by id so only genuinely new items fire — this works
@@ -599,6 +620,9 @@ Deno.serve(async (req: Request) => {
             if (wf.cursor?.dcAt) await patchWorkflow(wf.id, { cursor: { seen } }); // reconnected, nothing new — clear the notice
             continue;
           }
+          // Claim this fire (CAS on last_run_at) before acting — an overlapping
+          // invocation that detected the same items loses the swap and skips.
+          if (!(await claimEvent(wf.id, wf.last_run_at ?? null, nowIso))) continue;
           const missing = neededApps(wf.graph).filter((a) => !connected.includes(APP_TO_SLUG[a]));
           const ctx = fresh.slice(0, 8).map((i) => `• ${i.line} [id: ${i.id}]`).join("\n");
           const prompt = `Your trigger fired — these new item(s) were just detected in the user's connected app (their tool ids are in brackets, use them to act on the exact item):\n${ctx}\n\nUsing whatever tools across the user's apps you need (e.g. read the item, reply, send an email, create something), do the following about the item(s) above: ${wf.instruction}`;
@@ -607,7 +631,10 @@ Deno.serve(async (req: Request) => {
             ok = false; notify = false; // record it, don't push repeatedly while an app stays disconnected
             text = `Triggered, but ${missing.join(", ")} ${missing.length > 1 ? "aren't" : "isn't"} connected — connect ${missing.length > 1 ? "them" : "it"} to run this.`;
           } else {
-            try { text = await runInstruction(wf.user_id, prompt, connected, wf.model, wf.event?.tz); ok = true; }
+            // tz: new event configs carry the user's tz directly; older rows only
+            // have it on the active-hours window. (wf.event.tz alone didn't exist —
+            // the old read silently ran every event workflow in UTC.)
+            try { text = await runInstruction(wf.user_id, prompt, connected, wf.model, wf.event?.tz ?? wf.event?.window?.tz); ok = true; }
             catch (e) { ok = false; console.error("event workflow error:", e); text = "Couldn't finish this workflow."; }
           }
           await insertRun(wf.id, wf.user_id, text, ok);
