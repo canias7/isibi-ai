@@ -92,7 +92,14 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     | null
   >(null);
   const bgMoved = useRef(false);
-  const ivRef = useRef<ReturnType<typeof setInterval> | null>(null); // web connect poller
+  const ivRef = useRef<ReturnType<typeof setInterval> | null>(null); // connect poller (web + native)
+  const refreshSeq = useRef(0);                          // newest refreshAll wins — kills out-of-order flicker
+  const disconnectedAt = useRef<Map<string, number>>(new Map()); // id -> grace-until ms (suppress a stale "still connected")
+  const pendBefore = useRef<{ count: number; broken: boolean } | null>(null); // pre-connect snapshot — resolve only on a REAL change
+  const browserSub = useRef<{ remove: () => void } | null>(null); // native browserFinished listener for the active connect
+  const slotAssign = useRef<Map<string, number>>(new Map()); // stable slot per app id (so a disconnect doesn't reshuffle the others)
+  const slotHigh = useRef(4);                            // layout-size high-water mark (never shrinks in a session)
+  const [actionErr, setActionErr] = useState('');        // transient connect/disconnect failure message
 
   async function token(): Promise<string | null> {
     const { data } = await supabase.auth.getSession();
@@ -111,6 +118,9 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   // Plaid Hosted Link: open Plaid's page in the in-app browser, then poll the
   // backend until the bank is linked (public token exchanged + stored server-side).
   async function connectPlaid() {
+    if (connecting) return; // one connect at a time — ignore double-taps
+    disconnectedAt.current.delete('plaid'); // (re)connecting cancels any disconnect grace
+    setActionErr('');
     setConnecting('plaid');
     try {
       const d = await plaidCall('create_link_token');
@@ -134,34 +144,93 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     await refreshAll();
   }
 
-  // One batched call returns every connected app for this user. If we were waiting
-  // on a just-connected app, open its tool picker so they choose tools first.
+  const accountCount = (s?: Status): number => (s?.connected ? (s.emails?.length ?? 1) : 0);
+
+  // App ids still inside their post-disconnect grace window (the server is told
+  // to keep them gone via ?exclude, and we force them gone in the UI too — covers
+  // Composio's eventual consistency reporting a just-removed account as ACTIVE).
+  function gracedIds(): string[] {
+    const now = Date.now();
+    const out: string[] = [];
+    for (const [id, until] of disconnectedAt.current) { if (now < until) out.push(id); else disconnectedAt.current.delete(id); }
+    return out;
+  }
+
+  // Resolve a pending connect ONLY on a genuine change vs the pre-connect
+  // snapshot — so "Reconnect"/"Add another account" don't fake-succeed off the
+  // very next background refresh while the user is still mid-OAuth.
+  function maybeResolvePending(next: Record<string, Status>) {
+    const pend = pendingConnect.current;
+    if (!pend || pend === 'plaid') return;
+    const after = next[pend];
+    const before = pendBefore.current ?? { count: 0, broken: false };
+    const healthyNow = !!after?.connected && !after?.broken;
+    const resolved = before.broken
+      ? healthyNow                              // reconnect: was broken → now healthy
+      : before.count > 0
+        ? accountCount(after) > before.count    // add-another: account count grew
+        : healthyNow;                           // first connect
+    if (!resolved) return;
+    pendingConnect.current = null;
+    pendBefore.current = null;
+    if (ivRef.current) { clearInterval(ivRef.current); ivRef.current = null; }
+    if (browserSub.current) { browserSub.current.remove(); browserSub.current = null; }
+    if (connectTimer.current) { clearTimeout(connectTimer.current); connectTimer.current = null; }
+    setConnecting((c) => (c === pend ? null : c));
+    const c = byId(pend);
+    if (c) setManage(c); // first connect -> pick tools
+  }
+
+  // One batched call returns every connected app for this user. A generation
+  // counter makes the NEWEST call authoritative: overlapping refreshes (poller,
+  // visibilitychange, post-disconnect timers) + Plaid's slow invoke used to
+  // resolve out of order and flip a node connected→disconnected→connected.
   async function refreshAll() {
+    const gen = ++refreshSeq.current;
     try {
       const t = await token();
       if (!t) return;
-      const r = await fetch(`${CONNECT_API}/list`, { headers: { authorization: `Bearer ${t}` } });
+      const graced = gracedIds();
+      const ex = graced.length ? `?exclude=${encodeURIComponent(graced.join(','))}` : '';
+      const r = await fetch(`${CONNECT_API}/list${ex}`, { headers: { authorization: `Bearer ${t}` } });
       if (!r.ok) return;
       const j = await r.json();
       const map: Record<string, { email?: string | null; emails?: string[]; broken?: boolean }> = j.connected ?? {};
       const next: Record<string, Status> = {};
-      for (const c of CONNECTORS) next[c.id] = { connected: !!map[c.id], email: map[c.id]?.email ?? null, emails: map[c.id]?.emails, broken: !!map[c.id]?.broken };
+      const now = Date.now();
+      for (const c of CONNECTORS) {
+        // Belt-and-suspenders: even if the server didn't honor exclude, a graced
+        // app stays gone in the UI for the window.
+        if ((disconnectedAt.current.get(c.id) ?? 0) > now) { next[c.id] = { connected: false, email: null }; continue; }
+        const m = map[c.id];
+        next[c.id] = { connected: !!m, email: m?.email ?? null, emails: m?.emails, broken: !!m?.broken };
+      }
       // Plaid's connected state comes from its own backend, not Composio.
       try {
         const pd = await plaidCall('list');
         const banks = (pd.banks as unknown[]) ?? [];
-        next.plaid = { connected: banks.length > 0, email: banks.length ? `${banks.length} bank${banks.length > 1 ? 's' : ''} linked` : null };
+        next.plaid = (disconnectedAt.current.get('plaid') ?? 0) > Date.now()
+          ? { connected: false, email: null }
+          : { connected: banks.length > 0, email: banks.length ? `${banks.length} bank${banks.length > 1 ? 's' : ''} linked` : null };
       } catch { next.plaid = next.plaid ?? { connected: false, email: null }; }
-      if (!aliveRef.current) return;
+      // A newer refresh (or a disconnect) superseded this one — drop the stale result.
+      if (gen !== refreshSeq.current || !aliveRef.current) return;
       setStatus(next);
-      const pend = pendingConnect.current;
-      if (pend && pend !== 'plaid' && next[pend]?.connected) {
-        pendingConnect.current = null;
-        setConnecting((c) => (c === pend ? null : c)); // connected — drop the banner
-        const c = byId(pend);
-        if (c) setManage(c); // first connect -> pick tools
-      }
+      maybeResolvePending(next);
     } catch { /* offline — keep state */ }
+  }
+
+  // Poll /list every 3s while an OAuth connect is in flight (web + native), until
+  // it resolves or ~75s. maybeResolvePending stops it the moment it succeeds.
+  function startConnectPoll(id: string) {
+    let n = 0;
+    if (ivRef.current) clearInterval(ivRef.current);
+    ivRef.current = setInterval(() => {
+      n += 1;
+      if (!aliveRef.current || pendingConnect.current !== id) { if (ivRef.current) clearInterval(ivRef.current); ivRef.current = null; return; }
+      void refreshAll();
+      if (n >= 25) { if (ivRef.current) clearInterval(ivRef.current); ivRef.current = null; } // the 75s banner timer is the final backstop
+    }, 3000);
   }
 
   useEffect(() => {
@@ -174,13 +243,15 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       aliveRef.current = false;
       if (ivRef.current) clearInterval(ivRef.current);
       if (connectTimer.current) clearTimeout(connectTimer.current);
+      if (browserSub.current) { browserSub.current.remove(); browserSub.current = null; }
       document.documentElement.classList.remove('gf-modal-open');
       document.removeEventListener('visibilitychange', onVisible);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Native: OAuth bounces back via gofarther:// — close the in-app browser, refresh.
+  // Native: OAuth bounces back via gofarther:// — close the in-app browser, then
+  // either surface the failure or refresh until the new connection appears.
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     let handle: { remove: () => void } | undefined;
@@ -188,7 +259,19 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     CapApp.addListener('appUrlOpen', (e) => {
       if (!e.url || !e.url.startsWith('gofarther://')) return;
       Browser.close().catch(() => {});
-      refreshAll(); setTimeout(refreshAll, 2000); setTimeout(refreshAll, 5000);
+      // A denied/failed consent returns gofarther://connected?error=… — don't
+      // leave "Connecting…" spinning for the full 75s; say so and stop.
+      let errParam = '';
+      try { errParam = new URL(e.url).searchParams.get('error') ?? ''; } catch { /* ignore */ }
+      if (errParam) {
+        pendingConnect.current = null; pendBefore.current = null;
+        if (ivRef.current) { clearInterval(ivRef.current); ivRef.current = null; }
+        if (connectTimer.current) { clearTimeout(connectTimer.current); connectTimer.current = null; }
+        setConnecting(null);
+        setActionErr('Connection didn’t complete. Please try again.');
+        return;
+      }
+      void refreshAll(); setTimeout(() => void refreshAll(), 2000); setTimeout(() => void refreshAll(), 5000);
     }).then((h) => { handle = h; if (cancelled) h.remove(); }); // unmount raced the promise
     return () => { cancelled = true; handle?.remove(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,10 +279,20 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
 
   async function connect(id: string) {
     if (id === 'plaid') { setPicker(false); void connectPlaid(); return; }
+    if (connecting) return; // one OAuth at a time — ignore double-taps (two flows clobber pendingConnect)
+    const native = Capacitor.isNativePlatform();
+    // Web: open the OAuth tab SYNCHRONOUSLY now, before any await — otherwise the
+    // token/connect-init fetches spend the user-activation grant and Safari blocks
+    // the later window.open, leaving the banner spinning with nothing opened.
+    const win = native ? null : window.open('', '_blank');
     const t = await token();
-    if (!t) return;
+    if (!t) { win?.close(); return; }
+    const before = status[id];
+    pendBefore.current = { count: accountCount(before), broken: !!before?.broken }; // resolve only on a real change
     pendingConnect.current = id; // open the tool picker once it's connected
+    disconnectedAt.current.delete(id); // (re)connecting cancels any disconnect grace
     setPicker(false);
+    setActionErr('');
     setConnecting(id); // visible feedback while the OAuth round-trip + poll runs
     if (connectTimer.current) clearTimeout(connectTimer.current);
     connectTimer.current = setTimeout(() => setConnecting((c) => (c === id ? null : c)), 75000);
@@ -211,38 +304,48 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       const j = await r.json().catch(() => ({}));
       if (j?.code) q = `code=${encodeURIComponent(j.code)}`;
     } catch { /* fall back to token in URL */ }
-    if (Capacitor.isNativePlatform()) {
-      await Browser.open({ url: `${CONNECT_API}/start?app=${id}&${q}&native=1` });
-      return;
+    const startUrl = `${CONNECT_API}/start?app=${id}&${q}${native ? '&native=1' : ''}`;
+    if (native) {
+      await Browser.open({ url: startUrl });
+      // Returning from the in-app browser (success OR cancel) → refresh right
+      // away, so a cancel doesn't hang and a slow connect isn't missed.
+      if (browserSub.current) { browserSub.current.remove(); browserSub.current = null; }
+      browserSub.current = await Browser.addListener('browserFinished', () => { void refreshAll(); setTimeout(() => void refreshAll(), 1500); });
+    } else if (win) {
+      win.location.href = startUrl;
+    } else {
+      window.open(startUrl, '_blank'); // blank-open was blocked — last resort
     }
-    window.open(`${CONNECT_API}/start?app=${id}&${q}`, '_blank');
-    let n = 0;
-    if (ivRef.current) clearInterval(ivRef.current);
-    ivRef.current = setInterval(async () => {
-      n += 1;
-      if (!aliveRef.current) { if (ivRef.current) clearInterval(ivRef.current); return; }
-      await refreshAll();
-      if (n >= 20 && ivRef.current) { clearInterval(ivRef.current); setConnecting((c) => (c === id ? null : c)); }
-    }, 3000);
+    startConnectPoll(id);
   }
 
   async function disconnect(id: string) {
     setDetail(null);
+    setActionErr('');
+    disconnectedAt.current.set(id, Date.now() + 15000); // grace: suppress a stale "still connected" (Composio eventual consistency)
+    refreshSeq.current++; // invalidate any in-flight refresh so it can't repaint this app connected
     setStatus((s) => ({ ...s, [id]: { connected: false, email: null } })); // optimistic
     if (id === 'plaid') {
-      // Unlink every linked bank (Plaid item) for this user.
       try { const d = await plaidCall('list'); for (const b of ((d.banks as { id: string }[]) ?? [])) await plaidCall('unlink', { id: b.id }); }
-      catch { /* refreshAll reconciles */ }
-      setTimeout(refreshAll, 800);
+      catch (e) { disconnectedAt.current.delete('plaid'); setActionErr('Couldn’t unlink — please try again.'); console.error('plaid unlink', e); }
+      setTimeout(() => void refreshAll(), 800);
       return;
     }
     const t = await token();
     if (!t) return;
     try {
-      await fetch(`${CONNECT_API}/disconnect?app=${id}`, { method: 'POST', headers: { authorization: `Bearer ${t}` } });
-    } catch { /* refreshAll reconciles */ }
-    setTimeout(refreshAll, 1500);
-    setTimeout(refreshAll, 4000);
+      const r = await fetch(`${CONNECT_API}/disconnect?app=${id}`, { method: 'POST', headers: { authorization: `Bearer ${t}` } });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j?.error) throw new Error(j?.error || `status ${r.status}`);
+    } catch (e) {
+      // The server didn't actually disconnect — undo the optimistic removal and
+      // say so, instead of letting it silently flicker back at the next refresh.
+      disconnectedAt.current.delete(id);
+      setActionErr(`Couldn’t disconnect ${byId(id)?.name ?? 'that app'} — please try again.`);
+      console.error('disconnect', e);
+    }
+    setTimeout(() => void refreshAll(), 1500);
+    setTimeout(() => void refreshAll(), 4000);
   }
 
   // ---- nodes: connected apps + a few "+" slots to invite adding ----
@@ -251,8 +354,21 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const plusCount = Math.max(1, 4 - count);
   const addIds = Array.from({ length: plusCount }, (_, i) => `__add${i}`);
   const nodeIds = [...connected.map((c) => c.id), ...addIds];
-  const coords = layout(nodeIds.length);
-  const slotOf = new Map(nodeIds.map((id, i) => [id, i]));
+  // Stable slots: each id keeps its assigned constellation position, and the
+  // layout size never shrinks within a session — so disconnecting one app no
+  // longer makes the others jump to new slots (the index-based map did exactly
+  // that). Freed slots are reused by the next new node.
+  const slotOf = slotAssign.current;
+  for (const id of [...slotOf.keys()]) if (!nodeIds.includes(id)) slotOf.delete(id);
+  const usedSlots = new Set(slotOf.values());
+  let freeSlot = 0;
+  for (const id of nodeIds) {
+    if (slotOf.has(id)) continue;
+    while (usedSlots.has(freeSlot)) freeSlot++;
+    slotOf.set(id, freeSlot); usedSlots.add(freeSlot);
+  }
+  slotHigh.current = Math.max(slotHigh.current, nodeIds.length, ...[...slotOf.values()].map((n) => n + 1));
+  const coords = layout(slotHigh.current);
   const posOf = (id: string): XY => positions[id] ?? coords[slotOf.get(id) ?? 0] ?? { x: 50, y: 30 };
 
   function onDown(e: React.PointerEvent, id: string, kind: 'app' | 'add') {
@@ -363,6 +479,11 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
           <span className="btn-spin" />
           <span>Connecting {byId(connecting)?.name ?? 'your app'}… finish in the browser, then come back.</span>
         </div>
+      )}
+      {actionErr && !connecting && (
+        <button className="cg-actionerr" role="alert" onClick={() => setActionErr('')}>
+          {actionErr} <span aria-hidden="true">✕</span>
+        </button>
       )}
 
       <div
