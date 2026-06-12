@@ -560,22 +560,29 @@
   align-items: center;
   gap: 11px;
   width: 100%;
-  padding: 11px 14px;
+  padding: 12px 14px;
+  margin: 1px 0;
   background: none;
-  border: none;
+  border: 1px solid transparent;
+  border-radius: var(--r-row);
   text-align: left;
   color: var(--text);
   font: inherit;
   cursor: pointer;
 }
-.model-opt + .model-opt { border-top: 1px solid var(--line-1); }
 .model-opt:active { background: var(--fill-2); }
-.model-opt.on { background: var(--fill-1); }
-.model-opt .model-dot { width: 9px; height: 9px; }
+/* selected = an amber card (not just a faint fill) so the active model reads at a glance */
+.model-opt.on { background: rgba(232, 169, 58, 0.12); border-color: rgba(232, 169, 58, 0.42); }
 .model-opt-text { flex: 1; min-width: 0; }
 .model-opt-label { display: block; font-size: var(--fs-body); font-weight: 600; }
 .model-opt-sub { display: block; font-size: var(--fs-caption); color: var(--text-dim); line-height: 1.4; margin-top: 2px; }
-.model-opt > svg { color: var(--brand); flex-shrink: 0; }
+.model-check { width: 18px; display: inline-flex; justify-content: center; flex-shrink: 0; color: var(--brand); }
+/* cost meter: filled-bar count = relative price; greener = cheaper, redder = pricier */
+.model-meter { display: inline-flex; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.model-bar { width: 5px; height: 13px; border-radius: 2px; background: var(--fill-2); }
+.model-meter.d1 .model-bar.on { background: var(--success); }
+.model-meter.d2 .model-bar.on { background: var(--brand); }
+.model-meter.d3 .model-bar.on { background: var(--danger); }
 
 /* Hard update gate sits above even the lock screen. */
 .update-gate { z-index: 300; padding: 0 36px; text-align: center; }
