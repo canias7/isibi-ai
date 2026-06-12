@@ -50,11 +50,11 @@
 
 /* Listening with no speech yet: a gentle breath so it reads as alive; the
    mic-driven height rides on top the moment you talk. */
-.call-listening .call-wave-bar { animation: wave-breathe 1.8s ease-in-out infinite; animation-delay: calc(var(--i) * 0.12s); }
+.call-listening .call-wave-bar { animation: wave-breathe 2.6s ease-in-out infinite; animation-delay: calc(var(--i) * 0.16s); }
 /* Thinking: fixed-height slow ripple (the stale mic level doesn't linger). */
-.call-thinking .call-wave-bar { height: 22px; animation: wave-think 1.5s ease-in-out infinite; animation-delay: calc(var(--i) * 0.14s); }
-/* Speaking: a taller, lively dance. */
-.call-speaking .call-wave-bar { height: 40px; animation: wave-talk 0.85s ease-in-out infinite; animation-delay: calc(var(--i) * 0.09s); }
+.call-thinking .call-wave-bar { height: 22px; animation: wave-think 2.2s ease-in-out infinite; animation-delay: calc(var(--i) * 0.18s); }
+/* Speaking: a taller dance — slowed from a frantic 0.85s to a calmer wave. */
+.call-speaking .call-wave-bar { height: 40px; animation: wave-talk 1.45s ease-in-out infinite; animation-delay: calc(var(--i) * 0.13s); }
 .call-connecting .call-wave-bar { height: 20px; opacity: 0.45; }
 .call-error .call-wave-bar { height: 20px; background: var(--danger-solid); box-shadow: none; opacity: 0.6; animation: none; }
 
