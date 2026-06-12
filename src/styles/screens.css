@@ -166,6 +166,25 @@
   line-height: 1.4;
 }
 .cg-connecting .btn-spin { width: 15px; height: 15px; flex-shrink: 0; color: var(--brand); }
+.cg-actionerr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: calc(100% - 32px);
+  margin: 0 16px 8px;
+  padding: 10px 14px;
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-card);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-footnote);
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+.cg-actionerr > span { color: var(--text-dim); flex-shrink: 0; }
 .conn-list { display: flex; flex-direction: column; gap: 10px; }
 .conn-card {
   display: flex;

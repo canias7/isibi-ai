@@ -107,8 +107,8 @@ function page(body: string): Response {
   return new Response(body, { headers: { "content-type": "text/plain; charset=utf-8" } });
 }
 
-function json(req: Request, obj: unknown): Response {
-  return new Response(JSON.stringify(obj), { headers: { ...corsFor(req), "content-type": "application/json" } });
+function json(req: Request, obj: unknown, status = 200): Response {
+  return new Response(JSON.stringify(obj), { status, headers: { ...corsFor(req), "content-type": "application/json" } });
 }
 
 // Verify the caller's Supabase access token and return their user id (or null).
@@ -672,6 +672,7 @@ async function refreshConnections(uid: string): Promise<void> {
     const q = new URL(`${BASE}/connected_accounts`);
     q.searchParams.set("user_ids", uid);
     q.searchParams.set("statuses", "ACTIVE");
+    q.searchParams.set("limit", "100");
     const res = await fetch(q.toString(), { headers: { "x-api-key": API_KEY } });
     if (!res.ok) return; // can't confirm → leave the cache alone (TTL self-heals)
     const body = await res.json();
@@ -806,9 +807,16 @@ Deno.serve(async (req: Request) => {
     const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
     const uid = await verifyUser(token);
     if (!uid) return json(req, { connected: {} });
+    // The app passes ?exclude=<app ids> for ~15s after a disconnect: Composio's
+    // list is eventually consistent and can still report the just-removed account
+    // as ACTIVE, which would flicker it back on AND re-pollute the connections
+    // cache that chat/workflows read. We strip those ids here for that window.
+    const excludeIds = (url.searchParams.get("exclude") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    const excludeSlugs = new Set(excludeIds.map((id) => (TOOLKIT[id] ?? "").toLowerCase()).filter(Boolean));
     try {
       const q = new URL(`${BASE}/connected_accounts`);
       q.searchParams.set("user_ids", uid);
+      q.searchParams.set("limit", "100"); // never let real ACTIVE accounts fall off page 1 behind abandoned INITIATED ones
       // No status filter: EXPIRED/FAILED accounts must come back too, so the
       // app can badge "needs reconnecting" instead of silently dropping them.
       const res = await fetch(q.toString(), { headers: { "x-api-key": API_KEY } });
@@ -829,6 +837,7 @@ Deno.serve(async (req: Request) => {
         // INITIATED / abandoned OAuth flows stay invisible, as before.
       }
       for (const [appId, a] of Object.entries(acc)) {
+        if (excludeIds.includes(appId)) continue; // just disconnected — keep it gone this window
         if (a.actives.length) {
           // Healthy always wins; surface every account email so the app can
           // show that more than one is connected.
@@ -844,7 +853,7 @@ Deno.serve(async (req: Request) => {
       const slugs = items
         .filter((x) => (x.status ?? "ACTIVE").toUpperCase() === "ACTIVE")
         .map(pickSlug)
-        .filter((s): s is string => !!s);
+        .filter((s): s is string => !!s && !excludeSlugs.has(s.toLowerCase())); // don't let a stale ACTIVE re-pollute the cache for a just-disconnected app
       saveConnections(uid, [...new Set(slugs)]);
       return json(req, { connected });
     } catch {
@@ -857,31 +866,37 @@ Deno.serve(async (req: Request) => {
     const auth = req.headers.get("authorization") || "";
     const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
     const uid = await verifyUser(token);
-    if (!uid || !toolkit) return json(req, { error: "unauthorized" });
+    if (!uid) return json(req, { error: "unauthorized" }, 401);
+    if (!toolkit) return json(req, { error: `Unknown app: ${app}` }, 400);
     try {
       // Delete EVERY connected account whose toolkit matches — a user may have more
       // than one, possibly under different auth configs, so we match by toolkit slug
       // (not auth_config_id) to make the disconnect complete.
       const q = new URL(`${BASE}/connected_accounts`);
       q.searchParams.set("user_ids", uid);
+      q.searchParams.set("limit", "100");
       const res = await fetch(q.toString(), { headers: { "x-api-key": API_KEY } });
       const body = await res.json().catch(() => ({}));
       const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
-      let removed = 0;
+      let matched = 0, removed = 0, failed = 0;
       for (const it of items) {
         if ((pickSlug(it) ?? "").toLowerCase() !== toolkit.toLowerCase()) continue;
         const id = pickId(it);
         if (!id) continue;
+        matched++;
         const dr = await api(`/connected_accounts/${id}`, { method: "DELETE" }).catch(() => null);
-        if (dr && dr.ok) removed++;
+        if (dr && dr.ok) removed++; else failed++;
       }
+      // If accounts existed but NONE deleted, that's a real failure — tell the
+      // client (5xx) instead of a cheerful 200 it ignores and then flickers back.
+      if (matched > 0 && removed === 0) return json(req, { error: "Couldn't disconnect — please try again." }, 502);
       // Awaited on purpose: the user expects the app gone NOW — a stale cache
       // here would keep exposing its tools to chat until the TTL expired.
       await refreshConnections(uid);
-      return json(req, { ok: true, removed });
+      return json(req, { ok: true, matched, removed, failed });
     } catch (e) {
       console.error("disconnect error:", e);
-      return json(req, { error: "Couldn't disconnect. Please try again." });
+      return json(req, { error: "Couldn't disconnect. Please try again." }, 502);
     }
   }
 
