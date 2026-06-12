@@ -204,9 +204,11 @@ export default function App() {
   // App-level memory (manual; global across chats). Loaded when the Memory screen opens.
   const [memories, setMemories] = useState<Memory[]>([]);
   const [memLoaded, setMemLoaded] = useState(false);
+  const [memErr, setMemErr] = useState(false); // last load FAILED — show retry, not "no memories yet"
   const [memOpen, setMemOpen] = useState(false);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [remLoaded, setRemLoaded] = useState(false);
+  const [remErr, setRemErr] = useState(false);
   const [remOpen, setRemOpen] = useState(false);
   // Whole-feature on/off (paused = not fed into chats and the save tool is dropped).
   const [memEnabled, setMemEnabled] = useState(() => { try { return localStorage.getItem('gf_memory_on') !== '0'; } catch { return true; } });
@@ -820,7 +822,7 @@ export default function App() {
   // the list state too, so lock-screen Snooze knows titles after a cold launch.
   const reArmReminders = () => {
     if (!uid) return;
-    void listReminders().then((list) => { setReminders(list); return syncReminders(list); });
+    void listReminders().then((list) => { if (!list) return; setReminders(list); return syncReminders(list); });
   };
   const reArmRemindersRef = useRef(reArmReminders);
   reArmRemindersRef.current = reArmReminders;
@@ -1038,7 +1040,14 @@ export default function App() {
         recoverPending(pend);
         return;
       }
-      const msg = timedOut ? 'Timed out — please try again.' : e instanceof Error ? e.message : 'Something went wrong';
+      // Server-sent errors are written for people (daily-limit text etc.) and
+      // pass through; raw runtime errors ("TypeError: Load failed", "status
+      // 502") are developer-speak — translate those.
+      const raw = e instanceof Error ? e.message : '';
+      const technical = !raw || /TypeError|NetworkError|Load failed|Failed to fetch|status \d|^\d{3}\b|aborted/i.test(raw);
+      const msg = timedOut ? 'Timed out — please try again.'
+        : technical ? 'That didn’t go through — check your connection and try again.'
+        : raw;
       setMessages((m) => {
         const copy = m.slice();
         copy[copy.length - 1] = { role: 'assistant', content: `⚠️ ${msg}` };
@@ -1290,7 +1299,7 @@ export default function App() {
     // Debounce the heavier device re-arm (refetch + cancel/reschedule every
     // reminder + createChannel) so auditioning sounds doesn't thrash on each tap.
     if (reArmTimer.current) clearTimeout(reArmTimer.current);
-    reArmTimer.current = window.setTimeout(() => { void listReminders().then(syncReminders); }, 700);
+    reArmTimer.current = window.setTimeout(() => { void listReminders().then((l) => l && syncReminders(l)); }, 700);
   }
 
   // Choose the model for THIS conversation — remembered per chat (device-local),
@@ -1326,7 +1335,9 @@ export default function App() {
       if (!d) { flashNote('Sent — check your lock screen.'); return; }
       if (d.status === 200) { flashNote('Sent ✓ — check your lock screen.'); return; }
       const why = (d.reason || '').replace(/[{}"]/g, '').trim().slice(0, 90);
-      flashNote(`APNs rejected it (${d.status}): ${why || 'unknown'}`, 12000);
+      // "APNs rejected it (403)" is developer-speak; log the detail, say it plainly.
+      console.warn('test push rejected:', d.status, why);
+      flashNote('The test push couldn’t be delivered — check notifications are allowed for Go Farther in iOS Settings.', 12000);
     } catch {
       flashNote('Couldn’t reach the server — try again.');
     }
@@ -1522,7 +1533,8 @@ export default function App() {
     if (!uid) return;
     setMemLoaded(false);
     const list = await listMemories();
-    setMemories(list);
+    if (list) setMemories(list);
+    setMemErr(!list);
     setMemLoaded(true);
   }
 
@@ -1581,7 +1593,8 @@ export default function App() {
     if (!uid) return;
     setRemLoaded(false);
     const list = await listReminders();
-    setReminders(list);
+    if (list) setReminders(list);
+    setRemErr(!list);
     setRemLoaded(true);
   }
 
@@ -1592,6 +1605,7 @@ export default function App() {
     if (!uid) return;
     const granted = await ensureNotifyPermission();
     const list = await listReminders();
+    if (!list) return; // fetch failed — keep what's armed; the next sync re-tries
     setReminders(list);
     await syncReminders(list);
     // Don't let a saved reminder silently never fire: if notifications are off,
@@ -2322,7 +2336,7 @@ export default function App() {
                     onClick={() => void dictate()}
                     aria-label={micState === 'rec' ? 'Stop recording' : micState === 'tx' ? 'Transcribing' : 'Dictate a message'}
                   >
-                    {micState === 'tx' ? <span className="gf-status-spin" aria-hidden /> : <IconMic size={17} />}
+                    {micState === 'tx' ? <span className="gf-status-spin" aria-hidden /> : <IconMic size={20} />}
                   </button>
                 ) : (
                   // Mid-reply with text typed, the button sends (queues) instead of
@@ -2333,7 +2347,7 @@ export default function App() {
                     disabled={!busy && !input.trim() && attachments.length === 0}
                     aria-label={busy ? (input.trim() || attachments.length > 0 ? 'Send when this reply finishes' : 'Stop generating') : 'Send'}
                   >
-                    {busy && !input.trim() && attachments.length === 0 ? <span className="stop-sq" /> : <IconArrowUp size={17} />}
+                    {busy && !input.trim() && attachments.length === 0 ? <span className="stop-sq" /> : <IconArrowUp size={20} />}
                   </button>
                 )}
               </div>
@@ -2360,6 +2374,8 @@ export default function App() {
             <MemoryGraph
               memories={memories}
               loaded={memLoaded}
+              loadErr={memErr}
+              onRetry={() => void loadMems()}
               enabled={memEnabled}
               onAdd={addMem}
               onAddFile={addMemFile}
@@ -2380,6 +2396,8 @@ export default function App() {
             <RemindersGraph
               reminders={reminders}
               loaded={remLoaded}
+              loadErr={remErr}
+              onRetry={() => void loadRems()}
               onAdd={addRem}
               onUpdate={updateRem}
               onDelete={delRem}

@@ -22,8 +22,8 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: linear-gradient(180deg, #F6C36B, #E8992B);
-  color: #1A1206;
+  background: var(--grad-brand);
+  color: var(--on-brand);
   font-size: var(--fs-display);
   font-weight: 700;
 }
@@ -42,7 +42,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #8c8c92;
+  color: var(--text-faint);
   padding: 0 6px 8px;
   margin-top: 22px;
 }
@@ -96,7 +96,7 @@
   left: 50%;
   transform: translateX(-50%);
   bottom: calc(96px + env(safe-area-inset-bottom));
-  z-index: 240;
+  z-index: 320; /* above every overlay incl. the cg-picker (240); only the lock screen (400) beats it */
   max-width: min(86vw, 480px);
   padding: 10px 14px;
   border-radius: var(--r-card);
@@ -129,7 +129,7 @@
   border-top-left-radius: var(--r-sheet);
   border-top-right-radius: var(--r-sheet);
   border-top: 1px solid var(--line-1);
-  animation: sheetup var(--dur-screen) var(--ease-spring) backwards;
+  animation: sheetup var(--dur-enter) var(--ease-spring) backwards;
 }
 .legal-sheet.closing { animation: sheetdown var(--dur-exit) var(--ease-exit) forwards; }
 @media (prefers-reduced-motion: reduce) { .legal-sheet, .legal-sheet.closing { animation: none; } }
@@ -267,22 +267,11 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
    area by .memg's padding-top — so they offset from the header, not the screen
    top (adding env(safe-area-inset-top) here would double-count and shove them
    down into the content). */
-.memg-close {
-  position: absolute;
-  top: 8px; right: 14px;
-  width: 34px; height: 34px;
-  border: none; background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
-  border-radius: 50%;
-  display: grid; place-items: center;
-  cursor: pointer;
-}
-.memg-close:active { background: rgba(255, 255, 255, 0.14); }
 .memg-back {
   position: absolute;
   top: 8px; left: 14px;
   width: 34px; height: 34px;
-  border: none; background: rgba(255, 255, 255, 0.06);
+  border: none; background: var(--fill-1);
   color: var(--text);
   border-radius: 50%;
   display: grid; place-items: center;
@@ -304,7 +293,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 
 .memg-world { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
 .memg-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.memg-line { stroke: rgba(255, 255, 255, 0.12); stroke-width: 1; animation: memgFade 0.5s ease backwards; }
+.memg-line { stroke: rgba(255, 255, 255, 0.12); stroke-width: 1; animation: memgFade var(--dur-enter) ease backwards; }
 .memg-line.on { stroke: rgba(224, 161, 58, 0.55); }
 
 .memg-core {
@@ -314,8 +303,8 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   width: 60px; height: 60px;
   border-radius: var(--r-card);
   display: grid; place-items: center;
-  color: #2a1c05;
-  background: linear-gradient(160deg, #ffce6f, #e0951f);
+  color: var(--on-brand);
+  background: var(--grad-brand);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 0 40px 6px rgba(224, 161, 58, 0.45);
   animation: memgPulse 3.5s ease-in-out infinite;
 }
@@ -344,7 +333,7 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   touch-action: none; /* let pointer-drag move the node instead of scrolling */
-  animation: memgPop 0.32s cubic-bezier(0.2, 0.7, 0.2, 1.2) backwards;
+  animation: memgPop var(--dur-enter) var(--ease-spring) backwards;
 }
 .memg-node.sel { border-color: rgba(224, 161, 58, 0.8); box-shadow: 0 0 0 1px rgba(224, 161, 58, 0.5); }
 .memg-node.dragging {

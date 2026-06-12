@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from './supabase';
 import { tap } from './haptics';
 import { CONNECT_API, type Connector } from './connectorData';
-import { IconInfo } from './icons';
+import { IconArrowLeft, IconInfo } from './icons';
 
 // Trim Composio's long/technical descriptions to something readable in the popover.
 function shortDesc(d: string): string {
@@ -139,8 +139,8 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
   return (
     <div className="tm-overlay">
       <div className="tm-head">
-        <button className="tm-x" onClick={() => void close()} aria-label="Back">←</button>
-        <span className="tm-title">{connector.name} · tools</span>
+        <button className="tm-x" onClick={() => void close()} aria-label="Back"><IconArrowLeft size={22} /></button>
+        <span className="tm-title">{connector.name} tools</span>
         {saveState === 'error' ? (
           <button className="tm-status err" onClick={() => void persist(enabled)}>Retry</button>
         ) : (
@@ -158,7 +158,7 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
         ) : (
           <>
             <p className="tm-sub">
-              Pick the tools Go Farther can use for {connector.name}. Only what's on counts toward cost.
+              Pick the tools Go Farther can use for {connector.name} — only what you turn on can be used.
             </p>
             {enabled.size === 0 && (
               <div className="tm-empty">No tools enabled yet — turn on what you want Go Farther to do here.</div>

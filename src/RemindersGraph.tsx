@@ -13,6 +13,8 @@ import { IconTrash, IconArrowUp, IconArrowLeft, IconClock } from './icons';
 interface Props {
   reminders: Reminder[];
   loaded: boolean;
+  loadErr: boolean; // the load FAILED — show retry, never "no reminders yet"
+  onRetry: () => void;
   onAdd: (title: string, remind_at: string, repeat: RepeatKind) => Promise<boolean>;
   onUpdate: (id: string, fields: { title: string; remind_at: string; repeat: RepeatKind }) => Promise<boolean>;
   onDelete: (id: string) => void;
@@ -67,7 +69,7 @@ function layout(n: number): XY[] {
   });
 }
 
-export default function RemindersGraph({ reminders, loaded, onAdd, onUpdate, onDelete, onToggle, onClose }: Props) {
+export default function RemindersGraph({ reminders, loaded, loadErr, onRetry, onAdd, onUpdate, onDelete, onToggle, onClose }: Props) {
   // Full-screen dialog: keep keyboard focus inside; Esc goes back.
   const trapRef = useRef<HTMLDivElement>(null);
   useFocusTrap(true, trapRef, onClose);
@@ -296,10 +298,24 @@ export default function RemindersGraph({ reminders, loaded, onAdd, onUpdate, onD
         })}
        </div>
 
-        {loaded && n === 0 && (
+        {/* A failed load must NOT read as "no reminders yet" — it looks like
+            they were lost. Empty state only when the fetch really came back empty. */}
+        {loaded && loadErr && n === 0 && (
+          <div className="memg-empty">
+            <div className="memg-empty-title">Couldn’t load your reminders</div>
+            <div className="memg-empty-sub">Check your connection — they’re safe on the server.</div>
+            <button className="msg-retry" onClick={onRetry}>Try again</button>
+          </div>
+        )}
+        {loaded && !loadErr && n === 0 && (
           <div className="memg-empty">
             <div className="memg-empty-title">No reminders yet</div>
             <div className="memg-empty-sub">Add one below — a title and a time, and your phone will nudge you.</div>
+          </div>
+        )}
+        {!loaded && n === 0 && (
+          <div className="memg-empty" aria-live="polite">
+            <div className="memg-empty-sub">Loading your reminders…</div>
           </div>
         )}
       </div>

@@ -213,9 +213,12 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
     if (el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 132) + 'px'; }
   }, [desc]);
 
+  const [listErr, setListErr] = useState(false); // last list FAILED — show retry, not an empty Projects
   async function load() {
     setLoaded(false);
-    setItems(await listWorkflows());
+    const l = await listWorkflows();
+    if (l) setItems(l);
+    setListErr(!l);
     setLoaded(true);
   }
   useEffect(() => { void load(); }, []);
@@ -343,11 +346,13 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
         ) : convo.length > 0 ? (
           <button className="memg-back" onClick={resetConvo} aria-label="Start over"><IconArrowLeft size={22} /></button>
         ) : (
-          <button className="memg-back" onClick={onClose} aria-label="Close"><IconX size={20} /></button>
+          // Same slot, same glyph as every other overlay's back button — an X
+          // here read as a different control in the shared position.
+          <button className="memg-back" onClick={onClose} aria-label="Close"><IconArrowLeft size={22} /></button>
         )}
         <div className="memg-titles">
           <h1 className="memg-title">{view === 'projects' ? 'Projects' : 'Workflows'}</h1>
-          <p className="memg-sub">{view === 'projects' ? `${items.length} saved` : awaiting ? 'A couple of quick questions' : 'Describe an automation and I’ll build it'}</p>
+          <p className="memg-sub">{view === 'projects' ? (loaded ? `${items.length} saved` : 'Loading…') : awaiting ? 'A couple of quick questions' : 'Describe an automation and I’ll build it'}</p>
         </div>
         {view === 'home' ? (
           <button className="wfx-corner wfx-projects" onClick={() => setView('projects')} aria-label="Projects">
@@ -359,7 +364,19 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
 
       {view === 'projects' ? (
         <div className="wf-stage">
-          {loaded && items.length === 0 ? (
+          {/* Distinguish "still loading" and "load failed" from a real zero —
+              an offline open used to flash "0 saved / No workflows yet". */}
+          {!loaded && items.length === 0 ? (
+            <div className="wf-empty" aria-live="polite">
+              <div className="wf-empty-sub">Loading your workflows…</div>
+            </div>
+          ) : loaded && listErr && items.length === 0 ? (
+            <div className="wf-empty">
+              <div className="wf-empty-title">Couldn’t load your workflows</div>
+              <div className="wf-empty-sub">Check your connection — they’re safe on the server.</div>
+              <button className="msg-retry" onClick={() => void load()}>Try again</button>
+            </div>
+          ) : loaded && items.length === 0 ? (
             <div className="wf-empty">
               <BrandConstellation />
               <div className="wf-empty-title">No workflows yet</div>
