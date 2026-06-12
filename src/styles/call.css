@@ -92,6 +92,7 @@
   transition: transform var(--dur-press) ease, background var(--dur-press) ease;
 }
 .call-end:active { transform: scale(0.92); }
+.call-end svg { stroke-width: 2.4; } /* a slightly bolder X for the big end button */
 
 /* "Show it something" — snap a photo to ask about, hands-free. */
 .call-cam {

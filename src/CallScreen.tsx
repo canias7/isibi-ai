@@ -3,7 +3,7 @@ import { useFocusTrap } from './a11y';
 import { bump, chime } from './haptics';
 import { listenOnce, transcribe, speak, speakable, stopSpeaking, micSupported } from './voice';
 import { streamChat, type ChatMessage, type Attach } from './api';
-import { IconPhoneOff, IconCamera } from './icons';
+import { IconX, IconCamera } from './icons';
 // Per-bar height weight for the voice wave (center-peaked, like a soundprint).
 const WAVE_W = [0.45, 0.78, 1, 0.78, 0.45];
 
@@ -262,7 +262,7 @@ export default function CallScreen({
           <IconCamera size={24} />
         </button>
         <button type="button" className="call-end" onClick={hangUp} aria-label="End call">
-          <IconPhoneOff size={26} />
+          <IconX size={28} />
         </button>
       </div>
     </div>
