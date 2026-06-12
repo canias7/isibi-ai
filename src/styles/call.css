@@ -138,8 +138,8 @@
   margin: 0 0 2px 0;
   transition: opacity var(--dur-press) ease, background var(--dur-press) ease;
 }
-.call-btn:disabled { opacity: 0.3; cursor: default; }
-.call-btn:not(:disabled):active { background: #ffffff14; }
+.call-btn:disabled { opacity: 0.4; cursor: default; }
+.call-btn:not(:disabled):active { background: var(--fill-2); }
 
 /* Respect users who turn animations off: the wave stops breathing/rippling/
    dancing (state still reads via the status label and bar color) and the

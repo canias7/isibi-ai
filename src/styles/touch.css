@@ -8,7 +8,7 @@ button,
 [role="button"],
 .tappable,
 .icon-btn, .sug, .send, .plus-btn, .plus-row, .conn-pop-row, .radial-item,
-.msg-act, .msg-retry, .chat-act, .set-row, .set-test-btn, .side-item, .tgl {
+.msg-act, .msg-retry, .set-row, .set-test-btn, .side-item, .tgl {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   user-select: none;
@@ -24,10 +24,17 @@ button:active,
 [role="button"]:active,
 .tappable:active,
 .icon-btn:active, .sug:active, .send:active, .plus-btn:active, .radial-item:active,
-.msg-act:active, .msg-retry:active, .chat-act:active, .set-test-btn:active, .tgl:active {
+.msg-act:active, .msg-retry:active, .set-test-btn:active, .tgl:active {
   transform: scale(0.95);
   /* Squish fast; the slow springy part happens on release via the rule above. */
   transition: transform var(--dur-press) ease-out, background var(--dur-press) ease;
+}
+
+/* Draggable graph nodes are <button>s centered by translate(-50%, -50%) — the
+   generic squish above would REPLACE that translate and teleport the node to
+   its layout origin, so re-state the centering alongside a gentler squish. */
+.memg-node:active, .cg-node:active {
+  transform: translate(-50%, -50%) scale(0.97);
 }
 
 /* Wide, full-width rows squish less so they don't feel rubbery. */
@@ -53,7 +60,7 @@ button:active,
   .msg { animation: none; }
   button, [role="button"], .tappable,
   .icon-btn, .sug, .send, .plus-btn, .plus-row, .conn-pop-row, .radial-item,
-  .msg-act, .msg-retry, .chat-act, .set-row, .set-test-btn, .side-item, .tgl {
+  .msg-act, .msg-retry, .set-row, .set-test-btn, .side-item, .tgl {
     transition: background 0.15s ease, opacity 0.15s ease;
   }
 }
@@ -76,20 +83,28 @@ textarea:focus-visible,
    Small visual controls keep their compact look; an invisible absolutely-
    positioned ::after pad widens the actual hit area to the Apple HIG 44pt
    minimum. (position:absolute keeps the pad out of grid/flex layout.) */
-.send, .plus-btn, .call-btn, .side-out, .side-search-x, .chat-del, .tm-info-btn {
+/* (.scroll-latest, .memg-back, .wfx-corner and the corner .att-x are already
+   position:absolute — that anchors their ::after pad by itself; forcing
+   relative here would tear them out of place. The queued-chip .att-x variant
+   is static, so it DOES need the relative anchor.) */
+.send, .plus-btn, .call-btn, .side-out, .side-search-x, .tm-info-btn,
+.conn-warn-x, .gf-att-btn, .auth-toggle, .icon-btn, .tm-x,
+.queued-chip .att-x {
   position: relative;
 }
 .send::after, .plus-btn::after, .call-btn::after, .side-out::after,
-.side-search-x::after, .chat-del::after, .tm-info-btn::after {
+.side-search-x::after, .tm-info-btn::after, .att-x::after, .conn-warn-x::after,
+.gf-att-btn::after, .auth-toggle::after, .icon-btn::after, .scroll-latest::after,
+.memg-back::after, .wfx-corner::after, .tm-x::after {
   content: '';
   position: absolute;
   inset: calc((100% - 44px) / 2);
 }
-/* The grouped sidebar actions (pin / rename / delete) sit 1px apart, so they
-   only expand VERTICALLY — full-width pads would overlap their neighbors and
-   make taps land on the wrong action. */
-.chat-act { position: relative; }
-.chat-act::after {
+/* The copy/thumbs actions under a reply sit adjacent, so they only expand
+   VERTICALLY — full-width pads would overlap their neighbors and make taps
+   land on the wrong action. */
+.msg-act { position: relative; }
+.msg-act::after {
   content: '';
   position: absolute;
   inset: calc((100% - 44px) / 2) 0;
