@@ -6,7 +6,7 @@ import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown, IconLogout } from './icons';
+import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconWaveform, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown, IconLogout } from './icons';
 import { primeAudio, resumeAudio, audioState, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { sentSound, replySound, soundsOn, setSoundsOn, soundTheme, setSoundTheme, type SoundTheme } from './earcons';
 import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
@@ -2234,7 +2234,7 @@ export default function App() {
                   disabled={busy}
                   aria-label="Talk to Go Farther"
                 >
-                  <IconPhone size={20} />
+                  <IconWaveform size={20} />
                 </button>
                 <textarea
                   ref={taRef}

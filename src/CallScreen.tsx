@@ -4,7 +4,8 @@ import { bump, chime } from './haptics';
 import { listenOnce, transcribe, speak, speakable, stopSpeaking, micSupported } from './voice';
 import { streamChat, type ChatMessage, type Attach } from './api';
 import { IconPhoneOff, IconCamera } from './icons';
-import SunOrb from './SunOrb';
+// Per-bar height weight for the voice wave (center-peaked, like a soundprint).
+const WAVE_W = [0.45, 0.78, 1, 0.78, 0.45];
 
 type Phase = 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
 
@@ -29,7 +30,7 @@ export default function CallScreen({
   const [phase, setPhase] = useState<Phase>('connecting');
   const [caption, setCaption] = useState('');  // live transcript / status line
   const [reply, setReply] = useState('');       // assistant's current spoken reply
-  const [level, setLevel] = useState(0);        // mic level 0..1 for the orb
+  const [level, setLevel] = useState(0);        // mic level 0..1 for the voice wave
   const [err, setErr] = useState('');
   const [lensOn, setLensOn] = useState(false); // Live Lens: camera preview; each question carries the current frame
 
@@ -231,15 +232,19 @@ export default function CallScreen({
         <div className="call-status">{statusLabel}</div>
       </div>
 
+      {/* The voice wave: bars that move with YOUR mic level while listening
+          (genuinely audio-reactive via --lvl), ripple while thinking, and dance
+          while speaking. Tap to interrupt mid-speech, same as before. */}
       <button
         type="button"
-        className={`call-orb call-${phase}`}
+        className={`call-wave call-${phase}`}
         style={{ '--lvl': level } as CSSProperties}
         onClick={onOrbTap}
         aria-label="Assistant"
       >
-        <SunOrb size={150} className="call-orb-core" />
-        <span className="call-orb-ring" />
+        {WAVE_W.map((w, i) => (
+          <span key={i} className="call-wave-bar" style={{ '--i': i, '--w': w } as CSSProperties} />
+        ))}
       </button>
 
       {lensOn && <video ref={videoRef} className="call-lens" autoPlay playsInline muted />}

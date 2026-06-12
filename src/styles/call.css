@@ -22,52 +22,45 @@
 .call-name { font-size: var(--fs-title); font-weight: 600; letter-spacing: 0.0118rem; }
 .call-status { margin-top: 0.3529rem; color: var(--text-dim); font-size: var(--fs-body-s); }
 
-/* The orb: a soft, breathing core with a ring that reacts to mic level. */
-.call-orb {
+/* The voice wave (Whisper-Flow vibe): five rounded bars. While LISTENING their
+   height tracks the real mic level (--lvl 0..1, weighted center-out via --w)
+   with a faint breath underneath, so it visibly "hears you"; thinking is a slow
+   center-out ripple; speaking is a livelier dance (tap to interrupt). */
+.call-wave {
   position: relative;
-  width: 200px;
+  width: 220px;
   height: 200px;
   border: none;
   background: transparent;
   cursor: pointer;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
   flex: 0 0 auto;
 }
-.call-orb-core {
-  /* Size comes from the SunOrb canvas (inline); this class adds the halo + phase transitions. */
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, var(--brand-soft), var(--brand) 58%, var(--brand-strong) 100%);
-  box-shadow: 0 0 60px 0 color-mix(in srgb, var(--brand) 55%, transparent);
-  transition: transform var(--dur-press) ease, box-shadow var(--dur-exit) ease;
-}
-.call-orb-ring {
-  position: absolute;
-  width: 174px;
-  height: 174px;
-  border-radius: 50%;
-  /* Strong enough to read against the sun's corona glow. */
-  border: 2px solid color-mix(in srgb, var(--brand) 70%, transparent);
-  opacity: 0.7;
+.call-wave-bar {
+  width: 16px;
+  height: calc(20px + var(--lvl, 0) * var(--w, 1) * 120px);
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, var(--brand-soft), var(--brand) 60%, var(--brand-strong));
+  box-shadow: 0 0 22px 0 color-mix(in srgb, var(--brand) 45%, transparent);
+  transition: height 110ms ease;
 }
 
-/* Listening: the core swells with your voice (driven by --lvl, 0..1). */
-.call-listening .call-orb-core { transform: scale(calc(1 + var(--lvl, 0) * 0.35)); }
-.call-listening .call-orb-ring { animation: call-pulse 1.6s ease-in-out infinite; }
+/* Listening with no speech yet: a gentle breath so it reads as alive; the
+   mic-driven height rides on top the moment you talk. */
+.call-listening .call-wave-bar { animation: wave-breathe 1.8s ease-in-out infinite; animation-delay: calc(var(--i) * 0.12s); }
+/* Thinking: fixed-height slow ripple (the stale mic level doesn't linger). */
+.call-thinking .call-wave-bar { height: 22px; animation: wave-think 1.5s ease-in-out infinite; animation-delay: calc(var(--i) * 0.14s); }
+/* Speaking: a taller, lively dance. */
+.call-speaking .call-wave-bar { height: 40px; animation: wave-talk 0.85s ease-in-out infinite; animation-delay: calc(var(--i) * 0.09s); }
+.call-connecting .call-wave-bar { height: 20px; opacity: 0.45; }
+.call-error .call-wave-bar { height: 20px; background: var(--danger-solid); box-shadow: none; opacity: 0.6; animation: none; }
 
-/* Thinking: a calm spin. Speaking: a gentle breathe. */
-.call-thinking .call-orb-ring { animation: call-spin 1.1s linear infinite; border-top-color: var(--brand-soft); }
-.call-thinking .call-orb-core { opacity: 0.7; }
-.call-speaking .call-orb-core { animation: call-breathe 1.4s ease-in-out infinite; }
-/* Error: the SunOrb core is opaque, so the red background can't show — signal the
-   fault by dimming the sun and turning the ring red instead. */
-.call-error .call-orb-core { background: radial-gradient(circle at 35% 30%, #ff9a9a, #c0392b 70%); box-shadow: none; opacity: 0.45; }
-.call-error .call-orb-ring { border-color: #ff6b6b; opacity: 0.85; animation: none; }
-.call-connecting .call-orb-core { opacity: 0.6; }
-
-@keyframes call-pulse { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.12); opacity: 0.15; } }
-@keyframes call-spin { to { transform: rotate(360deg); } }
-@keyframes call-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes wave-breathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.3); } }
+@keyframes wave-think { 0%, 100% { transform: scaleY(1); opacity: 0.55; } 50% { transform: scaleY(1.9); opacity: 1; } }
+@keyframes wave-talk { 0%, 100% { transform: scaleY(1); } 35% { transform: scaleY(2.4); } 70% { transform: scaleY(1.5); } }
 
 .call-caption {
   max-width: 560px;
@@ -127,7 +120,7 @@
   border: 1px solid var(--line-3);
   flex: 0 1 auto;
 }
-.call-screen.lens-on .call-orb { transform: scale(0.55); margin: -36px 0; }
+.call-screen.lens-on .call-wave { transform: scale(0.55); margin: -36px 0; }
 .call-cam.on { background: var(--brand); color: #000; border-color: var(--brand); }
 
 /* The composer's call button — matches the "+" affordance, accent-tinted. */
@@ -148,11 +141,11 @@
 .call-btn:disabled { opacity: 0.3; cursor: default; }
 .call-btn:not(:disabled):active { background: #ffffff14; }
 
-/* Respect users who turn animations off: the orb stops pulsing/spinning/
-   breathing (state still reads via color and the status label) and the
+/* Respect users who turn animations off: the wave stops breathing/rippling/
+   dancing (state still reads via the status label and bar color) and the
    screen/buttons drop their motion transitions. */
 @media (prefers-reduced-motion: reduce) {
-  .call-screen, .gf-out .call-screen, .call-orb-ring, .call-orb-core { animation: none; }
-  .call-orb-core, .call-end, .call-cam, .call-btn { transition: none; }
-  .call-listening .call-orb-core { transform: none; } /* no voice-level swell */
+  .call-screen, .gf-out .call-screen, .call-wave-bar { animation: none !important; }
+  .call-wave-bar, .call-end, .call-cam, .call-btn { transition: none; }
+  .call-listening .call-wave-bar { height: 20px; } /* no voice-level swell */
 }
