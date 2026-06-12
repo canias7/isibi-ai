@@ -40,6 +40,19 @@ function shuffle<T>(arr: T[], rand: () => number): T[] {
   return a;
 }
 
+// A larger shuffled pool for the home screen's CYCLING suggestions: every
+// app-based prompt the user can use, plus the daypart and evergreen ones,
+// deduped and shuffled — so the home rotates through fresh sets of 3 instead
+// of showing the same three forever.
+export function suggestionPool(apps: string[], hour: number, rand: () => number = Math.random): string[] {
+  const daypart = hour < 12 ? MORNING : hour < 18 ? AFTERNOON : EVENING;
+  const pool: string[] = [];
+  if (apps.length === 0) pool.push(EVERGREEN[0]);
+  for (const id of apps.filter((a) => BY_APP[a])) pool.push(...BY_APP[id]);
+  pool.push(...daypart, ...EVERGREEN);
+  return shuffle([...new Set(pool)], rand);
+}
+
 // `rand` is injectable so tests are deterministic.
 export function pickSuggestions(apps: string[], hour: number, rand: () => number = Math.random): string[] {
   const daypart = hour < 12 ? MORNING : hour < 18 ? AFTERNOON : EVENING;
