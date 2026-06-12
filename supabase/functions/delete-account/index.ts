@@ -13,11 +13,13 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
 
-// Every table that stores per-user rows (all keyed by user_id).
+// Every table that stores per-user rows (all keyed by user_id). When adding a
+// table with a user_id column, add it HERE too — "delete my account" must wipe
+// it (ai_usage and app_events were once missed and survived deletion).
 const USER_TABLES = [
   "conversations", "user_memory", "tool_prefs", "plaid_items", "device_tokens",
   "tool_data_stash", "tool_usage", "user_reminders", "user_settings",
-  "workflows", "workflow_runs", "user_connections",
+  "workflows", "workflow_runs", "user_connections", "ai_usage", "app_events",
 ];
 
 const ALLOWED_ORIGINS = new Set([

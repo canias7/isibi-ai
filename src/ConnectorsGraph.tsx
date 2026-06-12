@@ -295,7 +295,18 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     setActionErr('');
     setConnecting(id); // visible feedback while the OAuth round-trip + poll runs
     if (connectTimer.current) clearTimeout(connectTimer.current);
-    connectTimer.current = setTimeout(() => setConnecting((c) => (c === id ? null : c)), 75000);
+    connectTimer.current = setTimeout(() => {
+      // Give up on this connect: tear down EVERYTHING the flow armed, exactly
+      // like the error path does. Leaving pendingConnect alive made a much-later
+      // refresh pop the tool picker open unprompted, and a leaked browserFinished
+      // listener kept firing phantom refreshes on every in-app-browser close.
+      pendingConnect.current = null;
+      pendBefore.current = null;
+      if (ivRef.current) { clearInterval(ivRef.current); ivRef.current = null; }
+      if (browserSub.current) { browserSub.current.remove(); browserSub.current = null; }
+      connectTimer.current = null;
+      setConnecting((c) => (c === id ? null : c));
+    }, 75000);
     // Mint a one-time code so the session token never lands in the /start URL
     // (history/logs/referer). Falls back to the token param if minting fails.
     let q = `t=${encodeURIComponent(t)}`;
@@ -332,7 +343,15 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       return;
     }
     const t = await token();
-    if (!t) return;
+    if (!t) {
+      // No session — the server never got the disconnect. Undo the optimistic
+      // removal and say so, instead of the app vanishing for the 15s grace and
+      // then quietly returning (the exact silent flicker this path exists to kill).
+      disconnectedAt.current.delete(id);
+      setActionErr(`Couldn’t disconnect ${byId(id)?.name ?? 'that app'} — please try again.`);
+      setTimeout(() => void refreshAll(), 800);
+      return;
+    }
     try {
       const r = await fetch(`${CONNECT_API}/disconnect?app=${id}`, { method: 'POST', headers: { authorization: `Bearer ${t}` } });
       const j = await r.json().catch(() => ({}));

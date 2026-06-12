@@ -57,7 +57,14 @@ async function encKey(): Promise<CryptoKey | null> {
 }
 async function encToken(plain: string): Promise<string> {
   const key = await encKey();
-  if (!key) return plain; // no key configured -> store as-is (fallback)
+  if (!key) {
+    // NEVER store a real bank token in cleartext: outside sandbox, a missing or
+    // short PLAID_ENC_KEY is a hard error — not a silent downgrade of the
+    // "encrypted at rest" promise above. Sandbox keeps the permissive fallback
+    // so local dev works without the secret.
+    if (PLAID_ENV !== "sandbox") throw new Error("ENC_KEY_MISSING");
+    return plain;
+  }
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(plain)));
   return `enc:${b64(iv)}:${b64(ct)}`;
@@ -83,6 +90,18 @@ async function plaid(path: string, body: Record<string, unknown>): Promise<any> 
   return data;
 }
 
+// Raw Plaid error_codes (INVALID_ACCESS_TOKEN, ITEM_LOGIN_REQUIRED, …) and our
+// internal markers are server state — log them, but hand the client a sentence
+// it can show as-is instead of leaking credential/config state.
+function friendlyError(code: string): string {
+  if (code === "SAVE_FAILED") return "The link completed but couldn't be saved — please try linking again.";
+  if (code === "ENC_KEY_MISSING") return "Bank linking is temporarily misconfigured — please try again later.";
+  if (/ITEM_LOGIN_REQUIRED/.test(code)) return "That bank link needs a refresh — unlink the bank and link it again.";
+  if (/NOT_READY|503/.test(code)) return "Still importing from the bank — give it a minute and try again.";
+  if (/^[A-Z0-9_]+$/.test(code)) return "The bank request didn't go through — please try again.";
+  return code || "Plaid request failed";
+}
+
 async function itemsFor(uid: string): Promise<any[]> {
   const r = await fetch(`${SB_URL}/rest/v1/plaid_items?user_id=eq.${encodeURIComponent(uid)}&select=id,item_id,access_token,institution_name,created_at&order=created_at.desc`, { headers: sbHeaders });
   if (!r.ok) return [];
@@ -104,11 +123,18 @@ async function exchangeAndStore(uid: string, publicToken: string): Promise<strin
       inst = ig?.institution?.name || "";
     }
   } catch { /* institution name is optional */ }
-  await fetch(`${SB_URL}/rest/v1/plaid_items?on_conflict=user_id,item_id`, {
+  const sr = await fetch(`${SB_URL}/rest/v1/plaid_items?on_conflict=user_id,item_id`, {
     method: "POST",
     headers: { ...sbHeaders, prefer: "resolution=merge-duplicates,return=minimal" },
     body: JSON.stringify({ user_id: uid, item_id: itemId, access_token: await encToken(accessToken), institution_name: inst }),
   });
+  // A failed write used to be ignored: the user saw "linked!" while nothing
+  // persisted — and the upstream Plaid item leaked, with no stored token left
+  // to /item/remove it by. Surface it instead of reporting false success.
+  if (!sr.ok) {
+    console.error("plaid_items upsert failed:", sr.status, await sr.text().catch(() => ""));
+    throw new Error("SAVE_FAILED");
+  }
   return inst;
 }
 
@@ -193,7 +219,10 @@ Deno.serve(async (req: Request) => {
               currency: a.balances?.iso_currency_code || "USD",
             });
           }
-        } catch (e) { out.push({ bank: it.institution_name || "Bank", error: String((e as Error).message) }); }
+        } catch (e) {
+          console.error("plaid balances:", String((e as Error).message));
+          out.push({ bank: it.institution_name || "Bank", error: friendlyError(String((e as Error).message)) });
+        }
       }
       return J({ accounts: out });
     }
@@ -222,7 +251,8 @@ Deno.serve(async (req: Request) => {
           }
         }
         if (err) {
-          const friendly = /503|NOT_READY/.test(err) ? "Still importing transactions — give it a minute and tap again." : err;
+          console.error("plaid transactions:", err);
+          const friendly = /503|NOT_READY/.test(err) ? "Still importing transactions — give it a minute and tap again." : friendlyError(err);
           out.push({ bank: it.institution_name || "Bank", error: friendly });
         }
       }
@@ -244,6 +274,6 @@ Deno.serve(async (req: Request) => {
     return J({ error: "unknown action" }, 400);
   } catch (e) {
     console.error("plaid error:", action, e);
-    return J({ error: String((e as Error).message || "Plaid request failed") }, 502);
+    return J({ error: friendlyError(String((e as Error).message || "")) }, 502);
   }
 });
