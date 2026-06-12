@@ -341,7 +341,10 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   z-index: 6;
   border-color: rgba(231, 178, 78, 0.6);
   box-shadow: var(--shadow-modal);
-  animation: none; /* don't fight the live drag position */
+  /* paused, NOT none: removing the animation re-applies it when .dragging
+     comes off, restarting the staggered entrance — the node vanished for its
+     whole animation-delay after every drag, then popped back in. */
+  animation-play-state: paused;
 }
 .memg-ico {
   flex-shrink: 0;
