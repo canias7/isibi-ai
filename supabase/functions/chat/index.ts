@@ -1104,7 +1104,8 @@ Deno.serve(async (req: Request) => {
       const actionById: Record<string, string> = {}; // tool_use id -> receipt kind (action tools only)
       let receipt: { kind: string; title: string } | null = null; // a confirmed successful action
       const generatedFileIds = new Set<string>(); // files the code-execution sandbox created
-      let reminderSet = false; // the model set a reminder this turn -> tell the client to re-arm
+      let reminderSet = false; // a reminder was actually SAVED this turn -> tell the client to re-arm
+      const reminderToolIds = new Set<string>(); // tool_use ids of GF_SET_REMINDER calls, so we can gate on their RESULT
       try {
         for (;;) {
           const { done, value } = await reader.read();
@@ -1160,6 +1161,12 @@ Deno.serve(async (req: Request) => {
                 emit(`[[gfstatus:${statusLabel(toolName[evt.index])}]]`, false);
                 const ak = actionKind(toolName[evt.index]);
                 if (ak && evt.content_block.id) actionById[String(evt.content_block.id)] = ak;
+                // Remember which tool_use id is a reminder, so we can gate the
+                // [[gfsync:reminders]] marker on its RESULT (success) — not on the
+                // mere fact the model called the tool (it may have refused a past time).
+                if (toolName[evt.index].toUpperCase().includes("SET_REMINDER") && evt.content_block.id) {
+                  reminderToolIds.add(String(evt.content_block.id));
+                }
               }
               // An MCP tool result — mark the action's outcome for the receipt card
               // (only on real success, so we never show a false "Sent ✓").
@@ -1167,6 +1174,19 @@ Deno.serve(async (req: Request) => {
                 const tid = String(evt.content_block.tool_use_id ?? "");
                 const ak = tid && actionById[tid];
                 if (ak && evt.content_block.is_error !== true) receipt = receiptFor(ak);
+                // A reminder result came back. Only mark reminderSet (which emits
+                // [[gfsync:reminders]] -> "Reminder saved" toast + client re-arm)
+                // when the tool actually SAVED one. The MCP returns success as
+                // `Reminder set: "…"`; refusals come back as `Not set — … in the
+                // past` / `… far in the future` (is_error false) or a thrown error
+                // (is_error true). Match the success prefix; ignore the rest.
+                if (tid && reminderToolIds.has(tid) && evt.content_block.is_error !== true) {
+                  const blocks = (evt.content_block as { content?: unknown }).content;
+                  const resText = Array.isArray(blocks)
+                    ? blocks.map((b: any) => (typeof b === "string" ? b : b?.text ?? "")).join("")
+                    : String(blocks ?? "");
+                  if (/^\s*reminder set:/i.test(resText)) reminderSet = true;
+                }
               }
               // Files the code execution sandbox created — collect their ids to
               // deliver as downloads after the stream. (Block types vary by tool
@@ -1201,9 +1221,11 @@ Deno.serve(async (req: Request) => {
                   // Contacts: guarantee a card by re-running the SAME people search.
                   peopleCalled = true; peopleSlug = toolName[evt.index];
                   try { peopleArgs = JSON.parse(toolJson[evt.index] || "{}"); } catch { /* keep {} */ }
-                } else if (nm.includes("SET_REMINDER")) {
-                  reminderSet = true; // client re-arms the device notification after the turn
                 }
+                // NB: GF_SET_REMINDER no longer flips reminderSet here — the model
+                // CALLING it doesn't mean it SAVED one (it can refuse a past time).
+                // reminderSet is gated on the tool RESULT (the "Reminder set:"
+                // success prefix) in the mcp_tool_result handler above.
                 delete toolName[evt.index]; delete toolJson[evt.index];
               }
               if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
