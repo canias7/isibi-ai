@@ -632,7 +632,16 @@ export default function App() {
     }
     setQueued(null);
     setInput(draftsRef.current[currentId] ?? ''); // each chat keeps its own draft
-    setModel(modelsRef.current[currentId] ?? 'auto'); // …and its own model choice
+    // …and its own model choice. Opening counts as USE: refresh the entry's
+    // LRU position (delete-then-set), or an actively-read old chat gets evicted
+    // from the 50-entry cap by newer picks and silently reverts to 'auto'.
+    const chatModel = modelsRef.current[currentId];
+    if (chatModel) {
+      delete modelsRef.current[currentId];
+      modelsRef.current[currentId] = chatModel;
+      if (uid) saveChatModels(uid, modelsRef.current);
+    }
+    setModel(chatModel ?? 'auto');
     setVisCount(60); // windowed thread: a freshly opened chat renders its tail
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentId]);
@@ -653,8 +662,16 @@ export default function App() {
       if (!isActive) {
         awaySinceRef.current = Date.now();
         // Lock the moment we background (Face ID on): the iOS app-switcher
-        // snapshot then shows the lock screen, not the user's last chat.
-        if (faceIdRef.current && Capacitor.getPlatform() !== 'web') setLocked(true);
+        // snapshot then shows the lock screen, not the user's last chat. A real
+        // backgrounding also invalidates the just-unlocked grace — without this,
+        // background+return inside 1.5s of an unlock stranded the user on the
+        // lock screen with even the Unlock button dead until the window lapsed.
+        // (The prompt's own resign fires BEFORE success stamps the grace, so
+        // zeroing here can never clobber the guard it exists for.)
+        if (faceIdRef.current && Capacitor.getPlatform() !== 'web') {
+          lastUnlockRef.current = 0;
+          setLocked(true);
+        }
         // Leaving mid-reply: close the connection so the server notices we're gone
         // and pushes when it's done. (iOS otherwise just suspends the socket, so
         // the server never sees the disconnect and never sends the "ready" push.)
@@ -742,9 +759,24 @@ export default function App() {
   // top: `inert` makes everything behind the lock unfocusable, unclickable and
   // invisible to screen readers (a Bluetooth keyboard's Tab or a VoiceOver swipe
   // used to reach the chat behind the black screen). Focus lands on Unlock.
+  // The full-screen overlays (Memory/Reminders/Workflows/Connectors) portal onto
+  // document.body — OUTSIDE the shell — so they must be inerted separately, and
+  // one mounting WHILE locked is caught by the observer.
   useEffect(() => {
-    appShellRef.current?.toggleAttribute('inert', locked);
-    if (locked) document.querySelector<HTMLButtonElement>('.lock-btn')?.focus();
+    const root = document.getElementById('root');
+    const setInert = (on: boolean) => {
+      appShellRef.current?.toggleAttribute('inert', on);
+      for (const el of Array.from(document.body.children)) {
+        if (el === root || el.tagName === 'SCRIPT' || el.tagName === 'STYLE') continue;
+        el.toggleAttribute('inert', on);
+      }
+    };
+    setInert(locked);
+    if (!locked) return;
+    document.querySelector<HTMLButtonElement>('.lock-btn')?.focus();
+    const mo = new MutationObserver(() => setInert(true));
+    mo.observe(document.body, { childList: true });
+    return () => mo.disconnect();
   }, [locked]);
 
   // The OTA layer fires this when the running bundle is below a required floor.
@@ -1831,7 +1863,13 @@ export default function App() {
         <button className="lock-btn" onClick={() => void lockRef.current()}>Unlock</button>
       </div>
     )}
-    <div className="app" ref={appShellRef}>
+    <div
+      className="app"
+      // Callback ref (not a plain ref): if the shell remounts while locked —
+      // force-update gate clearing, session loss — the fresh element must come
+      // back already inert, not wait for the next lock/unlock transition.
+      ref={(el) => { appShellRef.current = el; el?.toggleAttribute('inert', locked); }}
+    >
       {/* flashNote() messages used to render ONLY inside Settings — invisible to
           the chat view they often concern (e.g. "turn on notifications to get
           reminders"). Outside Settings, show them as a transient toast. */}

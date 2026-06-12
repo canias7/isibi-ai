@@ -55,7 +55,7 @@ function AssistantMessage(
   // Strip status pills, the reminder-sync signal, and any trailing partial
   // marker — including one split mid-prefix ("[[gf") or mid-terminator ("…]")
   // across stream chunks, which the old pattern let flash as raw text.
-  const clean = text.replace(/\[\[gf(?:status|sync):[^\]]*\]\]/g, '').replace(/\[\[gf\w*(?::[^\]]*)?\]?$/, '');
+  const clean = text.replace(/\[\[gf(?:status|sync|id):[^\]]*\]\]/g, '').replace(/\[\[gf\w*(?::[^\]]*)?\]?$/, '');
 
   // Nothing to render yet while streaming → show a "thinking" indicator (the
   // bouncing dots), or a tool-activity label when a tool is running.

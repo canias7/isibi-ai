@@ -51,10 +51,14 @@ jobs:
         run: |
           VERSION="${APP_VERSION}"
           ( cd dist && zip -qr "../dist-${VERSION}.zip" . )
+          # The app verifies the downloaded zip against this hash (src/ota.ts) —
+          # a swapped or corrupted bundle is rejected instead of activated.
+          SHA256=$(sha256sum "dist-${VERSION}.zip" | cut -d' ' -f1)
+          echo "OTA_SHA256=${SHA256}" >> "$GITHUB_ENV"
           cat > manifest.json <<EOF
-          { "version": "${VERSION}", "min": "${OTA_MIN}", "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/web-latest/dist-${VERSION}.zip" }
+          { "version": "${VERSION}", "min": "${OTA_MIN}", "sha256": "${SHA256}", "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/web-latest/dist-${VERSION}.zip" }
           EOF
-          echo "Published version ${VERSION} (min ${OTA_MIN})"; cat manifest.json
+          echo "Published version ${VERSION} (min ${OTA_MIN}, sha256 ${SHA256})"; cat manifest.json
 
       - name: Publish OTA bundle to a GitHub Release (fallback host)
         uses: softprops/action-gh-release@v2
@@ -91,7 +95,7 @@ jobs:
             -H "Authorization: Bearer $SR" -H "x-upsert: true" \
             -H "Content-Type: application/zip" --data-binary "@dist-${APP_VERSION}.zip"
           cat > manifest-storage.json <<EOF
-          { "version": "${APP_VERSION}", "min": "${OTA_MIN:-0}", "url": "${PUB}/dist-${APP_VERSION}.zip" }
+          { "version": "${APP_VERSION}", "min": "${OTA_MIN:-0}", "sha256": "${OTA_SHA256}", "url": "${PUB}/dist-${APP_VERSION}.zip" }
           EOF
           curl -fsS -X POST "$OBJ/manifest.json" \
             -H "Authorization: Bearer $SR" -H "x-upsert: true" \

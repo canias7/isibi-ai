@@ -99,7 +99,16 @@ function friendlyError(code: string): string {
   if (/ITEM_LOGIN_REQUIRED/.test(code)) return "That bank link needs a refresh — unlink the bank and link it again.";
   if (/NOT_READY|503/.test(code)) return "Still importing from the bank — give it a minute and try again.";
   if (/^[A-Z0-9_]+$/.test(code)) return "The bank request didn't go through — please try again.";
-  return code || "Plaid request failed";
+  // Hard default: anything unrecognized (runtime fetch errors, DOMException
+  // texts) is still internal state — never relay it verbatim.
+  return "The bank request didn't go through — please try again.";
+}
+
+// Outside sandbox, refuse to START a link flow the server can't finish: a
+// missing PLAID_ENC_KEY used to surface only AFTER the public-token exchange,
+// orphaning an upstream Plaid item with no stored token to remove it by.
+async function requireEncKey(): Promise<void> {
+  if (PLAID_ENV !== "sandbox" && !(await encKey())) throw new Error("ENC_KEY_MISSING");
 }
 
 async function itemsFor(uid: string): Promise<any[]> {
@@ -112,6 +121,7 @@ async function itemsFor(uid: string): Promise<any[]> {
 // Exchange a public token, look up the institution name, store the item (token
 // encrypted). Returns the institution name.
 async function exchangeAndStore(uid: string, publicToken: string): Promise<string> {
+  await requireEncKey(); // BEFORE the exchange — the public token is one-time, so failing later strands the item
   const ex = await plaid("/item/public_token/exchange", { public_token: publicToken });
   const accessToken = ex.access_token, itemId = ex.item_id;
   let inst = "";
@@ -133,6 +143,9 @@ async function exchangeAndStore(uid: string, publicToken: string): Promise<strin
   // to /item/remove it by. Surface it instead of reporting false success.
   if (!sr.ok) {
     console.error("plaid_items upsert failed:", sr.status, await sr.text().catch(() => ""));
+    // The exchange succeeded but the row didn't persist: remove the upstream
+    // item (best effort) so it doesn't linger unmanageable on Plaid's side.
+    try { await plaid("/item/remove", { access_token: accessToken }); } catch { /* best effort */ }
     throw new Error("SAVE_FAILED");
   }
   return inst;
@@ -157,6 +170,7 @@ Deno.serve(async (req: Request) => {
     // Start a Hosted Link session: Plaid hosts the Link page (handles OAuth banks);
     // we open hosted_link_url in the in-app browser and poll `complete`.
     if (action === "create_link_token") {
+      await requireEncKey(); // fail here, before the user does a whole bank login that can't be saved
       const hosted: Record<string, unknown> = {};
       const tokenBody: Record<string, unknown> = {
         client_name: "Go Farther",

@@ -98,7 +98,10 @@ async function alert(key: string, message: string): Promise<void> {
 // user-facing JWT the app sends (the service-role key gets 401 at the gateway).
 async function probeChat(): Promise<string | null> {
   const anon = await probeAnonKey();
-  if (!anon) return null; // can't probe ≠ broken
+  // Missing config is NOT "can't probe ≠ broken": with no key the chat probe
+  // would be silently off forever (every tick ok:true). Alert it — the 6h
+  // cooldown keeps it to one email — so a lost app_config row gets noticed.
+  if (!anon) return "chat probe disabled — app_config row 'probe_anon_key' is missing or unreadable";
   try {
     const r = await fetch(`${SB_URL}/functions/v1/chat`, {
       method: "POST",

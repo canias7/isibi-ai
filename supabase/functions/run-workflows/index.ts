@@ -174,6 +174,14 @@ async function memoryEnabled(uid: string): Promise<boolean> {
 }
 
 // ---- timezone-aware scheduling ----
+// Every Intl call below throws RangeError on a non-IANA tz string ("ET",
+// "GMT+5:30"). Unguarded, ONE bad saved tz wedged its workflow forever: the
+// throw landed before the claim, next_run_at never advanced, and it silently
+// failed every tick with no visible run. (runInstruction already guards its
+// own tz the same way.) Validate once where tz enters the math.
+function safeTz(tz: string): string {
+  try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return tz; } catch { return "UTC"; }
+}
 function localParts(date: Date, tz: string): Record<string, number> {
   const m: Record<string, number> = {};
   for (const p of new Intl.DateTimeFormat("en-US", { timeZone: tz, hour12: false, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }).formatToParts(date)) {
@@ -202,7 +210,7 @@ function localDow(date: Date, tz: string): number {
 // portion belongs to the day the window started on.
 function inWindow(now: Date, w: any): boolean {
   if (!w || typeof w !== "object") return true;
-  const tz = (typeof w.tz === "string" && w.tz) ? w.tz : "UTC";
+  const tz = safeTz((typeof w.tz === "string" && w.tz) ? w.tz : "UTC");
   const clamp = (n: number) => Math.min(1439, Math.max(0, Math.floor(Number(n) || 0)));
   const start = clamp(w.start), end = clamp(w.end);
   if (start === end) return false; // zero-length window = never active
@@ -220,7 +228,7 @@ function inWindow(now: Date, w: any): boolean {
 // Next UTC instant strictly after `from` that matches the schedule.
 function computeNext(from: Date, sched: any): Date | null {
   if (!sched || typeof sched !== "object") return null;
-  const tz = typeof sched.tz === "string" && sched.tz ? sched.tz : "UTC";
+  const tz = safeTz(typeof sched.tz === "string" && sched.tz ? sched.tz : "UTC");
   const hour = Math.min(23, Math.max(0, Number(sched.hour) || 0));
   const minute = Math.min(59, Math.max(0, Number(sched.minute) || 0));
   const freq = sched.freq || "daily";
@@ -563,7 +571,11 @@ Deno.serve(async (req: Request) => {
   const CONC = 3, BATCH = 50, MAX_PAGES = 20;
   for (let page = 0; page < MAX_PAGES && inBudget(); page++) {
     const q = `${SB_URL}/rest/v1/workflows?enabled=eq.true&trigger_type=eq.schedule&or=(next_run_at.is.null,next_run_at.lte.${encodeURIComponent(nowIso)})&select=*&order=next_run_at.asc.nullsfirst&limit=${BATCH}`;
-    const r = await fetch(q, { headers: sbHeaders });
+    // A thrown fetch (DNS/conn reset) must not 500 the whole tick and skip the
+    // event phase below — degrade exactly like a non-ok page does.
+    let r: Response;
+    try { r = await fetch(q, { headers: sbHeaders }); }
+    catch (e) { if (page === 0) return json({ error: `query failed: ${String((e as Error).message)}` }, 500); break; }
     if (!r.ok) { if (page === 0) return json({ error: `query ${r.status}` }, 500); break; }
     const due: any[] = await r.json();
     if (!due.length) break;
@@ -623,6 +635,20 @@ Deno.serve(async (req: Request) => {
           // Claim this fire (CAS on last_run_at) before acting — an overlapping
           // invocation that detected the same items loses the swap and skips.
           if (!(await claimEvent(wf.id, wf.last_run_at ?? null, nowIso))) continue;
+          // Mark the items seen NOW, not after the run: the CAS only excludes
+          // ticks that read the same PRIOR last_run_at — a tick starting while
+          // the (possibly minutes-long) run is still going reads the new claim
+          // but the OLD seen list, re-claims cleanly, and fires the same items
+          // again (two real emails). Marking seen pre-run is already the
+          // failure-path policy (failed runs don't re-fire); if even the
+          // retried write fails, SKIP the fire — a delayed action beats a
+          // doubled one (the items are re-detected next tick).
+          const merged = [...fresh.map((i) => i.id), ...seen].slice(0, 200);
+          if (!(await patchWorkflow(wf.id, { cursor: { seen: merged } }))
+              && !(await patchWorkflow(wf.id, { cursor: { seen: merged } }))) {
+            console.error(`cursor write failed twice for ${wf.id} — skipping this fire to avoid double-acting`);
+            continue;
+          }
           const missing = neededApps(wf.graph).filter((a) => !connected.includes(APP_TO_SLUG[a]));
           const ctx = fresh.slice(0, 8).map((i) => `• ${i.line} [id: ${i.id}]`).join("\n");
           const prompt = `Your trigger fired — these new item(s) were just detected in the user's connected app (their tool ids are in brackets, use them to act on the exact item):\n${ctx}\n\nUsing whatever tools across the user's apps you need (e.g. read the item, reply, send an email, create something), do the following about the item(s) above: ${wf.instruction}`;
@@ -642,14 +668,7 @@ Deno.serve(async (req: Request) => {
             const summary = text.replace(/```[\s\S]*?```/g, " ").replace(/\s+/g, " ").trim().slice(0, 140) || (ok ? "Done." : "Failed.");
             await pushUser(wf.user_id, wf.title || "Workflow", summary);
           }
-          // Remember everything currently seen (fresh + prior), capped — even on failure, so it doesn't re-fire endlessly.
-          const merged = [...fresh.map((i) => i.id), ...seen].slice(0, 200);
-          // The fire already took outward actions; a dropped cursor write would re-fire
-          // these same items next cycle, so retry once and log if it still fails.
-          if (!(await patchWorkflow(wf.id, { cursor: { seen: merged }, last_run_at: nowIso }))
-              && !(await patchWorkflow(wf.id, { cursor: { seen: merged }, last_run_at: nowIso }))) {
-            console.error(`cursor write failed twice for ${wf.id} — items may re-fire`);
-          }
+          // (seen cursor + last_run_at were both written at claim time, above.)
           eventFired++;
         } catch { /* skip this one */ }
       }

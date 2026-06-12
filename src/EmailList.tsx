@@ -457,6 +457,10 @@ function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fa
           ref={frameRef}
           className="gf-body-frame"
           title="Email"
+          // SECURITY: never add `allow-scripts` here. srcDoc is RAW EMAIL HTML
+          // (attacker-controlled); same-origin + scripts together would let a
+          // hostile email run code against the app's origin. Scripts are blocked
+          // today by this sandbox AND the default-src 'none' CSP in FRAME_HEAD.
           sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
           srcDoc={FRAME_HEAD + doc + FRAME_FOOT}
           onLoad={() => { fit(); setTimeout(fit, 500); }}
