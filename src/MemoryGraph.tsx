@@ -48,6 +48,11 @@ export default function MemoryGraph({ memories, loaded, loadErr, onRetry, enable
   const [filter, setFilter] = useState('');
   const [stars, setStars] = useState<number[]>([]);  // in-flight shooting stars
   const [flares, setFlares] = useState<number[]>([]); // the sun's bloom as a star lands
+  // Swipe-to-delete on the list rows (one open at a time).
+  const [swipedId, setSwipedId] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragX, setDragX] = useState(0);
+  const swipeRef = useRef<{ id: string; sx: number; sy: number; moved: boolean; horiz: boolean; base: number; dx: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const listUi = useDismiss(listOpen);
 
@@ -65,6 +70,7 @@ export default function MemoryGraph({ memories, loaded, loadErr, onRetry, enable
     setSelectedId(m.id);
     setInput(m.content);
     setPending(null);
+    setSwipedId(null);
     setListOpen(false); // editing happens in the composer; close the list to reveal it
   }
 
@@ -111,6 +117,41 @@ export default function MemoryGraph({ memories, loaded, loadErr, onRetry, enable
 
   const selected = selectedId ? memories.find((m) => m.id === selectedId) : null;
   function remove() { if (selectedId) { onDelete(selectedId); deselect(); } }
+
+  // ---- swipe-to-delete on the list rows ----
+  const clampX = (v: number) => Math.max(-104, Math.min(0, v));
+  function rowOffset(id: string): number {
+    if (dragId === id) return dragX;
+    if (swipedId === id) return -88;
+    return 0;
+  }
+  function rowDown(e: React.PointerEvent, id: string) {
+    swipeRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false, horiz: false, base: swipedId === id ? -88 : 0, dx: 0 };
+  }
+  function rowMove(e: React.PointerEvent) {
+    const s = swipeRef.current;
+    if (!s) return;
+    const dx = e.clientX - s.sx, dy = e.clientY - s.sy;
+    if (!s.moved) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      s.moved = true;
+      s.horiz = Math.abs(dx) > Math.abs(dy);
+      if (s.horiz && swipedId && swipedId !== s.id) setSwipedId(null); // only one open
+    }
+    if (!s.horiz) return; // vertical → let the list scroll
+    s.dx = clampX(s.base + dx);
+    setDragId(s.id);
+    setDragX(s.dx);
+  }
+  function rowUp(m: Memory) {
+    const s = swipeRef.current;
+    swipeRef.current = null;
+    if (s && !s.moved) { if (swipedId) setSwipedId(null); else select(m); } // tap: edit (or close an open row)
+    else if (s && s.horiz) setSwipedId(s.dx < -44 ? m.id : null); // snap open/closed
+    setDragId(null);
+    setDragX(0);
+  }
+  function deleteRow(id: string) { onDelete(id); setSwipedId(null); }
 
   const sub = n === 0
     ? (enabled ? 'Applied on every chat' : 'Paused')
@@ -227,12 +268,24 @@ export default function MemoryGraph({ memories, loaded, loadErr, onRetry, enable
           )}
           <div className="memg-mlist">
             {shown.map((m) => (
-              <div className="memg-mrow" key={m.id}>
-                <button className="memg-mrow-main" onClick={() => select(m)}>
+              <div className="memg-mrow-wrap" key={m.id}>
+                <button className="memg-mrow-delbg" aria-label="Delete memory" tabIndex={swipedId === m.id ? 0 : -1} onClick={() => deleteRow(m.id)}>
+                  <IconTrash size={18} /><span>Delete</span>
+                </button>
+                <div
+                  className={`memg-mrow${dragId === m.id ? ' dragging' : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  style={{ transform: `translateX(${rowOffset(m.id)}px)` }}
+                  onPointerDown={(e) => rowDown(e, m.id)}
+                  onPointerMove={rowMove}
+                  onPointerUp={() => rowUp(m)}
+                  onPointerCancel={() => { swipeRef.current = null; setDragId(null); setDragX(0); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(m); } }}
+                >
                   <span className="memg-mrow-ico"><MemoryIcon m={m} /></span>
                   <span className="memg-mrow-text">{m.content}</span>
-                </button>
-                <button className="memg-mrow-del" onClick={() => onDelete(m.id)} aria-label="Delete memory"><IconTrash size={16} /></button>
+                </div>
               </div>
             ))}
             {shown.length === 0 && <div className="memg-hint" style={{ position: 'static', marginTop: 24 }}>No memories match.</div>}

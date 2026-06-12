@@ -406,12 +406,27 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .memg-list-n { color: var(--text-faint); font-size: var(--fs-body-s); font-weight: 600; }
 .memg-listpanel .memg-filter { margin: 0 16px 8px; }
 .memg-mlist { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 16px 16px; -webkit-overflow-scrolling: touch; }
-.memg-mrow { display: flex; align-items: center; background: #17181b; border: 1px solid var(--line-1); border-radius: var(--r-card); margin-bottom: 8px; overflow: hidden; }
-.memg-mrow-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 11px; padding: 13px 14px; background: none; border: none; text-align: left; color: var(--text); font: inherit; cursor: pointer; }
+/* swipe-to-delete rows: the card slides left to reveal a Delete behind it */
+.memg-mrow-wrap { position: relative; margin-bottom: 8px; border-radius: var(--r-card); overflow: hidden; }
+.memg-mrow-delbg {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 88px; z-index: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  background: var(--danger-solid); color: #fff; border: none; cursor: pointer;
+  font: inherit; font-size: var(--fs-label); font-weight: 700;
+}
+.memg-mrow {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 11px;
+  background: #17181b; border: 1px solid var(--line-1); border-radius: var(--r-card);
+  padding: 13px 14px; color: var(--text); font: inherit; text-align: left; cursor: pointer;
+  touch-action: pan-y; user-select: none; -webkit-user-select: none;
+  transition: transform 0.22s var(--ease-exit); will-change: transform;
+}
+.memg-mrow.dragging { transition: none; }
+.memg-mrow:active { background: #1d1d21; }
 .memg-mrow-ico { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: #e7b24e; background: rgba(231, 178, 78, 0.10); border: 1.5px solid rgba(231, 178, 78, 0.5); }
 .memg-mrow-text { min-width: 0; font-size: var(--fs-body-s); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.memg-mrow-del { flex-shrink: 0; padding: 13px 14px; background: none; border: none; color: var(--danger); cursor: pointer; }
-.memg-mrow-del:active { background: var(--fill-2); }
+@media (prefers-reduced-motion: reduce) { .memg-mrow { transition: none; } }
 @media (prefers-reduced-motion: reduce) { .memg-star, .memg-sun-flare, .memg-listpanel { animation-duration: 0.01ms; } }
 
 .memg-core {
