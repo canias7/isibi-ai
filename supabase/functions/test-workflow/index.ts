@@ -183,7 +183,7 @@ Be strictly honest about each step's outcome: if a step needs an app/tool you do
   };
   const extra: Record<string, string> = {};
   if (apps.length) {
-    const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(uid)}&mem=0`;
+    const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(uid)}&tz=${encodeURIComponent(tz)}&mem=0`;
     reqBody.mcp_servers = [{ type: "url", url, name: "connectors", authorization_token: await mintUserToken(uid) }];
     // Deferred tool loading (same treatment as chat + the runner): only a search
     // index of the connected-apps catalog exists until the model discovers what

@@ -364,25 +364,37 @@ function resolveRemindAt(remindAt: string, tz: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 // Persist one reminder for the user (service role, scoped to the passed uid).
-async function setReminder(uid: string, args: any): Promise<string> {
+async function setReminder(uid: string, args: any, defaultTz = "UTC"): Promise<string> {
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key || !uid) throw new Error("reminders unavailable");
   const a = args || {};
   const title = String(a.title ?? "").trim().slice(0, 200);
   if (!title) throw new Error("missing reminder title");
-  const tz = (String(a.tz ?? "").trim()) || "UTC";
+  // The model should pass `tz`, but if it forgets we use the caller's device tz
+  // (the chat fn appends it to the proxy URL) rather than silently assuming UTC.
+  const tz = (String(a.tz ?? "").trim()) || defaultTz || "UTC";
   const at = resolveRemindAt(String(a.remind_at ?? ""), tz);
   if (!at) throw new Error("couldn't understand the reminder time");
   const repeat = ["none", "daily", "weekly"].includes(String(a.repeat)) ? String(a.repeat) : "none";
+  let when = at.toISOString();
+  try { when = new Intl.DateTimeFormat("en-US", { timeZone: tz, dateStyle: "medium", timeStyle: "short" }).format(at); } catch { /* keep ISO */ }
+  // A one-off in the past would be stored but never fire (the app drops past
+  // one-offs), so don't falsely confirm — tell the model to re-ask. Repeating
+  // reminders roll forward to their next occurrence, so a past start is fine.
+  if (repeat === "none" && at.getTime() <= Date.now() + 30_000) {
+    return `Not set — ${when} is already in the past. Ask the user what FUTURE time they'd like.`;
+  }
+  // A wildly mis-parsed far-future date is almost certainly an error.
+  if (at.getTime() > Date.now() + 5 * 365 * 86_400_000) {
+    return `Not set — ${when} is unexpectedly far in the future. Confirm the exact date with the user.`;
+  }
   const r = await fetch(`${url}/rest/v1/user_reminders`, {
     method: "POST",
     headers: { "content-type": "application/json", apikey: key, authorization: `Bearer ${key}`, prefer: "return=minimal" },
     body: JSON.stringify({ user_id: uid, title, remind_at: at.toISOString(), repeat }),
   });
   if (!r.ok) throw new Error(`save failed ${r.status}: ${(await r.text().catch(() => ""))}`);
-  let when = at.toISOString();
-  try { when = new Intl.DateTimeFormat("en-US", { timeZone: tz, dateStyle: "medium", timeStyle: "short" }).format(at); } catch { /* keep ISO */ }
   const rep = repeat === "daily" ? " (repeats daily)" : repeat === "weekly" ? " (repeats weekly)" : "";
   return `Reminder set: "${title}" for ${when}${rep}.`;
 }
@@ -1413,6 +1425,7 @@ Deno.serve(async (req: Request) => {
   const apps = (reqUrl.searchParams.get("apps") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   const reqUser = tokenUid; // identity comes from the verified token, never a URL param
   const memOn = reqUrl.searchParams.get("mem") !== "0"; // memory tool on unless the chat fn paused it
+  const reqTz = reqUrl.searchParams.get("tz") || "UTC"; // caller's device tz — fallback for the reminder tool
 
   let msg: any;
   try { msg = await req.json(); } catch { return new Response("bad json", { status: 400 }); }
@@ -1520,7 +1533,7 @@ Deno.serve(async (req: Request) => {
         const text = p.name === "GF_WEATHER" ? await weatherLookup(a.location, String(a.units || "fahrenheit"))
           : p.name === "GF_MAPS" ? await mapsTool(a)
           : p.name === "GF_SAVE_TABLE" ? await saveTable(reqUser, a)
-          : p.name === "GF_SET_REMINDER" ? await setReminder(reqUser, a)
+          : p.name === "GF_SET_REMINDER" ? await setReminder(reqUser, a, reqTz)
           : await imageTool(reqUser, a);
         await logUsage(p.name, true, reqUser);
         return J({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
