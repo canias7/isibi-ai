@@ -387,7 +387,14 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       // Returning from the in-app browser (success OR cancel) → refresh right
       // away, so a cancel doesn't hang and a slow connect isn't missed.
       if (browserSub.current) { browserSub.current.remove(); browserSub.current = null; }
-      browserSub.current = await Browser.addListener('browserFinished', () => { void refreshAll(); setTimeout(() => void refreshAll(), 1500); });
+      browserSub.current = await Browser.addListener('browserFinished', () => {
+        // Back in the app → "finish in the browser" is stale; drop the banner
+        // NOW instead of waiting out the 75s timer (the bug: OAuth back-outs sat
+        // on the banner). pendingConnect + the poll stay alive, so a completed
+        // OAuth still resolves and opens the tool picker; a back-out just ends.
+        setConnecting((c) => (c === id ? null : c));
+        void refreshAll(); setTimeout(() => void refreshAll(), 1500);
+      });
     } else if (win) {
       win.location.href = startUrl;
     } else {
@@ -736,12 +743,10 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
                 Link another bank
               </button>
             )}
-            {sheetConn.id !== 'plaid' && !status[sheetConn.id]?.broken && (
-              <button className="cg-sheet-btn" onClick={() => { const c = sheetConn; setDetail(null); void connect(c.id); }}>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-                Add another account
-              </button>
-            )}
+            {/* No "Add another account" for OAuth apps — one account per app keeps
+                tool prefs and tool execution unambiguous (a second account had no
+                way to pick which one a tool acted on). Plaid (multiple distinct
+                banks) is the one intended multi-link case. */}
             <button className="cg-sheet-btn danger" onClick={() => disconnect(sheetConn.id)}>
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
               Disconnect
