@@ -57,14 +57,74 @@ function corsFor(req: Request): Record<string, string> {
   };
 }
 
-function userFromJwt(req: Request): string | null {
+// ---- Verified caller identity (defense-in-depth) ----------------------------
+// Mirrors chat: the gateway (verify_jwt=true) already rejects forged JWTs, but
+// the code must not depend on an out-of-repo flag — a Test run takes REAL
+// actions as this user, so the signature is verified here too before `sub` is
+// trusted. ES256 tokens verify locally against the cached public JWKS; anything
+// unverifiable locally is checked with the Auth server; both failing = 401.
+
+function b64urlBytes(s: string): Uint8Array {
+  const t = s.replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(t + "=".repeat((4 - (t.length % 4)) % 4));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+let jwksCache: { keys: Record<string, CryptoKey>; at: number } | null = null;
+async function jwksKey(kid: string): Promise<CryptoKey | null> {
+  if (jwksCache && (jwksCache.keys[kid] || Date.now() - jwksCache.at < 60_000)) return jwksCache.keys[kid] ?? null;
+  if (!SB_URL) return null;
+  try {
+    const r = await fetch(`${SB_URL}/auth/v1/.well-known/jwks.json`);
+    if (!r.ok) return jwksCache?.keys[kid] ?? null;
+    const j = await r.json();
+    const keys: Record<string, CryptoKey> = {};
+    for (const k of j.keys ?? []) {
+      if (k.kty !== "EC" || k.crv !== "P-256" || !k.kid) continue;
+      try { keys[String(k.kid)] = await crypto.subtle.importKey("jwk", k, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]); } catch { /* skip bad key */ }
+    }
+    jwksCache = { keys, at: Date.now() };
+    return keys[kid] ?? null;
+  } catch {
+    return jwksCache?.keys[kid] ?? null; // outage — serve stale if we have it
+  }
+}
+
+async function authServerUser(token: string): Promise<string | null> {
+  if (!SB_URL) return null;
+  try {
+    const r = await fetch(`${SB_URL}/auth/v1/user`, { headers: { authorization: `Bearer ${token}`, apikey: SB_KEY ?? "" } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return typeof j?.id === "string" && j.id ? j.id : null;
+  } catch {
+    return null;
+  }
+}
+
+async function userFromJwt(req: Request): Promise<string | null> {
   try {
     const auth = req.headers.get("authorization") || "";
     const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
-    const payload = token.split(".")[1];
-    if (!payload) return null;
-    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
-    return typeof json.sub === "string" ? json.sub : null;
+    const [h, p, sig] = token.split(".");
+    if (!h || !p || !sig) return null;
+    const payload = JSON.parse(new TextDecoder().decode(b64urlBytes(p)));
+    if (payload.role !== "authenticated" || typeof payload.sub !== "string" || !payload.sub) return null;
+    if (typeof payload.exp === "number" && payload.exp * 1000 < Date.now()) return null;
+    const header = JSON.parse(new TextDecoder().decode(b64urlBytes(h)));
+    if (header.alg === "ES256" && typeof header.kid === "string") {
+      const key = await jwksKey(header.kid);
+      if (key) {
+        const ok = await crypto.subtle.verify(
+          { name: "ECDSA", hash: "SHA-256" }, key, b64urlBytes(sig), new TextEncoder().encode(`${h}.${p}`),
+        );
+        if (ok) return payload.sub;
+        return await authServerUser(token); // just-rotated key — the Auth server decides
+      }
+    }
+    return await authServerUser(token);
   } catch {
     return null;
   }
@@ -276,7 +336,7 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return J({ error: "method not allowed" }, 405);
 
-  const uid = userFromJwt(req);
+  const uid = await userFromJwt(req);
   if (!uid) return J({ error: "unauthorized" }, 401);
 
   let instruction = "", workflowId = "", tz = "UTC", model = "";
