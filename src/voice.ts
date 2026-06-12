@@ -265,8 +265,10 @@ export async function transcribe(blob: Blob): Promise<string> {
 // or syntax. (The thread still renders the rich cards visually.)
 export function speakable(s: string): string {
   return s
-    .replace(/\[\[gf(id|status):[^\]]*\]\]/g, '')
+    .replace(/\[\[gf(id|status|sync):[^\]]*\]\]/g, '')
+    .replace(/\[\[gf\w*(?::[^\]]*)?\]?$/, '') // a partial marker still streaming
     .replace(/```[\s\S]*?```/g, '. ')        // fenced blocks (cards, code)
+    .replace(/```[\s\S]*$/, '. ')            // an unclosed fence mid-stream (card JSON)
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')     // images
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')  // links -> their text
     .replace(/[*_#`>~|]/g, '')                // markdown punctuation

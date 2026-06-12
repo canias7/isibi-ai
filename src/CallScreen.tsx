@@ -4,7 +4,8 @@ import { bump, chime } from './haptics';
 import { listenOnce, transcribe, speak, speakable, stopSpeaking, micSupported } from './voice';
 import { streamChat, type ChatMessage, type Attach } from './api';
 import { IconPhoneOff, IconCamera } from './icons';
-import SunOrb from './SunOrb';
+// Per-bar height weight for the voice wave (center-peaked, like a soundprint).
+const WAVE_W = [0.45, 0.78, 1, 0.78, 0.45];
 
 type Phase = 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
 
@@ -15,12 +16,13 @@ const cid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 // so all tools/memory still work) → speak the reply → listen again. The whole
 // exchange lands in the chat thread via onTurn, so you can scroll it later.
 export default function CallScreen({
-  baseHistory, apps, conversationId, memoryOn, onTurn, onReminderSet, onClose,
+  baseHistory, apps, conversationId, memoryOn, model, onTurn, onReminderSet, onClose,
 }: {
   baseHistory: ChatMessage[];
   apps?: string[];
   conversationId?: string;
   memoryOn?: boolean;
+  model?: string; // the conversation's model choice — voice turns honor it like typed ones
   onTurn: (history: ChatMessage[]) => void;
   onReminderSet?: () => void; // the assistant set a reminder this turn — re-arm the device notification
   onClose: () => void;
@@ -28,7 +30,7 @@ export default function CallScreen({
   const [phase, setPhase] = useState<Phase>('connecting');
   const [caption, setCaption] = useState('');  // live transcript / status line
   const [reply, setReply] = useState('');       // assistant's current spoken reply
-  const [level, setLevel] = useState(0);        // mic level 0..1 for the orb
+  const [level, setLevel] = useState(0);        // mic level 0..1 for the voice wave
   const [err, setErr] = useState('');
   const [lensOn, setLensOn] = useState(false); // Live Lens: camera preview; each question carries the current frame
 
@@ -120,8 +122,10 @@ export default function CallScreen({
           ctrl.signal,
           apps,
           conversationId,
-          undefined,
+          undefined, // onModel
           memoryOn,
+          undefined, // location
+          model, // per-chat model choice applies to voice turns too
         );
       } catch (e) {
         if (!runningRef.current) return;
@@ -228,15 +232,19 @@ export default function CallScreen({
         <div className="call-status">{statusLabel}</div>
       </div>
 
+      {/* The voice wave: bars that move with YOUR mic level while listening
+          (genuinely audio-reactive via --lvl), ripple while thinking, and dance
+          while speaking. Tap to interrupt mid-speech, same as before. */}
       <button
         type="button"
-        className={`call-orb call-${phase}`}
+        className={`call-wave call-${phase}`}
         style={{ '--lvl': level } as CSSProperties}
         onClick={onOrbTap}
         aria-label="Assistant"
       >
-        <SunOrb size={150} className="call-orb-core" />
-        <span className="call-orb-ring" />
+        {WAVE_W.map((w, i) => (
+          <span key={i} className="call-wave-bar" style={{ '--i': i, '--w': w } as CSSProperties} />
+        ))}
       </button>
 
       {lensOn && <video ref={videoRef} className="call-lens" autoPlay playsInline muted />}

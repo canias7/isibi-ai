@@ -508,9 +508,12 @@ async function listTools(apps: string[], prefs: Record<string, string[]>, memOn:
     return toolsForToolkit(tk, slugs);
   }));
   for (const l of lists) out.push(...l);
-  // Long-term memory is available with or without connectors — unless paused
-  // (the chat function passes &mem=0 when the user turned the feature off).
-  if (memOn) { out.push(MEMORY_TOOL); out.push(MEMORY_FILE_TOOL); }
+  // Long-term memory SAVING is available with or without connectors — unless
+  // paused (&mem=0: user toggle, and all workflow runs). The FILE-staging tool
+  // is read-only and stays available regardless: workflow steps like "email my
+  // saved passport scan" need it, and the runners' prompts advertise it.
+  if (memOn) out.push(MEMORY_TOOL);
+  out.push(MEMORY_FILE_TOOL);
   if (bankOn) {
     const allBank = [BANK_BALANCES_TOOL, BANK_TRANSACTIONS_TOOL, BANK_RECURRING_TOOL,
       BANK_LIABILITIES_TOOL, BANK_INVESTMENTS_TOOL, BANK_IDENTITY_TOOL,

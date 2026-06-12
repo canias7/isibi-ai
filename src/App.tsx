@@ -6,7 +6,7 @@ import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconPhone, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown, IconLogout } from './icons';
+import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconWaveform, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown, IconLogout } from './icons';
 import { primeAudio, resumeAudio, audioState, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { sentSound, replySound, soundsOn, setSoundsOn, soundTheme, setSoundTheme, type SoundTheme } from './earcons';
 import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
@@ -14,8 +14,8 @@ import { pickSuggestions } from './suggestions';
 import { fetchUsage, summarize, fmtUsd, fmtTokens, fmtDuration, sourceLabel, loadBudget, saveBudget, type UsageSummary } from './usage';
 import { MODEL_OPTIONS, type ModelChoice } from './models';
 import { track } from './analytics';
-import { useFocusTrap, radioArrowNav } from './a11y';
-import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, registerReminderActions, onReminderAction, snoozeNudge, type Reminder, type RepeatKind } from './reminders';
+import { useFocusTrap, radioArrowNav, isArrowSelecting } from './a11y';
+import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, registerReminderActions, onReminderAction, snoozeNudge, cancelAllReminderNotifications, type Reminder, type RepeatKind } from './reminders';
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
 import { loadReminderSound, saveReminderSound, previewReminderSound } from './reminderSounds';
 import { App as CapApp } from '@capacitor/app';
@@ -369,6 +369,9 @@ export default function App() {
   // A message composed WHILE the assistant is replying — sent automatically the
   // moment the current turn finishes, so thinking time is never dead time.
   const [queued, setQueued] = useState<{ text: string; atts: Attach[] } | null>(null);
+  const queuedRef = useRef(queued);          // latest queued, for the chat-switch fold below
+  queuedRef.current = queued;
+  const prevChatIdRef = useRef<string | null>(null); // which chat a queued message belonged to
   const fileRef = useRef<HTMLInputElement>(null);
   const menuOpenedAt = useRef(0); // guards against the tap's ghost-click closing a just-opened menu
   const seenRef = useRef<string[]>([]);
@@ -613,11 +616,22 @@ export default function App() {
   // would replay that old turn into the chat now open. The failed bubble doesn't
   // survive a chat switch either, so this just matches what's on screen.
   useEffect(() => {
-    pendingTurnRef.current = null; retryingRef.current = false; setCopiedIdx(null); setQueued(null);
+    pendingTurnRef.current = null; retryingRef.current = false; setCopiedIdx(null);
+    // A message queued for the PREVIOUS chat must not vanish on switch — fold it
+    // into that chat's draft (mirrors the crash-recovery path); never auto-send.
+    const prevId = prevChatIdRef.current;
+    prevChatIdRef.current = currentId;
+    const q = queuedRef.current;
+    if (q?.text && prevId && prevId !== currentId) {
+      const prevDraft = draftsRef.current[prevId];
+      draftsRef.current[prevId] = prevDraft ? `${prevDraft}\n${q.text}`.trim() : q.text;
+      if (uid) saveDrafts(uid, draftsRef.current);
+    }
+    setQueued(null);
     setInput(draftsRef.current[currentId] ?? ''); // each chat keeps its own draft
     setModel(modelsRef.current[currentId] ?? 'auto'); // …and its own model choice
     setVisCount(60); // windowed thread: a freshly opened chat renders its tail
-     
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentId]);
 
   // A short-lived note in Settings (auto-clears) — used to explain why a toggle
@@ -642,6 +656,7 @@ export default function App() {
         return;
       }
       void lockRef.current(); // re-prompt the biometric lock on resume (no-op unless on)
+      reArmRemindersRef.current(); // arm reminders set while away (workflows, interrupted turns)
       const since = awaySinceRef.current;
       awaySinceRef.current = 0;
       const away = since ? Date.now() - since : 0;
@@ -721,7 +736,8 @@ export default function App() {
   useEffect(() => {
     const onForce = (e: Event) => {
       const mode = (e as CustomEvent<{ mode: ForceUpdateMode }>).detail?.mode;
-      setForceUpdate(mode === 'appstore' ? 'appstore' : 'updating');
+      // 'clear' = a forced download failed; drop the gate instead of bricking.
+      setForceUpdate(mode === 'clear' ? null : mode === 'appstore' ? 'appstore' : 'updating');
     };
     window.addEventListener(FORCE_UPDATE_EVENT, onForce);
     return () => window.removeEventListener(FORCE_UPDATE_EVENT, onForce);
@@ -750,12 +766,19 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-arm reminder notifications on launch so the device's schedule matches the
-  // table (covers edits made on another device and any OS purge). Best-effort,
-  // native-only — a no-op on web.
-  useEffect(() => {
+  // Re-arm reminder notifications so the device's schedule matches the table —
+  // on launch AND on resume/adoption (covers edits from another device, an OS
+  // purge, reminders a WORKFLOW set while the app was closed, and one set during
+  // a turn we backgrounded out of, whose sync marker never reached us). Keeps
+  // the list state too, so lock-screen Snooze knows titles after a cold launch.
+  const reArmReminders = () => {
     if (!uid) return;
-    void listReminders().then(syncReminders);
+    void listReminders().then((list) => { setReminders(list); return syncReminders(list); });
+  };
+  const reArmRemindersRef = useRef(reArmReminders);
+  reArmRemindersRef.current = reArmReminders;
+  useEffect(() => {
+    reArmRemindersRef.current();
   }, [uid]);
 
   // Persist the active conversation once a turn finishes (not on every token).
@@ -802,7 +825,7 @@ export default function App() {
     }).then((h) => { if (h) subs.push(h); });
     void onReminderAction((actionId, reminderId) => {
       if (actionId === 'done' && reminderId) notifRoutesRef.current.done(reminderId);
-      else if (actionId === 'snooze' && reminderId) void snoozeNudge(notifRoutesRef.current.title(reminderId));
+      else if (actionId === 'snooze' && reminderId) void snoozeNudge(notifRoutesRef.current.title(reminderId), reminderId);
       else notifRoutesRef.current.openReminders();
     }).then((h) => { if (h) subs.push(h); });
     return () => { for (const s of subs) s.remove(); };
@@ -999,6 +1022,9 @@ export default function App() {
     if (!uid) return;
     pendingTurnRef.current = null;
     if (bgWaitRef.current?.convId === cur.id) bgWaitRef.current = null; // the awaited reply arrived
+    // The adopted (server-finished) turn may have set a reminder; its sync
+    // marker never reached this device, so re-arm from the table.
+    reArmRemindersRef.current();
     setChats((prev) => { const next = [cur, ...prev.filter((c) => c.id !== cur.id)]; saveChats(uid, next); return next; });
     if (cur.id !== currentIdRef.current) return; // not the open chat — list updated, don't disturb the view
     jumpRef.current = true;
@@ -1213,10 +1239,13 @@ export default function App() {
   function pickChatModel(m: ModelChoice) {
     void tap();
     setModel(m);
-    if (m === 'auto') delete modelsRef.current[currentId];
-    else modelsRef.current[currentId] = m;
+    // LRU refresh: delete-then-set moves the key to the end of insertion order,
+    // so saveChatModels' size cap evicts stale entries, not the one just picked.
+    delete modelsRef.current[currentId];
+    if (m !== 'auto') modelsRef.current[currentId] = m;
     if (uid) saveChatModels(uid, modelsRef.current);
-    setModelOpen(false);
+    // Arrow-key navigation selects without dismissing; only a tap/Enter closes.
+    if (!isArrowSelecting()) setModelOpen(false);
   }
 
   // One-tap end-to-end check: ask the backend to push us a test notification.
@@ -1656,6 +1685,16 @@ export default function App() {
     try {
       if (uid) wipeStoredChats(uid);
     } catch { /* ignore */ }
+    // Kill pending debounce timers and in-memory maps too — a draft timer firing
+    // ~400ms after the wipe would write the old user's drafts straight back.
+    if (draftTimer.current) { clearTimeout(draftTimer.current); draftTimer.current = null; }
+    if (reArmTimer.current) { clearTimeout(reArmTimer.current); reArmTimer.current = null; }
+    draftsRef.current = {};
+    modelsRef.current = {};
+    // And un-arm the signed-out user's reminder notifications: a shared device
+    // must not keep firing their titles on the lock screen.
+    void cancelAllReminderNotifications();
+    setReminders([]);
     setChats([]);
     setPinned(new Set());
     setMessages([]);
@@ -1760,6 +1799,12 @@ export default function App() {
           <div className="lock-brand">Go Farther</div>
           <button className="lock-btn" onClick={() => void lockRef.current()}>Unlock</button>
         </div>
+      )}
+      {/* flashNote() messages used to render ONLY inside Settings — invisible to
+          the chat view they often concern (e.g. "turn on notifications to get
+          reminders"). Outside Settings, show them as a transient toast. */}
+      {noteMsg && view !== 'settings' && (
+        <div className="gf-note-toast" role="status" aria-live="polite">{noteMsg}</div>
       )}
       <SidebarNav
         open={sidebarOpen}
@@ -2030,7 +2075,7 @@ export default function App() {
                   // No visible text yet → AssistantMessage shows its own "thinking"
                   // (or tool-activity) indicator, so don't also blink the bare cursor.
                   const thinking = streamingHere
-                    && !m.content.replace(/\[\[gf(?:status|sync):[^\]]*\]\]/g, '').replace(/\[\[gf(?:status|sync)[^\]]*$/, '').trim();
+                    && !m.content.replace(/\[\[gf(?:status|sync):[^\]]*\]\]/g, '').replace(/\[\[gf\w*(?::[^\]]*)?\]?$/, '').trim();
                   return (
                     <div key={m.id ?? i} className={`msg ${m.role}`}>
                       <div className="bubble">
@@ -2189,7 +2234,7 @@ export default function App() {
                   disabled={busy}
                   aria-label="Talk to Go Farther"
                 >
-                  <IconPhone size={20} />
+                  <IconWaveform size={20} />
                 </button>
                 <textarea
                   ref={taRef}
@@ -2295,6 +2340,7 @@ export default function App() {
               apps={connLoaded ? [...enabled] : undefined}
               conversationId={currentId}
               memoryOn={memEnabled}
+              model={model}
               onTurn={(h) => { dirtyRef.current = true; setMessages(h); }}
               onReminderSet={() => void syncRemindersFromChat()}
               onClose={() => { setCallOpen(false); closeAudio(); }}

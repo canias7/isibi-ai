@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { byId } from './connectorData';
 import { MODEL_OPTIONS } from './models';
-import { keyActivate, useFocusTrap, radioArrowNav } from './a11y';
+import { keyActivate, useFocusTrap, radioArrowNav, isArrowSelecting } from './a11y';
 import { tap, bump, chime } from './haptics';
 import { BrandConstellation } from './brand';
 import { BrandLogo } from './brandLogos';
@@ -21,7 +21,7 @@ import {
 // is one fixed task, so the user picks a concrete tier; Sonnet is the default).
 const WF_MODEL_OPTIONS = MODEL_OPTIONS.filter((o) => o.id !== 'auto');
 const wfModelOpt = (id: string | null | undefined) =>
-  WF_MODEL_OPTIONS.find((o) => o.id === id) ?? WF_MODEL_OPTIONS.find((o) => o.id === 'sonnet')!;
+  WF_MODEL_OPTIONS.find((o) => o.id === id) ?? WF_MODEL_OPTIONS.find((o) => o.id === 'sonnet') ?? WF_MODEL_OPTIONS[0];
 
 type NodeResult = { ok: boolean; output: string };
 // A turn in the clarify chat; assistant turns carry the structured questions
@@ -531,12 +531,14 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
   const [edgeState, setEdgeState] = useState<'idle' | 'run' | 'pass' | 'fail'>('idle');
   const [results, setResults] = useState<Record<string, NodeResult>>({}); // per-node test outcomes
   const [enabled, setEnabled] = useState(enabledInit);             // live on/off (top-right toggle)
-  const [model, setModel] = useState<string>(() => wfModelOpt(modelInit).id); // which model runs this workflow (default Sonnet)
+  // null = "server default" (Sonnet today) — preserved until the user explicitly
+  // picks, so a future default change isn't silently pinned by a stray edit.
+  const [model, setModel] = useState<string | null>(modelInit ?? null);
   const [modelOpen, setModelOpen] = useState(false);               // model-picker sheet
   const [savedId, setSavedId] = useState<string | undefined>(wfId); // workflow id once persisted
   const savedIdRef = useRef<string | undefined>(wfId);
   savedIdRef.current = savedId;
-  const creatingRef = useRef(false); // guards against a double create on first save
+  const createRef = useRef<Promise<void> | null>(null); // in-flight first save — later persists await it instead of no-opping
   const initedRef = useRef(false);   // skip the very first auto-save effect run
   const savedTriggerRef = useRef(JSON.stringify(initial.trigger)); // last-persisted trigger — only resend when it changes
   const dirtyRef = useRef(false);    // unsaved edits pending (flushed on close)
@@ -606,6 +608,10 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
   // start OFF), update it thereafter. Saving is automatic (no button); the
   // top-right toggle controls whether it's live.
   async function persist(extra: { enabled?: boolean } = {}) {
+    // A create may be mid-flight (slow network) — wait for it and fall through
+    // to the update path, so flipping On / a last edit during the initial save
+    // is never silently dropped (it used to no-op, leaving the toggle a lie).
+    if (createRef.current) await createRef.current;
     const instruction = compileInstruction(title.trim(), graph);
     if (savedIdRef.current) {
       // Only resend `trigger` when it actually changed — updateWorkflow resets
@@ -613,13 +619,19 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
       // would reschedule (and skip runs / drop event dedupe) on trivial edits.
       const fields: Parameters<typeof updateWorkflow>[1] = { title: title.trim(), instruction, graph, model, ...extra };
       const tStr = JSON.stringify(trigger);
-      if (tStr !== savedTriggerRef.current) { fields.trigger = trigger; savedTriggerRef.current = tStr; }
-      await updateWorkflow(savedIdRef.current, fields);
-    } else if (!creatingRef.current) {
-      creatingRef.current = true;
-      const w = await createWorkflow(title.trim(), instruction, trigger, graph, extra.enabled ?? enabled, model);
-      if (w) { savedIdRef.current = w.id; setSavedId(w.id); savedTriggerRef.current = JSON.stringify(trigger); }
-      creatingRef.current = false;
+      const sendTrigger = tStr !== savedTriggerRef.current;
+      if (sendTrigger) fields.trigger = trigger;
+      const ok = await updateWorkflow(savedIdRef.current, fields);
+      // Mark the trigger persisted only on success — marking it optimistically
+      // meant one failed save orphaned the edit forever (UI showing a schedule
+      // the DB never got).
+      if (ok && sendTrigger) savedTriggerRef.current = tStr;
+    } else {
+      createRef.current = (async () => {
+        const w = await createWorkflow(title.trim(), instruction, trigger, graph, extra.enabled ?? enabled, model);
+        if (w) { savedIdRef.current = w.id; setSavedId(w.id); savedTriggerRef.current = JSON.stringify(trigger); }
+      })();
+      try { await createRef.current; } finally { createRef.current = null; }
     }
   }
 
@@ -739,10 +751,10 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
             {WF_MODEL_OPTIONS.map((o) => (
               <button
                 key={o.id}
-                className={`model-opt${o.id === model ? ' on' : ''}`}
+                className={`model-opt${o.id === wfModelOpt(model).id ? ' on' : ''}`}
                 role="menuitemradio"
-                aria-checked={o.id === model}
-                onClick={() => { void tap(); setModel(o.id); setModelOpen(false); }}
+                aria-checked={o.id === wfModelOpt(model).id}
+                onClick={() => { void tap(); setModel(o.id); if (!isArrowSelecting()) setModelOpen(false); }}
               >
                 <span className={`model-dot d${o.dots}`} aria-hidden />
                 <span className="model-opt-text">
@@ -1020,8 +1032,10 @@ function TriggerEditor({ trigger, connApps, onChange }: { trigger: Trigger; conn
   const timeVal = `${String(sched.hour).padStart(2, '0')}:${String(sched.minute).padStart(2, '0')}`;
   const setSched = (s: Schedule) => onChange({ type: 'schedule', schedule: s });
   // Merge a patch into the event config, preserving app / filter / window.
+  // tz rides along so the runner can reason about times (and set reminders) in
+  // the user's zone even when no active-hours window is configured.
   const setEvent = (patch: Partial<EventCfg>) =>
-    onChange({ type: 'event', event: { app: evApp, filter: evFilter, ...(evWindow ? { window: evWindow } : {}), ...patch } });
+    onChange({ type: 'event', event: { app: evApp, filter: evFilter, tz: deviceTz(), ...(evWindow ? { window: evWindow } : {}), ...patch } });
   const fmtMin = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   const parseTime = (v: string) => { const [h, m] = v.split(':').map((x) => parseInt(x, 10)); return isNaN(h) || isNaN(m) ? null : h * 60 + m; };
   // Never persist a zero-length window (start === end), which the runner reads as "never active".

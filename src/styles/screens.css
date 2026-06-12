@@ -89,6 +89,26 @@
 .rem-snd-row:active { background: var(--fill-2); }
 .rem-snd-row.on, .rem-snd-row.on > svg { color: var(--brand); }
 .rem-snd-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Global note toast — flashNote() messages surfaced outside Settings (e.g. the
+   "turn on notifications" nudge after a chat-set reminder). */
+.gf-note-toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  z-index: 240;
+  max-width: min(86vw, 480px);
+  padding: 10px 14px;
+  border-radius: var(--r-card);
+  border: 1px solid var(--line-2);
+  background: rgba(28, 28, 32, 0.95);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  color: var(--text);
+  font-size: var(--fs-footnote);
+  line-height: 1.45;
+  text-align: center;
+}
 .set-version {
   text-align: center;
   color: var(--text-faint);

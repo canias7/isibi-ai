@@ -132,17 +132,26 @@ export function sourceLabel(s: string): string {
 }
 
 // The user's own usage rows for the last 30 days (RLS scopes to auth.uid()).
+// Paged: a single capped query silently truncates the MONTHLY totals for heavy
+// users (scheduled workflows alone can pass 2000 rows/30d), under-reporting the
+// budget bar. Newest-first pages keep today/week exact even if the cap is hit.
 export async function fetchUsage(): Promise<UsageRow[] | null> {
   try {
     const since = new Date(Date.now() - 30 * 86400_000).toISOString();
-    const { data, error } = await supabase
-      .from('ai_usage')
-      .select('source,model,in_tokens,cache_write_tokens,cache_read_tokens,out_tokens,created_at')
-      .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(2000);
-    if (error || !data) return null;
-    return data as UsageRow[];
+    const PAGE = 1000;
+    const out: UsageRow[] = [];
+    for (let page = 0; page < 12; page++) { // up to 12k rows — beyond that, close enough
+      const { data, error } = await supabase
+        .from('ai_usage')
+        .select('source,model,in_tokens,cache_write_tokens,cache_read_tokens,out_tokens,created_at')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .range(page * PAGE, page * PAGE + PAGE - 1);
+      if (error || !data) return out.length ? out : null;
+      out.push(...(data as UsageRow[]));
+      if (data.length < PAGE) break;
+    }
+    return out;
   } catch {
     return null;
   }

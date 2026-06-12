@@ -105,5 +105,7 @@ export function modelShort(m: string): string {
 // the internal marker, so "Copy" yields readable text (and is hidden for a
 // card-only reply where there's nothing to copy).
 export function plainText(s: string): string {
-  return s.replace(/```gf[\s\S]*?```/g, '').replace(/\[\[gf(id|status|sync):[^\]]*\]\]/g, '').trim();
+  // The trailing pattern also catches a PARTIAL marker left by a mid-marker
+  // Stop ("…[[gfstatus:Searching"), which would otherwise leak into Copy.
+  return s.replace(/```gf[\s\S]*?```/g, '').replace(/\[\[gf(id|status|sync):[^\]]*\]\]/g, '').replace(/\[\[gf\w*(?::[^\]]*)?\]?$/, '').trim();
 }

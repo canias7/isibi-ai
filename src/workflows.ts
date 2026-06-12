@@ -24,6 +24,7 @@ export interface EventCfg {
   app: string;        // frontend connector id (e.g. 'gmail', 'slack', 'gcal')
   filter?: string;    // natural-language condition, e.g. "from boss@co.com" / "in #general"
   window?: EventWindow | null; // active hours; absent/null = watches all day, every day
+  tz?: string;        // user's IANA timezone — the runner uses it for time context (older rows lack it)
 }
 export type Trigger =
   | { type: 'schedule'; schedule: Schedule }
@@ -259,12 +260,22 @@ export async function buildWorkflow(messages: BuildMsg[]): Promise<BuildResult |
     const graph = d.graph as WfGraph | undefined;
     if (!graph || !Array.isArray(graph.nodes)) return null;
     const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.text ?? '';
+    // Don't trust the builder's trigger shape blindly: a malformed one crashes
+    // the trigger editor and makes every auto-save silently fail. Fall back to
+    // a sane daily schedule instead.
+    const t = d.trigger as Trigger | undefined;
+    const trigger: Trigger =
+      t?.type === 'event' && t.event && typeof t.event.app === 'string'
+        ? { type: 'event', event: { ...t.event, tz: t.event.tz || deviceTz() } }
+        : t?.type === 'schedule' && t.schedule && typeof t.schedule.hour === 'number'
+          ? t
+          : { type: 'schedule', schedule: { freq: 'daily', hour: 8, minute: 0, weekday: 1, tz: deviceTz() } };
     return {
       kind: 'draft',
       draft: {
         title: String(d.title || ''),
         instruction: String(d.instruction || lastUser),
-        trigger: d.trigger as Trigger,
+        trigger,
         graph: { nodes: graph.nodes, edges: Array.isArray(graph.edges) ? graph.edges : [] },
       },
     };

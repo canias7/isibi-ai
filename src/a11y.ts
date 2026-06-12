@@ -19,6 +19,15 @@ export function keyActivate(fn: () => void) {
 // arrow keys (ARIA APG) — plain <button> children don't do that. Attach to the
 // group container's onKeyDown; Arrow keys focus the prev/next option and select
 // it (radios select on focus). Enter/Space still work via the button itself.
+// True while an option's click is being dispatched BY arrow navigation — option
+// handlers that normally select-and-dismiss (the model sheets) check this so an
+// arrow press selects WITHOUT closing; only a real tap/Enter dismisses.
+// (click() dispatches synchronously, so a plain flag is race-free.)
+let arrowSelecting = false;
+export function isArrowSelecting(): boolean {
+  return arrowSelecting;
+}
+
 export function radioArrowNav(e: KeyboardEvent<HTMLElement>) {
   if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
   const radios = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"], [role="menuitemradio"]')];
@@ -29,7 +38,8 @@ export function radioArrowNav(e: KeyboardEvent<HTMLElement>) {
   const fwd = e.key === 'ArrowDown' || e.key === 'ArrowRight';
   const next = radios[(i + (fwd ? 1 : -1) + radios.length) % radios.length];
   next.focus();
-  next.click(); // arrow selects, per the radio-group pattern
+  arrowSelecting = true;
+  try { next.click(); } finally { arrowSelecting = false; } // arrow selects, per the radio-group pattern
 }
 
 const FOCUSABLE = 'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])';
