@@ -11,8 +11,18 @@ interface PushPlugin {
   addListener(event: 'registration', cb: (t: { value: string }) => void): Promise<PluginListenerHandle>;
   addListener(event: 'registrationError', cb: (e: unknown) => void): Promise<PluginListenerHandle>;
   addListener(event: 'pushNotificationActionPerformed', cb: (ev: { notification: { data?: Record<string, unknown> } }) => void): Promise<PluginListenerHandle>;
+  addListener(event: 'pushNotificationReceived', cb: (ev: { notification: { data?: Record<string, unknown> } }) => void): Promise<PluginListenerHandle>;
 }
 const Push = registerPlugin<PushPlugin>('PushNotifications');
+
+// Reminder pushes are SILENT-by-contract: the device owns the visible reminder
+// alert (the local notification), so a server-sent reminder must never carry its
+// own banner — it carries this type and just nudges the device to re-arm. That's
+// what keeps enabling APNs from double-firing reminders (server push + local).
+export const REMINDERS_SYNC = 'reminders-sync';
+export function isRemindersSync(data: Record<string, unknown> | undefined): boolean {
+  return !!data && (data.type === REMINDERS_SYNC || typeof data.reminderId === 'string');
+}
 
 let wired = false;
 let lastStatus = ''; // last registration outcome — surfaced in Settings to diagnose a missing token
@@ -76,5 +86,23 @@ export async function onPushTap(
     });
   } catch {
     return null; // plugin not in this native build yet
+  }
+}
+
+// A push was RECEIVED (delivered while the app runs, or a silent content-available
+// push that woke a backgrounded app). Used for the silent "reminders changed"
+// signal: the app re-arms its LOCAL notifications and the push itself shows no
+// banner — so a server-set reminder (e.g. from a workflow) reaches the device
+// without the server and the device both alerting for it.
+export async function onPushReceived(
+  cb: (data: Record<string, unknown>) => void,
+): Promise<{ remove: () => void } | null> {
+  if (Capacitor.getPlatform() === 'web') return null;
+  try {
+    return await Push.addListener('pushNotificationReceived', (ev) => {
+      cb(ev?.notification?.data ?? {});
+    });
+  } catch {
+    return null;
   }
 }

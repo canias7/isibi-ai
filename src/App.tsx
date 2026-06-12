@@ -21,7 +21,7 @@ import { loadReminderSound, saveReminderSound, previewReminderSound } from './re
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { tap, bump, thud } from './haptics';
-import { onPushTap } from './push';
+import { onPushTap, onPushReceived, isRemindersSync } from './push';
 import { useDismiss } from './motion';
 import ErrorBoundary from './ErrorBoundary';
 import RecoveryBubble from './RecoveryBubble';
@@ -869,8 +869,18 @@ export default function App() {
     void registerReminderActions();
     const subs: { remove: () => void }[] = [];
     void onPushTap((data) => {
+      // A reminder push is a silent SYNC signal, never its own alert — tapping
+      // one (or its arrival) just re-arms local notifications + opens Reminders.
+      if (isRemindersSync(data)) { reArmRemindersRef.current(); notifRoutesRef.current.openReminders(); return; }
       const id = (data as Record<string, unknown>).convId;
       if (typeof id === 'string' && id) notifRoutesRef.current.openChat(id);
+    }).then((h) => { if (h) subs.push(h); });
+    // Silent "reminders changed" push (e.g. a workflow set one while the app was
+    // backgrounded): re-arm the LOCAL notifications. The push shows no banner, so
+    // the device — not the server — is the single source of the visible alert,
+    // which is what makes turning on APNs safe (no double-fire).
+    void onPushReceived((data) => {
+      if (isRemindersSync(data)) reArmRemindersRef.current();
     }).then((h) => { if (h) subs.push(h); });
     void onReminderAction((actionId, reminderId, title) => {
       if (actionId === 'done' && reminderId) notifRoutesRef.current.done(reminderId);

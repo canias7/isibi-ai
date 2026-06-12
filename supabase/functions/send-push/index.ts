@@ -4,6 +4,14 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // APNS_* secrets are set (returns a clear error). Called with the user's JWT;
 // only ever pushes to that user's own device_tokens.
 //
+// SILENT mode ({ silent:true } or { type:"reminders-sync" }): sends a background
+// content-available push with NO alert/sound — it wakes the app to re-sync
+// rather than showing a banner. REMINDERS MUST USE THIS: the device owns the
+// visible reminder alert (its local notification), so a server-sent reminder
+// must be silent or it double-fires with the local one. (iOS shows an
+// already-delivered banner before our JS runs, so the only real guard is to
+// never send a *visible* reminder push — hence this contract.)
+//
 // Secrets to set when you have an APNs Auth Key (.p8):
 //   APNS_KEY        full PEM contents of the .p8
 //   APNS_KEY_ID     the key's 10-char Key ID
@@ -88,6 +96,7 @@ Deno.serve(async (req) => {
 
   let title = "Go Farther", body = "Test notification", category = "", extra: Record<string, unknown> = {};
   let bodyUser = "";
+  let silent = false;
   try {
     const b = await req.json();
     if (b.title) title = String(b.title);
@@ -95,7 +104,10 @@ Deno.serve(async (req) => {
     if (b.category) category = String(b.category); // e.g. "GF_REPLY" for an inline-reply action
     if (b.data && typeof b.data === "object") extra = b.data; // context for the action handler (e.g. thread id)
     if (b.user_id) bodyUser = String(b.user_id);
+    if (b.silent === true || b.type === "reminders-sync") silent = true; // background re-sync, no banner
   } catch { /* defaults */ }
+  // A silent reminders-sync carries the type so the app routes it to a re-arm.
+  if (silent) extra = { ...extra, type: "reminders-sync" };
 
   const uid = admin ? bodyUser : uidFromJwt(req);
   if (!uid || !SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, error: "no user" }, 401);
@@ -108,8 +120,14 @@ Deno.serve(async (req) => {
   if (!rows.length) return json({ ok: false, error: "no registered devices" });
 
   const jwt = await apnsJwt();
-  const aps: Record<string, unknown> = { alert: { title, body }, sound: "default" };
-  if (category) aps.category = category; // makes the notification actionable (inline reply, etc.)
+  // Silent → content-available background wake, no alert/sound (must not show a
+  // banner). Visible → the usual alert. apns-push-type/priority follow suit.
+  const aps: Record<string, unknown> = silent
+    ? { "content-available": 1 }
+    : { alert: { title, body }, sound: "default" };
+  if (!silent && category) aps.category = category; // makes the notification actionable (inline reply, etc.)
+  const apnsPushType = silent ? "background" : "alert";
+  const apnsPriority = silent ? "5" : "10"; // background pushes require the lower priority
   const payload = JSON.stringify({ aps, ...extra });
 
   // Try the configured host first, then fall back to the OTHER environment if
@@ -124,7 +142,12 @@ Deno.serve(async (req) => {
       try {
         const res = await fetch(`https://${host}/3/device/${token}`, {
           method: "POST",
-          headers: { authorization: `bearer ${jwt}`, "apns-topic": APNS_BUNDLE_ID!, "apns-push-type": "alert" },
+          headers: {
+            authorization: `bearer ${jwt}`,
+            "apns-topic": APNS_BUNDLE_ID!,
+            "apns-push-type": apnsPushType,
+            "apns-priority": apnsPriority,
+          },
           body: payload,
         });
         if (res.ok) return { token: token.slice(0, 8), status: res.status, reason: "", host };
