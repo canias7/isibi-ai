@@ -39,8 +39,13 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
   function openInfo(e: { stopPropagation: () => void; currentTarget: EventTarget | null }, t: ToolDef) {
     e.stopPropagation();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const W = 260;
-    setInfo({ desc: shortDesc(t.desc), top: r.bottom + 8, left: Math.max(12, Math.min(r.right - W, window.innerWidth - W - 12)) });
+    const W = 260, H = 130; // H ≈ worst-case popover height (200-char desc at 260px)
+    setInfo({
+      desc: shortDesc(t.desc),
+      // Clamp vertically too — bottom-row chips used to open the popover offscreen.
+      top: Math.min(r.bottom + 8, window.innerHeight - H - 12),
+      left: Math.max(12, Math.min(r.right - W, window.innerWidth - W - 12)),
+    });
   }
 
   async function token(): Promise<string | null> {
@@ -73,22 +78,32 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
 
   // Persist the current selection (auto-save). Marks state so the header can
   // show Saving…/Saved, and keeps `dirty` set until a save actually succeeds.
-  async function persist(set: Set<string>) {
-    dirty.current = false;
-    setSaveState('saving');
-    const t = await token();
-    if (!t) { dirty.current = true; setSaveState('error'); return; }
-    try {
-      const r = await fetch(`${CONNECT_API}/tools?app=${connector.id}`, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${t}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ enabled: [...set] }),
-      });
-      if (r.ok) { setSaveState('saved'); } else { dirty.current = true; setSaveState('error'); }
-    } catch {
-      dirty.current = true;
-      setSaveState('error');
-    }
+  const inflight = useRef<Promise<void> | null>(null); // the save currently on the wire — close() must await it, not race past it
+  function persist(set: Set<string>): Promise<void> {
+    const p = (async () => {
+      dirty.current = false;
+      setSaveState('saving');
+      const t = await token();
+      if (!t) { dirty.current = true; setSaveState('error'); return; }
+      try {
+        const r = await fetch(`${CONNECT_API}/tools?app=${connector.id}`, {
+          method: 'POST',
+          headers: { authorization: `Bearer ${t}`, 'content-type': 'application/json' },
+          body: JSON.stringify({ enabled: [...set] }),
+        });
+        // The body's ok matters too: the server used to answer HTTP 200 with
+        // {ok:false} on a failed write, and this showed "Saved" for a save
+        // that never happened.
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j?.ok !== false) { setSaveState('saved'); } else { dirty.current = true; setSaveState('error'); }
+      } catch {
+        dirty.current = true;
+        setSaveState('error');
+      }
+    })();
+    inflight.current = p;
+    void p.finally(() => { if (inflight.current === p) inflight.current = null; });
+    return p;
   }
 
   function toggle(slug: string) {
@@ -117,6 +132,10 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
     closing.current = true;
     try {
       if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+      // A save already on the wire clears `dirty` while it runs — without this
+      // await, ← during that window closed instantly and a failure of that very
+      // save had nowhere to land (the silent-loss path).
+      if (inflight.current) await inflight.current;
       // First ← flushes and surfaces a failure; a second ← while the error is
       // showing leaves anyway (the unmount backstop makes one last attempt) — a
       // dead network must not trap anyone in this sheet.
