@@ -4,7 +4,17 @@ import type { Reminder } from './reminders';
 
 // Capture what gets handed to the native plugin so we can assert the SHAPE of
 // the schedule (calendar components for recurring, the orphan sweep, the cap).
-const calls: { schedule: any[]; cancel: any[]; pending: { notifications: any[] } } = {
+interface SchedOpts {
+  notifications: Array<{
+    id: number;
+    schedule: { at?: Date; on?: { weekday?: number; hour?: number; minute?: number }; every?: string };
+    extra?: Record<string, unknown>;
+  }>;
+}
+interface CancelOpts { notifications: { id: number }[] }
+interface PendingNotif { id: number; extra?: Record<string, unknown> }
+
+const calls: { schedule: SchedOpts[]; cancel: CancelOpts[]; pending: { notifications: PendingNotif[] } } = {
   schedule: [],
   cancel: [],
   pending: { notifications: [] },
@@ -12,8 +22,8 @@ const calls: { schedule: any[]; cancel: any[]; pending: { notifications: any[] }
 
 vi.mock('@capacitor/local-notifications', () => ({
   LocalNotifications: {
-    schedule: vi.fn((o: unknown) => { calls.schedule.push(o); return Promise.resolve(); }),
-    cancel: vi.fn((o: unknown) => { calls.cancel.push(o); return Promise.resolve(); }),
+    schedule: vi.fn((o: SchedOpts) => { calls.schedule.push(o); return Promise.resolve(); }),
+    cancel: vi.fn((o: CancelOpts) => { calls.cancel.push(o); return Promise.resolve(); }),
     getPending: vi.fn(() => Promise.resolve(calls.pending)),
     createChannel: vi.fn(() => Promise.resolve()),
     registerActionTypes: vi.fn(() => Promise.resolve()),
