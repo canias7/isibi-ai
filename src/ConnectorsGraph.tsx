@@ -29,6 +29,28 @@ function loadPositions(): Record<string, XY> {
   try { return JSON.parse(localStorage.getItem(POS_KEY) || '{}') || {}; } catch { return {}; }
 }
 
+// Last-known connected apps, cached on-device so the constellation renders your
+// real apps INSTANTLY on open (stale-while-revalidate) instead of flashing the
+// empty "Connect your apps" state for the split second /list takes. Only app ids
+// + broken flag are stored (no emails); the live refresh fills in the rest and
+// reconciles. Cleared on sign-out (App.wipeLocalData).
+const STATUS_KEY = 'gf_connstatus';
+function loadStatusCache(): Record<string, Status> {
+  try {
+    const arr = JSON.parse(localStorage.getItem(STATUS_KEY) || '[]');
+    if (!Array.isArray(arr)) return {};
+    const m: Record<string, Status> = {};
+    for (const x of arr) if (x && typeof x.id === 'string') m[x.id] = { connected: true, email: null, broken: !!x.broken };
+    return m;
+  } catch { return {}; }
+}
+function saveStatusCache(status: Record<string, Status>) {
+  try {
+    const arr = Object.entries(status).filter(([, s]) => s?.connected).map(([id, s]) => ({ id, broken: !!s.broken }));
+    localStorage.setItem(STATUS_KEY, JSON.stringify(arr));
+  } catch { /* ignore */ }
+}
+
 // Default constellation slots: alternate left/right down the stage, skipping the
 // core's mid band so nothing sits on the central hub.
 function layout(n: number): XY[] {
@@ -61,7 +83,9 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState<Record<string, Status>>({});
+  // Seed from the on-device cache so the user's real apps show on the first
+  // frame; refreshAll() reconciles against the server right after.
+  const [status, setStatus] = useState<Record<string, Status>>(loadStatusCache);
   const [positions, setPositions] = useState<Record<string, XY>>(loadPositions);
   const [dragId, setDragId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -263,6 +287,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       // A newer refresh (or a disconnect) superseded this one — drop the stale result.
       if (gen !== refreshSeq.current || !aliveRef.current) return;
       setStatus(next);
+      saveStatusCache(next); // so the next open paints these instantly
       bootedRef.current = true;
       setBoot('ok');
       maybeResolvePending(next);

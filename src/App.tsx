@@ -1783,6 +1783,9 @@ export default function App() {
     if (reArmTimer.current) { clearTimeout(reArmTimer.current); reArmTimer.current = null; }
     draftsRef.current = {};
     modelsRef.current = {};
+    // Drop the cached connectors snapshot + node positions so a shared device
+    // doesn't flash the previous user's apps on the next Connectors open.
+    try { localStorage.removeItem('gf_connstatus'); localStorage.removeItem('gf_connpos'); } catch { /* ignore */ }
     // And un-arm the signed-out user's reminder notifications: a shared device
     // must not keep firing their titles on the lock screen.
     void cancelAllReminderNotifications();
