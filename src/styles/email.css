@@ -768,27 +768,45 @@ button.wfx-bar-status.err { background: none; border: 0; padding: 0; font: inher
 
 /* ---- Connectors constellation (reuses the .memg shell + stage/world/core/lines) ---- */
 .cg-mono { width: 100%; height: 100%; border-radius: 0.5294rem; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: var(--fs-body); }
+/* Each node is one uniform app tile (the icon) with its name on a small chip
+   beneath — like a springboard, so every node has the SAME footprint and the
+   ragged label-width pills (which used to cross the center and bury the rays)
+   are gone. The 56px tile IS the drag anchor, so the connector line terminates
+   cleanly at it; the caption floats below and never blocks a tap. */
 .cg-node {
   position: absolute; transform: translate(-50%, -50%);
-  display: flex; align-items: center; gap: 9px;
-  padding: 6px 12px 6px 6px;
-  border: 1px solid var(--line-2); background: rgba(20, 20, 24, 0.72);
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  border-radius: var(--r-card); cursor: grab; color: var(--text);
+  width: 56px; height: 56px; padding: 0; border: 0; background: none;
+  cursor: grab; color: var(--text);
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none;
-  box-shadow: var(--shadow-modal);
   animation: memgPop var(--dur-enter) var(--ease-spring) backwards;
 }
 .cg-node:active { cursor: grabbing; }
-.cg-node.dragging { z-index: 6; box-shadow: var(--shadow-modal); animation: none; }
+.cg-node.dragging { z-index: 6; animation: none; }
 .cg-tile {
-  flex-shrink: 0; width: 38px; height: 38px; border-radius: var(--r-row); background: #f6f7f9;
-  display: grid; place-items: center; box-shadow: 0 0 0 2px rgba(70, 209, 127, 0.9);
+  width: 100%; height: 100%; border-radius: var(--r-card); background: #fff;
+  display: grid; place-items: center;
+  border: 1px solid var(--line-2); box-shadow: var(--shadow-modal);
 }
-.cg-name { font-size: var(--fs-body-s); font-weight: 600; white-space: nowrap; }
-/* the "+" add node */
-.cg-node.cg-add { padding: 0; background: rgba(255, 255, 255, 0.05); border: 1.5px dashed rgba(255, 255, 255, 0.28); box-shadow: none; }
-.cg-add-tile { width: 56px; height: 56px; border-radius: var(--r-card); display: grid; place-items: center; color: var(--brand); }
+/* Connected is the default look — no status ring. Only a BROKEN connection
+   earns an amber ring (plus the "!" badge), so it actually stands out. */
+.cg-node.broken .cg-tile { box-shadow: 0 0 0 2px var(--brand), var(--shadow-modal); }
+.cg-name {
+  position: absolute; top: calc(100% + 7px); left: 50%; transform: translateX(-50%);
+  max-width: 92px; text-align: center;
+  font-size: var(--fs-caption); font-weight: 600; line-height: 1.2; color: var(--text);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  background: rgba(8, 8, 10, 0.62); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+  padding: 2px 8px; border-radius: var(--r-pill);
+  pointer-events: none; /* the tile is the hit target */
+}
+/* the "+" add node — same footprint, dashed tile */
+.cg-node.cg-add { width: 56px; height: 56px; }
+.cg-add-tile {
+  width: 100%; height: 100%; border-radius: var(--r-card);
+  background: var(--fill-1); border: 1.5px dashed var(--line-4);
+  display: grid; place-items: center; color: var(--brand);
+}
+.cg-add-name { color: var(--text-dim); font-weight: 500; background: rgba(8, 8, 10, 0.5); }
 .cg-hint { position: absolute; left: 0; right: 0; bottom: 1.5294rem; text-align: center; font-size: var(--fs-body-s); color: var(--text-dim); z-index: 1; }
 .cg-hint b { color: var(--brand); }
 
