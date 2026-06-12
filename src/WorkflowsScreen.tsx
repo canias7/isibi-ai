@@ -788,12 +788,16 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
                 aria-checked={o.id === wfModelOpt(model).id}
                 onClick={() => { void tap(); setModel(o.id); if (!isArrowSelecting()) setModelOpen(false); }}
               >
-                <span className={`model-dot d${o.dots}`} aria-hidden />
                 <span className="model-opt-text">
                   <span className="model-opt-label">{o.label}</span>
                   <span className="model-opt-sub">{o.sub}</span>
                 </span>
-                {o.id === model && <IconCheck size={16} />}
+                <span className={`model-meter d${o.dots}`} aria-label={`cost: ${o.dots === 1 ? 'low' : o.dots === 2 ? 'medium' : 'high'}`}>
+                  <span className={`model-bar${o.dots >= 1 ? ' on' : ''}`} />
+                  <span className={`model-bar${o.dots >= 2 ? ' on' : ''}`} />
+                  <span className={`model-bar${o.dots >= 3 ? ' on' : ''}`} />
+                </span>
+                <span className="model-check">{o.id === model && <IconCheck size={16} />}</span>
               </button>
             ))}
           </div>
