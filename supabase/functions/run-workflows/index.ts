@@ -406,7 +406,7 @@ Example result: "Sent your morning digest — 12 unread emails grouped by sender
   };
   const extra: Record<string, string> = {};
   if (apps.length) {
-    const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(uid)}&mem=0`;
+    const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(uid)}&tz=${encodeURIComponent(tz)}&mem=0`;
     reqBody.mcp_servers = [{ type: "url", url, name: "connectors", authorization_token: await mintUserToken(uid) }];
     // Deferred tool loading (ported from chat): the full connected-apps catalog
     // (~200k tokens for a several-app user) stays out of the prompt — only a

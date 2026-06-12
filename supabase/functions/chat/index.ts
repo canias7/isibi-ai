@@ -810,10 +810,15 @@ Deno.serve(async (req: Request) => {
     // serves the built-in GF_SAVE_MEMORY tool, so "remember that…" works in any
     // chat). Paused memory adds &mem=0 so the proxy drops that tool. emailUI (rich
     // inbox cards) still only turns on for an email app.
-    if (apps.length || memoryOn) {
+    // Always attach the toolset for a signed-in user: the keyless built-ins
+    // (reminders, weather, table) must work even with no connectors AND memory
+    // paused. Composio tools stay gated by `apps`, the memory tool by &mem=0.
+    {
       scopedApps = apps;
       emailUI = clientCards && (apps.includes("gmail") || apps.includes("outlook"));
-      const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}${memoryOn ? "" : "&mem=0"}`;
+      // tz lets the reminder tool resolve a naive "5pm" in the user's zone even
+      // if the model forgets to echo it into the tool call.
+      const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(appUser)}&tz=${encodeURIComponent(tz)}${memoryOn ? "" : "&mem=0"}`;
       mcpServers = [{ type: "url", url, name: "connectors", authorization_token: await mintUserToken(appUser) }];
       // Current MCP connector format (mcp-client-2025-11-20): the toolset lives
       // in `tools`. Connector tool definitions are DEFERRED: only a server-side
@@ -948,10 +953,13 @@ Deno.serve(async (req: Request) => {
     ];
     upstream = await callAnthropic(reqBody, apiKey, extraHeaders);
   }
-  // If the routed model isn't available/usable, fall back to Sonnet so chat never breaks.
-  if (!upstream.ok && reqBody.model !== MODELS.sonnet) {
+  // If an AUTO-routed model isn't available/usable, fall back to Sonnet so chat
+  // never breaks. But NEVER silently downgrade an EXPLICIT user pick — they chose
+  // (and own the cost of) that model, so a Haiku/Opus pick that fails surfaces as
+  // an error rather than quietly answering on a model they didn't choose.
+  if (!upstream.ok && reqBody.model !== MODELS.sonnet && !EXPLICIT_MODELS[modelPref]) {
     const e = await upstream.text().catch(() => "");
-    console.log(`model ${reqBody.model} failed ${upstream.status}; falling back to sonnet: ${e.slice(0, 100)}`);
+    console.log(`auto model ${reqBody.model} failed ${upstream.status}; falling back to sonnet: ${e.slice(0, 100)}`);
     reqBody.model = MODELS.sonnet;
     upstream = await callAnthropic(reqBody, apiKey, extraHeaders);
   }
