@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import type { Session } from '@supabase/supabase-js';
 import { keyActivate, radioArrowNav } from './a11y';
@@ -5,7 +6,7 @@ import { tap } from './haptics';
 import { IconLogout, IconTrash, IconCheck } from './icons';
 import { APP_VERSION, BUILD } from './version';
 import { THEMES, type SoundTheme } from './earcons';
-import { REMINDER_SOUNDS } from './reminderSounds';
+import { REMINDER_SOUNDS, reminderSoundLabel } from './reminderSounds';
 import type { BiometryStatus } from './biometric';
 
 // Section headers for the reminder-sound picker, in catalog order.
@@ -36,6 +37,7 @@ export default function SettingsPage({
   onOpenLegal: (doc: 'privacy' | 'terms') => void;
 }) {
   const native = Capacitor.getPlatform() !== 'web';
+  const [sndOpen, setSndOpen] = useState(false); // collapsed dropdown for the 18 reminder sounds
   return (
     <div className="page settings-page">
       <div className="page-inner">
@@ -100,26 +102,43 @@ export default function SettingsPage({
           <>
             <div className="set-label">Reminder sound</div>
             <div className="set-card">
-              <div className="rem-snd-hint">What plays when a reminder goes off. Tap one to hear it.</div>
-              {REM_SOUND_SECTIONS.map((sec) => (
-                <div className="rem-snd-group" key={sec}>
-                  <div className="rem-snd-sec">{sec}</div>
-                  <div role="radiogroup" aria-label={`${sec} reminder sounds`} onKeyDown={radioArrowNav}>
-                    {REMINDER_SOUNDS.filter((s) => s.section === sec).map((s) => (
-                      <button
-                        key={s.id}
-                        className={`rem-snd-row${reminderSound === s.id ? ' on' : ''}`}
-                        role="radio"
-                        aria-checked={reminderSound === s.id}
-                        onClick={() => onPickReminderSound(s.id)}
-                      >
-                        <span className="rem-snd-name">{s.label}</span>
-                        {reminderSound === s.id && <IconCheck size={16} />}
-                      </button>
-                    ))}
-                  </div>
+              {/* Collapsed by default — 18 sounds was a wall of scroll. Tap to drop
+                  down the grouped list; tap a sound to hear + pick it. */}
+              <button
+                className="set-row set-row-tap rem-snd-head"
+                aria-expanded={sndOpen}
+                onClick={() => { void tap(); setSndOpen((v) => !v); }}
+              >
+                <div className="set-row-title">Sound</div>
+                <span className="rem-snd-current">{reminderSoundLabel(reminderSound)}</span>
+                <span className={`rem-snd-chev${sndOpen ? ' open' : ''}`} aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+                </span>
+              </button>
+              {sndOpen && (
+                <div className="rem-snd-list">
+                  <div className="rem-snd-hint">What plays when a reminder goes off. Tap one to hear it.</div>
+                  {REM_SOUND_SECTIONS.map((sec) => (
+                    <div className="rem-snd-group" key={sec}>
+                      <div className="rem-snd-sec">{sec}</div>
+                      <div role="radiogroup" aria-label={`${sec} reminder sounds`} onKeyDown={radioArrowNav}>
+                        {REMINDER_SOUNDS.filter((s) => s.section === sec).map((s) => (
+                          <button
+                            key={s.id}
+                            className={`rem-snd-row${reminderSound === s.id ? ' on' : ''}`}
+                            role="radio"
+                            aria-checked={reminderSound === s.id}
+                            onClick={() => onPickReminderSound(s.id)}
+                          >
+                            <span className="rem-snd-name">{s.label}</span>
+                            {reminderSound === s.id && <IconCheck size={16} />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           </>
         )}

@@ -68,6 +68,14 @@
 .snd-chip:active { background: #ffffff16; }
 .snd-chip.on { border-color: var(--brand); color: var(--brand); background: rgba(224, 161, 58, 0.1); }
 /* Reminder-sound picker — a sectioned list of tap-to-preview rows */
+/* Reminder-sound dropdown: a header row showing the current pick + a chevron,
+   with the grouped list revealed below on tap. */
+.rem-snd-current { margin-left: auto; color: var(--text-dim); font-size: var(--fs-body-s); white-space: nowrap; }
+.rem-snd-chev { display: inline-flex; color: var(--text-faint); margin-left: 8px; transition: transform var(--dur-enter) var(--ease-enter); }
+.rem-snd-chev.open { transform: rotate(180deg); }
+.rem-snd-list { border-top: 1px solid var(--line-1); animation: remSndIn var(--dur-enter) var(--ease-enter); }
+@keyframes remSndIn { from { opacity: 0; transform: translateY(-5px); } }
+@media (prefers-reduced-motion: reduce) { .rem-snd-list { animation: none; } .rem-snd-chev { transition: none; } }
 .rem-snd-hint { padding: 11px 14px 2px; font-size: var(--fs-caption); color: var(--text-dim); line-height: 1.45; }
 .rem-snd-sec { padding: 10px 14px 4px; font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
 .rem-snd-row {
