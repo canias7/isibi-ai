@@ -133,7 +133,8 @@ const api = (path: string, init?: RequestInit) =>
 // access token in the OAuth /start URL, so the real session JWT never lands in a
 // navigable URL (browser history / referer / access logs). Minted by /connect-init
 // (token in the Authorization header), verified by /start. Signed with a
-// server-only key; ~5 min TTL; no DB needed.
+// server-only key; ~5 min TTL; single-use via a jti row in public.oauth_codes
+// (see storeCodeJti/consumeCodeJti below).
 const CODE_TTL_MS = 5 * 60 * 1000;
 function b64url(bytes: Uint8Array): string {
   let s = ""; for (const b of bytes) s += String.fromCharCode(b);
@@ -163,6 +164,51 @@ async function verifyCode(code: string | null): Promise<string | null> {
     return uid;
   } catch {
     return null;
+  }
+}
+
+// Single-use enforcement for the codes above: each code's sha256 lands in
+// public.oauth_codes at mint time and is consumed (deleted) by /start, so a
+// code replayed within its TTL finds no row and is rejected. Both sides
+// degrade OPEN on infrastructure errors — the HMAC+TTL check still applies,
+// and a broken jti store must not break connects.
+async function sha256Hex(s: string): Promise<string> {
+  const d = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
+  return Array.from(d, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function storeCodeJti(code: string): Promise<void> {
+  if (!SR || !SUPABASE_URL) return;
+  try {
+    const headers = { apikey: SR, authorization: `Bearer ${SR}`, "content-type": "application/json" };
+    // Opportunistic self-prune: rows older than 2x the code TTL are long dead.
+    const cutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    await fetch(`${SUPABASE_URL}/rest/v1/oauth_codes?created_at=lt.${encodeURIComponent(cutoff)}`, { method: "DELETE", headers }).catch(() => {});
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/oauth_codes`, {
+      method: "POST",
+      headers: { ...headers, prefer: "return=minimal" },
+      body: JSON.stringify({ jti: await sha256Hex(code) }),
+    });
+    if (!r.ok) console.error("oauth_codes insert failed:", r.status);
+  } catch (e) {
+    console.error("oauth_codes insert error:", e);
+  }
+}
+// True = code is fresh (its jti row existed and was consumed just now) or the
+// store was unreachable (fail open, matching the insert side). False = replay.
+async function consumeCodeJti(code: string): Promise<boolean> {
+  if (!SR || !SUPABASE_URL) return true;
+  try {
+    const jti = await sha256Hex(code);
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/oauth_codes?jti=eq.${encodeURIComponent(jti)}`, {
+      method: "DELETE",
+      headers: { apikey: SR, authorization: `Bearer ${SR}`, prefer: "return=representation" },
+    });
+    if (!r.ok) { console.error("oauth_codes consume failed:", r.status); return true; }
+    const rows = await r.json().catch(() => null);
+    return Array.isArray(rows) ? rows.length > 0 : true;
+  } catch (e) {
+    console.error("oauth_codes consume error:", e);
+    return true;
   }
 }
 
@@ -610,18 +656,29 @@ const CURATED: Record<string, string[]> = {
 
 // The toolkit's selectable tools. Curated apps return only their working set;
 // everything else returns the full Composio catalog minus known-dead tools.
+// Upstream failure is NOT "no tools": curated apps degrade to their curated
+// list as stubs (so the UI never paints a bogus "No tools enabled yet"), and
+// non-curated apps THROW so callers surface a retryable 5xx instead.
 async function toolkitCatalog(toolkit: string): Promise<{ slug: string; name: string; desc: string }[]> {
-  const u = new URL(`${BASE}/tools`);
-  u.searchParams.set("toolkit_slug", toolkit);
-  u.searchParams.set("limit", "500");
-  const res = await fetch(u.toString(), { headers: { "x-api-key": API_KEY } });
-  if (!res.ok) return [];
-  const b = await res.json();
-  const items: any[] = b.items ?? b.data ?? [];
+  const pick = CURATED[toolkit];
+  let items: any[];
+  try {
+    const u = new URL(`${BASE}/tools`);
+    u.searchParams.set("toolkit_slug", toolkit);
+    u.searchParams.set("limit", "500");
+    const res = await fetch(u.toString(), { headers: { "x-api-key": API_KEY } });
+    if (!res.ok) throw new Error(`tools list ${res.status}: ${await res.text().catch(() => "")}`);
+    const b = await res.json();
+    items = b.items ?? b.data ?? [];
+  } catch (e) {
+    console.error(`toolkitCatalog(${toolkit}) fetch failed:`, e);
+    // The curated set is known-good — serve it as stubs rather than "nothing".
+    if (pick) return pick.map((s) => ({ slug: s, name: prettyName(s), desc: "" }));
+    throw e;
+  }
   const all = items
     .filter((t) => !BROKEN_TOOLS.has(t.slug))
     .map((t) => ({ slug: t.slug, name: t.name || prettyName(t.slug), desc: t.description || "" }));
-  const pick = CURATED[toolkit];
   if (!pick) return all;
   const bySlug = new Map(all.map((t) => [t.slug, t]));
   return pick.map((s) => bySlug.get(s) ?? { slug: s, name: prettyName(s), desc: "" });
@@ -652,6 +709,32 @@ async function setPrefs(uid: string, toolkit: string, slugs: string[]): Promise<
     return false;
   }
 }
+// POST /tools input gate: only slugs the toolkit can actually serve may be
+// saved — otherwise a crafted body could enable non-curated (or known-broken)
+// tools that gofarther-mcp would then hand the model live, or balloon the row.
+// Returns null when `enabled` isn't an array (caller answers 400). If the
+// catalog is unavailable upstream (curated apps degrade to stubs, so for them
+// it can't be), fall back to shape-validation only — degrade open, but log it.
+async function sanitizeEnabled(raw: unknown, toolkit: string): Promise<string[] | null> {
+  if (!Array.isArray(raw)) return null;
+  const entries = raw
+    .map((s) => String(s).trim())
+    .filter((s) => s.length > 0 && s.length <= 80)
+    .slice(0, 200);
+  let allowed: Set<string> | null = null;
+  if (toolkit === "plaid") {
+    allowed = new Set(BANK_TOOLS.map((t) => t.slug));
+  } else {
+    try {
+      const catalog = await toolkitCatalog(toolkit);
+      if (catalog.length) allowed = new Set(catalog.map((t) => t.slug));
+    } catch { /* degraded path below */ }
+  }
+  if (allowed) return entries.filter((s) => allowed.has(s) && !BROKEN_TOOLS.has(s));
+  console.error(`tools save: catalog unavailable for ${toolkit} — degraded to shape-validation`);
+  const prefix = `${toolkit.toUpperCase()}_`;
+  return entries.filter((s) => /^[A-Z0-9_]{1,80}$/.test(s) && s.startsWith(prefix) && !BROKEN_TOOLS.has(s));
+}
 
 // ---- Connected-apps cache (user_connections) --------------------------------
 // chat and run-workflows read this row instead of asking Composio on every turn
@@ -667,7 +750,11 @@ function saveConnections(uid: string, toolkits: string[]): void {
     body: JSON.stringify({ user_id: uid, toolkits, updated_at: new Date().toISOString() }),
   }).catch(() => {});
 }
-async function refreshConnections(uid: string): Promise<void> {
+// `excludeSlugs`: toolkit slugs to drop even if Composio still lists them
+// ACTIVE — its list is eventually consistent, so refreshing right after a
+// disconnect can otherwise write the just-removed account straight back into
+// the cache (which chat then trusts for the whole CONN_TTL).
+async function refreshConnections(uid: string, excludeSlugs?: Set<string>): Promise<void> {
   try {
     const q = new URL(`${BASE}/connected_accounts`);
     q.searchParams.set("user_ids", uid);
@@ -680,7 +767,7 @@ async function refreshConnections(uid: string): Promise<void> {
     const slugs = items
       .filter((x) => (x.status ?? "ACTIVE").toUpperCase() === "ACTIVE")
       .map(pickSlug)
-      .filter((s): s is string => !!s);
+      .filter((s): s is string => !!s && !excludeSlugs?.has(s.toLowerCase()));
     saveConnections(uid, [...new Set(slugs)]);
   } catch { /* cache refresh is best effort */ }
 }
@@ -755,13 +842,23 @@ Deno.serve(async (req: Request) => {
     const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
     const uid = await verifyUser(token);
     if (!uid) return json(req, { error: "unauthorized" });
-    return json(req, { code: await mintCode(uid) });
+    const code = await mintCode(uid);
+    await storeCodeJti(code); // register the jti so /start can enforce single-use
+    return json(req, { code });
   }
 
   // 1) Kick off the provider's hosted consent. Identity from the one-time ?code=
   // (preferred) or the legacy ?t= access token (back-compat for older clients).
   if (path === "start") {
-    const uid = (await verifyCode(url.searchParams.get("code"))) ?? (await verifyUser(url.searchParams.get("t")));
+    const code = url.searchParams.get("code");
+    const codeUid = await verifyCode(code);
+    // Single-use: a code that verifies but whose jti is already consumed is a
+    // replay — reject it like any other bad code. (consumeCodeJti fails open
+    // if the store is unreachable; the legacy ?t= fallback below is untouched.)
+    if (codeUid && code && !(await consumeCodeJti(code))) {
+      return page("⚠️ Please sign in to Go Farther, then try connecting again.");
+    }
+    const uid = codeUid ?? (await verifyUser(url.searchParams.get("t")));
     if (!uid) return page("⚠️ Please sign in to Go Farther, then try connecting again.");
     if (!toolkit) return page(`⚠️ Unknown app: ${app}`);
     try {
@@ -901,8 +998,10 @@ Deno.serve(async (req: Request) => {
       // client (5xx) instead of a cheerful 200 it ignores and then flickers back.
       if (matched > 0 && removed === 0) return json(req, { error: "Couldn't disconnect — please try again." }, 502);
       // Awaited on purpose: the user expects the app gone NOW — a stale cache
-      // here would keep exposing its tools to chat until the TTL expired.
-      await refreshConnections(uid);
+      // here would keep exposing its tools to chat until the TTL expired. The
+      // just-removed toolkit is excluded: Composio's eventually-consistent
+      // list could still name it ACTIVE and re-pollute the cache.
+      await refreshConnections(uid, new Set([toolkit.toLowerCase()]));
       return json(req, { ok: true, matched, removed, failed });
     } catch (e) {
       console.error("disconnect error:", e);
@@ -956,8 +1055,10 @@ Deno.serve(async (req: Request) => {
     if (app === "plaid") {
       if (req.method === "POST") {
         const body = await req.json().catch(() => ({}));
-        const enabled = Array.isArray(body.enabled) ? body.enabled.filter((s: unknown) => typeof s === "string") : [];
-        return json(req, { ok: await setPrefs(uid, "plaid", enabled) });
+        const enabled = await sanitizeEnabled(body.enabled, "plaid");
+        if (enabled === null) return json(req, { error: "enabled must be an array" }, 400);
+        const ok = await setPrefs(uid, "plaid", enabled);
+        return json(req, { ok }, ok ? 200 : 500); // a failed save must not 200
       }
       const saved = await getPrefs(uid, "plaid");
       const tools = BANK_TOOLS.map((t) => ({ slug: t.slug, name: t.name, desc: t.desc, write: false }));
@@ -966,8 +1067,10 @@ Deno.serve(async (req: Request) => {
     if (!toolkit) return json(req, { error: "unauthorized" });
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
-      const enabled = Array.isArray(body.enabled) ? body.enabled.filter((s: unknown) => typeof s === "string") : [];
-      return json(req, { ok: await setPrefs(uid, toolkit, enabled) });
+      const enabled = await sanitizeEnabled(body.enabled, toolkit);
+      if (enabled === null) return json(req, { error: "enabled must be an array" }, 400);
+      const ok = await setPrefs(uid, toolkit, enabled);
+      return json(req, { ok }, ok ? 200 : 500); // a failed save must not 200
     }
     const [catalog, saved] = await Promise.all([
       toolkitCatalog(toolkit),
@@ -993,16 +1096,18 @@ Deno.serve(async (req: Request) => {
     const uid = await verifyUser(token);
     if (!uid || !toolkit) return json(req, { connected: false });
     try {
-      const ac = await findAuthConfig(toolkit);
-      if (!ac) return json(req, { connected: false });
+      // Match by toolkit slug, like /list and /disconnect — filtering on the
+      // first auth config's id missed accounts living under a second/recreated
+      // config, so post-OAuth polling never confirmed the connection.
       const q = new URL(`${BASE}/connected_accounts`);
       q.searchParams.set("user_ids", uid);
-      q.searchParams.set("auth_config_ids", ac);
       q.searchParams.set("statuses", "ACTIVE");
+      q.searchParams.set("limit", "100");
       const res = await fetch(q.toString(), { headers: { "x-api-key": API_KEY } });
       if (!res.ok) return json(req, { connected: false });
       const body = await res.json();
-      const items: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
+      const all: any[] = body.items ?? body.data ?? (Array.isArray(body) ? body : []);
+      const items = all.filter((it) => (pickSlug(it) ?? "").toLowerCase() === toolkit.toLowerCase());
       const active = items.find((x) => (x.status ?? "").toUpperCase() === "ACTIVE") ?? items[0];
       const email = active?.data?.email ?? active?.meta?.email ?? active?.params?.email ?? active?.data?.emailAddress ?? null;
       // A client polling status learns "connected" right here (e.g. just after
