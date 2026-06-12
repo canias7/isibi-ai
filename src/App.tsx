@@ -14,7 +14,7 @@ import { pickSuggestions } from './suggestions';
 import { fetchUsage, summarize, fmtUsd, fmtTokens, fmtDuration, sourceLabel, loadBudget, saveBudget, type UsageSummary } from './usage';
 import { MODEL_OPTIONS, type ModelChoice } from './models';
 import { track } from './analytics';
-import { useFocusTrap } from './a11y';
+import { useFocusTrap, radioArrowNav } from './a11y';
 import { listReminders, addReminder, updateReminder, deleteReminder, ensureNotifyPermission, scheduleReminder, cancelReminder, syncReminders, registerReminderActions, onReminderAction, snoozeNudge, type Reminder, type RepeatKind } from './reminders';
 import { listMemories, addMemory, updateMemory, deleteMemory, getMemoryEnabled, setMemoryEnabled, uploadMemoryFile, type Memory } from './memory';
 import { loadReminderSound, saveReminderSound, previewReminderSound } from './reminderSounds';
@@ -1195,12 +1195,16 @@ export default function App() {
 
   // Pick the reminder notification sound — previews it in-app, and re-arms
   // existing reminders so the new sound applies now, not only on next launch.
+  const reArmTimer = useRef<number | null>(null);
   function pickReminderSound(id: string) {
     void tap();
     setReminderSound(id);
     saveReminderSound(id);
-    previewReminderSound(id);
-    void listReminders().then(syncReminders);
+    previewReminderSound(id); // immediate
+    // Debounce the heavier device re-arm (refetch + cancel/reschedule every
+    // reminder + createChannel) so auditioning sounds doesn't thrash on each tap.
+    if (reArmTimer.current) clearTimeout(reArmTimer.current);
+    reArmTimer.current = window.setTimeout(() => { void listReminders().then(syncReminders); }, 700);
   }
 
   // Choose the model for THIS conversation — remembered per chat (device-local),
@@ -1497,10 +1501,13 @@ export default function App() {
   // not only on next launch — asking for notification permission in-context.
   async function syncRemindersFromChat() {
     if (!uid) return;
-    await ensureNotifyPermission();
+    const granted = await ensureNotifyPermission();
     const list = await listReminders();
     setReminders(list);
     await syncReminders(list);
+    // Don't let a saved reminder silently never fire: if notifications are off,
+    // say so instead of the assistant claiming "I'll remind you" with no alert.
+    if (!granted) flashNote('Reminder saved — turn on notifications to get the alert.');
   }
 
   async function addRem(title: string, remind_at: string, repeat: RepeatKind): Promise<boolean> {
@@ -1885,7 +1892,7 @@ export default function App() {
       {modelUi.mounted && (
         <>
           <div className={`sheet-scrim${modelUi.closing ? ' closing' : ''}`} onClick={() => setModelOpen(false)} />
-          <div className={`chat-sheet model-sheet${modelUi.closing ? ' closing' : ''}`} role="dialog" aria-label="Choose model for this chat" ref={modelSheetRef} tabIndex={-1}>
+          <div className={`chat-sheet model-sheet${modelUi.closing ? ' closing' : ''}`} role="dialog" aria-label="Choose model for this chat" ref={modelSheetRef} tabIndex={-1} onKeyDown={radioArrowNav}>
             <div className="wn-eyebrow">Model · this chat</div>
             {MODEL_OPTIONS.map((o) => (
               <button

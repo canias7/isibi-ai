@@ -25,13 +25,16 @@ const SEL = 'id,title,remind_at,repeat,enabled,created_at';
 // capitalize so the notification + list show just the task ("Brush my teeth").
 export function cleanReminderTitle(raw: string): string {
   const orig = (raw || '').trim();
-  const t = orig
+  let t = orig
     .replace(
-      /^\s*(?:please\s+|hey,?\s+|can you\s+|could you\s+|just\s+)?(?:set (?:a |an )?reminder\s+(?:to|for|about|that)|remind me\s+(?:to|that|about)|reminder\s+(?:to|that|about)|remember\s+(?:to|that)|don'?t forget\s+(?:to|about)|note to self\s*:?|i\s+(?:need|have|want|gotta)\s+to)\s+/i,
+      /^\s*(?:please\s+|hey,?\s+|can you\s+|could you\s+|just\s+)?(?:set (?:a |an )?reminder\s+(?:to|for|about|that)|remind me\s+(?:to|that|about)|reminder\s*[-:]|reminder\s+(?:to|that|about|for)|remember\s+(?:to|that)|don'?t forget\s+(?:to|about)|note to self\s*:?|i\s+(?:need|have|want|gotta)\s+to)\s+/i,
       '',
     )
     .trim();
   if (!t) return orig;
+  // Shouting ("CALL MOM") reads harshly in a notification — drop all-caps to
+  // sentence case. Mixed/normal case is left exactly as written.
+  if (t === t.toUpperCase() && t !== t.toLowerCase()) t = t.toLowerCase();
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
@@ -70,9 +73,12 @@ export async function updateReminder(
   fields: Partial<Pick<Reminder, 'title' | 'remind_at' | 'repeat' | 'enabled'>>,
 ): Promise<boolean> {
   try {
+    // Clean an edited title the same way add does, so created and edited
+    // reminders store consistently (not raw "remind me to …").
+    const patch = fields.title !== undefined ? { ...fields, title: cleanReminderTitle(fields.title) } : fields;
     const { error } = await supabase
       .from('user_reminders')
-      .update({ ...fields, updated_at: new Date().toISOString() })
+      .update({ ...patch, updated_at: new Date().toISOString() })
       .eq('id', id);
     return !error;
   } catch {
