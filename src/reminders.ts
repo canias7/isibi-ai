@@ -43,16 +43,18 @@ export function cleanReminderTitle(raw: string): string {
   return t;
 }
 
-export async function listReminders(): Promise<Reminder[]> {
+// null = the FETCH failed (offline/server) — callers show a retry, never an
+// empty state, and the re-arm paths skip rather than wiping armed notifications.
+export async function listReminders(): Promise<Reminder[] | null> {
   try {
     const { data, error } = await supabase
       .from('user_reminders')
       .select(SEL)
       .order('remind_at', { ascending: true });
-    if (error || !data) return [];
+    if (error || !data) return null;
     return data as Reminder[];
   } catch {
-    return [];
+    return null;
   }
 }
 

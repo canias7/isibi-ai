@@ -5,6 +5,7 @@ import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API, byId, type Connector } from './connectorData';
+import { tap } from './haptics';
 import { BrandLogo } from './brandLogos';
 import { hasBrand } from './brandData';
 import ToolManager from './ToolManager';
@@ -100,6 +101,11 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const slotAssign = useRef<Map<string, number>>(new Map()); // stable slot per app id (so a disconnect doesn't reshuffle the others)
   const slotHigh = useRef(4);                            // layout-size high-water mark (never shrinks in a session)
   const [actionErr, setActionErr] = useState('');        // transient connect/disconnect failure message
+  // First-load state: the screen used to open straight into "Tap a + to connect"
+  // while /list was still in flight (and stayed there forever if it failed) —
+  // reading as "you have nothing connected" to someone who does.
+  const [boot, setBoot] = useState<'loading' | 'ok' | 'error'>('loading');
+  const bootedRef = useRef(false);
 
   async function token(): Promise<string | null> {
     const { data } = await supabase.auth.getSession();
@@ -189,11 +195,11 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     const gen = ++refreshSeq.current;
     try {
       const t = await token();
-      if (!t) return;
+      if (!t) { if (!bootedRef.current) setBoot('error'); return; }
       const graced = gracedIds();
       const ex = graced.length ? `?exclude=${encodeURIComponent(graced.join(','))}` : '';
       const r = await fetch(`${CONNECT_API}/list${ex}`, { headers: { authorization: `Bearer ${t}` } });
-      if (!r.ok) return;
+      if (!r.ok) { if (!bootedRef.current) setBoot('error'); return; }
       const j = await r.json();
       const map: Record<string, { email?: string | null; emails?: string[]; broken?: boolean }> = j.connected ?? {};
       const next: Record<string, Status> = {};
@@ -216,8 +222,14 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       // A newer refresh (or a disconnect) superseded this one — drop the stale result.
       if (gen !== refreshSeq.current || !aliveRef.current) return;
       setStatus(next);
+      bootedRef.current = true;
+      setBoot('ok');
       maybeResolvePending(next);
-    } catch { /* offline — keep state */ }
+    } catch {
+      // offline — keep state; but a FIRST load that failed must say so, not
+      // sit on the empty "tap + to connect" hint forever.
+      if (!bootedRef.current && aliveRef.current) setBoot('error');
+    }
   }
 
   // Poll /list every 3s while an OAuth connect is in flight (web + native), until
@@ -278,6 +290,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   }, []);
 
   async function connect(id: string) {
+    void tap(); // the only overlay whose primary actions had no haptic
     if (id === 'plaid') { setPicker(false); void connectPlaid(); return; }
     if (connecting) return; // one OAuth at a time — ignore double-taps (two flows clobber pendingConnect)
     const native = Capacitor.isNativePlatform();
@@ -331,6 +344,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   }
 
   async function disconnect(id: string) {
+    void tap();
     setDetail(null);
     setActionErr('');
     disconnectedAt.current.set(id, Date.now() + 15000); // grace: suppress a stale "still connected" (Composio eventual consistency)
@@ -488,7 +502,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
         <button className="memg-back" onClick={onClose} aria-label="Back"><IconArrowLeft size={22} /></button>
         <div className="memg-titles">
           <h1 className="memg-title">Connectors</h1>
-          <p className="memg-sub">{count > 0 ? `${count} connected` : 'Connect your apps'}</p>
+          <p className="memg-sub">{count > 0 ? `${count} connected` : boot === 'loading' ? 'Checking your connections…' : 'Connect your apps'}</p>
         </div>
         <span style={{ width: 40 }} />
       </div>
@@ -565,7 +579,13 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
           })}
         </div>
 
-        {count === 0 && <div className="cg-hint">Tap a <b>+</b> to connect an app</div>}
+        {count === 0 && boot === 'loading' && <div className="cg-hint" aria-live="polite">Checking your connections…</div>}
+        {count === 0 && boot === 'error' && (
+          <button className="cg-hint" onClick={() => { setBoot('loading'); void refreshAll(); }} style={{ font: 'inherit', background: 'none', border: 0, cursor: 'pointer' }}>
+            Couldn’t check your connections — tap to retry
+          </button>
+        )}
+        {count === 0 && boot === 'ok' && <div className="cg-hint">Tap a <b>+</b> to connect an app</div>}
       </div>
 
       {/* ---- connect picker: the page with all the apps ---- */}

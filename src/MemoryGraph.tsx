@@ -15,6 +15,8 @@ import { IconTrash, IconArrowUp, IconSpark, IconArrowLeft, IconFiles, IconX, Ico
 interface Props {
   memories: Memory[];
   loaded: boolean;
+  loadErr: boolean; // the load FAILED — show retry, never "no memories yet"
+  onRetry: () => void;
   enabled: boolean;
   onAdd: (content: string) => Promise<boolean>;
   onAddFile: (note: string, attach: Attach) => Promise<boolean>;
@@ -48,7 +50,7 @@ function layout(n: number): XY[] {
   });
 }
 
-export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFile, onUpdate, onDelete, onToggle, onClose }: Props) {
+export default function MemoryGraph({ memories, loaded, loadErr, onRetry, enabled, onAdd, onAddFile, onUpdate, onDelete, onToggle, onClose }: Props) {
   // Full-screen dialog: keep keyboard focus inside; Esc goes back.
   const trapRef = useRef<HTMLDivElement>(null);
   useFocusTrap(true, trapRef, onClose);
@@ -323,10 +325,24 @@ export default function MemoryGraph({ memories, loaded, enabled, onAdd, onAddFil
         })}
        </div>
 
-        {loaded && n === 0 && (
+        {/* A failed load must NOT read as "no memories yet" — that looks like
+            data loss. Empty state only when the fetch genuinely came back empty. */}
+        {loaded && loadErr && n === 0 && (
+          <div className="memg-empty">
+            <div className="memg-empty-title">Couldn’t load your memories</div>
+            <div className="memg-empty-sub">Check your connection — they’re safe on the server.</div>
+            <button className="msg-retry" onClick={onRetry}>Try again</button>
+          </div>
+        )}
+        {loaded && !loadErr && n === 0 && (
           <div className="memg-empty">
             <div className="memg-empty-title">No memories yet</div>
             <div className="memg-empty-sub">Add one below — or just tell me “remember that…” in any chat.</div>
+          </div>
+        )}
+        {!loaded && n === 0 && (
+          <div className="memg-empty" aria-live="polite">
+            <div className="memg-empty-sub">Loading your memories…</div>
           </div>
         )}
       </div>

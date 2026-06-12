@@ -147,8 +147,8 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            {error && <div className="auth-error">⚠️ {error}</div>}
-            {notice && <div className="auth-notice">✅ {notice}</div>}
+            {error && <div className="auth-error">{error}</div>}
+            {notice && <div className="auth-notice">{notice}</div>}
             <button className="auth-btn" type="submit" disabled={busy}>
               {busy ? 'Sending…' : mode === 'signin' ? 'Sign in' : 'Create account'}
             </button>
@@ -171,8 +171,8 @@ export default function Login() {
                 if (v.length === 6) void doVerify(v); // all six digits in — verify without an extra tap
               }}
             />
-            {error && <div className="auth-error">⚠️ {error}</div>}
-            {notice && <div className="auth-notice">✅ {notice}</div>}
+            {error && <div className="auth-error">{error}</div>}
+            {notice && <div className="auth-notice">{notice}</div>}
             <button className="auth-btn" type="submit" disabled={busy || code.length < 6}>
               {busy ? 'Verifying…' : 'Verify & continue'}
             </button>

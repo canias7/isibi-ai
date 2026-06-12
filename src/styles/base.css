@@ -29,6 +29,8 @@ html {
   --brand: #e0a13a;
   --brand-strong: #b4691a;  /* deepest amber, for gradient ends */
   --brand-soft: #ffd98a;    /* lightest amber, for gradient starts/glows */
+  --grad-brand: linear-gradient(160deg, #ffce6f, #e0951f);
+  --on-brand: #2a1c05;  /* ink on amber */
   /* Semantics — one color per meaning, app-wide. */
   --success: #46d17f;
   --danger: #ff6b6b;        /* danger TEXT / icons / hairlines */
@@ -65,6 +67,7 @@ html {
   --line-4: rgba(255, 255, 255, 0.30);  /* prominent edge */
   --fill-1: rgba(255, 255, 255, 0.06);  /* subtle raised fill */
   --fill-2: rgba(255, 255, 255, 0.10);  /* pressed / hover fill */
+  --fill-3: rgba(255, 255, 255, 0.16);  /* strong pressed fill */
 
   /* ---- Elevation --------------------------------------------------------
      Two named shadows replace 27 one-offs. */

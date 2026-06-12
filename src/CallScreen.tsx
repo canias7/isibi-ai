@@ -217,7 +217,7 @@ export default function CallScreen({
       : phase === 'listening' ? 'Listening'
         : phase === 'thinking' ? 'Thinking…'
           : phase === 'speaking' ? 'Speaking'
-            : 'Problem';
+            : 'Something went wrong';
 
   // Full-screen dialog: focus moves in; Esc hangs up (same as the end button).
   const trapRef = useRef<HTMLDivElement>(null);

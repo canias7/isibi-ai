@@ -19,16 +19,18 @@ export interface Memory {
 
 const SEL = 'id,content,created_at,attachment_path,attachment_type,attachment_name';
 
-export async function listMemories(): Promise<Memory[]> {
+// null = the FETCH failed (offline/server) — callers show a retry, never an
+// empty state: "No memories yet" on a failed load reads as data loss.
+export async function listMemories(): Promise<Memory[] | null> {
   try {
     const { data, error } = await supabase
       .from('user_memory')
       .select(SEL)
       .order('created_at', { ascending: false });
-    if (error || !data) return [];
+    if (error || !data) return null;
     return data as Memory[];
   } catch {
-    return [];
+    return null;
   }
 }
 

@@ -284,16 +284,18 @@ export async function buildWorkflow(messages: BuildMsg[]): Promise<BuildResult |
   }
 }
 
-export async function listWorkflows(): Promise<Workflow[]> {
+// null = the FETCH failed (offline/server) — callers show a retry, never an
+// empty state: "no workflows" on a failed load reads as data loss.
+export async function listWorkflows(): Promise<Workflow[] | null> {
   try {
     const { data, error } = await supabase
       .from('workflows')
       .select(SEL)
       .order('created_at', { ascending: false });
-    if (error || !data) return [];
+    if (error || !data) return null;
     return data as Workflow[];
   } catch {
-    return [];
+    return null;
   }
 }
 

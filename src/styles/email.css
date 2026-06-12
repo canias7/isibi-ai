@@ -86,7 +86,7 @@
 .gf-msg {
   white-space: normal;
   margin: 4px 0 6px;
-  background: #14161b;
+  background: #181a1f; /* same card surface as .gf-emails/.gf-contacts */
   border: 1px solid var(--line-1);
   border-radius: var(--r-card);
   padding: 14px;
@@ -102,7 +102,7 @@
 .gf-msg-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
 .gf-msg-time { color: var(--text-dim); font-size: var(--fs-caption); white-space: nowrap; }
 .gf-msg-pill {
-  font-size: var(--fs-label); font-weight: 600; color: #8fb6ff;
+  font-size: var(--fs-label); font-weight: 600; color: var(--link);
   background: #3a86ff1f; border: 1px solid #3a86ff44; padding: 3px 10px; border-radius: var(--r-pill);
 }
 .gf-msg-subject { font-size: var(--fs-headline); font-weight: 700; line-height: 1.3; margin: 0.8235rem 0 0.5882rem; }
@@ -127,7 +127,7 @@
   width: 34px; height: 34px; border-radius: var(--r-control); border: 1px solid var(--line-2);
   background: #ffffff0a; color: var(--text); display: grid; place-items: center; cursor: pointer;
 }
-.gf-att-btn:disabled { opacity: 0.45; cursor: default; }
+.gf-att-btn:disabled { opacity: 0.4; cursor: default; }
 
 /* Full-screen attachment preview */
 .gf-lightbox {
@@ -156,6 +156,8 @@
 .gf-skel-line.w90 { width: 90%; }
 .gf-skel { animation: gfpulse 1.2s ease-in-out infinite; }
 @keyframes gfpulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+/* no pulse under reduced motion — hold a static mid-pulse fill */
+@media (prefers-reduced-motion: reduce) { .gf-skel { animation: none; opacity: 0.7; } }
 
 /* ---- Per-mailbox glass theming (Gmail = frosted white, Outlook = frosted blue).
    The card is tinted by its provider; the email body iframe stays white (real HTML).
@@ -239,30 +241,35 @@
 @keyframes tmOut { to { opacity: 0; transform: translateX(20px); } }
 @media (prefers-reduced-motion: reduce) { .tm-overlay, .gf-out .tm-overlay { animation: none; } }
 .tm-head {
-  display: flex;
+  display: grid;
+  /* 3 columns with equal 1fr sides so the title stays truly centered no
+     matter how wide the back button / save-status slots are */
+  grid-template-columns: 1fr minmax(0, auto) 1fr;
   align-items: center;
   gap: 10px;
   padding: max(10px, env(safe-area-inset-top)) 12px 10px;
   border-bottom: 1px solid var(--line-1);
   flex-shrink: 0;
 }
+/* same round back button as the graph overlays (.memg-back) */
 .tm-x {
-  width: 38px;
-  height: 38px;
+  justify-self: start;
+  width: 34px;
+  height: 34px;
   border: none;
-  background: transparent;
+  background: var(--fill-1);
   color: var(--text);
-  font-size: var(--fs-title);
-  border-radius: var(--r-control);
+  border-radius: 50%;
   display: grid;
   place-items: center;
   cursor: pointer;
   flex-shrink: 0;
 }
-.tm-x:active { opacity: 0.6; }
-.tm-title { flex: 1; min-width: 0; font-weight: 700; font-size: var(--fs-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-x:active { background: var(--fill-2); }
+.tm-title { min-width: 0; text-align: center; font-weight: 700; font-size: var(--fs-headline); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tm-save {
   flex-shrink: 0;
+  justify-self: end;
   border: none;
   background: var(--accent);
   color: #000;
@@ -279,6 +286,7 @@
 /* Auto-save status (replaces the Save button) */
 .tm-status {
   flex-shrink: 0;
+  justify-self: end;
   min-width: 56px;
   text-align: right;
   font-size: var(--fs-body-s);
@@ -287,7 +295,7 @@
   border: none;
   font-family: inherit;
 }
-.tm-status.err { color: #ff8a8a; font-weight: 600; cursor: pointer; }
+.tm-status.err { color: var(--danger); font-weight: 600; cursor: pointer; }
 .tm-body {
   flex: 1;
   overflow-y: auto;
@@ -400,7 +408,7 @@
 .wfx-projects-count {
   position: absolute; top: -4px; right: -4px;
   min-width: 16px; height: 16px; padding: 0 4px;
-  background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05;
+  background: var(--grad-brand); color: var(--on-brand);
   font-size: var(--fs-label); font-weight: 800; border-radius: 0.5294rem;
   display: grid; place-items: center;
 }
@@ -410,7 +418,7 @@
 .wfx-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px 28px; gap: 12px; touch-action: none; }
 .wfx-hero-mark {
   width: 58px; height: 58px; border-radius: var(--r-card); display: grid; place-items: center;
-  color: #2a1c05; background: linear-gradient(160deg, #ffce6f, #e0951f);
+  color: var(--on-brand); background: var(--grad-brand);
   box-shadow: 0 0 40px 6px rgba(224, 161, 58, 0.35);
 }
 .wfx-hero-title { font-size: var(--fs-title); font-weight: 700; }
@@ -469,7 +477,7 @@
   width: 100%; margin-top: 8px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--line-2);
-  border-radius: 0.7059rem; color: var(--text); font: inherit; font-size: var(--fs-body); padding: 0.6471rem 0.7647rem;
+  border-radius: var(--r-row); color: var(--text); font: inherit; font-size: var(--fs-body); padding: 0.6471rem 0.7647rem;
 }
 .wfx-other-input:focus { outline: none; border-color: rgba(255, 255, 255, 0.3); }
 .wfx-other-input::placeholder { color: var(--text-dim); }
@@ -539,7 +547,7 @@
 @media (prefers-reduced-motion: reduce) { .wfx-prompt-caret { animation: none; } }
 .wfx-spin {
   width: 16px; height: 16px; border-radius: 50%;
-  border: 2px solid rgba(0, 0, 0, 0.25); border-top-color: #2a1c05;
+  border: 2px solid rgba(0, 0, 0, 0.25); border-top-color: var(--on-brand);
   display: inline-block; animation: wfxSpin 0.7s linear infinite;
 }
 @keyframes wfxSpin { to { transform: rotate(360deg); } }
@@ -596,7 +604,7 @@
 .wfx-result.ok .wfx-result-head { color: var(--success); }
 .wfx-result.bad .wfx-result-head { color: var(--danger); }
 .wfx-result-out { margin: 0.4706rem 0 0; white-space: pre-wrap; word-break: break-word; font-size: var(--fs-caption); line-height: 1.45; color: var(--text); max-height: 11.7647rem; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.wfx-node.trigger .wfx-chip { background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05; border-color: rgba(255, 255, 255, 0.25); }
+.wfx-node.trigger .wfx-chip { background: var(--grad-brand); color: var(--on-brand); border-color: rgba(255, 255, 255, 0.25); }
 /* App nodes carry a real brand logo — sit it on a light tile so it always reads. */
 .wfx-chip.logo { background: #f7f7fa; border-color: rgba(0, 0, 0, 0.12); }
 .wfx-node.decision .wfx-chip { transform: rotate(45deg); }
@@ -633,7 +641,7 @@
 .wfx-hf-node:not(.b) { background: #f7f7fa; border-color: rgba(0, 0, 0, 0.12); }
 .wfx-hf-node.b {
   width: 56px; height: 56px; border-radius: var(--r-card);
-  background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05;
+  background: var(--grad-brand); color: var(--on-brand);
   border-color: rgba(255, 255, 255, 0.28);
   animation: wfxHfPulse 2.4s ease-in-out infinite;
 }
@@ -641,7 +649,7 @@
   0%, 100% { box-shadow: 0 0 16px rgba(224, 149, 31, 0.35), 0 8px 22px rgba(0, 0, 0, 0.5); }
   50% { box-shadow: 0 0 30px rgba(224, 149, 31, 0.65), 0 8px 22px rgba(0, 0, 0, 0.5); }
 }
-@media (prefers-reduced-motion: reduce) { .wfx-hf-wire, .wfx-hf-node.b, .wfx-hf-ic { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .wfx-edge.run, .wfx-hf-wire, .wfx-hf-node.b, .wfx-hf-ic { animation: none; } }
 
 /* Workflow preview showcase: a mock chat box types the prompt, sends, the graph builds. */
 .wfx-wp-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; }
@@ -654,7 +662,7 @@
 }
 .wfx-wp-chat-text { flex: 1; text-align: left; font-size: var(--fs-body); line-height: 1.35; color: var(--text); min-width: 0; }
 .wfx-wp-send { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); color: var(--text); display: grid; place-items: center; transition: background 0.2s ease, transform var(--dur-press) ease; }
-.wfx-wp-send.sending { background: var(--brand); color: #2a1c05; transform: scale(0.9); }
+.wfx-wp-send.sending { background: var(--brand); color: var(--on-brand); transform: scale(0.9); }
 /* Stage where the workflow "loads" — fixed size so nothing jumps. */
 .wfx-wp-stage { position: relative; width: min(300px, 84vw); aspect-ratio: 300 / 240; }
 .wfx-wp-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5882rem; color: var(--text-dim); font-size: var(--fs-footnote); }
@@ -683,11 +691,11 @@
 .wfx-bar { flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 10px 16px calc(14px + env(safe-area-inset-bottom)); z-index: 3; }
 .wfx-bar-status { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.3529rem; font-size: var(--fs-footnote); color: rgba(255, 255, 255, 0.5); }
 /* failed auto-save: the status line becomes a tappable retry */
-button.wfx-bar-status.err { background: none; border: 0; padding: 0; font: inherit; font-size: var(--fs-footnote); color: #ff8a80; cursor: pointer; text-align: left; }
+button.wfx-bar-status.err { background: none; border: 0; padding: 0; font: inherit; font-size: var(--fs-footnote); color: var(--danger); cursor: pointer; text-align: left; }
 .wfx-bar-save {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
   border: none; border-radius: var(--r-card); padding: 14px;
-  background: linear-gradient(160deg, #ffce6f, #e0951f); color: #2a1c05;
+  background: var(--grad-brand); color: var(--on-brand);
   font: inherit; font-size: var(--fs-body); font-weight: 700; cursor: pointer;
 }
 .wfx-bar-save:disabled { opacity: 0.5; }
@@ -697,15 +705,24 @@ button.wfx-bar-status.err { background: none; border: 0; padding: 0; font: inher
 }
 
 /* node edit sheet + runs sheet */
-.wfx-sheet-scrim { position: fixed; inset: 0; z-index: 210; background: rgba(0, 0, 0, 0.5); display: flex; align-items: flex-end; animation: memgIn 0.18s ease; }
+.wfx-sheet-scrim { position: fixed; inset: 0; z-index: 210; background: rgba(0, 0, 0, 0.5); display: flex; align-items: flex-end; animation: scrimfade var(--dur-enter) ease; }
 .wfx-sheet {
   width: 100%; max-height: 80vh; overflow-y: auto;
-  background: #161618; border-top-left-radius: 20px; border-top-right-radius: 20px;
+  background: #141417; /* same sheet surface as .cg-sheet */
+  border-top-left-radius: var(--r-sheet); border-top-right-radius: var(--r-sheet);
   border-top: 1px solid var(--line-2);
   padding: 14px 16px calc(20px + env(safe-area-inset-bottom));
-  animation: wfxSheetUp 0.22s ease;
+  animation: wfxSheetUp var(--dur-enter) var(--ease-enter);
 }
 @keyframes wfxSheetUp { from { transform: translateY(30px); opacity: 0.6; } to { transform: translateY(0); opacity: 1; } }
+/* animated dismissal — add .closing to the scrim (or the sheet itself) */
+.wfx-sheet-scrim.closing { animation: cgFadeOut var(--dur-exit) var(--ease-exit) forwards; }
+.closing .wfx-sheet, .wfx-sheet.closing { animation: wfxSheetDown var(--dur-exit) var(--ease-exit) forwards; }
+@keyframes wfxSheetDown { to { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .wfx-sheet-scrim, .wfx-sheet-scrim.closing,
+  .wfx-sheet, .closing .wfx-sheet, .wfx-sheet.closing { animation: none; }
+}
 .wfx-sheet-head { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: var(--fs-body); margin-bottom: 0.3529rem; }
 
 .wfx-apps { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
@@ -732,8 +749,10 @@ button.wfx-bar-status.err { background: none; border: 0; padding: 0; font: inher
   color: var(--text); font: inherit; font-size: var(--fs-footnote); font-weight: 600; cursor: pointer;
 }
 .wfx-test:active { background: rgba(255, 255, 255, 0.16); }
-.wfx-test:disabled { opacity: 0.6; }
+.wfx-test:disabled { opacity: 0.4; }
 .wfx-spin-l { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.3); border-top-color: var(--text); display: inline-block; animation: wfxSpin 0.7s linear infinite; }
+/* still spins (it means "working"), just slower — same treatment as gf-spin */
+@media (prefers-reduced-motion: reduce) { .wfx-spin, .wfx-spin-l { animation-duration: 1.6s; } }
 
 .wfx-result-title { display: inline-flex; align-items: center; gap: 8px; }
 .wfx-result-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
@@ -758,7 +777,7 @@ button.wfx-bar-status.err { background: none; border: 0; padding: 0; font: inher
   border-radius: var(--r-card); cursor: grab; color: var(--text);
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none;
   box-shadow: var(--shadow-modal);
-  animation: memgPop 0.32s cubic-bezier(0.2, 0.7, 0.2, 1.2) backwards;
+  animation: memgPop var(--dur-enter) var(--ease-spring) backwards;
 }
 .cg-node:active { cursor: grabbing; }
 .cg-node.dragging { z-index: 6; box-shadow: var(--shadow-modal); animation: none; }
@@ -800,7 +819,7 @@ button.wfx-bar-status.err { background: none; border: 0; padding: 0; font: inher
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 251;
   background: #141417; border-top: 1px solid var(--line-2); border-radius: var(--r-sheet) var(--r-sheet) 0 0;
   padding: 14px 16px calc(20px + env(safe-area-inset-bottom)); max-width: 640px; margin: 0 auto;
-  animation: cgSheetUp var(--dur-enter) var(--ease-enter);
+  animation: cgSheetUp var(--dur-enter) var(--ease-spring);
 }
 @keyframes cgSheetUp { from { transform: translateY(100%); } to { transform: none; } }
 .cg-sheet.closing { animation: cgSheetDown var(--dur-exit) var(--ease-exit) forwards; }
@@ -826,7 +845,7 @@ button.wfx-bar-status.err { background: none; border: 0; padding: 0; font: inher
   height: 17px;
   border-radius: 50%;
   background: var(--brand);
-  color: #1a1206;
+  color: var(--on-brand);
   font-size: var(--fs-label);
   font-weight: 800;
   line-height: 17px;
