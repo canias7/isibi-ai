@@ -55,10 +55,10 @@ jobs:
             echo "::notice::No APP_STORE_CONNECT_API_KEY secret set — skipping iOS build. Add the 3 App Store Connect API key secrets to build + ship to TestFlight."
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         if: steps.signing.outputs.present == 'true'
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         if: steps.signing.outputs.present == 'true'
         with:
           node-version: 22
@@ -163,7 +163,7 @@ jobs:
 
       - name: Upload to TestFlight
         if: steps.signing.outputs.present == 'true'
-        uses: apple-actions/upload-testflight-build@v3
+        uses: apple-actions/upload-testflight-build@9fd28d4e690396e43caca69cef54cccccce77034 # v3
         with:
           app-path: ${{ steps.export.outputs.ipa }}
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -172,7 +172,7 @@ jobs:
 
       - name: Publish IPA to a GitHub Release (backup copy)
         if: steps.signing.outputs.present == 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ios-latest
           name: Go Farther — iOS (latest build)
