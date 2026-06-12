@@ -29,10 +29,16 @@
   gap: 2px;
   padding: max(14px, env(safe-area-inset-top)) 10px max(14px, env(safe-area-inset-bottom));
 }
+/* a soft amber glow at the top — a touch of warmth/identity behind the search */
+.sidebar::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 200px; pointer-events: none;
+  background: radial-gradient(75% 100% at 28% 0%, rgba(232, 169, 58, 0.16), rgba(232, 169, 58, 0) 70%);
+}
 .sidebar.open { transform: translateX(0); transition: transform var(--dur-screen) var(--ease-enter); }
 
 
 .side-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -48,9 +54,14 @@
   cursor: pointer;
 }
 .side-item:active { background: var(--fill-2); }
-.side-item.active { background: var(--fill-2); }
+/* S1 warm accents: the active row is an amber card with a left accent bar, not
+   a flat grey fill — so the sidebar reads alive instead of dead. */
+.side-item.active { background: rgba(232, 169, 58, 0.13); }
+.side-item.active::before { content: ''; position: absolute; left: 4px; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: var(--brand); }
 .side-item.primary { font-weight: 600; }
 .side-item .ico { width: 22px; display: grid; place-items: center; flex-shrink: 0; }
+/* the nav icons (New chat / Chat / Settings) glow amber, not grey */
+.side-nav .side-item .ico, .side-item.primary .ico { color: var(--brand); }
 
 .side-nav {
   margin-top: 8px;
@@ -74,7 +85,7 @@
   gap: 2px;
 }
 .side-label {
-  color: var(--text-faint);
+  color: #caa24a; /* warm amber section labels (was a dead grey) */
   font-size: var(--fs-label);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -426,7 +437,7 @@
   font-size: var(--fs-caption);
   color: var(--text-dim);
 }
-.chat-item.active .chat-time { color: var(--text); opacity: 0.7; }
+.chat-item.active .chat-time { color: #caa24a; opacity: 0.9; }
 
 /* ---- Long-press chat actions sheet ---- */
 .sheet-scrim {
