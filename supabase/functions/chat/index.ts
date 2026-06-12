@@ -246,17 +246,87 @@ const APP_TO_SLUG: Record<string, string> = {
   klaviyo: "klaviyo",
 };
 
-// Identify the caller from their Supabase JWT (the `sub` claim = user id).
-// A plain anon key has no `sub`, so anonymous callers get no connected apps —
-// they can chat, but can't touch anyone's data.
-function userFromJwt(req: Request): string | null {
+// ---- Verified caller identity (defense-in-depth) ----------------------------
+// The platform gateway (verify_jwt=true) already rejects forged JWTs, but that
+// flag lives outside this repo — the code must not DEPEND on it. So the token's
+// signature is verified here too, before `sub` is ever trusted: user tokens are
+// ES256-signed, checked locally against the project's public JWKS (WebCrypto,
+// cached per isolate, no deps). When local verification isn't possible (legacy
+// HS256 token, unknown kid, JWKS outage) the Auth server is asked instead —
+// only when BOTH paths fail is the caller treated as anonymous, so a hiccup
+// degrades to "no identity", never a lockout.
+
+function b64urlBytes(s: string): Uint8Array {
+  const t = s.replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(t + "=".repeat((4 - (t.length % 4)) % 4));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+// JWKS keys by kid. An unknown kid triggers a refetch (key rotation), but at
+// most once a minute — forged kids can't turn into a fetch per request.
+let jwksCache: { keys: Record<string, CryptoKey>; at: number } | null = null;
+async function jwksKey(kid: string): Promise<CryptoKey | null> {
+  if (jwksCache && (jwksCache.keys[kid] || Date.now() - jwksCache.at < 60_000)) return jwksCache.keys[kid] ?? null;
+  if (!SB_URL) return null;
+  try {
+    const r = await fetch(`${SB_URL}/auth/v1/.well-known/jwks.json`);
+    if (!r.ok) return jwksCache?.keys[kid] ?? null;
+    const j = await r.json();
+    const keys: Record<string, CryptoKey> = {};
+    for (const k of j.keys ?? []) {
+      if (k.kty !== "EC" || k.crv !== "P-256" || !k.kid) continue;
+      try { keys[String(k.kid)] = await crypto.subtle.importKey("jwk", k, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]); } catch { /* skip bad key */ }
+    }
+    jwksCache = { keys, at: Date.now() };
+    return keys[kid] ?? null;
+  } catch {
+    return jwksCache?.keys[kid] ?? null; // outage — serve stale if we have it
+  }
+}
+
+// Authoritative fallback: the Auth server validates any alg/key it issued.
+async function authServerUser(token: string): Promise<string | null> {
+  if (!SB_URL) return null;
+  try {
+    const r = await fetch(`${SB_URL}/auth/v1/user`, { headers: { authorization: `Bearer ${token}`, apikey: SB_SERVICE_KEY ?? "" } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return typeof j?.id === "string" && j.id ? j.id : null;
+  } catch {
+    return null;
+  }
+}
+
+// Identify the caller from their Supabase JWT — `sub` is trusted only after the
+// signature checks out. A plain anon key has no authenticated `sub`, so
+// anonymous callers get no connected apps: they can chat, but can't touch
+// anyone's data.
+async function userFromJwt(req: Request): Promise<string | null> {
   try {
     const auth = req.headers.get("authorization") || "";
     const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
-    const payload = token.split(".")[1];
-    if (!payload) return null;
-    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
-    return json.role === "authenticated" && typeof json.sub === "string" ? json.sub : null;
+    const [h, p, sig] = token.split(".");
+    if (!h || !p || !sig) return null;
+    const payload = JSON.parse(new TextDecoder().decode(b64urlBytes(p)));
+    if (payload.role !== "authenticated" || typeof payload.sub !== "string" || !payload.sub) return null;
+    if (typeof payload.exp === "number" && payload.exp * 1000 < Date.now()) return null;
+    const header = JSON.parse(new TextDecoder().decode(b64urlBytes(h)));
+    if (header.alg === "ES256" && typeof header.kid === "string") {
+      const key = await jwksKey(header.kid);
+      if (key) {
+        const ok = await crypto.subtle.verify(
+          { name: "ECDSA", hash: "SHA-256" }, key, b64urlBytes(sig), new TextEncoder().encode(`${h}.${p}`),
+        );
+        if (ok) return payload.sub;
+        // Failed against our JWKS copy — let the Auth server decide (covers a
+        // just-rotated key); it rejects real forgeries anyway.
+        return await authServerUser(token);
+      }
+    }
+    // Can't verify locally (no key for this kid / non-ES256) → Auth server.
+    return await authServerUser(token);
   } catch {
     return null;
   }
@@ -717,7 +787,7 @@ Deno.serve(async (req: Request) => {
   let scopedApps: string[] = []; // connector slugs in scope this turn (drives the tool-discovery prompt)
   let emailUI = false; // expose the rich inbox-card format only when an email app is in scope
   const extraHeaders: Record<string, string> = {};
-  const appUser = userFromJwt(req);
+  const appUser = await userFromJwt(req);
 
   // Utility mode (chat titles, memory extraction): tiny prompts that need none of
   // the connectors, memories, web tools, or the big system prompt — so a 5-word
