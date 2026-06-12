@@ -6,7 +6,8 @@ import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconWaveform, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown, IconLogout } from './icons';
+import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconWaveform, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown, IconLogout, IconPhotos } from './icons';
+import { Camera } from '@capacitor/camera';
 import { primeAudio, resumeAudio, audioState, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { sentSound, replySound, soundsOn, setSoundsOn, soundTheme, setSoundTheme, type SoundTheme } from './earcons';
 import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
@@ -369,6 +370,7 @@ export default function App() {
     [chats, currentId],
   );
   const [plusOpen, setPlusOpen] = useState(false);
+  const [attachPop, setAttachPop] = useState(false); // "Attachments" → Photo Library / Files chooser
   const [attachments, setAttachments] = useState<Attach[]>([]);
   const [attachErr, setAttachErr] = useState('');
   // A message composed WHILE the assistant is replying — sent automatically the
@@ -503,6 +505,7 @@ export default function App() {
   const wnUi = useDismiss(wnOpen);
   const usageUi = useDismiss(usageOpen);
   const modelUi = useDismiss(modelOpen);
+  const attachPopUi = useDismiss(attachPop);
   // Legal reader: latch the doc so the sheet doesn't blank out during its exit beat.
   const legalUi = useDismiss(!!legalDoc);
   const lastLegal = useRef(legalDoc);
@@ -1430,12 +1433,14 @@ export default function App() {
   }, [queued, uid]);
 
   // ---- Attachments ("+" menu) ----
-  // Camera jumps straight into the device camera (Take Photo); Attachments offers
-  // the photo library + files. Both go through the hidden file input -> onFiles
-  // (which downsizes images). The file-input camera is the one that reliably
-  // opens in the iOS webview, so the Camera button uses it directly.
-  function openPicker(mode: 'camera' | 'attachments') {
+  // The "+" menu has a dedicated Camera (jumps straight into capture). Tapping
+  // "Attachments" opens a small chooser — Photo Library and Files — with NO
+  // camera (that's its own button). Photo Library uses the native picker so iOS
+  // doesn't add a redundant "Take Photo"; Files is a documents-only input, which
+  // iOS shows as just "Choose Files" (no camera, no photo library).
+  function openPicker(mode: 'camera' | 'files') {
     setPlusOpen(false);
+    setAttachPop(false);
     const input = fileRef.current;
     if (!input) return;
     input.value = '';
@@ -1445,10 +1450,34 @@ export default function App() {
       input.setAttribute('capture', 'environment'); // open the camera, not the menu
     } else {
       input.multiple = true;
-      input.accept = 'image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain';
+      input.accept = 'application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain';
       input.removeAttribute('capture');
     }
     input.click();
+  }
+  // Native photo library (PHPicker on iOS) — no camera option, unlike a web file
+  // input. Falls back to the web image input on a build without the Camera plugin.
+  async function pickPhotos() {
+    setPlusOpen(false);
+    setAttachPop(false);
+    if (!Capacitor.isPluginAvailable('Camera')) {
+      const input = fileRef.current;
+      if (!input) return;
+      input.value = ''; input.multiple = true; input.accept = 'image/*'; input.removeAttribute('capture');
+      input.click();
+      return;
+    }
+    try {
+      const res = await Camera.pickImages({ quality: 88, limit: 6 });
+      for (const p of res.photos) {
+        if (!p.webPath) continue;
+        const blob = await (await fetch(p.webPath)).blob();
+        const file = new File([blob], `photo.${p.format || 'jpg'}`, { type: blob.type || `image/${p.format || 'jpeg'}` });
+        const { attach, error } = await fileToAttachment(file);
+        if (attach) setAttachments((prev) => (prev.length >= 6 ? (flagAttachCap(), prev) : [...prev, attach]));
+        else if (error) { setAttachErr(error); setTimeout(() => setAttachErr(''), 4000); }
+      }
+    } catch { /* user cancelled the picker — nothing to do */ }
   }
   // Paste an image straight into the composer (screenshots, copied photos).
   async function onPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
@@ -2278,7 +2307,7 @@ export default function App() {
                 <button className="radial-item" style={{ left: 34, bottom: 272, animationDelay: '170ms' }} onClick={() => openPicker('camera')}>
                   <IconCamera size={20} /><span className="radial-label">Camera</span>
                 </button>
-                <button className="radial-item" style={{ left: 50, bottom: 214, animationDelay: '130ms' }} onClick={() => openPicker('attachments')}>
+                <button className="radial-item" style={{ left: 50, bottom: 214, animationDelay: '130ms' }} onClick={() => { setPlusOpen(false); setAttachPop(true); }}>
                   <IconFiles size={20} /><span className="radial-label">Attachments</span>
                 </button>
                 <button className="radial-item" style={{ left: 65, bottom: 156, animationDelay: '90ms' }} onClick={() => { setPlusOpen(false); void loadConnectors(); setWfOpen(true); }}>
@@ -2291,6 +2320,19 @@ export default function App() {
             )}
 
             <div className="composer">
+              {attachPopUi.mounted && (
+                <>
+                  <div className="conn-pop-backdrop" onClick={() => setAttachPop(false)} />
+                  <div className={`attach-pop${attachPopUi.closing ? ' closing' : ''}`} role="menu" aria-label="Add an attachment">
+                    <button className="attach-pop-row" role="menuitem" onClick={() => void pickPhotos()}>
+                      <IconPhotos size={19} /><span>Photo Library</span>
+                    </button>
+                    <button className="attach-pop-row" role="menuitem" onClick={() => openPicker('files')}>
+                      <IconDoc size={19} /><span>Files</span>
+                    </button>
+                  </div>
+                </>
+              )}
               {attachments.length > 0 && (
                 <div className="att-row">
                   {attachments.map((a, i) => (
