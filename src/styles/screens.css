@@ -352,11 +352,9 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .memg-list-btn:active { background: var(--fill-2); }
 .memg-list-count { color: var(--text-dim); font-weight: 700; }
 
+/* Just the real SunOrb (same animated canvas + glow as Home/Login/Lock) — no
+   extra haze behind it, so it reads as the crisp sun, not a flat disc. */
 .memg-sunwrap { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%); display: grid; place-items: center; }
-.memg-sunwrap::before {
-  content: ''; position: absolute; width: 280px; height: 280px; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, rgba(232, 169, 58, 0.30), rgba(232, 169, 58, 0) 68%);
-}
 .memg-stage.paused .memg-sunwrap { opacity: 0.4; }
 
 .memg-sun-flare {
