@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { byId } from './connectorData';
 import { MODEL_OPTIONS } from './models';
-import { keyActivate, useFocusTrap } from './a11y';
+import { keyActivate, useFocusTrap, radioArrowNav } from './a11y';
 import { tap, bump, chime } from './haptics';
 import { BrandConstellation } from './brand';
 import { BrandLogo } from './brandLogos';
@@ -734,7 +734,7 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
           default; its cost is then the user's deliberate choice. */}
       {modelOpen && (
         <div className="wfx-sheet-scrim" onClick={() => setModelOpen(false)}>
-          <div className="wfx-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Choose model for this workflow">
+          <div className="wfx-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Choose model for this workflow" onKeyDown={radioArrowNav}>
             <div className="wfx-sheet-head"><span>Model · this workflow</span><button className="memg-cancel" onClick={() => setModelOpen(false)}>Done</button></div>
             {WF_MODEL_OPTIONS.map((o) => (
               <button

@@ -13,7 +13,8 @@ const config: CapacitorConfig = {
       // Show the banner/sound even when the app is in the foreground — otherwise
       // iOS delivers foreground pushes silently (why the in-app test showed
       // nothing). Doesn't affect background delivery, which always banners.
-      presentationOptions: ['badge', 'sound', 'alert'],
+      // 'banner' + 'list' are the iOS 14+ replacements for the deprecated 'alert'.
+      presentationOptions: ['badge', 'sound', 'banner', 'list'],
     },
   },
 };

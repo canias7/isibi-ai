@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import type { Session } from '@supabase/supabase-js';
-import { keyActivate } from './a11y';
+import { keyActivate, radioArrowNav } from './a11y';
 import { tap } from './haptics';
 import { IconLogout, IconTrash, IconCheck } from './icons';
 import { APP_VERSION, BUILD } from './version';
@@ -104,7 +104,7 @@ export default function SettingsPage({
               {REM_SOUND_SECTIONS.map((sec) => (
                 <div className="rem-snd-group" key={sec}>
                   <div className="rem-snd-sec">{sec}</div>
-                  <div role="radiogroup" aria-label={`${sec} reminder sounds`}>
+                  <div role="radiogroup" aria-label={`${sec} reminder sounds`} onKeyDown={radioArrowNav}>
                     {REMINDER_SOUNDS.filter((s) => s.section === sec).map((s) => (
                       <button
                         key={s.id}
