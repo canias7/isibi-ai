@@ -104,13 +104,14 @@ export async function deleteReminder(id: string): Promise<boolean> {
 
 // ---- On-device scheduling (local notifications) ----
 
-// LocalNotifications needs integer ids; derive a stable positive one from the
-// reminder's uuid so schedule/cancel always target the same slot.
+// LocalNotifications needs integer ids. Derive a stable positive one from the
+// reminder's uuid (so schedule/cancel always hit the same slot), kept in a band
+// BELOW 1e9 so it can never collide with a snooze id (snoozes live high, see
+// snoozeNudge) — a colliding snooze used to silently overwrite a reminder's slot.
 function notifId(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  // Android ids are int32: Math.abs(-2^31) = 2^31 is one past the max — clamp.
-  return Math.abs(h) % 2147483647 || 1;
+  return (Math.abs(h) % 1_000_000_000) || 1;
 }
 
 // Ask for notification permission in context (first time the user saves one).
@@ -124,9 +125,26 @@ export async function ensureNotifyPermission(): Promise<boolean> {
   }
 }
 
-function every(repeat: RepeatKind): 'day' | 'week' | undefined {
-  return repeat === 'daily' ? 'day' : repeat === 'weekly' ? 'week' : undefined;
+// Capacitor Weekday is 1=Sunday..7=Saturday; JS getDay() is 0=Sunday..6.
+function capWeekday(d: Date): number {
+  return d.getDay() + 1;
 }
+// The next time a reminder will fire, in epoch ms — used to order which ones to
+// arm under the iOS 64-pending cap. Fixed-step roll is fine for ORDERING (exact
+// DST correctness is handled by the calendar schedule in scheduleReminder).
+function nextFireMs(r: Reminder): number {
+  const t = new Date(r.remind_at).getTime();
+  if (Number.isNaN(t)) return Infinity;
+  if (r.repeat === 'none') return t;
+  const step = r.repeat === 'daily' ? 86_400_000 : 7 * 86_400_000;
+  let n = t;
+  const now = Date.now();
+  while (n <= now) n += step;
+  return n;
+}
+// iOS silently keeps only the 64 soonest-firing pending notifications and drops
+// the rest. Arm the soonest, leaving headroom for snoozes + workflow pushes.
+const MAX_ARMED = 60;
 
 // Lock-screen actions on a reminder nudge: Done / Snooze 10 min. Registered at
 // app start (the plugin needs the category before a notification using it fires).
@@ -150,14 +168,19 @@ export async function snoozeNudge(title: string, reminderId?: string): Promise<v
   try {
     const soundId = loadReminderSound();
     const channelId = await ensureReminderChannel(soundId);
+    const body = cleanReminderTitle(title);
     await LocalNotifications.schedule({
       notifications: [{
-        id: (Date.now() % 2147483000) + 1,
+        // High band [1.2e9, 2.1e9): disjoint from notifId's <1e9, so a snooze can
+        // never numerically collide with (and overwrite) a real reminder's slot.
+        id: 1_200_000_000 + (Date.now() % 900_000_000),
         title: 'Reminder',
-        body: cleanReminderTitle(title),
+        body,
         schedule: { at: new Date(Date.now() + 10 * 60 * 1000), allowWhileIdle: true },
         actionTypeId: 'gf-reminder',
-        ...(reminderId ? { extra: { reminderId } } : {}),
+        // Carry the title too, so a Snooze tapped on a COLD-started app can re-nudge
+        // with the real task instead of falling back to the generic "Reminder".
+        extra: { ...(reminderId ? { reminderId } : {}), title: body },
         channelId,
         ...(soundId === 'default' ? {} : { sound: `${soundId}.wav` }),
       }],
@@ -179,13 +202,16 @@ export async function cancelAllReminderNotifications(): Promise<void> {
 // Notification interactions: action buttons AND plain taps both land here.
 // actionId is 'done' / 'snooze' for the buttons, 'tap' for a plain tap.
 export async function onReminderAction(
-  cb: (actionId: string, reminderId: string | null) => void,
+  cb: (actionId: string, reminderId: string | null, title: string | null) => void,
 ): Promise<{ remove: () => void } | null> {
   try {
     const h = await LocalNotifications.addListener('localNotificationActionPerformed', (ev) => {
       const extra = (ev.notification?.extra ?? {}) as Record<string, unknown>;
       const rid = typeof extra.reminderId === 'string' ? extra.reminderId : null;
-      cb(ev.actionId ?? 'tap', rid);
+      // The title rides in `extra` so Snooze works on a cold start, before the
+      // reminders list has loaded from the server.
+      const title = typeof extra.title === 'string' ? extra.title : null;
+      cb(ev.actionId ?? 'tap', rid, title);
     });
     return h;
   } catch {
@@ -217,25 +243,31 @@ async function ensureReminderChannel(soundId: string): Promise<string> {
 export async function scheduleReminder(r: Reminder): Promise<void> {
   try {
     const at = new Date(r.remind_at);
-    // A one-off whose time has already passed can never fire — skip it. A
-    // repeating one rolls forward to its next occurrence, so re-arming (e.g. on
-    // launch) never triggers an immediate spurious notification.
+    if (Number.isNaN(at.getTime())) return; // a malformed remind_at must not arm an "Invalid Date" notification
+    // Recurring reminders schedule by CALENDAR components (hour/minute, + weekday
+    // for weekly), not a fixed-millisecond `every` from a rolled-forward instant.
+    // The old way drifted an hour across DST and detached "every Monday" from its
+    // weekday; the OS calendar trigger fires at the right wall-clock every time.
+    let schedule: { at?: Date; on?: { weekday?: number; hour?: number; minute?: number }; allowWhileIdle: boolean };
     if (r.repeat === 'none') {
-      if (at.getTime() <= Date.now()) return;
+      if (at.getTime() <= Date.now()) return; // a passed one-off can never fire
+      schedule = { at, allowWhileIdle: true };
+    } else if (r.repeat === 'daily') {
+      schedule = { on: { hour: at.getHours(), minute: at.getMinutes() }, allowWhileIdle: true };
     } else {
-      const step = r.repeat === 'daily' ? 86_400_000 : 7 * 86_400_000;
-      while (at.getTime() <= Date.now()) at.setTime(at.getTime() + step);
+      schedule = { on: { weekday: capWeekday(at), hour: at.getHours(), minute: at.getMinutes() }, allowWhileIdle: true };
     }
     const soundId = loadReminderSound();
     const channelId = await ensureReminderChannel(soundId);
+    const body = cleanReminderTitle(r.title); // defensive: legacy rows may store an un-stripped title
     await LocalNotifications.schedule({
       notifications: [{
         id: notifId(r.id),
         title: 'Reminder',
-        body: cleanReminderTitle(r.title),
-        schedule: { at, every: every(r.repeat), allowWhileIdle: true },
+        body,
+        schedule,
         actionTypeId: 'gf-reminder',
-        extra: { reminderId: r.id },
+        extra: { reminderId: r.id, title: body }, // title for cold-start snooze
         channelId, // Android 8+ sound
         ...(soundId === 'default' ? {} : { sound: `${soundId}.wav` }), // iOS + Android 7
       }],
@@ -253,12 +285,32 @@ export async function cancelReminder(id: string): Promise<void> {
   }
 }
 
-// Make the device's scheduled notifications match the table: cancel each then
-// re-schedule the enabled ones. Idempotent (stable ids), so safe to run on
-// launch to re-arm after edits on another device or an OS purge.
+// Make the device's scheduled notifications match the table. Idempotent (stable
+// ids), so safe to run on launch / resume to re-arm after edits elsewhere.
 export async function syncReminders(list: Reminder[]): Promise<void> {
-  for (const r of list) {
+  // 1) Cancel ORPHANS — anything armed whose reminder was deleted or disabled on
+  // another device. Keyed by extra.reminderId (not the list), so a deleted
+  // reminder's slot is actually cancelled (the old loop only touched reminders
+  // STILL in the list, so a deletion fired forever on a second device). Live
+  // snoozes survive: their reminder is present and enabled.
+  try {
+    const pending = (await LocalNotifications.getPending()).notifications ?? [];
+    const live = new Map(list.map((r) => [r.id, r]));
+    const orphans = pending
+      .filter((n) => {
+        const rid = (n.extra as Record<string, unknown> | undefined)?.reminderId;
+        return typeof rid === 'string' && !live.get(rid)?.enabled;
+      })
+      .map((n) => ({ id: n.id }));
+    if (orphans.length) await LocalNotifications.cancel({ notifications: orphans });
+  } catch { /* native only — no-op on web */ }
+
+  // 2) Arm the enabled ones, soonest-firing first, capped under the iOS 64 limit
+  // (past that, iOS drops the latest arbitrarily — better we keep the soonest).
+  const armed = list.filter((r) => r.enabled).sort((a, b) => nextFireMs(a) - nextFireMs(b));
+  if (armed.length > MAX_ARMED) console.warn(`[reminders] ${armed.length} enabled — arming the ${MAX_ARMED} soonest (OS pending cap)`);
+  for (const r of armed.slice(0, MAX_ARMED)) {
     await cancelReminder(r.id);
-    if (r.enabled) await scheduleReminder(r);
+    await scheduleReminder(r);
   }
 }

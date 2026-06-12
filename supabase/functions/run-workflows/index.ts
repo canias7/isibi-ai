@@ -434,7 +434,13 @@ Example result: "Sent your morning digest — 12 unread emails grouped by sender
     messages: [{ role: "user", content: instruction }],
   };
   const extra: Record<string, string> = {};
-  if (apps.length) {
+  {
+    // Attach the MCP toolset for ANY user, even with ZERO connected apps — mirrors
+    // chat, which always attaches it so the keyless built-ins (GF_SET_REMINDER,
+    // table, weather, maps) work without connectors. With no apps the URL just
+    // carries an empty apps= (same shape chat uses), so the proxy serves only the
+    // built-ins; &tz= is always threaded so the runner's reminder resolves in the
+    // workflow's zone. (`apps.join(",")` is "" when empty — exactly chat's no-apps URL.)
     const url = `${MCP_URL}?apps=${encodeURIComponent(apps.join(","))}&user=${encodeURIComponent(uid)}&tz=${encodeURIComponent(tz)}&mem=0`;
     reqBody.mcp_servers = [{ type: "url", url, name: "connectors", authorization_token: await mintUserToken(uid) }];
     // Deferred tool loading (ported from chat): the full connected-apps catalog
@@ -443,7 +449,9 @@ Example result: "Sent your morning digest — 12 unread emails grouped by sender
     // built-ins stay eager so an instruction like "check the weather and…"
     // works without a search round-trip; unknown names in `configs` are
     // warning-only, so this is safe when one isn't served. GF_SAVE_MEMORY is
-    // left out on purpose — runs always send &mem=0, so it's never served.
+    // left out on purpose — runs always send &mem=0, so it's never served. With
+    // no connected apps there's nothing to discover, but the eager built-ins
+    // (incl. GF_SET_REMINDER) are still served — the search tool just stays unused.
     reqBody.tools = [
       { type: "tool_search_tool_regex_20251119", name: "tool_search_tool_regex" },
       {
@@ -477,8 +485,9 @@ Example result: "Sent your morning digest — 12 unread emails grouped by sender
   }
   // Safety net (mirrors chat): if the API rejects the deferred-tools shape
   // (400), retry once with the classic eager catalog — a background run must
-  // never fail over a cost optimization.
-  if (res.status === 400 && apps.length) {
+  // never fail over a cost optimization. The toolset is now attached for every
+  // run (built-ins even with no apps), so this fires regardless of app count.
+  if (res.status === 400) {
     console.error(`workflow deferred-tools request rejected (400): ${(await res.text().catch(() => "")).slice(0, 300)} — retrying with eager catalog`);
     reqBody.tools = [{ type: "mcp_toolset", mcp_server_name: "connectors", cache_control: { type: "ephemeral" } }];
     res = await call();

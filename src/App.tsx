@@ -872,9 +872,11 @@ export default function App() {
       const id = (data as Record<string, unknown>).convId;
       if (typeof id === 'string' && id) notifRoutesRef.current.openChat(id);
     }).then((h) => { if (h) subs.push(h); });
-    void onReminderAction((actionId, reminderId) => {
+    void onReminderAction((actionId, reminderId, title) => {
       if (actionId === 'done' && reminderId) notifRoutesRef.current.done(reminderId);
-      else if (actionId === 'snooze' && reminderId) void snoozeNudge(notifRoutesRef.current.title(reminderId), reminderId);
+      // Prefer the title carried on the fired notification — on a cold start the
+      // reminders list hasn't loaded yet, so the ref lookup would be generic.
+      else if (actionId === 'snooze') void snoozeNudge(title ?? (reminderId ? notifRoutesRef.current.title(reminderId) : 'Reminder'), reminderId ?? undefined);
       else notifRoutesRef.current.openReminders();
     }).then((h) => { if (h) subs.push(h); });
     return () => { for (const s of subs) s.remove(); };
@@ -1614,9 +1616,15 @@ export default function App() {
   }
 
   async function addRem(title: string, remind_at: string, repeat: RepeatKind): Promise<boolean> {
-    await ensureNotifyPermission(); // ask for notification permission in context
+    const granted = await ensureNotifyPermission(); // ask for notification permission in context
     const r = await addReminder(title.trim(), remind_at, repeat);
-    if (r) { setReminders((prev) => [...prev, r]); void scheduleReminder(r); return true; }
+    if (r) {
+      setReminders((prev) => [...prev, r]);
+      void scheduleReminder(r);
+      // Don't let it save silently with no alert — mirror the chat path's hint.
+      if (!granted) flashNote('Reminder saved — turn on notifications to get the alert.');
+      return true;
+    }
     flashNote("Couldn't save that reminder — try again.");
     return false;
   }

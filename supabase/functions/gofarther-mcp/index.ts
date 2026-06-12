@@ -363,17 +363,69 @@ function resolveRemindAt(remindAt: string, tz: string): Date | null {
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
 }
+// Tidy a reminder title for storage. People (and the model) phrase reminders as
+// "remind me to brush my teeth" / "don't forget to call mom" — stored raw, that
+// reads awkwardly in the list + notification. Strip the lead-in and capitalize so
+// just the task is saved ("Brush my teeth"). Ported from the client's
+// cleanReminderTitle (src/reminders.ts) — the manual writers already do this; the
+// model can still pass the ugly phrasing, so the server must clean it too.
+function cleanReminderTitle(raw: string): string {
+  const orig = (raw || "").trim();
+  let t = orig
+    .replace(
+      /^\s*(?:please\s+|hey,?\s+|can you\s+|could you\s+|just\s+)?(?:set (?:a |an )?reminder\s+(?:to|for|about|that)|remind me\s+(?:to|that|about)|reminder\s*[-:]|reminder\s+(?:to|that|about|for)|remember\s+(?:to|that)|don'?t forget\s+(?:to|about)|note to self\s*:?|i\s+(?:need|have|want|gotta)\s+to)\s+/i,
+      "",
+    )
+    .trim();
+  if (!t) return orig;
+  // Only normalize case on text we actually transformed (a stripped lead-in
+  // means dictation/assistant phrasing). A deliberately typed "HOA AGM" or
+  // "CALL MOM" is the user's own casing — leave it exactly as written.
+  const stripped = t !== orig;
+  if (stripped && t === t.toUpperCase() && t !== t.toLowerCase()) t = t.toLowerCase();
+  // Capitalize only an all-lowercase first word — never mangle "iPhone"/"eBay".
+  const first = t.split(/\s+/)[0] ?? "";
+  if (/^[a-z]/.test(t) && first === first.toLowerCase()) t = t.charAt(0).toUpperCase() + t.slice(1);
+  return t;
+}
+// Validate a candidate IANA tz; returns true only if Intl recognizes it. Prefer
+// the official supported list (cheap, exact); fall back to a formatter probe when
+// the runtime lacks supportedValuesOf, since a bad zone makes it throw.
+function isValidTz(tz: string): boolean {
+  const z = String(tz || "").trim();
+  if (!z) return false;
+  try {
+    const sv = (Intl as any).supportedValuesOf;
+    if (typeof sv === "function") return (sv("timeZone") as string[]).includes(z);
+  } catch { /* fall through to the probe */ }
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: z });
+    return true;
+  } catch {
+    return false;
+  }
+}
 // Persist one reminder for the user (service role, scoped to the passed uid).
 async function setReminder(uid: string, args: any, defaultTz = "UTC"): Promise<string> {
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key || !uid) throw new Error("reminders unavailable");
   const a = args || {};
-  const title = String(a.title ?? "").trim().slice(0, 200);
+  // Clean the lead-in ("remind me to …") off the title BEFORE trim+slice, so a
+  // model that passes the raw phrasing doesn't store/display the ugly form. If
+  // the cleaner empties it (title was ALL lead-in), fall back to the raw title.
+  const rawTitle = String(a.title ?? "");
+  const cleaned = cleanReminderTitle(rawTitle).trim().slice(0, 200);
+  const title = cleaned || rawTitle.trim().slice(0, 200);
   if (!title) throw new Error("missing reminder title");
-  // The model should pass `tz`, but if it forgets we use the caller's device tz
-  // (the chat fn appends it to the proxy URL) rather than silently assuming UTC.
-  const tz = (String(a.tz ?? "").trim()) || defaultTz || "UTC";
+  // The model should pass `tz`, but if it forgets (or passes a bad zone) we fall
+  // back to the caller's device tz (the chat fn appends it to the proxy URL)
+  // rather than silently resolving a naive wall-clock time as UTC. Validate the
+  // candidate first: an unrecognized zone would otherwise make resolveRemindAt's
+  // try/catch swallow the error and treat "5pm" as UTC — the wrong absolute time.
+  const candTz = (String(a.tz ?? "").trim()) || defaultTz || "UTC";
+  const tz = isValidTz(candTz) ? candTz
+    : (isValidTz(defaultTz) ? defaultTz : "UTC");
   const at = resolveRemindAt(String(a.remind_at ?? ""), tz);
   if (!at) throw new Error("couldn't understand the reminder time");
   const repeat = ["none", "daily", "weekly"].includes(String(a.repeat)) ? String(a.repeat) : "none";
