@@ -32,12 +32,16 @@ function loadPositions(): Record<string, XY> {
 // Default constellation slots: alternate left/right down the stage, skipping the
 // core's mid band so nothing sits on the central hub.
 function layout(n: number): XY[] {
-  if (n <= 1) return [{ x: 50, y: 27 }];
-  return Array.from({ length: n }, (_, i) => {
-    let y = 22 + (60 * i) / (n - 1);
-    if (y > 41 && y < 59) y = i / (n - 1) < 0.5 ? 41 : 59;
-    return { x: i % 2 === 0 ? 29 : 71, y };
-  });
+  if (n <= 1) return [{ x: 50, y: 26 }];
+  // Two columns, alternating — consecutive slots land in opposite columns, so
+  // each column is evenly spaced AND the two sides are offset half a step into a
+  // staggered constellation (not a rigid grid). The columns sit far enough out
+  // (x 28/72) that the narrow tiles always clear the centered core, so no
+  // carve-out is needed — that carve-out used to bunch middle tiles together.
+  return Array.from({ length: n }, (_, i) => ({
+    x: i % 2 === 0 ? 28 : 72,
+    y: 15 + (75 * i) / (n - 1),
+  }));
 }
 
 // Apps offered in the connect picker: those with a crisp bundled logo (the native
@@ -542,7 +546,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
             return (
               <button
                 key={c.id}
-                className={`cg-node ${dragId === c.id ? 'dragging' : ''}`}
+                className={`cg-node ${status[c.id]?.broken ? 'broken' : ''} ${dragId === c.id ? 'dragging' : ''}`}
                 style={{ left: `${p.x}%`, top: `${p.y}%`, animationDelay: `${60 + i * 45}ms` }}
                 onPointerDown={(e) => onDown(e, c.id, 'app')}
                 onPointerMove={onMove}
@@ -550,7 +554,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
                 onPointerCancel={() => { dragRef.current = null; setDragId(null); }}
               >
                 <span className="cg-tile">
-                  <Tile id={c.id} size={22} />
+                  <Tile id={c.id} size={30} />
                   {status[c.id]?.broken && <span className="cg-broken" aria-label="Needs reconnecting">!</span>}
                 </span>
                 <span className="cg-name">{c.name}</span>
@@ -574,6 +578,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
                 <span className="cg-add-tile">
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                 </span>
+                <span className="cg-name cg-add-name">Add app</span>
               </button>
             );
           })}
