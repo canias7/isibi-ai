@@ -40,7 +40,7 @@ function layout(n: number): XY[] {
   // carve-out is needed — that carve-out used to bunch middle tiles together.
   return Array.from({ length: n }, (_, i) => ({
     x: i % 2 === 0 ? 28 : 72,
-    y: 15 + (75 * i) / (n - 1),
+    y: 14 + (70 * i) / (n - 1), // max 84 — the name chip below the tile needs the bottom margin (the stage clips)
   }));
 }
 
@@ -68,10 +68,12 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const [pan, setPan] = useState<XY>({ x: 0, y: 0 });
   const [picker, setPicker] = useState(false);          // the "all apps" connect page
   const [detail, setDetail] = useState<Connector | null>(null); // tapped app -> tools/disconnect sheet
-  useFocusTrap(!picker && !detail, rootRef, onClose);
+  const [manage, setManage] = useState<Connector | null>(null); // ToolManager open
+  // With ToolManager open, the ROOT trap must go dormant too — its Esc handler
+  // used to close the whole screen underneath the (trap-less) ToolManager.
+  useFocusTrap(!picker && !detail && !manage, rootRef, onClose);
   useFocusTrap(picker && !detail, pickerRef, () => setPicker(false));
   useFocusTrap(!!detail, sheetRef, () => setDetail(null));
-  const [manage, setManage] = useState<Connector | null>(null); // ToolManager open
   // Animated dismissal for each layer; the sheet/manage content is latched so
   // it doesn't blank out during its exit beat.
   const pickerUi = useDismiss(picker);
@@ -88,6 +90,8 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const pendingConnect = useRef<string | null>(null);   // app we just kicked off OAuth for -> open tools on return
   const [connecting, setConnecting] = useState<string | null>(null); // OAuth in flight -> show a "finish in the browser" banner
   const connectTimer = useRef<ReturnType<typeof setTimeout> | null>(null); // safety: clear the banner even if the poll never resolves
+  const plaidSeq = useRef(0);   // generation token: bumping it cancels any in-flight plaid link loop
+  const flowLock = useRef(false); // same-frame double-tap guard (the `connecting` state guard reads a stale closure)
   const stageRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; kind: 'app' | 'add'; sx: number; sy: number; ox: number; oy: number; w: number; h: number; moved: boolean } | null>(null);
   const ptrs = useRef<Map<number, XY>>(new Map());
@@ -127,31 +131,57 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   }
   // Plaid Hosted Link: open Plaid's page in the in-app browser, then poll the
   // backend until the bank is linked (public token exchanged + stored server-side).
+  // The "Connecting…" banner used to be stuck for up to 5 MINUTES after backing
+  // out: its only exits were a browserFinished event (never fired on web, often
+  // missed on Android) or the 300s poll cap — with no cancel, no backstop, and
+  // every other Connect tap silently swallowed meanwhile. Now: the banner drops
+  // the moment the browser closes (the grace poll continues silently), caps at
+  // 75s regardless, and the flow is cancellable (banner tap / disconnect /
+  // unmount) via the plaidSeq generation token.
   async function connectPlaid() {
-    if (connecting) return; // one connect at a time — ignore double-taps
+    if (connecting || flowLock.current) return; // one connect at a time — ignore double-taps
+    flowLock.current = true;
+    setTimeout(() => { flowLock.current = false; }, 600);
+    const seq = ++plaidSeq.current;
+    const live = () => plaidSeq.current === seq && aliveRef.current;
     disconnectedAt.current.delete('plaid'); // (re)connecting cancels any disconnect grace
     setActionErr('');
     setConnecting('plaid');
+    const clearBanner = () => setConnecting((c) => (c === 'plaid' ? null : c));
     try {
       const d = await plaidCall('create_link_token');
       const url = d.hosted_link_url as string | undefined;
       const linkToken = d.link_token as string | undefined;
       if (!url || !linkToken) throw new Error('Could not start linking.');
-      await Browser.open({ url });
+      if (!live()) return;
+      // Listener BEFORE open, so a fast close can't slip past it.
       let closedAt = 0;
-      const sub = await Browser.addListener('browserFinished', () => { closedAt = Date.now(); });
+      const sub = await Browser.addListener('browserFinished', () => { closedAt = Date.now(); clearBanner(); });
+      await Browser.open({ url });
       const start = Date.now();
       let done = false;
-      while (!done) {
+      while (!done && live()) {
         await new Promise((r) => setTimeout(r, 2500));
+        if (!live()) break;
         try { const c = await plaidCall('complete', { link_token: linkToken }); if (c.ok) { done = true; break; } } catch { /* keep polling */ }
-        if ((closedAt && Date.now() - closedAt > 12000) || Date.now() - start > 300000) break;
+        // Banner is stale once they're back in the app — clear it and keep
+        // polling silently (the exchange can land well after the close).
+        if (Date.now() - start > 75000) clearBanner();
+        if ((closedAt && Date.now() - closedAt > 25000) || Date.now() - start > 300000) break;
       }
       await sub.remove();
       if (done) await Browser.close().catch(() => {});
-    } catch (e) { console.error('plaid link', e); }
+    } catch (e) {
+      console.error('plaid link', e);
+      if (live()) setActionErr('Couldn’t start bank linking — please try again.');
+    }
+    clearBanner();
+    if (live()) await refreshAll();
+  }
+  // Cancel any in-flight plaid link (banner tap, disconnect, unmount).
+  function cancelPlaid() {
+    plaidSeq.current++;
     setConnecting((c) => (c === 'plaid' ? null : c));
-    await refreshAll();
   }
 
   const accountCount = (s?: Status): number => (s?.connected ? (s.emails?.length ?? 1) : 0);
@@ -188,7 +218,10 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     if (connectTimer.current) { clearTimeout(connectTimer.current); connectTimer.current = null; }
     setConnecting((c) => (c === pend ? null : c));
     const c = byId(pend);
-    if (c) setManage(c); // first connect -> pick tools
+    // Don't spring the tool picker over an open sheet/picker — a background
+    // refresh can resolve at any moment, and stacking overlays wrongs the Esc
+    // order. The user can open tools from the app's sheet whenever they like.
+    if (c && !detail && !picker) setManage(c); // first connect -> pick tools
   }
 
   // One batched call returns every connected app for this user. A generation
@@ -222,7 +255,11 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
         next.plaid = (disconnectedAt.current.get('plaid') ?? 0) > Date.now()
           ? { connected: false, email: null }
           : { connected: banks.length > 0, email: banks.length ? `${banks.length} bank${banks.length > 1 ? 's' : ''} linked` : null };
-      } catch { next.plaid = next.plaid ?? { connected: false, email: null }; }
+      } catch {
+        // Transient invoke failure must not make a LINKED bank vanish until the
+        // next good refresh — keep what we last knew (mirrors the Composio path).
+        next.plaid = status.plaid ?? { connected: false, email: null };
+      }
       // A newer refresh (or a disconnect) superseded this one — drop the stale result.
       if (gen !== refreshSeq.current || !aliveRef.current) return;
       setStatus(next);
@@ -257,6 +294,11 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       aliveRef.current = false;
+      // Cancel an in-flight plaid loop — it used to keep hitting the edge
+      // function for minutes after close. (The lint rule guards DOM refs; this
+      // is a generation counter where the LIVE value is exactly what we want.)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      plaidSeq.current++;
       if (ivRef.current) clearInterval(ivRef.current);
       if (connectTimer.current) clearTimeout(connectTimer.current);
       if (browserSub.current) { browserSub.current.remove(); browserSub.current = null; }
@@ -274,6 +316,10 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     let cancelled = false;
     CapApp.addListener('appUrlOpen', (e) => {
       if (!e.url || !e.url.startsWith('gofarther://')) return;
+      // Only an OAuth flow WE started can produce this link. A stale/foreign one
+      // must not close a live Plaid hosted-link browser or clear its banner.
+      const pend = pendingConnect.current;
+      if (!pend) return;
       Browser.close().catch(() => {});
       // A denied/failed consent returns gofarther://connected?error=… — don't
       // leave "Connecting…" spinning for the full 75s; say so and stop.
@@ -283,7 +329,8 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
         pendingConnect.current = null; pendBefore.current = null;
         if (ivRef.current) { clearInterval(ivRef.current); ivRef.current = null; }
         if (connectTimer.current) { clearTimeout(connectTimer.current); connectTimer.current = null; }
-        setConnecting(null);
+        if (browserSub.current) { browserSub.current.remove(); browserSub.current = null; } // this leak fired phantom refreshes on every later browser close
+        setConnecting((c) => (c === pend ? null : c));
         setActionErr('Connection didn’t complete. Please try again.');
         return;
       }
@@ -296,14 +343,16 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   async function connect(id: string) {
     void tap(); // the only overlay whose primary actions had no haptic
     if (id === 'plaid') { setPicker(false); void connectPlaid(); return; }
-    if (connecting) return; // one OAuth at a time — ignore double-taps (two flows clobber pendingConnect)
+    if (connecting || flowLock.current) return; // one OAuth at a time — ignore double-taps (two flows clobber pendingConnect; the state guard alone misses same-frame taps)
+    flowLock.current = true;
+    setTimeout(() => { flowLock.current = false; }, 600);
     const native = Capacitor.isNativePlatform();
     // Web: open the OAuth tab SYNCHRONOUSLY now, before any await — otherwise the
     // token/connect-init fetches spend the user-activation grant and Safari blocks
     // the later window.open, leaving the banner spinning with nothing opened.
     const win = native ? null : window.open('', '_blank');
     const t = await token();
-    if (!t) { win?.close(); return; }
+    if (!t) { win?.close(); setActionErr('Please sign in again to connect apps.'); return; }
     const before = status[id];
     pendBefore.current = { count: accountCount(before), broken: !!before?.broken }; // resolve only on a real change
     pendingConnect.current = id; // open the tool picker once it's connected
@@ -350,6 +399,16 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   async function disconnect(id: string) {
     void tap();
     setDetail(null);
+    // Disconnecting an app whose CONNECT is still in flight must also kill that
+    // flow — its "Connecting…" banner used to outlive the disconnect by 75s.
+    if (id === 'plaid') cancelPlaid();
+    if (pendingConnect.current === id) {
+      pendingConnect.current = null; pendBefore.current = null;
+      if (ivRef.current) { clearInterval(ivRef.current); ivRef.current = null; }
+      if (connectTimer.current) { clearTimeout(connectTimer.current); connectTimer.current = null; }
+      if (browserSub.current) { browserSub.current.remove(); browserSub.current = null; }
+    }
+    setConnecting((c) => (c === id ? null : c));
     setActionErr('');
     disconnectedAt.current.set(id, Date.now() + 15000); // grace: suppress a stale "still connected" (Composio eventual consistency)
     refreshSeq.current++; // invalidate any in-flight refresh so it can't repaint this app connected
@@ -424,7 +483,9 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     if (!d.moved && Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
     d.moved = true;
     const nx = clamp(d.ox + (dx / d.w / zoom) * 100, 10, 90);
-    const ny = clamp(d.oy + (dy / d.h / zoom) * 100, 8, 92);
+    // y caps at 84: the name chip hangs ~40-66px BELOW the tile, and the stage
+    // clips overflow — at the old 92 a bottom-row caption was cut clean off.
+    const ny = clamp(d.oy + (dy / d.h / zoom) * 100, 8, 84);
     setPositions((prev) => ({ ...prev, [d.id]: { x: nx, y: ny } }));
   }
   function onUp() {
@@ -438,7 +499,10 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       return;
     }
     setPositions((prev) => {
-      try { localStorage.setItem(POS_KEY, JSON.stringify(prev)); } catch { /* ignore */ }
+      // Persist only REAL connector positions: stale "+"-placeholder spots from
+      // an older slot count used to be saved forever and land on later nodes.
+      const keep = Object.fromEntries(Object.entries(prev).filter(([k]) => byId(k)));
+      try { localStorage.setItem(POS_KEY, JSON.stringify(keep)); } catch { /* ignore */ }
       return prev;
     });
   }
@@ -512,10 +576,25 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       </div>
 
       {connecting && (
-        <div className="cg-connecting" role="status" aria-live="polite">
+        <button
+          className="cg-connecting"
+          role="status"
+          aria-live="polite"
+          onClick={() => {
+            // Tap to cancel — the one escape hatch that works even when the
+            // browser-closed event never arrives (web always, Android often).
+            if (connecting === 'plaid') { cancelPlaid(); return; }
+            const pend = connecting;
+            pendingConnect.current = null; pendBefore.current = null;
+            if (ivRef.current) { clearInterval(ivRef.current); ivRef.current = null; }
+            if (connectTimer.current) { clearTimeout(connectTimer.current); connectTimer.current = null; }
+            if (browserSub.current) { browserSub.current.remove(); browserSub.current = null; }
+            setConnecting((c) => (c === pend ? null : c));
+          }}
+        >
           <span className="btn-spin" />
-          <span>Connecting {byId(connecting)?.name ?? 'your app'}… finish in the browser, then come back.</span>
-        </div>
+          <span>Connecting {byId(connecting)?.name ?? 'your app'}… finish in the browser, or tap to cancel.</span>
+        </button>
       )}
       {actionErr && !connecting && (
         <button className="cg-actionerr" role="alert" onClick={() => setActionErr('')}>
@@ -555,7 +634,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
               >
                 <span className="cg-tile">
                   <Tile id={c.id} size={30} />
-                  {status[c.id]?.broken && <span className="cg-broken" aria-label="Needs reconnecting">!</span>}
+                  {status[c.id]?.broken && <span className="cg-broken" role="img" aria-label="Needs reconnecting">!</span>}
                 </span>
                 <span className="cg-name">{c.name}</span>
               </button>
@@ -637,7 +716,8 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
                     ? (status[sheetConn.id]?.email || 'Bank linked')
                     : (status[sheetConn.id]?.emails?.length ?? 0) > 1
                       ? `${status[sheetConn.id]!.emails!.length} accounts: ${status[sheetConn.id]!.emails!.join(', ')}`
-                      : (status[sheetConn.id]?.email ? `Connected as ${status[sheetConn.id]?.email}` : 'Connected')}</small>
+                      : (status[sheetConn.id]?.email ? `Connected as ${status[sheetConn.id]?.email}`
+                        : status[sheetConn.id]?.connected ? 'Connected' : 'Not connected')}</small>
               </div>
             </div>
             {status[sheetConn.id]?.broken && sheetConn.id !== 'plaid' && (

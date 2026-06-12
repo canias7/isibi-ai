@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from './supabase';
 import { tap } from './haptics';
+import { useFocusTrap } from './a11y';
 import { CONNECT_API, type Connector } from './connectorData';
 import { IconArrowLeft, IconInfo } from './icons';
 
@@ -27,6 +28,11 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
   const latest = useRef<Set<string>>(new Set());
   const dirty = useRef(false);
   const closing = useRef(false); // a close-flush is in flight — a second ← must wait for it, not bypass it
+  // Own focus trap: without one, Esc fell through to the screen's root trap and
+  // closed the WHOLE Connectors screen out from under this overlay (and Tab
+  // could reach the covered controls behind it). Esc = ← (flushes the save).
+  const overlayRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, overlayRef, () => void close());
 
   // Accepts mouse OR keyboard events (the info chip is keyboard-activatable),
   // so the param is the structural overlap of both.
@@ -137,7 +143,7 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
   ];
 
   return (
-    <div className="tm-overlay">
+    <div className="tm-overlay" ref={overlayRef} tabIndex={-1}>
       <div className="tm-head">
         <button className="tm-x" onClick={() => void close()} aria-label="Back"><IconArrowLeft size={22} /></button>
         <span className="tm-title">{connector.name} tools</span>

@@ -164,7 +164,13 @@
   color: var(--text);
   font-size: var(--fs-footnote);
   line-height: 1.4;
+  /* it's a BUTTON now (tap to cancel the connect) */
+  width: calc(100% - 32px);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
 }
+.cg-connecting:active { background: rgba(224, 161, 58, 0.2); }
 .cg-connecting .btn-spin { width: 15px; height: 15px; flex-shrink: 0; color: var(--brand); }
 .cg-actionerr {
   display: flex;
