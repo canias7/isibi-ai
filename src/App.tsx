@@ -1059,7 +1059,9 @@ export default function App() {
       // pass through; raw runtime errors ("TypeError: Load failed", "status
       // 502") are developer-speak — translate those.
       const raw = e instanceof Error ? e.message : '';
-      const technical = !raw || /TypeError|NetworkError|Load failed|Failed to fetch|status \d|^\d{3}\b|aborted/i.test(raw);
+      // Also catch a leaked status code in parens ("Assistant error (400)") in
+      // case any path still relays one — the server now sends friendly text.
+      const technical = !raw || /TypeError|NetworkError|Load failed|Failed to fetch|status \d|^\d{3}\b|\(\d{3}\)|aborted/i.test(raw);
       const msg = timedOut ? 'Timed out — please try again.'
         : technical ? 'That didn’t go through — check your connection and try again.'
         : raw;

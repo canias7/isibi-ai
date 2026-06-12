@@ -53,6 +53,18 @@ interface Attach { kind?: string; mediaType?: string; data?: string; name?: stri
 interface Msg { role: string; content: string; attachments?: Attach[] }
 
 // Build a Claude message `content` from text + optional image/PDF attachments.
+// A human-readable message for an upstream model failure — never the raw
+// "Assistant error (400)" that leaked the status code into the chat bubble.
+function friendlyUpstream(status: number, errText: string): string {
+  if (/credit|billing|quota|insufficient|balance/i.test(errText)) {
+    return "The assistant is temporarily unavailable — please try again later.";
+  }
+  if (status === 429 || status === 529 || status === 503) {
+    return "The assistant is busy right now — give it a moment and try again.";
+  }
+  return "The assistant couldn’t respond just now — please try again.";
+}
+
 // Media goes first (Anthropic's recommended ordering for vision), then the text.
 // Attachments with empty data (e.g. stripped on the client when persisted) are
 // skipped, so reopened chats don't send blank blocks.
@@ -823,7 +835,7 @@ Deno.serve(async (req: Request) => {
     if (!upstream.ok || !upstream.body) {
       const errText = await upstream.text().catch(() => "");
       console.error(`util upstream ${upstream.status}: ${errText.slice(0, 300)}`);
-      return new Response(`Assistant error (${upstream.status})`, { status: 502, headers: cors });
+      return new Response(friendlyUpstream(upstream.status, errText), { status: 502, headers: cors });
     }
     const enc = new TextEncoder();
     const dec = new TextDecoder();
@@ -1064,7 +1076,7 @@ Deno.serve(async (req: Request) => {
   if (!upstream.ok || !upstream.body) {
     const errText = await upstream.text().catch(() => "");
     console.error(`anthropic upstream ${upstream.status}: ${errText.slice(0, 500)}`);
-    return new Response(`Assistant error (${upstream.status})`, { status: 502, headers: cors });
+    return new Response(friendlyUpstream(upstream.status, errText), { status: 502, headers: cors });
   }
 
   // For an explicit "open / read / show / try again" on an email we suppress the
