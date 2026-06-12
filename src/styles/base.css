@@ -300,22 +300,22 @@ input, textarea { caret-color: var(--brand); }
    glow low-centre — so the chat feels alive and warm rather than dead grey. */
 .orb1 {
   width: 78vw; height: 78vw; left: -20vw; top: -12vh;
-  background: radial-gradient(circle at center, rgba(232, 169, 58, 0.06), rgba(232, 169, 58, 0) 65%);
+  background: radial-gradient(circle at center, rgba(232, 169, 58, 0.11), rgba(232, 169, 58, 0) 65%);
   animation: drift1 24s ease-in-out infinite;
 }
 .orb2 {
   width: 88vw; height: 88vw; right: -28vw; bottom: -10vh;
-  background: radial-gradient(circle at center, rgba(232, 169, 58, 0.05), rgba(232, 169, 58, 0) 65%);
+  background: radial-gradient(circle at center, rgba(232, 169, 58, 0.10), rgba(232, 169, 58, 0) 65%);
   animation: drift2 30s ease-in-out infinite;
 }
 .orb3 {
-  width: 62vw; height: 62vw; left: 19vw; top: 24vh;
-  background: radial-gradient(circle at center, rgba(232, 169, 58, 0.05), rgba(232, 169, 58, 0) 60%);
+  width: 62vw; height: 62vw; left: 19vw; top: 22vh;
+  background: radial-gradient(circle at center, rgba(232, 169, 58, 0.12), rgba(232, 169, 58, 0) 62%);
   animation: breathe 7s ease-in-out infinite;
 }
 .orb4 {
-  width: 130vw; height: 58vh; left: -15vw; bottom: -22vh;
-  background: radial-gradient(ellipse at center, rgba(232, 169, 58, 0.14), rgba(232, 169, 58, 0) 62%);
+  width: 140vw; height: 70vh; left: -20vw; bottom: -16vh;
+  background: radial-gradient(ellipse at center, rgba(232, 169, 58, 0.26), rgba(232, 169, 58, 0) 64%);
   animation: breathe 9s ease-in-out infinite;
 }
 @keyframes drift1 {
