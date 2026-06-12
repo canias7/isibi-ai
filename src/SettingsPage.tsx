@@ -78,7 +78,7 @@ export default function SettingsPage({
             <div className="set-row set-sound-row">
               <div className="set-row-text">
                 <div className="set-row-title">Sound style</div>
-                <div className="snd-chips" role="radiogroup" aria-label="Sound style">
+                <div className="snd-chips" role="radiogroup" aria-label="Sound style" onKeyDown={radioArrowNav}>
                   {THEMES.map((t) => (
                     <button
                       key={t.id}

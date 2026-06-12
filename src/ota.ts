@@ -23,25 +23,29 @@ interface Manifest {
 }
 
 // React can't import OTA logic cleanly (it runs before mount), so a forced update
-// is announced via a window event the app listens for.
-export type ForceUpdateMode = 'updating' | 'appstore';
+// is announced via a window event the app listens for. 'clear' takes the gate
+// back down (a forced download failed — keep running rather than brick).
+export type ForceUpdateMode = 'updating' | 'appstore' | 'clear';
 export const FORCE_UPDATE_EVENT = 'gf-force-update';
 function announceForce(mode: ForceUpdateMode) {
   try { window.dispatchEvent(new CustomEvent(FORCE_UPDATE_EVENT, { detail: { mode } })); } catch { /* no window */ }
 }
 
+// Query BOTH hosts and take the newest version. First-valid-wins would let a
+// stale-but-healthy primary (e.g. its upload failed while the fallback's
+// succeeded) pin the whole fleet to an old bundle with no error anywhere.
 async function fetchManifest(): Promise<Manifest | null> {
-  for (const url of MANIFEST_URLS) {
-    try {
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) continue;
-      const m = (await res.json()) as Manifest;
-      if (m.version && m.url) return m;
-    } catch {
-      /* try the next source */
-    }
+  const results = await Promise.allSettled(MANIFEST_URLS.map(async (url) => {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return (await res.json()) as Manifest;
+  }));
+  let best: Manifest | null = null;
+  for (const r of results) {
+    if (r.status !== 'fulfilled' || !r.value?.version || !r.value?.url) continue;
+    if (!best || Number(r.value.version) > Number(best.version)) best = r.value;
   }
-  return null;
+  return best;
 }
 
 /**
@@ -68,9 +72,16 @@ export async function initOta(): Promise<void> {
       if (available >= min) {
         // A published OTA bundle CAN satisfy the floor — apply it now and reload,
         // behind a blocking screen, instead of waiting for a manual relaunch.
+        // The screen MUST come down if the download/set fails (dead URL, network
+        // drop): an old bundle is recoverable, an eternal blocking spinner isn't.
         announceForce('updating');
-        const bundle = await CapacitorUpdater.download({ url: manifest.url, version: manifest.version });
-        await CapacitorUpdater.set(bundle); // activates + reloads into the new bundle
+        try {
+          const bundle = await CapacitorUpdater.download({ url: manifest.url, version: manifest.version });
+          await CapacitorUpdater.set(bundle); // activates + reloads into the new bundle
+        } catch (e) {
+          console.warn('[OTA] forced update failed — keeping the running bundle:', e);
+          announceForce('clear');
+        }
       } else {
         // Even the latest OTA bundle is below the floor → only an App Store
         // (native) update can fix it. Block with a "please update" screen.

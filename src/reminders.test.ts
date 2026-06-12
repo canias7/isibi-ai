@@ -16,12 +16,14 @@ describe('cleanReminderTitle', () => {
     expect(cleanReminderTitle('I need to renew my passport')).toBe('Renew my passport');
   });
 
-  it('handles the "reminder:" noun form and tames shouting', () => {
+  it('handles the "reminder:" noun form and tames shouting only on stripped text', () => {
     expect(cleanReminderTitle('reminder: buy milk')).toBe('Buy milk');
     expect(cleanReminderTitle('Reminder - pick up package')).toBe('Pick up package');
-    expect(cleanReminderTitle('REMIND ME TO CALL MOM')).toBe('Call mom');
-    expect(cleanReminderTitle('CALL MOM')).toBe('Call mom');
+    expect(cleanReminderTitle('REMIND ME TO CALL MOM')).toBe('Call mom'); // dictation shouting tamed
+    expect(cleanReminderTitle('CALL MOM')).toBe('CALL MOM');   // deliberate casing respected
+    expect(cleanReminderTitle('HOA AGM')).toBe('HOA AGM');     // acronyms untouched
     expect(cleanReminderTitle('Buy iPhone case')).toBe('Buy iPhone case'); // mixed case preserved
+    expect(cleanReminderTitle('iPhone backup tonight')).toBe('iPhone backup tonight'); // brand casing never "fixed"
   });
 
   it('leaves an already-clean title alone (bar capitalization)', () => {

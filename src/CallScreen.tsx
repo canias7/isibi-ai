@@ -15,12 +15,13 @@ const cid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 // so all tools/memory still work) → speak the reply → listen again. The whole
 // exchange lands in the chat thread via onTurn, so you can scroll it later.
 export default function CallScreen({
-  baseHistory, apps, conversationId, memoryOn, onTurn, onReminderSet, onClose,
+  baseHistory, apps, conversationId, memoryOn, model, onTurn, onReminderSet, onClose,
 }: {
   baseHistory: ChatMessage[];
   apps?: string[];
   conversationId?: string;
   memoryOn?: boolean;
+  model?: string; // the conversation's model choice — voice turns honor it like typed ones
   onTurn: (history: ChatMessage[]) => void;
   onReminderSet?: () => void; // the assistant set a reminder this turn — re-arm the device notification
   onClose: () => void;
@@ -120,8 +121,10 @@ export default function CallScreen({
           ctrl.signal,
           apps,
           conversationId,
-          undefined,
+          undefined, // onModel
           memoryOn,
+          undefined, // location
+          model, // per-chat model choice applies to voice turns too
         );
       } catch (e) {
         if (!runningRef.current) return;

@@ -32,10 +32,15 @@ export function cleanReminderTitle(raw: string): string {
     )
     .trim();
   if (!t) return orig;
-  // Shouting ("CALL MOM") reads harshly in a notification — drop all-caps to
-  // sentence case. Mixed/normal case is left exactly as written.
-  if (t === t.toUpperCase() && t !== t.toLowerCase()) t = t.toLowerCase();
-  return t.charAt(0).toUpperCase() + t.slice(1);
+  // Only normalize case on text we actually transformed (a stripped lead-in
+  // means dictation/assistant phrasing). A deliberately typed "HOA AGM" or
+  // "CALL MOM" is the user's own casing — leave it exactly as written.
+  const stripped = t !== orig;
+  if (stripped && t === t.toUpperCase() && t !== t.toLowerCase()) t = t.toLowerCase();
+  // Capitalize only an all-lowercase first word — never mangle "iPhone"/"eBay".
+  const first = t.split(/\s+/)[0] ?? '';
+  if (/^[a-z]/.test(t) && first === first.toLowerCase()) t = t.charAt(0).toUpperCase() + t.slice(1);
+  return t;
 }
 
 export async function listReminders(): Promise<Reminder[]> {
@@ -102,7 +107,8 @@ export async function deleteReminder(id: string): Promise<boolean> {
 function notifId(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  return Math.abs(h) || 1;
+  // Android ids are int32: Math.abs(-2^31) = 2^31 is one past the max — clamp.
+  return Math.abs(h) % 2147483647 || 1;
 }
 
 // Ask for notification permission in context (first time the user saves one).
@@ -137,7 +143,8 @@ export async function registerReminderActions(): Promise<void> {
 }
 
 // One-off re-nudge in 10 minutes (Snooze) — purely local, no DB change.
-export async function snoozeNudge(title: string): Promise<void> {
+// Carries the reminder id so Snooze works AGAIN on the snoozed nudge itself.
+export async function snoozeNudge(title: string, reminderId?: string): Promise<void> {
   try {
     const soundId = loadReminderSound();
     const channelId = await ensureReminderChannel(soundId);
@@ -148,11 +155,23 @@ export async function snoozeNudge(title: string): Promise<void> {
         body: cleanReminderTitle(title),
         schedule: { at: new Date(Date.now() + 10 * 60 * 1000), allowWhileIdle: true },
         actionTypeId: 'gf-reminder',
+        ...(reminderId ? { extra: { reminderId } } : {}),
         channelId,
         ...(soundId === 'default' ? {} : { sound: `${soundId}.wav` }),
       }],
     });
   } catch { /* no-op */ }
+}
+
+// Cancel EVERY pending local notification — used on sign-out so a previous
+// user's reminders can't keep firing (with their titles) on a shared device.
+export async function cancelAllReminderNotifications(): Promise<void> {
+  try {
+    const p = await LocalNotifications.getPending();
+    if (p.notifications.length) {
+      await LocalNotifications.cancel({ notifications: p.notifications.map((n) => ({ id: n.id })) });
+    }
+  } catch { /* native only — no-op on web */ }
 }
 
 // Notification interactions: action buttons AND plain taps both land here.
