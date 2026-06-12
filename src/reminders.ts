@@ -19,6 +19,22 @@ export interface Reminder {
 
 const SEL = 'id,title,remind_at,repeat,enabled,created_at';
 
+// Tidy a reminder title for display. People (and the assistant) phrase reminders
+// as "remind me to brush my teeth" / "don't forget to call mom" — stored raw,
+// that reads awkwardly under a "Reminder" heading. Strip the lead-in and
+// capitalize so the notification + list show just the task ("Brush my teeth").
+export function cleanReminderTitle(raw: string): string {
+  const orig = (raw || '').trim();
+  const t = orig
+    .replace(
+      /^\s*(?:please\s+|hey,?\s+|can you\s+|could you\s+|just\s+)?(?:set (?:a |an )?reminder\s+(?:to|for|about|that)|remind me\s+(?:to|that|about)|reminder\s+(?:to|that|about)|remember\s+(?:to|that)|don'?t forget\s+(?:to|about)|note to self\s*:?|i\s+(?:need|have|want|gotta)\s+to)\s+/i,
+      '',
+    )
+    .trim();
+  if (!t) return orig;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 export async function listReminders(): Promise<Reminder[]> {
   try {
     const { data, error } = await supabase
@@ -39,7 +55,7 @@ export async function addReminder(title: string, remind_at: string, repeat: Repe
     if (!uid) return null;
     const { data, error } = await supabase
       .from('user_reminders')
-      .insert({ user_id: uid, title, remind_at, repeat })
+      .insert({ user_id: uid, title: cleanReminderTitle(title), remind_at, repeat })
       .select(SEL)
       .single();
     if (error || !data) return null;
@@ -123,7 +139,7 @@ export async function snoozeNudge(title: string): Promise<void> {
       notifications: [{
         id: (Date.now() % 2147483000) + 1,
         title: 'Reminder',
-        body: title,
+        body: cleanReminderTitle(title),
         schedule: { at: new Date(Date.now() + 10 * 60 * 1000), allowWhileIdle: true },
         actionTypeId: 'gf-reminder',
         channelId,
@@ -189,7 +205,7 @@ export async function scheduleReminder(r: Reminder): Promise<void> {
       notifications: [{
         id: notifId(r.id),
         title: 'Reminder',
-        body: r.title,
+        body: cleanReminderTitle(r.title),
         schedule: { at, every: every(r.repeat), allowWhileIdle: true },
         actionTypeId: 'gf-reminder',
         extra: { reminderId: r.id },

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { type Reminder, type RepeatKind } from './reminders';
+import { cleanReminderTitle, type Reminder, type RepeatKind } from './reminders';
 import { IconTrash, IconArrowUp, IconArrowLeft, IconClock } from './icons';
 
 // Full-screen "constellation" of the user's reminders — same floating-node feel
@@ -198,7 +198,7 @@ export default function RemindersGraph({ reminders, loaded, onAdd, onUpdate, onD
   }
   function select(r: Reminder) {
     setSelectedId(r.id);
-    setInput(r.title);
+    setInput(cleanReminderTitle(r.title));
     setWhen(toLocalInput(r.remind_at));
     setRepeat(r.repeat);
   }
@@ -288,7 +288,7 @@ export default function RemindersGraph({ reminders, loaded, onAdd, onUpdate, onD
             >
               <span className="memg-ico"><IconClock size={13} /></span>
               <span className="memg-pill">
-                {preview(r.title)}
+                {preview(cleanReminderTitle(r.title))}
                 <span className="rem-when">{formatWhen(r.remind_at, r.repeat)}</span>
               </span>
             </button>
