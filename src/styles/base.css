@@ -231,6 +231,14 @@ input, textarea { caret-color: var(--brand); }
 }
 .sug:active { transform: scale(0.98); background: #ffffff16; }
 .sug:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* typewriter caret on the chip currently typing */
+.sug-caret {
+  display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; border-radius: 1px;
+  background: var(--brand); vertical-align: -2px;
+  animation: sugBlink 0.85s step-end infinite;
+}
+@keyframes sugBlink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sug-caret { display: none; } }
 /* "Pick up where you left off" — quiet row under the suggestions. */
 .home-continue {
   background: none;

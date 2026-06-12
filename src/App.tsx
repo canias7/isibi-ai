@@ -11,7 +11,8 @@ import { Camera } from '@capacitor/camera';
 import { primeAudio, resumeAudio, audioState, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { sentSound, replySound, soundsOn, setSoundsOn, soundTheme, setSoundTheme, type SoundTheme } from './earcons';
 import { ITEMS as WN_ITEMS, shouldShowWhatsNew, markWhatsNewSeen } from './whatsnew';
-import { pickSuggestions } from './suggestions';
+import { suggestionPool } from './suggestions';
+import { useTypedSuggestions } from './useTypedSuggestions';
 import { fetchUsage, summarize, fmtUsd, fmtTokens, fmtDuration, sourceLabel, loadBudget, saveBudget, type UsageSummary } from './usage';
 import { MODEL_OPTIONS, type ModelChoice } from './models';
 import { track } from './analytics';
@@ -359,11 +360,12 @@ export default function App() {
   }
   const [enabled, setEnabled] = useState<Set<string>>(new Set());
   const [connLoaded, setConnLoaded] = useState(false);
-  // Home-screen prompts: rotate per visit, weighted toward connected apps and
-  // the time of day (see suggestions.ts). Keyed on currentId so a fresh chat
-  // reshuffles them.
+  // Home-screen prompts: a shuffled pool weighted toward connected apps and the
+  // time of day (see suggestions.ts), keyed on currentId so a fresh chat
+  // reshuffles. The hook types them in one at a time, holds, and cycles.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const homeSugs = useMemo(() => pickSuggestions(connApps, new Date().getHours()), [connApps, currentId]);
+  const sugPool = useMemo(() => suggestionPool(connApps, new Date().getHours()), [connApps, currentId]);
+  const homeSugs = useTypedSuggestions(sugPool, view !== 'settings' && messages.length === 0);
   // "Pick up where you left off" — the most recent real conversation.
   const lastChat = useMemo(
     () => chats.filter((c) => c.id !== currentId && c.messages.length > 0).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0],
@@ -2190,10 +2192,18 @@ export default function App() {
                   <p className="home-tag">One chat for all your apps.</p>
                 </div>
                 <div className="home-suggest">
-                  {homeSugs.map((s) => (
-                    <button key={s} className="sug" onClick={() => { void tap(); void sendText(s); }}>
-                      {s}
-                    </button>
+                  {[0, 1, 2].map((i) => (
+                    (homeSugs.cursor === i || (homeSugs.typed[i]?.length ?? 0) > 0) ? (
+                      <button
+                        key={i}
+                        className="sug"
+                        aria-label={homeSugs.full[i]}
+                        onClick={() => { void tap(); void sendText(homeSugs.full[i]); }}
+                      >
+                        {homeSugs.typed[i]}
+                        {homeSugs.cursor === i && <span className="sug-caret" aria-hidden="true" />}
+                      </button>
+                    ) : null
                   ))}
                   {lastChat && (
                     <button className="home-continue" onClick={() => { void tap(); selectChat(lastChat.id); }}>
