@@ -402,6 +402,9 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 @keyframes memgPanelIn { from { opacity: 0; transform: translateX(-16px); } }
 @keyframes memgPanelOut { to { opacity: 0; transform: translateX(-16px); } }
 .memg-listpanel-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px 8px; }
+/* the shared back button is position:absolute for the centered main header — in
+   this flex row it must flow inline so it sits on the title row, not the corner */
+.memg-listpanel-head .memg-back { position: static; }
 .memg-listpanel-head h2 { flex: 1; font-size: var(--fs-title); font-weight: 700; }
 .memg-list-n { color: var(--text-faint); font-size: var(--fs-body-s); font-weight: 600; }
 .memg-listpanel .memg-filter { margin: 0 16px 8px; }
