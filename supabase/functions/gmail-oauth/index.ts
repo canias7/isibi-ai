@@ -885,7 +885,11 @@ Deno.serve(async (req: Request) => {
         if (!id) continue;
         matched++;
         const dr = await api(`/connected_accounts/${id}`, { method: "DELETE" }).catch(() => null);
-        if (dr && dr.ok) removed++; else failed++;
+        // 404/410 = Composio already removed it (double-tap, or its eventually-
+        // consistent list still naming a just-deleted account). It's gone — which
+        // is what the user asked for — so it counts as removed; calling it a
+        // failure made the 502 below revert a disconnect that had succeeded.
+        if (dr && (dr.ok || dr.status === 404 || dr.status === 410)) removed++; else failed++;
       }
       // If accounts existed but NONE deleted, that's a real failure — tell the
       // client (5xx) instead of a cheerful 200 it ignores and then flickers back.

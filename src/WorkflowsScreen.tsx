@@ -604,6 +604,11 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
     if (tn) patchNode(tn.id, { app: t.type });
   }
 
+  // A save (create or update) failed — the bar shows a retry instead of the
+  // "Saved automatically" line, which used to keep claiming success while a
+  // flaky network had actually persisted nothing (with the On toggle lit).
+  const [saveErr, setSaveErr] = useState(false);
+
   // Persist the current state — create the workflow on first save (new drafts
   // start OFF), update it thereafter. Saving is automatic (no button); the
   // top-right toggle controls whether it's live.
@@ -626,10 +631,12 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
       // meant one failed save orphaned the edit forever (UI showing a schedule
       // the DB never got).
       if (ok && sendTrigger) savedTriggerRef.current = tStr;
+      setSaveErr(!ok);
     } else {
       createRef.current = (async () => {
         const w = await createWorkflow(title.trim(), instruction, trigger, graph, extra.enabled ?? enabled, model);
         if (w) { savedIdRef.current = w.id; setSavedId(w.id); savedTriggerRef.current = JSON.stringify(trigger); }
+        setSaveErr(!w);
       })();
       try { await createRef.current; } finally { createRef.current = null; }
     }
@@ -704,7 +711,11 @@ function PlanView({ initial, mode, wfId, connApps, enabled: enabledInit = false,
           <span className={`model-dot d${wfModelOpt(model).dots}`} aria-hidden />
           {wfModelOpt(model).chip}
         </button>
-        <span className="wfx-bar-status"><IconCheck size={15} /> Saved automatically</span>
+        {saveErr ? (
+          <button className="wfx-bar-status err" onClick={() => void persist()}>Couldn’t save — retry</button>
+        ) : (
+          <span className="wfx-bar-status"><IconCheck size={15} /> Saved automatically</span>
+        )}
         {savedId && (
           <button className="wfx-bar-hist" onClick={() => setShowRuns(true)} disabled={busy} aria-label="Run history"><IconClock size={18} /></button>
         )}

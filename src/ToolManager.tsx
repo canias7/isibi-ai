@@ -54,6 +54,7 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
       if (j.error || !Array.isArray(j.tools)) throw new Error(j.error || 'bad');
       setTools(j.tools);
       setEnabled(new Set(j.enabled ?? []));
+      latest.current = new Set(j.enabled ?? []); // toggles build on this, so it must start from the server's truth
       setLoading(false);
     } catch {
       setErr(true);
@@ -85,7 +86,10 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
 
   function toggle(slug: string) {
     void tap();
-    const next = new Set(enabled);
+    // Build on `latest` (the authoritative pending set), not the `enabled` state
+    // snapshot — two taps inside one render used to both read the same stale
+    // state, and the first toggle silently lost.
+    const next = new Set(latest.current);
     next.has(slug) ? next.delete(slug) : next.add(slug);
     setEnabled(next);
     latest.current = next;
@@ -95,7 +99,22 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
     saveTimer.current = setTimeout(() => void persist(next), 350);
   }
 
-  // If the user closes before the debounce fires, flush the pending save.
+  // Closing flushes any pending save FIRST and stays open if it fails — the old
+  // unmount-flush fired the request into a dead component, so a network blip on
+  // that last save had nowhere to show "Retry" and the toggles silently never stuck.
+  async function close() {
+    if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+    // First ← flushes and surfaces a failure; a second ← while the error is
+    // showing leaves anyway (the unmount backstop makes one last attempt) — a
+    // dead network must not trap anyone in this sheet.
+    if (dirty.current && saveState !== 'error') {
+      await persist(latest.current);
+      if (dirty.current) return; // save failed — stay open so Retry is visible
+    }
+    onClose();
+  }
+
+  // Backstop for the paths where the parent unmounts us directly (not via ←).
   useEffect(() => () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     if (dirty.current) void persist(latest.current);
@@ -110,7 +129,7 @@ export default function ToolManager({ connector, onClose }: { connector: Connect
   return (
     <div className="tm-overlay">
       <div className="tm-head">
-        <button className="tm-x" onClick={onClose} aria-label="Back">←</button>
+        <button className="tm-x" onClick={() => void close()} aria-label="Back">←</button>
         <span className="tm-title">{connector.name} · tools</span>
         {saveState === 'error' ? (
           <button className="tm-status err" onClick={() => void persist(enabled)}>Retry</button>

@@ -11,6 +11,11 @@ export interface AttachResult { attach?: Attach; error?: string }
 const MAX_BYTES = 20 * 1024 * 1024;        // reject anything bigger than 20 MB
 const IMG_TARGET_BYTES = 4 * 1024 * 1024;  // keep encoded images under the ~5 MB read limit
 const IMG_MAX_EDGE = 1568;                 // px on the longest side (Claude's vision sweet spot)
+// The byte cap alone doesn't protect memory: a 20 MB HEIC can be 100+ megapixels,
+// and DECODING it (~4 bytes/px) is what OOM-kills the WebView. 64 MP still admits
+// every iPhone-produced photo (48 MP stills, panoramas) while blocking the
+// pathological ones. Checked from the image header, before any decode.
+const IMG_MAX_PIXELS = 64_000_000;
 
 function stripPrefix(dataUrl: string): string {
   const i = dataUrl.indexOf(',');
@@ -35,6 +40,11 @@ function imageToJpeg(f: File): Promise<string> {
     const img = new Image();
     img.onload = () => {
       try {
+        if (img.width * img.height > IMG_MAX_PIXELS) {
+          URL.revokeObjectURL(url);
+          reject(new Error('image too large'));
+          return;
+        }
         let scale = Math.min(1, IMG_MAX_EDGE / Math.max(img.width, img.height));
         const canvas = document.createElement('canvas');
         const render = (q: number) => {
@@ -108,7 +118,10 @@ export async function fileToAttachment(f: File): Promise<AttachResult> {
     }
     const data = stripPrefix(await readAsDataUrl(f));
     return { attach: { kind: 'file', mediaType: docMimeType!, data, name: f.name || 'document' } };
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && e.message === 'image too large') {
+      return { error: 'That image has too many pixels to process here — try a smaller version of it.' };
+    }
     return { error: "Couldn't read that file — try another." };
   }
 }

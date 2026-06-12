@@ -319,6 +319,9 @@ export default function App() {
   const [micState, setMicState] = useState<'idle' | 'rec' | 'tx'>('idle'); // composer dictation
   const micFinishRef = useRef<AbortController | null>(null);
   const lockRef = useRef<() => void>(() => {});
+  const unlockingRef = useRef(false); // a biometric prompt is mid-flight — never stack a second one
+  const lastUnlockRef = useRef(0);    // the prompt's own dismiss fires an `active` event — don't re-engage off it
+  const appShellRef = useRef<HTMLDivElement | null>(null); // made `inert` while locked
   const sendTextRef = useRef<(raw: string, atts?: Attach[]) => Promise<void>>(async () => {}); // latest sendText, for the stable openEmail callback
   const [notif, setNotif] = useState(() => { try { return localStorage.getItem('gf_notif') === '1'; } catch { return false; } });
   const [sounds, setSounds] = useState(soundsOn);
@@ -649,6 +652,9 @@ export default function App() {
     void CapApp.addListener('appStateChange', ({ isActive }) => {
       if (!isActive) {
         awaySinceRef.current = Date.now();
+        // Lock the moment we background (Face ID on): the iOS app-switcher
+        // snapshot then shows the lock screen, not the user's last chat.
+        if (faceIdRef.current && Capacitor.getPlatform() !== 'web') setLocked(true);
         // Leaving mid-reply: close the connection so the server notices we're gone
         // and pushes when it's done. (iOS otherwise just suspends the socket, so
         // the server never sees the disconnect and never sends the "ready" push.)
@@ -731,6 +737,15 @@ export default function App() {
   useEffect(() => {
     if (faceIdRef.current) void lockRef.current();
   }, []);
+
+  // While locked, the app shell must be a REAL lock, not just opaque pixels on
+  // top: `inert` makes everything behind the lock unfocusable, unclickable and
+  // invisible to screen readers (a Bluetooth keyboard's Tab or a VoiceOver swipe
+  // used to reach the chat behind the black screen). Focus lands on Unlock.
+  useEffect(() => {
+    appShellRef.current?.toggleAttribute('inert', locked);
+    if (locked) document.querySelector<HTMLButtonElement>('.lock-btn')?.focus();
+  }, [locked]);
 
   // The OTA layer fires this when the running bundle is below a required floor.
   useEffect(() => {
@@ -1156,9 +1171,22 @@ export default function App() {
   // this native build, no hardware, web).
   async function engageLock() {
     if (!faceIdRef.current || Capacitor.getPlatform() === 'web') { setLocked(false); return; }
-    if (!(await biometryAvailable())) { setLocked(false); return; }
+    if (unlockingRef.current) return; // a prompt is already up
+    if (Date.now() - lastUnlockRef.current < 1500) return; // `active` fired by our own prompt dismissing
+    // Cover the content BEFORE any async check — the old order awaited a native
+    // round-trip first, leaving the last screen visible and tappable on resume.
     setLocked(true);
-    if (await unlock()) setLocked(false);
+    unlockingRef.current = true;
+    try {
+      // One transient native hiccup must not silently drop the lock — re-check
+      // once before concluding the device genuinely can't do biometrics.
+      let avail = await biometryAvailable();
+      if (!avail) { await new Promise((r) => setTimeout(r, 350)); avail = await biometryAvailable(); }
+      if (!avail) { setLocked(false); return; } // truly unsupported → fail open, never trap
+      if (await unlock()) { lastUnlockRef.current = Date.now(); setLocked(false); }
+    } finally {
+      unlockingRef.current = false;
+    }
   }
   lockRef.current = engageLock;
 
@@ -1791,15 +1819,19 @@ export default function App() {
     }
   }
 
-  return (
-    <div className="app">
-      {locked && (
-        <div className="lock-screen">
-          <SunOrb size={46} className="lock-orb" />
-          <div className="lock-brand">Go Farther</div>
-          <button className="lock-btn" onClick={() => void lockRef.current()}>Unlock</button>
-        </div>
-      )}
+  return (<>
+    {/* The lock lives OUTSIDE the app shell: while locked, the shell below is
+        `inert`, so the content can't be reached at all — not by tap, not by a
+        hardware keyboard's Tab, not by VoiceOver. (It used to be an opaque
+        overlay with the whole app still live underneath it.) */}
+    {locked && (
+      <div className="lock-screen">
+        <SunOrb size={46} className="lock-orb" />
+        <div className="lock-brand">Go Farther</div>
+        <button className="lock-btn" onClick={() => void lockRef.current()}>Unlock</button>
+      </div>
+    )}
+    <div className="app" ref={appShellRef}>
       {/* flashNote() messages used to render ONLY inside Settings — invisible to
           the chat view they often concern (e.g. "turn on notifications to get
           reminders"). Outside Settings, show them as a transient toast. */}
@@ -2350,5 +2382,5 @@ export default function App() {
         </Suspense>
       )}
     </div>
-  );
+  </>);
 }

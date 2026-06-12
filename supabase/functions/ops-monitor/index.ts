@@ -8,10 +8,6 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-// The project's PUBLIC anon JWT (same one shipped inside the app — public by
-// design). The env-injected SUPABASE_ANON_KEY is a newer key format that the
-// functions gateway rejects for verify_jwt, so the probe needs this literal.
-const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrcGZlcXJlbHZ6aWx0ZndwdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1Mjk2NDMsImV4cCI6MjA5NjEwNTY0M30.DZ_mssAlWiGj-6xLG7Z_srt0taV-mXbbRzazQ29P2xw";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const RESEND_FROM = Deno.env.get("RESEND_FROM") || "Go Farther <onboarding@resend.dev>";
 // Where alerts go. Override with the ALERT_EMAIL secret; defaults to the
@@ -24,6 +20,25 @@ const ALERT_COOLDOWN_MS = 6 * 3600 * 1000;
 const sbHeaders = { apikey: SB_KEY, authorization: `Bearer ${SB_KEY}`, "content-type": "application/json" };
 const json = (obj: unknown, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json" } });
+
+// The chat probe needs the project's PUBLIC anon JWT (the same one shipped in
+// the app — chat sits behind verify_jwt, which wants a user-style JWT; the
+// env-injected SUPABASE_ANON_KEY is a newer key format the gateway rejects).
+// It lives in app_config (key `probe_anon_key`) instead of being hardcoded in
+// source: the value is public by design, so a world-readable config row adds
+// zero exposure, and rotating the key is a one-row UPDATE — not a redeploy.
+let anonCache = "";
+async function probeAnonKey(): Promise<string> {
+  if (anonCache) return anonCache;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/app_config?key=eq.probe_anon_key&select=text_value&limit=1`, { headers: sbHeaders });
+    if (r.ok) {
+      const rows = await r.json();
+      anonCache = typeof rows?.[0]?.text_value === "string" ? rows[0].text_value : "";
+    }
+  } catch { /* the chat probe is skipped this tick */ }
+  return anonCache;
+}
 
 // The cron secret the caller must present (read from Vault via the RPC).
 async function expectedSecret(): Promise<string> {
@@ -82,11 +97,12 @@ async function alert(key: string, message: string): Promise<void> {
 // Uses the ANON key: chat sits behind verify_jwt, which wants the same kind of
 // user-facing JWT the app sends (the service-role key gets 401 at the gateway).
 async function probeChat(): Promise<string | null> {
-  if (!SB_ANON) return null; // can't probe ≠ broken
+  const anon = await probeAnonKey();
+  if (!anon) return null; // can't probe ≠ broken
   try {
     const r = await fetch(`${SB_URL}/functions/v1/chat`, {
       method: "POST",
-      headers: { authorization: `Bearer ${SB_ANON}`, apikey: SB_ANON, "content-type": "application/json" },
+      headers: { authorization: `Bearer ${anon}`, apikey: anon, "content-type": "application/json" },
       body: "{}",
     });
     if (r.status === 400 || r.status === 503) return null; // 503 = the kill switch, which is intentional
