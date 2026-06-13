@@ -49,9 +49,20 @@ A workflow is a JSON object:
     { "from": "n1", "to": "n2", "branch": "yes"|"no"|null }
   ]
 }
-Rules: output ONLY the JSON object. The first node must be the trigger. Only use
-apps the user has connected. Built-in abilities (reminders, weather, maps, image,
-memory, bank) are 'ai' nodes whose detail names the action."""
+Rules:
+- Output ONLY the JSON object — no prose, no code fences.
+- The FIRST node must be the trigger.
+- Only use apps the user has connected. event.app must be a connected connector
+  id (never 'ai', 'decision', or 'schedule').
+- Times are 24-hour: hour is an integer 0-23 (4pm = 16, 9am = 9), minute 0-59.
+  weekday (weekly only) is exactly: Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5,
+  Sat=6 — it MUST match the day you name in the title/instruction.
+- Every edge's "from" and "to" must reference a node id you defined above.
+- A decision node has exactly two outgoing edges — one branch "yes" and one
+  branch "no" — going to DIFFERENT nodes. If you don't need a branch, don't use
+  a decision node at all.
+- Built-in abilities (reminders, weather, maps, image, memory, bank) are 'ai'
+  nodes whose detail names the action (e.g. GF_MAPS, GF_SET_REMINDER)."""
 
 _FREQ = {"daily", "weekly", "hourly"}
 _KIND = {"trigger", "action", "decision"}
@@ -156,9 +167,15 @@ def validate_workflow(wf: Any, connected: set[str] | None = None) -> tuple[bool,
         # every decision node should branch yes + no
         for n in nodes if isinstance(nodes, list) else []:
             if isinstance(n, dict) and n.get("kind") == "decision":
-                branches = {e.get("branch") for e in edges if isinstance(e, dict) and e.get("from") == n.get("id")}
+                outs = [e for e in edges if isinstance(e, dict) and e.get("from") == n.get("id")]
+                branches = {e.get("branch") for e in outs}
                 if "yes" not in branches or "no" not in branches:
                     _err(errors, f"decision node '{n.get('id')}' needs yes and no branches")
+                else:
+                    yes_to = next((e.get("to") for e in outs if e.get("branch") == "yes"), None)
+                    no_to = next((e.get("to") for e in outs if e.get("branch") == "no"), None)
+                    if yes_to is not None and yes_to == no_to:
+                        _err(errors, f"decision node '{n.get('id')}' yes/no must go to different nodes")
 
     return (not errors), errors
 
