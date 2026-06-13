@@ -12,8 +12,8 @@ html {
 
 :root {
   --bg: #000000;
-  --bubble-user: #1c1c1e;
-  --composer: #161618;
+  --bubble-user: rgba(34, 34, 39, 0.5);
+  --composer: rgba(22, 22, 26, 0.55);
   --text: #f5f5f7;
   /* Slightly lifted from iOS systemGray (#8e8e93) for comfortable AA contrast
      on small hint text — visually near-identical, ~7:1 on the black bg. */
@@ -68,6 +68,17 @@ html {
   --fill-1: rgba(255, 255, 255, 0.06);  /* subtle raised fill */
   --fill-2: rgba(255, 255, 255, 0.10);  /* pressed / hover fill */
   --fill-3: rgba(255, 255, 255, 0.16);  /* strong pressed fill */
+
+  /* ---- Glass surfaces ---------------------------------------------------
+     Frosted translucent panels that refract the ambient amber glow behind
+     them — replaces flat solid cards. Pair --glass with --glass-blur and the
+     edge/highlight so every glass surface reads consistently app-wide. */
+  --glass: rgba(28, 28, 32, 0.48);             /* frosted card fill — legible over the glow */
+  --glass-strong: rgba(40, 40, 46, 0.6);       /* nested / active glass */
+  --glass-edge: rgba(255, 255, 255, 0.14);     /* hairline rim */
+  --glass-hi: inset 0 1px 0 rgba(255, 255, 255, 0.12);  /* top inner highlight */
+  --glass-shadow: 0 6px 22px rgba(0, 0, 0, 0.30);
+  --glass-blur: blur(22px) saturate(135%);
 
   /* ---- Elevation --------------------------------------------------------
      Two named shadows replace 27 one-offs. */
@@ -347,6 +358,10 @@ input, textarea { caret-color: var(--brand); }
 }
 .msg.user .bubble {
   background: var(--bubble-user);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-hi);
   padding: 10px 16px;
   border-radius: var(--r-sheet);
   max-width: 75%;

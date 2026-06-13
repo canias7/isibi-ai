@@ -373,7 +373,8 @@
 .set-note { margin: 0.8235rem 0.2353rem 0; font-size: var(--fs-footnote); line-height: 1.45; color: #f4a261; }
 .set-test-btn {
   margin: 12px 0 0; align-self: flex-start;
-  background: #ffffff0f; border: 1px solid var(--line-2); color: var(--text);
+  background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: var(--glass-hi);
   font: inherit; font-size: var(--fs-body-s); font-weight: 600; padding: 0.5882rem 0.9412rem; border-radius: var(--r-row); cursor: pointer;
 }
 .set-test-btn:active { background: #ffffff1f; }
@@ -572,9 +573,10 @@
   gap: 11px;
   width: 100%;
   padding: 12px 14px;
-  margin: 1px 0;
-  background: none;
-  border: 1px solid transparent;
+  margin: 3px 0;
+  background: var(--glass);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-hi);
   border-radius: var(--r-row);
   text-align: left;
   color: var(--text);
