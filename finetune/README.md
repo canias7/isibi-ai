@@ -43,16 +43,21 @@ Pick a teacher. Sonnet gives the best students (a few dollars → thousands of
 examples). Groq's free Llama-70B works as a $0 alternative with a lower ceiling.
 
 ```bash
-# Claude Sonnet teacher (recommended)
+# Claude Sonnet teacher (recommended — best quality, ~$10 one-time for 500)
 TEACHER=anthropic ANTHROPIC_API_KEY=sk-ant-... python gen_data.py --n 2000
 
-# OR free Groq Llama-3.3-70B teacher
-TEACHER=openai \
-  TEACHER_BASE_URL=https://api.groq.com/openai/v1 \
-  TEACHER_API_KEY=gsk_... \
-  TEACHER_MODEL=llama-3.3-70b-versatile \
-  python gen_data.py --n 2000
+# OR free Google Gemini 2.0 Flash teacher — best FREE option, generous daily
+# limits (~1,500 req/day), enough for ~500 in a day. Key: aistudio.google.com
+GEMINI_API_KEY=... python gen_data.py --n 500 --gemini
+
+# OR free Groq Llama-3.3-70B — works, but free tier is ~100k tokens/day
+# (~30-50 examples/day), so 500 takes ~2 weeks of batched re-runs.
+GROQ_API_KEY=gsk_... python gen_data.py --n 40 --groq
 ```
+
+Free tiers rate-limit, so a big run may pause/retry (handled with backoff) or hit
+a daily cap — the run checkpoints every example to `data/all.jsonl` and never
+clobbers existing data on a 0-kept run, so just re-run to resume/grow.
 
 Every example is validated against the real schema before it's kept, so the
 student only ever learns clean targets. Start with `--n 50` to sanity-check the

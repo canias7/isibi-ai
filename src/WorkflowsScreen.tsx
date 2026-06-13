@@ -23,6 +23,14 @@ const WF_MODEL_OPTIONS = MODEL_OPTIONS.filter((o) => o.id !== 'auto');
 const wfModelOpt = (id: string | null | undefined) =>
   WF_MODEL_OPTIONS.find((o) => o.id === id) ?? WF_MODEL_OPTIONS.find((o) => o.id === 'sonnet') ?? WF_MODEL_OPTIONS[0];
 
+// Which engine BUILDS the workflow (distinct from a saved workflow's runner tier):
+// the local fine-tune (free, on-device) or Opus (Claude, uses credits).
+type BuildEngine = 'lazy' | 'opus';
+const BUILD_ENGINES: { id: BuildEngine; label: string; sub: string; dots: 1 | 2 | 3 }[] = [
+  { id: 'lazy', label: 'lazy0.1', sub: 'Your local model — free, on your machine', dots: 1 },
+  { id: 'opus', label: 'Opus 4.8', sub: 'Claude — most capable, uses your credits', dots: 3 },
+];
+
 type NodeResult = { ok: boolean; output: string };
 // A turn in the clarify chat; assistant turns carry the structured questions
 // (with any tappable options) so we can render chips, not just text. A `blocked`
@@ -191,6 +199,8 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
   const [picks, setPicks] = useState<Record<number, string>>({});      // selected option label per question (last turn)
   const [otherText, setOtherText] = useState<Record<number, string>>({}); // free-text per question when "Other" is picked
   const [step, setStep] = useState(0);                                  // which clarifying question is on screen (one at a time)
+  const [buildEngine, setBuildEngine] = useState<BuildEngine>('lazy');  // which model builds: local lazy0.1 (default) vs Opus
+  const [buildOpen, setBuildOpen] = useState(false);                    // builder model-picker sheet
   const chatRef = useRef<HTMLDivElement>(null);
   const composeRef = useRef<HTMLTextAreaElement>(null);
   const OTHER = '__other__';
@@ -235,8 +245,8 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
     setDesc('');
     setBuilding(true);
     setErr('');
-    let res = await buildWorkflow(next);
-    if (!res) res = await buildWorkflow(next); // one retry — the builder occasionally returns nothing
+    let res = await buildWorkflow(next, buildEngine);
+    if (!res) res = await buildWorkflow(next, buildEngine); // one retry — the builder occasionally returns nothing
     setBuilding(false);
     if (!res) { setErr("Couldn't build that — try describing it a little differently."); return; }
     if (res.kind === 'questions') {
@@ -486,6 +496,12 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
                 </button>
               </div>
             ) : (
+              <>
+              <div className="wfx-modelbar">
+                <button className="model-chip" onClick={() => { void tap(); setBuildOpen(true); }} aria-label="Choose builder model">
+                  <IconSpark size={13} /> {buildEngine === 'lazy' ? 'lazy0.1' : 'Opus'}
+                </button>
+              </div>
               <div className="memg-compose wfx-compose">
                 <textarea
                   ref={composeRef}
@@ -503,9 +519,37 @@ export default function WorkflowsScreen({ connApps, onClose }: { connApps: strin
                   {building ? <span className="wfx-spin" /> : <IconArrowUp size={20} />}
                 </button>
               </div>
+              </>
             )}
             {building && convo.length === 0 && <div className="memg-reading">Designing your workflow…</div>}
           </div>
+          {buildOpen && (
+            <>
+              <div className="sheet-scrim wfx-msheet-scrim" onClick={() => setBuildOpen(false)} />
+              <div className="chat-sheet model-sheet wfx-msheet" role="dialog" aria-label="Choose builder model">
+                <div className="wn-eyebrow">Build with</div>
+                {BUILD_ENGINES.map((o) => (
+                  <button
+                    key={o.id}
+                    className={`model-opt${o.id === buildEngine ? ' on' : ''}`}
+                    onClick={() => { void tap(); setBuildEngine(o.id); setBuildOpen(false); }}
+                  >
+                    <span className="model-opt-text">
+                      <span className="model-opt-label">{o.label}</span>
+                      <span className="model-opt-sub">{o.sub}</span>
+                    </span>
+                    <span className={`model-meter d${o.dots}`}>
+                      <span className={`model-bar${o.dots >= 1 ? ' on' : ''}`} />
+                      <span className={`model-bar${o.dots >= 2 ? ' on' : ''}`} />
+                      <span className={`model-bar${o.dots >= 3 ? ' on' : ''}`} />
+                    </span>
+                    <span className="model-check">{o.id === buildEngine && <IconCheck size={16} />}</span>
+                  </button>
+                ))}
+                <button className="chat-sheet-row cancel" onClick={() => setBuildOpen(false)}>Done</button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>,

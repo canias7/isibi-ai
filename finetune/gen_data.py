@@ -172,7 +172,9 @@ class OpenAITeacher(Teacher):
         from openai import OpenAI  # lazy
         self.client = OpenAI(
             base_url=os.environ.get("TEACHER_BASE_URL", "https://api.groq.com/openai/v1"),
-            api_key=os.environ.get("TEACHER_API_KEY", os.environ.get("OPENAI_API_KEY", "")),
+            api_key=(os.environ.get("TEACHER_API_KEY") or os.environ.get("GROQ_API_KEY")
+                     or os.environ.get("GEMINI_API_KEY") or os.environ.get("OPENAI_API_KEY", "")),
+            max_retries=4,  # ride out Groq free-tier 429s with exponential backoff
         )
         self.model = os.environ.get("TEACHER_MODEL", "llama-3.3-70b-versatile")
 
@@ -191,13 +193,23 @@ class OpenAITeacher(Teacher):
                     "description": "Return the workflow.", "parameters": _emit_tool_schema()}}],
             tool_choice={"type": "function", "function": {"name": "emit_workflow"}},
         )
-        calls = r.choices[0].message.tool_calls or []
-        if not calls:
-            return None
-        try:
-            return json.loads(calls[0].function.arguments)
-        except json.JSONDecodeError:
-            return None
+        msg = r.choices[0].message
+        for call in (msg.tool_calls or []):
+            try:
+                return json.loads(call.function.arguments)
+            except json.JSONDecodeError:
+                pass
+        # Fallback for providers that return the JSON as plain content instead of a
+        # tool call (tool_choice support varies across Gemini/OpenRouter/etc.).
+        if msg.content:
+            t = msg.content.strip()
+            s, e = t.find("{"), t.rfind("}")
+            if s != -1 and e > s:
+                try:
+                    return json.loads(t[s:e + 1])
+                except json.JSONDecodeError:
+                    pass
+        return None
 
 
 def make_teacher() -> Teacher:
@@ -250,7 +262,6 @@ def generate(n: int, seed: int = 0) -> None:
     teacher = make_teacher()
     DATA.mkdir(exist_ok=True)
     all_path = DATA / "all.jsonl"      # incremental safety copy (survives interrupts)
-    all_path.unlink(missing_ok=True)
     kept: list[dict[str, Any]] = []
     seen: set[str] = set()
     attempts = 0
@@ -278,12 +289,17 @@ def generate(n: int, seed: int = 0) -> None:
                 print(f"  rejected: {errs[0]}")
                 continue
             kept.append(row(connected, req, wf))
-            with all_path.open("a", encoding="utf-8") as f:
+            # Only truncate all.jsonl once we actually have an example — a run that
+            # keeps 0 (quota exhausted / teacher down) must NOT clobber existing data.
+            with all_path.open("w" if len(kept) == 1 else "a", encoding="utf-8") as f:
                 f.write(json.dumps(kept[-1], ensure_ascii=False) + "\n")
             print(f"[{len(kept)}/{n}] {req[:70]}")
             if len(kept) >= n:
                 break
 
+    if not kept:
+        print("no examples kept (teacher unreachable / quota?) — left existing data untouched")
+        return
     rng.shuffle(kept)
     n_val = max(1, len(kept) // 10)
     _write(DATA / "val.jsonl", kept[:n_val])
@@ -315,7 +331,17 @@ if __name__ == "__main__":
     ap.add_argument("--n", type=int, default=200, help="target clean examples")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--selftest", action="store_true", help="offline wiring check")
+    ap.add_argument("--groq", action="store_true",
+                    help="free Groq Llama-3.3-70B teacher (just set GROQ_API_KEY)")
+    ap.add_argument("--gemini", action="store_true",
+                    help="free Google Gemini 2.0 Flash teacher (just set GEMINI_API_KEY)")
     args = ap.parse_args()
+    if args.groq:
+        os.environ["TEACHER"] = "openai"  # OpenAITeacher already defaults base_url+model to Groq
+    if args.gemini:
+        os.environ["TEACHER"] = "openai"
+        os.environ.setdefault("TEACHER_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+        os.environ.setdefault("TEACHER_MODEL", "gemini-2.0-flash")
     if args.selftest:
         selftest()
     else:

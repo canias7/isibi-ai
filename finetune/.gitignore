@@ -5,3 +5,8 @@ gguf_model/
 __pycache__/
 *.pyc
 .env
+runner_data/
+runner_outputs/
+runner_lora/
+runner_gguf/
+chat_data/

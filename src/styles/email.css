@@ -412,6 +412,11 @@
   display: grid; place-items: center; cursor: pointer;
 }
 .wfx-corner:active { background: var(--glass-strong); }
+/* Builder model picker (lazy0.1 vs Opus): a chip above the composer + its sheet. */
+.wfx-modelbar { display: flex; padding: 2px 2px 8px; }
+/* The picker sheet must sit ABOVE the .memg builder overlay (z-index 200). */
+.wfx-msheet-scrim { z-index: 320; }
+.wfx-msheet { z-index: 321; }
 .wfx-projects-count {
   position: absolute; top: -4px; right: -4px;
   min-width: 16px; height: 16px; padding: 0 4px;
