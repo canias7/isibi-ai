@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "purpose": "Canonical tool -> backend binding OVERRIDES. The model's vocabulary is canonical (the catalog tool names it trains on); this file is the one seam to change when you move a tool off Composio onto your own connection. An empty 'overrides' means defaults: GF_* -> our own 'gf' backend, everything else -> 'composio', with identity names/args.",
+    "shape": "overrides[CANONICAL_TOOL] = { backend, backend_tool?, toolkit?, arg_map?: { canonical_arg: backend_arg } }",
+    "consumed_by": "toolmap.py resolve(); the TS execution layer (gofarther-mcp / run-workflows) should mirror the same resolution."
+  },
+  "_example_only_not_active": {
+    "GMAIL_SEND_EMAIL": {
+      "backend": "gf",
+      "backend_tool": "gmail_send",
+      "arg_map": { "recipient_email": "to", "body": "html" }
+    }
+  },
+  "overrides": {}
+}

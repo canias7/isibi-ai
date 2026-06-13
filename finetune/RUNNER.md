@@ -33,6 +33,17 @@ this to need more data + more iteration than the builder did.
 | `fetch_connector_schemas.py` | One-time snapshot of connector arg schemas from Composio into `tool_schemas.json` (needs `COMPOSIO_API_KEY`). |
 | `build_connector_catalog.py` → `connectors/` | FULL per-connector tool catalog (all 6,940 tools for the 54 connectors) + an index of every Composio toolkit — for widening the runner connector-by-connector later. See `connectors/README.md`. |
 | `build_universe_catalog.py` → `catalog_connectors.json` | Expands the model catalog to the WHOLE Composio universe — 958 connectors / ~10k important tools, grounded in `tool_schemas.json`. `catalog.py` merges it on top of the verbatim 54 (which always win). Generating *data* for the new connectors still needs a teacher key + a training run. |
+| `toolmap.py` / `toolmap.json` | Canonical tool contract — the model's vocabulary is OURS; one resolver maps each tool to a backend (Composio by default, our own `gf` for GF_*). Switch off Composio = edit overrides here, never retrain. See "Backend independence". |
+
+## Backend independence (not locked to Composio)
+The model emits **canonical** tool names/args; `toolmap.resolve(tool, args)` is the
+single seam to whatever executes them. Today it's identity (connector tools →
+Composio, `GF_*` → our own code — the hybrid already works). To move a tool onto
+your own connection later, add one entry to `toolmap.json` (`backend`,
+`backend_tool`, `arg_map`) — the weights never change. Everything else (scenarios,
+schema, grammar, eval, the workflow reasoning) is backend-agnostic; only the
+generated catalog/grounding is Composio-shaped, and that's regenerated, not
+retrained. The TS execution layer should mirror `resolve()`.
 
 ## Approach: simulated traces
 
