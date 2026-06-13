@@ -5,7 +5,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.45);
   opacity: 0;
   pointer-events: none;
   transition: opacity 240ms var(--ease-exit);
@@ -20,7 +20,10 @@
   bottom: 0;
   width: 280px;
   max-width: 82vw;
-  background: #171717;
+  background: rgba(18, 18, 20, 0.72);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-right: 1px solid var(--glass-edge);
   z-index: 50;
   transform: translateX(-100%);
   transition: transform 240ms var(--ease-exit);
@@ -35,6 +38,24 @@
   background: radial-gradient(75% 100% at 28% 0%, rgba(232, 169, 58, 0.16), rgba(232, 169, 58, 0) 70%);
 }
 .sidebar.open { transform: translateX(0); transition: transform var(--dur-screen) var(--ease-enter); }
+
+/* Staggered entrance: search → nav items → chats cascade in as the drawer opens. */
+.sidebar.open .side-search,
+.sidebar.open .side-nav .side-item,
+.sidebar.open .side-chats {
+  animation: sideRowIn var(--dur-enter) var(--ease-enter) backwards;
+}
+.sidebar.open .side-search { animation-delay: 0.03s; }
+.sidebar.open .side-nav .side-item:nth-child(1) { animation-delay: 0.07s; }
+.sidebar.open .side-nav .side-item:nth-child(2) { animation-delay: 0.11s; }
+.sidebar.open .side-nav .side-item:nth-child(3) { animation-delay: 0.15s; }
+.sidebar.open .side-chats { animation-delay: 0.18s; }
+@keyframes sideRowIn { from { opacity: 0; transform: translateX(-10px); } }
+@media (prefers-reduced-motion: reduce) {
+  .sidebar.open .side-search,
+  .sidebar.open .side-nav .side-item,
+  .sidebar.open .side-chats { animation: none; }
+}
 
 
 .side-item {
@@ -126,8 +147,9 @@
   margin: 4px 2px 10px;
   padding: 11px 12px;
   border-radius: var(--r-card);
-  background: #ffffff0f;
-  border: 1px solid var(--line-1);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-hi);
   color: var(--text-dim);
 }
 .side-search input {
