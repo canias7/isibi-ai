@@ -234,6 +234,8 @@ def generate(n: int, seed: int = 0) -> None:
     rng = random.Random(seed)
     teacher = make_teacher()
     DATA.mkdir(exist_ok=True)
+    all_path = DATA / "all.jsonl"      # incremental safety copy (survives interrupts)
+    all_path.unlink(missing_ok=True)
     kept: list[dict[str, Any]] = []
     seen: set[str] = set()
     attempts = 0
@@ -261,6 +263,8 @@ def generate(n: int, seed: int = 0) -> None:
                 print(f"  rejected: {errs[0]}")
                 continue
             kept.append(row(connected, req, wf))
+            with all_path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(kept[-1], ensure_ascii=False) + "\n")
             print(f"[{len(kept)}/{n}] {req[:70]}")
             if len(kept) >= n:
                 break
