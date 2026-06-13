@@ -5,4 +5,7 @@ gguf_model/
 __pycache__/
 *.pyc
 .env
-finetune/runner_data/
+runner_data/
+runner_outputs/
+runner_lora/
+runner_gguf/
