@@ -21,6 +21,7 @@ from pathlib import Path
 
 from openai import OpenAI
 
+from grammar import workflow_json_schema
 from schema import parse_and_validate
 
 HERE = Path(__file__).parent
@@ -40,10 +41,17 @@ def main() -> None:
     ap.add_argument("--model", required=True)
     ap.add_argument("--api-key", default="ollama")
     ap.add_argument("--file", default=str(HERE / "data" / "val.jsonl"))
+    ap.add_argument("--raw", action="store_true",
+                    help="eval the BARE model (no grammar) — for comparison. Default uses the grammar = the real served path.")
     args = ap.parse_args()
 
     client = OpenAI(base_url=args.base_url, api_key=args.api_key)
-    rows = [json.loads(l) for l in Path(args.file).read_text().splitlines() if l.strip()]
+    rows = [json.loads(l) for l in Path(args.file).read_text(encoding="utf-8").splitlines() if l.strip()]
+    # Default = the PRODUCTION path: grammar-constrained decoding (matches what
+    # build-workflow sends). --raw measures the bare model for comparison.
+    rf = None if args.raw else {"type": "json_schema",
+        "json_schema": {"name": "workflow", "schema": workflow_json_schema(), "strict": True}}
+    print(f"mode: {'RAW (no grammar)' if args.raw else 'grammar-constrained (served path)'}\n")
 
     n = len(rows)
     json_ok = schema_ok = apps_ok = 0
@@ -52,6 +60,7 @@ def main() -> None:
             model=args.model, max_tokens=2048,
             messages=[{"role": "system", "content": r["system"]},
                       {"role": "user", "content": r["user"]}],
+            **({"response_format": rf} if rf else {}),
         )
         text = resp.choices[0].message.content or ""
         connected = connected_from_system(r["system"])
