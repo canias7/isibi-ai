@@ -27,7 +27,7 @@ this to need more data + more iteration than the builder did.
 |------|------|
 | `runner_gen.py` | Distill **simulated tool-use traces** from a teacher, seeded by the builder dataset's `instruction`s. |
 | `runner_train.py` | QLoRA on the traces — trains only on assistant turns (tool calls + final), masks tool results. |
-| (eval) | The open problem — see below. |
+| `runner_eval.py` | Teacher-forced rollout vs the held-out val traces — scores trajectory / tool-set / structural (options 1+2 below). |
 
 ## Approach: simulated traces
 
@@ -91,7 +91,16 @@ thing?" Options, roughly in order of effort:
 2. **Trajectory match** — compare the tool *sequence* against a held-out teacher trace (did it pick the right tools in a reasonable order?).
 3. **Outcome check** — run against a sandbox/mock MCP and assert the end state. (most real, most work.)
 
-Start with (1)+(2); graduate to (3) once it's promising.
+`runner_eval.py` implements (1)+(2): a teacher-forced rollout that replays the
+gold tool results and scores the model's tool trajectory against the held-out
+val set (structural / first-tool / tool-set / trajectory / finished). Graduate to
+(3) — outcome checks against a mock MCP — once it's promising.
+
+```bash
+python runner_eval.py --selftest                                  # offline logic check
+python runner_eval.py --base-url http://localhost:11434/v1 --model gf-runner
+python runner_eval.py --base-url http://localhost:11434/v1 --model qwen2.5:7b-instruct  # baseline
+```
 
 ## Honest expectations
 
