@@ -753,20 +753,30 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
           <div className="cg-pick-body">
             {(() => {
               const q = pickQuery.trim().toLowerCase();
-              const rows = CATALOG.filter((c) => !status[c.id]?.connected && (!q || c.name.toLowerCase().includes(q)));
-              if (!rows.length) {
+              const all = CATALOG.filter((c) => !status[c.id]?.connected && (!q || c.name.toLowerCase().includes(q)));
+              if (!all.length) {
                 return <div className="cg-pick-empty">{q ? 'No apps match that.' : "Everything's connected — you're all set."}</div>;
               }
-              return rows.map((c) => (
-                <div className="cg-row" key={c.id}>
-                  <span className="cg-row-tile"><Tile id={c.id} size={24} /></span>
-                  <div className="cg-row-meta">
-                    <div className="cg-row-name">{c.name}</div>
-                    <div className="cg-row-desc">{c.desc}</div>
-                  </div>
-                  <button className="cg-connect" onClick={() => (c.auth === 'apikey' || c.auth === 'keyless') ? setKeyFor(c) : void connect(c.id)}>Connect</button>
-                </div>
-              ));
+              // Cap the no-search view so a ~1000-app catalog renders fast; search reveals all.
+              const CAP = 80;
+              const rows = q ? all : all.slice(0, CAP);
+              return (
+                <>
+                  {rows.map((c) => (
+                    <div className="cg-row" key={c.id}>
+                      <span className="cg-row-tile"><Tile id={c.id} size={24} /></span>
+                      <div className="cg-row-meta">
+                        <div className="cg-row-name">{c.name}</div>
+                        <div className="cg-row-desc">{c.desc}</div>
+                      </div>
+                      <button className="cg-connect" onClick={() => (c.auth === 'apikey' || c.auth === 'keyless') ? setKeyFor(c) : void connect(c.id)}>Connect</button>
+                    </div>
+                  ))}
+                  {!q && all.length > rows.length && (
+                    <div className="cg-pick-empty">+{all.length - rows.length} more — search to find any app</div>
+                  )}
+                </>
+              );
             })()}
           </div>
         </div>
