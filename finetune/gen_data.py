@@ -37,9 +37,20 @@ DATA = HERE / "data"
 
 # Apps that can SEND/CREATE (so a workflow can have an outcome), used to bias
 # samples toward toolkits that make useful automations.
-ACTIONY = ["gmail", "outlook", "slack", "notion", "googlecalendar", "todoist",
-           "googlesheets", "googledocs", "jira", "asana", "trello", "hubspot",
-           "telegram", "discord", "airtable", "linkedin", "googletasks"]
+# Apps with a real create/send/update tool in ALLOWED (so a workflow can produce
+# an outcome), spread across categories so the dataset isn't all email + chat.
+ACTIONY = [
+    # messaging
+    "gmail", "outlook", "slack", "telegram",
+    # project / tasks
+    "notion", "todoist", "googletasks", "asana", "trello", "clickup", "monday", "jira", "airtable",
+    # calendar / docs / files
+    "googlecalendar", "googlesheets", "googledocs", "googledrive", "excel", "canva",
+    # crm / sales / marketing
+    "hubspot", "salesforce", "sendgrid", "klaviyo",
+    # social
+    "linkedin", "twitter", "youtube", "spotify", "instagram",
+]
 
 SYSTEM = (
     "You are the Go Farther workflow builder. The user describes an automation; "
@@ -198,23 +209,27 @@ def make_teacher() -> Teacher:
 # Generation
 # --------------------------------------------------------------------------- #
 def sample_connected(rng: random.Random) -> list[str]:
-    """A believable set of connected apps: 1-2 action apps + 0-2 extras."""
-    pool = [frontend_id(s) for s in ALLOWED]
-    actiony = [frontend_id(a) for a in ACTIONY]
-    chosen = set(rng.sample(actiony, rng.randint(1, 2)))
-    chosen.update(rng.sample(pool, rng.randint(0, 2)))
-    return sorted(chosen)
+    """A believable connected set CENTERED on a uniformly-chosen primary app, so
+    coverage spreads across the long tail of connectors instead of clustering on
+    email/chat. The primary is returned first (brainstorm focuses requests on it)."""
+    primary = frontend_id(rng.choice(ACTIONY))
+    pool = [frontend_id(s) for s in ALLOWED if frontend_id(s) != primary]
+    extras = sorted(set(rng.sample(pool, rng.randint(1, 3))))
+    return [primary] + extras
 
 
 def brainstorm(teacher: Teacher, connected: list[str], k: int) -> list[str]:
+    primary = connected[0]
     sys = "You write short, varied automation requests a real person would ask for."
     user = (
         f"A user has these apps connected: {', '.join(connected)} (plus reminders, "
         f"weather, maps, image generation, and bank tools).\n"
-        f"Write {k} DIFFERENT one-line automation requests they might want — mix "
+        f"Write {k} DIFFERENT one-line automation requests they might want. MOST "
+        f"should center on {primary} (use the other apps as supporting steps). Mix "
         f"scheduled ones (daily/weekly/hourly) and event-triggered ones (\"when X "
-        f"happens\"), some simple, some multi-step with a condition. One per line, "
-        f"no numbering, no extra text."
+        f"happens\"); include some multi-step ones with a condition, and a few that "
+        f"do TWO independent things at once (e.g. notify someone AND log it). One "
+        f"per line, no numbering, no extra text."
     )
     out = teacher.text(sys, user, max_tokens=800)
     reqs = [ln.strip(" -*\t") for ln in out.splitlines() if len(ln.strip()) > 12]

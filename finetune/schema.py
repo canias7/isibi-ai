@@ -80,6 +80,9 @@ Rules:
 - A decision node has exactly two outgoing edges — one branch "yes" and one
   branch "no" — going to DIFFERENT nodes. If you don't need a branch, don't use
   a decision node at all.
+- Independent steps can run in PARALLEL: give ONE node two or more outgoing
+  edges to separate action nodes (no yes/no branch) — use this for "do A and B"
+  requests instead of forcing everything into a single chain.
 - Built-in abilities (reminders, weather, maps, image, memory, bank) are 'ai'
   nodes whose detail names the action (e.g. GF_MAPS, GF_SET_REMINDER)."""
 
