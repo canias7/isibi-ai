@@ -115,6 +115,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--limit", type=int, default=0, help="cap how many to add (0 = all)")
+    ap.add_argument("--all-connectable", action="store_true",
+                    help="also add connectable toolkits that have no curated tools yet")
     args = ap.parse_args()
     key = os.environ.get("COMPOSIO_API_KEY")
     if not key:
@@ -126,7 +128,7 @@ def main() -> None:
     toolkits = fetch_toolkits(key)
     todo = [t for t in toolkits if kind(t) in ("managed", "keyless", "apikey")
             and t["slug"] not in SKIP and frontend_id(t["slug"]) not in existing
-            and (cat.get(t["slug"], {}).get("tools"))]   # need tools to be useful; skip aliased dupes
+            and (args.all_connectable or cat.get(t["slug"], {}).get("tools"))]  # skip aliased dupes
     todo.sort(key=lambda t: -(t.get("meta") or {}).get("tools_count", 0))
     if args.limit:
         todo = todo[: args.limit]
