@@ -38,6 +38,7 @@ from typing import Any
 
 from catalog import ALLOWED, BUILTINS, frontend_id, tools_for
 from gen_data import Teacher, make_teacher
+from tool_schemas import arg_signature, parameters_for, validate_args
 
 HERE = Path(__file__).parent
 BUILDER_DATA = HERE / "data" / "train.jsonl"   # phase-1 instructions seed phase-2
@@ -60,22 +61,26 @@ def available_tools(connected: list[str]) -> list[str]:
 
 
 def tool_menu(connected: list[str]) -> str:
+    # Show each tool's arg signature (e.g. GF_WEATHER(location, units?)) so the
+    # teacher uses real arg names — just the bare name where we lack a schema.
     lines = []
     for fid in connected:
         slug = next((s for s in ALLOWED if frontend_id(s) == fid), fid)
         ts = tools_for(slug)
         if ts:
-            lines.append(f"- {fid}: {', '.join(ts)}")
-    lines.append("- built-ins: " + ", ".join(BUILTINS))
+            lines.append(f"- {fid}: {', '.join(arg_signature(t) for t in ts)}")
+    lines.append("- built-ins: " + ", ".join(arg_signature(t) for t in BUILTINS))
     return "\n".join(lines)
 
 
 def tool_specs(connected: list[str]) -> list[dict[str, Any]]:
-    """OpenAI tool defs for the chat template (names matter; params kept generic)."""
+    """OpenAI tool defs for the chat template, with REAL arg schemas where we have
+    them (builtins now, connectors once fetch_connector_schemas.py runs); a generic
+    object otherwise. Grounds the args the student trains on."""
     return [
         {"type": "function", "function": {
             "name": name, "description": BUILTINS.get(name, ""),
-            "parameters": {"type": "object", "additionalProperties": True}}}
+            "parameters": parameters_for(name)}}
         for name in available_tools(connected)
     ]
 
@@ -95,7 +100,9 @@ TRACE_PROMPT = (
     "or the final step:\n"
     '  {{"final": "<one-sentence result summary for the user>"}}\n'
     "Rules: use 1-5 tool steps, ONLY tools from the list above, in a sensible order, "
-    "then exactly one final step. Output ONLY the JSON array."
+    "then exactly one final step. For each call, use the tool's EXACT argument names "
+    "from its (signature) and include every required arg (the ones without a '?'). "
+    "Output ONLY the JSON array."
 )
 
 
@@ -113,14 +120,20 @@ def gen_trace(teacher: Teacher, instruction: str, connected: list[str]) -> list[
 
 
 def valid_trace(steps: list[dict[str, Any]], connected: list[str]) -> bool:
-    """Structural check: 1-5 tool steps then a final, tools all real/available."""
+    """Structural check: 1-5 tool steps then a final, every tool real/available,
+    and every call's args fit the tool's real schema (where we have one)."""
     if not steps or "final" not in steps[-1]:
         return False
     tools = set(available_tools(connected))
     calls = steps[:-1]
     if not (1 <= len(calls) <= 5):
         return False
-    return all(isinstance(c, dict) and c.get("tool") in tools for c in calls)
+    for c in calls:
+        if not (isinstance(c, dict) and c.get("tool") in tools):
+            return False
+        if validate_args(c.get("tool", ""), c.get("args", {})):
+            return False  # args don't fit the real schema -> drop the trace
+    return True
 
 
 def to_chat(connected: list[str], instruction: str, steps: list[dict[str, Any]]) -> dict[str, Any]:
@@ -219,7 +232,21 @@ def selftest() -> None:
     assert any(t["function"]["name"] == "SLACK_SEND_MESSAGE" for t in chat["tools"])
     # a phantom tool must be rejected
     assert not valid_trace([{"tool": "FAKE_TOOL", "args": {}, "result": "x"}, {"final": "done"}], connected)
+    # builtin args are grounded against the real schema (tool_schemas.json)
+    assert valid_trace([
+        {"tool": "GF_WEATHER", "args": {"location": "NYC"}, "result": "Sunny, 72F"},
+        {"final": "Sent the NYC forecast."}], connected)
+    assert not valid_trace([
+        {"tool": "GF_WEATHER", "args": {}, "result": "x"},   # missing required 'location'
+        {"final": "done"}], connected)
+    # real schema flows into the tool specs the student trains on
+    wspec = next(t for t in tool_specs(connected) if t["function"]["name"] == "GF_WEATHER")
+    assert wspec_required(wspec) == ["location"], wspec
     print("runner selftest passed")
+
+
+def wspec_required(spec: dict[str, Any]) -> list[str]:
+    return spec["function"]["parameters"].get("required", [])
 
 
 if __name__ == "__main__":

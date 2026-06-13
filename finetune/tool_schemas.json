@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "purpose": "Real tool argument schemas for grounding runner traces (phase 2).",
+    "builtins_from": "supabase/functions/gofarther-mcp/index.ts (GF_* inputSchema, verbatim shapes)",
+    "connectors_from": "Composio v3.1/tools input_parameters — run fetch_connector_schemas.py with COMPOSIO_API_KEY to populate",
+    "note": "Compact: type + property types + enums + required. Tools absent here fall back to a generic object schema (no arg validation)."
+  },
+  "tools": {
+    "GF_SAVE_MEMORY": {"type": "object", "properties": {"content": {"type": "string"}}, "required": ["content"]},
+    "GF_GET_MEMORY_FILE": {"type": "object", "properties": {"memory_id": {"type": "string"}, "toolkit_slug": {"type": "string"}, "tool_slug": {"type": "string"}}, "required": ["memory_id", "toolkit_slug", "tool_slug"]},
+    "GF_SET_REMINDER": {"type": "object", "properties": {"title": {"type": "string"}, "remind_at": {"type": "string"}, "repeat": {"type": "string", "enum": ["none", "daily", "weekly"]}, "tz": {"type": "string"}}, "required": ["title", "remind_at"]},
+    "GF_BANK_BALANCES": {"type": "object", "properties": {}},
+    "GF_BANK_TRANSACTIONS": {"type": "object", "properties": {"count": {"type": "integer"}}},
+    "GF_BANK_RECURRING": {"type": "object", "properties": {}},
+    "GF_BANK_LIABILITIES": {"type": "object", "properties": {}},
+    "GF_BANK_INVESTMENTS": {"type": "object", "properties": {}},
+    "GF_BANK_IDENTITY": {"type": "object", "properties": {}},
+    "GF_BANK_AUTH": {"type": "object", "properties": {}},
+    "GF_BANK_INVESTMENT_TRANSACTIONS": {"type": "object", "properties": {"days": {"type": "integer"}}},
+    "GF_BANK_INSIGHTS": {"type": "object", "properties": {"mode": {"type": "string", "enum": ["net_worth", "spending", "cash_flow", "upcoming_bills"]}, "days": {"type": "integer"}}, "required": ["mode"]},
+    "GF_WEATHER": {"type": "object", "properties": {"location": {"type": "string"}, "units": {"type": "string", "enum": ["fahrenheit", "celsius"]}}, "required": ["location"]},
+    "GF_MAPS": {"type": "object", "properties": {"mode": {"type": "string", "enum": ["places", "directions"]}, "query": {"type": "string"}, "near": {"type": "string"}, "open_now": {"type": "boolean"}, "origin": {"type": "string"}, "destination": {"type": "string"}, "travel_mode": {"type": "string", "enum": ["driving", "walking", "bicycling", "transit"]}}, "required": ["mode"]},
+    "GF_IMAGE": {"type": "object", "properties": {"prompt": {"type": "string"}, "model": {"type": "string"}, "size": {"type": "string"}, "n": {"type": "integer"}}, "required": ["prompt"]},
+    "GF_SAVE_TABLE": {"type": "object", "properties": {"data_handle": {"type": "string"}, "fields": {"type": "array"}, "record_path": {"type": "string"}, "title": {"type": "string"}, "columns": {"type": "array"}, "rows": {"type": "array"}, "total_columns": {"type": "array"}}}
+  }
+}

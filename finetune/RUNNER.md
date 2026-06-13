@@ -28,6 +28,9 @@ this to need more data + more iteration than the builder did.
 | `runner_gen.py` | Distill **simulated tool-use traces** from a teacher, seeded by the builder dataset's `instruction`s. |
 | `runner_train.py` | QLoRA on the traces — trains only on assistant turns (tool calls + final), masks tool results. |
 | `runner_eval.py` | Teacher-forced rollout vs the held-out val traces — scores trajectory / tool-set / structural (options 1+2 below). |
+| `tool_schemas.json` | Real tool **arg schemas** for grounding — builtins (`GF_*`) verbatim from gofarther-mcp; connectors filled by the fetch script. |
+| `tool_schemas.py` | Loads the schemas: real `parameters` for tool specs, `arg_signature` for the teacher menu, `validate_args` to drop bad-arg traces. |
+| `fetch_connector_schemas.py` | One-time snapshot of connector arg schemas from Composio into `tool_schemas.json` (needs `COMPOSIO_API_KEY`). |
 
 ## Approach: simulated traces
 
@@ -47,7 +50,25 @@ assistant → "Emailed you a digest of 3 unread messages."
 ```
 
 Every trace is structurally checked (`valid_trace`): 1–5 tool steps, a final step,
-and **only real tools** from the connected apps' catalog (no phantom tools).
+**only real tools** from the connected apps' catalog (no phantom tools), and
+**args that fit each tool's real schema**.
+
+### Args grounding (the runner's quality lever)
+The builder taught us structure is easy once constrained; for the runner the hard
+part is **arguments**. A trace that calls `GMAIL_SEND_EMAIL` with the wrong arg
+names trains the student to fail against the real tool. So the pipeline grounds
+args in the real schemas (`tool_schemas.py` over `tool_schemas.json`):
+- tool specs the student trains on carry the **real `parameters`** (not a generic
+  blob), so it learns correct arg shapes;
+- the teacher's tool menu shows each tool's **signature** (`GF_WEATHER(location,
+  units?)`), so it uses real arg names;
+- `validate_args` **drops any trace** whose call args don't fit — unknown args,
+  missing required, or bad enums.
+
+Coverage is graceful: builtins (`GF_*`) ship now; connectors validate leniently
+until you snapshot them once with `COMPOSIO_API_KEY python fetch_connector_schemas.py`
+(then they're enforced too). At **serve** time, also grammar-constrain tool-call
+args to the same schema — the trick that took the builder from 89%→100%.
 
 **Run it** (same teacher flags as `gen_data.py`):
 ```bash
