@@ -172,7 +172,9 @@ class OpenAITeacher(Teacher):
         from openai import OpenAI  # lazy
         self.client = OpenAI(
             base_url=os.environ.get("TEACHER_BASE_URL", "https://api.groq.com/openai/v1"),
-            api_key=os.environ.get("TEACHER_API_KEY", os.environ.get("OPENAI_API_KEY", "")),
+            api_key=(os.environ.get("TEACHER_API_KEY") or os.environ.get("GROQ_API_KEY")
+                     or os.environ.get("OPENAI_API_KEY", "")),
+            max_retries=4,  # ride out Groq free-tier 429s with exponential backoff
         )
         self.model = os.environ.get("TEACHER_MODEL", "llama-3.3-70b-versatile")
 
@@ -315,7 +317,11 @@ if __name__ == "__main__":
     ap.add_argument("--n", type=int, default=200, help="target clean examples")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--selftest", action="store_true", help="offline wiring check")
+    ap.add_argument("--groq", action="store_true",
+                    help="free Groq Llama-3.3-70B teacher (just set GROQ_API_KEY)")
     args = ap.parse_args()
+    if args.groq:
+        os.environ["TEACHER"] = "openai"  # OpenAITeacher already defaults base_url+model to Groq
     if args.selftest:
         selftest()
     else:

@@ -46,13 +46,14 @@ examples). Groq's free Llama-70B works as a $0 alternative with a lower ceiling.
 # Claude Sonnet teacher (recommended)
 TEACHER=anthropic ANTHROPIC_API_KEY=sk-ant-... python gen_data.py --n 2000
 
-# OR free Groq Llama-3.3-70B teacher
-TEACHER=openai \
-  TEACHER_BASE_URL=https://api.groq.com/openai/v1 \
-  TEACHER_API_KEY=gsk_... \
-  TEACHER_MODEL=llama-3.3-70b-versatile \
-  python gen_data.py --n 2000
+# OR free Groq Llama-3.3-70B teacher — free signup at console.groq.com
+# (--groq presets the Groq endpoint + model; just provide the key)
+GROQ_API_KEY=gsk_... python gen_data.py --n 1500 --groq
 ```
+
+Groq's free tier rate-limits, so a big run may pause/retry (handled with backoff)
+or hit a daily cap — the run checkpoints every example to `data/all.jsonl`, so
+just re-run to resume. Split into a few `--n` batches if you hit the daily limit.
 
 Every example is validated against the real schema before it's kept, so the
 student only ever learns clean targets. Start with `--n 50` to sanity-check the
