@@ -66,9 +66,10 @@ function layout(n: number): XY[] {
   }));
 }
 
-// Apps offered in the connect picker: those with a crisp bundled logo (the native
-// webview can't load the remote CDN logos, so we only surface ones that render).
-const CATALOG = CONNECTORS.filter((c) => hasBrand(c.id) || c.id === 'plaid');
+// Every connector is offered in the connect picker. Ones with a bundled glyph
+// show their brand logo; the rest fall back to a colored monogram (the native
+// webview can't load remote CDN logos, so Tile never points at one).
+const CATALOG = CONNECTORS;
 
 function Tile({ id, size = 22 }: { id: string; size?: number }) {
   if (id === 'plaid') return <img src={PLAID_LOGO} width={size} height={size} alt="Plaid" style={{ display: 'block', borderRadius: '50%' }} />; // Plaid's real brand mark
@@ -93,6 +94,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const [picker, setPicker] = useState(false);          // the "all apps" connect page
   const [detail, setDetail] = useState<Connector | null>(null); // tapped app -> tools/disconnect sheet
   const [manage, setManage] = useState<Connector | null>(null); // ToolManager open
+  const [pickQuery, setPickQuery] = useState('');       // connect-picker search
   // With ToolManager open, the ROOT trap must go dormant too — its Esc handler
   // used to close the whole screen underneath the (trap-less) ToolManager.
   useFocusTrap(!picker && !detail && !manage, rootRef, onClose);
@@ -708,27 +710,33 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       {pickerUi.mounted && (
         <div className={`cg-picker${pickerUi.closing ? ' closing' : ''}`} role="dialog" aria-label="Add an app" ref={pickerRef} tabIndex={-1}>
           <div className="memg-top">
-            <button className="memg-back" onClick={() => setPicker(false)} aria-label="Back"><IconArrowLeft size={22} /></button>
+            <button className="memg-back" onClick={() => { setPicker(false); setPickQuery(''); }} aria-label="Back"><IconArrowLeft size={22} /></button>
             <div className="memg-titles">
               <h1 className="memg-title">Add an app</h1>
-              <p className="memg-sub">Pick an app to connect</p>
+              <p className="memg-sub">{CATALOG.length} apps to connect</p>
             </div>
             <span style={{ width: 40 }} />
           </div>
+          <input className="cg-pick-search" value={pickQuery} onChange={(e) => setPickQuery(e.target.value)}
+            placeholder="Search apps…" aria-label="Search apps" autoComplete="off" autoCapitalize="off" spellCheck={false} />
           <div className="cg-pick-body">
-            {CATALOG.filter((c) => !status[c.id]?.connected).map((c) => (
-              <div className="cg-row" key={c.id}>
-                <span className="cg-row-tile"><Tile id={c.id} size={24} /></span>
-                <div className="cg-row-meta">
-                  <div className="cg-row-name">{c.name}</div>
-                  <div className="cg-row-desc">{c.desc}</div>
+            {(() => {
+              const q = pickQuery.trim().toLowerCase();
+              const rows = CATALOG.filter((c) => !status[c.id]?.connected && (!q || c.name.toLowerCase().includes(q)));
+              if (!rows.length) {
+                return <div className="cg-pick-empty">{q ? 'No apps match that.' : "Everything's connected — you're all set."}</div>;
+              }
+              return rows.map((c) => (
+                <div className="cg-row" key={c.id}>
+                  <span className="cg-row-tile"><Tile id={c.id} size={24} /></span>
+                  <div className="cg-row-meta">
+                    <div className="cg-row-name">{c.name}</div>
+                    <div className="cg-row-desc">{c.desc}</div>
+                  </div>
+                  <button className="cg-connect" onClick={() => void connect(c.id)}>Connect</button>
                 </div>
-                <button className="cg-connect" onClick={() => void connect(c.id)}>Connect</button>
-              </div>
-            ))}
-            {CATALOG.every((c) => status[c.id]?.connected) && (
-              <div className="cg-pick-empty">Everything's connected — you're all set.</div>
-            )}
+              ));
+            })()}
           </div>
         </div>
       )}

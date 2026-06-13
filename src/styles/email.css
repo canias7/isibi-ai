@@ -838,6 +838,9 @@ button.wfx-bar-status.err { background: none; border: 0; padding: 0; font: inher
   padding-top: env(safe-area-inset-top); overflow: hidden; animation: memgIn var(--dur-screen) var(--ease-enter);
 }
 .cg-picker.closing { animation: memgOut var(--dur-exit) var(--ease-exit) forwards; }
+.cg-pick-search { display: block; width: calc(100% - 32px); max-width: 608px; margin: 2px auto 4px; padding: 11px 14px; border-radius: var(--r-row, 12px); border: 1px solid var(--line-2); background: rgba(255, 255, 255, 0.05); color: var(--text, inherit); font-size: var(--fs-body, 0.95rem); outline: none; -webkit-appearance: none; }
+.cg-pick-search::placeholder { color: var(--text-dim); }
+.cg-pick-search:focus { background: rgba(255, 255, 255, 0.08); }
 .cg-pick-body { flex: 1; min-height: 0; min-width: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 6px 16px 40px; width: 100%; max-width: 640px; margin: 0 auto; }
 .cg-row { display: flex; align-items: center; gap: 13px; background: rgba(255, 255, 255, 0.045); border: 1px solid var(--line-2); border-radius: var(--r-card); padding: 11px 14px; margin-bottom: 10px; }
 .cg-row-tile { flex-shrink: 0; width: 42px; height: 42px; border-radius: var(--r-row); background: #f6f7f9; display: grid; place-items: center; border: 1px solid rgba(0, 0, 0, 0.06); }
