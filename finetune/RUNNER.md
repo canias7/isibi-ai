@@ -32,6 +32,7 @@ this to need more data + more iteration than the builder did.
 | `tool_schemas.py` | Loads the schemas: real `parameters` for tool specs, `arg_signature` for the teacher menu, `validate_args` to drop bad-arg traces. |
 | `fetch_connector_schemas.py` | One-time snapshot of connector arg schemas from Composio into `tool_schemas.json` (needs `COMPOSIO_API_KEY`). |
 | `build_connector_catalog.py` → `connectors/` | FULL per-connector tool catalog (all 6,940 tools for the 54 connectors) + an index of every Composio toolkit — for widening the runner connector-by-connector later. See `connectors/README.md`. |
+| `build_universe_catalog.py` → `catalog_connectors.json` | Expands the model catalog to the WHOLE Composio universe — 958 connectors / ~10k important tools, grounded in `tool_schemas.json`. `catalog.py` merges it on top of the verbatim 54 (which always win). Generating *data* for the new connectors still needs a teacher key + a training run. |
 
 ## Approach: simulated traces
 
