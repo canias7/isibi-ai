@@ -1,10 +1,18 @@
 # Backend handoff — wiring the connector universe into prod
 
 Generated artifacts (in `finetune/`) for the **local Claude** that owns the
-deployed Supabase functions. The frontend (54→130 connectors + picker + search)
-is ready on the branch; these make the new connectors actually *work*. Ship them
-**together** — a connector that connects but whose tools aren't served is a
-half-broken state for users.
+deployed Supabase functions. The frontend (996 connectors + picker + search +
+API-key key sheet) is ready on the branch; these make the new connectors
+actually *work*. Ship them **together** — a connector that connects but whose
+tools aren't served is a half-broken state for users.
+
+## Order of operations (the whole job)
+1. **`gofarther-mcp`** ← merge `backend_connector_additions.json` `ALLOWED_additions` (940 connectors). Deploy. *(§1)*
+2. **`build-workflow`** ← swap `CATALOG` (`build_workflow_catalog.json`) + `WF_SCHEMA` (`build_workflow_grammar.json`, or per-request — see §2). Deploy. *(§2)*
+3. **`gmail-oauth`** ← splice `connect-key.handler.ts` (2 pieces). Deploy. *(§4)*
+4. **Validate:** connect one managed app (GitHub) and one API-key app (PostHog); confirm tools work in chat. *(§4)*
+5. **Merge** the frontend branch + these backend changes to `main` **together** (OTA).
+6. Later: universe **retrain** for model competence (needs the teacher key). *(§3)*
 
 ## 1. `gofarther-mcp` — serve the new connectors' tools (makes them work in chat)
 File: **`backend_connector_additions.json`** → `ALLOWED_additions`
@@ -49,7 +57,10 @@ POST ${CONNECT_API}/connect-key      (Authorization: Bearer <user jwt>)
 body: { "app": "<frontend id>", "apiKey": "<user key>" }   // apiKey omitted for keyless
 ```
 
-Implement it like the managed-OAuth path, minus the redirect:
+**Ready-to-splice code: `connect-key.handler.ts`** — reuses `verifyUser`/`api`/
+`json`/`TOOLKIT`/`pickId`, with the only two Composio specifics flagged (the
+API-key auth_config type and the credential field name, both per-toolkit in
+`GET /v3/toolkits/<slug>` → `auth_config_details`). The flow:
 1. Resolve the user from the JWT (same as `/start`).
 2. `toolkit = TOOLKIT[app] ?? app`.
 3. Create an auth_config with the USER'S credentials instead of managed auth:
