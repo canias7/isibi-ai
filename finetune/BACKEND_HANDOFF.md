@@ -68,6 +68,18 @@ This is what takes the app from ~130 to ~1,000 connectable apps. (Per the toolma
 seam, any of these can later be moved to a direct, non-Composio backend without
 retraining.)
 
+**Bulk-add the rest (~750) once `/connect-key` is validated:**
+```bash
+COMPOSIO_API_KEY=...  python build_app_connectors.py --dry-run   # preview
+COMPOSIO_API_KEY=...  python build_app_connectors.py             # splice into the app
+npm run build                                                    # verify, then ship
+```
+`build_app_connectors.py` is idempotent (skips connectors already wired, respects
+aliases like outlook→m365), adds bundled logos where simple-icons has them
+(monogram otherwise), and merges curated tools into this file's `ALLOWED_additions`.
+Validate one API-key connector end-to-end first so you're not staging ~750 that
+can't connect.
+
 ## 3. Model competence (later, needs the teacher key)
 The builder/runner are still trained on the original 54. After this, they *can*
 emit the new connectors (catalog + grammar allow it), but quality on them is
