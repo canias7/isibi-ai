@@ -39,6 +39,35 @@ user actually has. (You lose the "emit unconnected → suggest connect X" UX; wi
 958 connectors that tradeoff is worth it. Keep the full-catalog `WF_SCHEMA` only
 if you want that UX.)
 
+## 4. API-key / keyless connect — new `gmail-oauth/connect-key` endpoint
+The frontend now supports connectors whose `auth` is `'apikey'` or `'keyless'`
+(the ~865 API-key + 15 keyless toolkits Composio can't one-click-OAuth). Tapping
+Connect opens a key sheet and POSTs:
+
+```
+POST ${CONNECT_API}/connect-key      (Authorization: Bearer <user jwt>)
+body: { "app": "<frontend id>", "apiKey": "<user key>" }   // apiKey omitted for keyless
+```
+
+Implement it like the managed-OAuth path, minus the redirect:
+1. Resolve the user from the JWT (same as `/start`).
+2. `toolkit = TOOLKIT[app] ?? app`.
+3. Create an auth_config with the USER'S credentials instead of managed auth:
+   - **apikey:** `auth_config: { type: "use_custom_auth", credentials: { <the
+     toolkit's API_KEY field(s)>: apiKey } }` — check the toolkit's auth scheme
+     for the exact credential field name(s).
+   - **keyless:** the toolkit's `NO_AUTH` scheme (no credentials).
+4. Create a **connected_account** for (user, auth_config). No redirect URL —
+   API-key / no-auth accounts are active immediately.
+5. Return `{ "connected": true }` (or `{ "error": "..." }`). `/status?app=<id>`
+   should then report it connected like any other.
+
+Each user supplies their **own** key, so these auth_configs/credentials are
+**per-user** (don't reuse one app-wide auth_config the way managed OAuth can).
+This is what takes the app from ~130 to ~1,000 connectable apps. (Per the toolmap
+seam, any of these can later be moved to a direct, non-Composio backend without
+retraining.)
+
 ## 3. Model competence (later, needs the teacher key)
 The builder/runner are still trained on the original 54. After this, they *can*
 emit the new connectors (catalog + grammar allow it), but quality on them is

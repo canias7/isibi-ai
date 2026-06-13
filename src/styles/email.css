@@ -874,6 +874,10 @@ button.wfx-bar-status.err { background: none; border: 0; padding: 0; font: inher
 .cg-sheet-head .cg-tile { width: 40px; height: 40px; box-shadow: 0 0 0 2px rgba(70, 209, 127, 0.9); }
 .cg-sheet-head b { font-size: var(--fs-headline); font-weight: 700; display: block; }
 .cg-sheet-head small { font-size: var(--fs-footnote); color: var(--text-dim); }
+.cg-key-input { width: 100%; box-sizing: border-box; margin: 2px 0 4px; padding: 11px 14px; border-radius: 0.8235rem; border: 1px solid var(--line-2); background: rgba(255, 255, 255, 0.05); color: var(--text); font: inherit; font-size: var(--fs-body); outline: none; -webkit-appearance: none; }
+.cg-key-input:focus { background: rgba(255, 255, 255, 0.08); }
+.cg-key-err { color: var(--danger); font-size: var(--fs-footnote); padding: 2px 4px 4px; }
+.cg-sheet-btn:disabled { opacity: 0.5; cursor: default; }
 .cg-sheet-btn { width: 100%; text-align: left; border: none; border-radius: 0.8235rem; background: rgba(255, 255, 255, 0.06); color: var(--text); font: inherit; font-size: var(--fs-body); font-weight: 600; padding: 0.8235rem 0.9412rem; margin-top: 0.4706rem; cursor: pointer; display: flex; align-items: center; gap: 0.5882rem; }
 .cg-sheet-btn:active { background: rgba(255, 255, 255, 0.12); }
 .cg-sheet-btn.danger { color: var(--danger); }

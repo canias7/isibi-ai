@@ -84,6 +84,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const keyRef = useRef<HTMLDivElement>(null);
   // Seed from the on-device cache so the user's real apps show on the first
   // frame; refreshAll() reconciles against the server right after.
   const [status, setStatus] = useState<Record<string, Status>>(loadStatusCache);
@@ -95,11 +96,15 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const [detail, setDetail] = useState<Connector | null>(null); // tapped app -> tools/disconnect sheet
   const [manage, setManage] = useState<Connector | null>(null); // ToolManager open
   const [pickQuery, setPickQuery] = useState('');       // connect-picker search
+  const [keyFor, setKeyFor] = useState<Connector | null>(null); // API-key / keyless connect sheet
+  const [keyVal, setKeyVal] = useState('');
+  const [keyBusy, setKeyBusy] = useState(false);
   // With ToolManager open, the ROOT trap must go dormant too — its Esc handler
   // used to close the whole screen underneath the (trap-less) ToolManager.
-  useFocusTrap(!picker && !detail && !manage, rootRef, onClose);
-  useFocusTrap(picker && !detail, pickerRef, () => setPicker(false));
+  useFocusTrap(!picker && !detail && !manage && !keyFor, rootRef, onClose);
+  useFocusTrap(picker && !detail && !keyFor, pickerRef, () => setPicker(false));
   useFocusTrap(!!detail, sheetRef, () => setDetail(null));
+  useFocusTrap(!!keyFor, keyRef, () => { setKeyFor(null); setKeyVal(''); });
   // Animated dismissal for each layer; the sheet/manage content is latched so
   // it doesn't blank out during its exit beat.
   const pickerUi = useDismiss(picker);
@@ -430,6 +435,32 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     startConnectPoll(id);
   }
 
+  // API-key / keyless connect: no OAuth redirect — POST the key (if any) and the
+  // backend creates a Composio auth_config + connected account, then we refresh.
+  async function connectWithKey(c: Connector, key: string) {
+    void tap();
+    const t = await token();
+    if (!t) { setActionErr('Please sign in again to connect apps.'); return; }
+    setKeyBusy(true); setActionErr('');
+    try {
+      const r = await fetch(`${CONNECT_API}/connect-key`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${t}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ app: c.id, ...(key ? { apiKey: key } : {}) }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j?.error) { setActionErr(String(j?.error || "Couldn't connect — check the key and try again.")); return; }
+      setKeyFor(null); setKeyVal(''); setPicker(false);
+      pendingConnect.current = c.id; // open the tool picker once confirmed
+      setStatus((s) => ({ ...s, [c.id]: { connected: true, email: null } })); // optimistic
+      void refreshAll(); setTimeout(() => void refreshAll(), 1500);
+    } catch {
+      setActionErr('Network error — please try again.');
+    } finally {
+      setKeyBusy(false);
+    }
+  }
+
   async function disconnect(id: string) {
     void tap();
     setDetail(null);
@@ -733,7 +764,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
                     <div className="cg-row-name">{c.name}</div>
                     <div className="cg-row-desc">{c.desc}</div>
                   </div>
-                  <button className="cg-connect" onClick={() => void connect(c.id)}>Connect</button>
+                  <button className="cg-connect" onClick={() => (c.auth === 'apikey' || c.auth === 'keyless') ? setKeyFor(c) : void connect(c.id)}>Connect</button>
                 </div>
               ));
             })()}
@@ -783,6 +814,33 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
             <button className="cg-sheet-btn danger" onClick={() => disconnect(sheetConn.id)}>
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
               Disconnect
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ---- API-key / keyless connect ---- */}
+      {keyFor && (
+        <>
+          <div className="cg-sheet-backdrop" onClick={() => { setKeyFor(null); setKeyVal(''); }} />
+          <div className="cg-sheet" role="dialog" aria-label={`Connect ${keyFor.name}`} ref={keyRef} tabIndex={-1}>
+            <div className="cg-sheet-head">
+              <span className="cg-tile"><Tile id={keyFor.id} size={22} /></span>
+              <div>
+                <b>Connect {keyFor.name}</b>
+                <small>{keyFor.auth === 'keyless' ? 'No key needed — just connect' : 'Paste your API key to connect'}</small>
+              </div>
+            </div>
+            {keyFor.auth === 'apikey' && (
+              <input className="cg-key-input" type="password" value={keyVal} autoFocus autoComplete="off"
+                autoCapitalize="off" spellCheck={false} placeholder="API key"
+                onChange={(e) => setKeyVal(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && keyVal.trim() && !keyBusy) void connectWithKey(keyFor, keyVal.trim()); }} />
+            )}
+            {actionErr && <div className="cg-key-err">{actionErr}</div>}
+            <button className="cg-sheet-btn fix" disabled={keyBusy || (keyFor.auth === 'apikey' && !keyVal.trim())}
+              onClick={() => void connectWithKey(keyFor, keyVal.trim())}>
+              {keyBusy ? 'Connecting…' : 'Connect'}
             </button>
           </div>
         </>

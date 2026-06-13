@@ -4,12 +4,16 @@ export interface Connector {
   logo: string; // logo image URL
   color: string; // brand color (used for the fallback monogram)
   desc: string;
+  // How the user connects. Omitted = 'oauth' (one-click Composio-managed OAuth).
+  // 'apikey' = paste a key; 'keyless' = no auth needed (public API).
+  auth?: 'oauth' | 'apikey' | 'keyless';
 }
 
 // Brand logos: simple-icons CDN where available, Google's favicon service for
-// the few brands not in open icon sets.
+// the few brands not in open icon sets, Composio's logo CDN for the long tail.
 const si = (slug: string) => `https://cdn.simpleicons.org/${slug}`;
 const fav = (domain: string) => `https://www.google.com/s2/favicons?sz=128&domain=${domain}`;
+const cl = (slug: string) => `https://logos.composio.dev/api/${slug}`;
 
 // All connectors run through Composio (OAuth + MCP). The endpoint slug is
 // historical (`gmail-oauth`) but it connects any app via ?app=<id>.
@@ -150,6 +154,57 @@ export const CONNECTORS: Connector[] = [
   { id: 'googleslides', name: "Google Slides", logo: si('googleslides'), color: '#FBBC04', desc: "Docs & files" },
   { id: 'linkhut', name: "Linkhut", logo: fav('linkhut'), color: '#6B7280', desc: "Bookmark Managers" },
   { id: 'blackbaud', name: "Blackbaud", logo: fav('blackbaud'), color: '#6B7280', desc: "Connect this app" },
+  { id: 'hackernews', name: "Hacker News", logo: cl('hackernews'), color: '#6B7280', desc: "News & Lifestyle", auth: 'keyless' },
+  { id: 'weathermap', name: "OpenWeatherMap", logo: cl('weathermap'), color: '#6B7280', desc: "Developer tools", auth: 'keyless' },
+  { id: 'gemini', name: "Gemini", logo: cl('gemini'), color: '#6B7280', desc: "AI", auth: 'keyless' },
+  { id: 'instacart', name: "Instacart", logo: si('instacart'), color: '#43B02A', desc: "Commerce", auth: 'keyless' },
+  { id: 'seat_geek', name: "Seat Geek", logo: si('seatgeek'), color: '#FF5B49', desc: "Event Management", auth: 'keyless' },
+  { id: 'yelp', name: "Yelp", logo: si('yelp'), color: '#FF1A1A', desc: "Reviews", auth: 'keyless' },
+  { id: 'datarobot', name: "DataRobot", logo: cl('datarobot'), color: '#6B7280', desc: "AI", auth: 'apikey' },
+  { id: 'canvas', name: "Canvas", logo: si('canvas'), color: '#E72429', desc: "Online Courses", auth: 'apikey' },
+  { id: 'posthog', name: "PostHog", logo: si('posthog'), color: '#000000', desc: "Analytics", auth: 'apikey' },
+  { id: 'databricks', name: "Databricks", logo: si('databricks'), color: '#FF3621', desc: "Developer tools", auth: 'apikey' },
+  { id: 'dataforseo', name: "Dataforseo", logo: cl('dataforseo'), color: '#6B7280', desc: "Developer tools", auth: 'apikey' },
+  { id: 'active_campaign', name: "ActiveCampaign", logo: cl('active_campaign'), color: '#6B7280', desc: "Marketing", auth: 'apikey' },
+  { id: 'benchmark_email', name: "Benchmark Email", logo: cl('benchmark_email'), color: '#6B7280', desc: "Email", auth: 'apikey' },
+  { id: 'chatbotkit', name: "Chatbotkit", logo: cl('chatbotkit'), color: '#6B7280', desc: "Ai Chatbots", auth: 'apikey' },
+  { id: 'safetyculture', name: "SafetyCulture", logo: cl('safetyculture'), color: '#6B7280', desc: "Forms", auth: 'apikey' },
+  { id: 'launch_darkly', name: "LaunchDarkly", logo: cl('launch_darkly'), color: '#6B7280', desc: "Developer tools", auth: 'apikey' },
+  { id: 'moco', name: "Moco", logo: cl('moco'), color: '#6B7280', desc: "Projects", auth: 'apikey' },
+  { id: 'metabase', name: "Metabase", logo: si('metabase'), color: '#509EE3', desc: "Business Intelligence", auth: 'apikey' },
+  { id: 'centralstationcrm', name: "CentralStationCRM", logo: cl('centralstationcrm'), color: '#6B7280', desc: "CRM & sales", auth: 'apikey' },
+  { id: 'gleap', name: "Gleap", logo: cl('gleap'), color: '#6B7280', desc: "Support", auth: 'apikey' },
+  { id: 'maxio', name: "Maxio", logo: cl('maxio'), color: '#6B7280', desc: "Commerce", auth: 'apikey' },
+  { id: 'servicenow', name: "ServiceNow", logo: cl('servicenow'), color: '#6B7280', desc: "Connect with an API key", auth: 'apikey' },
+  { id: 'dnsfilter', name: "Dnsfilter", logo: cl('dnsfilter'), color: '#6B7280', desc: "Security & Identity Tools", auth: 'apikey' },
+  { id: 'turbot_pipes', name: "Turbot Pipes", logo: cl('turbot_pipes'), color: '#6B7280', desc: "Developer tools", auth: 'apikey' },
+  { id: 'clicksend', name: "ClickSend", logo: cl('clicksend'), color: '#6B7280', desc: "Phone & Sms", auth: 'apikey' },
+  { id: 'active_trail', name: "ActiveTrail", logo: cl('active_trail'), color: '#6B7280', desc: "Email", auth: 'apikey' },
+  { id: 'new_relic', name: "New Relic", logo: si('newrelic'), color: '#1CE783', desc: "Server Monitoring", auth: 'apikey' },
+  { id: 'elevenlabs', name: "ElevenLabs", logo: si('elevenlabs'), color: '#000000', desc: "AI", auth: 'apikey' },
+  { id: 'borneo', name: "Borneo", logo: cl('borneo'), color: '#6B7280', desc: "Security & Identity Tools", auth: 'apikey' },
+  { id: 'cloudcart', name: "Cloudcart", logo: cl('cloudcart'), color: '#6B7280', desc: "Commerce", auth: 'apikey' },
+  { id: 'gigasheet', name: "Gigasheet", logo: cl('gigasheet'), color: '#6B7280', desc: "Spreadsheets", auth: 'apikey' },
+  { id: 'repairshopr', name: "RepairShopr", logo: cl('repairshopr'), color: '#6B7280', desc: "CRM & sales", auth: 'apikey' },
+  { id: 'griptape', name: "Griptape", logo: cl('griptape'), color: '#6B7280', desc: "AI", auth: 'apikey' },
+  { id: 'bookingmood', name: "Bookingmood", logo: cl('bookingmood'), color: '#6B7280', desc: "Scheduling & Booking", auth: 'apikey' },
+  { id: 'simla_com', name: "Simla.com", logo: cl('simla_com'), color: '#6B7280', desc: "CRM & sales", auth: 'apikey' },
+  { id: 'wix', name: "Wix", logo: si('wix'), color: '#0C6EFC', desc: "Website Builders", auth: 'apikey' },
+  { id: 'shortcut', name: "Shortcut", logo: si('shortcut'), color: '#58B1E4', desc: "Projects", auth: 'apikey' },
+  { id: 'nasa', name: "Nasa", logo: si('nasa'), color: '#E03C31', desc: "Developer tools", auth: 'apikey' },
+  { id: 'vercel', name: "Vercel", logo: si('vercel'), color: '#000000', desc: "Developer tools", auth: 'apikey' },
+  { id: 'rentman', name: "Rentman", logo: cl('rentman'), color: '#6B7280', desc: "Productivity", auth: 'apikey' },
+  { id: 'tave', name: "Tave", logo: cl('tave'), color: '#6B7280', desc: "CRM & sales", auth: 'apikey' },
+  { id: 'api_ninjas', name: "API Ninjas", logo: cl('api_ninjas'), color: '#6B7280', desc: "Developer tools", auth: 'apikey' },
+  { id: 'algolia', name: "Algolia", logo: si('algolia'), color: '#003DFF', desc: "Developer tools", auth: 'apikey' },
+  { id: 'bunnycdn', name: "BunnyCDN", logo: cl('bunnycdn'), color: '#6B7280', desc: "Developer tools", auth: 'apikey' },
+  { id: 'openai', name: "OpenAI", logo: si('openai'), color: '#6B7280', desc: "AI", auth: 'apikey' },
+  { id: 'postman', name: "Postman", logo: si('postman'), color: '#FF6C37', desc: "Developer tools", auth: 'apikey' },
+  { id: 'ashby', name: "Ashby", logo: cl('ashby'), color: '#6B7280', desc: "Hr Talent & Recruitment", auth: 'apikey' },
+  { id: 'elevenreader', name: "Elevenreader", logo: cl('elevenreader'), color: '#6B7280', desc: "AI", auth: 'apikey' },
+  { id: 'fireberry', name: "Fireberry", logo: cl('fireberry'), color: '#6B7280', desc: "CRM & sales", auth: 'apikey' },
+  { id: 'hub_planner', name: "Hub Planner", logo: cl('hub_planner'), color: '#6B7280', desc: "Productivity", auth: 'apikey' },
+  { id: 'better_stack', name: "Better Stack", logo: si('betterstack'), color: '#000000', desc: "Server Monitoring", auth: 'apikey' },
 ];
 
 export const byId = (id: string) => CONNECTORS.find((c) => c.id === id);
