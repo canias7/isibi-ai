@@ -213,10 +213,10 @@ export type BuildResult =
 // user hasn't connected…) it asks 1-3 short questions first instead of guessing,
 // the way a careful assistant would. Pass the running conversation each time;
 // returns either the questions to show or the finished draft.
-export async function buildWorkflow(messages: BuildMsg[]): Promise<BuildResult | null> {
+export async function buildWorkflow(messages: BuildMsg[], engine: 'lazy' | 'opus' = 'lazy'): Promise<BuildResult | null> {
   try {
     const { data, error } = await supabase.functions.invoke('build-workflow', {
-      body: { messages: messages.map((m) => ({ role: m.role, text: m.text })), tz: deviceTz() },
+      body: { messages: messages.map((m) => ({ role: m.role, text: m.text })), tz: deviceTz(), engine },
     });
     if (error || !data) return null;
     const d = data as Record<string, unknown> & { error?: string };
