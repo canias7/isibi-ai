@@ -102,6 +102,31 @@ BUILTINS: dict[str, str] = {
 # Node ids that aren't connectors.
 SPECIAL_APPS = {"schedule", "event", "ai", "decision"}
 
+# Full set of built-in GF_* tool names (superset of BUILTINS, which only lists
+# the curated few shown in prompts). The validator's tool-name guard uses this so
+# a real built-in is never mistaken for a phantom.
+ALL_BUILTIN_TOOLS = {
+    "GF_SET_REMINDER", "GF_GET_MEMORY_FILE", "GF_SAVE_MEMORY", "GF_SAVE_TABLE",
+    "GF_WEATHER", "GF_MAPS", "GF_IMAGE",
+    "GF_BANK_BALANCES", "GF_BANK_TRANSACTIONS", "GF_BANK_RECURRING",
+    "GF_BANK_LIABILITIES", "GF_BANK_INVESTMENTS", "GF_BANK_INVESTMENT_TRANSACTIONS",
+    "GF_BANK_IDENTITY", "GF_BANK_AUTH", "GF_BANK_INSIGHTS",
+}
+
+
+def known_tools() -> set[str]:
+    """Every real tool name: curated Composio tools + all built-ins."""
+    s = set(ALL_BUILTIN_TOOLS)
+    for tools in ALLOWED.values():
+        s.update(tools)
+    return s
+
+
+def tool_prefixes() -> set[str]:
+    """Uppercased toolkit namespaces (GMAIL, GOOGLECALENDAR, ONE_DRIVE, …) + GF.
+    A TOOLKIT_ACTION token under one of these prefixes must be a real tool."""
+    return {slug.upper() for slug in ALLOWED} | {"GF"}
+
 
 def frontend_id(slug: str) -> str:
     """Composio toolkit slug -> the id the workflow graph uses."""

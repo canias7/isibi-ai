@@ -12,9 +12,28 @@ runner relies on) and lenient about prose, matching the production builder.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
-from catalog import valid_app_ids
+from catalog import known_tools, tool_prefixes, valid_app_ids
+
+# Tool-name guard: a TOOLKIT_ACTION-shaped token (all-caps with an underscore)
+# that sits under a known toolkit prefix but isn't a real tool is a phantom the
+# teacher invented — reject it so the student never learns to cite fake tools.
+_TOKEN_RE = re.compile(r"\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b")
+_KNOWN_TOOLS = known_tools()
+_TOOL_PREFIXES = tuple(tool_prefixes())
+
+
+def phantom_tools(text: str) -> list[str]:
+    """TOOLKIT_-prefixed tokens in ``text`` that aren't real tools."""
+    bad: list[str] = []
+    for tok in _TOKEN_RE.findall(text or ""):
+        if tok in _KNOWN_TOOLS:
+            continue
+        if any(tok.startswith(pre + "_") for pre in _TOOL_PREFIXES):
+            bad.append(tok)
+    return bad
 
 # Compact, human-readable schema we put in the system prompt so both the teacher
 # and the student see the exact target shape.
@@ -177,6 +196,20 @@ def validate_workflow(wf: Any, connected: set[str] | None = None) -> tuple[bool,
                     if yes_to is not None and yes_to == no_to:
                         _err(errors, f"decision node '{n.get('id')}' yes/no must go to different nodes")
 
+    # --- tool-name guard: instruction + node details must not cite fake tools ---
+    texts = [wf.get("instruction", "")]
+    for n in nodes if isinstance(nodes, list) else []:
+        if isinstance(n, dict):
+            texts.append(str(n.get("detail", "")))
+            texts.append(str(n.get("label", "")))
+    flagged: list[str] = []
+    for t in texts:
+        for tok in phantom_tools(t):
+            if tok not in flagged:
+                flagged.append(tok)
+    for tok in flagged:
+        _err(errors, f"cites unknown tool '{tok}'")
+
     return (not errors), errors
 
 
@@ -225,4 +258,8 @@ if __name__ == "__main__":
     ok2, errs2 = validate_workflow(bad)
     print("bad rejected:", not ok2, "->", errs2[:3])
     assert not ok2
+    # tool-name guard
+    assert phantom_tools("uses GOOGLECALENDAR_UPDATE_RECORD then GMAIL_SEND_EMAIL") == ["GOOGLECALENDAR_UPDATE_RECORD"]
+    assert phantom_tools("GF_WEATHER and SALESFORCE_EXECUTE_SOQL_QUERY are fine") == []
+    assert phantom_tools("an ACH transfer or API_KEY is not a tool") == []
     print("schema self-test passed")
