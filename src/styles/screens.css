@@ -310,26 +310,51 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .memg-line { stroke: rgba(255, 255, 255, 0.12); stroke-width: 1; animation: memgFade var(--dur-enter) ease backwards; }
 .memg-line.on { stroke: rgba(224, 161, 58, 0.55); }
 
-/* ---- Reminders agenda list (R1) — replaces the constellation for reminders ---- */
+/* ---- Reminders agenda TIMELINE (A) — a warm amber rail down the left, with a
+   filled node per day-section and a ring node per reminder card. ---- */
 .rem-list { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding: 6px 16px 14px; -webkit-overflow-scrolling: touch; }
-.rem-sec { margin-top: 16px; }
-.rem-sec:first-child { margin-top: 4px; }
-.rem-sec-label { font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-faint); padding: 2px 4px 9px; }
+/* the spine: a single line behind every section + card */
+.rem-rail { position: relative; padding-top: 4px; }
+.rem-rail::before {
+  content: ''; position: absolute; left: 11px; top: 14px; bottom: 12px; width: 2px;
+  background: linear-gradient(180deg, rgba(232, 169, 58, 0.42), rgba(232, 169, 58, 0.16));
+  border-radius: 2px;
+}
+.rem-sec { margin-top: 18px; }
+.rem-sec:first-child { margin-top: 2px; }
+/* section label sits on the rail with a filled amber node */
+.rem-sec-label {
+  position: relative; padding: 2px 4px 11px 32px;
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--brand);
+}
+.rem-sec-label::before {
+  content: ''; position: absolute; left: 6px; top: 1px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--brand); box-shadow: 0 0 0 3px #08080a, 0 0 8px rgba(232, 169, 58, 0.5);
+}
 .rem-card {
   position: relative;
   display: flex; align-items: center; gap: 10px;
+  margin-left: 30px;
   background: #17181b;
   border: 1px solid var(--line-1);
   border-radius: var(--r-card);
-  padding: 12px 12px 12px 18px;
-  margin-bottom: 8px;
-  overflow: hidden;
+  padding: 12px 14px;
+  margin-bottom: 9px;
   animation: memgPop var(--dur-enter) var(--ease-enter) backwards;
 }
-.rem-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--brand); }
+/* ring node, sitting on the rail to the left of the card */
+.rem-card::before {
+  content: ''; position: absolute; left: -24px; top: 50%; transform: translateY(-50%);
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #08080a; border: 2px solid var(--brand);
+  box-shadow: 0 0 0 3px #08080a;
+}
 .rem-card.sel { border-color: rgba(232, 169, 58, 0.5); background: rgba(232, 169, 58, 0.08); }
-.rem-card.off { opacity: 0.5; }
-.rem-card.off::before { background: var(--line-3); }
+.rem-card.sel::before { background: var(--brand); box-shadow: 0 0 0 3px #08080a, 0 0 8px rgba(232, 169, 58, 0.6); }
+.rem-card.off { opacity: 0.55; }
+.rem-card.off::before { border-color: var(--line-3); }
 .rem-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; background: none; border: none; text-align: left; cursor: pointer; color: var(--text); font: inherit; padding: 0; }
 .rem-card-row1 { display: flex; align-items: center; gap: 8px; }
 .rem-card-time { font-size: var(--fs-caption); font-weight: 700; color: var(--brand); white-space: nowrap; }
