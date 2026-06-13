@@ -1,0 +1,7083 @@
+{
+  "slug": "salesforce",
+  "name": "Salesforce",
+  "tool_count": 217,
+  "tools": [
+    {
+      "slug": "SALESFORCE_ACCOUNT_CREATION_WITH_CONTENT_TYPE_OPTION",
+      "name": "Create Salesforce Account",
+      "description": "DEPRECATED: Creates a new Salesforce Account using a JSON POST request, requiring 'Name'; specific fields (e.g., custom, DunsNumber) may ha…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "Fax": {
+            "type": "string"
+          },
+          "Sic": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Site": {
+            "type": "string"
+          },
+          "Type": {
+            "type": "string"
+          },
+          "Phone": {
+            "type": "string"
+          },
+          "Jigsaw": {
+            "type": "string"
+          },
+          "Rating": {
+            "type": "string"
+          },
+          "SLA__c": {
+            "type": "string"
+          },
+          "OwnerId": {
+            "type": "string"
+          },
+          "SicDesc": {
+            "type": "string"
+          },
+          "Website": {
+            "type": "string"
+          },
+          "Industry": {
+            "type": "string"
+          },
+          "ParentId": {
+            "type": "string"
+          },
+          "PhotoUrl": {
+            "type": "string"
+          },
+          "Active__c": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": "boolean"
+          },
+          "NaicsCode": {
+            "type": "string"
+          },
+          "NaicsDesc": {
+            "type": "string"
+          },
+          "Ownership": {
+            "type": "string"
+          },
+          "DunsNumber": {
+            "type": "string"
+          },
+          "Tradestyle": {
+            "type": "string"
+          },
+          "BillingCity": {
+            "type": "string"
+          },
+          "CleanStatus": {
+            "type": "string"
+          },
+          "CreatedById": {
+            "type": "string"
+          },
+          "CreatedDate": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "YearStarted": {
+            "type": "string"
+          },
+          "BillingState": {
+            "type": "string"
+          },
+          "ShippingCity": {
+            "type": "string"
+          },
+          "TickerSymbol": {
+            "type": "string"
+          },
+          "AccountNumber": {
+            "type": "string"
+          },
+          "AccountSource": {
+            "type": "string"
+          },
+          "AnnualRevenue": {
+            "type": "integer"
+          },
+          "BillingStreet": {
+            "type": "string"
+          },
+          "ShippingState": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "BillingCountry": {
+            "type": "string"
+          },
+          "DandbCompanyId": {
+            "type": "string"
+          },
+          "LastViewedDate": {
+            "type": "string"
+          },
+          "MasterRecordId": {
+            "type": "string"
+          },
+          "ShippingStreet": {
+            "type": "string"
+          },
+          "SystemModstamp": {
+            "type": "string"
+          },
+          "BillingLatitude": {
+            "type": "integer"
+          },
+          "JigsawCompanyId": {
+            "type": "string"
+          },
+          "ShippingCountry": {
+            "type": "string"
+          },
+          "attributes__url": {
+            "type": "string"
+          },
+          "BillingLongitude": {
+            "type": "integer"
+          },
+          "LastActivityDate": {
+            "type": "string"
+          },
+          "LastModifiedById": {
+            "type": "string"
+          },
+          "LastModifiedDate": {
+            "type": "string"
+          },
+          "OperatingHoursId": {
+            "type": "string"
+          },
+          "ShippingLatitude": {
+            "type": "integer"
+          },
+          "attributes__type": {
+            "type": "string"
+          },
+          "BillingPostalCode": {
+            "type": "string"
+          },
+          "NumberOfEmployees": {
+            "type": "integer"
+          },
+          "ShippingLongitude": {
+            "type": "integer"
+          },
+          "LastReferencedDate": {
+            "type": "string"
+          },
+          "SLASerialNumber__c": {
+            "type": "string"
+          },
+          "ShippingPostalCode": {
+            "type": "string"
+          },
+          "CustomerPriority__c": {
+            "type": "string"
+          },
+          "NumberofLocations__c": {
+            "type": "integer"
+          },
+          "SLAExpirationDate__c": {
+            "type": "string"
+          },
+          "UpsellOpportunity__c": {
+            "type": "string"
+          },
+          "BillingGeocodeAccuracy": {
+            "type": "string"
+          },
+          "ShippingGeocodeAccuracy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_ADD_CONTACT_TO_CAMPAIGN",
+      "name": "Add contact to campaign",
+      "description": "Adds a contact to a campaign by creating a CampaignMember record to track campaign engagement. Fails if the contact is already a member of …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          },
+          "campaign_id": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "campaign_id",
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_ADD_LEAD_TO_CAMPAIGN",
+      "name": "Add lead to campaign",
+      "description": "Adds a lead to a campaign by creating a CampaignMember record, allowing you to track campaign engagement. Both `campaign_id` and `lead_id` …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "lead_id": {
+            "type": "string"
+          },
+          "campaign_id": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "campaign_id",
+          "lead_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_ADD_OPPORTUNITY_LINE_ITEM",
+      "name": "Add product to opportunity",
+      "description": "Adds a product (line item) to an opportunity. The product must exist in a pricebook entry that's associated with the opportunity's priceboo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "discount": {
+            "type": "number"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_price": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          },
+          "total_price": {
+            "type": "number"
+          },
+          "service_date": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "opportunity_id": {
+            "type": "string"
+          },
+          "pricebook_entry_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "opportunity_id",
+          "pricebook_entry_id",
+          "quantity"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_APPLY_LEAD_ASSIGNMENT_RULES",
+      "name": "Apply lead assignment rules",
+      "description": "Applies configured lead assignment rules to a specific lead, automatically routing it to the appropriate owner based on your organization's…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "lead_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lead_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_ASSOCIATE_CONTACT_TO_ACCOUNT",
+      "name": "Associate contact to account",
+      "description": "Associates a contact with an account by updating the contact's AccountId field. Overwrites any existing AccountId on the contact. For broad…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "contact_id",
+          "account_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CLONE_OPPORTUNITY_WITH_PRODUCTS",
+      "name": "Clone opportunity with products",
+      "description": "Clones an opportunity and optionally its products (line items). Creates a new opportunity with the same field values and products as the or…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "new_name": {
+            "type": "string"
+          },
+          "close_date": {
+            "type": "string"
+          },
+          "stage_name": {
+            "type": "string"
+          },
+          "clone_products": {
+            "type": "boolean"
+          },
+          "opportunity_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "opportunity_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CLONE_RECORD",
+      "name": "Clone record",
+      "description": "Creates a copy of an existing Salesforce record by reading its data, removing system fields, and creating a new record. Optionally apply fi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "record_id": {
+            "type": "string"
+          },
+          "object_type": {
+            "type": "string"
+          },
+          "field_updates": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_type",
+          "record_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CLOSE_OR_ABORT_JOB",
+      "name": "Close or abort a job",
+      "description": "Tool to close or abort a Salesforce Bulk API v2 ingest job. Use when you need to finalize job processing by closing (state: UploadComplete)…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "UploadComplete",
+              "Aborted"
+            ]
+          },
+          "job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "state"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_COMPLETE_TASK",
+      "name": "Complete task",
+      "description": "Marks a task as completed with optional completion notes. This is a convenience action that updates the task status to 'Completed'.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "completion_notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_COMPOSITE_GRAPH_ACTION",
+      "name": "Execute Composite Graph (Deprecated)",
+      "description": "DEPRECATED: Use SALESFORCE_POST_COMPOSITE_GRAPH instead. Tool to execute multiple Salesforce REST API requests in a single call using compo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "graphs": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "graphs"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_ACCOUNT",
+      "name": "Create account",
+      "description": "Creates a new account in Salesforce with the specified information. Returns the created Account's ID at `data.response_data.id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fax": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          },
+          "industry": {
+            "type": "string"
+          },
+          "sic_desc": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "billing_city": {
+            "type": "string"
+          },
+          "billing_state": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "shipping_city": {
+            "type": "string"
+          },
+          "account_source": {
+            "type": "string"
+          },
+          "annual_revenue": {
+            "type": "number"
+          },
+          "billing_street": {
+            "type": "string"
+          },
+          "shipping_state": {
+            "type": "string"
+          },
+          "billing_country": {
+            "type": "string"
+          },
+          "shipping_street": {
+            "type": "string"
+          },
+          "shipping_country": {
+            "type": "string"
+          },
+          "billing_postal_code": {
+            "type": "string"
+          },
+          "number_of_employees": {
+            "type": "integer"
+          },
+          "shipping_postal_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_A_RECORD",
+      "name": "Create a record",
+      "description": "Tool to create a Salesforce record using the UI API. Use when you need to create any type of Salesforce record with layout metadata and for…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "object"
+          },
+          "api_name": {
+            "type": "string"
+          },
+          "allow_save_on_duplicate": {
+            "type": "boolean"
+          },
+          "composio_execution_message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_name",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_CAMPAIGN",
+      "name": "Create campaign",
+      "description": "Creates a new campaign in Salesforce. Only `name` is universally required, but org-level validation rules commonly enforce `type`, `status`…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "end_date": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "start_date": {
+            "type": "string"
+          },
+          "actual_cost": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          },
+          "number_sent": {
+            "type": "number"
+          },
+          "budgeted_cost": {
+            "type": "number"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "expected_revenue": {
+            "type": "number"
+          },
+          "expected_response": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_CAMPAIGN_RECORD_VIA_POST",
+      "name": "Create campaign record",
+      "description": "DEPRECATED: Creates a new campaign record in Salesforce; if 'ParentId' is provided, it must be a valid ID of an existing Campaign record, a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Type": {
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
+          },
+          "EndDate": {
+            "type": "string"
+          },
+          "OwnerId": {
+            "type": "string"
+          },
+          "IsActive": {
+            "type": "boolean"
+          },
+          "ParentId": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": "boolean"
+          },
+          "StartDate": {
+            "type": "string"
+          },
+          "ActualCost": {
+            "type": "integer"
+          },
+          "NumberSent": {
+            "type": "integer"
+          },
+          "CreatedById": {
+            "type": "string"
+          },
+          "CreatedDate": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "BudgetedCost": {
+            "type": "integer"
+          },
+          "NumberOfLeads": {
+            "type": "integer"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "LastViewedDate": {
+            "type": "string"
+          },
+          "SystemModstamp": {
+            "type": "string"
+          },
+          "ExpectedRevenue": {
+            "type": "integer"
+          },
+          "attributes__url": {
+            "type": "string"
+          },
+          "ExpectedResponse": {
+            "type": "integer"
+          },
+          "LastActivityDate": {
+            "type": "string"
+          },
+          "LastModifiedById": {
+            "type": "string"
+          },
+          "LastModifiedDate": {
+            "type": "string"
+          },
+          "NumberOfContacts": {
+            "type": "integer"
+          },
+          "attributes__type": {
+            "type": "string"
+          },
+          "NumberOfResponses": {
+            "type": "integer"
+          },
+          "LastReferencedDate": {
+            "type": "string"
+          },
+          "NumberOfOpportunities": {
+            "type": "integer"
+          },
+          "AmountAllOpportunities": {
+            "type": "integer"
+          },
+          "AmountWonOpportunities": {
+            "type": "integer"
+          },
+          "NumberOfConvertedLeads": {
+            "type": "integer"
+          },
+          "NumberOfWonOpportunities": {
+            "type": "integer"
+          },
+          "CampaignMemberRecordTypeId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_CONTACT",
+      "name": "Create contact",
+      "description": "Creates a new contact in Salesforce with the specified information. Writes to live CRM data — obtain explicit user confirmation before exec…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "birthdate": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "department": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "lead_source": {
+            "type": "string"
+          },
+          "mailing_city": {
+            "type": "string"
+          },
+          "mobile_phone": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "mailing_state": {
+            "type": "string"
+          },
+          "mailing_street": {
+            "type": "string"
+          },
+          "mailing_country": {
+            "type": "string"
+          },
+          "mailing_postal_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "last_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_CUSTOM_FIELD",
+      "name": "Create custom field",
+      "description": "Tool to create a custom field on a Salesforce object using the Tooling API. Use when you need to add a new field (Text, Number, Checkbox, D…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "scale": {
+            "type": "integer"
+          },
+          "length": {
+            "type": "integer"
+          },
+          "unique": {
+            "type": "boolean"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "precision": {
+            "type": "integer"
+          },
+          "field_type": {
+            "type": "string",
+            "enum": [
+              "Text",
+              "LongTextArea",
+              "Number",
+              "Checkbox",
+              "Date",
+              "DateTime",
+              "Picklist",
+              "MultiselectPicklist",
+              "Lookup",
+              "Email",
+              "Phone",
+              "Url",
+              "Currency",
+              "Percent"
+            ]
+          },
+          "restricted": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "boolean"
+          },
+          "reference_to": {
+            "type": "string"
+          },
+          "default_value": {
+            "type": "string"
+          },
+          "visible_lines": {
+            "type": "integer"
+          },
+          "check_existing": {
+            "type": "boolean"
+          },
+          "field_api_name": {
+            "type": "string"
+          },
+          "object_api_name": {
+            "type": "string"
+          },
+          "picklist_values": {
+            "type": "array"
+          },
+          "inline_help_text": {
+            "type": "string"
+          },
+          "relationship_name": {
+            "type": "string"
+          },
+          "visible_lines_picklist": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "object_api_name",
+          "field_api_name",
+          "field_type",
+          "label"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_CUSTOM_OBJECT",
+      "name": "Create custom object",
+      "description": "Tool to create a custom object in Salesforce using the Metadata API. Use when you need to dynamically create new object types (tables) in S…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "full_name": {
+            "type": "string"
+          },
+          "name_field": {
+            "type": "object"
+          },
+          "description": {
+            "type": "string"
+          },
+          "plural_label": {
+            "type": "string"
+          },
+          "sharing_model": {
+            "type": "string",
+            "enum": [
+              "ReadWrite",
+              "Read",
+              "Private",
+              "ControlledByParent"
+            ]
+          },
+          "enable_reports": {
+            "type": "boolean"
+          },
+          "deployment_status": {
+            "type": "string",
+            "enum": [
+              "Deployed",
+              "InDevelopment"
+            ]
+          },
+          "enable_activities": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "full_name",
+          "label",
+          "plural_label",
+          "name_field"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_LEAD",
+      "name": "Create lead",
+      "description": "Creates a new lead in Salesforce. `LastName` and `Company` are required. Org-level validation rules (e.g., email format, custom required fi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "City": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string"
+          },
+          "Phone": {
+            "type": "string"
+          },
+          "State": {
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "Rating": {
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
+          },
+          "Street": {
+            "type": "string"
+          },
+          "Company": {
+            "type": "string"
+          },
+          "Country": {
+            "type": "string"
+          },
+          "Website": {
+            "type": "string"
+          },
+          "Industry": {
+            "type": "string"
+          },
+          "LastName": {
+            "type": "string"
+          },
+          "FirstName": {
+            "type": "string"
+          },
+          "LeadSource": {
+            "type": "string"
+          },
+          "PostalCode": {
+            "type": "string"
+          },
+          "CustomFields": {
+            "type": "object"
+          },
+          "AnnualRevenue": {
+            "type": "number"
+          },
+          "allow_duplicates": {
+            "type": "boolean"
+          },
+          "NumberOfEmployees": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "LastName",
+          "Company"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_LEAD_WITH_SPECIFIED_CONTENT_TYPE",
+      "name": "Create lead",
+      "description": "DEPRECATED: Creates a new Lead in Salesforce, requiring `LastName` and `Company` unless person accounts are enabled and `Company` is null.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "City": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string"
+          },
+          "Phone": {
+            "type": "string"
+          },
+          "State": {
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "Jigsaw": {
+            "type": "string"
+          },
+          "Rating": {
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
+          },
+          "Street": {
+            "type": "string"
+          },
+          "Company": {
+            "type": "string"
+          },
+          "Country": {
+            "type": "string"
+          },
+          "OwnerId": {
+            "type": "string"
+          },
+          "Website": {
+            "type": "string"
+          },
+          "Industry": {
+            "type": "string"
+          },
+          "LastName": {
+            "type": "string"
+          },
+          "PhotoUrl": {
+            "type": "string"
+          },
+          "FirstName": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": "boolean"
+          },
+          "LeadSource": {
+            "type": "string",
+            "enum": [
+              "Web",
+              "Other",
+              "Phone Inquiry",
+              "Partner Referral",
+              "Purchased List"
+            ]
+          },
+          "PostalCode": {
+            "type": "string"
+          },
+          "Primary__c": {
+            "type": "string"
+          },
+          "SICCode__c": {
+            "type": "string"
+          },
+          "Salutation": {
+            "type": "string",
+            "enum": [
+              "Mr.",
+              "Ms.",
+              "Mrs.",
+              "Dr.",
+              "Prof."
+            ]
+          },
+          "CleanStatus": {
+            "type": "string"
+          },
+          "CreatedById": {
+            "type": "string"
+          },
+          "CreatedDate": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "IsConverted": {
+            "type": "boolean"
+          },
+          "IndividualId": {
+            "type": "string"
+          },
+          "AnnualRevenue": {
+            "type": "integer"
+          },
+          "ConvertedDate": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "DandbCompanyId": {
+            "type": "string"
+          },
+          "LastViewedDate": {
+            "type": "string"
+          },
+          "MasterRecordId": {
+            "type": "string"
+          },
+          "SystemModstamp": {
+            "type": "string"
+          },
+          "IsUnreadByOwner": {
+            "type": "boolean"
+          },
+          "JigsawContactId": {
+            "type": "string"
+          },
+          "attributes__url": {
+            "type": "string"
+          },
+          "EmailBouncedDate": {
+            "type": "string"
+          },
+          "IsPriorityRecord": {
+            "type": "boolean"
+          },
+          "LastActivityDate": {
+            "type": "string"
+          },
+          "LastModifiedById": {
+            "type": "string"
+          },
+          "LastModifiedDate": {
+            "type": "string"
+          },
+          "attributes__type": {
+            "type": "string"
+          },
+          "NumberOfEmployees": {
+            "type": "integer"
+          },
+          "ConvertedAccountId": {
+            "type": "string"
+          },
+          "ConvertedContactId": {
+            "type": "string"
+          },
+          "EmailBouncedReason": {
+            "type": "string"
+          },
+          "LastReferencedDate": {
+            "type": "string"
+          },
+          "ProductInterest__c": {
+            "type": "string"
+          },
+          "CurrentGenerators__c": {
+            "type": "string"
+          },
+          "NumberofLocations__c": {
+            "type": "integer"
+          },
+          "ConvertedOpportunityId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "LastName",
+          "Company"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_NEW_CONTACT_WITH_JSON_HEADER",
+      "name": "Create a new contact",
+      "description": "DEPRECATED: Creates a new Contact in Salesforce; 'LastName' is required, an existing 'AccountId' must be used if provided, and any custom f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "Fax": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string"
+          },
+          "Phone": {
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "Jigsaw": {
+            "type": "string"
+          },
+          "OwnerId": {
+            "type": "string"
+          },
+          "LastName": {
+            "type": "string"
+          },
+          "Level__c": {
+            "type": "string"
+          },
+          "PhotoUrl": {
+            "type": "string"
+          },
+          "AccountId": {
+            "type": "string"
+          },
+          "Birthdate": {
+            "type": "string"
+          },
+          "FirstName": {
+            "type": "string"
+          },
+          "HomePhone": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": "boolean"
+          },
+          "OtherCity": {
+            "type": "string"
+          },
+          "Department": {
+            "type": "string"
+          },
+          "LeadSource": {
+            "type": "string"
+          },
+          "OtherPhone": {
+            "type": "string"
+          },
+          "OtherState": {
+            "type": "string"
+          },
+          "Salutation": {
+            "type": "string"
+          },
+          "CleanStatus": {
+            "type": "string"
+          },
+          "CreatedById": {
+            "type": "string"
+          },
+          "CreatedDate": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "MailingCity": {
+            "type": "string"
+          },
+          "MobilePhone": {
+            "type": "string"
+          },
+          "OtherStreet": {
+            "type": "string"
+          },
+          "ReportsToId": {
+            "type": "string"
+          },
+          "IndividualId": {
+            "type": "string"
+          },
+          "Languages__c": {
+            "type": "string"
+          },
+          "MailingState": {
+            "type": "string"
+          },
+          "OtherCountry": {
+            "type": "string"
+          },
+          "AssistantName": {
+            "type": "string"
+          },
+          "ContactSource": {
+            "type": "string"
+          },
+          "MailingStreet": {
+            "type": "string"
+          },
+          "OtherLatitude": {
+            "type": "integer"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "AssistantPhone": {
+            "type": "string"
+          },
+          "IsEmailBounced": {
+            "type": "boolean"
+          },
+          "LastViewedDate": {
+            "type": "string"
+          },
+          "MailingCountry": {
+            "type": "string"
+          },
+          "MasterRecordId": {
+            "type": "string"
+          },
+          "OtherLongitude": {
+            "type": "integer"
+          },
+          "SystemModstamp": {
+            "type": "string"
+          },
+          "JigsawContactId": {
+            "type": "string"
+          },
+          "MailingLatitude": {
+            "type": "integer"
+          },
+          "OtherPostalCode": {
+            "type": "string"
+          },
+          "attributes__url": {
+            "type": "string"
+          },
+          "EmailBouncedDate": {
+            "type": "string"
+          },
+          "IsPriorityRecord": {
+            "type": "boolean"
+          },
+          "LastActivityDate": {
+            "type": "string"
+          },
+          "LastCUUpdateDate": {
+            "type": "string"
+          },
+          "LastModifiedById": {
+            "type": "string"
+          },
+          "LastModifiedDate": {
+            "type": "string"
+          },
+          "MailingLongitude": {
+            "type": "integer"
+          },
+          "attributes__type": {
+            "type": "string"
+          },
+          "LastCURequestDate": {
+            "type": "string"
+          },
+          "MailingPostalCode": {
+            "type": "string"
+          },
+          "EmailBouncedReason": {
+            "type": "string"
+          },
+          "LastReferencedDate": {
+            "type": "string"
+          },
+          "OtherGeocodeAccuracy": {
+            "type": "string"
+          },
+          "MailingGeocodeAccuracy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "LastName"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_NOTE",
+      "name": "Create note",
+      "description": "Creates a new note attached to a Salesforce record with the specified title and content. Does not deduplicate — identical calls create dupl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "is_private": {
+            "type": "boolean"
+          },
+          "custom_fields": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "parent_id",
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_NOTE_RECORD_WITH_CONTENT_TYPE_HEADER",
+      "name": "Create a note record",
+      "description": "DEPRECATED: Creates a new Note record in Salesforce, associated with an existing Salesforce object via `ParentId`, automatically including …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "Body": {
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "OwnerId": {
+            "type": "string"
+          },
+          "ParentId": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": "boolean"
+          },
+          "IsPrivate": {
+            "type": "boolean"
+          },
+          "CreatedById": {
+            "type": "string"
+          },
+          "CreatedDate": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "SystemModstamp": {
+            "type": "string"
+          },
+          "attributes__url": {
+            "type": "string"
+          },
+          "LastModifiedById": {
+            "type": "string"
+          },
+          "LastModifiedDate": {
+            "type": "string"
+          },
+          "attributes__type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ParentId",
+          "Title",
+          "Body"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_OPPORTUNITY",
+      "name": "Create opportunity",
+      "description": "Creates a new opportunity in Salesforce with the specified information.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "next_step": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "close_date": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          },
+          "stage_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "lead_source": {
+            "type": "string"
+          },
+          "probability": {
+            "type": "number"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "pricebook2_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "close_date",
+          "stage_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_OPPORTUNITY_RECORD",
+      "name": "Create opportunity record",
+      "description": "DEPRECATED: Creates a new Opportunity record in Salesforce; `Name`, `StageName`, and `CloseDate` are mandatory, and ensure any referenced I…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Type": {
+            "type": "string"
+          },
+          "IsWon": {
+            "type": "boolean"
+          },
+          "Amount": {
+            "type": "integer"
+          },
+          "Fiscal": {
+            "type": "string"
+          },
+          "OwnerId": {
+            "type": "string"
+          },
+          "IsClosed": {
+            "type": "boolean"
+          },
+          "NextStep": {
+            "type": "string"
+          },
+          "AccountId": {
+            "type": "string"
+          },
+          "CloseDate": {
+            "type": "string"
+          },
+          "ContactId": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": "boolean"
+          },
+          "IsPrivate": {
+            "type": "boolean"
+          },
+          "PushCount": {
+            "type": "integer"
+          },
+          "StageName": {
+            "type": "string"
+          },
+          "CampaignId": {
+            "type": "string"
+          },
+          "FiscalYear": {
+            "type": "integer"
+          },
+          "LeadSource": {
+            "type": "string"
+          },
+          "CreatedById": {
+            "type": "string"
+          },
+          "CreatedDate": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "Probability": {
+            "type": "integer"
+          },
+          "Pricebook2Id": {
+            "type": "string"
+          },
+          "FiscalQuarter": {
+            "type": "integer"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "HasOverdueTask": {
+            "type": "boolean"
+          },
+          "LastViewedDate": {
+            "type": "string"
+          },
+          "OrderNumber__c": {
+            "type": "string"
+          },
+          "SystemModstamp": {
+            "type": "string"
+          },
+          "ExpectedRevenue": {
+            "type": "integer"
+          },
+          "HasOpenActivity": {
+            "type": "boolean"
+          },
+          "attributes__url": {
+            "type": "string"
+          },
+          "ForecastCategory": {
+            "type": "string"
+          },
+          "LastActivityDate": {
+            "type": "string"
+          },
+          "LastModifiedById": {
+            "type": "string"
+          },
+          "LastModifiedDate": {
+            "type": "string"
+          },
+          "attributes__type": {
+            "type": "string"
+          },
+          "TrackingNumber__c": {
+            "type": "string"
+          },
+          "LastReferencedDate": {
+            "type": "string"
+          },
+          "MainCompetitors__c": {
+            "type": "string"
+          },
+          "LastStageChangeDate": {
+            "type": "string"
+          },
+          "CurrentGenerators__c": {
+            "type": "string"
+          },
+          "ForecastCategoryName": {
+            "type": "string"
+          },
+          "HasOpportunityLineItem": {
+            "type": "boolean"
+          },
+          "TotalOpportunityQuantity": {
+            "type": "integer"
+          },
+          "LastAmountChangedHistoryId": {
+            "type": "string"
+          },
+          "DeliveryInstallationStatus__c": {
+            "type": "string"
+          },
+          "LastCloseDateChangedHistoryId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Name",
+          "StageName",
+          "CloseDate"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_S_OBJECT_RECORD",
+      "name": "Create SObject record",
+      "description": "Tool to create a new Salesforce SObject record. Use when you need to create any type of standard or custom Salesforce object record by spec…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "object"
+          },
+          "sobject_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_type",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_SOBJECT_TREE",
+      "name": "Create sObject tree",
+      "description": "Tool to create one or more sObject trees with root records of the specified type. Use when creating nested parent-child record hierarchies …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array"
+          },
+          "sobject_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_api_name",
+          "records"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_CREATE_TASK",
+      "name": "Create task",
+      "description": "Creates a new task in Salesforce to track activities, to-dos, and follow-ups related to contacts, leads, or other records. Ensure who_id, w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "who_id": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "what_id": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "activity_date": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "is_reminder_set": {
+            "type": "boolean"
+          },
+          "reminder_date_time": {
+            "type": "string"
+          },
+          "composio_execution_message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_DELETE_ACCOUNT",
+      "name": "Delete account",
+      "description": "Permanently deletes an account from Salesforce. This action cannot be undone.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_DELETE_A_LEAD_OBJECT_BY_ITS_ID",
+      "name": "Delete a lead object by its id",
+      "description": "DEPRECATED: Permanently deletes an existing Lead object from Salesforce using its unique ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_DELETE_CAMPAIGN",
+      "name": "Delete campaign",
+      "description": "Permanently deletes a campaign from Salesforce. This action cannot be undone.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "campaign_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaign_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_DELETE_CONTACT",
+      "name": "Delete contact",
+      "description": "Permanently deletes a contact from Salesforce. This action cannot be undone. Associated records (activities, opportunities) lose the contac…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_DELETE_FILE",
+      "name": "Delete file",
+      "description": "Tool to permanently delete a file from Salesforce. Use when you need to remove a file and its content. This operation cannot be undone.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_DELETE_JOB_QUERY",
+      "name": "Delete job query",
+      "description": "Tool to delete a Salesforce Bulk API v2 query job. Use when you need to permanently remove a job and its associated data. Only the user who…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_DELETE_LEAD",
+      "name": "Delete lead",
+      "description": "Permanently deletes a lead from Salesforce. This action cannot be undone.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "lead_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lead_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_DELETE_NOTE",
+      "name": "Delete note",
+      "description": "Permanently deletes a note from Salesforce. This action cannot be undone.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "note_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "note_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_DELETE_OPPORTUNITY",
+      "name": "Delete opportunity",
+      "description": "Permanently deletes an opportunity from Salesforce. This action cannot be undone.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opportunity_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "opportunity_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_DELETE_SOBJECT",
+      "name": "Delete sObject record",
+      "description": "Tool to delete a single Salesforce record by its ID. Use when you need to permanently remove a specific record from Salesforce. This operat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sobject_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_name",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_DELETE_SOBJECT_COLLECTIONS",
+      "name": "Delete multiple records (SObject Collections)",
+      "description": "Tool to delete up to 200 records in one request with optional rollback. Use when you need to delete multiple records efficiently, reducing …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "all_or_none": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_EXECUTE_SOBJECT_QUICK_ACTION",
+      "name": "Execute sObject Quick Action",
+      "description": "Tool to execute a specific quick action on an sObject to create records with pre-configured defaults. Use when you need to leverage Salesfo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "record": {
+            "type": "object"
+          },
+          "sobject": {
+            "type": "string"
+          },
+          "context_id": {
+            "type": "string"
+          },
+          "action_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject",
+          "action_name",
+          "record"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_EXECUTE_SOQL_QUERY",
+      "name": "Execute SOQL query (Deprecated)",
+      "description": "DEPRECATED: Use SALESFORCE_RUN_SOQL_QUERY instead. Executes the provided SOQL query against Salesforce; the query must begin with 'SELECT'.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "soql_query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "soql_query"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_EXECUTE_SOSL_SEARCH",
+      "name": "Execute SOSL search",
+      "description": "Execute a SOSL search to search across multiple Salesforce objects. Use when you need to search for text across multiple object types simul…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_FETCH_ACCOUNT_BY_ID_WITH_QUERY",
+      "name": "Fetch account by ID with query",
+      "description": "DEPRECATED: Use this action to retrieve a Salesforce Account by its unique ID, which must be a valid and existing Salesforce Account ID; yo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_A_BATCH_OF_RECORDS",
+      "name": "Get batch of UI API records",
+      "description": "Tool to retrieve multiple Salesforce records in a single request with customizable field selection. Use when you need to fetch data for mul…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "record_ids": {
+            "type": "string"
+          },
+          "optional_fields": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_ACCOUNT",
+      "name": "Get account",
+      "description": "Retrieves a specific account by ID from Salesforce, returning all available fields.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_ALL_CUSTOM_OBJECTS",
+      "name": "Get all objects",
+      "description": "Retrieves all Salesforce objects (standard and custom) with detailed metadata. Each object includes a 'custom' field to identify custom obj…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "custom_only": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_ALL_FIELDS_FOR_OBJECT",
+      "name": "Get all fields for an object",
+      "description": "Retrieves all fields (standard and custom) for a Salesforce object with complete metadata including field types, constraints, picklist valu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "object_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_ALL_NAVIGATION_ITEMS",
+      "name": "Get all navigation items",
+      "description": "Gets all navigation items (tabs) that the user has access to. Use when you need to retrieve available navigation tabs for display or naviga…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "formFactor": {
+            "type": "string",
+            "enum": [
+              "Large",
+              "Medium",
+              "Small"
+            ]
+          },
+          "navItemNames": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_API",
+      "name": "Get API resources by version",
+      "description": "Tool to discover available REST API resources for a specified Salesforce API version. Use when you need to find available endpoints and the…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_APP",
+      "name": "Get an app",
+      "description": "Tool to get metadata about a specific Salesforce app by ID. Use when you need to retrieve app configuration details and navigation items fo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "app_id": {
+            "type": "string"
+          },
+          "form_factor": {
+            "type": "string",
+            "enum": [
+              "Large",
+              "Medium",
+              "Small"
+            ]
+          }
+        },
+        "required": [
+          "app_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_APPS",
+      "name": "Get apps",
+      "description": "Tool to get metadata for all apps a user has access to. Use when you need to list available Salesforce applications or check app navigation…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_factor": {
+            "type": "string",
+            "enum": [
+              "Large",
+              "Medium",
+              "Small"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_CAMPAIGN",
+      "name": "Get campaign",
+      "description": "Retrieves a specific campaign by ID from Salesforce, returning all available fields.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "campaign_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaign_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_CHATTER_RESOURCES",
+      "name": "Get Chatter resources",
+      "description": "Tool to access Chatter resources directory. Use when you need to discover available Chatter feeds, groups, users, email digest controls, em…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_CHILD_RECORDS",
+      "name": "Get child records",
+      "description": "Tool to get child records for a specified parent record and child relationship name. Use when you need to retrieve related records from a p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "record_id": {
+            "type": "string"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "optional_fields": {
+            "type": "string"
+          },
+          "relationship_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_id",
+          "relationship_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_COMPACT_LAYOUTS",
+      "name": "Get Compact Layouts",
+      "description": "Tool to retrieve compact layout information for multiple Salesforce objects. Use when you need to display object data in compact form for L…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "object_list": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_list"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_COMPOSITE_RESOURCES",
+      "name": "Get composite resources",
+      "description": "Tool to retrieve a list of available composite resources in Salesforce. Use when you need to discover which composite API endpoints are ava…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_COMPOSITE_SOBJECTS",
+      "name": "Get multiple records by IDs",
+      "description": "Retrieves multiple records of the same object type by IDs with a request body. Use when you need to retrieve more records than URL length l…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "sobject_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_name",
+          "ids",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_CONSENT_ACTION",
+      "name": "Get consent preferences",
+      "description": "Tool to retrieve aggregated consent preferences across multiple records for a specific action. Use when you need to check if users have con…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_CONTACT",
+      "name": "Get contact",
+      "description": "Retrieves a specific contact by ID from Salesforce, returning all available fields.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_CONTACT_BY_ID",
+      "name": "Retrieve specific contact by id",
+      "description": "Retrieves a Salesforce Contact by its unique ID; the ID must correspond to an existing Contact record in Salesforce.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_DASHBOARD",
+      "name": "Get dashboard",
+      "description": "Gets detailed metadata for a specific dashboard including its components, layout, and filters.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dashboard_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dashboard_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_FILE_CONTENT",
+      "name": "Get file content",
+      "description": "Returns the binary content of a Salesforce file, including references to external files. Use when you need to download or retrieve the actu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          },
+          "rendition_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_FILE_INFORMATION",
+      "name": "Get file information",
+      "description": "Tool to retrieve comprehensive metadata and information about a specified file in Salesforce. Use when you need detailed file information i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_FILE_SHARES",
+      "name": "Get file shares",
+      "description": "Returns information about the objects with which the specified file has been shared. Use when you need to understand who has access to a sp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_GLOBAL_ACTIONS",
+      "name": "Get global actions",
+      "description": "Tool to retrieve actions displayed in the Salesforce Global Actions menu with metadata. Use when you need to discover available global acti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "apiNames": {
+            "type": "string"
+          },
+          "formFactor": {
+            "type": "string",
+            "enum": [
+              "Large",
+              "Medium",
+              "Small"
+            ]
+          },
+          "actionTypes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_JOB_FAILED_RECORD_RESULTS",
+      "name": "Get job failed record results",
+      "description": "Tool to retrieve failed records from a Salesforce Bulk API 2.0 ingest job. Use when you need to get records that failed during a bulk opera…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "locator": {
+            "type": "string"
+          },
+          "max_records": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_JOB_SUCCESSFUL_RECORD_RESULTS",
+      "name": "Get job successful record results",
+      "description": "Tool to retrieve successfully processed records from a Salesforce Bulk API 2.0 ingest job. Use when you need to get records that were succe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "locator": {
+            "type": "string"
+          },
+          "max_records": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_JOB_UNPROCESSED_RECORD_RESULTS",
+      "name": "Get job unprocessed record results",
+      "description": "Tool to retrieve unprocessed records from a Salesforce Bulk API 2.0 ingest job. Use when you need to get records that were not processed du…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "locator": {
+            "type": "string"
+          },
+          "max_records": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_LAST_SELECTED_APP",
+      "name": "Get last selected app",
+      "description": "Retrieves the app the current user last selected or the app the user sees by default. Use when you need to determine which application the …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "formFactor": {
+            "type": "string",
+            "enum": [
+              "Large",
+              "Medium",
+              "Small"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_LEAD",
+      "name": "Get lead",
+      "description": "Retrieves a specific lead by ID from Salesforce, returning all available fields.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "lead_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lead_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_LIST_VIEW_ACTIONS",
+      "name": "Get List View Header Actions",
+      "description": "Tool to retrieve header actions on list views. Use when you need to get available actions, buttons, and quick actions displayed on a specif…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_view_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_view_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_LIST_VIEW_METADATA_BATCH",
+      "name": "Get batch of list view metadata",
+      "description": "Tool to retrieve metadata for multiple list views in a single batch request. Use when you need to get list view configuration, columns, fil…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_view_ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_view_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_LIST_VIEW_METADATA_BY_NAME",
+      "name": "Get list view metadata",
+      "description": "Returns list view metadata by object and list view API name. Use when you need to retrieve complete metadata information for a specific lis…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sobject_api_name": {
+            "type": "string"
+          },
+          "list_view_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_api_name",
+          "list_view_api_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_LIST_VIEW_RECORDS_BY_ID",
+      "name": "Get list view records by ID",
+      "description": "Returns record data for a list view by its ID. Use when you need to retrieve records from a specific Salesforce list view.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array"
+          },
+          "sort_by": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "list_view_id": {
+            "type": "string"
+          },
+          "optional_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "list_view_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_LIST_VIEW_RECORDS_BY_NAME",
+      "name": "Get list view records by API name",
+      "description": "Retrieves paginated record data for a specified list view using the object and list view API names. Use when you need to fetch records that…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "where": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "sortBy": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "searchTerm": {
+            "type": "string"
+          },
+          "optionalFields": {
+            "type": "string"
+          },
+          "sobject_api_name": {
+            "type": "string"
+          },
+          "list_view_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_api_name",
+          "list_view_api_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_LIST_VIEW_RESULTS",
+      "name": "Get list view results",
+      "description": "Retrieves the results of a list view for a specified sObject. Returns column definitions and record data with a 2,000 record limit per resp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sobject": {
+            "type": "string"
+          },
+          "list_view_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject",
+          "list_view_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_LOOKUP_FIELD_SUGGESTIONS",
+      "name": "Get lookup field suggestions",
+      "description": "Tool to retrieve lookup field suggestions for editing lookup fields with search filtering. Use when searching for records to populate a loo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "form_factor": {
+            "type": "string",
+            "enum": [
+              "Large",
+              "Medium",
+              "Small"
+            ]
+          },
+          "search_type": {
+            "type": "string",
+            "enum": [
+              "Recent",
+              "Search",
+              "TypeAhead"
+            ]
+          },
+          "field_api_name": {
+            "type": "string"
+          },
+          "object_api_name": {
+            "type": "string"
+          },
+          "dependent_field_bindings": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_api_name",
+          "field_api_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_LOOKUP_SUGGESTIONS_CASE_CONTACT",
+      "name": "Get lookup field suggestions with POST",
+      "description": "Tool to get lookup field suggestions with POST request. Use when editing lookup fields with dependent lookup filtering or when you need to …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "search_type": {
+            "type": "string"
+          },
+          "source_record": {
+            "type": "object"
+          },
+          "field_api_name": {
+            "type": "string"
+          },
+          "object_api_name": {
+            "type": "string"
+          },
+          "dependent_field_bindings": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "object_api_name",
+          "field_api_name",
+          "source_record"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_MRU_LIST_VIEW_METADATA",
+      "name": "Get MRU list view metadata",
+      "description": "Tool to retrieve MRU list view metadata for a Salesforce object. Use when you need to understand the structure and configuration of the mos…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sobject_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_api_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_MRU_LIST_VIEW_RECORDS",
+      "name": "Get most recently used list view records",
+      "description": "Tool to retrieve record data for an object's most recently used (MRU) list view. Use when you need to get the records that a user has recen…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "sort_by": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "optional_fields": {
+            "type": "string"
+          },
+          "sobject_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_api_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_NOTE",
+      "name": "Get note",
+      "description": "Retrieves a specific note by ID from Salesforce, returning all available fields. Notes with IsPrivate=true require the integration user to …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "note_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "note_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_NOTE_BY_ID_WITH_FIELDS",
+      "name": "Retrieve Note with conditions",
+      "description": "DEPRECATED: Retrieves a Salesforce Note object by its ID, optionally specifying which fields to return; the Note ID must exist.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_OBJECT_LIST_VIEWS",
+      "name": "Get list views for an object",
+      "description": "Returns a collection of list views associated with a Salesforce object. Use when you need to discover available list views for an object li…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sobject_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_api_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_OPPORTUNITY",
+      "name": "Get opportunity",
+      "description": "Retrieves a specific opportunity by ID from Salesforce, returning all available fields.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "opportunity_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "opportunity_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_ORG_LIMITS",
+      "name": "Get organization limits",
+      "description": "Tool to retrieve organization limits with max and remaining allocations. Use when you need to check API usage, storage limits, or other res…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_PHOTO_ACTIONS",
+      "name": "Get photo actions",
+      "description": "Tool to retrieve available photo actions for Salesforce pages. Use when you need to get photo management actions for user or group pages. C…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "record_ids": {
+            "type": "string"
+          },
+          "form_factor": {
+            "type": "string",
+            "enum": [
+              "Large",
+              "Medium",
+              "Small"
+            ]
+          },
+          "action_types": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_PICKLIST_VALUES_BY_RECORD_TYPE",
+      "name": "Get Values for All Picklist Fields",
+      "description": "Tool to get values for all picklist fields of a record type, including dependent picklists. Use when you need to retrieve available picklis…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "record_type_id": {
+            "type": "string"
+          },
+          "sobject_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_api_name",
+          "record_type_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_QUERY_JOB_INFO",
+      "name": "Get job info query",
+      "description": "Tool to retrieve information about a Salesforce Bulk API v2 query job. Use when you need to check the status and details of a query job.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_QUERY_JOB_RESULTS",
+      "name": "Get job query result",
+      "description": "Retrieves results for a completed Bulk API v2 query job in CSV format. Supports pagination for large datasets via maxRecords and locator pa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "locator": {
+            "type": "string"
+          },
+          "max_records": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_QUICK_ACTIONS",
+      "name": "Get quick actions",
+      "description": "Tool to retrieve global and object-specific quick actions from Salesforce. Use when you need to list all available quick actions in the org…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_RECORD_COUNTS",
+      "name": "Get record count for objects",
+      "description": "Tool to retrieve total record counts for specified Salesforce objects. Use when you need to check storage usage or understand data volume f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sobjects": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobjects"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_RECORD_EDIT_PAGE_ACTIONS",
+      "name": "Get record edit page actions",
+      "description": "Tool to get available actions on record edit pages. Use when you need to retrieve metadata about actions (standard actions, custom actions,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "record_ids": {
+            "type": "string"
+          },
+          "form_factor": {
+            "type": "string",
+            "enum": [
+              "Large",
+              "Medium",
+              "Small"
+            ]
+          },
+          "action_types": {
+            "type": "string"
+          },
+          "retrieval_mode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_RELATED_LIST_ACTIONS",
+      "name": "Get related list actions",
+      "description": "Tool to get actions on related lists for record detail pages. Use when you need to retrieve metadata about all available actions (standard …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "record_ids": {
+            "type": "string"
+          },
+          "form_factor": {
+            "type": "string",
+            "enum": [
+              "Large",
+              "Medium",
+              "Small"
+            ]
+          },
+          "action_types": {
+            "type": "string"
+          },
+          "retrieval_mode": {
+            "type": "string"
+          },
+          "related_list_ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_ids",
+          "related_list_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_RELATED_LIST_PREFERENCES_BATCH",
+      "name": "Get batch of related list user preferences",
+      "description": "Tool to get a batch of related list user preferences from Salesforce. Use when retrieving display preferences, column widths, or sort order…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "related_list_ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "related_list_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_RELATED_LIST_RECORDS_CONTACTS",
+      "name": "Get related list records with request body",
+      "description": "Tool to retrieve related list records with request body parameters for filtering and pagination. Use when you need to get records from a re…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "where": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "sort_by": {
+            "type": "array"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "optional_fields": {
+            "type": "array"
+          },
+          "related_list_id": {
+            "type": "string"
+          },
+          "parent_record_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "parent_record_id",
+          "related_list_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_REPORT",
+      "name": "Get report metadata",
+      "description": "Gets detailed metadata for a specific report including its structure, columns, filters, and groupings. Only fields included in the report l…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "report_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "report_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_REPORT_INSTANCE",
+      "name": "Get report instance results",
+      "description": "Gets the results of a report instance created by running a report. Poll `attributes.status` until it equals 'Success' before parsing result…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "report_id": {
+            "type": "string"
+          },
+          "instance_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "report_id",
+          "instance_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_SEARCH_LAYOUT",
+      "name": "Get search result layouts",
+      "description": "Retrieves search result layout information for specified sObjects. Use when you need to understand which fields are displayed in search res…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "object_names": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_names"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_SEARCH_SUGGESTIONS",
+      "name": "Search suggested queries",
+      "description": "Returns a list of suggested searches based on the user's query string. Use when you want to help users discover relevant search terms befor…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "Pkb",
+              "Csp",
+              "Prm",
+              "App"
+            ]
+          },
+          "sobject": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "q",
+          "channel",
+          "language"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_SOBJECT_BY_EXTERNAL_ID",
+      "name": "Get sObject by external ID",
+      "description": "Tool to retrieve a Salesforce record by matching an external ID field value. Use when you need to find a record using a custom external ide…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "sobject": {
+            "type": "string"
+          },
+          "field_name": {
+            "type": "string"
+          },
+          "field_value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject",
+          "field_name",
+          "field_value"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_SOBJECT_COLLECTIONS",
+      "name": "Get multiple sObject records",
+      "description": "Tool to retrieve multiple records of the same sObject type in a single API call. Use when you need to fetch up to 200 records by their IDs.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "all_or_none": {
+            "type": "boolean"
+          },
+          "sobject_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_type",
+          "ids",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_SOBJECT_LIST_VIEW",
+      "name": "Get sObject list view information",
+      "description": "Tool to retrieve basic information about a specific list view for an sObject. Use when you need to get list view metadata including its ID,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_view_id": {
+            "type": "string"
+          },
+          "sobject_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_name",
+          "list_view_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_SOBJECT_LIST_VIEWS",
+      "name": "Get list views for sObject",
+      "description": "Tool to retrieve list views for a specified sObject. Use when you need to discover available filtered views of records for objects like Acc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sobject_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_SOBJECT_PLATFORMACTION",
+      "name": "Get PlatformAction SObject metadata",
+      "description": "Retrieves metadata description of PlatformAction SObject. Use when you need to understand the structure and fields of PlatformAction for qu…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_S_OBJECT_QUICK_ACTION_DEFAULT_VALUES",
+      "name": "Get sObject Quick Action Default Values by ID",
+      "description": "Retrieves default field values for a quick action in a specific record context. Use when you need to pre-populate fields when creating rela…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sobject": {
+            "type": "string"
+          },
+          "context_id": {
+            "type": "string"
+          },
+          "action_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject",
+          "action_name",
+          "context_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_SOBJECT_QUICK_ACTION_DEFAULT_VALUES",
+      "name": "Get sObject Quick Action Default Values",
+      "description": "Retrieves default field values for a specific quick action on an sObject. Use when you need to understand what fields will be automatically…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sobject": {
+            "type": "string"
+          },
+          "action_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject",
+          "action_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_S_OBJECT_RECORD",
+      "name": "Get sObject record by ID",
+      "description": "Tool to retrieve a single Salesforce record by ID from any sObject type. Use when you need to get detailed information about a specific rec…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "record_id": {
+            "type": "string"
+          },
+          "sobject_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_api_name",
+          "record_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_SOBJECT_RELATIONSHIP",
+      "name": "Get records using sObject relationships",
+      "description": "Retrieves records by traversing sObject relationships using friendly URLs. Use when you need to get related records through a relationship …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "sobject": {
+            "type": "string"
+          },
+          "relationship_field_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject",
+          "id",
+          "relationship_field_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_S_OBJECTS_DESCRIBE_LAYOUTS_RECORD_TYPE_ID",
+      "name": "Get layouts for object with record type",
+      "description": "Tool to retrieve layout metadata for a specific record type on an object. Use when you need detailed information about page layouts, field …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sobject": {
+            "type": "string"
+          },
+          "record_type_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject",
+          "record_type_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_SOBJECTS_SOBJECT_DESCRIBE_APPROVALLAYOUTS",
+      "name": "Get approval layouts for object",
+      "description": "Retrieves approval layouts for a specified Salesforce object. Use when you need to understand which fields are displayed in approval pages …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sobject_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_S_OBJECTS_UPDATED",
+      "name": "Get updated sObject records",
+      "description": "Tool to retrieve a list of sObject records that have been updated within a given timeframe. Use when you need to synchronize records or tra…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "end": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "sobject": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject",
+          "start",
+          "end"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_SUPPORT",
+      "name": "Get support knowledge",
+      "description": "Retrieves the root of the Support Knowledge REST API. Use when you need to access knowledge articles and data category information.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_SUPPORTED_OBJECTS_DIRECTORY",
+      "name": "Get directory of supported objects",
+      "description": "Tool to get a Salesforce org's active theme and directory of supported objects. Use when you need to discover available objects that are su…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_SUPPORT_KNOWLEDGE_ARTICLES",
+      "name": "Get support knowledge articles",
+      "description": "Retrieves user's visible knowledge articles and data categories from Salesforce Knowledge. Use when you need to access published, draft, or…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string"
+          },
+          "topics": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "App",
+              "Pkb",
+              "Csp",
+              "Prm"
+            ]
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "categories": {
+            "type": "string"
+          },
+          "page_number": {
+            "type": "integer"
+          },
+          "publish_status": {
+            "type": "string",
+            "enum": [
+              "Draft",
+              "Online",
+              "Archived"
+            ]
+          },
+          "accept_language": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_THEME",
+      "name": "Get theme",
+      "description": "Tool to get icons and colors for Salesforce UI themes. Use when you need to retrieve theme information for objects in the organization.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_UI_API_ACTIONS_LOOKUP_ACCOUNT",
+      "name": "Get lookup field actions",
+      "description": "Tool to get lookup field actions for a Salesforce object. Use when you need to retrieve available actions for lookup fields on a specific o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sections": {
+            "type": "string"
+          },
+          "form_factor": {
+            "type": "string",
+            "enum": [
+              "Large",
+              "Medium",
+              "Small"
+            ]
+          },
+          "action_types": {
+            "type": "string"
+          },
+          "object_api_name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_UIAPI_ACTIONS_MRU_LIST_ACCOUNT",
+      "name": "Get MRU List View Actions",
+      "description": "Tool to retrieve header actions available on the MRU (Most Recently Used) list view for a specified Salesforce object. Use when you need to…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_factor": {
+            "type": "string"
+          },
+          "action_types": {
+            "type": "string"
+          },
+          "object_api_name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_UI_API_ACTIONS_RECORD_RELATED_LIST",
+      "name": "Get related list actions",
+      "description": "Tool to get available actions on related lists for a record detail page. Use when you need to retrieve metadata about actions (standard act…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "record_id": {
+            "type": "string"
+          },
+          "form_factor": {
+            "type": "string",
+            "enum": [
+              "Large",
+              "Medium",
+              "Small"
+            ]
+          },
+          "action_types": {
+            "type": "string"
+          },
+          "retrieval_mode": {
+            "type": "string"
+          },
+          "related_list_ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_UI_API_APPS_USER_NAV_ITEMS",
+      "name": "Get Personalized Navigation Items",
+      "description": "Tool to get personalized navigation items for a specific Salesforce app. Use when you need to retrieve the navigation tabs that a user has …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "app_id": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "form_factor": {
+            "type": "string"
+          },
+          "nav_item_names": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "app_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_UIAPI_LIST_INFO_ACCOUNT_ALL_ACCOUNTS",
+      "name": "Get Account AllAccounts list view metadata",
+      "description": "Retrieves list view metadata for the Account AllAccounts view using Salesforce UI API. Use when you need to understand the structure, colum…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_UIAPI_LIST_INFO_ACCOUNT_RECENT",
+      "name": "Get List View Metadata",
+      "description": "Tool to get list view metadata from Salesforce UI API. Use when you need to retrieve configuration details for a list view including column…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "object_api_name": {
+            "type": "string"
+          },
+          "list_view_api_name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_UIAPI_LIST_INFO_ACCOUNT_SEARCH_RESULT",
+      "name": "Get Account SearchResult list view metadata",
+      "description": "Retrieves list view metadata for the Account __SearchResult view using Salesforce UI API. Use when you need to understand the structure, co…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_UI_API_LIST_INFO_RECENT",
+      "name": "Get List Views for Object",
+      "description": "Tool to get list views for a Salesforce object. Use when you need to retrieve available list views with options to filter by recent usage a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "integer"
+          },
+          "object_api_name": {
+            "type": "string"
+          },
+          "recent_lists_only": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_UIAPIMRU_LIST_INFO_ACCOUNT",
+      "name": "Get MRU List Info for Account",
+      "description": "Tool to get Most Recently Used (MRU) list view metadata for Account object. Use when you need to retrieve list view settings, display colum…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_UI_API_MRU_LIST_RECORDS_ACCOUNT",
+      "name": "Get MRU List Records for Account",
+      "description": "Tool to get Most Recently Used (MRU) list view records for Account object. Use when you need to retrieve recently accessed Account records.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array"
+          },
+          "sort_by": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "optional_fields": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_UI_API_RECORD_UI",
+      "name": "Get record UI data and metadata",
+      "description": "Tool to retrieve layout, field metadata, and record data in a single response. Use when you need comprehensive information including UI lay…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "modes": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "record_ids": {
+            "type": "string"
+          },
+          "form_factor": {
+            "type": "string",
+            "enum": [
+              "Large",
+              "Medium",
+              "Small"
+            ]
+          },
+          "layout_types": {
+            "type": "string"
+          },
+          "optional_fields": {
+            "type": "string"
+          },
+          "child_relationships": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_UIAPI_RELATED_LIST_PREFERENCES",
+      "name": "Get related list user preferences",
+      "description": "Tool to retrieve user preferences for a specific related list on an object. Use when you need to get display settings, column widths, or so…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "object_api_name": {
+            "type": "string"
+          },
+          "related_list_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_api_name",
+          "related_list_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_GET_USER_INFO",
+      "name": "Get user info",
+      "description": "Retrieves information about the current user or a specific user in Salesforce.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "include_permissions": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_HEAD_ACTIONS_CUSTOM",
+      "name": "Get custom actions headers",
+      "description": "Tool to return HTTP headers for custom invocable actions without response body. Use when you need to check resource availability and metada…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "if_unmodified_since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_HEAD_ACTIONS_STANDARD",
+      "name": "Get standard actions headers",
+      "description": "Tool to return HTTP headers for standard invocable actions metadata without response body. Use when you need to perform efficient cache val…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "if_modified_since": {
+            "type": "string"
+          },
+          "if_unmodified_since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_HEAD_APPMENU_SALESFORCE1",
+      "name": "Get AppMenu Salesforce1 headers",
+      "description": "Tool to return HTTP headers for AppMenu Salesforce1 mobile navigation items without response body. Use when you need to check resource meta…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "if_none_match": {
+            "type": "string"
+          },
+          "if_modified_since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_HEAD_PROCESS_RULES_S_OBJECT",
+      "name": "Get process rules headers",
+      "description": "Tool to return HTTP headers for process rules of an sObject without retrieving the response body. Use when you need to check if process rul…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sobject": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_HEAD_QUICK_ACTIONS",
+      "name": "Get Quick Actions headers",
+      "description": "Tool to return HTTP headers for Quick Actions resource without response body. Use when you need to inspect metadata before retrieving full …",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_HEAD_SOBJECT_QUICK_ACTION_DEFAULT_VALUES",
+      "name": "Get quick action default values headers by ID",
+      "description": "Tool to return HTTP headers for sObject quick action default values by context ID without response body. Use when you need to check resourc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "context_id": {
+            "type": "string"
+          },
+          "action_name": {
+            "type": "string"
+          },
+          "sobject_type": {
+            "type": "string"
+          },
+          "if_none_match": {
+            "type": "string"
+          },
+          "if_modified_since": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_type",
+          "action_name",
+          "context_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_HEAD_SOBJECTS_GLOBAL_DESCRIBE_LAYOUTS",
+      "name": "Get global publisher layouts headers",
+      "description": "Tool to return HTTP headers for all global publisher layouts without response body. Use when implementing cache validation strategies, effi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "if_none_match": {
+            "type": "string"
+          },
+          "if_modified_since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_HEAD_SOBJECTS_QUICK_ACTION",
+      "name": "Get sObject quick action headers",
+      "description": "Tool to return HTTP headers for a specific sObject quick action without response body. Use when you need to check ETag or Last-Modified hea…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "action_name": {
+            "type": "string"
+          },
+          "sobject_type": {
+            "type": "string"
+          },
+          "if_none_match": {
+            "type": "string"
+          },
+          "if_modified_since": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_type",
+          "action_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_HEAD_SOBJECTS_USER_PASSWORD",
+      "name": "Get User password headers",
+      "description": "Tool to return HTTP headers for User password resource without response body. Use when you need to check user password metadata and expirat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_ACCOUNTS",
+      "name": "List accounts",
+      "description": "Lists accounts from Salesforce using SOQL query, allowing flexible filtering, sorting, and field selection. Results paginate via nextRecord…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_ANALYTICS_TEMPLATES",
+      "name": "List Analytics templates",
+      "description": "Tool to list CRM Analytics templates available in the org. Use when you need to discover available templates for creating Analytics apps.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "App",
+              "Dashboard",
+              "Data",
+              "Embedded",
+              "Lens"
+            ]
+          },
+          "options": {
+            "type": "string",
+            "enum": [
+              "CreateApp",
+              "ManageableOnly",
+              "ViewOnly"
+            ]
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_CAMPAIGNS",
+      "name": "List campaigns",
+      "description": "Lists campaigns from Salesforce using SOQL query, allowing flexible filtering, sorting, and field selection. Results returned under `respon…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_CONTACTS",
+      "name": "List contacts",
+      "description": "Lists contacts from Salesforce using SOQL query, allowing flexible filtering, sorting, and field selection. Results are returned under `res…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_CUSTOM_INVOCABLE_ACTIONS",
+      "name": "Get custom invocable actions",
+      "description": "Retrieves the list of custom actions including Flow actions, Apex actions, and invocable processes. Use when you need to discover available…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_DASHBOARDS",
+      "name": "List dashboards",
+      "description": "Lists all dashboards available in Salesforce with basic metadata including name, ID, and URLs.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_EMAIL_TEMPLATES",
+      "name": "List email templates",
+      "description": "Lists available email templates in Salesforce with filtering and search capabilities.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "order_by": {
+            "type": "string"
+          },
+          "folder_name": {
+            "type": "string"
+          },
+          "search_term": {
+            "type": "string"
+          },
+          "include_body": {
+            "type": "boolean"
+          },
+          "template_type": {
+            "type": "string"
+          },
+          "is_active_only": {
+            "type": "boolean"
+          },
+          "order_direction": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_LEADS",
+      "name": "List leads",
+      "description": "Lists leads from Salesforce using SOQL query, allowing flexible filtering, sorting, and field selection. Results are paginated; follow next…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_NOTES",
+      "name": "List notes",
+      "description": "Lists notes from Salesforce using SOQL query, allowing flexible filtering, sorting, and field selection. Designed specifically for Note and…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_OPPORTUNITIES",
+      "name": "List opportunities",
+      "description": "Lists opportunities from Salesforce using SOQL query, allowing flexible filtering, sorting, and field selection. Results are paginated up t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_PRICEBOOK_ENTRIES",
+      "name": "List pricebook entries",
+      "description": "Lists pricebook entries from Salesforce using SOQL query, allowing flexible filtering, sorting, and field selection. Use this to map produc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_PRICEBOOKS",
+      "name": "List pricebooks",
+      "description": "Lists pricebooks from Salesforce using SOQL query, allowing flexible filtering, sorting, and field selection. Use this to map pricebook nam…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_REPORTS",
+      "name": "List reports",
+      "description": "Lists all reports available in Salesforce with basic metadata including name, ID, and URLs.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_LIST_STANDARD_INVOCABLE_ACTIONS",
+      "name": "Get standard invocable actions",
+      "description": "Retrieves the list of standard actions that can be statically invoked. Use when you need to discover available standard invocable actions l…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_LOG_CALL",
+      "name": "Log call",
+      "description": "Logs a completed phone call as a task in Salesforce with call-specific details like duration, type, and disposition.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "who_id": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "what_id": {
+            "type": "string"
+          },
+          "comments": {
+            "type": "string"
+          },
+          "call_date": {
+            "type": "string"
+          },
+          "call_type": {
+            "type": "string",
+            "enum": [
+              "Inbound",
+              "Outbound",
+              "Internal"
+            ]
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "call_disposition": {
+            "type": "string"
+          },
+          "call_duration_seconds": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_LOG_EMAIL_ACTIVITY",
+      "name": "Log email activity",
+      "description": "Creates an EmailMessage record to log email activity in Salesforce, associating it with related records. Requires EmailMessage insert permi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "html_body": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "text_body": {
+            "type": "string"
+          },
+          "cc_address": {
+            "type": "string"
+          },
+          "to_address": {
+            "type": "string"
+          },
+          "bcc_address": {
+            "type": "string"
+          },
+          "is_incoming": {
+            "type": "boolean"
+          },
+          "from_address": {
+            "type": "string"
+          },
+          "message_date": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "related_to_id": {
+            "type": "string"
+          },
+          "is_client_managed": {
+            "type": "boolean"
+          },
+          "is_externally_visible": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "subject",
+          "from_address",
+          "to_address",
+          "related_to_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_MASS_TRANSFER_OWNERSHIP",
+      "name": "Mass transfer ownership",
+      "description": "Transfers ownership of multiple records to a new owner in a single operation using Salesforce's composite API for better performance. Opera…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "record_ids": {
+            "type": "array"
+          },
+          "object_type": {
+            "type": "string"
+          },
+          "new_owner_id": {
+            "type": "string"
+          },
+          "trigger_assignment_rules": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "object_type",
+          "record_ids",
+          "new_owner_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_PARAMETERIZED_SEARCH",
+      "name": "Parameterized Search",
+      "description": "Tool to execute RESTful search using parameters instead of SOSL clause. Use when you need to search across Salesforce objects with simple G…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "in": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          },
+          "fields": {},
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST"
+            ]
+          },
+          "sobjects": {},
+          "overallLimit": {
+            "type": "integer"
+          },
+          "spellCorrection": {
+            "type": "boolean"
+          },
+          "defaultSearchScope": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_PATCH_COMPOSITE_SOBJECTS",
+      "name": "Upsert records using external ID",
+      "description": "Tool to upsert up to 200 records using external ID field matching. Use when you need to create or update multiple records efficiently in a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array"
+          },
+          "all_or_none": {
+            "type": "boolean"
+          },
+          "sobject_name": {
+            "type": "string"
+          },
+          "external_id_field_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_name",
+          "external_id_field_name",
+          "records"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_POST_COMPOSITE_GRAPH",
+      "name": "Execute Composite Graph",
+      "description": "Tool to execute multiple related REST API requests in a single transactional call with up to 500 subrequests per graph. Use when you need t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "graphs": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "graphs"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_POST_COMPOSITE_SOBJECTS",
+      "name": "Create records using sObject Collections",
+      "description": "Tool to create up to 200 records in one request using sObject Collections. Use when you need to create multiple records of potentially diff…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array"
+          },
+          "all_or_none": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "records"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_POST_PARAMETERIZED_SEARCH",
+      "name": "Parameterized Search",
+      "description": "Tool to execute parameterized search across Salesforce objects with advanced filtering. Use when you need to search for records using speci…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "in": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "NAME",
+              "EMAIL",
+              "PHONE",
+              "SIDEBAR"
+            ]
+          },
+          "where": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "sobjects": {
+            "type": "array"
+          },
+          "defaultLimit": {
+            "type": "integer"
+          },
+          "overallLimit": {
+            "type": "integer"
+          },
+          "spellCorrection": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_QUERY",
+      "name": "Execute SOQL Query (Deprecated)",
+      "description": "DEPRECATED: Use SALESFORCE_RUN_SOQL_QUERY instead. Tool to execute SOQL queries against Salesforce. Use when you need to retrieve data from…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_QUERY_ALL",
+      "name": "Query All (including deleted)",
+      "description": "Tool to execute SOQL queries including soft-deleted and archived records. Use when you need to query records that have been deleted via mer…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_QUERY_CONTACTS_BY_NAME",
+      "name": "Query contacts by name",
+      "description": "DEPRECATED: Finds Salesforce Contact records by name using a case-insensitive search.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "contact_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_QUERY_REPORT",
+      "name": "Query report",
+      "description": "DEPRECATED: Executes a Salesforce report synchronously by its `id` and `reportType`, optionally with dynamic ad-hoc adjustments like filter…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "chart": {
+            "type": "array"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "sortBy": {
+            "type": "array"
+          },
+          "buckets": {
+            "type": "array"
+          },
+          "topRows": {
+            "type": "object"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "USD",
+              "EUR",
+              "GBP",
+              "CAD",
+              "AUD",
+              "JPY",
+              "CHF",
+              "CNY",
+              "INR",
+              "BRL",
+              "MXN",
+              "SGD",
+              "NZD",
+              "HKD"
+            ]
+          },
+          "division": {
+            "type": "string"
+          },
+          "folderId": {
+            "type": "string"
+          },
+          "aggregates": {
+            "type": "array"
+          },
+          "reportType": {
+            "type": "object"
+          },
+          "crossFilters": {
+            "type": "array"
+          },
+          "reportFormat": {
+            "type": "string",
+            "enum": [
+              "TABULAR",
+              "SUMMARY",
+              "MATRIX",
+              "MULTI_BLOCK"
+            ]
+          },
+          "detailColumns": {
+            "type": "array"
+          },
+          "developerName": {
+            "type": "string"
+          },
+          "groupingsDown": {
+            "type": "array"
+          },
+          "hasDetailRows": {
+            "type": "boolean"
+          },
+          "reportFilters": {
+            "type": "array"
+          },
+          "showSubtotals": {
+            "type": "boolean"
+          },
+          "hasRecordCount": {
+            "type": "boolean"
+          },
+          "showGrandTotal": {
+            "type": "boolean"
+          },
+          "groupingsAcross": {
+            "type": "array"
+          },
+          "standardFilters": {
+            "type": "array"
+          },
+          "standardDateFilter": {
+            "type": "object"
+          },
+          "customDetailFormula": {
+            "type": "array"
+          },
+          "presentationOptions": {
+            "type": "object"
+          },
+          "reportBooleanFilter": {
+            "type": "string"
+          },
+          "customSummaryFormula": {
+            "type": "array"
+          },
+          "historicalSnapshotDates": {
+            "type": "array"
+          },
+          "userOrHierarchyFilterId": {
+            "type": "string"
+          },
+          "allowedInCustomDetailFormula": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "reportFormat",
+          "reportType"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_REMOVE_ACCOUNT_BY_UNIQUE_IDENTIFIER",
+      "name": "Remove account by unique identifier",
+      "description": "DEPRECATED: Deletes an existing Salesforce Account using its unique ID, returning an empty response on success (HTTP 204).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_REMOVE_A_SPECIFIC_CONTACT_BY_ID",
+      "name": "Remove a specific contact by id",
+      "description": "DEPRECATED: Permanently deletes a specific Contact from Salesforce using its unique ID, which must correspond to an existing record.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_REMOVE_CAMPAIGN_OBJECT_BY_ID",
+      "name": "Remove campaign object by id",
+      "description": "DEPRECATED: Permanently deletes a specific Campaign SObject in Salesforce using its unique ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_REMOVE_FROM_CAMPAIGN",
+      "name": "Remove from campaign",
+      "description": "Removes a lead or contact from a campaign by deleting the CampaignMember record. Provide either the member_id (lead/contact ID) or the spec…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "member_id": {
+            "type": "string"
+          },
+          "campaign_id": {
+            "type": "string"
+          },
+          "campaign_member_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaign_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_REMOVE_NOTE_OBJECT_BY_ID",
+      "name": "Remove note object by id",
+      "description": "DEPRECATED: Permanently deletes an existing Salesforce Note object identified by its unique ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_REMOVE_OPPORTUNITY_BY_ID",
+      "name": "Remove opportunity by id",
+      "description": "DEPRECATED: Permanently deletes an existing Salesforce Opportunity by its ID; if the Opportunity does not exist, a 'not found' (404) error …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_RETRIEVE_ACCOUNT_DATA_AND_ERROR_RESPONSES",
+      "name": "Retrieve account data and error responses",
+      "description": "DEPRECATED: Retrieves comprehensive metadata for the Salesforce Account sObject, detailing its properties, recent records, and related reso…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_RETRIEVE_CAMPAIGN_DATA_WITH_ERROR_HANDLING",
+      "name": "Retrieve campaign data with error handling",
+      "description": "DEPRECATED: Retrieves comprehensive information and metadata for the Salesforce Campaign sObject, provided it is enabled and accessible in …",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_RETRIEVE_CONTACT_INFO_WITH_STANDARD_RESPONSES",
+      "name": "Retrieve contact object metadata",
+      "description": "DEPRECATED: Retrieves comprehensive metadata (e.g., fields, data types, picklist values) for the Salesforce Contact SObject; this action do…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_RETRIEVE_LEAD_BY_ID",
+      "name": "Retrieve lead by id",
+      "description": "Retrieves details for a Salesforce Lead by its ID; the specified Lead ID must exist in Salesforce.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "filtered_fields_message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_RETRIEVE_LEAD_DATA_WITH_VARIOUS_RESPONSES",
+      "name": "Retrieve lead data with various responses",
+      "description": "DEPRECATED: Retrieves Lead sObject data from Salesforce, such as recently viewed leads or general Lead object information.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_RETRIEVE_NOTE_OBJECT_INFORMATION",
+      "name": "Retrieve note object information",
+      "description": "DEPRECATED: Retrieves comprehensive metadata for the Salesforce 'Note' SObject, if it is enabled and accessible, to understand its structur…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_RETRIEVE_OPPORTUNITIES_DATA",
+      "name": "Retrieve opportunities data",
+      "description": "Retrieves all available Opportunity records, representing potential revenue-generating deals, from Salesforce.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SALESFORCE_RETRIEVE_OPPORTUNITY_BY_ID_WITH_OPTIONAL_FIELDS",
+      "name": "Retrieve opportunity by id with optional fields",
+      "description": "DEPRECATED: Retrieves a Salesforce Opportunity by its ID; the Opportunity ID must exist.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_RETRIEVE_SPECIFIC_CAMPAIGN_OBJECT_DETAILS",
+      "name": "Retrieve specific campaign object details",
+      "description": "DEPRECATED: Retrieves details for a specific Salesforce Campaign object by its ID, optionally limiting to specified fields; the Campaign ob…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_RETRIEVE_SPECIFIC_CONTACT_BY_ID",
+      "name": "Retrieve specific contact by id",
+      "description": "(DEPRECATED: use `SALESFORCE_GET_CONTACT_BY_ID`) Retrieves a Salesforce Contact by its unique ID; the ID must correspond to an existing Con…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_RUN_REPORT",
+      "name": "Run report",
+      "description": "Runs a report and returns the results. Creates a report instance that can be checked for completion. Results are returned in a nested struc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "report_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "report_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_RUN_SOQL_QUERY",
+      "name": "Run SOQL query",
+      "description": "Executes a SOQL query against Salesforce data. Returns records matching the query with pagination support.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_SEARCH",
+      "name": "Execute SOSL search",
+      "description": "DEPRECATED: Use SALESFORCE_EXECUTE_SOSL_SEARCH instead. Executes a SOSL search query across multiple Salesforce objects. Use when you need …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_SEARCH_ACCOUNTS",
+      "name": "Search accounts",
+      "description": "Search for Salesforce accounts using criteria like name, industry, type, location, or contact information. Always provide at least one filt…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          },
+          "industry": {
+            "type": "string"
+          },
+          "billing_city": {
+            "type": "string"
+          },
+          "billing_state": {
+            "type": "string"
+          },
+          "billing_country": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_SEARCH_CAMPAIGNS",
+      "name": "Search campaigns",
+      "description": "Search for Salesforce campaigns using multiple criteria like name, type, status, date range, or active status. Requires access to the Campa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "start_date_to": {
+            "type": "string"
+          },
+          "start_date_from": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_SEARCH_CONTACTS",
+      "name": "Search contacts",
+      "description": "Search Salesforce Contact records (not Leads — use SALESFORCE_SEARCH_LEADS for those) using name, email, phone, account, or title. All para…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "account_name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_SEARCH_KNOWLEDGE_ARTICLES",
+      "name": "Search suggested article title matches",
+      "description": "Search for Salesforce Knowledge articles with titles matching the search query. Returns auto-suggest results for Knowledge articles based o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "topics": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "Pkb",
+              "Csp",
+              "Prm",
+              "App"
+            ]
+          },
+          "language": {
+            "type": "string"
+          },
+          "publishStatus": {
+            "type": "string",
+            "enum": [
+              "Draft",
+              "Online",
+              "Archived"
+            ]
+          },
+          "validationStatus": {
+            "type": "string",
+            "enum": [
+              "Draft",
+              "Validated",
+              "Published"
+            ]
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_SEARCH_LEADS",
+      "name": "Search leads",
+      "description": "Search for Salesforce leads using criteria like name, email, phone, company, title, status, or lead source. At least one search criterion s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "lead_source": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_SEARCH_NOTES",
+      "name": "Search notes",
+      "description": "Search for Salesforce notes using multiple criteria like title, body content, parent record, owner, or creation date. Provide at least one …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "is_private": {
+            "type": "boolean"
+          },
+          "owner_name": {
+            "type": "string"
+          },
+          "parent_name": {
+            "type": "string"
+          },
+          "created_date_to": {
+            "type": "string"
+          },
+          "created_date_from": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_SEARCH_OPPORTUNITIES",
+      "name": "Search opportunities",
+      "description": "Search for Salesforce opportunities using multiple criteria like name, account, stage, amount, close date, or status. Apply at least one fi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "is_won": {
+            "type": "boolean"
+          },
+          "is_closed": {
+            "type": "boolean"
+          },
+          "amount_max": {
+            "type": "number"
+          },
+          "amount_min": {
+            "type": "number"
+          },
+          "stage_name": {
+            "type": "string"
+          },
+          "lead_source": {
+            "type": "string"
+          },
+          "account_name": {
+            "type": "string"
+          },
+          "close_date_to": {
+            "type": "string"
+          },
+          "close_date_from": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_SEARCH_TASKS",
+      "name": "Search tasks",
+      "description": "Search for Salesforce tasks using multiple criteria like subject, status, priority, assigned user, related records, or dates. Always provid…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "is_closed": {
+            "type": "boolean"
+          },
+          "account_name": {
+            "type": "string"
+          },
+          "contact_name": {
+            "type": "string"
+          },
+          "activity_date_to": {
+            "type": "string"
+          },
+          "assigned_to_name": {
+            "type": "string"
+          },
+          "activity_date_from": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_SEND_EMAIL",
+      "name": "Send email",
+      "description": "Sends an email through Salesforce with options for recipients, attachments, and activity logging. Can partially succeed — check per-recipie…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "is_html": {
+            "type": "boolean"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "log_email": {
+            "type": "boolean"
+          },
+          "sender_type": {
+            "type": "string",
+            "enum": [
+              "CurrentUser",
+              "OrgWideEmailAddress"
+            ]
+          },
+          "cc_addresses": {},
+          "recipient_id": {
+            "type": "string"
+          },
+          "to_addresses": {},
+          "bcc_addresses": {},
+          "attachment_ids": {},
+          "sender_address": {
+            "type": "string"
+          },
+          "related_record_id": {
+            "type": "string"
+          },
+          "org_wide_email_address_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "to_addresses",
+          "subject",
+          "body"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_SEND_EMAIL_FROM_TEMPLATE",
+      "name": "Send email from template",
+      "description": "Sends an email using a predefined Salesforce email template with merge field support.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "log_email": {
+            "type": "boolean"
+          },
+          "sender_type": {
+            "type": "string"
+          },
+          "template_id": {
+            "type": "string"
+          },
+          "cc_addresses": {},
+          "recipient_id": {
+            "type": "string"
+          },
+          "bcc_addresses": {},
+          "attachment_ids": {},
+          "sender_address": {
+            "type": "string"
+          },
+          "related_record_id": {
+            "type": "string"
+          },
+          "add_threading_tokens": {
+            "type": "boolean"
+          },
+          "additional_to_addresses": {}
+        },
+        "required": [
+          "template_id",
+          "recipient_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_SEND_MASS_EMAIL",
+      "name": "Send mass email",
+      "description": "Sends bulk emails to multiple recipients immediately and irreversibly using a template or custom content. Requires either a valid template_…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "is_html": {
+            "type": "boolean"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "batch_size": {
+            "type": "integer"
+          },
+          "log_emails": {
+            "type": "boolean"
+          },
+          "sender_type": {
+            "type": "string",
+            "enum": [
+              "CurrentUser",
+              "DefaultWorkflowUser",
+              "OrgWideEmailAddress"
+            ]
+          },
+          "template_id": {
+            "type": "string"
+          },
+          "recipient_ids": {
+            "type": "array"
+          },
+          "sender_address": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipient_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_SET_USER_PASSWORD",
+      "name": "Set user password",
+      "description": "Tool to set or reset a user's password in Salesforce. Use when you need to assign a specific password or generate a random one for a user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "new_password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_SOBJECT_ROWS_UPDATE",
+      "name": "Update sObject record",
+      "description": "Tool to update specific fields in an existing Salesforce sObject record. Use when you need to modify one or more fields in a record without…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "object"
+          },
+          "record_id": {
+            "type": "string"
+          },
+          "sobject_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sobject_api_name",
+          "record_id",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_SOBJECT_USER_PASSWORD",
+      "name": "Get user password expiration status",
+      "description": "Tool to check whether a Salesforce user's password has expired. Use when you need to verify password expiration status for a specific user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_TOOLING_QUERY",
+      "name": "Execute Tooling API query",
+      "description": "Tool to execute SOQL queries against Salesforce Tooling API metadata objects. Use when you need to query metadata components like ApexClass…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_ACCOUNT",
+      "name": "Update account",
+      "description": "Updates an existing account in Salesforce with the specified changes. Only provided fields will be updated.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fax": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          },
+          "industry": {
+            "type": "string"
+          },
+          "sic_desc": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "billing_city": {
+            "type": "string"
+          },
+          "billing_state": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "shipping_city": {
+            "type": "string"
+          },
+          "account_source": {
+            "type": "string"
+          },
+          "annual_revenue": {
+            "type": "number"
+          },
+          "billing_street": {
+            "type": "string"
+          },
+          "shipping_state": {
+            "type": "string"
+          },
+          "billing_country": {
+            "type": "string"
+          },
+          "shipping_street": {
+            "type": "string"
+          },
+          "shipping_country": {
+            "type": "string"
+          },
+          "billing_postal_code": {
+            "type": "string"
+          },
+          "number_of_employees": {
+            "type": "integer"
+          },
+          "shipping_postal_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_ACCOUNT_OBJECT_BY_ID",
+      "name": "Update account by id",
+      "description": "DEPRECATED: Updates specified fields of an existing Salesforce Account object identified by its unique ID; field names are case-sensitive a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "Fax": {
+            "type": "string"
+          },
+          "Sic": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Site": {
+            "type": "string"
+          },
+          "Type": {
+            "type": "string"
+          },
+          "Phone": {
+            "type": "string"
+          },
+          "Jigsaw": {
+            "type": "string"
+          },
+          "Rating": {
+            "type": "string"
+          },
+          "SLA__c": {
+            "type": "string"
+          },
+          "OwnerId": {
+            "type": "string"
+          },
+          "SicDesc": {
+            "type": "string"
+          },
+          "Website": {
+            "type": "string"
+          },
+          "Industry": {
+            "type": "string"
+          },
+          "ParentId": {
+            "type": "string"
+          },
+          "PhotoUrl": {
+            "type": "string"
+          },
+          "Active__c": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": "boolean"
+          },
+          "NaicsCode": {
+            "type": "string"
+          },
+          "NaicsDesc": {
+            "type": "string"
+          },
+          "Ownership": {
+            "type": "string"
+          },
+          "DunsNumber": {
+            "type": "string"
+          },
+          "Tradestyle": {
+            "type": "string"
+          },
+          "BillingCity": {
+            "type": "string"
+          },
+          "CleanStatus": {
+            "type": "string"
+          },
+          "CreatedById": {
+            "type": "string"
+          },
+          "CreatedDate": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "YearStarted": {
+            "type": "string"
+          },
+          "BillingState": {
+            "type": "string"
+          },
+          "ShippingCity": {
+            "type": "string"
+          },
+          "TickerSymbol": {
+            "type": "string"
+          },
+          "AccountNumber": {
+            "type": "string"
+          },
+          "AccountSource": {
+            "type": "string"
+          },
+          "AnnualRevenue": {
+            "type": "integer"
+          },
+          "BillingStreet": {
+            "type": "string"
+          },
+          "ShippingState": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "BillingCountry": {
+            "type": "string"
+          },
+          "DandbCompanyId": {
+            "type": "string"
+          },
+          "LastViewedDate": {
+            "type": "string"
+          },
+          "MasterRecordId": {
+            "type": "string"
+          },
+          "ShippingStreet": {
+            "type": "string"
+          },
+          "SystemModstamp": {
+            "type": "string"
+          },
+          "BillingLatitude": {
+            "type": "integer"
+          },
+          "JigsawCompanyId": {
+            "type": "string"
+          },
+          "ShippingCountry": {
+            "type": "string"
+          },
+          "attributes__url": {
+            "type": "string"
+          },
+          "BillingLongitude": {
+            "type": "integer"
+          },
+          "LastActivityDate": {
+            "type": "string"
+          },
+          "LastModifiedById": {
+            "type": "string"
+          },
+          "LastModifiedDate": {
+            "type": "string"
+          },
+          "OperatingHoursId": {
+            "type": "string"
+          },
+          "ShippingLatitude": {
+            "type": "integer"
+          },
+          "attributes__type": {
+            "type": "string"
+          },
+          "BillingPostalCode": {
+            "type": "string"
+          },
+          "NumberOfEmployees": {
+            "type": "integer"
+          },
+          "ShippingLongitude": {
+            "type": "integer"
+          },
+          "LastReferencedDate": {
+            "type": "string"
+          },
+          "SLASerialNumber__c": {
+            "type": "string"
+          },
+          "ShippingPostalCode": {
+            "type": "string"
+          },
+          "CustomerPriority__c": {
+            "type": "string"
+          },
+          "NumberofLocations__c": {
+            "type": "integer"
+          },
+          "SLAExpirationDate__c": {
+            "type": "string"
+          },
+          "UpsellOpportunity__c": {
+            "type": "string"
+          },
+          "BillingGeocodeAccuracy": {
+            "type": "string"
+          },
+          "ShippingGeocodeAccuracy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_CAMPAIGN",
+      "name": "Update campaign",
+      "description": "Updates an existing campaign in Salesforce with the specified changes. Only provided fields will be updated.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "end_date": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "start_date": {
+            "type": "string"
+          },
+          "actual_cost": {
+            "type": "number"
+          },
+          "campaign_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "number_sent": {
+            "type": "number"
+          },
+          "budgeted_cost": {
+            "type": "number"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "expected_revenue": {
+            "type": "number"
+          },
+          "expected_response": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "campaign_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_CAMPAIGN_BY_ID_WITH_JSON",
+      "name": "Update Campaign By ID",
+      "description": "DEPRECATED: Updates specific fields of an existing Campaign in Salesforce, identified by its unique `id`, which must already exist.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Type": {
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
+          },
+          "EndDate": {
+            "type": "string"
+          },
+          "OwnerId": {
+            "type": "string"
+          },
+          "IsActive": {
+            "type": "boolean"
+          },
+          "ParentId": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": "boolean"
+          },
+          "StartDate": {
+            "type": "string"
+          },
+          "ActualCost": {
+            "type": "integer"
+          },
+          "NumberSent": {
+            "type": "integer"
+          },
+          "CreatedById": {
+            "type": "string"
+          },
+          "CreatedDate": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "BudgetedCost": {
+            "type": "integer"
+          },
+          "NumberOfLeads": {
+            "type": "integer"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "LastViewedDate": {
+            "type": "string"
+          },
+          "SystemModstamp": {
+            "type": "string"
+          },
+          "ExpectedRevenue": {
+            "type": "integer"
+          },
+          "attributes__url": {
+            "type": "string"
+          },
+          "ExpectedResponse": {
+            "type": "integer"
+          },
+          "LastActivityDate": {
+            "type": "string"
+          },
+          "LastModifiedById": {
+            "type": "string"
+          },
+          "LastModifiedDate": {
+            "type": "string"
+          },
+          "NumberOfContacts": {
+            "type": "integer"
+          },
+          "attributes__type": {
+            "type": "string"
+          },
+          "NumberOfResponses": {
+            "type": "integer"
+          },
+          "LastReferencedDate": {
+            "type": "string"
+          },
+          "NumberOfOpportunities": {
+            "type": "integer"
+          },
+          "AmountAllOpportunities": {
+            "type": "integer"
+          },
+          "AmountWonOpportunities": {
+            "type": "integer"
+          },
+          "NumberOfConvertedLeads": {
+            "type": "integer"
+          },
+          "NumberOfWonOpportunities": {
+            "type": "integer"
+          },
+          "CampaignMemberRecordTypeId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_CONTACT",
+      "name": "Update contact",
+      "description": "Updates an existing contact in Salesforce with the specified changes. Only provided fields will be updated. Returns HTTP 204 with no body o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "birthdate": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          },
+          "department": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "mailing_city": {
+            "type": "string"
+          },
+          "mobile_phone": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "mailing_state": {
+            "type": "string"
+          },
+          "mailing_street": {
+            "type": "string"
+          },
+          "mailing_country": {
+            "type": "string"
+          },
+          "mailing_postal_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_CONTACT_BY_ID",
+      "name": "Update contact by id",
+      "description": "DEPRECATED: Updates specified fields of an existing Salesforce Contact by its ID; at least one field must be provided for modification.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "Fax": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string"
+          },
+          "Phone": {
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "Jigsaw": {
+            "type": "string"
+          },
+          "OwnerId": {
+            "type": "string"
+          },
+          "LastName": {
+            "type": "string"
+          },
+          "Level__c": {
+            "type": "string"
+          },
+          "PhotoUrl": {
+            "type": "string"
+          },
+          "AccountId": {
+            "type": "string"
+          },
+          "Birthdate": {
+            "type": "string"
+          },
+          "FirstName": {
+            "type": "string"
+          },
+          "HomePhone": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": "boolean"
+          },
+          "OtherCity": {
+            "type": "string"
+          },
+          "Department": {
+            "type": "string"
+          },
+          "LeadSource": {
+            "type": "string"
+          },
+          "OtherPhone": {
+            "type": "string"
+          },
+          "OtherState": {
+            "type": "string"
+          },
+          "Salutation": {
+            "type": "string"
+          },
+          "CleanStatus": {
+            "type": "string"
+          },
+          "CreatedById": {
+            "type": "string"
+          },
+          "CreatedDate": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "MailingCity": {
+            "type": "string"
+          },
+          "MobilePhone": {
+            "type": "string"
+          },
+          "OtherStreet": {
+            "type": "string"
+          },
+          "ReportsToId": {
+            "type": "string"
+          },
+          "IndividualId": {
+            "type": "string"
+          },
+          "Languages__c": {
+            "type": "string"
+          },
+          "MailingState": {
+            "type": "string"
+          },
+          "OtherCountry": {
+            "type": "string"
+          },
+          "AssistantName": {
+            "type": "string"
+          },
+          "ContactSource": {
+            "type": "string"
+          },
+          "MailingStreet": {
+            "type": "string"
+          },
+          "OtherLatitude": {
+            "type": "integer"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "AssistantPhone": {
+            "type": "string"
+          },
+          "IsEmailBounced": {
+            "type": "boolean"
+          },
+          "LastViewedDate": {
+            "type": "string"
+          },
+          "MailingCountry": {
+            "type": "string"
+          },
+          "MasterRecordId": {
+            "type": "string"
+          },
+          "OtherLongitude": {
+            "type": "integer"
+          },
+          "SystemModstamp": {
+            "type": "string"
+          },
+          "JigsawContactId": {
+            "type": "string"
+          },
+          "MailingLatitude": {
+            "type": "integer"
+          },
+          "OtherPostalCode": {
+            "type": "string"
+          },
+          "attributes__url": {
+            "type": "string"
+          },
+          "EmailBouncedDate": {
+            "type": "string"
+          },
+          "IsPriorityRecord": {
+            "type": "boolean"
+          },
+          "LastActivityDate": {
+            "type": "string"
+          },
+          "LastCUUpdateDate": {
+            "type": "string"
+          },
+          "LastModifiedById": {
+            "type": "string"
+          },
+          "LastModifiedDate": {
+            "type": "string"
+          },
+          "MailingLongitude": {
+            "type": "integer"
+          },
+          "attributes__type": {
+            "type": "string"
+          },
+          "LastCURequestDate": {
+            "type": "string"
+          },
+          "MailingPostalCode": {
+            "type": "string"
+          },
+          "EmailBouncedReason": {
+            "type": "string"
+          },
+          "LastReferencedDate": {
+            "type": "string"
+          },
+          "OtherGeocodeAccuracy": {
+            "type": "string"
+          },
+          "MailingGeocodeAccuracy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_FAVORITE",
+      "name": "Update a favorite",
+      "description": "Tool to update a favorite's properties in Salesforce UI API. Use when you need to reorder favorites or modify their display properties.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "favorite_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "favorite_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_LEAD",
+      "name": "Update lead",
+      "description": "Updates an existing lead in Salesforce with the specified changes. Only provided fields will be updated.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "lead_id": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          },
+          "industry": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "lead_source": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "annual_revenue": {
+            "type": "number"
+          },
+          "number_of_employees": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lead_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_LEAD_BY_ID_WITH_JSON_PAYLOAD",
+      "name": "Update lead by ID with JSON payload",
+      "description": "DEPRECATED: Updates specified fields of an existing Lead in Salesforce via its unique ID (path parameter), returning HTTP 204 on success or…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "Fax": {
+            "type": "string"
+          },
+          "City": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string"
+          },
+          "Phone": {
+            "type": "string"
+          },
+          "State": {
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "Jigsaw": {
+            "type": "string"
+          },
+          "Rating": {
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
+          },
+          "Street": {
+            "type": "string"
+          },
+          "Company": {
+            "type": "string"
+          },
+          "Country": {
+            "type": "string"
+          },
+          "OwnerId": {
+            "type": "string"
+          },
+          "Website": {
+            "type": "string"
+          },
+          "Industry": {
+            "type": "string"
+          },
+          "LastName": {
+            "type": "string"
+          },
+          "Latitude": {
+            "type": "number"
+          },
+          "PhotoUrl": {
+            "type": "string"
+          },
+          "FirstName": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": "boolean"
+          },
+          "Longitude": {
+            "type": "number"
+          },
+          "LeadSource": {
+            "type": "string",
+            "enum": [
+              "Web",
+              "Other",
+              "Phone Inquiry",
+              "Partner Referral",
+              "Purchased List"
+            ]
+          },
+          "PostalCode": {
+            "type": "string"
+          },
+          "Primary__c": {
+            "type": "string"
+          },
+          "SICCode__c": {
+            "type": "string"
+          },
+          "Salutation": {
+            "type": "string",
+            "enum": [
+              "Mr.",
+              "Ms.",
+              "Mrs.",
+              "Dr.",
+              "Prof."
+            ]
+          },
+          "CleanStatus": {
+            "type": "string"
+          },
+          "CreatedById": {
+            "type": "string"
+          },
+          "CreatedDate": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "IsConverted": {
+            "type": "boolean"
+          },
+          "MobilePhone": {
+            "type": "string"
+          },
+          "IndividualId": {
+            "type": "string"
+          },
+          "AnnualRevenue": {
+            "type": "number"
+          },
+          "ConvertedDate": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "DandbCompanyId": {
+            "type": "string"
+          },
+          "LastViewedDate": {
+            "type": "string"
+          },
+          "MasterRecordId": {
+            "type": "string"
+          },
+          "SystemModstamp": {
+            "type": "string"
+          },
+          "GeocodeAccuracy": {
+            "type": "string"
+          },
+          "IsUnreadByOwner": {
+            "type": "boolean"
+          },
+          "JigsawContactId": {
+            "type": "string"
+          },
+          "attributes__url": {
+            "type": "string"
+          },
+          "EmailBouncedDate": {
+            "type": "string"
+          },
+          "IsPriorityRecord": {
+            "type": "boolean"
+          },
+          "LastActivityDate": {
+            "type": "string"
+          },
+          "LastModifiedById": {
+            "type": "string"
+          },
+          "LastModifiedDate": {
+            "type": "string"
+          },
+          "attributes__type": {
+            "type": "string"
+          },
+          "CompanyDunsNumber": {
+            "type": "string"
+          },
+          "NumberOfEmployees": {
+            "type": "integer"
+          },
+          "ConvertedAccountId": {
+            "type": "string"
+          },
+          "ConvertedContactId": {
+            "type": "string"
+          },
+          "EmailBouncedReason": {
+            "type": "string"
+          },
+          "LastReferencedDate": {
+            "type": "string"
+          },
+          "ProductInterest__c": {
+            "type": "string"
+          },
+          "CurrentGenerators__c": {
+            "type": "string"
+          },
+          "NumberofLocations__c": {
+            "type": "integer"
+          },
+          "ConvertedOpportunityId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_LIST_VIEW_PREFERENCES",
+      "name": "Update list view preferences",
+      "description": "Tool to update user preferences for a Salesforce list view including column widths, text wrapping, and display order. Use when you need to …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "column_wrap": {
+            "type": "object"
+          },
+          "column_order": {
+            "type": "array"
+          },
+          "column_widths": {
+            "type": "object"
+          },
+          "object_api_name": {
+            "type": "string"
+          },
+          "list_view_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_api_name",
+          "list_view_api_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_NOTE",
+      "name": "Update note",
+      "description": "Updates an existing note in Salesforce with the specified changes. Only provided fields will be updated.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "note_id": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "string"
+          },
+          "is_private": {
+            "type": "boolean"
+          },
+          "custom_fields": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "note_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_OPPORTUNITY",
+      "name": "Update opportunity",
+      "description": "Updates an existing opportunity in Salesforce with the specified changes. Only provided fields will be updated. Returns HTTP 204 with empty…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "next_step": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "close_date": {
+            "type": "string"
+          },
+          "stage_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "lead_source": {
+            "type": "string"
+          },
+          "probability": {
+            "type": "number"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "opportunity_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "opportunity_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_OPPORTUNITY_BY_ID",
+      "name": "Update opportunity by id",
+      "description": "DEPRECATED: Updates specified fields of an existing Salesforce Opportunity by its ID; the Opportunity must exist, and some fields (like Nam…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Type": {
+            "type": "string"
+          },
+          "IsWon": {
+            "type": "boolean"
+          },
+          "Amount": {
+            "type": "integer"
+          },
+          "Fiscal": {
+            "type": "string"
+          },
+          "OwnerId": {
+            "type": "string"
+          },
+          "IsClosed": {
+            "type": "boolean"
+          },
+          "NextStep": {
+            "type": "string"
+          },
+          "AccountId": {
+            "type": "string"
+          },
+          "CloseDate": {
+            "type": "string"
+          },
+          "ContactId": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": "boolean"
+          },
+          "IsPrivate": {
+            "type": "boolean"
+          },
+          "PushCount": {
+            "type": "integer"
+          },
+          "StageName": {
+            "type": "string"
+          },
+          "CampaignId": {
+            "type": "string"
+          },
+          "FiscalYear": {
+            "type": "integer"
+          },
+          "LeadSource": {
+            "type": "string"
+          },
+          "CreatedById": {
+            "type": "string"
+          },
+          "CreatedDate": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "Probability": {
+            "type": "integer"
+          },
+          "Pricebook2Id": {
+            "type": "string"
+          },
+          "FiscalQuarter": {
+            "type": "integer"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "HasOverdueTask": {
+            "type": "boolean"
+          },
+          "LastViewedDate": {
+            "type": "string"
+          },
+          "OrderNumber__c": {
+            "type": "string"
+          },
+          "SystemModstamp": {
+            "type": "string"
+          },
+          "ExpectedRevenue": {
+            "type": "integer"
+          },
+          "HasOpenActivity": {
+            "type": "boolean"
+          },
+          "attributes__url": {
+            "type": "string"
+          },
+          "ForecastCategory": {
+            "type": "string"
+          },
+          "LastActivityDate": {
+            "type": "string"
+          },
+          "LastModifiedById": {
+            "type": "string"
+          },
+          "LastModifiedDate": {
+            "type": "string"
+          },
+          "attributes__type": {
+            "type": "string"
+          },
+          "TrackingNumber__c": {
+            "type": "string"
+          },
+          "LastReferencedDate": {
+            "type": "string"
+          },
+          "MainCompetitors__c": {
+            "type": "string"
+          },
+          "LastStageChangeDate": {
+            "type": "string"
+          },
+          "CurrentGenerators__c": {
+            "type": "string"
+          },
+          "ForecastCategoryName": {
+            "type": "string"
+          },
+          "HasOpportunityLineItem": {
+            "type": "boolean"
+          },
+          "TotalOpportunityQuantity": {
+            "type": "integer"
+          },
+          "LastAmountChangedHistoryId": {
+            "type": "string"
+          },
+          "DeliveryInstallationStatus__c": {
+            "type": "string"
+          },
+          "LastCloseDateChangedHistoryId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_RECORD",
+      "name": "Update a record",
+      "description": "Tool to update a record's data in Salesforce via UI API. Use when you need to modify field values on an existing record. Salesforce validat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "object"
+          },
+          "api_name": {
+            "type": "string"
+          },
+          "record_id": {
+            "type": "string"
+          },
+          "use_default_rule": {
+            "type": "boolean"
+          },
+          "trigger_user_email": {
+            "type": "boolean"
+          },
+          "if_unmodified_since": {
+            "type": "string"
+          },
+          "trigger_other_email": {
+            "type": "boolean"
+          },
+          "allow_save_on_duplicate": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "record_id",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_RELATED_LIST_PREFERENCES",
+      "name": "Update Related List Preferences",
+      "description": "Tool to update user preferences for a specific related list on an object in Salesforce. Use when customizing display settings such as colum…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ordered_by": {
+            "type": "array"
+          },
+          "column_wrap": {
+            "type": "object"
+          },
+          "column_widths": {
+            "type": "object"
+          },
+          "composite_layout_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "composite_layout_name"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_SPECIFIC_NOTE_BY_ID",
+      "name": "Update specific note by id",
+      "description": "DEPRECATED: Use `update_specific_note_by_id` instead. Updates specified fields of an existing Salesforce Note SObject identified by its ID;…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "Body": {
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "OwnerId": {
+            "type": "string"
+          },
+          "ParentId": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": "boolean"
+          },
+          "IsPrivate": {
+            "type": "boolean"
+          },
+          "CreatedById": {
+            "type": "string"
+          },
+          "CreatedDate": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "SystemModstamp": {
+            "type": "string"
+          },
+          "attributes__url": {
+            "type": "string"
+          },
+          "LastModifiedById": {
+            "type": "string"
+          },
+          "LastModifiedDate": {
+            "type": "string"
+          },
+          "attributes__type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPDATE_TASK",
+      "name": "Update task",
+      "description": "Updates an existing task in Salesforce with new information. Only provided fields will be updated.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "who_id": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "what_id": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "activity_date": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "is_reminder_set": {
+            "type": "boolean"
+          },
+          "reminder_date_time": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPLOAD_FILE",
+      "name": "Upload file to Salesforce Files",
+      "description": "Upload a file to Salesforce Files home via the Connect REST API. Use when you need to attach files to records or store them in a user's per…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "desc": {
+            "type": "string"
+          },
+          "file": {
+            "type": "object"
+          },
+          "title": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "content_b64": {
+            "type": "string"
+          },
+          "mimetype_override": {
+            "type": "string"
+          },
+          "first_publish_location_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPLOAD_JOB_DATA",
+      "name": "Upload job data",
+      "description": "Tool to upload CSV data to a Salesforce Bulk API v2 ingest job. Use after creating a job and before closing it. Only ONE upload is allowed …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "csv_data": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "csv_data"
+        ]
+      }
+    },
+    {
+      "slug": "SALESFORCE_UPSERT_SOBJECT_BY_EXTERNAL_ID",
+      "name": "Upsert sObject by External ID",
+      "description": "Tool to upsert records using sObject Rows by External ID. Use when you need to create or update a Salesforce record based on an external ID…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "object"
+          },
+          "sobject": {
+            "type": "string"
+          },
+          "field_name": {
+            "type": "string"
+          },
+          "field_value": {
+            "type": "string"
+          },
+          "update_only": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sobject",
+          "field_name",
+          "field_value",
+          "fields"
+        ]
+      }
+    }
+  ]
+}

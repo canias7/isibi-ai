@@ -1,0 +1,1716 @@
+{
+  "slug": "onenote",
+  "name": "Microsoft OneNote",
+  "tool_count": 62,
+  "tools": [
+    {
+      "slug": "ONENOTE_COPY_ONENOTE_GROUP_NOTEBOOK",
+      "name": "Copy notebook in group",
+      "description": "Copies a OneNote notebook to the Notebooks folder in the destination Documents library. The notebook is copied asynchronously. This action …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "renameAs": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "notebook_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_COPY_ONENOTE_SITE_NOTEBOOK",
+      "name": "Copy notebook in site",
+      "description": "Copies a OneNote notebook to the destination site in the SharePoint documents library. Use this action when you need to duplicate a noteboo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "renameAs": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          },
+          "destinationId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "notebook_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_COPY_SECTION_TO_NOTEBOOK2",
+      "name": "Copy section to notebook (site context)",
+      "description": "Copies a OneNote section to a specific notebook within a SharePoint site. Use this action when you need to duplicate an existing OneNote se…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "rename_as": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "notebook_id",
+          "section_id",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_COPY_SECTION_TO_NOTEBOOK_FOR_USER2",
+      "name": "Copy section to notebook (user)",
+      "description": "Copies a OneNote section to a specific notebook for a specified user. Use this action when you need to duplicate an existing OneNote sectio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "rename_as": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "notebook_id",
+          "section_id",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_COPY_SECTION_TO_SECTION_GROUP",
+      "name": "Copy group section to section group",
+      "description": "Copies a OneNote section from a Microsoft 365 group's notebook into another section group. Use this action when you need to duplicate an ex…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "rename_as": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "section_id",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_COPY_SECTION_TO_SECTION_GROUP_FOR_USER",
+      "name": "Copy section to section group (user)",
+      "description": "Copies a OneNote section to a specific section group for a specified user. Use this action when you need to duplicate an existing OneNote s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "rename_as": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "section_id",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_COPY_SITE_PAGE_TO_SECTION3",
+      "name": "Copy site page to section",
+      "description": "Copies a OneNote page from a SharePoint site to a destination section. Use this action when you need to duplicate a OneNote page into a dif…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "siteId": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "siteCollectionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "page_id",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_COPY_USER_PAGE_TO_SECTION",
+      "name": "Copy user page to section",
+      "description": "Copy a OneNote page from a user's notebook to a specified section. Use this action when you need to duplicate a OneNote page into a differe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "page_id",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_COUNT_NOTEBOOKS_SECTION_GROUPS_SECTIONS",
+      "name": "Count notebook section group sections",
+      "description": "Gets the count of OneNote sections within a section group in a user's notebook. Use this action when you need to quickly determine the numb…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "section_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "section_group_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_COUNT_SITE_NOTEBOOK_SECTION_GROUPS_SECTIONS",
+      "name": "Count site notebook section group sections",
+      "description": "Gets the count of sections within a OneNote section group in a SharePoint site notebook. Use this action when you need to quickly determine…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          },
+          "section_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "notebook_id",
+          "section_group_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_CREATE_GROUP_NOTEBOOK",
+      "name": "Create group notebook",
+      "description": "Creates a new OneNote notebook within a Microsoft 365 group. Use this action when you need to create a new notebook for storing notes withi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "display_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_CREATE_GROUP_PAGES",
+      "name": "Create group OneNote page",
+      "description": "Creates a new OneNote page in the default section of the default notebook for a Microsoft 365 group. Use this action when you need to progr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "html_content": {
+            "type": "string"
+          },
+          "section_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "html_content"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_CREATE_GROUP_SECTION_GROUPS_SECTIONS",
+      "name": "Create section in section group",
+      "description": "Creates a new OneNote section within a specified section group of a Microsoft 365 group. Use this action when you need to add a new section…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "section_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "section_group_id",
+          "display_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_CREATE_ME_NOTEBOOKS",
+      "name": "Create user notebook",
+      "description": "Creates a new OneNote notebook for the signed-in user. Use this action when you need to create a new personal notebook to organize notes. T…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_CREATE_ME_SECTION_GROUPS_SECTIONS",
+      "name": "Create section in user's section group",
+      "description": "Creates a new OneNote section within a specified section group of a notebook for the signed-in user. Use this action when you need to add a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": "string"
+          },
+          "section_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_group_id",
+          "display_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_CREATE_ME_SECTIONS_PAGES",
+      "name": "Create OneNote page in section",
+      "description": "Creates a new OneNote page in a specific section for the signed-in user. Use this action when you need to create a new page within a specif…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_title": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "html_content": {
+            "type": "string"
+          },
+          "page_created_datetime": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_id",
+          "html_content",
+          "page_title"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_CREATE_ONENOTE_GROUP_NOTEBOOKS_SECTION_GROUPS",
+      "name": "Create section group in group notebook",
+      "description": "Creates a new section group within a OneNote notebook that belongs to a Microsoft 365 group. Use this action when you need to organize sect…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "notebook_id",
+          "display_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_CREATE_SITE_NOTEBOOKS_SECTIONS",
+      "name": "Create section in site notebook",
+      "description": "Creates a new OneNote section within a specified notebook in a SharePoint site. Use this action when you need to add a new section to organ…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "display_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_CREATE_USER_NOTEBOOKS_SECTIONS",
+      "name": "Create section in user notebook",
+      "description": "Creates a new OneNote section within a specified notebook for a specific user. Use this action when you need to add a new section to organi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "notebook_id",
+          "display_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_CREATE_USER_PAGES",
+      "name": "Create user OneNote page",
+      "description": "Creates a new OneNote page in the default section of the default notebook for a specific user. Use this action when you need to programmati…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "html_content": {
+            "type": "string"
+          },
+          "section_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "html_content"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_CREATE_USER_SECTION_GROUPS_SECTIONS",
+      "name": "Create section in user section group",
+      "description": "Creates a new OneNote section within a specified section group for a specific user. Use this action when you need to add a new section to o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "section_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "section_group_id",
+          "display_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_CREATE_USER_SECTIONS_PAGES4",
+      "name": "Create user section page",
+      "description": "Creates a new OneNote page in a specific section of a user's notebook. Use this action when you need to create a new page directly in a sec…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "page_title": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "html_content": {
+            "type": "string"
+          },
+          "page_created_datetime": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "section_id",
+          "html_content"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_DELETE_ONENOTE_GROUP_SECTION_GROUP_PAGE_CONTENT",
+      "name": "Delete page content from section group section",
+      "description": "Deletes the HTML content of a OneNote page within a section in a section group in a Microsoft 365 group's OneNote workspace. This action is…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "section_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "section_group_id",
+          "section_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_DELETE_ONENOTE_GROUP_SECTIONS_PAGES2",
+      "name": "Delete OneNote page from section",
+      "description": "Delete a specific OneNote page from a section within a notebook in a group. Use this action when you need to remove a OneNote page permanen…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "notebook_id",
+          "section_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_DELETE_SITE_PAGES",
+      "name": "Delete OneNote page from site",
+      "description": "Deletes a OneNote page from a SharePoint site. Use this action when you need to remove a OneNote page permanently from a SharePoint site's …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_DELETE_USER_ONENOTE_SECTIONS_PAGES",
+      "name": "Delete user OneNote page from section",
+      "description": "Deletes a OneNote page from a section within a section group in a user's notebook. This action is irreversible — the page and all its conte…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          },
+          "section_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "notebook_id",
+          "section_group_id",
+          "section_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_DELETE_USER_PAGES",
+      "name": "Delete OneNote page for user",
+      "description": "Deletes a OneNote page from a user's OneNote workspace. This action is irreversible — the page and all its content will be permanently dele…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_GROUP_SECTIONS",
+      "name": "Get a OneNote section from a group",
+      "description": "Retrieves a specific OneNote section from a Microsoft 365 group. Use this action when you need to fetch metadata or details for a single On…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "select": {
+            "type": "array"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_ME_ONENOTE_RESOURCES_VALUE",
+      "name": "Get OneNote resource content by ID",
+      "description": "Retrieves the binary content of a specific OneNote resource using its ID. Use this action when you need to fetch the raw binary content of …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "resource_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_ME_SECTION_PAGE_CONTENT",
+      "name": "Get OneNote page content from section",
+      "description": "Retrieves the HTML content of a specific OneNote page from a section for the signed-in user. Use this action when you need to fetch the ful…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "include_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_NOTEBOOK_FROM_WEB_URL",
+      "name": "Get notebook from web URL",
+      "description": "Retrieves a OneNote notebook by using its web URL path. Use this action when you have the SharePoint or OneDrive URL of a notebook and need…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "web_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "web_url"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_NOTEBOOK_SECTION_GROUP",
+      "name": "Get notebook section group",
+      "description": "Retrieves a specific section group from a OneNote notebook within a Microsoft 365 group. Use this action when you need to get details about…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "section_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "section_group_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_ONENOTE_GROUP_OPERATIONS",
+      "name": "Get group OneNote operation status",
+      "description": "Retrieves the status of a long-running OneNote operation for a group. Use this action when you need to check whether a copy or sync operati…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "operation_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_ONENOTE_GROUP_SECTIONS_PAGES",
+      "name": "Get a OneNote page from a section group section",
+      "description": "Retrieves a specific OneNote page from a section within a section group in a Microsoft 365 group's notebook. Use this action when you need …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "select": {
+            "type": "array"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          },
+          "section_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "notebook_id",
+          "section_group_id",
+          "section_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_ONENOTE_SITE_OPERATIONS",
+      "name": "Get site OneNote operation status",
+      "description": "Retrieves the status of a long-running OneNote operation for a SharePoint site. Use this action when you need to check whether a copy or sy…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "operation_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_ONENOTE_USER_PAGE_CONTENT",
+      "name": "Get OneNote page content for user",
+      "description": "Gets the HTML content of a specific OneNote page for a user. Use this action when you need to retrieve the actual HTML content of a specifi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "include_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "user_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_SITE_ONENOTE_PAGES",
+      "name": "Get OneNote page from site",
+      "description": "Retrieves a specific OneNote page from a SharePoint site. Use this action when you need to fetch metadata or details for a single OneNote p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "select": {
+            "type": "array"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_SITE_PAGES_PREVIEW",
+      "name": "Get site notebook page preview",
+      "description": "Retrieves a text preview of a specific OneNote page from a section within a section group in a SharePoint site-hosted notebook. Use this ac…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_SITE_SECTIONS",
+      "name": "Get a OneNote section from a site",
+      "description": "Retrieves a specific OneNote section from a SharePoint site. Use this action when you need to fetch metadata or details for a single OneNot…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "select": {
+            "type": "array"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_SITE_SECTIONS_PAGES",
+      "name": "Get OneNote page from site section group section",
+      "description": "Retrieves a specific OneNote page from a section within a section group in a SharePoint site notebook. Use this action when you need to fet…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "select": {
+            "type": "array"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          },
+          "section_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "notebook_id",
+          "section_group_id",
+          "section_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_USER_NOTEBOOK",
+      "name": "Get user notebook",
+      "description": "Retrieves the properties and relationships of a OneNote notebook by ID for a specific user. Use this action when you need to fetch details …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "select": {
+            "type": "array"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "notebook_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_USER_PAGES",
+      "name": "Get a OneNote page from user",
+      "description": "Retrieves a specific OneNote page from a user's OneNote notebooks. Use this action when you need to fetch metadata or details for a single …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "select": {
+            "type": "array"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_GET_USER_PARENT_SECTION_GROUP2",
+      "name": "Get parent section group from user section",
+      "description": "Retrieves the parent section group of a OneNote section within a user's notebook. Use this action when you need to navigate up the OneNote …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "select": {
+            "type": "array"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "notebook_id",
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_LIST_GROUP_NOTEBOOK_SECTION_GROUPS",
+      "name": "List notebook section groups",
+      "description": "Retrieves a list of section groups from the specified notebook within a Microsoft 365 group. Use this action when you need to list all sect…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "array"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "array"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "notebook_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_LIST_GROUP_NOTEBOOK_SECTION_PAGES",
+      "name": "List pages from a group notebook section",
+      "description": "Lists all OneNote pages from a specific section within a notebook in a Microsoft 365 group. Use this action when you need to retrieve all p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "skip": {
+            "type": "integer"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "array"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "notebook_id",
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_LIST_GROUP_SECTION_GROUPS_SECTIONS",
+      "name": "List section group sections",
+      "description": "Lists all OneNote sections from a specific section group within a Microsoft 365 group's OneNote. Use this action when you need to retrieve …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "array"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "array"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          },
+          "section_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "section_group_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_LIST_ME_ONENOTE_SECTIONS_PAGES4",
+      "name": "List pages in section",
+      "description": "Retrieves a list of OneNote pages from a specific section for the current user. Use this action when you need to retrieve all pages from a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "skip": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "array"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "array"
+          },
+          "next_link": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "section_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_LIST_ONENOTE_GROUP_PAGES",
+      "name": "List group OneNote pages",
+      "description": "Lists all OneNote pages from a Microsoft 365 group. Use this action when you need to retrieve all OneNote pages within a Microsoft 365 grou…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "skip": {
+            "type": "integer"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "array"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_LIST_ONENOTE_GROUP_SECTION_GROUPS_SECTION_GROUPS2",
+      "name": "List group section group section groups",
+      "description": "Lists all section groups from a specified parent section group within a Microsoft 365 group's OneNote notebook. Use this action when you ne…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "array"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "array"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          },
+          "section_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "section_group_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_LIST_ONENOTE_GROUP_SECTIONS_PAGES4",
+      "name": "List pages from a group section",
+      "description": "Lists all OneNote pages from a specific section in a Microsoft 365 group. Use this action when you need to retrieve all pages from a known …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "skip": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "array"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "array"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "section_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_LIST_SITE_NOTEBOOK_SECTION_GROUPS",
+      "name": "List site notebook section groups",
+      "description": "Retrieves a list of section groups from the specified notebook within a SharePoint site. Use this action when you need to list all section …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "array"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "array"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "notebook_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_LIST_SITE_PAGES_CONTENT",
+      "name": "Get OneNote page content from SharePoint site",
+      "description": "Retrieves the HTML content of a specific OneNote page within a SharePoint site. Use this action when you need to fetch the full HTML conten…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "include_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "site_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_LIST_SITE_SECTIONS",
+      "name": "List site sections",
+      "description": "Retrieves a list of OneNote sections from a SharePoint site. Use this action when you need to list all OneNote sections within a SharePoint…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "array"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "array"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_LIST_USER_NOTEBOOKS",
+      "name": "List user notebooks",
+      "description": "Lists all OneNote notebooks accessible by a specific user. Use this action when you need to retrieve the available notebooks for a user, di…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "skip": {
+            "type": "integer"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "array"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_LIST_USER_NOTEBOOK_SECTIONS",
+      "name": "List user notebook sections",
+      "description": "Lists all OneNote sections from a specified notebook belonging to a user. Use this action when you need to retrieve all sections within a n…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "array"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "array"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "notebook_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_UPDATE_ME_PAGE_CONTENT",
+      "name": "Update my OneNote page content",
+      "description": "Update the content of a OneNote page for the signed-in user. Sends a PATCH request with patch content commands to modify the HTML structure…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "commands": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "page_id",
+          "commands"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_UPDATE_ME_SECTIONS",
+      "name": "Update my OneNote section",
+      "description": "Updates the navigation property sections in me. Use when you need to modify properties of an existing OneNote section, such as renaming it,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "section_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_UPDATE_ONENOTE_PAGE_CONTENT",
+      "name": "Update OneNote page content",
+      "description": "Update the content of a OneNote page within a Microsoft 365 group using HTML patch commands. Use this action when you need to modify the co…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "commands": {
+            "type": "array"
+          },
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "page_id",
+          "commands"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_UPDATE_SITE_NOTEBOOKS_SECTIONS",
+      "name": "Update section in site notebook",
+      "description": "Updates a OneNote section within a notebook in a SharePoint site. Use this action when you need to modify properties of an existing section…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_UPDATE_SITE_PAGES_CONTENT",
+      "name": "Update site OneNote page content",
+      "description": "Update the content of a OneNote page within a SharePoint site. Sends a PATCH request with patch content commands to modify the HTML structu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "commands": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "site_id",
+          "page_id",
+          "commands"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_UPDATE_SITE_SECTION_GROUPS_SECTIONS",
+      "name": "Update site section group section",
+      "description": "Updates a OneNote section within a section group in a SharePoint site notebook. Use this action when you need to modify properties of an ex…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "notebook_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "section_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "notebook_id",
+          "section_group_id",
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONENOTE_UPDATE_USER_NOTEBOOKS_SECTIONS",
+      "name": "Update section in user notebook",
+      "description": "Updates a OneNote section within a user's notebook. Use this action when you need to modify properties of an existing OneNote section, such…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "section_id"
+        ]
+      }
+    }
+  ]
+}

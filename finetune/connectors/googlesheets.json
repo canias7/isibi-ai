@@ -1,0 +1,2067 @@
+{
+  "slug": "googlesheets",
+  "name": "Google Sheets",
+  "tool_count": 53,
+  "tools": [
+    {
+      "slug": "GOOGLESHEETS_ADD_SHEET",
+      "name": "Add Sheet to Existing Spreadsheet",
+      "description": "Adds a new sheet to a spreadsheet. Supports three sheet types: GRID, OBJECT, and DATA_SOURCE. SHEET TYPES: - GRID (default): Standard sprea…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "properties": {
+            "type": "object"
+          },
+          "force_unique": {
+            "type": "boolean"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "data_source_config": {
+            "type": "object"
+          },
+          "object_sheet_config": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "spreadsheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_AGGREGATE_COLUMN_DATA",
+      "name": "Aggregate Column Data",
+      "description": "Searches for rows where a specific column matches a value and performs mathematical operations on data from another column.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "sum",
+              "average",
+              "count",
+              "min",
+              "max",
+              "percentage"
+            ]
+          },
+          "sheet_name": {
+            "type": "string"
+          },
+          "search_value": {
+            "type": "string"
+          },
+          "search_column": {
+            "type": "string"
+          },
+          "target_column": {
+            "type": "string"
+          },
+          "case_sensitive": {
+            "type": "boolean"
+          },
+          "has_header_row": {
+            "type": "boolean"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "percentage_total": {
+            "type": "number"
+          },
+          "additional_filters": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "sheet_name",
+          "target_column",
+          "operation"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_APPEND_DIMENSION",
+      "name": "Append Dimension",
+      "description": "Tool to append new rows or columns to a sheet, increasing its size. Use when you need to add empty rows or columns to an existing sheet.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "length": {
+            "type": "integer"
+          },
+          "sheet_id": {
+            "type": "integer"
+          },
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "ROWS",
+              "COLUMNS"
+            ]
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "response_ranges": {
+            "type": "array"
+          },
+          "response_include_grid_data": {
+            "type": "boolean"
+          },
+          "include_spreadsheet_in_response": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "sheet_id",
+          "dimension",
+          "length"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_AUTO_RESIZE_DIMENSIONS",
+      "name": "Auto-Resize Rows or Columns",
+      "description": "Auto-fit column widths or row heights for a dimension range using batchUpdate.autoResizeDimensions. Use when you need to automatically adju…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sheet_id": {
+            "type": "integer"
+          },
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "ROWS",
+              "COLUMNS"
+            ]
+          },
+          "end_index": {
+            "type": "integer"
+          },
+          "sheet_name": {
+            "type": "string"
+          },
+          "start_index": {
+            "type": "integer"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "dimension",
+          "start_index",
+          "end_index"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_BATCH_CLEAR_VALUES_BY_DATA_FILTER",
+      "name": "Batch Clear Values By Data Filter",
+      "description": "Clears one or more ranges of values from a spreadsheet using data filters. The caller must specify the spreadsheet ID and one or more DataF…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dataFilters": {
+            "type": "array"
+          },
+          "spreadsheetId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheetId",
+          "dataFilters"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_BATCH_GET",
+      "name": "Batch get spreadsheet",
+      "description": "Retrieves data from specified cell ranges in a Google Spreadsheet.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ranges": {
+            "type": "array"
+          },
+          "majorDimension": {
+            "type": "string",
+            "enum": [
+              "DIMENSION_UNSPECIFIED",
+              "ROWS",
+              "COLUMNS"
+            ]
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "valueRenderOption": {
+            "type": "string",
+            "enum": [
+              "FORMATTED_VALUE",
+              "UNFORMATTED_VALUE",
+              "FORMULA"
+            ]
+          },
+          "dateTimeRenderOption": {
+            "type": "string",
+            "enum": [
+              "SERIAL_NUMBER",
+              "FORMATTED_STRING"
+            ]
+          },
+          "empty_strings_filtered": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_BATCH_UPDATE",
+      "name": "Batch update spreadsheet (Deprecated)",
+      "description": "DEPRECATED: Use GOOGLESHEETS_VALUES_UPDATE instead. Write values to ONE range in a Google Sheet, or append as new rows if no start cell is …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "array"
+          },
+          "sheet_name": {
+            "type": "string"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "value_input_option": {
+            "type": "string",
+            "enum": [
+              "RAW",
+              "USER_ENTERED"
+            ]
+          },
+          "first_cell_location": {
+            "type": "string"
+          },
+          "include_values_in_response": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "sheet_name",
+          "values"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_BATCH_UPDATE_VALUES_BY_DATA_FILTER",
+      "name": "Batch Update Values by Data Filter",
+      "description": "Tool to update values in ranges matching data filters. Use when you need to update specific data in a Google Sheet based on criteria rather…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array"
+          },
+          "spreadsheetId": {
+            "type": "string"
+          },
+          "valueInputOption": {
+            "type": "string",
+            "enum": [
+              "INPUT_VALUE_OPTION_UNSPECIFIED",
+              "RAW",
+              "USER_ENTERED"
+            ]
+          },
+          "includeValuesInResponse": {
+            "type": "boolean"
+          },
+          "responseValueRenderOption": {
+            "type": "string",
+            "enum": [
+              "FORMATTED_VALUE",
+              "UNFORMATTED_VALUE",
+              "FORMULA"
+            ]
+          },
+          "responseDateTimeRenderOption": {
+            "type": "string",
+            "enum": [
+              "SERIAL_NUMBER",
+              "FORMATTED_STRING"
+            ]
+          }
+        },
+        "required": [
+          "spreadsheetId",
+          "data",
+          "valueInputOption"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_CLEAR_BASIC_FILTER",
+      "name": "Clear Basic Filter",
+      "description": "Tool to clear the basic filter from a sheet. Use when you need to remove an existing basic filter from a specific sheet within a Google Spr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sheet_id": {
+            "type": "integer"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "response_ranges": {
+            "type": "array"
+          },
+          "response_include_grid_data": {
+            "type": "boolean"
+          },
+          "include_spreadsheet_in_response": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "sheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_CLEAR_VALUES",
+      "name": "Clear spreadsheet values",
+      "description": "Clears cell content (preserving formatting and notes) from a specified A1 notation range in a Google Spreadsheet; the range must correspond…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "range"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_CREATE_CHART",
+      "name": "Create Chart in Google Sheets",
+      "description": "Create a chart in a Google Sheets spreadsheet using the specified data range and chart type. Conditional requirements: - Provide either a s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "sheet_id": {
+            "type": "integer"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "chart_spec": {
+            "type": "object"
+          },
+          "chart_type": {
+            "type": "string",
+            "enum": [
+              "BAR",
+              "LINE",
+              "AREA",
+              "COLUMN",
+              "SCATTER",
+              "COMBO",
+              "STEPPED_AREA",
+              "PIE",
+              "HISTOGRAM",
+              "BUBBLE",
+              "CANDLESTICK",
+              "TREEMAP",
+              "WATERFALL",
+              "ORG",
+              "SCORECARD"
+            ]
+          },
+          "data_range": {
+            "type": "string"
+          },
+          "x_axis_title": {
+            "type": "string"
+          },
+          "y_axis_title": {
+            "type": "string"
+          },
+          "background_red": {
+            "type": "number"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "background_blue": {
+            "type": "number"
+          },
+          "legend_position": {
+            "type": "string"
+          },
+          "background_green": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "sheet_id",
+          "chart_type",
+          "data_range"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+      "name": "Create a Google Sheet",
+      "description": "Creates a new Google Spreadsheet in Google Drive. If a title is provided, the spreadsheet will be created with that name. If no title is pr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "string"
+          },
+          "folder_name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_CREATE_SPREADSHEET_COLUMN",
+      "name": "Create spreadsheet column",
+      "description": "Creates a new column in a Google Spreadsheet. Specify the target sheet using sheet_id (numeric) or sheet_name (text). If neither is provide…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sheet_id": {
+            "type": "integer"
+          },
+          "sheet_name": {
+            "type": "string"
+          },
+          "insert_index": {
+            "type": "integer"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "response_ranges": {
+            "type": "array"
+          },
+          "inherit_from_before": {
+            "type": "boolean"
+          },
+          "response_include_grid_data": {
+            "type": "boolean"
+          },
+          "include_spreadsheet_in_response": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_CREATE_SPREADSHEET_ROW",
+      "name": "Create spreadsheet row",
+      "description": "Inserts a new, empty row into a specified sheet of a Google Spreadsheet at a given index, optionally inheriting formatting from the row abo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sheet_id": {
+            "type": "integer"
+          },
+          "sheet_name": {
+            "type": "string"
+          },
+          "insert_index": {
+            "type": "integer"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "response_ranges": {
+            "type": "array"
+          },
+          "inherit_from_before": {
+            "type": "boolean"
+          },
+          "response_include_grid_data": {
+            "type": "boolean"
+          },
+          "include_spreadsheet_in_response": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_DELETE_CHART",
+      "name": "Delete Chart from Google Sheets",
+      "description": "Delete an existing chart from a Google Sheets spreadsheet. Use this action when you need to remove a chart that is no longer needed or need…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "chart_id": {
+            "type": "integer"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "chart_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_DELETE_DIMENSION",
+      "name": "Delete Dimension (Rows/Columns)",
+      "description": "Tool to delete specified rows or columns from a sheet in a Google Spreadsheet. Use when you need to remove a range of rows or columns.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sheet_id": {
+            "type": "integer"
+          },
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "ROWS",
+              "COLUMNS"
+            ]
+          },
+          "end_index": {
+            "type": "integer"
+          },
+          "sheet_name": {
+            "type": "string"
+          },
+          "start_index": {
+            "type": "integer"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "response_ranges": {
+            "type": "array"
+          },
+          "delete_dimension_request": {
+            "type": "object"
+          },
+          "response_include_grid_data": {
+            "type": "boolean"
+          },
+          "include_spreadsheet_in_response": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_DELETE_SHEET",
+      "name": "Delete Sheet",
+      "description": "Tool to delete a sheet (worksheet) from a spreadsheet. Use when you need to remove a specific sheet from a Google Sheet document.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sheetId": {
+            "type": "integer"
+          },
+          "spreadsheetId": {
+            "type": "string"
+          },
+          "responseRanges": {
+            "type": "array"
+          },
+          "responseIncludeGridData": {
+            "type": "boolean"
+          },
+          "includeSpreadsheetInResponse": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheetId",
+          "sheetId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_EXECUTE_SQL",
+      "name": "Execute SQL on Spreadsheet",
+      "description": "DEPRECATED: Use direct Google Sheets actions instead: - GOOGLESHEETS_VALUES_GET / GOOGLESHEETS_BATCH_GET for reads - GOOGLESHEETS_VALUES_UP…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sql": {
+            "type": "string"
+          },
+          "dry_run": {
+            "type": "boolean"
+          },
+          "delete_method": {
+            "type": "string",
+            "enum": [
+              "clear",
+              "remove_rows"
+            ]
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "sql"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_FIND_REPLACE",
+      "name": "Find and Replace in Spreadsheet",
+      "description": "Tool to find and replace text in a Google Spreadsheet. Use when you need to fix formula errors, update values, or perform bulk text replace…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "find": {
+            "type": "string"
+          },
+          "range": {
+            "type": "string"
+          },
+          "replace": {
+            "type": "string"
+          },
+          "sheetId": {
+            "type": "integer"
+          },
+          "allSheets": {
+            "type": "boolean"
+          },
+          "matchCase": {
+            "type": "boolean"
+          },
+          "sheetName": {
+            "type": "string"
+          },
+          "endRowIndex": {
+            "type": "integer"
+          },
+          "rangeSheetId": {
+            "type": "integer"
+          },
+          "searchByRegex": {
+            "type": "boolean"
+          },
+          "spreadsheetId": {
+            "type": "string"
+          },
+          "startRowIndex": {
+            "type": "integer"
+          },
+          "endColumnIndex": {
+            "type": "integer"
+          },
+          "includeFormulas": {
+            "type": "boolean"
+          },
+          "matchEntireCell": {
+            "type": "boolean"
+          },
+          "startColumnIndex": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "spreadsheetId",
+          "find",
+          "replace"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
+      "name": "Find worksheet by title (Deprecated)",
+      "description": "DEPRECATED: Use GetSpreadsheetInfo instead. Finds a worksheet by its exact, case-sensitive title within a Google Spreadsheet; returns a boo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "worksheet_title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "worksheet_title"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_FORMAT_CELL",
+      "name": "Format cell",
+      "description": "Applies text and background cell formatting to a specified range in a Google Sheets worksheet.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "red": {
+            "type": "number"
+          },
+          "blue": {
+            "type": "number"
+          },
+          "bold": {
+            "type": "boolean"
+          },
+          "green": {
+            "type": "number"
+          },
+          "range": {
+            "type": "string"
+          },
+          "italic": {
+            "type": "boolean"
+          },
+          "font_size": {
+            "type": "integer"
+          },
+          "text_link": {
+            "type": "string"
+          },
+          "underline": {
+            "type": "boolean"
+          },
+          "sheet_name": {
+            "type": "string"
+          },
+          "text_color": {
+            "type": "string"
+          },
+          "font_family": {
+            "type": "string"
+          },
+          "padding_top": {
+            "type": "integer"
+          },
+          "border_color": {
+            "type": "string"
+          },
+          "border_style": {
+            "type": "string",
+            "enum": [
+              "DOTTED",
+              "DASHED",
+              "SOLID",
+              "SOLID_MEDIUM",
+              "SOLID_THICK",
+              "NONE",
+              "DOUBLE"
+            ]
+          },
+          "padding_left": {
+            "type": "integer"
+          },
+          "worksheet_id": {
+            "type": "integer"
+          },
+          "end_row_index": {
+            "type": "integer"
+          },
+          "padding_right": {
+            "type": "integer"
+          },
+          "strikethrough": {
+            "type": "boolean"
+          },
+          "wrap_strategy": {
+            "type": "string",
+            "enum": [
+              "OVERFLOW_CELL",
+              "LEGACY_WRAP",
+              "CLIP",
+              "WRAP"
+            ]
+          },
+          "padding_bottom": {
+            "type": "integer"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "text_direction": {
+            "type": "string",
+            "enum": [
+              "LEFT_TO_RIGHT",
+              "RIGHT_TO_LEFT"
+            ]
+          },
+          "start_row_index": {
+            "type": "integer"
+          },
+          "background_alpha": {
+            "type": "number"
+          },
+          "background_color": {
+            "type": "string"
+          },
+          "end_column_index": {
+            "type": "integer"
+          },
+          "number_format_type": {
+            "type": "string",
+            "enum": [
+              "TEXT",
+              "NUMBER",
+              "PERCENT",
+              "CURRENCY",
+              "DATE",
+              "TIME",
+              "DATE_TIME",
+              "SCIENTIFIC"
+            ]
+          },
+          "start_column_index": {
+            "type": "integer"
+          },
+          "vertical_alignment": {
+            "type": "string",
+            "enum": [
+              "TOP",
+              "MIDDLE",
+              "BOTTOM"
+            ]
+          },
+          "text_rotation_angle": {
+            "type": "integer"
+          },
+          "horizontal_alignment": {
+            "type": "string",
+            "enum": [
+              "LEFT",
+              "CENTER",
+              "RIGHT"
+            ]
+          },
+          "number_format_pattern": {
+            "type": "string"
+          },
+          "hyperlink_display_type": {
+            "type": "string",
+            "enum": [
+              "LINKED",
+              "PLAIN_TEXT"
+            ]
+          },
+          "text_rotation_vertical": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_GET_BATCH_VALUES",
+      "name": "Batch Get Spreadsheet Values (Deprecated)",
+      "description": "DEPRECATED: Use GOOGLESHEETS_BATCH_GET instead. Tool to return one or more ranges of values from a spreadsheet. Use when you need to retrie…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ranges": {
+            "type": "array"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "major_dimension": {
+            "type": "string",
+            "enum": [
+              "DIMENSION_UNSPECIFIED",
+              "ROWS",
+              "COLUMNS"
+            ]
+          },
+          "value_render_option": {
+            "type": "string",
+            "enum": [
+              "FORMATTED_VALUE",
+              "UNFORMATTED_VALUE",
+              "FORMULA"
+            ]
+          },
+          "date_time_render_option": {
+            "type": "string",
+            "enum": [
+              "SERIAL_NUMBER",
+              "FORMATTED_STRING"
+            ]
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "ranges"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_GET_CONDITIONAL_FORMAT_RULES",
+      "name": "Get conditional format rules",
+      "description": "List conditional formatting rules for each sheet (or a selected sheet) in a normalized, easy-to-edit form. Use when you need to view, audit…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sheet_id": {
+            "type": "integer"
+          },
+          "sheet_title": {
+            "type": "string"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "exclude_tables_in_banded_ranges": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_GET_DATA_VALIDATION_RULES",
+      "name": "Get Data Validation Rules",
+      "description": "Tool to extract data validation rules from a Google Sheets spreadsheet. Use when you need to understand dropdown lists, allowed values, cus…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ranges": {
+            "type": "array"
+          },
+          "sheetId": {
+            "type": "integer"
+          },
+          "sheetTitle": {
+            "type": "string"
+          },
+          "includeEmpty": {
+            "type": "boolean"
+          },
+          "spreadsheetId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheetId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_GET_SHEET_NAMES",
+      "name": "Get sheet names",
+      "description": "Lists all worksheet names from a specified Google Spreadsheet (which must exist), useful for discovering sheets before further operations.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "exclude_hidden": {
+            "type": "boolean"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_GET_SPREADSHEET_BY_DATA_FILTER",
+      "name": "Get Spreadsheet by Data Filter",
+      "description": "Returns the spreadsheet at the given ID, filtered by the specified data filters. Use this tool when you need to retrieve specific subsets o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dataFilters": {
+            "type": "array"
+          },
+          "spreadsheetId": {
+            "type": "string"
+          },
+          "includeGridData": {
+            "type": "boolean"
+          },
+          "excludeTablesInBandedRanges": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheetId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_GET_SPREADSHEET_INFO",
+      "name": "Get spreadsheet info",
+      "description": "Retrieves metadata for a Google Spreadsheet using its ID. By default, returns essential information (ID, title, sheet properties) to avoid …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "ranges": {
+            "type": "array"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "include_grid_data": {
+            "type": "boolean"
+          },
+          "exclude_tables_in_banded_ranges": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_GET_TABLE_SCHEMA",
+      "name": "Get Table Schema",
+      "description": "DEPRECATED: Use GOOGLESHEETS_GET_SHEET_NAMES and GOOGLESHEETS_GET_SPREADSHEET_INFO for sheet structure metadata, and GOOGLESHEETS_VALUES_GE…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sheet_name": {
+            "type": "string"
+          },
+          "table_name": {
+            "type": "string"
+          },
+          "sample_size": {
+            "type": "integer"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "table_name"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_INSERT_DIMENSION",
+      "name": "Insert Dimension in Google Sheet",
+      "description": "Tool to insert new rows or columns into a sheet at a specified location. Use when you need to add empty rows or columns within an existing …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "response_ranges": {
+            "type": "array"
+          },
+          "insert_dimension": {
+            "type": "object"
+          },
+          "response_include_grid_data": {
+            "type": "boolean"
+          },
+          "include_spreadsheet_in_response": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "insert_dimension"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_LIST_CHARTS",
+      "name": "List Charts in Google Sheets",
+      "description": "Lists all charts in a Google Sheets spreadsheet across all sheets, returning chart_id, sheet metadata, chart type, title, and position. Use…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "chart_id": {
+            "type": "integer"
+          },
+          "sheet_id": {
+            "type": "integer"
+          },
+          "include_spec": {
+            "type": "boolean"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_LIST_TABLES",
+      "name": "List Tables in Spreadsheet",
+      "description": "DEPRECATED: Use GOOGLESHEETS_GET_SHEET_NAMES for tab discovery and GOOGLESHEETS_GET_SPREADSHEET_INFO for full sheet metadata. This action i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "min_rows": {
+            "type": "integer"
+          },
+          "min_columns": {
+            "type": "integer"
+          },
+          "min_confidence": {
+            "type": "number"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_LOOKUP_SPREADSHEET_ROW",
+      "name": "Look up spreadsheet row",
+      "description": "Finds the first row in a Google Spreadsheet where a cell's entire content exactly matches the query string, searching within a specified A1…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "range": {
+            "type": "string"
+          },
+          "case_sensitive": {
+            "type": "boolean"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "value_render_option": {
+            "type": "string",
+            "enum": [
+              "FORMATTED_VALUE",
+              "UNFORMATTED_VALUE",
+              "FORMULA"
+            ]
+          },
+          "normalize_whitespace": {
+            "type": "boolean"
+          },
+          "date_time_render_option": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_MOVE_CHART",
+      "name": "Move or Resize Chart in Google Sheets",
+      "description": "Move or resize an existing chart on a Google Sheets spreadsheet. Use this action when you need to reposition a chart to a different locatio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "chart_id": {
+            "type": "integer"
+          },
+          "new_sheet": {
+            "type": "boolean"
+          },
+          "width_pixels": {
+            "type": "integer"
+          },
+          "height_pixels": {
+            "type": "integer"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "anchor_sheet_id": {
+            "type": "integer"
+          },
+          "offset_x_pixels": {
+            "type": "integer"
+          },
+          "offset_y_pixels": {
+            "type": "integer"
+          },
+          "target_sheet_id": {
+            "type": "integer"
+          },
+          "anchor_row_index": {
+            "type": "integer"
+          },
+          "anchor_column_index": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "chart_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_MUTATE_CONDITIONAL_FORMAT_RULES",
+      "name": "Mutate conditional format rules",
+      "description": "Add, update, delete, or reorder conditional format rules on a Google Sheet. Use when you need to create, modify, or remove conditional form…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "object"
+          },
+          "index": {
+            "type": "integer"
+          },
+          "sheet_id": {
+            "type": "integer"
+          },
+          "new_index": {
+            "type": "integer"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "ADD",
+              "UPDATE",
+              "DELETE",
+              "MOVE"
+            ]
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "operation",
+          "sheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_QUERY_TABLE",
+      "name": "Query Spreadsheet Table",
+      "description": "DEPRECATED: Use GOOGLESHEETS_VALUES_GET / GOOGLESHEETS_BATCH_GET for table reads and GOOGLESHEETS_LOOKUP_SPREADSHEET_ROW for row lookup/fil…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sql": {
+            "type": "string"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "include_formulas": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "sql"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_SEARCH_DEVELOPER_METADATA",
+      "name": "Search Developer Metadata",
+      "description": "Tool to search for developer metadata in a spreadsheet. Use when you need to find specific metadata entries based on filters.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dataFilters": {
+            "type": "array"
+          },
+          "spreadsheetId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheetId",
+          "dataFilters"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_SEARCH_SPREADSHEETS",
+      "name": "Search Spreadsheets",
+      "description": "Search for Google Spreadsheets using various filters including name, content, date ranges, and more.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "order_by": {
+            "type": "string"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "search_type": {
+            "type": "string",
+            "enum": [
+              "name",
+              "content",
+              "both"
+            ]
+          },
+          "starred_only": {
+            "type": "boolean"
+          },
+          "created_after": {
+            "type": "string"
+          },
+          "modified_after": {
+            "type": "string"
+          },
+          "shared_with_me": {
+            "type": "boolean"
+          },
+          "include_trashed": {
+            "type": "boolean"
+          },
+          "include_shared_drives": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_SET_BASIC_FILTER",
+      "name": "Set Basic Filter",
+      "description": "Tool to set a basic filter on a sheet in a Google Spreadsheet. Use when you need to filter or sort data within a specific range on a sheet.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "object"
+          },
+          "spreadsheetId": {
+            "type": "string"
+          },
+          "responseRanges": {
+            "type": "array"
+          },
+          "responseIncludeGridData": {
+            "type": "boolean"
+          },
+          "includeSpreadsheetInResponse": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheetId",
+          "filter"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_SET_DATA_VALIDATION_RULE",
+      "name": "Set Data Validation Rule",
+      "description": "Tool to set or clear data validation rules (including dropdowns) on a range in Google Sheets. Use when you need to apply dropdown lists, ra…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "SET",
+              "CLEAR"
+            ]
+          },
+          "strict": {
+            "type": "boolean"
+          },
+          "values": {
+            "type": "array"
+          },
+          "formula": {
+            "type": "string"
+          },
+          "sheet_id": {
+            "type": "integer"
+          },
+          "end_row_index": {
+            "type": "integer"
+          },
+          "input_message": {
+            "type": "string"
+          },
+          "show_custom_ui": {
+            "type": "boolean"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "source_range_a1": {
+            "type": "string"
+          },
+          "start_row_index": {
+            "type": "integer"
+          },
+          "validation_type": {
+            "type": "string",
+            "enum": [
+              "ONE_OF_LIST",
+              "ONE_OF_RANGE",
+              "CUSTOM_FORMULA",
+              "NUMBER_GREATER",
+              "NUMBER_GREATER_THAN_EQ",
+              "NUMBER_LESS",
+              "NUMBER_LESS_THAN_EQ",
+              "NUMBER_EQ",
+              "NUMBER_NOT_EQ",
+              "NUMBER_BETWEEN",
+              "NUMBER_NOT_BETWEEN",
+              "TEXT_CONTAINS",
+              "TEXT_NOT_CONTAINS",
+              "TEXT_EQ",
+              "TEXT_NOT_EQ",
+              "TEXT_IS_EMAIL",
+              "TEXT_IS_URL",
+              "DATE_EQ",
+              "DATE_BEFORE",
+              "DATE_AFTER",
+              "DATE_ON_OR_BEFORE",
+              "DATE_ON_OR_AFTER",
+              "DATE_BETWEEN",
+              "DATE_NOT_BETWEEN",
+              "DATE_NOT_EQ",
+              "DATE_IS_VALID",
+              "BLANK",
+              "NOT_BLANK",
+              "BOOLEAN"
+            ]
+          },
+          "condition_values": {
+            "type": "array"
+          },
+          "end_column_index": {
+            "type": "integer"
+          },
+          "start_column_index": {
+            "type": "integer"
+          },
+          "filtered_rows_included": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "sheet_id",
+          "mode",
+          "start_row_index",
+          "end_row_index",
+          "start_column_index",
+          "end_column_index"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_SHEET_FROM_JSON",
+      "name": "Create sheet from JSON",
+      "description": "DEPRECATED: Use GOOGLESHEETS_CREATE_GOOGLE_SHEET1 + GOOGLESHEETS_UPDATE_VALUES_BATCH (or GOOGLESHEETS_VALUES_UPDATE / GOOGLESHEETS_SPREADSH…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "sheet_json": {
+            "type": "array"
+          },
+          "sheet_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "sheet_name",
+          "sheet_json"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_SORT_RANGE",
+      "name": "Sort Range",
+      "description": "Sorts data within a specified range in a Google Sheet based on one or more sort criteria. Use this action when you need to reorder rows in …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "object"
+          },
+          "sortSpecs": {
+            "type": "array"
+          },
+          "responseRanges": {
+            "type": "array"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "responseIncludeGridData": {
+            "type": "boolean"
+          },
+          "includeSpreadsheetInResponse": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "range",
+          "sortSpecs"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_SPREADSHEETS_SHEETS_COPY_TO",
+      "name": "Copy Sheet to Another Spreadsheet",
+      "description": "Tool to copy a single sheet from a spreadsheet to another spreadsheet. Use when you need to duplicate a sheet into a different spreadsheet.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sheet_id": {
+            "type": "integer"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "destination_spreadsheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "sheet_id",
+          "destination_spreadsheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+      "name": "Append Values to Spreadsheet",
+      "description": "Tool to append values to a spreadsheet. Use when you need to add new data to the end of an existing table in a Google Sheet.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array"
+          },
+          "spreadsheetId": {
+            "type": "string"
+          },
+          "majorDimension": {
+            "type": "string",
+            "enum": [
+              "ROWS",
+              "COLUMNS"
+            ]
+          },
+          "insertDataOption": {
+            "type": "string",
+            "enum": [
+              "OVERWRITE",
+              "INSERT_ROWS"
+            ]
+          },
+          "valueInputOption": {
+            "type": "string",
+            "enum": [
+              "RAW",
+              "USER_ENTERED"
+            ]
+          },
+          "includeValuesInResponse": {
+            "type": "boolean"
+          },
+          "responseValueRenderOption": {
+            "type": "string",
+            "enum": [
+              "FORMATTED_VALUE",
+              "UNFORMATTED_VALUE",
+              "FORMULA"
+            ]
+          },
+          "responseDateTimeRenderOption": {
+            "type": "string",
+            "enum": [
+              "SERIAL_NUMBER",
+              "FORMATTED_STRING"
+            ]
+          }
+        },
+        "required": [
+          "spreadsheetId",
+          "range",
+          "valueInputOption",
+          "values"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
+      "name": "Batch Clear Spreadsheet Values",
+      "description": "Tool to clear one or more ranges of values from a spreadsheet. Use when you need to remove data from specific cells or ranges while keeping…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ranges": {
+            "type": "array"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "ranges"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_GET_BY_DATA_FILTER",
+      "name": "Batch Get Spreadsheet Values by Data Filter",
+      "description": "Tool to return one or more ranges of values from a spreadsheet that match the specified data filters. Use when you need to retrieve specifi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dataFilters": {
+            "type": "array"
+          },
+          "spreadsheetId": {
+            "type": "string"
+          },
+          "majorDimension": {
+            "type": "string",
+            "enum": [
+              "ROWS",
+              "COLUMNS"
+            ]
+          },
+          "valueRenderOption": {
+            "type": "string",
+            "enum": [
+              "FORMATTED_VALUE",
+              "UNFORMATTED_VALUE",
+              "FORMULA"
+            ]
+          },
+          "dateTimeRenderOption": {
+            "type": "string",
+            "enum": [
+              "SERIAL_NUMBER",
+              "FORMATTED_STRING"
+            ]
+          }
+        },
+        "required": [
+          "spreadsheetId",
+          "dataFilters"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_UPDATE_CHART",
+      "name": "Update Chart in Google Sheets",
+      "description": "Update the specification of an existing chart in a Google Sheets spreadsheet. Use this action when you need to modify an existing chart's p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "chart_id": {
+            "type": "integer"
+          },
+          "chart_spec": {
+            "type": "object"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "chart_id",
+          "chart_spec"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_UPDATE_DIMENSION_PROPERTIES",
+      "name": "Update Dimension Properties (Hide/Unhide & Resize)",
+      "description": "Tool to hide/unhide rows or columns and set row heights or column widths. Use when you need to change visibility or pixel sizing of dimensi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sheet_id": {
+            "type": "integer"
+          },
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "ROWS",
+              "COLUMNS"
+            ]
+          },
+          "end_index": {
+            "type": "integer"
+          },
+          "pixel_size": {
+            "type": "integer"
+          },
+          "sheet_name": {
+            "type": "string"
+          },
+          "start_index": {
+            "type": "integer"
+          },
+          "hidden_by_user": {
+            "type": "boolean"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "response_ranges": {
+            "type": "array"
+          },
+          "response_include_grid_data": {
+            "type": "boolean"
+          },
+          "include_spreadsheet_in_response": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "dimension",
+          "start_index",
+          "end_index"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_UPDATE_SHEET_PROPERTIES",
+      "name": "Update Sheet Properties",
+      "description": "Tool to update properties of a sheet (worksheet) within a Google Spreadsheet, such as its title, index, visibility, tab color, or grid prop…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "spreadsheetId": {
+            "type": "string"
+          },
+          "responseRanges": {
+            "type": "array"
+          },
+          "updateSheetProperties": {
+            "type": "object"
+          },
+          "responseIncludeGridData": {
+            "type": "boolean"
+          },
+          "includeSpreadsheetInResponse": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheetId",
+          "updateSheetProperties"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_UPDATE_SPREADSHEET_PROPERTIES",
+      "name": "Update Spreadsheet Properties",
+      "description": "Tool to update SPREADSHEET-LEVEL properties such as the spreadsheet's title, locale, time zone, or auto-recalculation settings. Use when yo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "properties": {
+            "type": "object"
+          },
+          "spreadsheetId": {
+            "type": "string"
+          },
+          "responseRanges": {
+            "type": "array"
+          },
+          "responseIncludeGridData": {
+            "type": "boolean"
+          },
+          "includeSpreadsheetInResponse": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "spreadsheetId",
+          "properties",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_UPDATE_VALUES_BATCH",
+      "name": "Batch update spreadsheet values",
+      "description": "Tool to set values in one or more ranges of a spreadsheet. Use when you need to update multiple ranges in a single operation for better per…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "valueInputOption": {
+            "type": "string",
+            "enum": [
+              "INPUT_VALUE_OPTION_UNSPECIFIED",
+              "RAW",
+              "USER_ENTERED"
+            ]
+          },
+          "includeValuesInResponse": {
+            "type": "boolean"
+          },
+          "responseValueRenderOption": {
+            "type": "string",
+            "enum": [
+              "FORMATTED_VALUE",
+              "UNFORMATTED_VALUE",
+              "FORMULA"
+            ]
+          },
+          "responseDateTimeRenderOption": {
+            "type": "string",
+            "enum": [
+              "SERIAL_NUMBER",
+              "FORMATTED_STRING"
+            ]
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "valueInputOption",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_UPSERT_ROWS",
+      "name": "Upsert Rows (Smart Update/Insert)",
+      "description": "Upsert rows - update existing rows by key, append new ones. Automatically handles column mapping and partial updates. Use for: CRM syncs (m…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array"
+          },
+          "headers": {
+            "type": "array"
+          },
+          "keyColumn": {
+            "type": "string"
+          },
+          "sheetName": {
+            "type": "string"
+          },
+          "strictMode": {
+            "type": "boolean"
+          },
+          "tableStart": {
+            "type": "string"
+          },
+          "spreadsheetId": {
+            "type": "string"
+          },
+          "key_column_index": {},
+          "normalization_message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheetId",
+          "sheetName",
+          "rows"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_VALUES_GET",
+      "name": "Get spreadsheet values",
+      "description": "Returns a range of values from a spreadsheet. Use when you need to read data from specific cells or ranges in a Google Sheet.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string"
+          },
+          "end_row": {
+            "type": "integer"
+          },
+          "start_row": {
+            "type": "integer"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "major_dimension": {
+            "type": "string",
+            "enum": [
+              "DIMENSION_UNSPECIFIED",
+              "ROWS",
+              "COLUMNS"
+            ]
+          },
+          "value_render_option": {
+            "type": "string",
+            "enum": [
+              "FORMATTED_VALUE",
+              "UNFORMATTED_VALUE",
+              "FORMULA"
+            ]
+          },
+          "date_time_render_option": {
+            "type": "string",
+            "enum": [
+              "SERIAL_NUMBER",
+              "FORMATTED_STRING"
+            ]
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "range"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLESHEETS_VALUES_UPDATE",
+      "name": "Update spreadsheet values",
+      "description": "Tool to set values in a range of a Google Spreadsheet. Use when you need to update or overwrite existing cell values in a specific range.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "major_dimension": {
+            "type": "string",
+            "enum": [
+              "ROWS",
+              "COLUMNS"
+            ]
+          },
+          "auto_expand_sheet": {
+            "type": "boolean"
+          },
+          "value_input_option": {
+            "type": "string",
+            "enum": [
+              "RAW",
+              "USER_ENTERED"
+            ]
+          },
+          "include_values_in_response": {
+            "type": "boolean"
+          },
+          "response_value_render_option": {
+            "type": "string",
+            "enum": [
+              "FORMATTED_VALUE",
+              "UNFORMATTED_VALUE",
+              "FORMULA"
+            ]
+          },
+          "response_datetime_render_option": {
+            "type": "string",
+            "enum": [
+              "SERIAL_NUMBER",
+              "FORMATTED_STRING"
+            ]
+          }
+        },
+        "required": [
+          "spreadsheet_id",
+          "range",
+          "value_input_option",
+          "values"
+        ]
+      }
+    }
+  ]
+}

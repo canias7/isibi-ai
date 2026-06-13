@@ -1,0 +1,1901 @@
+{
+  "slug": "todoist",
+  "name": "Todoist",
+  "tool_count": 84,
+  "tools": [
+    {
+      "slug": "TODOIST_ADD_WORKSPACE",
+      "name": "Add Workspace",
+      "description": "Tool to create a new workspace in Todoist. Use when you need a separate workspace to organize projects. Generates UUID and temp_id automati…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "icon": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          },
+          "color": {
+            "type": "integer"
+          },
+          "temp_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_ARCHIVE_PROJECT2",
+      "name": "Archive Project (API v1)",
+      "description": "Tool to archive a project using Todoist API v1. For personal projects, archives it for the initiating user. For workspace projects, archive…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_BULK_CREATE_TASKS",
+      "name": "Bulk Create Tasks",
+      "description": "Create many tasks in one request using Todoist's Sync batching. Use when scaffolding projects or creating multiple tasks at once to reduce …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "tasks"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_CLOSE_TASK",
+      "name": "Close Task (Deprecated)",
+      "description": "DEPRECATED: Use TODOIST_CLOSE_TASK_V1 instead. This tool marks an existing task as completed in Todoist. It requires the `task_id` of the t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_CLOSE_TASK_V1",
+      "name": "Close Task (API v1)",
+      "description": "Tool to close (complete) a task in Todoist using API v1. Use when you need to mark a task as complete using the v1 endpoint.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_CREATE_COMMENT_V1",
+      "name": "Create Comment (API v1)",
+      "description": "Tool to create a new comment on a project or task using Todoist API v1. Use when you need to add a note to a specific task or project. IMPO…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "task_id": {},
+          "attachment": {
+            "type": "object"
+          },
+          "project_id": {},
+          "uids_to_notify": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_CREATE_LABEL",
+      "name": "Create Label (Deprecated)",
+      "description": "DEPRECATED: Use TODOIST_CREATE_LABEL_V1 instead. Creates a new label.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "integer",
+            "enum": [
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49
+            ]
+          },
+          "order": {
+            "type": "integer"
+          },
+          "is_favorite": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_CREATE_LABEL_V1",
+      "name": "Create Label (API v1)",
+      "description": "Tool to create a new personal label using API v1. Use when you need to add a new label to organize tasks.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {},
+          "order": {
+            "type": "integer"
+          },
+          "is_favorite": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_CREATE_PROJECT",
+      "name": "Create Project (Deprecated)",
+      "description": "DEPRECATED: Use TODOIST_TODOIST_CREATE_PROJECT2 instead. Creates a new project in Todoist. Project names are not unique; use the returned p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "berry_red",
+              "red",
+              "orange",
+              "yellow",
+              "olive_green",
+              "lime_green",
+              "green",
+              "mint_green",
+              "teal",
+              "sky_blue",
+              "light_blue",
+              "blue",
+              "grape",
+              "violet",
+              "lavender",
+              "magenta",
+              "salmon",
+              "charcoal",
+              "grey",
+              "taupe"
+            ]
+          },
+          "favorite": {
+            "type": "boolean"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "view_style": {
+            "type": "string",
+            "enum": [
+              "list",
+              "board"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_CREATE_PROJECT2",
+      "name": "Create Project (API v1)",
+      "description": "Tool to create a new project in Todoist using the unified API v1. Use when you need to create a new project with specific parameters like n…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {},
+          "parent_id": {},
+          "view_style": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "is_favorite": {
+            "type": "boolean"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_CREATE_SECTION",
+      "name": "Create Section (Deprecated)",
+      "description": "DEPRECATED: Use TODOIST_CREATE_SECTION_V1 instead. Tool to create a new section within a specific project. Use when you need to group tasks…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_CREATE_SECTION_V1",
+      "name": "Create Section (API v1)",
+      "description": "Tool to create a new section within a project using API v1. Use when you need to organize tasks under a new heading in a project.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_CREATE_TASK",
+      "name": "Create task",
+      "description": "Create a new task in Todoist using the unified API v1. This action allows users to create tasks with various parameters including content, …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "integer"
+          },
+          "labels": {
+            "type": "array"
+          },
+          "content": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "string"
+          },
+          "due_lang": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "due_string": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "assignee_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "due_datetime": {
+            "type": "string"
+          },
+          "duration_unit": {
+            "type": "string",
+            "enum": [
+              "minute",
+              "day"
+            ]
+          }
+        },
+        "required": [
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_DELETE_COMMENT",
+      "name": "Delete Comment",
+      "description": "Tool to delete a specific comment from Todoist by its ID. Use when you need to permanently remove a comment.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_DELETE_LABEL_V1",
+      "name": "Delete Label (V1)",
+      "description": "Tool to delete a personal label using API v1. Use when you need to permanently remove a label by its ID. All instances of the label will be…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "label_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_DELETE_PROJECT2",
+      "name": "Delete Project (API v1)",
+      "description": "Tool to delete a project and all of its sections and tasks using Todoist API v1. Use when you need to permanently remove a project by its I…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_DELETE_SECTION2",
+      "name": "Delete Section (v1)",
+      "description": "Tool to delete a section and all tasks within it. Use when you need to permanently remove a section by its ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "section_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_DELETE_TASK",
+      "name": "Delete Task",
+      "description": "Tool to delete a specific task from Todoist. Permanently removes the task and all its subtasks with no recycle bin or undo option. Confirm …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_DELETE_TASK_V1",
+      "name": "Delete Task (API v1)",
+      "description": "DEPRECATED: Use TODOIST_DELETE_TASK instead. Tool to delete a specific task from Todoist using API v1. Use when you need to permanently rem…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_DELETE_UPLOAD",
+      "name": "Delete Upload",
+      "description": "Tool to delete an uploaded file from Todoist. Use when you need to remove a file that was previously uploaded.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_url"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_EXPORT_TEMPLATE_AS_FILE",
+      "name": "Export Template As File",
+      "description": "Tool to export a Todoist project as a CSV template file. Use when you need to download a project template as a file for backup or sharing.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "use_relative_dates": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_EXPORT_TEMPLATE_AS_URL",
+      "name": "Export Template As URL",
+      "description": "Tool to export a Todoist project as a shareable template URL. Use when you need to share a project structure or create copies from a templa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "use_relative_dates": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_FILTER_TASKS",
+      "name": "Filter Tasks",
+      "description": "Tool to get all tasks matching the filter. Use when you need to retrieve tasks based on specific filter criteria. This is a paginated endpo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "lang": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_GET_ALL_COMMENTS",
+      "name": "Get All Comments",
+      "description": "This tool retrieves all comments associated with a specific task or project in Todoist. You must provide exactly one of task_id or project_…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_GET_ALL_PROJECTS",
+      "name": "Get all projects",
+      "description": "Get all projects from a user's Todoist account. Retrieves all active (non-archived) projects; use TODOIST_LIST_ARCHIVED_WORKSPACE_PROJECTS …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_GET_ALL_TASKS",
+      "name": "Get All Tasks",
+      "description": "Fetches all INCOMPLETE tasks from Todoist and returns their details. Supports cursor-based pagination. IMPORTANT LIMITATIONS: - This endpoi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "lang": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_GET_BACKUPS",
+      "name": "Get Backups",
+      "description": "Tool to list all available backup archives for the user. Returns archive metadata only — not live task or project data; do not use as a pro…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "TODOIST_GET_COMMENT_V1",
+      "name": "Get Comment (V1)",
+      "description": "Tool to retrieve a single comment by ID using the v1 API. Use when you need to fetch details of a specific comment.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_GET_COMPLETED_TASKS_BY_COMPLETION_DATE",
+      "name": "Get Completed Tasks By Completion Date",
+      "description": "Tool to retrieve completed tasks within a specified completion date window. Use when you need to fetch historical completed tasks for repor…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "since": {
+            "type": "string"
+          },
+          "until": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "filter_lang": {
+            "type": "string"
+          },
+          "filter_query": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "since",
+          "until"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_GET_ID_MAPPINGS",
+      "name": "Get ID Mappings",
+      "description": "Tool to translate IDs between Todoist API v1 and v2. Use when you need to convert IDs between API versions for sections, tasks, comments, r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "obj_ids": {
+            "type": "string"
+          },
+          "obj_name": {
+            "type": "string",
+            "enum": [
+              "sections",
+              "tasks",
+              "comments",
+              "reminders",
+              "location_reminders",
+              "projects"
+            ]
+          }
+        },
+        "required": [
+          "obj_name",
+          "obj_ids"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_GET_PERSONAL_LABEL",
+      "name": "Get Personal Label",
+      "description": "Tool to retrieve a personal label by its ID. Use when you need to fetch details about a specific personal label.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "label_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_GET_PRODUCTIVITY_STATS",
+      "name": "Get Productivity Stats",
+      "description": "Tool to retrieve comprehensive productivity statistics for the authenticated user. Use when you need detailed completion data, karma scores…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "TODOIST_GET_PROJECT",
+      "name": "Get Project (API v1)",
+      "description": "Tool to retrieve a specific project by its ID using Todoist API v1. Use when you have a project ID and need its metadata before display or …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_GET_PROJECT_FULL",
+      "name": "Get Full Project Data",
+      "description": "Tool to retrieve full project data including all sections, tasks, and collaborators. Use when you need comprehensive project information be…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_GET_PROJECT_PERMISSIONS",
+      "name": "Get Project Permissions",
+      "description": "Tool to retrieve all available roles and their associated actions in Todoist projects. Use when you need to understand what permissions dif…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "TODOIST_GET_SECTION_V1",
+      "name": "Get Section (v1 API)",
+      "description": "Tool to retrieve a specific section by its ID using Todoist v1 API. Use when you need section metadata from the v1 endpoint.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "public_key": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_GET_SPECIAL_BACKUPS",
+      "name": "Get Special Backups",
+      "description": "Tool to list special backup archives for the authenticated user's projects. Returns an empty list if no backups exist — callers must not as…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "TODOIST_GET_TASK",
+      "name": "Get Task (Deprecated)",
+      "description": "DEPRECATED: Use TODOIST_GET_TASK2 instead. Tool to retrieve a specific task by its ID. Use when you need to fetch all details of an existin…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_GET_TASK2",
+      "name": "Get Task (API v1)",
+      "description": "Tool to retrieve a single active (non-completed) task by ID using API v1. Use when you need to fetch task details from the v1 endpoint.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "public_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_GET_USER",
+      "name": "Get User",
+      "description": "Tool to retrieve information about the currently authenticated user. Use when you need user details like email, name, preferences, karma, o…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "TODOIST_GET_WORKSPACE_PLAN_DETAILS",
+      "name": "Get Workspace Plan Details",
+      "description": "Tool to retrieve details about a workspace's current plan and usage. Use when you need information about subscription status, member count,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_IMPORT_TEMPLATE_INTO_PROJECT_BY_ID",
+      "name": "Import Template Into Project By ID",
+      "description": "Tool to import a template from Todoist's template gallery into an existing project. Use when you need to add structured tasks and sections …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string"
+          },
+          "project_id": {},
+          "template_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "template_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_IMPORT_TEMPLATE_INTO_PROJECT_FROM_FILE",
+      "name": "Import Template Into Project From File",
+      "description": "Tool to import a CSV template into an existing Todoist project from a file. Use when you need to bulk-create tasks, sections, and notes fro…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "project_id": {}
+        },
+        "required": [
+          "project_id",
+          "file"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_INVITE_PROJECT_COLLABORATOR",
+      "name": "Invite Project Collaborator",
+      "description": "Tool to invite a collaborator to a Todoist project by email. Use when the user asks to share, invite someone to, or add a collaborator to a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "email"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_ACTIVITIES",
+      "name": "List Activities",
+      "description": "Tool to get activity logs from Todoist. Returns a paginated list of activity events for the user. Events can be filtered by object type (pr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "date_to": {
+            "type": "string"
+          },
+          "date_from": {
+            "type": "string"
+          },
+          "object_id": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "object_type": {
+            "type": "string",
+            "enum": [
+              "project",
+              "item",
+              "note"
+            ]
+          },
+          "initiator_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          },
+          "annotate_notes": {
+            "type": "boolean"
+          },
+          "parent_item_id": {
+            "type": "string"
+          },
+          "annotate_parents": {
+            "type": "boolean"
+          },
+          "ensure_last_state": {
+            "type": "boolean"
+          },
+          "initiator_id_null": {
+            "type": "string"
+          },
+          "parent_project_id": {
+            "type": "string"
+          },
+          "object_event_types": {
+            "type": "string"
+          },
+          "include_child_objects": {
+            "type": "boolean"
+          },
+          "include_parent_object": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_ALL_INVITATIONS_WORKSPACES",
+      "name": "List All Workspace Invitations",
+      "description": "Tool to return a list containing details of all pending invitations to a workspace. Use when you need to view all pending workspace invitat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_ARCHIVED_PROJECTS",
+      "name": "List Archived Projects",
+      "description": "Tool to get all archived projects from Todoist. Use when you need to retrieve archived projects with pagination support.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_ARCHIVED_SECTIONS",
+      "name": "List Archived Sections",
+      "description": "Tool to retrieve all archived sections for a specific project in Todoist. Use when you need to access sections that have been archived in a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_ARCHIVED_WORKSPACE_PROJECTS",
+      "name": "List Archived Workspace Projects",
+      "description": "Tool to list all archived projects in a workspace. Archived projects are excluded from TODOIST_GET_ALL_PROJECTS; combine both tools when a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "since": {
+            "type": "string"
+          },
+          "until": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "project_ids": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_COMPLETED_TASKS",
+      "name": "List Completed Tasks",
+      "description": "Tool to retrieve all completed tasks with optional project filtering. Use when you need to fetch completed tasks without date range restric…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_COMPLETED_TASKS_BY_DUE_DATE",
+      "name": "List Completed Tasks By Due Date",
+      "description": "Tool to retrieve completed tasks within a specified due date range (up to 6 weeks). Use when you need to fetch completed tasks filtered by …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "since": {
+            "type": "string"
+          },
+          "until": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "filter_lang": {
+            "type": "string"
+          },
+          "filter_query": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "since",
+          "until"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_FILTERS",
+      "name": "List Filters",
+      "description": "Tool to list all filters for the authenticated user. Use when you need to retrieve the current set of custom filters.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sync_token": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_JOINABLE_WORKSPACES",
+      "name": "List Joinable Workspaces",
+      "description": "Tool to get workspaces the user can join. Use when you need to discover available workspaces that the authenticated user can join.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_LABELS",
+      "name": "List Labels",
+      "description": "Tool to get all user labels with pagination support. Use when you need to retrieve labels from the user's Todoist account.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_PENDING_WORKSPACE_INVITATIONS",
+      "name": "List Pending Workspace Invitations",
+      "description": "Tool to list pending invitation emails in a workspace. Use when you need to check which email invites are still pending acceptance in a wor…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_PROJECT_COLLABORATORS",
+      "name": "List Project Collaborators",
+      "description": "Tool to get all collaborators for a given project with cursor-based pagination. Use when you need to retrieve the list of people who have a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "public_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_SECTIONS",
+      "name": "List Sections",
+      "description": "Tool to get all active sections for the user, with optional filtering by project. Supports cursor-based pagination to handle large result s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_SHARED_LABELS",
+      "name": "List Shared Labels",
+      "description": "Tool to retrieve shared label names from active tasks with pagination support. Use when you need to list labels across the workspace with o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "omit_personal": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_WORKSPACE_ACTIVE_PROJECTS",
+      "name": "List Workspace Active Projects",
+      "description": "Tool to list all active workspace projects. Returns active projects that are visible to the user, including those not yet joined. For guest…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "workspace_id": {}
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_WORKSPACE_ARCHIVED_PROJECTS",
+      "name": "List Workspace Archived Projects",
+      "description": "Tool to get archived projects in a workspace. Use when you need to retrieve a list of archived projects for a specific workspace with optio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "workspace_id": {}
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_WORKSPACE_INVITATIONS",
+      "name": "List Workspace Invitations",
+      "description": "Tool to list user emails with pending invitations to a workspace. Use when you need to check which email invites are still pending. The lis…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_LIST_WORKSPACE_USERS",
+      "name": "List Workspace Users",
+      "description": "Tool to list users in workspace(s). Use when you need to retrieve workspace members. Returns users from a specific workspace if workspace_i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TODOIST_MOVE_TASK",
+      "name": "Move Task",
+      "description": "Tool to move a task to another project, section, or parent task while preserving task identity and metadata. Use when you need to relocate …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_MOVE_TASK_REST_API",
+      "name": "Move Task (REST API)",
+      "description": "Tool to move a task to another project, section, or parent task using the REST API. Use when you need to relocate a task while preserving i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_QUICK_ADD_TASK",
+      "name": "Quick Add Task",
+      "description": "Tool to add tasks using natural language parsing similar to the official Todoist clients. Use when you want to create a task quickly with n…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "reminder": {
+            "type": "string"
+          },
+          "auto_reminder": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_REMOVE_SHARED_LABEL_V1",
+      "name": "Remove Shared Label (API v1)",
+      "description": "Tool to remove a shared label from all active tasks using API v1. Use when you need to remove a shared label created by a collaborator from…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_RENAME_SHARED_LABELS_V1",
+      "name": "Rename Shared Labels (API v1)",
+      "description": "Tool to rename a shared label across all active tasks using API v1. Use when you need to change the name of a shared label.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "new_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "new_name"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_REOPEN_TASK2",
+      "name": "Reopen Task (API v1)",
+      "description": "Tool to reopen a completed task in Todoist using API v1. Use when you need to restore a previously completed task. Any ancestor tasks or se…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_REORDER_TASKS",
+      "name": "Reorder Tasks",
+      "description": "Reorder tasks deterministically by updating child_order in bulk via the Sync API item_reorder command. Use when you need to set specific or…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_SEARCH_LABELS",
+      "name": "Search Labels",
+      "description": "Tool to search user labels by name with case-insensitive matching. Use when you need to find specific labels by name pattern.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_SEARCH_PROJECTS",
+      "name": "Search Projects",
+      "description": "Search active user projects by name with support for wildcards and pagination. Use when you need to find projects matching a specific name …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_SEARCH_SECTIONS",
+      "name": "Search Sections",
+      "description": "Tool to search active sections by name, optionally filtered by project. Use when you need to find sections matching a specific name pattern…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_SYNC",
+      "name": "Todoist Sync",
+      "description": "Tool to sync data with Todoist server, supporting both read and write operations. This is the central endpoint used by Todoist apps for all…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "commands": {
+            "type": "array"
+          },
+          "sync_token": {
+            "type": "string"
+          },
+          "resource_types": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "sync_token"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_UNARCHIVE_PROJECT2",
+      "name": "Unarchive Project (API v1)",
+      "description": "Tool to unarchive a previously archived Todoist project using API v1. Use when you need to reactivate an archived project, making it visibl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_UPDATE_COMMENT2",
+      "name": "Update Comment (v1)",
+      "description": "Tool to update a comment by ID and return its content via v1 API. Use when you need to modify an existing comment's text using the v1 API e…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment_id",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_UPDATE_LABEL_V1_SECOND",
+      "name": "Update Label (API v1)",
+      "description": "Tool to update an existing label using API v1. Use when you need to modify a label's name, color, order, or favorite status.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {},
+          "order": {
+            "type": "integer"
+          },
+          "label_id": {
+            "type": "string"
+          },
+          "is_favorite": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_UPDATE_NOTIFICATION_SETTING",
+      "name": "Update Notification Setting",
+      "description": "Tool to update notification settings for the current user. Use when you need to enable or disable notifications for specific event types an…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string",
+            "enum": [
+              "email",
+              "push"
+            ]
+          },
+          "dont_notify": {
+            "type": "boolean"
+          },
+          "notification_type": {
+            "type": "string",
+            "enum": [
+              "note_added",
+              "item_assigned",
+              "item_completed",
+              "item_uncompleted",
+              "karma_level",
+              "share_invitation_sent",
+              "share_invitation_accepted",
+              "share_invitation_rejected",
+              "share_invitation_blocked_by_project_limit",
+              "user_left_project",
+              "user_removed_from_project",
+              "teams_workspace_upgraded",
+              "teams_workspace_canceled",
+              "teams_workspace_payment_failed",
+              "pro_trial_started",
+              "pro_trial_ended",
+              "workspace_invitation_created",
+              "workspace_invitation_accepted",
+              "workspace_invitation_rejected",
+              "project_archived",
+              "project_moved",
+              "removed_from_workspace",
+              "workspace_deleted",
+              "message",
+              "workspace_user_joined_by_domain",
+              "price_increase_new_pro_users",
+              "price_increase_new_team",
+              "price_increase_new_team_trial",
+              "price_increase_android",
+              "workspace_team_cohort_tagged"
+            ]
+          }
+        },
+        "required": [
+          "notification_type",
+          "service",
+          "dont_notify"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_UPDATE_PROJECT",
+      "name": "Update Project (Deprecated)",
+      "description": "DEPRECATED: Use TODOIST_TODOIST_UPDATE_PROJECT2 instead. Tool to update a project's properties including name, color, favorite status, and …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "berry_red",
+              "red",
+              "orange",
+              "yellow",
+              "olive_green",
+              "lime_green",
+              "green",
+              "mint_green",
+              "teal",
+              "sky_blue",
+              "light_blue",
+              "blue",
+              "grape",
+              "violet",
+              "lavender",
+              "magenta",
+              "salmon",
+              "charcoal",
+              "grey",
+              "taupe"
+            ]
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "view_style": {
+            "type": "string",
+            "enum": [
+              "list",
+              "board"
+            ]
+          },
+          "is_favorite": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_UPDATE_PROJECT2",
+      "name": "Update Project (API v1)",
+      "description": "Tool to update a project's properties using Todoist API v1. Use when you need to modify project settings like name, description, favorite s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {},
+          "project_id": {
+            "type": "string"
+          },
+          "view_style": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "is_favorite": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_UPDATE_SECTION",
+      "name": "Update Section (Deprecated)",
+      "description": "DEPRECATED: Use TODOIST_TODOIST_UPDATE_SECTION2 instead. Tool to update a specific section's name. Use when you need to rename a section af…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_UPDATE_SECTION2",
+      "name": "Update Section (v1)",
+      "description": "Tool to update an existing section by its ID using Todoist v1 API. Use when you need to rename a section.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_UPDATE_TASK",
+      "name": "Update Task",
+      "description": "Tool to update an existing task's properties. Cannot change a task's project; to move a task, use TODOIST_CREATE_TASK then TODOIST_DELETE_T…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "labels": {
+            "type": "array"
+          },
+          "content": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "string"
+          },
+          "due_lang": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "due_string": {
+            "type": "string"
+          },
+          "assignee_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "due_datetime": {
+            "type": "string"
+          },
+          "deadline_date": {
+            "type": "string"
+          },
+          "duration_unit": {
+            "type": "string",
+            "enum": [
+              "minute",
+              "day"
+            ]
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_UPDATE_WORKSPACE_LOGO",
+      "name": "Update Workspace Logo",
+      "description": "Tool to upload an image as the workspace logo or delete the existing logo. Use when you need to set or remove a workspace's branding image.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "delete": {
+            "type": "boolean"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "TODOIST_UPLOAD_FILE",
+      "name": "Upload File",
+      "description": "Tool to upload a file to Todoist. Use when you need to attach files to tasks or projects. The uploaded file can be later attached to commen…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ]
+      }
+    }
+  ]
+}

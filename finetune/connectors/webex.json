@@ -1,0 +1,626 @@
+{
+  "slug": "webex",
+  "name": "Webex",
+  "tool_count": 26,
+  "tools": [
+    {
+      "slug": "WEBEX_CREATE_TEAM",
+      "name": "Create Team",
+      "description": "Creates a new Webex team and automatically adds the authenticated user as a member. Teams are used to organize and group multiple rooms (sp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_GET_TEAM_DETAILS",
+      "name": "Get Team Details",
+      "description": "Tool to retrieve details for a specific team by teamId. Use when you need full metadata of a team before performing team-related operations.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "teamId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_LIST_TEAMS",
+      "name": "List Teams",
+      "description": "Lists all teams the authenticated user belongs to. Teams are groups of people with shared rooms visible to all members. Use this when you n…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "max": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "WEBEX_LIST_WEBHOOKS",
+      "name": "List Webhooks",
+      "description": "Lists all webhooks registered for the authenticated user or organization. Supports optional filtering by maximum results and ownership type…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "max": {
+            "type": "integer"
+          },
+          "ownedBy": {
+            "type": "string",
+            "enum": [
+              "creator",
+              "org"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "WEBEX_MESSAGING_CREATE_MESSAGE",
+      "name": "Create Message",
+      "description": "Tool to post a message to a Webex room or person. Use when you have a target roomId or private recipient and want to send text, markdown, f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "markdown": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string"
+          },
+          "toPersonId": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array"
+          },
+          "toPersonEmail": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "WEBEX_MESSAGING_CREATE_ROOM",
+      "name": "Create Room",
+      "description": "Creates a new Webex room for team collaboration. The authenticated user is automatically added as a member. Use this to create group rooms …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "teamId": {
+            "type": "string"
+          },
+          "isLocked": {
+            "type": "boolean"
+          },
+          "isPublic": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "classificationId": {
+            "type": "string"
+          },
+          "isAnnouncementOnly": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_MESSAGING_CREATE_TEAM_MEMBERSHIP",
+      "name": "Create Team Membership",
+      "description": "Tool to add a person to a Webex team by personId or personEmail. Use when granting a user access to a team; requires teamId and one of pers…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string"
+          },
+          "personId": {
+            "type": "string"
+          },
+          "isModerator": {
+            "type": "boolean"
+          },
+          "personEmail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "teamId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_MESSAGING_DELETE_MEMBERSHIP",
+      "name": "Delete Membership",
+      "description": "Tool to delete a Webex membership by its unique identifier. Use when you need to remove a member from a space after confirming the membersh…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "membershipId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "membershipId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_MESSAGING_DELETE_MESSAGE",
+      "name": "Delete Message",
+      "description": "Tool to delete a Webex message by its unique identifier. Use after confirming the messageId to remove unintended or obsolete messages. Exam…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "messageId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "messageId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_MESSAGING_DELETE_ROOM",
+      "name": "Delete Room",
+      "description": "Deletes a Webex room by its ID. Deleted rooms cannot be recovered. Note: Non-moderators will be removed from the room instead of deleting i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "roomId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_MESSAGING_GET_MEMBERSHIP_DETAILS",
+      "name": "Get Membership Details",
+      "description": "Tool to retrieve details for a specific membership. Use when you need metadata for a membership by its ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "membershipId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "membershipId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_MESSAGING_GET_MESSAGE_DETAILS",
+      "name": "Get Message Details",
+      "description": "Tool to retrieve details for a specific message. Use when you need full content and metadata by message ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "messageId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "messageId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_MESSAGING_GET_TEAM_MEMBERSHIP_DETAILS",
+      "name": "Get Team Membership Details",
+      "description": "Tool to retrieve details for a specific team membership. Use when you need metadata for a team membership by its ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "membershipId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "membershipId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_MESSAGING_LIST_MEMBERSHIPS",
+      "name": "List Memberships",
+      "description": "List memberships in Webex rooms. When called without parameters, returns memberships for all rooms the authenticated user belongs to. Use r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "max": {
+            "type": "integer"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "teamId": {
+            "type": "string"
+          },
+          "personId": {
+            "type": "string"
+          },
+          "personEmail": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "WEBEX_MESSAGING_LIST_MESSAGES",
+      "name": "List Messages",
+      "description": "Tool to list messages in a room. Use when you need to retrieve chat history filtered by room, time window, or mentions.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "max": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string"
+          },
+          "beforeMessage": {
+            "type": "string"
+          },
+          "mentionedPeople": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "roomId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_MESSAGING_LIST_ROOMS",
+      "name": "List Rooms",
+      "description": "Tool to list rooms the authenticated user belongs to. Use after authentication when needing to retrieve spaces filtered by team, type, or s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string"
+          },
+          "max": {
+            "type": "integer"
+          },
+          "from": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "direct",
+              "group"
+            ]
+          },
+          "sortBy": {
+            "type": "string",
+            "enum": [
+              "id",
+              "lastactivity",
+              "created"
+            ]
+          },
+          "teamId": {
+            "type": "string"
+          },
+          "orgPublicSpaces": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "WEBEX_MESSAGING_LIST_TEAM_MEMBERSHIPS",
+      "name": "List Team Memberships",
+      "description": "Tool to list all memberships for a specific team. Use when you need to retrieve all members of a team, including their roles (moderator sta…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "max": {
+            "type": "integer"
+          },
+          "teamId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "teamId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_PEOPLE_GET_PERSON",
+      "name": "Get Person Details",
+      "description": "Retrieves detailed profile information for a specific person by their ID. Returns comprehensive user details including contact information,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string"
+          },
+          "callingData": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "personId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_PEOPLE_LIST_PEOPLE",
+      "name": "List People",
+      "description": "Tool to list people in your organization. Use when you need to retrieve people filtered by email, display name, IDs, roles, or location.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "max": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "orgId": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "callingData": {
+            "type": "boolean"
+          },
+          "displayName": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "WEBEX_ROOMS_GET_ROOM_DETAILS",
+      "name": "Get Room Details",
+      "description": "Tool to retrieve details for a specific room. Use when you need full metadata of a room before posting messages or updating settings.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "roomId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_UPDATE_MEMBERSHIP",
+      "name": "Update Membership",
+      "description": "Updates a Webex room membership by ID to change moderator or monitor status. Use this to grant or revoke moderator privileges, or to enable…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "isMonitor": {
+            "type": "boolean"
+          },
+          "isModerator": {
+            "type": "boolean"
+          },
+          "membershipId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "membershipId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_UPDATE_ROOM",
+      "name": "Update Room",
+      "description": "Update a room's title, lock status, or team association. The title parameter is always required by the Webex API - if you're only updating …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "teamId": {
+            "type": "string"
+          },
+          "isLocked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "roomId",
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_UPDATE_TEAM",
+      "name": "Update Team",
+      "description": "Tool to update a team's name by teamId. Use when you need to rename a Webex team. Example: \"Change team 12345 name to 'Project X Team'\".",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "teamId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "teamId",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_WEBHOOKS_CREATE_WEBHOOK",
+      "name": "Create Webhook",
+      "description": "Creates a Webex webhook to receive real-time event notifications via HTTP POST requests to your specified URL. Use this tool to register fo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "appId": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string",
+            "enum": [
+              "created",
+              "updated",
+              "deleted",
+              "started",
+              "ended",
+              "joined",
+              "left",
+              "migrated",
+              "authorized",
+              "deauthorized",
+              "statusChanged"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "secret": {
+            "type": "string"
+          },
+          "ownedBy": {
+            "type": "string",
+            "enum": [
+              "creator",
+              "org"
+            ]
+          },
+          "resource": {
+            "type": "string",
+            "enum": [
+              "messages",
+              "memberships",
+              "rooms",
+              "teams",
+              "team_memberships",
+              "meetings",
+              "meetingRecordings",
+              "meetingTranscripts",
+              "attachmentActions",
+              "dataSources",
+              "recordings",
+              "convergedRecordings",
+              "meetingParticipants",
+              "telephony_calls",
+              "telephony_conference",
+              "telephony_mwi",
+              "uc_counters",
+              "serviceApp",
+              "adminBatchJobs"
+            ]
+          },
+          "targetUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "targetUrl",
+          "resource",
+          "event"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_WEBHOOKS_DELETE_WEBHOOK",
+      "name": "Delete Webhook",
+      "description": "Tool to delete a specific webhook. Use when you need to remove an existing webhook by its ID after confirming the identifier.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "webhookId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhookId"
+        ]
+      }
+    },
+    {
+      "slug": "WEBEX_WEBHOOKS_GET_WEBHOOK",
+      "name": "Get Webhook Details",
+      "description": "Retrieves detailed information about a specific Webex webhook by its ID. Use this action to: - Inspect a webhook's configuration (target UR…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "webhookId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhookId"
+        ]
+      }
+    }
+  ]
+}

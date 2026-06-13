@@ -1,0 +1,1115 @@
+{
+  "slug": "notion",
+  "name": "Notion",
+  "tool_count": 48,
+  "tools": [
+    {
+      "slug": "NOTION_ADD_MULTIPLE_PAGE_CONTENT",
+      "name": "Add multiple content blocks (bulk, user-friendly)",
+      "description": "Bulk-add content blocks to Notion. Text >2000 chars auto-splits. Parses markdown formatting. ⚠️ PARENT BLOCK TYPES: Content is added AS CHI…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "content_blocks": {
+            "type": "array"
+          },
+          "parent_block_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "parent_block_id",
+          "content_blocks"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_ADD_PAGE_CONTENT",
+      "name": "Add single content block to Notion page (Deprecated)",
+      "description": "DEPRECATED: Use 'add_multiple_page_content' for better performance. Adds a single content block to a Notion page/block. CRITICAL: Notion AP…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "content_block": {},
+          "parent_block_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "parent_block_id",
+          "content_block"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_APPEND_BLOCK_CHILDREN",
+      "name": "Append raw Notion blocks (advanced API)",
+      "description": "DEPRECATED: Use NOTION_APPEND_TEXT_BLOCKS, NOTION_APPEND_TASK_BLOCKS, NOTION_APPEND_CODE_BLOCKS, NOTION_APPEND_MEDIA_BLOCKS, NOTION_APPEND_…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "block_id",
+          "children"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_APPEND_CODE_BLOCKS",
+      "name": "Append code blocks (code, quote, equation)",
+      "description": "Append code and technical blocks (code, quote, equation) to a Notion page. Use for: - Code snippets and programming examples (code) - Citat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "block_id",
+          "children"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_APPEND_LAYOUT_BLOCKS",
+      "name": "Append layout blocks (divider, TOC, columns)",
+      "description": "Append layout blocks (divider, TOC, breadcrumb, columns) to a Notion page. Supported types: - divider: Horizontal line separator - table_of…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "block_id",
+          "children"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_APPEND_MEDIA_BLOCKS",
+      "name": "Append media blocks (image, video, audio, files)",
+      "description": "Append media blocks (image, video, audio, file, pdf, embed, bookmark) to a Notion page. Use for: - Images and screenshots (image) - YouTube…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "block_id",
+          "children"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_APPEND_TABLE_BLOCKS",
+      "name": "Append table blocks",
+      "description": "Append table blocks to a Notion page. Use for structured tabular data like spreadsheets, comparison charts, and status trackers. Example: {…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "tables": {
+            "type": "array"
+          },
+          "block_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id",
+          "tables"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_APPEND_TASK_BLOCKS",
+      "name": "Append task blocks (to-do, toggle, callout)",
+      "description": "Append task blocks (to-do, toggle, callout) to a Notion page or block. Supported block types: - to_do: Checkbox items (checkable/uncheckabl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "block_id",
+          "children"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_APPEND_TEXT_BLOCKS",
+      "name": "Append text blocks (paragraphs, headings, lists)",
+      "description": "Append text blocks (paragraphs, headings, lists) to a Notion page. This is the most commonly used action for adding content to Notion. Use …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "block_id",
+          "children"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_ARCHIVE_NOTION_PAGE",
+      "name": "Archive Notion Page",
+      "description": "Archives (moves to trash) or unarchives (restores from trash) a specified Notion page. Limitation: Workspace-level pages (top-level pages w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "archive": {
+            "type": "boolean"
+          },
+          "page_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_CREATE_COMMENT",
+      "name": "Create comment",
+      "description": "Adds a comment to a Notion page (via `parent_page_id`) OR to an existing discussion thread (via `discussion_id`); cannot create new discuss…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "object"
+          },
+          "discussion_id": {
+            "type": "string"
+          },
+          "parent_page_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_CREATE_DATABASE",
+      "name": "Create Notion Database",
+      "description": "Creates a new Notion database as a subpage under a specified parent page with a defined properties schema. IMPORTANT NOTES: - The parent pa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "properties": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "parent_id",
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_CREATE_FILE_UPLOAD",
+      "name": "Create Notion file upload",
+      "description": "Tool to create a Notion FileUpload object and retrieve an upload URL. Use when you need to automate attaching local or external files direc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "single_part",
+              "multi_part",
+              "external_url"
+            ]
+          },
+          "filename": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "external_url": {
+            "type": "string"
+          },
+          "number_of_parts": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "NOTION_CREATE_NOTION_PAGE",
+      "name": "Create Notion page",
+      "description": "Creates a new page in a Notion workspace under a specified parent page or database. Supports creating pages with markdown content using the…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "icon": {
+            "type": "string"
+          },
+          "cover": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "markdown": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "parent_id",
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_DELETE_BLOCK",
+      "name": "Delete a block",
+      "description": "Archives a Notion block, page, or database using its ID, which sets its 'archived' property to true (like moving to \"Trash\" in the UI) and …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "block_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_DUPLICATE_PAGE",
+      "name": "Duplicate page",
+      "description": "Duplicates a Notion page, including all its content, properties, and nested blocks, under a specified parent page or workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id",
+          "parent_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_FETCH_ALL_BLOCK_CONTENTS",
+      "name": "Fetch All Notion Block Contents",
+      "description": "Tool to fetch all child blocks for a given Notion block. Use when you need a complete listing of a block's children beyond a single page; s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "block_id": {
+            "type": "string"
+          },
+          "page_url": {
+            "type": "string"
+          },
+          "max_depth": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "max_blocks": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "NOTION_FETCH_BLOCK_CONTENTS",
+      "name": "Fetch Notion Block Children",
+      "description": "Retrieves a paginated list of direct, first-level child block objects along with contents for a given parent Notion block or page ID; use b…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "block_id": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "start_cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_FETCH_BLOCK_METADATA",
+      "name": "Fetch Notion block metadata",
+      "description": "Fetches metadata for a Notion block (including pages, which are special blocks) using its UUID. Returns block type, properties, and basic i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "block_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_FETCH_COMMENTS",
+      "name": "Fetch comments",
+      "description": "Fetches unresolved comments for a specified Notion block or page ID. The block/page must be shared with your Notion integration and the int…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "start_cursor": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "NOTION_FETCH_DATA",
+      "name": "Fetch Notion Data",
+      "description": "Fetches Notion items (pages and/or databases) from the Notion workspace, use this to get minimal data about the items in the workspace with…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "fetch_type": {
+            "type": "string",
+            "enum": [
+              "pages",
+              "databases",
+              "all"
+            ]
+          },
+          "start_cursor": {
+            "type": "string"
+          },
+          "original_page_size": {
+            "type": "integer"
+          },
+          "page_size_was_capped": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fetch_type"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_FETCH_DATABASE",
+      "name": "Fetch Database",
+      "description": "Fetches a Notion database's structural metadata (properties, title, etc.) via its `database_id`, not the data entries; `database_id` must r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "database_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "database_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_FETCH_ROW",
+      "name": "Fetch database row",
+      "description": "Retrieves a Notion database row's properties and metadata; use fetch_block_contents for page content blocks.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_GET_ABOUT_ME",
+      "name": "Get About Me (Deprecated)",
+      "description": "DEPRECATED: Use GetAboutUser instead. Retrieves the User object for the bot associated with the current Notion integration token, typically…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "NOTION_GET_ABOUT_USER",
+      "name": "Get about user",
+      "description": "Retrieves detailed information about a specific Notion user, such as their name, avatar, and email, based on their unique user ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_GET_PAGE_MARKDOWN",
+      "name": "Get page markdown",
+      "description": "Retrieve a Notion page's full content rendered as Notion-flavored Markdown in a single API call. Use when you need the readable content of …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "include_transcript": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_GET_PAGE_PROPERTY_ACTION",
+      "name": "Get page property",
+      "description": "Call this to get a specific property from a Notion page when you have a valid `page_id` and `property_id`; handles pagination for propertie…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "property_id": {
+            "type": "string"
+          },
+          "start_cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id",
+          "property_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_INSERT_ROW_DATABASE",
+      "name": "Insert row database",
+      "description": "Creates a new page (row) in a specified Notion database. Prerequisites: - Database must be shared with your integration - Property names AN…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "icon": {
+            "type": "string"
+          },
+          "cover": {
+            "type": "string"
+          },
+          "properties": {
+            "type": "array"
+          },
+          "database_id": {
+            "type": "string"
+          },
+          "child_blocks": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "database_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_INSERT_ROW_FROM_NL",
+      "name": "Insert Row From Natural Language",
+      "description": "Creates a new row (page) in a Notion database from a natural language description. Fetches the database schema at runtime, uses an LLM to g…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "icon": {
+            "type": "string"
+          },
+          "cover": {
+            "type": "string"
+          },
+          "nl_query": {
+            "type": "string"
+          },
+          "database_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "database_id",
+          "nl_query"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_LIST_DATA_SOURCE_TEMPLATES",
+      "name": "List data source templates",
+      "description": "Tool to list all templates for a Notion data source. Use when needing to discover template IDs/names for bulk page creation. Use after conf…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_size": {
+            "type": "integer"
+          },
+          "start_cursor": {
+            "type": "string"
+          },
+          "data_source_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data_source_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_LIST_FILE_UPLOADS",
+      "name": "List Notion file uploads",
+      "description": "Tool to retrieve file uploads for the current bot integration, sorted by most recent first. Use when you need to list all file uploads or p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_size": {
+            "type": "integer"
+          },
+          "start_cursor": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "NOTION_LIST_USERS",
+      "name": "List users",
+      "description": "Retrieves a paginated list of users (excluding guests) from the Notion workspace; the number of users returned per page may be less than th…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_size": {
+            "type": "integer"
+          },
+          "start_cursor": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "NOTION_MOVE_PAGE",
+      "name": "Move Page",
+      "description": "Tool to move a Notion page to a new parent (page or database). Use when you need to reorganize page hierarchy. Important: To move to a data…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "parent": {},
+          "page_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id",
+          "parent"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_QUERY_DATABASE",
+      "name": "Query database",
+      "description": "Queries a Notion database to retrieve pages (rows). In Notion, databases are collections where each row is a page and columns are propertie…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sorts": {
+            "type": "array"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "database_id": {
+            "type": "string"
+          },
+          "start_cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "database_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_QUERY_DATABASE_WITH_FILTER",
+      "name": "Query database with filter",
+      "description": "Tool to query a Notion database with server-side filtering, sorting, and pagination. Use when you need to retrieve a subset of rows by prop…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sorts": {
+            "type": "array"
+          },
+          "filter": {
+            "type": "object"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "database_id": {
+            "type": "string"
+          },
+          "start_cursor": {
+            "type": "string"
+          },
+          "composio_execution_message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "database_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_QUERY_DATA_SOURCE",
+      "name": "Query data source",
+      "description": "Tool to query a Notion data source. Use when you need to retrieve pages or child data sources with filters, sorts, and pagination. Make pag…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sorts": {
+            "type": "array"
+          },
+          "filter": {
+            "type": "object"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "start_cursor": {
+            "type": "string"
+          },
+          "data_source_id": {
+            "type": "string"
+          },
+          "filter_properties": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "data_source_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_REPLACE_PAGE_CONTENT",
+      "name": "Replace page content (with backup)",
+      "description": "Safely replaces a page's child blocks by optionally backing up current content, deleting existing children, then appending new children in …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dry_run": {
+            "type": "boolean"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "new_children": {
+            "type": "array"
+          },
+          "backup_parent": {
+            "type": "object"
+          },
+          "create_backup": {
+            "type": "boolean"
+          },
+          "backup_title_suffix": {
+            "type": "string"
+          },
+          "archive_existing_children": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "page_id",
+          "new_children"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_RETRIEVE_COMMENT",
+      "name": "Retrieve Comment",
+      "description": "Tool to retrieve a specific comment by its ID. Use when you have a comment ID and need to fetch its details.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_RETRIEVE_DATABASE_PROPERTY",
+      "name": "Retrieve Database Property",
+      "description": "Tool to retrieve a specific property object of a Notion database. Use when you need to get details about a single database column/property.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "database_id": {
+            "type": "string"
+          },
+          "property_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "database_id",
+          "property_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_RETRIEVE_FILE_UPLOAD",
+      "name": "Retrieve Notion file upload",
+      "description": "Tool to retrieve details of a Notion File Upload object by its identifier. Use when you need to check the status or details of an existing …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_upload_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_upload_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_RETRIEVE_PAGE",
+      "name": "Retrieve page",
+      "description": "Retrieve a Notion page's properties/metadata (not block content) by page_id. Use when you have a page URL/ID and need to access its propert…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_SEARCH_NOTION_PAGE",
+      "name": "Search Notion pages and databases",
+      "description": "Searches Notion pages and databases by title. Use specific search terms to find items by title (primary approach). KNOWN LIMITATIONS: (1) S…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "filter_value": {
+            "type": "string",
+            "enum": [
+              "page",
+              "database"
+            ]
+          },
+          "start_cursor": {
+            "type": "string"
+          },
+          "filter_property": {
+            "type": "string"
+          },
+          "filter_properties": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "NOTION_SEND_FILE_UPLOAD",
+      "name": "Send file upload",
+      "description": "Tool to transmit file contents to Notion for a file upload object. Use after creating a file upload object to send the actual file data.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "part_number": {
+            "type": "integer"
+          },
+          "file_upload_id": {
+            "type": "string"
+          },
+          "file_content_base64": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_upload_id",
+          "file"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_UPDATE_BLOCK",
+      "name": "Update block",
+      "description": "Updates existing Notion block's text content. ⚠️ CRITICAL: Content limited to 2000 chars. Cannot change block type or archive blocks. Conte…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "block_type": {
+            "type": "string"
+          },
+          "additional_properties": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "block_id",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_UPDATE_PAGE",
+      "name": "Update Page",
+      "description": "Update page properties, icon, cover, or archive status. IMPORTANT: Property names are workspace-specific and case-sensitive. Use NOTION_FET…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "icon": {
+            "type": "object"
+          },
+          "cover": {
+            "type": "object"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "properties": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_UPDATE_ROW_DATABASE",
+      "name": "Update Database Row (Page)",
+      "description": "Updates a specific row/page within a Notion database by its page UUID (row_id). IMPORTANT CLARIFICATION: This action updates INDIVIDUAL ROW…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "icon": {
+            "type": "string"
+          },
+          "cover": {
+            "type": "string"
+          },
+          "row_id": {
+            "type": "string"
+          },
+          "delete_row": {
+            "type": "boolean"
+          },
+          "properties": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "row_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_UPDATE_SCHEMA_DATABASE",
+      "name": "Update database schema",
+      "description": "Updates an existing Notion database's schema including title, description, and/or properties (columns). IMPORTANT NOTES: - At least one upd…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "properties": {
+            "type": "array"
+          },
+          "database_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "database_id"
+        ]
+      }
+    },
+    {
+      "slug": "NOTION_UPSERT_ROW_DATABASE",
+      "name": "Upsert database rows",
+      "description": "Tool to upsert rows in a Notion database by querying for existing rows and creating or updating them. Use when you need to sync data to Not…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array"
+          },
+          "options": {
+            "type": "object"
+          },
+          "database_id": {
+            "type": "string"
+          },
+          "data_source_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      }
+    }
+  ]
+}

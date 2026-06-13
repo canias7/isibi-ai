@@ -1,0 +1,542 @@
+{
+  "slug": "reddit",
+  "name": "Reddit",
+  "tool_count": 23,
+  "tools": [
+    {
+      "slug": "REDDIT_CREATE_REDDIT_POST",
+      "name": "Create a Reddit post",
+      "description": "Creates a new text or link post on a specified, existing Reddit subreddit, optionally applying a flair. Immediately publishes publicly visi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "link",
+              "self"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "flair_id": {
+            "type": "string"
+          },
+          "subreddit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subreddit",
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_DELETE_REDDIT_COMMENT",
+      "name": "Delete Reddit comment",
+      "description": "Deletes a Reddit comment, identified by its fullname ID, if it was authored by the authenticated user. Deletion is permanent and irreversib…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_DELETE_REDDIT_POST",
+      "name": "Delete a Reddit post",
+      "description": "Permanently and irreversibly deletes a Reddit post by its ID. Confirm with the user before calling. Only works on posts authored by the aut…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_EDIT_REDDIT_COMMENT_OR_POST",
+      "name": "Edit comment or post",
+      "description": "Edits the body text of the authenticated user's own existing comment or self-post on Reddit; cannot edit link posts or titles.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "thing_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "thing_id",
+          "text"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_GET",
+      "name": "Get Reddit listing by sort",
+      "description": "Tool to retrieve a listing of Reddit posts sorted by the specified criteria (hot, new, top, etc.). Use when you need to get posts from the …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "show": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "string"
+          },
+          "after": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "time_filter": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sort"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_GET_CONTROVERSIAL_POSTS",
+      "name": "Get controversial posts from all subreddits",
+      "description": "Tool to retrieve controversial posts from all subreddits with time filters. Use when you need to find the most controversial posts across R…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "t": {
+            "type": "string",
+            "enum": [
+              "hour",
+              "day",
+              "week",
+              "month",
+              "year",
+              "all"
+            ]
+          },
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "REDDIT_GET_ME_PREFS",
+      "name": "Get user preferences",
+      "description": "Tool to retrieve preference settings of the logged in user. Use when you need to check user preferences or settings.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "REDDIT_GET_NEW",
+      "name": "Get new posts from subreddit (Deprecated)",
+      "description": "DEPRECATED: Use RetrieveRedditPost instead. Tool to retrieve newest posts from a subreddit sorted by creation time. Use when you need to fi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "subreddit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subreddit"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_GET_RANDOM",
+      "name": "Get random Reddit post",
+      "description": "Tool to retrieve a random public Reddit post from any subreddit. Use when you want to discover serendipitous content or need a random post …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "subreddit": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "REDDIT_GET_REDDIT_USER_ABOUT",
+      "name": "Get user information",
+      "description": "Retrieves information about a specified Reddit user account, including karma scores and gold status. Use when you need to get profile infor…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_GET_R_TOP",
+      "name": "Get top posts from subreddit",
+      "description": "Tool to retrieve top-rated posts from a subreddit with time filters. Use when you need to find the most popular posts from a specific time …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "t": {
+            "type": "string",
+            "enum": [
+              "hour",
+              "day",
+              "week",
+              "month",
+              "year",
+              "all"
+            ]
+          },
+          "show": {
+            "type": "string"
+          },
+          "after": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "sr_detail": {
+            "type": "boolean"
+          },
+          "subreddit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subreddit"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_GET_SCOPES",
+      "name": "Get OAuth scopes",
+      "description": "Tool to retrieve all available OAuth scopes supported by the Reddit API. Use when you need to understand what permissions are available or …",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "REDDIT_GET_SUBREDDIT_RULES",
+      "name": "Get subreddit rules",
+      "description": "Fetch the explicit posting rules for a subreddit to ensure compliance before posting or commenting. Use when you need to verify content mee…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "raw_json": {
+            "type": "boolean"
+          },
+          "subreddit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subreddit"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_GET_SUBREDDITS_SEARCH",
+      "name": "Search subreddits",
+      "description": "Tool to search subreddits by title and description. Use when you need to find subreddits matching a specific topic or keyword. Returns a pa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "show": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "relevance",
+              "activity"
+            ]
+          },
+          "after": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "sr_detail": {
+            "type": "boolean"
+          },
+          "show_users": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_GET_USER_FLAIR",
+      "name": "Get user flair",
+      "description": "Fetches the list of user flair assignments for a given subreddit. Returns paginated results with user flair details. Returned flair_id valu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "subreddit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subreddit"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_GET_USERNAME_AVAILABLE",
+      "name": "Check username availability",
+      "description": "Tool to check whether a username is available for registration on Reddit. Use when you need to verify if a username can be used to create a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_LIST_SUBREDDIT_POST_FLAIRS",
+      "name": "List subreddit post flairs",
+      "description": "List available link/post flairs for a subreddit (including flair_template_id) so posts can satisfy flair-required validation. Use when you …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "subreddit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subreddit"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_POST_REDDIT_COMMENT",
+      "name": "Post a comment",
+      "description": "Posts a comment on Reddit, replying to an existing submission (post) or another comment. Fails if the target thread is locked, archived, or…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "thing_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "thing_id",
+          "text"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_RETRIEVE_POST_COMMENTS",
+      "name": "Retrieve Comments for a Post",
+      "description": "Retrieves all comments for a Reddit post given its base-36 article ID. Response is a two-element listings array: post metadata in `listings…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "article": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "article"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_RETRIEVE_REDDIT_POST",
+      "name": "Retrieve posts from subreddit",
+      "description": "Retrieves posts from a specified, publicly accessible subreddit. Responses nest post data under `data.children[].data`; inspect the structu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "hot",
+              "new",
+              "top",
+              "rising",
+              "controversial"
+            ]
+          },
+          "subreddit": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subreddit"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_RETRIEVE_SPECIFIC_COMMENT",
+      "name": "Retrieve specific comment or post",
+      "description": "Retrieves detailed information for a single Reddit comment or post using its fullname. Returns only the specified item, not surrounding thr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_SEARCH_ACROSS_SUBREDDITS",
+      "name": "Search across subreddits",
+      "description": "Searches Reddit for posts/comments using a query. Results nested under `data.children[i].data` (kind `t3` for posts); a `posts` array may a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "relevance",
+              "hot",
+              "new",
+              "top",
+              "comments"
+            ]
+          },
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "restrict_sr": {
+            "type": "boolean"
+          },
+          "search_query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "search_query"
+        ]
+      }
+    },
+    {
+      "slug": "REDDIT_TOGGLE_INBOX_REPLIES",
+      "name": "Enable or disable inbox replies",
+      "description": "Enable or disable inbox replies for a submission or comment. Use when you want to control whether you receive inbox notifications for repli…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "state"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,1748 @@
+{
+  "slug": "gmail",
+  "name": "Gmail",
+  "tool_count": 63,
+  "tools": [
+    {
+      "slug": "GMAIL_ADD_LABEL_TO_EMAIL",
+      "name": "Modify email labels",
+      "description": "Adds and/or removes specified Gmail labels for a message; ensure `message_id` and all `label_ids` are valid (use 'listLabels' for custom la…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "add_label_ids": {
+            "type": "array"
+          },
+          "remove_label_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_BATCH_DELETE_MESSAGES",
+      "name": "Batch delete Gmail messages",
+      "description": "Tool to permanently delete multiple Gmail messages in bulk, bypassing Trash with no recovery possible. Use when you need to efficiently rem…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "messageIds": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "messageIds"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_BATCH_MODIFY_MESSAGES",
+      "name": "Batch modify Gmail messages",
+      "description": "Modify labels on multiple Gmail messages in one efficient API call. Supports up to 1,000 messages per request for bulk operations like arch…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "messageIds": {
+            "type": "array"
+          },
+          "addLabelIds": {
+            "type": "array"
+          },
+          "removeLabelIds": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "messageIds"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_CREATE_EMAIL_DRAFT",
+      "name": "Create email draft",
+      "description": "Creates a Gmail email draft. While all fields are optional per the Gmail API, practical validation requires at least one of recipient_email…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cc": {
+            "type": "array"
+          },
+          "bcc": {
+            "type": "array"
+          },
+          "body": {
+            "type": "string"
+          },
+          "is_html": {
+            "type": "boolean"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "attachment": {},
+          "recipient_email": {
+            "type": "string"
+          },
+          "extra_recipients": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_CREATE_FILTER",
+      "name": "Create Gmail filter",
+      "description": "Tool to create a new Gmail filter with specified criteria and actions. Use when the user wants to automatically organize incoming messages …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "object"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "criteria": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "criteria",
+          "action"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_CREATE_LABEL",
+      "name": "Create label",
+      "description": "Creates a new label with a unique name in the specified user's Gmail account. Returns a labelId (e.g., 'Label_123') required for downstream…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "label_name": {
+            "type": "string"
+          },
+          "text_color": {
+            "type": "string",
+            "enum": [
+              "#000000",
+              "#434343",
+              "#666666",
+              "#999999",
+              "#cccccc",
+              "#efefef",
+              "#f3f3f3",
+              "#ffffff",
+              "#fb4c2f",
+              "#ffad47",
+              "#fad165",
+              "#16a766",
+              "#43d692",
+              "#4a86e8",
+              "#a479e2",
+              "#f691b3",
+              "#f6c5be",
+              "#ffe6c7",
+              "#fef1d1",
+              "#b9e4d0",
+              "#c6f3de",
+              "#c9daf8",
+              "#e4d7f5",
+              "#fcdee8",
+              "#efa093",
+              "#ffd6a2",
+              "#fce8b3",
+              "#89d3b2",
+              "#a0eac9",
+              "#a4c2f4",
+              "#d0bcf1",
+              "#fbc8d9",
+              "#e66550",
+              "#ffbc6b",
+              "#fcda83",
+              "#44b984",
+              "#68dfa9",
+              "#6d9eeb",
+              "#b694e8",
+              "#f7a7c0",
+              "#cc3a21",
+              "#eaa041",
+              "#f2c960",
+              "#149e60",
+              "#3dc789",
+              "#3c78d8",
+              "#8e63ce",
+              "#e07798",
+              "#ac2b16",
+              "#cf8933",
+              "#d5ae49",
+              "#0b804b",
+              "#2a9c68",
+              "#285bac",
+              "#653e9b",
+              "#b65775",
+              "#464646",
+              "#e7e7e7",
+              "#0d3472",
+              "#b6cff5",
+              "#0d3b44",
+              "#98d7e4",
+              "#3d188e",
+              "#e3d7ff",
+              "#711a36",
+              "#fbd3e0",
+              "#8a1c0a",
+              "#f2b2a8",
+              "#7a2e0b",
+              "#ffc8af",
+              "#7a4706",
+              "#ffdeb5",
+              "#594c05",
+              "#fbe983",
+              "#684e07",
+              "#fdedc1",
+              "#0b4f30",
+              "#b3efd3",
+              "#04502e",
+              "#a2dcc1",
+              "#c2c2c2",
+              "#4986e7",
+              "#2da2bb",
+              "#b99aff",
+              "#994a64",
+              "#f691b2",
+              "#ff7537",
+              "#ffad46",
+              "#662e37",
+              "#cca6ac",
+              "#094228",
+              "#42d692",
+              "#076239",
+              "#16a765",
+              "#1a764d",
+              "#1c4587",
+              "#41236d",
+              "#822111",
+              "#83334c",
+              "#a46a21",
+              "#aa8831",
+              "#ebdbde"
+            ]
+          },
+          "background_color": {
+            "type": "string",
+            "enum": [
+              "#000000",
+              "#434343",
+              "#666666",
+              "#999999",
+              "#cccccc",
+              "#efefef",
+              "#f3f3f3",
+              "#ffffff",
+              "#fb4c2f",
+              "#ffad47",
+              "#fad165",
+              "#16a766",
+              "#43d692",
+              "#4a86e8",
+              "#a479e2",
+              "#f691b3",
+              "#f6c5be",
+              "#ffe6c7",
+              "#fef1d1",
+              "#b9e4d0",
+              "#c6f3de",
+              "#c9daf8",
+              "#e4d7f5",
+              "#fcdee8",
+              "#efa093",
+              "#ffd6a2",
+              "#fce8b3",
+              "#89d3b2",
+              "#a0eac9",
+              "#a4c2f4",
+              "#d0bcf1",
+              "#fbc8d9",
+              "#e66550",
+              "#ffbc6b",
+              "#fcda83",
+              "#44b984",
+              "#68dfa9",
+              "#6d9eeb",
+              "#b694e8",
+              "#f7a7c0",
+              "#cc3a21",
+              "#eaa041",
+              "#f2c960",
+              "#149e60",
+              "#3dc789",
+              "#3c78d8",
+              "#8e63ce",
+              "#e07798",
+              "#ac2b16",
+              "#cf8933",
+              "#d5ae49",
+              "#0b804b",
+              "#2a9c68",
+              "#285bac",
+              "#653e9b",
+              "#b65775",
+              "#464646",
+              "#e7e7e7",
+              "#0d3472",
+              "#b6cff5",
+              "#0d3b44",
+              "#98d7e4",
+              "#3d188e",
+              "#e3d7ff",
+              "#711a36",
+              "#fbd3e0",
+              "#8a1c0a",
+              "#f2b2a8",
+              "#7a2e0b",
+              "#ffc8af",
+              "#7a4706",
+              "#ffdeb5",
+              "#594c05",
+              "#fbe983",
+              "#684e07",
+              "#fdedc1",
+              "#0b4f30",
+              "#b3efd3",
+              "#04502e",
+              "#a2dcc1",
+              "#c2c2c2",
+              "#4986e7",
+              "#2da2bb",
+              "#b99aff",
+              "#994a64",
+              "#f691b2",
+              "#ff7537",
+              "#ffad46",
+              "#662e37",
+              "#cca6ac",
+              "#094228",
+              "#42d692",
+              "#076239",
+              "#16a765",
+              "#1a764d",
+              "#1c4587",
+              "#41236d",
+              "#822111",
+              "#83334c",
+              "#a46a21",
+              "#aa8831",
+              "#ebdbde"
+            ]
+          },
+          "label_list_visibility": {
+            "type": "string",
+            "enum": [
+              "labelShow",
+              "labelShowIfUnread",
+              "labelHide"
+            ]
+          },
+          "message_list_visibility": {
+            "type": "string",
+            "enum": [
+              "show",
+              "hide"
+            ]
+          }
+        },
+        "required": [
+          "label_name"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_CREATE_PROMPT_POST",
+      "name": "Create Prompt Post",
+      "description": "Send a one-shot prompt to the Sanity Content Agent. Stateless one-shot prompt endpoint. No thread management or message persistence. Ideal …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "config": {
+            "type": "object"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "directives"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organizationId",
+          "message"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_DELETE_DRAFT",
+      "name": "Delete Draft",
+      "description": "Permanently deletes a specific Gmail draft using its ID with no recovery possible; verify the correct `draft_id` and obtain explicit user c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "draft_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "draft_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_DELETE_FILTER",
+      "name": "Delete Gmail filter",
+      "description": "Tool to permanently delete a Gmail filter by its ID. Use when you need to remove an existing email filtering rule.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "filter_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "filter_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_DELETE_LABEL",
+      "name": "Delete label from account (permanent)",
+      "description": "Permanently DELETES a user-created Gmail label from the account (not from a message). WARNING: This action DELETES the label definition its…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "label_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_DELETE_MESSAGE",
+      "name": "Delete message",
+      "description": "Permanently deletes a specific email message by its ID from a Gmail mailbox; for `user_id`, use 'me' for the authenticated user or an email…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_DELETE_THREAD",
+      "name": "Delete thread",
+      "description": "Tool to immediately and permanently delete a specified thread and all its messages. This operation cannot be undone. Use threads.trash inst…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_FETCH_EMAILS",
+      "name": "Fetch emails",
+      "description": "Fetches a list of email messages from a Gmail account, supporting filtering, pagination, and optional full content retrieval. Results are N…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "verbose": {
+            "type": "boolean"
+          },
+          "ids_only": {
+            "type": "boolean"
+          },
+          "label_ids": {
+            "type": "array"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "include_payload": {
+            "type": "boolean"
+          },
+          "include_spam_trash": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID",
+      "name": "Fetch message by message ID",
+      "description": "Fetches a specific email message by its ID, provided the `message_id` exists and is accessible to the authenticated `user_id`. Spam/trash m…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_FETCH_MESSAGE_BY_THREAD_ID",
+      "name": "Fetch Message by Thread ID",
+      "description": "Retrieves messages from a Gmail thread using its `thread_id`, where the thread must be accessible by the specified `user_id`. Returns a `me…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "page_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "thread_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_FORWARD_MESSAGE",
+      "name": "Forward email message",
+      "description": "Forward an existing Gmail message to specified recipients, preserving original body and attachments. Verify recipients and content before f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cc": {
+            "type": "array"
+          },
+          "bcc": {
+            "type": "array"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "recipients": {
+            "type": "array"
+          },
+          "additional_text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "recipients"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_GET_ATTACHMENT",
+      "name": "Get Gmail attachment",
+      "description": "Retrieves a specific attachment by ID from a message in a user's Gmail mailbox, requiring valid message and attachment IDs. Returns base64u…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "attachment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "attachment_id",
+          "file_name"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_GET_AUTO_FORWARDING",
+      "name": "Get Auto-Forwarding Settings",
+      "description": "Tool to get the auto-forwarding setting for the specified account. Use when you need to retrieve the current auto-forwarding configuration …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_GET_CONTACTS",
+      "name": "Get contacts",
+      "description": "Fetches contacts (connections) for the authenticated Google account, allowing selection of specific data fields and pagination. Only covers…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_token": {
+            "type": "string"
+          },
+          "person_fields": {
+            "type": "string"
+          },
+          "resource_name": {
+            "type": "string"
+          },
+          "include_other_contacts": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_GET_DRAFT",
+      "name": "Get Draft",
+      "description": "Retrieves a single Gmail draft by its ID. Use this to fetch and inspect draft content before sending via GMAIL_SEND_DRAFT. The format param…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "draft_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "draft_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_GET_FILTER",
+      "name": "Get Gmail filter",
+      "description": "Tool to retrieve a specific Gmail filter by its ID. Use when you need to inspect the criteria and actions of an existing filter.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_GET_LABEL",
+      "name": "Get label details",
+      "description": "Gets details for a specified Gmail label. Use this to retrieve label information including name, type, visibility settings, message/thread …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_GET_LANGUAGE_SETTINGS",
+      "name": "Get Language Settings",
+      "description": "Tool to retrieve the language settings for a Gmail user. Use when you need to determine the display language preference for the authenticat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_GET_PEOPLE",
+      "name": "Get People",
+      "description": "Retrieves either a specific person's details (using `resource_name`) or lists 'Other Contacts' (if `other_contacts` is true), with `person_…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sources": {
+            "type": "array"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "sync_token": {
+            "type": "string"
+          },
+          "person_fields": {
+            "type": "string"
+          },
+          "resource_name": {
+            "type": "string"
+          },
+          "other_contacts": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_GET_PROFILE",
+      "name": "Get Profile",
+      "description": "Retrieves Gmail profile information (email address, aggregate messagesTotal/threadsTotal, historyId) for a user. messagesTotal counts indiv…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_GET_VACATION_SETTINGS",
+      "name": "Get Vacation Settings",
+      "description": "Tool to retrieve vacation responder settings for a Gmail user. Use when you need to check if out-of-office auto-replies are configured and …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_IMPORT_MESSAGE",
+      "name": "Import message",
+      "description": "Tool to import a message into the user's mailbox with standard email delivery scanning and classification. Use when you need to add an exis…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "raw": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "never_mark_spam": {
+            "type": "boolean"
+          },
+          "internal_date_source": {
+            "type": "string",
+            "enum": [
+              "receivedTime",
+              "dateHeader"
+            ]
+          },
+          "process_for_calendar": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "raw"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_INSERT_MESSAGE",
+      "name": "Insert message into mailbox",
+      "description": "Tool to insert a message into the user's mailbox similar to IMAP APPEND. Use when you need to add an email directly to a mailbox bypassing …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "raw": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "internalDateSource": {
+            "type": "string",
+            "enum": [
+              "receivedTime",
+              "dateHeader"
+            ]
+          }
+        },
+        "required": [
+          "raw"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_LIST_CSE_IDENTITIES",
+      "name": "List CSE identities",
+      "description": "Tool to list client-side encrypted identities for an authenticated user. Use when you need to retrieve CSE identity configurations includin…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_LIST_CSE_KEYPAIRS",
+      "name": "List CSE key pairs",
+      "description": "Tool to list client-side encryption key pairs for an authenticated user. Use when you need to retrieve CSE keypair configurations including…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_LIST_DRAFTS",
+      "name": "List Drafts",
+      "description": "Retrieves a paginated list of email drafts from a user's Gmail account. Use verbose=true to get full draft details including subject, body,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "verbose": {
+            "type": "boolean"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_LIST_FILTERS",
+      "name": "List Gmail filters",
+      "description": "Tool to list all Gmail filters (rules) in the mailbox. Use for security audits to detect malicious filter rules or before creating new filt…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_LIST_FORWARDING_ADDRESSES",
+      "name": "List forwarding addresses",
+      "description": "Tool to list all forwarding addresses for the specified Gmail account. Use when you need to retrieve the email addresses that are allowed t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_LIST_HISTORY",
+      "name": "List Gmail history",
+      "description": "Tool to list Gmail mailbox change history since a known startHistoryId. Use for incremental mailbox syncs. Persist the latest historyId as …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "label_id": {
+            "type": "string"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "history_types": {
+            "type": "array"
+          },
+          "start_history_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_history_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_LIST_LABELS",
+      "name": "List Gmail labels",
+      "description": "Retrieves all system and user-created labels for a Gmail account in a single unpaginated response. Primary use: obtain internal label IDs (…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "include_details": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_LIST_MESSAGES",
+      "name": "List Gmail messages (Deprecated)",
+      "description": "DEPRECATED: Use GMAIL_FETCH_EMAILS instead. Lists the messages in the user's mailbox. Use when you need to retrieve a list of email message…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "label_ids": {
+            "type": "array"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "include_spam_trash": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_LIST_SEND_AS",
+      "name": "List send-as aliases",
+      "description": "Lists the send-as aliases for a Gmail account, including the primary address and custom 'from' aliases. Use when you need to retrieve avail…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_LIST_SMIME_INFO",
+      "name": "List S/MIME configs",
+      "description": "Lists S/MIME configs for the specified send-as alias. Use when you need to retrieve all S/MIME certificate configurations associated with a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "send_as_email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "send_as_email"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_LIST_THREADS",
+      "name": "List threads",
+      "description": "Retrieves a list of email threads from a Gmail account, identified by `user_id` (email address or 'me'), supporting filtering and paginatio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "verbose": {
+            "type": "boolean"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_MODIFY_THREAD_LABELS",
+      "name": "Modify thread labels",
+      "description": "Adds or removes specified existing label IDs from a Gmail thread, affecting all its messages; ensure the thread ID is valid. To modify a si…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "add_label_ids": {
+            "type": "array"
+          },
+          "remove_label_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "thread_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_MOVE_THREAD_TO_TRASH",
+      "name": "Trash thread",
+      "description": "Moves the specified thread to the trash. Any messages that belong to the thread are also moved to the trash.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "thread_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_MOVE_TO_TRASH",
+      "name": "Move to Trash",
+      "description": "Moves an existing, non-deleted email message to the trash for the specified user. Trashed messages are recoverable and still count toward s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_PATCH_LABEL",
+      "name": "Patch Label",
+      "description": "Patches the specified user-created label. System labels (e.g., INBOX, SENT, SPAM) cannot be modified and will be rejected.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "object"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "labelListVisibility": {
+            "type": "string",
+            "enum": [
+              "labelShow",
+              "labelShowIfUnread",
+              "labelHide"
+            ]
+          },
+          "messageListVisibility": {
+            "type": "string",
+            "enum": [
+              "show",
+              "hide"
+            ]
+          }
+        },
+        "required": [
+          "userId",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_PATCH_SEND_AS",
+      "name": "Patch send-as alias",
+      "description": "Tool to patch the specified send-as alias for a Gmail user. Use when you need to update properties of an existing send-as email address suc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "smtp_msa": {
+            "type": "object"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "send_as_email": {
+            "type": "string"
+          },
+          "treat_as_alias": {
+            "type": "boolean"
+          },
+          "reply_to_address": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "send_as_email"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_REMOVE_LABEL",
+      "name": "Remove label (Deprecated)",
+      "description": "DEPRECATED: Use GMAIL_DELETE_LABEL instead. Permanently deletes a specific, existing user-created Gmail label by its ID for a user; cannot …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "label_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_REPLY_TO_THREAD",
+      "name": "Reply to email thread",
+      "description": "Sends a reply within a specific Gmail thread using the original thread's subject; do not provide a custom subject as it will start a new co…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cc": {
+            "type": "array"
+          },
+          "bcc": {
+            "type": "array"
+          },
+          "is_html": {
+            "type": "boolean"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "attachment": {},
+          "message_body": {
+            "type": "string"
+          },
+          "recipient_email": {
+            "type": "string"
+          },
+          "extra_recipients": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "thread_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_SEARCH_PEOPLE",
+      "name": "Search People",
+      "description": "Searches contacts by matching the query against names, nicknames, emails, phone numbers, and organizations, optionally including 'Other Con…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "person_fields": {
+            "type": "string"
+          },
+          "other_contacts": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_SEND_DRAFT",
+      "name": "Send Draft",
+      "description": "Sends an existing draft email AS-IS to recipients already defined within the draft. IMPORTANT: This action does NOT accept recipient parame…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "draft_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "draft_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_SEND_EMAIL",
+      "name": "Send Email",
+      "description": "Sends an email via Gmail API using the authenticated user's Google profile display name. Sends immediately and is irreversible — confirm re…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cc": {
+            "type": "array"
+          },
+          "bcc": {
+            "type": "array"
+          },
+          "body": {
+            "type": "string"
+          },
+          "is_html": {
+            "type": "boolean"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "attachment": {},
+          "from_email": {
+            "type": "string"
+          },
+          "recipient_email": {
+            "type": "string"
+          },
+          "extra_recipients": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_SETTINGS_GET_IMAP",
+      "name": "Get IMAP Settings",
+      "description": "Retrieves the IMAP settings for a Gmail user account, including whether IMAP is enabled, auto-expunge behavior, expunge behavior, and maxim…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_SETTINGS_GET_POP",
+      "name": "Get POP settings",
+      "description": "Tool to retrieve POP settings for a Gmail account. Use when you need to check the current POP configuration including access window and mes…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_SETTINGS_SEND_AS_GET",
+      "name": "Get send-as alias",
+      "description": "Tool to retrieve a specific send-as alias configuration for a Gmail user. Use when you need to get details about a send-as email address in…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "send_as_email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "send_as_email"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_STOP_WATCH",
+      "name": "Stop watch notifications",
+      "description": "Tool to stop receiving push notifications for a Gmail mailbox. Use when you need to disable watch notifications previously set up via the w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_UNTRASH_MESSAGE",
+      "name": "Untrash Message",
+      "description": "Tool to remove a message from trash in Gmail. Use when you need to restore a previously trashed email message.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_UNTRASH_THREAD",
+      "name": "Untrash thread",
+      "description": "Tool to remove a thread from trash in Gmail. Use when you need to restore a deleted thread and its messages.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "thread_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_UPDATE_DRAFT",
+      "name": "Update draft",
+      "description": "Updates (replaces) an existing Gmail draft's content in-place by draft ID. This action replaces the entire draft content with the new messa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cc": {
+            "type": "array"
+          },
+          "bcc": {
+            "type": "array"
+          },
+          "body": {
+            "type": "string"
+          },
+          "is_html": {
+            "type": "boolean"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "draft_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "attachment": {},
+          "recipient_email": {
+            "type": "string"
+          },
+          "extra_recipients": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "draft_id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_UPDATE_IMAP_SETTINGS",
+      "name": "Update IMAP settings",
+      "description": "Tool to update IMAP settings for a Gmail account. Use when you need to modify IMAP configuration such as enabling/disabling IMAP, setting a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "autoExpunge": {
+            "type": "boolean"
+          },
+          "maxFolderSize": {
+            "type": "integer"
+          },
+          "expungeBehavior": {
+            "type": "string",
+            "enum": [
+              "expungeBehaviorUnspecified",
+              "archive",
+              "trash",
+              "deleteForever"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_UPDATE_LABEL",
+      "name": "Update Label",
+      "description": "Tool to update the properties of an existing Gmail label. Use when you need to modify label name, visibility settings, or color.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "object"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "labelListVisibility": {
+            "type": "string",
+            "enum": [
+              "labelShow",
+              "labelShowIfUnread",
+              "labelHide"
+            ]
+          },
+          "messageListVisibility": {
+            "type": "string",
+            "enum": [
+              "show",
+              "hide"
+            ]
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_UPDATE_LANGUAGE_SETTINGS",
+      "name": "Update Language Settings",
+      "description": "Tool to update the language settings for a Gmail user. Use when you need to change the display language preference for the authenticated us…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "display_language": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_language"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_UPDATE_POP_SETTINGS",
+      "name": "Update POP settings",
+      "description": "Tool to update POP settings for a Gmail account. Use when you need to configure POP access window or message disposition behavior.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "disposition": {
+            "type": "string",
+            "enum": [
+              "dispositionUnspecified",
+              "leaveInInbox",
+              "archive",
+              "trash",
+              "markRead"
+            ]
+          },
+          "access_window": {
+            "type": "string",
+            "enum": [
+              "accessWindowUnspecified",
+              "disabled",
+              "fromNowOn",
+              "allMail"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "GMAIL_UPDATE_SEND_AS",
+      "name": "Update send-as alias",
+      "description": "Tool to update a send-as alias for a Gmail user. Use when you need to modify display name, signature, reply-to address, or SMTP settings fo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "smtp_msa": {
+            "type": "object"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "send_as_email": {
+            "type": "string"
+          },
+          "treat_as_alias": {
+            "type": "boolean"
+          },
+          "reply_to_address": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "send_as_email"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_UPDATE_USER_ATTRIBUTES_VALUES",
+      "name": "Update User Attributes Values",
+      "description": "Update user attribute values for a resource. Use this action to set or update custom attributes for a user within an organization or projec…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "object"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "resourceType": {
+            "type": "string",
+            "enum": [
+              "organization",
+              "project"
+            ]
+          }
+        },
+        "required": [
+          "resourceType",
+          "resourceId",
+          "userId",
+          "attributes"
+        ]
+      }
+    },
+    {
+      "slug": "GMAIL_UPDATE_VACATION_SETTINGS",
+      "name": "Update Vacation Settings",
+      "description": "Tool to update vacation responder settings for a Gmail user. Use when you need to configure out-of-office auto-replies.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "endTime": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string"
+          },
+          "enableAutoReply": {
+            "type": "boolean"
+          },
+          "responseSubject": {
+            "type": "string"
+          },
+          "responseBodyHtml": {
+            "type": "string"
+          },
+          "restrictToDomain": {
+            "type": "boolean"
+          },
+          "restrictToContacts": {
+            "type": "boolean"
+          },
+          "responseBodyPlainText": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

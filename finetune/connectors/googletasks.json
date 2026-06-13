@@ -1,0 +1,525 @@
+{
+  "slug": "googletasks",
+  "name": "Google Tasks",
+  "tool_count": 18,
+  "tools": [
+    {
+      "slug": "GOOGLETASKS_BATCH_EXECUTE",
+      "name": "Batch Execute Google Tasks Operations",
+      "description": "Executes multiple Google Tasks API operations in a single HTTP batch request and returns structured per-item results. Use this to reduce LL…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "requests": {
+            "type": "array"
+          },
+          "max_requests": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "requests"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_BULK_INSERT_TASKS",
+      "name": "Bulk Insert Tasks (Deprecated)",
+      "description": "DEPRECATED: Use BatchExecute instead. Creates multiple tasks in a Google Tasks list in a single operation using HTTP batching. Use when you…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "array"
+          },
+          "batch_size": {
+            "type": "integer"
+          },
+          "tasklist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasklist_id",
+          "tasks"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_CLEAR_TASKS",
+      "name": "Clear tasks",
+      "description": "Permanently and irreversibly clears all completed tasks from a specified Google Tasks list; this action is destructive, idempotent, and can…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tasklist": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasklist"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_CREATE_TASK_LIST",
+      "name": "Create a task list",
+      "description": "Creates a new task list with the specified title and returns a tasklist_id. Use the returned tasklist_id (not the title) when calling GOOGL…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tasklist_title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasklist_title"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_DELETE_TASK",
+      "name": "Delete task",
+      "description": "Deletes a specified task from a Google Tasks list. Deletion is permanent and irreversible — confirm with the user before executing, and con…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "tasklist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasklist_id",
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_DELETE_TASK_LIST",
+      "name": "Delete task list",
+      "description": "Permanently deletes an existing Google Task list, identified by `tasklist_id`, along with all its tasks; this operation is irreversible. Re…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tasklist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasklist_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_GET_TASK",
+      "name": "Get Task",
+      "description": "Retrieve a specific Google Task. REQUIRES both `tasklist_id` and `task_id`. Tasks cannot be retrieved by ID alone - you must always specify…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "tasklist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasklist_id",
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_GET_TASK_LIST",
+      "name": "Get task list",
+      "description": "Retrieves a specific task list from the user's Google Tasks if the `tasklist_id` exists for the authenticated user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tasklist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasklist_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_INSERT_TASK",
+      "name": "Insert Task",
+      "description": "Creates a new task in a given `tasklist_id`, optionally as a subtask of an existing `task_parent` or positioned after an existing `task_pre…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "due": {
+            "type": "string"
+          },
+          "etag": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "needsAction",
+              "completed"
+            ]
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "completed": {
+            "type": "string"
+          },
+          "task_parent": {
+            "type": "string"
+          },
+          "tasklist_id": {
+            "type": "string"
+          },
+          "task_previous": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "tasklist_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_LIST_ALL_TASKS",
+      "name": "List All Tasks Across All Lists",
+      "description": "Tool to list all tasks across all of the user's task lists with optional filters. Use when the agent needs to see all tasks without knowing…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dueMax": {
+            "type": "string"
+          },
+          "dueMin": {
+            "type": "string"
+          },
+          "showHidden": {
+            "type": "boolean"
+          },
+          "updatedMin": {
+            "type": "string"
+          },
+          "showDeleted": {
+            "type": "boolean"
+          },
+          "completedMax": {
+            "type": "string"
+          },
+          "completedMin": {
+            "type": "string"
+          },
+          "showAssigned": {
+            "type": "boolean"
+          },
+          "showCompleted": {
+            "type": "boolean"
+          },
+          "max_tasks_total": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_LIST_TASK_LISTS",
+      "name": "List task lists",
+      "description": "Fetches the authenticated user's task lists from Google Tasks; results may be paginated. Response contains task lists under the `items` key…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_LIST_TASKS",
+      "name": "List Tasks",
+      "description": "Retrieves tasks from a Google Tasks list; all date/time strings must be RFC3339 UTC, and `showCompleted` must be true if `completedMin` or …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dueMax": {
+            "type": "string"
+          },
+          "dueMin": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "showHidden": {
+            "type": "boolean"
+          },
+          "tasklistId": {
+            "type": "string"
+          },
+          "updatedMin": {
+            "type": "string"
+          },
+          "showDeleted": {
+            "type": "boolean"
+          },
+          "completedMax": {
+            "type": "string"
+          },
+          "completedMin": {
+            "type": "string"
+          },
+          "showCompleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "tasklistId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_MOVE_TASK",
+      "name": "Move Task",
+      "description": "Moves the specified task to another position in the task list or to a different task list. Use cases: - Reorder tasks within a list (use 'p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "previous": {
+            "type": "string"
+          },
+          "tasklist": {
+            "type": "string"
+          },
+          "destinationTasklist": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasklist",
+          "task"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_PATCH_TASK",
+      "name": "Patch Task",
+      "description": "Partially updates an existing task (identified by `task_id`) within a specific Google Task list (identified by `tasklist_id`), modifying on…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "due": {
+            "type": "string"
+          },
+          "etag": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "needsAction",
+              "completed"
+            ]
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "completed": {
+            "type": "string"
+          },
+          "tasklist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasklist_id",
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_PATCH_TASK_LIST",
+      "name": "Patch task list",
+      "description": "Updates the title of an existing Google Tasks task list.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tasklist_id": {
+            "type": "string"
+          },
+          "updated_title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasklist_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_UPDATE_TASK",
+      "name": "Update Task (Deprecated)",
+      "description": "DEPRECATED: Use GOOGLETASKS_PATCH_TASK instead. Full-update (PUT-style) operation that overwrites unspecified fields with empty/default val…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "due": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "completed": {
+            "type": "string"
+          },
+          "tasklist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasklist_id",
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_UPDATE_TASK_FULL",
+      "name": "Update Task (Full Replacement)",
+      "description": "Tool to fully replace an existing Google Task using PUT method. Use when you need to update the entire task resource, not just specific fie…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "due": {
+            "type": "string"
+          },
+          "etag": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "needsAction",
+              "completed"
+            ]
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "position": {
+            "type": "string"
+          },
+          "completed": {
+            "type": "string"
+          },
+          "tasklist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasklist_id",
+          "task_id",
+          "id",
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLETASKS_UPDATE_TASK_LIST",
+      "name": "Update Task List",
+      "description": "Updates the authenticated user's specified task list.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "tasklist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasklist_id",
+          "title"
+        ]
+      }
+    }
+  ]
+}

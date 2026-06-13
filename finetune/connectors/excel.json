@@ -1,0 +1,1754 @@
+{
+  "slug": "excel",
+  "name": "Excel",
+  "tool_count": 54,
+  "tools": [
+    {
+      "slug": "EXCEL_ADD_CHART",
+      "name": "Add Chart",
+      "description": "Add a chart to a worksheet using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "seriesby": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "sourcedata": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet",
+          "type",
+          "sourcedata",
+          "seriesby"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_ADD_SHAREPOINT_WORKSHEET",
+      "name": "Add SharePoint Worksheet",
+      "description": "Add a new worksheet to a SharePoint Excel workbook using Microsoft Graph Sites API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "item_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_ADD_TABLE",
+      "name": "Add Table",
+      "description": "Create a new table in a worksheet using the Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "hasHeaders": {
+            "type": "boolean"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "address",
+          "hasHeaders"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_ADD_TABLE_COLUMN",
+      "name": "Add Table Column",
+      "description": "Add a column to a table using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "values": {
+            "type": "array"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "table_id",
+          "values",
+          "index"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_ADD_TABLE_ROW",
+      "name": "Add Table Row",
+      "description": "Add a row to a table using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "values": {
+            "type": "array"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "table_id",
+          "values"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_ADD_WORKBOOK_PERMISSION",
+      "name": "Add Workbook Permission",
+      "description": "Tool to grant access to a workbook via invite. Use when you need to share a specific workbook file with designated recipients and roles.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "recipients": {
+            "type": "array"
+          },
+          "requireSignIn": {
+            "type": "boolean"
+          },
+          "sendInvitation": {
+            "type": "boolean"
+          },
+          "expirationDateTime": {
+            "type": "string"
+          },
+          "retainInheritedPermissions": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "item_id",
+          "recipients",
+          "roles"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_ADD_WORKSHEET",
+      "name": "Add Worksheet",
+      "description": "Add a new worksheet to an Excel workbook using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_APPLY_TABLE_FILTER",
+      "name": "Apply Table Filter",
+      "description": "Apply a filter to a table column using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "criteria": {
+            "type": "object"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string"
+          },
+          "column_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet",
+          "table_id",
+          "column_id",
+          "criteria"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_APPLY_TABLE_SORT",
+      "name": "Apply Table Sort",
+      "description": "Apply a sort to a table using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet",
+          "table_id",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_CLEAR_RANGE",
+      "name": "Clear Range",
+      "description": "Tool to clear values, formats, or contents in a specified worksheet range. Use when you need to reset cells before adding new data.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "applyTo": {
+            "type": "string",
+            "enum": [
+              "All",
+              "Formats",
+              "Contents"
+            ]
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "worksheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet_id",
+          "address"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_CLEAR_TABLE_FILTER",
+      "name": "Clear Table Filter",
+      "description": "Clear a filter from a table column using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string"
+          },
+          "column_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet",
+          "table_id",
+          "column_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_CLOSE_SESSION",
+      "name": "Close Excel Session",
+      "description": "Tool to close an existing Excel workbook session. Use when you need to explicitly end a persistent session to release workbook locks. Note:…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "session_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_CONVERT_TABLE_TO_RANGE",
+      "name": "Convert Table To Range",
+      "description": "Convert a table to a range using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "table_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_CREATE_WORKBOOK",
+      "name": "Create Workbook",
+      "description": "Tool to create a new Excel workbook file at a specified drive path. Generates a new .xlsx file with specified worksheets and data, then upl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "worksheet_data": {
+            "type": "object"
+          },
+          "worksheet_names": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_DELETE_TABLE_COLUMN",
+      "name": "Delete Table Column",
+      "description": "Delete a column from a table using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string"
+          },
+          "column_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "table_id",
+          "column_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_DELETE_TABLE_ROW",
+      "name": "Delete Table Row",
+      "description": "Delete a row from a table using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string"
+          },
+          "row_index": {
+            "type": "integer"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "table_id",
+          "row_index"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_DELETE_WORKSHEET",
+      "name": "Delete Worksheet",
+      "description": "Tool to delete a worksheet from the workbook. Use when cleaning up unused or temporary sheets after verifying no dependencies exist. Exampl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_EXPORT_WORKBOOK_TO_PDF",
+      "name": "Export Workbook to PDF",
+      "description": "Tool to export an Excel workbook to PDF via Microsoft Graph's format conversion. Use when you need a PDF version of an Excel file for sendi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "drive_scope": {
+            "type": "string",
+            "enum": [
+              "me",
+              "drives",
+              "sites"
+            ]
+          },
+          "save_pdf_to_path": {
+            "type": "string"
+          },
+          "return_download_url_only": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_GET_CHART_AXIS",
+      "name": "Get Chart Axis",
+      "description": "Tool to retrieve a specific axis from a chart. Use when you need properties like min, max, interval, and formatting of the chart axis.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "axis_type": {
+            "type": "string",
+            "enum": [
+              "valueAxis",
+              "seriesAxis",
+              "categoryAxis"
+            ]
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "chart_name": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet",
+          "chart_name",
+          "axis_type"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_GET_CHART_DATA_LABELS",
+      "name": "Get Chart Data Labels",
+      "description": "Tool to retrieve the data labels object of a chart. Use when you need to inspect label settings like position, separator, and visibility fl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "chart_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "worksheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet_id",
+          "chart_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_GET_CHART_LEGEND",
+      "name": "Get Chart Legend",
+      "description": "Tool to retrieve the legend object of a chart. Use after creating or updating a chart when you need to inspect legend visibility and format…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "chart_name": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "worksheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet_id",
+          "chart_name"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_GET_RANGE",
+      "name": "Get Range",
+      "description": "Get a range from a worksheet using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "worksheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet_id",
+          "address"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_GET_SESSION",
+      "name": "Create Excel Session",
+      "description": "Create a session for an Excel workbook using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "persist_changes": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_GET_SHAREPOINT_RANGE",
+      "name": "Get SharePoint Range",
+      "description": "Get a range from a worksheet in SharePoint using Microsoft Graph Sites API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "worksheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "item_id",
+          "worksheet_id",
+          "address"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_GET_SHAREPOINT_WORKSHEET",
+      "name": "Get SharePoint Worksheet",
+      "description": "Get a worksheet by name or ID from a SharePoint Excel workbook using Microsoft Graph Sites API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "item_id",
+          "worksheet"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_GET_TABLE_COLUMN",
+      "name": "Get table column",
+      "description": "Tool to retrieve a specific column from a workbook table. Use when you need to fetch column properties and data by its ID or name.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string"
+          },
+          "column_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "table_id",
+          "column_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_GET_WORKBOOK",
+      "name": "Get workbook",
+      "description": "Tool to retrieve the properties and relationships of a workbook. Use when you need to inspect comments, names, tables, or worksheets.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_GET_WORKSHEET",
+      "name": "Get Worksheet",
+      "description": "Get a worksheet by name or ID from an Excel workbook using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_GET_WORKSHEET_USED_RANGE",
+      "name": "Get Worksheet Used Range",
+      "description": "Tool to retrieve a worksheet's used range (active data region) without specifying a fixed range address. Use when you need to read all data…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "values_only": {
+            "type": "boolean"
+          },
+          "worksheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id",
+          "worksheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_INSERT_RANGE",
+      "name": "Insert Range",
+      "description": "Tool to insert a new cell range into a worksheet, shifting existing cells down or right. Use when you need to create space for new content …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "shift": {
+            "type": "string",
+            "enum": [
+              "Down",
+              "Right"
+            ]
+          },
+          "address": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "worksheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet_id",
+          "address",
+          "shift"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_LIST_CHARTS",
+      "name": "List Charts",
+      "description": "List charts in a worksheet using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_LIST_CHART_SERIES",
+      "name": "List Chart Series",
+      "description": "Tool to list all data series in a chart. Use when you need to enumerate chart series for further analysis.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "chart_name": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet",
+          "chart_name"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_LIST_COMMENTS",
+      "name": "List Comments",
+      "description": "Tool to list comments in an Excel workbook. Use when you need to retrieve all workbook comments via Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_LIST_DRIVE_ITEM_CHILDREN",
+      "name": "List Drive Item Children",
+      "description": "Tool to list immediate children (files/folders) of a folder DriveItem using driveId and itemId. Returns an array of child DriveItems with s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "skip_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_LIST_FILES",
+      "name": "List Drive Files",
+      "description": "List files and folders in a drive root or specified path.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "skip_token": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "EXCEL_LIST_NAMED_ITEMS",
+      "name": "List Named Items",
+      "description": "List named items in a workbook using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_LIST_SHAREPOINT_TABLES",
+      "name": "List SharePoint Tables",
+      "description": "List tables in a SharePoint worksheet using Microsoft Graph Sites API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "item_id",
+          "worksheet"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_LIST_SHAREPOINT_WORKSHEETS",
+      "name": "List SharePoint Worksheets",
+      "description": "List worksheets in an Excel workbook stored in SharePoint using Microsoft Graph Sites API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_LIST_TABLE_COLUMNS",
+      "name": "List Table Columns",
+      "description": "List columns in a table using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "table_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_LIST_TABLE_ROWS",
+      "name": "List Table Rows",
+      "description": "List rows in a table using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "table_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_LIST_TABLES",
+      "name": "List Tables",
+      "description": "List tables in a worksheet using Microsoft Graph API. This action retrieves information about all tables present in a specified worksheet o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_LIST_WORKBOOK_PERMISSIONS",
+      "name": "List Workbook Permissions",
+      "description": "Tool to list permissions set on the workbook file. Use when you need to see which users or links have access to a specific Excel file by su…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "skip_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_LIST_WORKSHEETS",
+      "name": "List Worksheets",
+      "description": "List worksheets in an Excel workbook using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_MERGE_CELLS",
+      "name": "Merge Cells",
+      "description": "Merge cells in a worksheet range using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string"
+          },
+          "across": {
+            "type": "boolean"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet",
+          "range"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_PROTECT_WORKSHEET",
+      "name": "Protect Worksheet",
+      "description": "Tool to protect a worksheet using optional protection options. Use when you need to prevent editing certain parts of a sheet before sharing…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "options": {
+            "type": "object"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_SEARCH_FILES",
+      "name": "Search Drive Files",
+      "description": "Tool to search OneDrive drive items by query to discover Excel workbook IDs. Use when you need to find Excel files by name before performin…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "drive",
+              "root"
+            ]
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "skip_token": {
+            "type": "string"
+          },
+          "file_extensions": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_SORT_RANGE",
+      "name": "Sort Range",
+      "description": "Sort a range in a worksheet using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "range_type": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet",
+          "range_type",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_UPDATE_CHART",
+      "name": "Update Chart",
+      "description": "Update a chart in a worksheet using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "number"
+          },
+          "left": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "width": {
+            "type": "number"
+          },
+          "height": {
+            "type": "number"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "chart_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet",
+          "chart_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_UPDATE_CHART_LEGEND",
+      "name": "Update Chart Legend",
+      "description": "Tool to update formatting or position of a chart legend. Use when adjusting legend settings after confirming chart and worksheet exist.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "overlay": {
+            "type": "boolean"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "chart_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "position": {
+            "type": "string",
+            "enum": [
+              "Top",
+              "Bottom",
+              "Left",
+              "Right",
+              "Corner",
+              "Custom"
+            ]
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet",
+          "chart_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_UPDATE_RANGE",
+      "name": "Update Range",
+      "description": "Update a range in a worksheet using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "array"
+          },
+          "address": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "worksheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet_id",
+          "address",
+          "values"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_UPDATE_SHAREPOINT_RANGE",
+      "name": "Update SharePoint Range",
+      "description": "Update a range in a SharePoint worksheet using Microsoft Graph Sites API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "array"
+          },
+          "address": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "worksheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "item_id",
+          "worksheet_id",
+          "address",
+          "values"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_UPDATE_TABLE",
+      "name": "Update Table",
+      "description": "Update a table in a workbook using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "style": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "showTotals": {
+            "type": "boolean"
+          },
+          "showHeaders": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "item_id",
+          "table_id"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_UPDATE_WORKSHEET",
+      "name": "Update Worksheet",
+      "description": "Update worksheet properties (name, position) in an Excel workbook using Microsoft Graph API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "worksheet": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "worksheet"
+        ]
+      }
+    },
+    {
+      "slug": "EXCEL_UPLOAD_WORKBOOK",
+      "name": "Upload Workbook from URL",
+      "description": "Tool to upload an external Excel file from a URL into OneDrive/SharePoint. Downloads the file server-side and uploads it to the specified d…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "drive_id": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          },
+          "destination_path": {
+            "type": "string"
+          },
+          "conflict_behavior": {
+            "type": "string",
+            "enum": [
+              "rename",
+              "replace",
+              "fail"
+            ]
+          }
+        },
+        "required": [
+          "source_url"
+        ]
+      }
+    }
+  ]
+}

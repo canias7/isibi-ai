@@ -1,0 +1,4918 @@
+{
+  "slug": "microsoft_teams",
+  "name": "Microsoft Teams",
+  "tool_count": 169,
+  "tools": [
+    {
+      "slug": "MICROSOFT_TEAMS_ADD_CHAT_MEMBER",
+      "name": "Add chat member",
+      "description": "Tool to add a conversationMember to a Microsoft Teams chat. Use when adding a user to an existing chat conversation.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array"
+          },
+          "chat_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "visible_history_start_date_time": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_ADD_MEMBER_TO_CHANNEL",
+      "name": "Add member to channel",
+      "description": "Tool to add a member to a Microsoft Teams channel. Use this action when you need to grant a user access to a specific channel within a team…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id",
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_ADD_MEMBER_TO_TEAM",
+      "name": "Add member to team",
+      "description": "(DEPRECATED: use `MICROSOFT_TEAMS_ADD_TEAM_MEMBER`) Tool to add a user to a Microsoft Teams team. Use when granting or updating membership …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_ADD_TAB",
+      "name": "Add tab to channel",
+      "description": "Tool to add a new tab to a Microsoft Teams channel. Use when you need to pin an app or website as a tab in a channel.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "teams_app_id": {
+            "type": "string"
+          },
+          "configuration": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id",
+          "display_name",
+          "teams_app_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_ADD_TEAM_MEMBER",
+      "name": "Add member to team",
+      "description": "Tool to add a user to a Microsoft Teams team. Use when granting or updating membership for a user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_ADD_TEAM_MEMBERS_BULK",
+      "name": "Add team members (bulk)",
+      "description": "Tool to add multiple members to a Microsoft Teams team in a single operation. Use when adding several users at once to improve efficiency.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "values"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_ARCHIVE_CHANNEL",
+      "name": "Archive channel",
+      "description": "Tool to archive a channel in a Microsoft Teams team. Use when you need to archive a specific channel within a team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "should_set_spo_site_read_only_for_members": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_ARCHIVE_GROUP_TEAM_CHANNEL",
+      "name": "Archive team channel",
+      "description": "Tool to archive a channel in a Microsoft Teams team using the group ID. Use when you need to archive a specific channel within a team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "should_set_spo_site_read_only_for_members": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "group_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_ARCHIVE_TEAM",
+      "name": "Archive Teams team",
+      "description": "Tool to archive a Microsoft Teams team. Use after confirming the team ID; returns 202 if accepted.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "should_set_spo_site_read_only_for_members": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CHATS_GET_ALL_CHATS",
+      "name": "Get all chats",
+      "description": "Retrieves all Microsoft Teams chats a specified user is part of, supporting filtering, property selection, and pagination.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CHATS_GET_ALL_MESSAGES",
+      "name": "Get all chat messages (Deprecated)",
+      "description": "DEPRECATED: Use ListUserChatMessages instead. Retrieves all messages from a specified Microsoft Teams chat using the Microsoft Graph API, a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "chat_id": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CLEAR_AUTOMATIC_LOCATION",
+      "name": "Clear Automatic Location",
+      "description": "Tool to clear the automatic location from a user's presence in Microsoft Teams. Use when you need to remove automatically-set location info…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CLEAR_ME_PRESENCE_USER_PREFERRED",
+      "name": "Clear User Preferred Presence",
+      "description": "Tool to clear a user's preferred presence setting in Microsoft Teams. Use when you need to remove the user's manually set presence status a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CLEAR_MY_PRESENCE",
+      "name": "Clear My Presence (Deprecated)",
+      "description": "DEPRECATED: Use MICROSOFT_TEAMS_CLEAR_PRESENCE instead. Tool to clear the authenticated user's presence session in Microsoft Teams. Use whe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CLEAR_PRESENCE",
+      "name": "Clear Presence",
+      "description": "Tool to clear the presence information for a user's application presence session in Microsoft Teams. Use when you need to remove presence i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "sessionId"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CLEAR_PRESENCE_AUTOMATIC_LOCATION",
+      "name": "Clear Presence Automatic Location (Deprecated)",
+      "description": "DEPRECATED: Use MICROSOFT_TEAMS_CLEAR_AUTOMATIC_LOCATION instead. Tool to clear the automatic presence location for the authenticated user.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CLEAR_PRESENCE_LOCATION",
+      "name": "Clear Presence Location",
+      "description": "Tool to clear the authenticated user's presence location. Use when you need to remove location information from the user's current presence…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CLONE_TEAM",
+      "name": "Clone Team",
+      "description": "Tool to clone a Microsoft Teams team using the team ID. Use when you need to create a copy of an existing team including its structure, cha…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "private",
+              "public",
+              "hiddenMembership",
+              "unknownFutureValue"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "mailNickname": {
+            "type": "string"
+          },
+          "partsToClone": {
+            "type": "string"
+          },
+          "classification": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "displayName",
+          "mailNickname"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_CALL_OPERATION",
+      "name": "Create Call Operation",
+      "description": "Tool to create a new operation for a communications call. Use when you need to initiate a new operation on an active call.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "notStarted",
+              "running",
+              "completed",
+              "failed"
+            ]
+          },
+          "call_id": {
+            "type": "string"
+          },
+          "odata_type": {
+            "type": "string"
+          },
+          "clientContext": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_CHANNEL",
+      "name": "Create a channel",
+      "description": "Tool to create a new standard, private, or shared channel within a Microsoft Teams team. Use when you need to create a new channel for team…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "members": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "membership_type": {
+            "type": "string"
+          },
+          "created_date_time": {
+            "type": "string"
+          },
+          "shared_with_teams": {
+            "type": "string"
+          },
+          "is_favorite_by_default": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_CONTENT_SHARING_SESSION",
+      "name": "Create Content Sharing Session",
+      "description": "Tool to create a content sharing session in a Microsoft Teams call. Use when you need to initiate content sharing during an active call.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "call_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_GROUP_TEAM_CHANNEL",
+      "name": "Create channel in group team",
+      "description": "Tool to create a new channel in a group's associated team. Use when you have a group ID and need to create a channel in its team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "membership_type": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "private",
+              "shared"
+            ]
+          },
+          "is_favorite_by_default": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "group_id",
+          "display_name"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_MEETING",
+      "name": "Create online meeting",
+      "description": "Use to schedule a new standalone Microsoft Teams online meeting, i.e., one not linked to any calendar event.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "participants": {
+            "type": "array"
+          },
+          "end_date_time": {
+            "type": "string"
+          },
+          "allow_recording": {
+            "type": "boolean"
+          },
+          "start_date_time": {
+            "type": "string"
+          },
+          "allow_live_share": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ]
+          },
+          "allow_whiteboard": {
+            "type": "boolean"
+          },
+          "chat_restrictions": {
+            "type": "object"
+          },
+          "allow_meeting_chat": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled",
+              "limited"
+            ]
+          },
+          "allowed_presenters": {
+            "type": "string",
+            "enum": [
+              "everyone",
+              "organization",
+              "roleIsPresenter",
+              "organizer"
+            ]
+          },
+          "allow_transcription": {
+            "type": "boolean"
+          },
+          "meeting_template_id": {
+            "type": "string"
+          },
+          "allow_breakout_rooms": {
+            "type": "boolean"
+          },
+          "is_passcode_required": {
+            "type": "boolean"
+          },
+          "record_automatically": {
+            "type": "boolean"
+          },
+          "watermark_protection": {
+            "type": "object"
+          },
+          "lobby_bypass_settings": {
+            "type": "object"
+          },
+          "is_entry_exit_announced": {
+            "type": "boolean"
+          },
+          "allow_teamwork_reactions": {
+            "type": "boolean"
+          },
+          "allow_power_point_sharing": {
+            "type": "boolean"
+          },
+          "allow_attendee_to_enable_mic": {
+            "type": "boolean"
+          },
+          "allow_attendee_to_enable_camera": {
+            "type": "boolean"
+          },
+          "is_end_to_end_encryption_enabled": {
+            "type": "boolean"
+          },
+          "allow_participants_to_change_name": {
+            "type": "boolean"
+          },
+          "share_meeting_chat_history_default": {
+            "type": "string",
+            "enum": [
+              "all",
+              "none"
+            ]
+          },
+          "allow_copying_and_sharing_meeting_content": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "start_date_time",
+          "end_date_time",
+          "subject"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_OFFER_SHIFT_REQUEST",
+      "name": "Create user offer shift request",
+      "description": "Tool to create a new offer shift request in a user's joined team schedule. Use when a team member wants to offer their shift to another tea…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "odata_type": {
+            "type": "string"
+          },
+          "senderMessage": {
+            "type": "string"
+          },
+          "senderShiftId": {
+            "type": "string"
+          },
+          "recipientUserId": {
+            "type": "string"
+          },
+          "recipientActionMessage": {
+            "type": "string"
+          },
+          "recipientActionDateTime": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "senderShiftId",
+          "recipientUserId"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_OPEN_SHIFT",
+      "name": "Create open shifts",
+      "description": "Tool to create a new open shift in a Microsoft Teams team schedule. Use when you need to publish available shifts that team members can cla…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "draftOpenShift": {
+            "type": "object"
+          },
+          "sharedOpenShift": {
+            "type": "object"
+          },
+          "schedulingGroupId": {
+            "type": "string"
+          },
+          "isStagedForDeletion": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "sharedOpenShift"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_OPEN_SHIFT_CHANGE_REQUEST",
+      "name": "Create open shift change request",
+      "description": "Tool to create a new open shift change request in a team schedule. Use when a team member wants to claim an available open shift.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "openShiftId": {
+            "type": "string"
+          },
+          "senderUserId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "openShiftId",
+          "senderUserId"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_OR_GET_ONLINE_MEETING",
+      "name": "Create or get online meeting",
+      "description": "Tool to create a new Microsoft Teams online meeting or retrieve an existing one based on externalId. Use when you need an idempotent meetin…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "chatInfo": {
+            "type": "object"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "endDateTime": {
+            "type": "string"
+          },
+          "participants": {
+            "type": "object"
+          },
+          "startDateTime": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "externalId"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_OR_UPDATE_SCHEDULE",
+      "name": "Create or update schedule",
+      "description": "Tool to create or replace a schedule object for a Microsoft Teams team. Use when you need to enable or configure scheduling features for a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "timeClockEnabled": {
+            "type": "boolean"
+          },
+          "openShiftsEnabled": {
+            "type": "boolean"
+          },
+          "timeOffRequestsEnabled": {
+            "type": "boolean"
+          },
+          "offerShiftRequestsEnabled": {
+            "type": "boolean"
+          },
+          "swapShiftsRequestsEnabled": {
+            "type": "boolean"
+          },
+          "isActivitiesIncludedWhenCopyingShiftsEnabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_SCHEDULE_DAY_NOTE",
+      "name": "Create schedule day note",
+      "description": "Tool to create a new day note in a team's schedule. Use when you need to add notes or reminders for a specific date in the team schedule. D…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string"
+          },
+          "dayNoteDate": {
+            "type": "string"
+          },
+          "draftDayNote": {
+            "type": "object"
+          },
+          "sharedDayNote": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "teamId",
+          "dayNoteDate"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_SCHEDULING_GROUP",
+      "name": "Create scheduling group",
+      "description": "Tool to create a new scheduling group in a team's schedule. Use when you need to organize team members into groups for shift scheduling and…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "user_ids": {
+            "type": "array"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "display_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "display_name",
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_SHIFT",
+      "name": "Create team schedule shift",
+      "description": "Tool to create a new shift in a Microsoft Teams team schedule. Use when you need to assign work shifts to team members with specific start/…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "draftShift": {
+            "type": "object"
+          },
+          "sharedShift": {
+            "type": "object"
+          },
+          "schedulingGroupId": {
+            "type": "string"
+          },
+          "isStagedForDeletion": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "userId",
+          "draftShift"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_TEAM",
+      "name": "Create Team",
+      "description": "Tool to create a new Microsoft Teams team. Use when you need to provision a team with optional template, channels, and members.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "array"
+          },
+          "channels": {
+            "type": "array"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "private",
+              "public",
+              "hiddenMembership"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "funSettings": {
+            "type": "object"
+          },
+          "guestSettings": {
+            "type": "object"
+          },
+          "installedApps": {
+            "type": "array"
+          },
+          "classification": {
+            "type": "string"
+          },
+          "memberSettings": {
+            "type": "object"
+          },
+          "specialization": {
+            "type": "string",
+            "enum": [
+              "none",
+              "educationStandard",
+              "educationClass",
+              "educationProfessionalLearningCommunity",
+              "healthcareStandard",
+              "healthcareCareCoordination",
+              "unknownFutureValue"
+            ]
+          },
+          "firstChannelName": {
+            "type": "string"
+          },
+          "messagingSettings": {
+            "type": "object"
+          },
+          "templateOdataBind": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "displayName"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_TEAM_FROM_GROUP",
+      "name": "Create Team From Group",
+      "description": "Tool to create a new team under an existing Microsoft 365 group. Use when you need to add Teams capabilities to an existing group.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "funSettings": {
+            "type": "object"
+          },
+          "guestSettings": {
+            "type": "object"
+          },
+          "memberSettings": {
+            "type": "object"
+          },
+          "messagingSettings": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_TIME_OFF",
+      "name": "Create time off",
+      "description": "Tool to create a new timeOff instance in a team's schedule. Use when you need to create approved time off for a team member (vacation, sick…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "draftTimeOff": {
+            "type": "object"
+          },
+          "sharedTimeOff": {
+            "type": "object"
+          },
+          "isStagedForDeletion": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "userId"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_TIME_OFF_REASON",
+      "name": "Create time off reason",
+      "description": "Tool to create a new time off reason in a team's schedule. Use when you need to define a new category for time off requests with a custom n…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "iconType": {
+            "type": "string",
+            "enum": [
+              "none",
+              "car",
+              "calendar",
+              "running",
+              "plane",
+              "firstAid",
+              "doctor",
+              "notWorking",
+              "clock",
+              "juryDuty",
+              "globe",
+              "cup",
+              "phone",
+              "weather",
+              "umbrella",
+              "piggyBank",
+              "dog",
+              "cake",
+              "trafficCone",
+              "pin",
+              "sunny"
+            ]
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "displayName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "displayName",
+          "iconType",
+          "isActive"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_TIME_OFF_REQUEST",
+      "name": "Create time off request",
+      "description": "Tool to create a new time off request in a team's schedule. Use when a team member needs to request time off for vacation, sick leave, or o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "odata_type": {
+            "type": "string"
+          },
+          "endDateTime": {
+            "type": "string"
+          },
+          "senderUserId": {
+            "type": "string"
+          },
+          "startDateTime": {
+            "type": "string"
+          },
+          "timeOffReasonId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "startDateTime",
+          "endDateTime",
+          "timeOffReasonId",
+          "senderUserId"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_CREATE_USER_ONLINE_MEETING",
+      "name": "Create user online meeting",
+      "description": "Tool to create a new Microsoft Teams online meeting for a specific user. Use when you need to create an online meeting on behalf of a user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "endDateTime": {
+            "type": "string"
+          },
+          "isBroadcast": {
+            "type": "boolean"
+          },
+          "startDateTime": {
+            "type": "string"
+          },
+          "meetingTemplateId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "startDateTime",
+          "endDateTime",
+          "subject"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_DELETE_CALL_OPERATION",
+      "name": "Delete Call Operation",
+      "description": "Tool to delete a navigation property operation for a communications call. Use when you need to remove a specific commsOperation from a call.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "call_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "comms_operation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id",
+          "comms_operation_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_DELETE_CHANNEL",
+      "name": "Delete team channel",
+      "description": "Tool to delete a channel from a Microsoft Teams team. Use when you need to permanently remove a channel. Note that the General channel cann…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_DELETE_DAY_NOTE",
+      "name": "Delete team schedule day note",
+      "description": "Tool to delete a day note from a Microsoft Teams schedule. Use when you need to remove a day note from a specific date in the team schedule…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "day_note_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "day_note_id",
+          "if_match"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_DELETE_OPEN_SHIFT",
+      "name": "Delete open shift",
+      "description": "Tool to delete an open shift from a Microsoft Teams schedule. Use when you need to remove an unfilled shift from the team schedule.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "open_shift_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "open_shift_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_DELETE_SCHEDULING_GROUP",
+      "name": "Delete team scheduling group",
+      "description": "Tool to delete a scheduling group from a Microsoft Teams team schedule. Use this when you need to remove a scheduling group from a specific…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "scheduling_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "scheduling_group_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_DELETE_SHIFT",
+      "name": "Delete team schedule shift",
+      "description": "Tool to delete a shift from a Microsoft Teams team schedule. Use when you need to permanently remove a scheduled shift.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "shift_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "shift_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_DELETE_SOFT_MESSAGE",
+      "name": "Soft-delete Teams channel message",
+      "description": "Tool to soft-delete a message in a Teams channel. Use when you need to remove a message without permanently deleting it.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id",
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_DELETE_TAB",
+      "name": "Delete channel tab",
+      "description": "Tool to delete a tab from a Microsoft Teams channel. Use when you need to permanently remove a tab from a channel.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tab_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id",
+          "tab_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_DELETE_TEAM",
+      "name": "Delete Teams team",
+      "description": "Tool to delete a Microsoft Teams team. Use after confirming the target team ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_DELETE_TIME_OFF",
+      "name": "Delete time off",
+      "description": "Tool to delete a timeOff from a team's schedule. Use when you need to remove a scheduled time off entry from a team member's schedule.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "timeoff_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "timeoff_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_DELETE_TIME_OFF_REASON",
+      "name": "Delete time off reason",
+      "description": "Tool to delete a time off reason from a team's schedule. Use when you need to remove a time off reason. Note: This operation marks the time…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "time_off_reason_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "time_off_reason_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_DELETE_TIME_OFF_REQUEST",
+      "name": "Delete time off request",
+      "description": "Tool to delete a time off request from a Microsoft Teams team schedule. Use when you need to permanently remove a time off request.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "time_off_request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "time_off_request_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_DELETE_USER_ONLINE_MEETING",
+      "name": "Delete User Online Meeting",
+      "description": "Tool to delete an online meeting for a user. Use when you need to permanently remove an online meeting from a user's calendar.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "online_meeting_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "online_meeting_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_CALL_OPERATION",
+      "name": "Get call operation",
+      "description": "Tool to get a specific commsOperation for a call. Use to check the status of long-running call operations.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "call_id": {
+            "type": "string"
+          },
+          "comms_operation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id",
+          "comms_operation_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_CHANNEL",
+      "name": "Get team channel",
+      "description": "Tool to get a specific channel in a team. Use after obtaining valid team and channel IDs to fetch channel details.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_CHANNEL_MESSAGE",
+      "name": "Get Teams channel message",
+      "description": "Retrieves a specific message from a Microsoft Teams channel using its Team, Channel, and Message IDs.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id",
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_CHANNEL_MESSAGE_REPLY",
+      "name": "Get channel message reply",
+      "description": "Tool to retrieve a single reply to a message in a channel. Use when you need to get details of a specific reply message.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "select": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "reply_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id",
+          "message_id",
+          "reply_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_CHAT",
+      "name": "Get chat",
+      "description": "Tool to retrieve a single chat by ID. Use when you need to get details about a specific chat.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "chat_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_CHAT_LAST_MESSAGE_PREVIEW",
+      "name": "Get chat last message preview (Deprecated)",
+      "description": "DEPRECATED: Use MICROSOFT_TEAMS_GET_CHAT instead. Tool to get lastMessagePreview from a chat. Use when you need to see the preview of the m…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_CHAT_MEMBER",
+      "name": "Get chat member",
+      "description": "Tool to get a specific conversation member from a Microsoft Teams chat. Use when you need details about a specific chat participant.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          },
+          "conversation_member_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "conversation_member_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_CHAT_MESSAGE",
+      "name": "Get chat message",
+      "description": "Tool to get a specific chat message. Use after confirming chat_id and message_id.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_DAY_NOTE",
+      "name": "Get day note",
+      "description": "Tool to retrieve a specific day note from a team's schedule. Use when you need to view notes for a specific date in a team's schedule.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "select": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "daynote_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "daynote_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_FILES_FOLDER",
+      "name": "Get channel files folder",
+      "description": "Tool to get the files folder (DriveItem) metadata for a specific channel in a Microsoft Teams team. Use when you need to access file storag…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_GROUP_TEAM_CHANNEL",
+      "name": "Get group team channel (Deprecated)",
+      "description": "DEPRECATED: Use MICROSOFT_TEAMS_GET_CHANNEL instead. Tool to get a specific channel from a group's team. Use when you have a group ID and c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_MEETING_TRANSCRIPT_CONTENT",
+      "name": "Get meeting transcript content",
+      "description": "Retrieve the raw text/vtt content for a Microsoft Teams meeting transcript. Use this after listing meeting transcripts and selecting a tran…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "transcript_id": {
+            "type": "string"
+          },
+          "online_meeting_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "online_meeting_id",
+          "transcript_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_MY_PROFILE",
+      "name": "Get User Profile",
+      "description": "Tool to retrieve a user's profile (id/UPN/mail/displayName). Supports both delegated auth (use user_id='me') and application-only auth (spe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "select": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_OFFER_SHIFT_REQUEST",
+      "name": "Get offer shift request",
+      "description": "Tool to get a specific offer shift request from a Microsoft Teams schedule. Use when you need to retrieve details of a single offer shift r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "offer_shift_request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "offer_shift_request_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_ONLINE_MEETING",
+      "name": "Get online meeting",
+      "description": "Tool to retrieve details of a specific Microsoft Teams online meeting by its ID. Use when you need to get the properties and relationships …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "select": {
+            "type": "array"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "meeting_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "meeting_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_OPEN_SHIFT",
+      "name": "Get open shift",
+      "description": "Tool to get a specific open shift from a Microsoft Teams schedule. Use when you need to retrieve details about a particular unassigned open…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "openshift_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "openshift_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_OPEN_SHIFT_CHANGE_REQUEST",
+      "name": "Get open shift change request",
+      "description": "Tool to retrieve a specific open shift change request from a Microsoft Teams team's schedule. Use when you need to get details about a part…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "open_shift_change_request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "open_shift_change_request_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_PRESENCE",
+      "name": "Get User Presence",
+      "description": "Tool to get a specific user's presence information. Use when checking availability status, activity, or work location for a particular user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_PRIMARY_CHANNEL",
+      "name": "Get primary channel",
+      "description": "Tool to get the default (General) channel of a team. Use when you need to access the primary channel without knowing its channel ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_SCHEDULE",
+      "name": "Get schedule",
+      "description": "Tool to retrieve the properties and relationships of a schedule object. Use when you need to get schedule configuration details for a team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_SCHEDULING_GROUP",
+      "name": "Get scheduling group",
+      "description": "Tool to retrieve a specific scheduling group from a Microsoft Teams team's schedule. Use when you need to get details about a scheduling gr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "schedulinggroup_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "schedulinggroup_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_SHIFT",
+      "name": "Get shift",
+      "description": "Tool to retrieve a shift by ID from a Microsoft Teams team schedule. Use when you need to get details of a specific shift assignment.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "shift_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "shift_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_SWAP_SHIFTS_CHANGE_REQUEST",
+      "name": "Get swap shifts change request",
+      "description": "Tool to get a specific swap shift change request from a Microsoft Teams schedule. Use when you need to retrieve details of a single swap sh…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "swap_shifts_change_request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "swap_shifts_change_request_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_TAB",
+      "name": "Get channel tab",
+      "description": "Tool to get a specific tab in a Microsoft Teams channel. Use when you need to retrieve details of a particular tab.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "tab_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id",
+          "tab_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_TEAM_FROM_GROUP",
+      "name": "Get Team",
+      "description": "Tool to get a specific team. Use when full details of one team by ID are needed.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_TEAM_MEMBER",
+      "name": "Get team member",
+      "description": "Tool to get a specific conversation member from a team. Use when retrieving details about a team member by their membership ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "membership_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "membership_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_TEAM_OPERATION",
+      "name": "Get Team Operation Status",
+      "description": "Tool to retrieve the status of a Teams async operation using teamId and operationId. Use when you need to poll and track the progress of lo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "operation_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_TEAMS_APP_DEFINITION",
+      "name": "Get installed app in team",
+      "description": "Tool to get an installed app in a Microsoft Teams team. Use when you need to retrieve details of a specific app installation.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "app_installation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "app_installation_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_TEAM_TEMPLATE",
+      "name": "Get Team Template (Deprecated)",
+      "description": "DEPRECATED: Use MICROSOFT_TEAMS_GET_TEAM_FROM_GROUP with expand=\"template\" instead. Tool to get the template used to create a team. Use whe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_TIME_OFF",
+      "name": "Get time off by ID",
+      "description": "Tool to retrieve a specific time off entry from a Microsoft Teams team's schedule by ID. Use when you need to get details about a particula…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "timeoff_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "timeoff_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_TIME_OFF_REASON",
+      "name": "Get time off reason",
+      "description": "Tool to get a specific time off reason from a team's schedule. Use when you need to retrieve details about a time off reason including its …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "time_off_reason_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "time_off_reason_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_TIME_OFF_REQUEST",
+      "name": "Get time off request",
+      "description": "Tool to retrieve a specific time off request from a team's schedule. Use when you need to check the status or details of a time off request.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "time_off_request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "time_off_request_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_USER_CHAT",
+      "name": "Get user chat",
+      "description": "Tool to retrieve a specific chat for a user. Use when you need to get details about a chat that a specific user is part of.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "select": {
+            "type": "array"
+          },
+          "chat_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "chat_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_GET_USER_TEAMWORK",
+      "name": "Get User Teamwork",
+      "description": "Tool to get userTeamwork settings for a specified user, including Microsoft Teams region and locale. Use when you need to determine user's …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_HIDE_CHAT_FOR_USER",
+      "name": "Hide chat for user",
+      "description": "Tool to hide a Microsoft Teams chat for a specific user. Use when you need to hide a chat from a user's chat list. Note: The chat is automa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object"
+          },
+          "chat_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "user"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_ASSOCIATED_TEAMS",
+      "name": "List user's associated teams",
+      "description": "Tool to list teams that a user is associated with in Microsoft Teams. Use when you need to get teams where a user is either a direct member…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_CHANNEL_TABS",
+      "name": "List channel tabs",
+      "description": "Tool to list tabs from a Microsoft Teams channel. Use when you need to retrieve all tabs configured in a specific channel. Note: The Files …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_CHAT",
+      "name": "List chats (Deprecated)",
+      "description": "DEPRECATED: Use MICROSOFT_TEAMS_CHATS_GET_ALL_CHATS instead. Tool to list chats that the user is part of. Use when retrieving the list of c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "array"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_CHAT_MEMBERS",
+      "name": "List chat members (Deprecated)",
+      "description": "DEPRECATED: Use MICROSOFT_TEAMS_USERS_CHATS_LIST_MEMBERS instead. Tool to list members of a Microsoft Teams chat. Use when you need to retr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_COMMUNICATIONS_CALLS_OPERATIONS",
+      "name": "List Communications Call Operations",
+      "description": "Tool to list operations on a Microsoft Teams call. Use when you need to retrieve the status of long-running operations like adding large ga…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "call_id": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_DELETED_TEAMS",
+      "name": "List deleted teams",
+      "description": "Tool to list deleted Microsoft Teams and their properties. Use when you need to retrieve a list of teams that have been deleted.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_GROUP_TEAM_CHANNELS",
+      "name": "List group team channels (Deprecated)",
+      "description": "DEPRECATED: Use MICROSOFT_TEAMS_LIST_CHANNELS instead. Tool to list channels from a group's associated team. Use when you have a group ID a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_GROUP_TEAM_OPERATIONS",
+      "name": "List Group Team Operations",
+      "description": "Tool to list operations on a group's team. Use when you need to retrieve all async operations (such as team creation, archiving, channel cr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_INCOMING_CHANNELS",
+      "name": "List team incoming channels",
+      "description": "Tool to list incoming channels shared with a Microsoft Teams team. Use when you need to view channels from other teams that have been share…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_INSTALLED_APPS",
+      "name": "List installed apps in team",
+      "description": "Tool to list apps installed in a Microsoft Teams team. Use when you need to retrieve the collection of apps installed in a specific team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_MEETING_TRANSCRIPTS",
+      "name": "List meeting transcripts",
+      "description": "List meeting transcripts for a Microsoft Teams online meeting. Retrieves all transcripts associated with a specific meeting, including meta…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "online_meeting_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "online_meeting_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_MESSAGE_REPLIES",
+      "name": "List channel message replies",
+      "description": "Tool to list all replies to a specific message in a Microsoft Teams channel. Use when you need to retrieve the conversation thread for a pa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id",
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_OFFER_SHIFT_REQUESTS",
+      "name": "List offer shift requests",
+      "description": "Tool to list offer shift requests in a Microsoft Teams schedule. Use when you need to retrieve all offer shift requests for a team's schedu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_ONLINE_MEETINGS",
+      "name": "List user online meetings",
+      "description": "Look up a Microsoft Teams online meeting for a user by identifier. This is effectively a 'lookup-by-identifier' endpoint, NOT a general-pur…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "filter"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_OPEN_SHIFT_CHANGE_REQUESTS",
+      "name": "List open shift change requests",
+      "description": "Tool to list open shift change requests in a Microsoft Teams schedule. Use when you need to retrieve all open shift requests for a team's s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_OPEN_SHIFTS",
+      "name": "List open shifts",
+      "description": "Tool to list open shifts in a Microsoft Teams schedule. Use when you need to retrieve all unassigned open shifts for a team's schedule.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_PEOPLE",
+      "name": "List People",
+      "description": "Retrieves a list of people relevant to a specified user from Microsoft Graph, noting the `search` parameter is only effective if `user_id` …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_PINNED_MESSAGES",
+      "name": "List pinned messages",
+      "description": "Tool to retrieve the list of pinned messages in a Microsoft Teams chat. Use when you need to get all messages that have been pinned in a sp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "chat_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_SCHEDULE_DAY_NOTES",
+      "name": "List team schedule day notes",
+      "description": "Tool to list all dayNotes from a team's schedule. Use when you need to retrieve all day notes or search/filter notes for specific dates in …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_SCHEDULING_GROUPS",
+      "name": "List scheduling groups",
+      "description": "Tool to list scheduling groups in a team's schedule. Use when you need to retrieve all scheduling groups for shift management and organizat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_SHIFTS",
+      "name": "List shifts",
+      "description": "Tool to list shifts in a Microsoft Teams schedule. Use when you need to retrieve all shifts for a team's schedule.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_SWAP_SHIFTS_CHANGE_REQUESTS",
+      "name": "List swap shifts change requests",
+      "description": "Tool to list swap shift change requests in a Microsoft Teams schedule. Use when you need to retrieve all swap shift requests for a team's s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_TEAM_MEMBERS",
+      "name": "List team members",
+      "description": "Tool to list members of a Microsoft Teams team. Use when you need to retrieve the members of a specific team, for auditing or notifications.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_TEAM_OPERATIONS",
+      "name": "List Team Operations",
+      "description": "Tool to list operations from a team. Use when you need to retrieve all async operations (such as team creation, archiving, channel creation…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_TEAM_PERMISSION_GRANTS",
+      "name": "List teams permission grants",
+      "description": "Tool to list all resource-specific permission grants for a team with support for filtering, pagination, and sorting. Use when you need to i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_TEAM_TEMPLATES",
+      "name": "List Teams templates",
+      "description": "Tool to list available Microsoft Teams templates. Use when retrieving templates for team creation or customization workflows.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "skipToken": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_TIME_OFF",
+      "name": "List team time off entries",
+      "description": "Tool to list time off entries from a Microsoft Teams team's schedule. Use when you need to retrieve all time off periods for a team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_TIME_OFF_REASONS",
+      "name": "List team schedule time off reasons",
+      "description": "Tool to get time off reasons from a team's schedule. Use when you need to retrieve the list of available time off reasons for scheduling in…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_TIME_OFF_REQUESTS",
+      "name": "List time off requests",
+      "description": "Tool to retrieve a list of time off requests from a Microsoft Teams team's schedule. Use when you need to view all time off requests includ…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_USER_CHAT_MEMBERS",
+      "name": "List user's chat members",
+      "description": "Tool to list members of a specific chat for a user in Microsoft Teams. Use when you need to retrieve the members of a specific user's chat,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "chat_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_USER_CHAT_MESSAGES",
+      "name": "List user chat messages",
+      "description": "Tool to retrieve messages from a specific chat for a given user. Use when you need to access chat messages through the user context.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "chat_id": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "chat_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_USER_JOINED_TEAMS",
+      "name": "List user joined teams",
+      "description": "Tool to list the Teams that a specified user is a direct member of (joined teams). Use for access/membership audits when enumerating team m…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_LIST_USERS",
+      "name": "List users",
+      "description": "Tool to list all users in the organization. Use when you need to retrieve directory users with filtering, pagination, and field selection.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "consistencyLevel": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_MARK_CHAT_READ_FOR_USER",
+      "name": "Mark chat as read for user",
+      "description": "Tool to mark a chat as read for a specific user in Microsoft Teams. Use when you need to update the read status of a chat for a particular …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object"
+          },
+          "chat_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "user"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_MARK_CHAT_UNREAD_FOR_USER",
+      "name": "Mark chat as unread for user",
+      "description": "Marks a specific chat as unread for a user by setting the last read message timestamp. Use when you need to mark messages after a certain t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object"
+          },
+          "chat_id": {
+            "type": "string"
+          },
+          "lastMessageReadDateTime": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "user"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_PIN_MESSAGE",
+      "name": "Pin message in chat",
+      "description": "Tool to pin a message in a Microsoft Teams chat. Use when you need to highlight an important message for quick access.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_POST_MESSAGE_REPLY",
+      "name": "Reply to Teams channel message",
+      "description": "Sends a reply to an existing message, identified by `message_id`, within a specific `channel_id` of a given `team_id` in Microsoft Teams.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "mentions": {
+            "type": "array"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "importance": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "hosted_contents": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id",
+          "message_id",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_PROVISION_CHANNEL_EMAIL",
+      "name": "Provision channel email address",
+      "description": "Tool to provision an email address for a Microsoft Teams channel. Use when you need to enable email integration for a specific channel.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_REMOVE_CHANNEL_EMAIL",
+      "name": "Remove channel email address",
+      "description": "Tool to remove the email address of a channel in Microsoft Teams. Use when you need to disable email integration for a specific channel.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_REMOVE_CHAT_MEMBER",
+      "name": "Remove chat member",
+      "description": "Tool to remove a member from a Microsoft Teams chat. Use when you need to remove a user from a chat conversation.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "membership_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "membership_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_REMOVE_TEAM_MEMBER",
+      "name": "Remove team member",
+      "description": "Tool to remove a member from a Microsoft Teams team. Use when you need to remove a user from a team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "membership_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "membership_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_REMOVE_TEAM_MEMBERS",
+      "name": "Remove team members",
+      "description": "Tool to remove multiple members from a Microsoft Teams team in bulk. Use when you need to remove one or more users from a team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "members"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_SEARCH_FILES",
+      "name": "Search Teams files",
+      "description": "Search files in Microsoft Teams using KQL syntax. Find files by name, type, content, author, and modification date across all Teams and cha…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "size": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "from_index": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_SEARCH_MESSAGES",
+      "name": "Search Teams messages",
+      "description": "Search Microsoft Teams messages using powerful KQL syntax. Supports sender (from:), date filters (sent:), attachments, and boolean logic. W…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "size": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "from_index": {
+            "type": "integer"
+          },
+          "enable_top_results": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_SEND_ACTIVITY_NOTIFICATION",
+      "name": "Send Activity Notification to Recipients",
+      "description": "Tool to send activity notifications to specified recipients in Microsoft Teams. Use when you need to send custom notifications to users, te…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "object"
+          },
+          "chainId": {
+            "type": "integer"
+          },
+          "recipients": {
+            "type": "array"
+          },
+          "teamsAppId": {
+            "type": "string"
+          },
+          "previewText": {
+            "type": "object"
+          },
+          "activityType": {
+            "type": "string"
+          },
+          "templateParameters": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "topic",
+          "activityType",
+          "previewText",
+          "recipients"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_SET_ME_PREFERRED_PRESENCE",
+      "name": "Set My Preferred Presence (Deprecated)",
+      "description": "DEPRECATED: Use MICROSOFT_TEAMS_SET_USER_PREFERRED_PRESENCE instead. Tool to set the preferred availability and activity status for the cur…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "activity": {
+            "type": "string",
+            "enum": [
+              "Available",
+              "Busy",
+              "DoNotDisturb",
+              "BeRightBack",
+              "Away",
+              "OffWork"
+            ]
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "Available",
+              "Busy",
+              "DoNotDisturb",
+              "BeRightBack",
+              "Away",
+              "Offline"
+            ]
+          },
+          "expiration_duration": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "availability",
+          "activity"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_SET_PRESENCE",
+      "name": "Set Presence",
+      "description": "Tool to set the presence information for a user's application presence session. Use when you need to update a user's presence state in Micr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "activity": {
+            "type": "string",
+            "enum": [
+              "Available",
+              "InACall",
+              "InAConferenceCall",
+              "Away",
+              "Presenting"
+            ]
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "Available",
+              "Busy",
+              "Away",
+              "DoNotDisturb"
+            ]
+          },
+          "expiration_duration": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "session_id",
+          "availability",
+          "activity"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_SET_PRESENCE_AUTOMATIC_LOCATION",
+      "name": "Set Presence Automatic Location",
+      "description": "Tool to set the automatic presence location (office/remote/timeOff) for a specified user. Use when updating work location status in Microso…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "placeId": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "workLocationType": {
+            "type": "string",
+            "enum": [
+              "unspecified",
+              "office",
+              "remote",
+              "timeOff",
+              "unknownFutureValue"
+            ]
+          }
+        },
+        "required": [
+          "user_id",
+          "workLocationType"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_SET_PRESENCE_MANUAL_LOCATION",
+      "name": "Set Presence Manual Location (Deprecated)",
+      "description": "DEPRECATED: Use MICROSOFT_TEAMS_SET_USER_PRESENCE_MANUAL_LOCATION instead. Tool to set the manual presence location (office/remote/timeOff)…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "placeId": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "workLocationType": {
+            "type": "string",
+            "enum": [
+              "unspecified",
+              "office",
+              "remote",
+              "timeOff",
+              "unknownFutureValue"
+            ]
+          }
+        },
+        "required": [
+          "workLocationType"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_SET_USER_PREFERRED_PRESENCE",
+      "name": "Set User Preferred Presence",
+      "description": "Tool to set the preferred availability and activity status for a user. Use when you need to update a user's presence status in Microsoft Te…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "activity": {
+            "type": "string",
+            "enum": [
+              "Available",
+              "Busy",
+              "DoNotDisturb",
+              "BeRightBack",
+              "Away",
+              "OffWork"
+            ]
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "Available",
+              "Busy",
+              "DoNotDisturb",
+              "BeRightBack",
+              "Away",
+              "Offline"
+            ]
+          },
+          "expiration_duration": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "availability",
+          "activity"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_SET_USER_PRESENCE_MANUAL_LOCATION",
+      "name": "Set User Presence Manual Location",
+      "description": "Tool to set the manual presence location (office/remote/timeOff) for a specific user. Use when updating work location status for a user in …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "placeId": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "workLocationType": {
+            "type": "string",
+            "enum": [
+              "unspecified",
+              "office",
+              "remote",
+              "timeOff",
+              "unknownFutureValue"
+            ]
+          }
+        },
+        "required": [
+          "user_id",
+          "workLocationType"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_SHARE_TEAM_SCHEDULE",
+      "name": "Share Team Schedule",
+      "description": "Tool to share a Microsoft Teams schedule for a specified time range. Use when you need to make a team's schedule visible to members.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "notifyTeam": {
+            "type": "boolean"
+          },
+          "endDateTime": {
+            "type": "string"
+          },
+          "startDateTime": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "notifyTeam",
+          "startDateTime",
+          "endDateTime"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_TEAMS_CREATE_CHANNEL",
+      "name": "Create a channel",
+      "description": "(DEPRECATED: use `MICROSOFT_TEAMS_CREATE_CHANNEL`) Tool to create a new standard, private, or shared channel within a Microsoft Teams team.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "members": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "membership_type": {
+            "type": "string"
+          },
+          "created_date_time": {
+            "type": "string"
+          },
+          "shared_with_teams": {
+            "type": "string"
+          },
+          "is_favorite_by_default": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_TEAMS_CREATE_CHAT",
+      "name": "Create Chat",
+      "description": "Creates a new chat; if a 'oneOnOne' chat with the specified members already exists, its details are returned, while 'group' chats are alway…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string"
+          },
+          "members": {
+            "type": "array"
+          },
+          "chatType": {
+            "type": "string"
+          },
+          "installedApps": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "chatType",
+          "members"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_TEAMS_LIST",
+      "name": "List Teams",
+      "description": "Retrieves Microsoft Teams accessible by the authenticated user, allowing filtering, property selection, and pagination.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_TEAMS_LIST_CHANNEL_MESSAGES",
+      "name": "List channel messages",
+      "description": "Tool to list messages in a Teams channel when team_id and channel_id are known (no chat_id required). Use this to enumerate channel message…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_TEAMS_LIST_CHANNELS",
+      "name": "List team channels",
+      "description": "Retrieves channels for a specified Microsoft Teams team ID (must be valid and for an existing team), with options to include shared channel…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "include_shared_channels": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_TEAMS_LIST_CHAT_MESSAGES",
+      "name": "List chat messages (Deprecated)",
+      "description": "DEPRECATED: Use ListUserChatMessages instead. Retrieves messages (newest first) from an existing and accessible Microsoft Teams one-on-one …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "chat_id": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_TEAMS_POST_CHANNEL_MESSAGE",
+      "name": "Send Channel Message",
+      "description": "Posts a new top-level message to a channel in Microsoft Teams (does NOT reply to an existing message). Despite the file name 'reply_to_chan…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "mentions": {
+            "type": "array"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "importance": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "high",
+              "urgent"
+            ]
+          },
+          "attachments": {
+            "type": "array"
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "html"
+            ]
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_TEAMS_POST_CHAT_MESSAGE",
+      "name": "Send message to Teams chat",
+      "description": "Sends a non-empty message (text or HTML) to a specified, existing Microsoft Teams chat; content must be valid HTML if `content_type` is 'ht…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string"
+          },
+          "chat_id": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "mentions": {
+            "type": "array"
+          },
+          "importance": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "high",
+              "urgent"
+            ]
+          },
+          "attachments": {
+            "type": "array"
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "html"
+            ]
+          },
+          "hostedContents": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "chat_id",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_TEAMS_POST_MESSAGE_REPLY",
+      "name": "Reply to Teams channel message",
+      "description": "(DEPRECATED: use `MICROSOFT_TEAMS_POST_MESSAGE_REPLY`) Sends a reply to an existing message, identified by `message_id`, within a specific …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "mentions": {
+            "type": "array"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "importance": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "hosted_contents": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id",
+          "message_id",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UNARCHIVE_CHANNEL",
+      "name": "Unarchive channel",
+      "description": "Tool to unarchive a channel in a Microsoft Teams team. Use when you need to restore an archived channel to active state.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UNARCHIVE_GROUP_TEAM_CHANNEL",
+      "name": "Unarchive group team channel",
+      "description": "Tool to unarchive a channel in a Microsoft Teams group's team. Use when you need to restore an archived channel to active state.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UNARCHIVE_TEAM",
+      "name": "Unarchive Teams team",
+      "description": "Tool to unarchive a Microsoft Teams team. Use when you need to restore an archived team to active state.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UNHIDE_CHAT_FOR_USER",
+      "name": "Unhide Chat For User",
+      "description": "Tool to unhide a chat for a specific user. Use when you need to make a hidden chat visible again in the user's chat list.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object"
+          },
+          "chat_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "user"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UNPIN_MESSAGE",
+      "name": "Unpin chat message",
+      "description": "Tool to unpin a message from a Microsoft Teams chat. Use when you need to remove a pinned message.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "pinned_message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "pinned_message_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_CALL",
+      "name": "Update Call",
+      "description": "Tool to update the navigation property calls in Microsoft Teams communications. Use when you need to modify properties of an existing call.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "call_id": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "odata_type": {
+            "type": "string"
+          },
+          "callChainId": {
+            "type": "string"
+          },
+          "callbackUri": {
+            "type": "string"
+          },
+          "myParticipantId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_CALL_OPERATION",
+      "name": "Update Call Operation",
+      "description": "Tool to update the navigation property operations in communications. Use when you need to modify properties of an existing call operation.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "call_id": {
+            "type": "string"
+          },
+          "result_info": {
+            "type": "object"
+          },
+          "client_context": {
+            "type": "string"
+          },
+          "comms_operation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id",
+          "comms_operation_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_CALL_PARTICIPANT",
+      "name": "Update Call Participant",
+      "description": "Tool to update a participant in a Microsoft Teams call. Use when you need to modify participant properties such as lobby status.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "callId": {
+            "type": "string"
+          },
+          "isInLobby": {
+            "type": "boolean"
+          },
+          "participantId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "callId",
+          "participantId"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_CHANNEL",
+      "name": "Update Teams channel",
+      "description": "Tool to update channel properties in a Microsoft Teams group. Use when you need to modify channel description, display name, or favorite se…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "is_favorite_by_default": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "group_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_CHANNEL_MESSAGE",
+      "name": "Update Teams channel message",
+      "description": "Tool to update a message in a channel. Use when you need to modify an existing channel message after confirming channel and message IDs.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "importance": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "high",
+              "urgent"
+            ]
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "html"
+            ]
+          },
+          "policy_violation": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id",
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_CHAT",
+      "name": "Update Chat",
+      "description": "Tool to update the properties of a chat. Use when you need to modify chat settings such as the topic.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string"
+          },
+          "chat_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_CHAT_MESSAGE",
+      "name": "Update Teams chat message",
+      "description": "Tool to update a specific message in a chat. Use when you need to correct or modify a sent chat message.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "chat_id": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "message_id",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_CONTENT_SHARING_SESSION",
+      "name": "Update Content Sharing Session",
+      "description": "Tool to update a content sharing session in a Microsoft Teams call. Use when you need to modify the properties of an existing content shari…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "call_id": {
+            "type": "string"
+          },
+          "odata_type": {
+            "type": "string"
+          },
+          "content_sharing_session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id",
+          "content_sharing_session_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_DAY_NOTE",
+      "name": "Update schedule day note",
+      "description": "Tool to update an existing day note in a team's schedule. Use when you need to modify notes or reminders for a specific date in the team sc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "dayNote_id": {
+            "type": "string"
+          },
+          "dayNoteDate": {
+            "type": "string"
+          },
+          "draftDayNote": {
+            "type": "object"
+          },
+          "sharedDayNote": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "team_id",
+          "dayNote_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_ONLINE_MEETING",
+      "name": "Update online meeting",
+      "description": "Tool to update the properties of an existing Microsoft Teams online meeting. Use when you need to modify meeting details such as subject, s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "endDateTime": {
+            "type": "string"
+          },
+          "participants": {
+            "type": "object"
+          },
+          "startDateTime": {
+            "type": "string"
+          },
+          "online_meeting_id": {
+            "type": "string"
+          },
+          "lobbyBypassSettings": {
+            "type": "object"
+          },
+          "recordAutomatically": {
+            "type": "boolean"
+          },
+          "watermarkProtection": {
+            "type": "object"
+          },
+          "isEntryExitAnnounced": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "user_id",
+          "online_meeting_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_OPEN_SHIFT",
+      "name": "Update open shift",
+      "description": "Tool to update an existing open shift in a Microsoft Teams team schedule. Use when you need to modify open shift details such as times, the…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string"
+          },
+          "openShiftId": {
+            "type": "string"
+          },
+          "draftOpenShift": {
+            "type": "object"
+          },
+          "sharedOpenShift": {
+            "type": "object"
+          },
+          "schedulingGroupId": {
+            "type": "string"
+          },
+          "isStagedForDeletion": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "teamId",
+          "openShiftId"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_SCHEDULING_GROUP",
+      "name": "Update scheduling group",
+      "description": "Tool to replace/update a scheduling group in a team's schedule. Use when you need to modify properties of an existing scheduling group such…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "user_ids": {
+            "type": "array"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "scheduling_group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "scheduling_group_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_TAB",
+      "name": "Update Teams channel tab",
+      "description": "Tool to update the properties of a tab in a Microsoft Teams channel. Use when you need to modify tab display name, configuration, or web UR…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tab_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "web_url": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "configuration": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "team_id",
+          "channel_id",
+          "tab_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_TEAM",
+      "name": "Update Team",
+      "description": "Tool to update the properties of a team. Use when you need to modify team settings such as member, messaging, or fun settings.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "private",
+              "public"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "funSettings": {
+            "type": "object"
+          },
+          "classSettings": {
+            "type": "object"
+          },
+          "guestSettings": {
+            "type": "object"
+          },
+          "classification": {
+            "type": "string"
+          },
+          "memberSettings": {
+            "type": "object"
+          },
+          "specialization": {
+            "type": "string",
+            "enum": [
+              "none",
+              "educationStandard",
+              "educationClass",
+              "educationProfessionalLearningCommunity",
+              "educationStaff",
+              "unknownFutureValue"
+            ]
+          },
+          "messagingSettings": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_TEAM_MEMBER",
+      "name": "Update team member",
+      "description": "Tool to update a team member's roles or properties in Microsoft Teams. Use when you need to change a member's role (e.g., promote to owner …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "odata_type": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "conversation_member_id": {
+            "type": "string"
+          },
+          "visible_history_start_date_time": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "conversation_member_id"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_TEAM_SCHEDULE_SHIFT",
+      "name": "Update team schedule shift",
+      "description": "Tool to update an existing shift in a Microsoft Teams team schedule. Use when you need to modify shift details like times, assigned user, o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "shiftId": {
+            "type": "string"
+          },
+          "draftShift": {
+            "type": "object"
+          },
+          "sharedShift": {
+            "type": "object"
+          },
+          "schedulingGroupId": {
+            "type": "string"
+          },
+          "isStagedForDeletion": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "teamId",
+          "shiftId"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_TIME_OFF",
+      "name": "Update time off",
+      "description": "Tool to replace an existing timeOff entry in a team's schedule. Use when you need to update time off details including dates, reason, or st…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "timeoff_id": {
+            "type": "string"
+          },
+          "draftTimeOff": {
+            "type": "object"
+          },
+          "sharedTimeOff": {
+            "type": "object"
+          },
+          "isStagedForDeletion": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "timeoff_id",
+          "userId"
+        ]
+      }
+    },
+    {
+      "slug": "MICROSOFT_TEAMS_UPDATE_TIME_OFF_REASON",
+      "name": "Update time off reason",
+      "description": "Tool to update a time off reason in a team's schedule. Use when you need to modify the display name, icon, active status, or code of an exi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "icon_type": {
+            "type": "string",
+            "enum": [
+              "none",
+              "car",
+              "calendar",
+              "running",
+              "plane",
+              "firstAid",
+              "doctor",
+              "notWorking",
+              "clock",
+              "juryDuty",
+              "globe",
+              "cup",
+              "phone",
+              "weather",
+              "umbrella",
+              "piggyBank",
+              "dog",
+              "cake",
+              "trafficCone",
+              "pin",
+              "sunny"
+            ]
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "time_off_reason_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "time_off_reason_id"
+        ]
+      }
+    }
+  ]
+}

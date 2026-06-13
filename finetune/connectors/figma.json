@@ -1,0 +1,1262 @@
+{
+  "slug": "figma",
+  "name": "Figma",
+  "tool_count": 53,
+  "tools": [
+    {
+      "slug": "FIGMA_ADD_A_COMMENT_TO_A_FILE",
+      "name": "Add a comment to a file",
+      "description": "Posts a new comment to a Figma file or branch, optionally replying to an existing root comment (replies cannot be nested); `region_height` …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "comment_id": {
+            "type": "string"
+          },
+          "client_meta": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "file_key",
+          "message"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_ADD_A_REACTION_TO_A_COMMENT",
+      "name": "Add a reaction to a comment",
+      "description": "Posts a specified emoji reaction to an existing comment in a Figma file or branch, requiring valid file_key and comment_id.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "emoji": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key",
+          "comment_id",
+          "emoji"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_CREATE_A_WEBHOOK",
+      "name": "Create a webhook",
+      "description": "Creates a Figma webhook to receive POST notifications when specific events occur. Webhooks can monitor events at three scopes: - Team level…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "PAUSED"
+            ]
+          },
+          "context": {
+            "type": "string",
+            "enum": [
+              "team",
+              "project",
+              "file"
+            ]
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "passcode": {
+            "type": "string"
+          },
+          "context_id": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "FILE_COMMENT",
+              "FILE_DELETE",
+              "FILE_UPDATE",
+              "FILE_VERSION_UPDATE",
+              "LIBRARY_PUBLISH"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_type",
+          "endpoint",
+          "passcode"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_CREATE_DEV_RESOURCES",
+      "name": "Create dev resources",
+      "description": "Creates and attaches multiple uniquely-URLed development resources to specified Figma nodes, up to 10 per node.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dev_resources": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "dev_resources"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_CREATE_MODIFY_DELETE_VARIABLES",
+      "name": "Create, modify, or delete variables",
+      "description": "Manages variables, collections, modes, and their values in a Figma file via batch create/update/delete operations; use temporary IDs to lin…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          },
+          "variables": {
+            "type": "array"
+          },
+          "variableModes": {
+            "type": "array"
+          },
+          "variableModeValues": {
+            "type": "array"
+          },
+          "variableCollections": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_DELETE_A_COMMENT",
+      "name": "Delete a comment",
+      "description": "Deletes a specific comment from a Figma file or branch, provided the authenticated user is the original author of the comment.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          },
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key",
+          "comment_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_DELETE_A_REACTION",
+      "name": "Delete a reaction",
+      "description": "Deletes a specific emoji reaction from a comment in a Figma file; the user must have originally created the reaction.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "emoji": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key",
+          "comment_id",
+          "emoji"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_DELETE_A_WEBHOOK",
+      "name": "Delete a webhook",
+      "description": "Permanently deletes an existing webhook, identified by its unique `webhook_id`; this operation is irreversible.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "webhook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_DELETE_DEV_RESOURCE",
+      "name": "Delete dev resource",
+      "description": "Deletes a development resource (used to link Figma design elements to external developer information like code or tasks) from a specified F…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          },
+          "dev_resource_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key",
+          "dev_resource_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_DESIGN_TOKENS_TO_TAILWIND",
+      "name": "Design tokens to tailwind",
+      "description": "Convert design tokens to Tailwind CSS configuration. TWO-STEP WORKFLOW: 1. First, call FIGMA_EXTRACT_DESIGN_TOKENS with a Figma file_key to…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "prefix": {
+            "type": "string"
+          },
+          "tokens": {
+            "type": "object"
+          },
+          "config_format": {
+            "type": "string"
+          },
+          "include_font_imports": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "tokens"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_DETECT_BACKGROUND",
+      "name": "Detect Background Layers",
+      "description": "Detect background layers for selected nodes in a Figma file. This action analyzes the Figma document structure and identifies potential bac…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          },
+          "search_depth": {
+            "type": "integer"
+          },
+          "target_node_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "file_key",
+          "target_node_ids"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_DISCOVER_FIGMA_RESOURCES",
+      "name": "Discover Figma Resources",
+      "description": "Smart Figma resource discovery - extract IDs from any Figma URL. Supports all URL formats: /file/, /design/, /board/, /proto/, /slides/ Exa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "figma_url": {
+            "type": "string"
+          },
+          "max_depth": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FIGMA_DOWNLOAD_FIGMA_IMAGES",
+      "name": "Download Figma Images",
+      "description": "Download images from Figma file nodes. Renders specified nodes as images and downloads them. Supports PNG, SVG, JPG, and PDF formats. REQUI…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "scale": {
+            "type": "number"
+          },
+          "images": {
+            "type": "array"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "svg_include_id": {
+            "type": "boolean"
+          },
+          "svg_outline_text": {
+            "type": "boolean"
+          },
+          "svg_simplify_stroke": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_key",
+          "images"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_EXTRACT_DESIGN_TOKENS",
+      "name": "Extract design tokens",
+      "description": "Extract design tokens from Figma files by combining styles, variables, and node-extracted values. Only values defined as Figma styles or va…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          },
+          "include_variables": {
+            "type": "boolean"
+          },
+          "extract_from_nodes": {
+            "type": "boolean"
+          },
+          "include_local_styles": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_EXTRACT_PROTOTYPE_INTERACTIONS",
+      "name": "Extract Prototype Interactions",
+      "description": "Extract prototype interactions and animations from Figma files. Required parameter: - file_key: The Figma file key extracted from a URL lik…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          },
+          "analyze_components": {
+            "type": "boolean"
+          },
+          "include_animations": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_ACTIVITY_LOGS",
+      "name": "Get activity logs",
+      "description": "Retrieves activity log events from Figma, allowing filtering by event types, time range, and pagination.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "events": {
+            "type": "string"
+          },
+          "end_time": {
+            "type": "integer"
+          },
+          "start_time": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FIGMA_GET_A_WEBHOOK",
+      "name": "Get a webhook",
+      "description": "Retrieves detailed information about a specific webhook by its ID, provided the webhook exists and is accessible to the user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "webhook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_COMMENTS_IN_A_FILE",
+      "name": "Get comments in a file",
+      "description": "Retrieves all comments from an existing Figma file, identified by a valid `file_key`, returning details like content, author, position, and…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "as_md": {
+            "type": "boolean"
+          },
+          "file_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_COMPONENT",
+      "name": "Get component (Deprecated)",
+      "description": "DEPRECATED: Use FIGMA_GET_FILE_NODES instead. Get component data with automatic simplification. Returns clean, AI-friendly component struct…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "node_id": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "response_detail": {
+            "type": "string",
+            "enum": [
+              "minimal",
+              "full"
+            ]
+          }
+        },
+        "required": [
+          "file_key",
+          "node_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_COMPONENT2",
+      "name": "Get component",
+      "description": "Fetches metadata for a specific component using its unique identifier. Use when you need to retrieve published component details from a tea…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_COMPONENT_SET",
+      "name": "Get component set",
+      "description": "Retrieves detailed metadata for a specific published Figma component set using its unique `key`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_CURRENT_USER",
+      "name": "Get current user",
+      "description": "Retrieves detailed information for the currently authenticated Figma user.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FIGMA_GET_DEV_RESOURCES",
+      "name": "Get dev resources",
+      "description": "Retrieves development resources (e.g., Jira/GitHub links) for a Figma main file, optionally filtering by specific node IDs.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          },
+          "node_ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_FILE_COMPONENTS",
+      "name": "Get file components",
+      "description": "Retrieves published components from a Figma file, which must be a main file (not a branch) acting as a library.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_FILE_COMPONENT_SETS",
+      "name": "Get file component sets",
+      "description": "Retrieves all published component sets from the specified Figma main file (file_key must not be for a branch).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_FILE_JSON",
+      "name": "Get file json",
+      "description": "Get Figma Design file data with automatic simplification. IMPORTANT: Only supports Design files (figma.com/design/{file_key}). FigJam board…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "depth": {
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "geometry": {
+            "type": "string"
+          },
+          "branch_data": {
+            "type": "boolean"
+          },
+          "plugin_data": {
+            "type": "string"
+          },
+          "response_detail": {
+            "type": "string",
+            "enum": [
+              "minimal",
+              "full"
+            ]
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_FILE_METADATA",
+      "name": "Get file metadata",
+      "description": "Get Figma file metadata including name, creator, last modification details, thumbnail, and access information. Use when you need quick file…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_FILE_NODES",
+      "name": "Get file nodes",
+      "description": "Fetch JSON for specific node IDs from a Figma file to avoid full-file payload limits. Use when you already know target node IDs (from shall…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {},
+          "depth": {
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "geometry": {
+            "type": "string"
+          },
+          "plugin_data": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key",
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_FILES_IN_A_PROJECT",
+      "name": "Get files in a project",
+      "description": "Fetches a list of files in a Figma project, optionally including branch metadata.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "branch_data": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_FILE_STYLES",
+      "name": "Get file styles",
+      "description": "Retrieves a list of published styles (like colors, text attributes, effects, and layout grids) from a specified main Figma file (not a bran…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_IMAGE_FILLS",
+      "name": "Get image fills",
+      "description": "Retrieves temporary (14-day expiry) download URLs for all image fills in a Figma file; requires `imageRef` from `Paint` objects to map URLs.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_LIBRARY_ANALYTICS_COMPONENT_ACTION_DATA",
+      "name": "Get library analytics component action data",
+      "description": "Retrieves component insertion and detachment analytics for a specified Figma library, groupable by 'component' or 'team' and filterable by …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "end_date": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "group_by": {
+            "type": "string",
+            "enum": [
+              "component",
+              "team"
+            ]
+          },
+          "start_date": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key",
+          "group_by"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_LIBRARY_ANALYTICS_COMPONENT_USAGE_DATA",
+      "name": "Get library analytics component usage data",
+      "description": "Retrieves component usage analytics for a specified Figma library file (identified by `file_key`), with data groupable by 'component' or 'f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "group_by": {
+            "type": "string",
+            "enum": [
+              "component",
+              "file"
+            ]
+          }
+        },
+        "required": [
+          "file_key",
+          "group_by"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_LIBRARY_ANALYTICS_STYLE_ACTION_DATA",
+      "name": "Get library analytics style action data",
+      "description": "Retrieves style usage analytics (insertions, detachments) for a Figma library, grouped by 'style' or 'team'; if providing a date range, ens…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "end_date": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "group_by": {
+            "type": "string",
+            "enum": [
+              "style",
+              "team"
+            ]
+          },
+          "start_date": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key",
+          "group_by"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_LIBRARY_ANALYTICS_STYLE_USAGE_DATA",
+      "name": "Get library analytics style usage data",
+      "description": "Retrieves style usage analytics for a published Figma library. Returns data about how styles (colors, text styles, effects, grids) from the…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "group_by": {
+            "type": "string",
+            "enum": [
+              "file",
+              "style"
+            ]
+          }
+        },
+        "required": [
+          "file_key",
+          "group_by"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_LIBRARY_ANALYTICS_VARIABLE_ACTION_DATA",
+      "name": "Get library analytics variable action data",
+      "description": "Retrieves weekly, paginated analytics data on variable insertions and detachments for a specified Figma library (identified by `file_key`),…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "end_date": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "group_by": {
+            "type": "string",
+            "enum": [
+              "team",
+              "variable"
+            ]
+          },
+          "start_date": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key",
+          "group_by"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_LIBRARY_ANALYTICS_VARIABLE_USAGE_DATA",
+      "name": "Get library analytics variable usage data",
+      "description": "Retrieves paginated analytics data on variable usage from a specified Figma library, grouped by 'file' or 'variable', for libraries with en…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "group_by": {
+            "type": "string",
+            "enum": [
+              "file",
+              "variable"
+            ]
+          }
+        },
+        "required": [
+          "file_key",
+          "group_by"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_LOCAL_VARIABLES",
+      "name": "Get local variables",
+      "description": "Retrieves all local/remote variables for a Figma file/branch; crucial for obtaining mode-specific values which `/v1/files/{file_key}/variab…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_PAYMENTS",
+      "name": "Get payments",
+      "description": "Retrieves a user's payment information for a Figma plugin, widget, or Community file; the authenticated identity must own the resource.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "integer"
+          },
+          "plugin_id": {
+            "type": "integer"
+          },
+          "widget_id": {
+            "type": "integer"
+          },
+          "community_file_id": {
+            "type": "integer"
+          },
+          "plugin_payment_token": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FIGMA_GET_PROJECTS_IN_A_TEAM",
+      "name": "Get projects in a team",
+      "description": "Retrieves projects within a specified Figma team that are visible to the authenticated user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_PUBLISHED_VARIABLES",
+      "name": "Get published variables",
+      "description": "Retrieves variables published from a specified Figma file; this API is available only to full members of Enterprise organizations.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_REACTIONS_FOR_A_COMMENT",
+      "name": "Get reactions for a comment",
+      "description": "Retrieves reactions for a specific comment in a Figma file.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_key",
+          "comment_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_SCIM_SERVICE_PROVIDER_CONFIG",
+      "name": "Get SCIM service provider config",
+      "description": "Get Figma's SCIM service provider configuration. Returns configuration details including which SCIM operations are supported (patch, bulk, …",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FIGMA_GET_STYLE",
+      "name": "Get style",
+      "description": "Retrieves detailed metadata for a specific style in Figma using its unique style key.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_TEAM_COMPONENTS",
+      "name": "Get team components",
+      "description": "Retrieves components published in a specific Figma team's library; the team must have published components, otherwise an empty list is retu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "integer"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_TEAM_COMPONENT_SETS",
+      "name": "Get team component sets",
+      "description": "Retrieves a paginated list of published component sets (collections of reusable UI elements) from a specified Figma team's library.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "integer"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_TEAM_STYLES",
+      "name": "Get team styles",
+      "description": "Retrieves a paginated list of published styles (fill colors, text styles, effects, grids) from a specified Figma team's library. Note: The …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "integer"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_TEAM_WEBHOOKS",
+      "name": "Get webhooks",
+      "description": "Retrieves all webhooks registered for a specified Figma context (team, project, or file). Uses the Figma Webhooks V2 API endpoint (GET /v2/…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "string",
+            "enum": [
+              "team",
+              "project",
+              "file"
+            ]
+          },
+          "context_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "context_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_VERSIONS_OF_A_FILE",
+      "name": "Get versions of a file",
+      "description": "Retrieves the version history for a Figma file or branch, as specified by its `file_key`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "integer"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "file_key"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_GET_WEBHOOK_REQUESTS",
+      "name": "Get webhook requests",
+      "description": "Retrieves a history of webhook requests for a specific Figma webhook subscription; data is available for requests sent within the last seve…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "webhook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_RENDER_IMAGES_OF_FILE_NODES",
+      "name": "Render images of file nodes",
+      "description": "Render Figma nodes as images (PNG, JPG, SVG, PDF). Returns a map of node IDs to temporary image URLs (valid for 30 days). Images are capped…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "scale": {
+            "type": "number"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "jpg",
+              "pdf",
+              "png",
+              "svg"
+            ]
+          },
+          "version": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string"
+          },
+          "contents_only": {
+            "type": "boolean"
+          },
+          "svg_include_id": {
+            "type": "boolean"
+          },
+          "svg_outline_text": {
+            "type": "boolean"
+          },
+          "svg_include_node_id": {
+            "type": "boolean"
+          },
+          "svg_simplify_stroke": {
+            "type": "boolean"
+          },
+          "use_absolute_bounds": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_key",
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_UPDATE_A_WEBHOOK",
+      "name": "Update a webhook",
+      "description": "Updates an existing Figma webhook, identified by `webhook_id`, allowing modification of its event type, endpoint, passcode, status, or desc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "PAUSED"
+            ]
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "passcode": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "FILE_COMMENT",
+              "FILE_DELETE",
+              "FILE_UPDATE",
+              "FILE_VERSION_UPDATE",
+              "LIBRARY_PUBLISH",
+              "PING"
+            ]
+          },
+          "webhook_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id"
+        ]
+      }
+    },
+    {
+      "slug": "FIGMA_UPDATE_DEV_RESOURCES",
+      "name": "Update dev resources",
+      "description": "Updates the name and/or URL of one or more existing Figma Dev Resources, each identified by its unique `id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dev_resources": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "dev_resources"
+        ]
+      }
+    }
+  ]
+}

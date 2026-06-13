@@ -1,0 +1,934 @@
+{
+  "slug": "canva",
+  "name": "Canva",
+  "tool_count": 48,
+  "tools": [
+    {
+      "slug": "CANVA_ACCESS_USER_SPECIFIC_BRAND_TEMPLATES_LIST",
+      "name": "Access user specific brand templates list",
+      "description": "Lists brand templates available to the user (Canva Enterprise only). This endpoint retrieves all brand templates the user has access to. Br…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "dataset": {
+            "type": "string",
+            "enum": [
+              "any",
+              "non_empty"
+            ]
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "relevance",
+              "modified_descending",
+              "modified_ascending",
+              "title_descending",
+              "title_ascending"
+            ]
+          },
+          "ownership": {
+            "type": "string",
+            "enum": [
+              "any",
+              "owned",
+              "shared"
+            ]
+          },
+          "continuation": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "CANVA_CREATE_ASSET_UPLOAD_JOB",
+      "name": "Create Asset Upload Job",
+      "description": "Uploads an asset file to the user's Canva content library. This endpoint initiates an asynchronous upload job for images, videos, audio fil…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_CREATE_CANVA_DESIGN_EXPORT_JOB",
+      "name": "Create Canva Design Export Job (Deprecated)",
+      "description": "DEPRECATED: Use CANVA_POST_EXPORTS instead. Exports a Canva design to various file formats. This endpoint initiates an asynchronous export …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "format": {},
+          "design_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "design_id",
+          "format"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_CREATE_CANVA_DESIGN_WITH_OPTIONAL_ASSET",
+      "name": "Create canva design with optional asset (Deprecated)",
+      "description": "DEPRECATED: Use CANVA_POST_DESIGNS instead. Creates a new Canva design with specified dimensions or from an asset. This endpoint creates a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "design_type": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "slug": "CANVA_CREATE_COMMENT_REPLY_IN_DESIGN",
+      "name": "Create comment reply in design",
+      "description": "This preview API allows replying to comments within a design on Canva, with a limit of 100 replies per comment. Users should note potential…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "commentId": {
+            "type": "string"
+          },
+          "attached_to": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "commentId",
+          "attached_to",
+          "message"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_CREATE_DESIGN_COMMENT_IN_PREVIEW_API",
+      "name": "Create design comment in preview api",
+      "description": "Creates a new comment thread on a Canva design. This preview API allows adding text comments to designs for collaboration and feedback. Ret…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "design_id": {
+            "type": "string"
+          },
+          "assignee_id": {
+            "type": "string"
+          },
+          "attached_to": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "design_id",
+          "attached_to",
+          "message"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_CREATE_DESIGN_IMPORT_JOB",
+      "name": "Create Design Import Job",
+      "description": "Imports an external file as a new Canva design. This endpoint converts documents (PDF, Word, PowerPoint, Excel) and design files (PSD, AI) …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "title": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file",
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_CREATE_DESIGN_RESIZE_JOB",
+      "name": "Create Design Resize Job",
+      "description": "Creates a resized copy of an existing design (Canva Pro/Enterprise only). This endpoint creates a new design with different dimensions from…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "design_id": {
+            "type": "string"
+          },
+          "design_type": {}
+        },
+        "required": [
+          "design_id",
+          "design_type"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_CREATE_URL_ASSET_UPLOAD_JOB",
+      "name": "Create URL Asset Upload Job",
+      "description": "Tool to create an asynchronous Canva asset import job from a public URL. Use when you need to import an asset into Canva directly from a pu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "url"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_DELETE_ASSET_BY_ID",
+      "name": "Delete asset by id",
+      "description": "You can delete an asset by specifying its `assetId`. This operation mirrors the behavior in the Canva UI. Deleting an item moves it to the …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "assetId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_EXCHANGE_OAUTH20_ACCESS_OR_REFRESH_TOKEN",
+      "name": "Exchange oauth 2 0 access or refresh token",
+      "description": "The OAuth 2.0 endpoint issues time-limited (4-hour) access tokens of up to 4KB for user authorization via codes or refresh tokens. It requi…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "CANVA_FETCH_ASSET_UPLOAD_JOB_STATUS",
+      "name": "Fetch asset upload job status",
+      "description": "Polls for asset upload job completion status. Use this after CANVA_CREATE_ASSET_UPLOAD_JOB to check the upload progress. Repeatedly call th…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "jobId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_FETCH_CANVA_CONNECT_SIGNING_PUBLIC_KEYS",
+      "name": "Fetch canva connect signing public keys",
+      "description": "The API for verifying Canva webhooks, 'connect/keys,' is in preview, meaning unstable, not for public integrations, and provides a rotating…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "CANVA_FETCH_CURRENT_USER_DETAILS",
+      "name": "Fetch current user details",
+      "description": "Returns the User ID, Team ID, and display name of the user account associated with the provided access token.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "CANVA_FETCH_DESIGN_METADATA_AND_ACCESS_INFORMATION",
+      "name": "Fetch design metadata and access information",
+      "description": "Gets the metadata for a design. This includes owner information, URLs for editing and viewing, and thumbnail information.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "designId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "designId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_GET_DESIGN_COMMENT_REPLIES",
+      "name": "Get design comment thread replies",
+      "description": "Retrieves a list of replies for a comment or suggestion thread on a design. Use when you need to view all replies in a specific thread.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "designId": {
+            "type": "string"
+          },
+          "threadId": {
+            "type": "string"
+          },
+          "continuation": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "designId",
+          "threadId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_GET_DESIGN_COMMENT_REPLY",
+      "name": "Get specific design comment reply",
+      "description": "Retrieves a specific reply to a comment or suggestion thread on a design. Use when you need to view details of a particular reply.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "replyId": {
+            "type": "string"
+          },
+          "designId": {
+            "type": "string"
+          },
+          "threadId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "designId",
+          "threadId",
+          "replyId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_GET_DESIGN_EXPORT_JOB_RESULT",
+      "name": "Get design export job result",
+      "description": "Polls for design export job completion status. Use this after CANVA_CREATE_CANVA_DESIGN_EXPORT_JOB to check the export progress. Call this …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "exportId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "exportId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_GET_DESIGNS_DESIGNID_COMMENTS_THREADID",
+      "name": "Get designs designid comments threadid",
+      "description": "Retrieves metadata for a comment or suggestion thread on a design. Use when you need to get details about a specific thread including conte…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "designId": {
+            "type": "string"
+          },
+          "threadId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "designId",
+          "threadId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_GET_DESIGNS_DESIGNID_EXPORT_FORMATS",
+      "name": "Get design export formats",
+      "description": "Lists available file formats for exporting a design. Use this to check which export formats (PDF, JPG, PNG, SVG, PPTX, GIF, MP4) are suppor…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "designId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "designId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_GET_URL_ASSET_UPLOADS_JOBID",
+      "name": "Get URL asset upload job status",
+      "description": "Tool to retrieve the status and result of a URL-based asset upload job. Use this after creating a URL asset upload job to check progress an…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "jobId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_GET_URL_IMPORTS_JOBID",
+      "name": "Get URL import job status",
+      "description": "Polls for URL import job completion status. Use this after creating a URL import job to check the import progress. Repeatedly call this end…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "jobId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_GET_USERS_ME_CAPABILITIES",
+      "name": "Get user capabilities",
+      "description": "Lists the API capabilities for the user account associated with the provided access token. Use when you need to check what features are ava…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "CANVA_INITIATE_CANVA_DESIGN_AUTOFILL_JOB",
+      "name": "Initiate canva design autofill job",
+      "description": "Upcoming brand template ID updates require migration within 6 months. Canva Enterprise users can auto-fill designs using various data types…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "title": {
+            "type": "string"
+          },
+          "brand_template_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "brand_template_id",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_LIST_DESIGN_PAGES_WITH_PAGINATION",
+      "name": "List design pages with pagination",
+      "description": "Preview API for Canva: subject to unannounced changes and not for public integrations. Lists metadata for design pages with optional `offse…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "designId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "designId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_LIST_FOLDER_ITEMS_BY_TYPE_WITH_SORTING",
+      "name": "List folder items by type with sorting",
+      "description": "Lists the items in a folder, including each item's `type`. Folders can contain: - Other folders. - Designs, such as Instagram posts, Presen…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "created_ascending",
+              "created_descending",
+              "modified_ascending",
+              "modified_descending",
+              "title_ascending",
+              "title_descending"
+            ]
+          },
+          "folderId": {
+            "type": "string"
+          },
+          "item_types": {
+            "type": "array"
+          },
+          "continuation": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folderId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_LIST_USER_DESIGNS",
+      "name": "List User Designs",
+      "description": "Provides a summary of Canva user designs, includes search filtering, and allows showing both self-created and shared designs with sorting o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "relevance",
+              "modified_descending",
+              "modified_ascending",
+              "title_descending",
+              "title_ascending"
+            ]
+          },
+          "ownership": {
+            "type": "string",
+            "enum": [
+              "any",
+              "owned",
+              "shared"
+            ]
+          },
+          "continuation": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "CANVA_MOVE_ITEM_TO_SPECIFIED_FOLDER",
+      "name": "Move item to specified folder",
+      "description": "Transfers an item to a different folder by specifying both the destination folder's ID and the item's ID. If the item is in various folders…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "to_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "to_folder_id",
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_POST_DESIGNS",
+      "name": "Create new Canva design",
+      "description": "Creates a new Canva design with preset type or custom dimensions. Use when creating new designs for docs, presentations, whiteboards, or wi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "design_type": {}
+        },
+        "required": [
+          "design_type"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_POST_DESIGNS_DESIGNID_COMMENTS",
+      "name": "Post designs designid comments",
+      "description": "Creates a comment thread on a Canva design. Use when you need to add feedback or collaboration comments to a specific design. Rate limited …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "designId": {
+            "type": "string"
+          },
+          "assignee_id": {
+            "type": "string"
+          },
+          "message_plaintext": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "designId",
+          "message_plaintext"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_POST_DESIGNS_DESIGNID_COMMENTS_THREADID_REPLIES",
+      "name": "Create reply to comment thread",
+      "description": "Tool to create a reply to a comment or suggestion thread on a Canva design. Use when you need to respond to existing comments or suggestion…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "design_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "message_plaintext": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "design_id",
+          "thread_id",
+          "message_plaintext"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_POST_EXPORTS",
+      "name": "Start design export job",
+      "description": "Starts a new asynchronous job to export a Canva design file. Use when exporting designs to various formats (PDF, JPG, PNG, GIF, PPTX, MP4).…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "format": {},
+          "design_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "design_id",
+          "format"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_POST_FOLDERS",
+      "name": "Create folder",
+      "description": "Tool to create a folder in Canva. Use when you need to organize designs, assets, or create nested folder structures in a user's projects or…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parent_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "parent_folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_POST_URL_IMPORTS",
+      "name": "Create URL Import Job",
+      "description": "Tool to start an asynchronous job to import an external file from a URL as a new design in Canva. Use when you need to import a design from…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "url"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_REMOVE_FOLDER_AND_MOVE_CONTENTS_TO_TRASH",
+      "name": "Remove folder and move contents to trash",
+      "description": "Deletes a folder by moving the user's content to Trash and reassigning other users' content to their top-level projects.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "folderId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folderId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_RETRIEVE_APP_PUBLIC_KEY_SET",
+      "name": "Retrieve app public key set",
+      "description": "Returns the Json Web Key Set (public keys) of an app. These keys are used to verify JWTs sent to app backends.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "appId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "appId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_RETRIEVE_ASSET_METADATA_BY_ID",
+      "name": "Retrieve asset metadata by id",
+      "description": "You can retrieve the metadata of an asset by specifying its `assetId`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "assetId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_RETRIEVE_BRAND_TEMPLATE_DATASET_DEFINITION",
+      "name": "Retrieve brand template dataset definition",
+      "description": "Canva's brand template IDs will change later this year, including a 6-month integration migration. API access requires Enterprise membershi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "brandTemplateId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "brandTemplateId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_RETRIEVE_CANVA_ENTERPRISE_BRAND_TEMPLATE_METADATA",
+      "name": "Retrieve canva enterprise brand template metadata",
+      "description": "Upcoming update will change brand template IDs; integrations must migrate within 6 months. API use requires Canva Enterprise membership.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "brandTemplateId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "brandTemplateId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_RETRIEVE_DESIGN_AUTOFILL_JOB_STATUS",
+      "name": "Retrieve design autofill job status",
+      "description": "API users with Canva Enterprise membership can retrieve design autofill job results, potentially requiring multiple requests until a `succe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "jobId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_RETRIEVE_DESIGN_IMPORT_JOB_STATUS",
+      "name": "Retrieve design import job status",
+      "description": "Polls for design import job completion status. Use this after CANVA_CREATE_DESIGN_IMPORT_JOB to check the import progress. Repeatedly call …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "jobId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_RETRIEVE_DESIGN_RESIZE_JOB_STATUS",
+      "name": "Retrieve Design Resize Job Status",
+      "description": "Retrieves the status and results of a design resize job. Polls for design resize job completion status. Use this after CANVA_CREATE_DESIGN_…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_RETRIEVE_FOLDER_DETAILS_BY_ID",
+      "name": "Retrieve folder details by id",
+      "description": "Gets the name and other details of a folder using a folder's `folderID`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "folderId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folderId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_RETRIEVE_USER_PROFILE_DATA",
+      "name": "Retrieveuserprofiledata",
+      "description": "Currently, this returns the display name of the user account associated with the provided access token. More user information is expected t…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "CANVA_REVOKE_OAUTH_TOKENS",
+      "name": "Revoke oauth tokens",
+      "description": "Revoke a refresh token to end its lineage and user consent, requiring re-authentication. Authenticate using either basic access with Base64…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_UPDATE_ASSET_S_NAME_AND_TAGS_BY_ID",
+      "name": "Update asset s name and tags by id",
+      "description": "You can update the name and tags of an asset by specifying its `assetId`. Updating the tags replaces all existing tags of the asset.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "assetId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "assetId"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_UPDATE_FOLDER_DETAILS_BY_ID",
+      "name": "Update folder details by id",
+      "description": "Updates a folder's details using its `folderID`. Currently, you can only update a folder's name.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "folderId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folderId",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "CANVA_VALIDATE_OAUTH_TOKEN_PROPERTIES",
+      "name": "Validate oauth token properties",
+      "description": "Check an access token's validity and properties via introspection, requiring authentication. Use Basic access (Base64 encoded `client_id:cl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      }
+    }
+  ]
+}

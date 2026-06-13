@@ -1,0 +1,853 @@
+{
+  "slug": "typeform",
+  "name": "Typeform",
+  "tool_count": 35,
+  "tools": [
+    {
+      "slug": "TYPEFORM_CREATE_ACCOUNT_WORKSPACE",
+      "name": "Create Account Workspace",
+      "description": "Tool to create a new workspace in a specific Typeform account. Use when you need to create a workspace within a particular account using th…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_CREATE_FORM",
+      "name": "Create Form",
+      "description": "Tool to create a new Typeform form with customizable fields, logic, and settings. Use when you need to programmatically create a form with …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "logic": {
+            "type": "array"
+          },
+          "theme": {
+            "type": "object"
+          },
+          "title": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "settings": {
+            "type": "object"
+          },
+          "workspace": {
+            "type": "object"
+          },
+          "welcome_screens": {
+            "type": "array"
+          },
+          "thankyou_screens": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_CREATE_IMAGE",
+      "name": "Create Image",
+      "description": "Tool to upload a new image to your Typeform account via base64 encoding or URL. Use when you need to add images for forms or presentations.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_name"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_CREATE_OR_UPDATE_WEBHOOK",
+      "name": "Create or Update Webhook",
+      "description": "Tool to create a new webhook or update an existing one for a specified Typeform. Use when you need to configure webhooks to receive form re…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "secret": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "form_id": {
+            "type": "string"
+          },
+          "verify_ssl": {
+            "type": "boolean"
+          },
+          "event_types": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "form_id",
+          "tag",
+          "url"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_CREATE_THEME",
+      "name": "Create Theme",
+      "description": "Tool to create a new custom theme in Typeform with colors, fonts, background, and layout settings. Use when you need to create a theme for …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "font": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "colors": {
+            "type": "object"
+          },
+          "fields": {
+            "type": "object"
+          },
+          "background": {
+            "type": "object"
+          },
+          "rounded_corners": {
+            "type": "string",
+            "enum": [
+              "none",
+              "small",
+              "large"
+            ]
+          },
+          "has_transparent_button": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "colors",
+          "fields",
+          "font"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_CREATE_WORKSPACE",
+      "name": "Create Workspace",
+      "description": "Tool to create a new workspace in Typeform. Use when organizing forms into separate workspaces for teams or projects.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_DELETE_FORM",
+      "name": "Delete Form",
+      "description": "Tool to permanently delete a Typeform and all of its responses. Use when you need to remove a form completely from the account.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_DELETE_IMAGE",
+      "name": "Delete Image",
+      "description": "Tool to delete an image from your Typeform account. Use when you need to remove an image that is no longer needed. Returns a success status…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "image_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "image_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_DELETE_RESPONSES",
+      "name": "Delete Responses",
+      "description": "Tool to delete specific responses from a Typeform by response IDs. Use when you need to remove response data from a form. Deletion is async…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string"
+          },
+          "included_response_ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id",
+          "included_response_ids"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_DELETE_THEME",
+      "name": "Delete Theme",
+      "description": "Tool to delete a theme from your Typeform account. Use when you need to permanently remove a theme. This operation cannot be undone.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "theme_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "theme_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_DELETE_WEBHOOK",
+      "name": "Delete Webhook",
+      "description": "Tool to delete a webhook configuration from a Typeform form. Use when you need to remove a webhook from a specific form. The operation retu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "form_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id",
+          "tag"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_DELETE_WORKSPACE",
+      "name": "Delete Workspace",
+      "description": "Tool to delete a workspace from your Typeform account. Use when you need to remove a workspace. Note: The default 'My Workspace' cannot be …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_GET_ABOUT_ME",
+      "name": "Get About Me",
+      "description": "Get information about the owner account in Typeform.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "TYPEFORM_GET_ALL_RESPONSE_FILES",
+      "name": "Get All Response Files",
+      "description": "Tool to retrieve a compressed archive containing all files that respondents uploaded for a specified form. Use when you need to download al…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_GET_BACKGROUND_BY_SIZE",
+      "name": "Get Background By Size",
+      "description": "Tool to retrieve a background image by size from Typeform. Use when you need to get a background image in a specific size (default, tablet,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "size": {
+            "type": "string",
+            "enum": [
+              "default",
+              "tablet",
+              "mobile",
+              "thumbnail"
+            ]
+          },
+          "image_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "image_id",
+          "size"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_GET_CHOICE_IMAGE_BY_SIZE",
+      "name": "Get Choice Image By Size",
+      "description": "Tool to retrieve a choice image by size from Typeform. Use when you need to download images used in picture_choice question options at spec…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "size": {
+            "type": "string",
+            "enum": [
+              "default",
+              "thumbnail",
+              "supersize",
+              "supermobile",
+              "supersizefit"
+            ]
+          },
+          "image_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "image_id",
+          "size"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_GET_FORM",
+      "name": "Get Form",
+      "description": "Tool to retrieve a specific form's complete configuration including fields, logic, settings, and theme. Use when you need to get detailed i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_GET_FORM_MESSAGES",
+      "name": "Get Form Messages",
+      "description": "Tool to retrieve custom messages for a Typeform including button labels, error messages, and UI text. Use when you need to get the current …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_GET_FORM_RESPONSES",
+      "name": "Get Form Responses",
+      "description": "Tool to retrieve form responses from Typeform with filtering by date, pagination, search, and response type. Use when you need to get respo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string"
+          },
+          "after": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string"
+          },
+          "until": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "form_id": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "response_type": {
+            "type": "array"
+          },
+          "answered_fields": {
+            "type": "array"
+          },
+          "excluded_response_ids": {
+            "type": "string"
+          },
+          "included_response_ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_GET_IMAGE_BY_SIZE",
+      "name": "Get Image By Size",
+      "description": "Tool to retrieve an image in a specific size from Typeform. Use when you need to get a Typeform image optimized for different display conte…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "size": {
+            "type": "string",
+            "enum": [
+              "default",
+              "mobile",
+              "thumbnail"
+            ]
+          },
+          "image_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "image_id",
+          "size"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_GET_THEME",
+      "name": "Get Theme",
+      "description": "Tool to retrieve a specific theme's configuration including colors, fonts, and layout settings. Use when you need to get the design setting…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "theme_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "theme_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_GET_WEBHOOK",
+      "name": "Get Webhook",
+      "description": "Tool to retrieve a single webhook by specifying both the form ID and webhook tag. Use when you need to get details about a specific webhook…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "form_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id",
+          "tag"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_GET_WORKSPACE",
+      "name": "Get Workspace",
+      "description": "Tool to retrieve detailed information about a specific workspace including its name, forms, and team members. Use when you need to get work…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_LIST_FORMS",
+      "name": "List Forms",
+      "description": "Tool to retrieve a list of all forms in your Typeform account with filtering, pagination, and sorting options. Use when you need to list, s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "search": {
+            "type": "string"
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "created_at",
+              "last_updated_at"
+            ]
+          },
+          "order_by": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TYPEFORM_LIST_IMAGES",
+      "name": "List Images",
+      "description": "Tool to retrieve all images in your Typeform account in reverse-chronological order. Use when you need to list or browse available images.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "TYPEFORM_LIST_THEMES",
+      "name": "List Typeform Themes",
+      "description": "Tool to retrieve a paginated list of themes in your Typeform account. Use when you need to access available themes for form styling. Return…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TYPEFORM_LIST_WEBHOOKS",
+      "name": "List Form Webhooks",
+      "description": "Tool to retrieve all webhooks associated with a specified typeform. Use when you need to view webhook configurations for a form. Returns we…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_LIST_WORKSPACES",
+      "name": "List Workspaces",
+      "description": "Tool to retrieve all workspaces in a Typeform account with their IDs, names, form counts, and members. Use when you need to list available …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "search": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TYPEFORM_PATCH_FORM",
+      "name": "Patch Form",
+      "description": "Tool to partially update a Typeform using JSON Patch operations. Use when you need to modify specific fields without replacing the entire f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string"
+          },
+          "operations": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "form_id",
+          "operations"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_PATCH_THEME",
+      "name": "Update Theme (Partial)",
+      "description": "Tool to partially update a Typeform theme by ID. Updates only the specified properties while leaving other theme settings unchanged. Each p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "font": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "colors": {
+            "type": "object"
+          },
+          "fields": {
+            "type": "object"
+          },
+          "screens": {
+            "type": "object"
+          },
+          "theme_id": {
+            "type": "string"
+          },
+          "background": {
+            "type": "object"
+          },
+          "rounded_corners": {
+            "type": "string",
+            "enum": [
+              "none",
+              "small",
+              "large"
+            ]
+          },
+          "has_transparent_button": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "theme_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_UPDATE_FORM",
+      "name": "Update Form",
+      "description": "Tool to update an existing Typeform by completely replacing its configuration. PUT request overwrites the entire form - any fields not incl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "logic": {
+            "type": "array"
+          },
+          "theme": {
+            "type": "object"
+          },
+          "title": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "hidden": {
+            "type": "array"
+          },
+          "form_id": {
+            "type": "string"
+          },
+          "settings": {
+            "type": "object"
+          },
+          "variables": {
+            "type": "object"
+          },
+          "workspace": {
+            "type": "object"
+          },
+          "welcome_screens": {
+            "type": "array"
+          },
+          "thankyou_screens": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "form_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_UPDATE_FORM_MESSAGES",
+      "name": "Update Form Messages",
+      "description": "Tool to update custom messages for form UI elements like buttons, errors, and placeholders in Typeform. Use when you need to customize the …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string"
+          },
+          "label_button_submit": {
+            "type": "string"
+          },
+          "label_error_required": {
+            "type": "string"
+          },
+          "label_button_hint_default": {
+            "type": "string"
+          },
+          "block_short_text_placeholder": {
+            "type": "string"
+          },
+          "label_button_no_answer_default": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_UPDATE_THEME",
+      "name": "Update Theme",
+      "description": "Tool to update a theme's complete definition in Typeform. Use when you need to update all aspects of a theme including colors, fonts, and v…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "font": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "colors": {
+            "type": "object"
+          },
+          "fields": {
+            "type": "object"
+          },
+          "screens": {
+            "type": "object"
+          },
+          "theme_id": {
+            "type": "string"
+          },
+          "background": {
+            "type": "object"
+          },
+          "rounded_corners": {
+            "type": "string"
+          },
+          "has_transparent_button": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "theme_id",
+          "name",
+          "font",
+          "colors"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_UPDATE_WORKSPACE",
+      "name": "Update Workspace",
+      "description": "Tool to update a workspace's name or manage team member access (add/remove members) in Typeform. Use when you need to rename a workspace or…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "operations": {
+            "type": "array"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "operations"
+        ]
+      }
+    },
+    {
+      "slug": "TYPEFORM_UPLOAD_VIDEO",
+      "name": "Upload Video",
+      "description": "Initiate a video upload to Typeform by obtaining a signed upload URL. Use this action to prepare for uploading a video file to a specific f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string"
+          },
+          "field_id": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id",
+          "field_id",
+          "language"
+        ]
+      }
+    }
+  ]
+}
