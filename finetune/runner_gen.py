@@ -221,7 +221,7 @@ def selftest() -> None:
     connected = ["gmail", "slack"]
     steps = [
         {"tool": "GMAIL_FETCH_EMAILS", "args": {"query": "is:unread"}, "result": "3 unread emails"},
-        {"tool": "SLACK_SEND_MESSAGE", "args": {"channel": "#me", "message": "You have 3 unread"}, "result": "sent"},
+        {"tool": "SLACK_SEND_MESSAGE", "args": {"channel": "#me", "markdown_text": "You have 3 unread"}, "result": "sent"},
         {"final": "Posted your 3 unread emails to Slack."},
     ]
     assert valid_trace(steps, connected)

@@ -105,6 +105,6 @@ if __name__ == "__main__":
     assert validate_args("GF_WEATHER", {}) != []                       # missing required
     assert validate_args("GF_WEATHER", {"location": "x", "units": "kelvin"}) != []  # bad enum
     assert validate_args("GF_WEATHER", {"location": "x", "foo": 1}) != []           # unknown arg
-    assert validate_args("SLACK_SEND_MESSAGE", {"anything": 1}) == []  # no schema -> lenient
+    assert validate_args("NOT_A_REAL_TOOL_XYZ", {"anything": 1}) == []  # no schema -> lenient
     print("signature:", arg_signature("GF_WEATHER"), "|", arg_signature("GF_MAPS"))
     print("tool_schemas self-check passed")

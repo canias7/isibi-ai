@@ -3,24 +3,8165 @@
     "purpose": "Real tool argument schemas for grounding runner traces (phase 2).",
     "builtins_from": "supabase/functions/gofarther-mcp/index.ts (GF_* inputSchema, verbatim shapes)",
     "connectors_from": "Composio v3.1/tools input_parameters — run fetch_connector_schemas.py with COMPOSIO_API_KEY to populate",
-    "note": "Compact: type + property types + enums + required. Tools absent here fall back to a generic object schema (no arg validation)."
+    "note": "Compact: type + property types + enums + required. Tools absent here fall back to a generic object schema (no arg validation).",
+    "connectors_fetched": 315
   },
   "tools": {
-    "GF_SAVE_MEMORY": {"type": "object", "properties": {"content": {"type": "string"}}, "required": ["content"]},
-    "GF_GET_MEMORY_FILE": {"type": "object", "properties": {"memory_id": {"type": "string"}, "toolkit_slug": {"type": "string"}, "tool_slug": {"type": "string"}}, "required": ["memory_id", "toolkit_slug", "tool_slug"]},
-    "GF_SET_REMINDER": {"type": "object", "properties": {"title": {"type": "string"}, "remind_at": {"type": "string"}, "repeat": {"type": "string", "enum": ["none", "daily", "weekly"]}, "tz": {"type": "string"}}, "required": ["title", "remind_at"]},
-    "GF_BANK_BALANCES": {"type": "object", "properties": {}},
-    "GF_BANK_TRANSACTIONS": {"type": "object", "properties": {"count": {"type": "integer"}}},
-    "GF_BANK_RECURRING": {"type": "object", "properties": {}},
-    "GF_BANK_LIABILITIES": {"type": "object", "properties": {}},
-    "GF_BANK_INVESTMENTS": {"type": "object", "properties": {}},
-    "GF_BANK_IDENTITY": {"type": "object", "properties": {}},
-    "GF_BANK_AUTH": {"type": "object", "properties": {}},
-    "GF_BANK_INVESTMENT_TRANSACTIONS": {"type": "object", "properties": {"days": {"type": "integer"}}},
-    "GF_BANK_INSIGHTS": {"type": "object", "properties": {"mode": {"type": "string", "enum": ["net_worth", "spending", "cash_flow", "upcoming_bills"]}, "days": {"type": "integer"}}, "required": ["mode"]},
-    "GF_WEATHER": {"type": "object", "properties": {"location": {"type": "string"}, "units": {"type": "string", "enum": ["fahrenheit", "celsius"]}}, "required": ["location"]},
-    "GF_MAPS": {"type": "object", "properties": {"mode": {"type": "string", "enum": ["places", "directions"]}, "query": {"type": "string"}, "near": {"type": "string"}, "open_now": {"type": "boolean"}, "origin": {"type": "string"}, "destination": {"type": "string"}, "travel_mode": {"type": "string", "enum": ["driving", "walking", "bicycling", "transit"]}}, "required": ["mode"]},
-    "GF_IMAGE": {"type": "object", "properties": {"prompt": {"type": "string"}, "model": {"type": "string"}, "size": {"type": "string"}, "n": {"type": "integer"}}, "required": ["prompt"]},
-    "GF_SAVE_TABLE": {"type": "object", "properties": {"data_handle": {"type": "string"}, "fields": {"type": "array"}, "record_path": {"type": "string"}, "title": {"type": "string"}, "columns": {"type": "array"}, "rows": {"type": "array"}, "total_columns": {"type": "array"}}}
+    "GF_SAVE_MEMORY": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "content"
+      ]
+    },
+    "GF_GET_MEMORY_FILE": {
+      "type": "object",
+      "properties": {
+        "memory_id": {
+          "type": "string"
+        },
+        "toolkit_slug": {
+          "type": "string"
+        },
+        "tool_slug": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "memory_id",
+        "toolkit_slug",
+        "tool_slug"
+      ]
+    },
+    "GF_SET_REMINDER": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "remind_at": {
+          "type": "string"
+        },
+        "repeat": {
+          "type": "string",
+          "enum": [
+            "none",
+            "daily",
+            "weekly"
+          ]
+        },
+        "tz": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "remind_at"
+      ]
+    },
+    "GF_BANK_BALANCES": {
+      "type": "object",
+      "properties": {}
+    },
+    "GF_BANK_TRANSACTIONS": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer"
+        }
+      }
+    },
+    "GF_BANK_RECURRING": {
+      "type": "object",
+      "properties": {}
+    },
+    "GF_BANK_LIABILITIES": {
+      "type": "object",
+      "properties": {}
+    },
+    "GF_BANK_INVESTMENTS": {
+      "type": "object",
+      "properties": {}
+    },
+    "GF_BANK_IDENTITY": {
+      "type": "object",
+      "properties": {}
+    },
+    "GF_BANK_AUTH": {
+      "type": "object",
+      "properties": {}
+    },
+    "GF_BANK_INVESTMENT_TRANSACTIONS": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "integer"
+        }
+      }
+    },
+    "GF_BANK_INSIGHTS": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "net_worth",
+            "spending",
+            "cash_flow",
+            "upcoming_bills"
+          ]
+        },
+        "days": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "mode"
+      ]
+    },
+    "GF_WEATHER": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "string"
+        },
+        "units": {
+          "type": "string",
+          "enum": [
+            "fahrenheit",
+            "celsius"
+          ]
+        }
+      },
+      "required": [
+        "location"
+      ]
+    },
+    "GF_MAPS": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "places",
+            "directions"
+          ]
+        },
+        "query": {
+          "type": "string"
+        },
+        "near": {
+          "type": "string"
+        },
+        "open_now": {
+          "type": "boolean"
+        },
+        "origin": {
+          "type": "string"
+        },
+        "destination": {
+          "type": "string"
+        },
+        "travel_mode": {
+          "type": "string",
+          "enum": [
+            "driving",
+            "walking",
+            "bicycling",
+            "transit"
+          ]
+        }
+      },
+      "required": [
+        "mode"
+      ]
+    },
+    "GF_IMAGE": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "size": {
+          "type": "string"
+        },
+        "n": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "prompt"
+      ]
+    },
+    "GF_SAVE_TABLE": {
+      "type": "object",
+      "properties": {
+        "data_handle": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "record_path": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "columns": {
+          "type": "array"
+        },
+        "rows": {
+          "type": "array"
+        },
+        "total_columns": {
+          "type": "array"
+        }
+      }
+    },
+    "AIRTABLE_CREATE_MULTIPLE_RECORDS": {
+      "type": "object",
+      "properties": {
+        "baseId": {
+          "type": "string"
+        },
+        "records": {
+          "type": "array"
+        },
+        "typecast": {
+          "type": "boolean"
+        },
+        "tableIdOrName": {
+          "type": "string"
+        },
+        "returnFieldsByFieldId": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "baseId",
+        "tableIdOrName",
+        "records"
+      ]
+    },
+    "AIRTABLE_CREATE_RECORD": {
+      "type": "object",
+      "properties": {
+        "baseId": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "object"
+        },
+        "typecast": {
+          "type": "boolean"
+        },
+        "tableIdOrName": {
+          "type": "string"
+        },
+        "returnFieldsByFieldId": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "baseId",
+        "tableIdOrName"
+      ]
+    },
+    "AIRTABLE_CREATE_RECORD_FROM_NATURAL_LANGUAGE": {
+      "type": "object",
+      "properties": {
+        "baseId": {
+          "type": "string"
+        },
+        "nl_query": {
+          "type": "string"
+        },
+        "typecast": {
+          "type": "boolean"
+        },
+        "tableIdOrName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "baseId",
+        "tableIdOrName",
+        "nl_query"
+      ]
+    },
+    "AIRTABLE_GET_BASE_SCHEMA": {
+      "type": "object",
+      "properties": {
+        "baseId": {
+          "type": "string"
+        },
+        "include": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "baseId"
+      ]
+    },
+    "AIRTABLE_GET_RECORD": {
+      "type": "object",
+      "properties": {
+        "baseId": {
+          "type": "string"
+        },
+        "recordId": {
+          "type": "string"
+        },
+        "timeZone": {
+          "type": "string"
+        },
+        "cellFormat": {
+          "type": "string",
+          "enum": [
+            "json",
+            "string"
+          ]
+        },
+        "userLocale": {
+          "type": "string"
+        },
+        "tableIdOrName": {
+          "type": "string"
+        },
+        "returnFieldsByFieldId": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "baseId",
+        "tableIdOrName",
+        "recordId"
+      ]
+    },
+    "AIRTABLE_LIST_BASES": {
+      "type": "object",
+      "properties": {
+        "offset": {
+          "type": "string"
+        }
+      }
+    },
+    "ASANA_CREATE_A_TASK": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        },
+        "opt_fields": {
+          "type": "array"
+        },
+        "opt_pretty": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "data"
+      ]
+    },
+    "ASANA_GET_A_TASK": {
+      "type": "object",
+      "properties": {
+        "task_gid": {
+          "type": "string"
+        },
+        "opt_fields": {
+          "type": "array"
+        },
+        "opt_pretty": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "task_gid"
+      ]
+    },
+    "ASANA_GET_MULTIPLE_PROJECTS": {
+      "type": "object",
+      "properties": {
+        "team": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "offset": {
+          "type": "string"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "workspace": {
+          "type": "string"
+        },
+        "opt_fields": {
+          "type": "array"
+        },
+        "opt_pretty": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ASANA_GET_TASKS_FROM_A_PROJECT": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "offset": {
+          "type": "string"
+        },
+        "opt_fields": {
+          "type": "array"
+        },
+        "opt_pretty": {
+          "type": "boolean"
+        },
+        "project_gid": {
+          "type": "string"
+        },
+        "completed_since": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "project_gid"
+      ]
+    },
+    "ASANA_SEARCH_TASKS_IN_WORKSPACE": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "opt_fields": {
+          "type": "array"
+        },
+        "opt_pretty": {
+          "type": "boolean"
+        },
+        "assignee_any": {
+          "type": "array"
+        },
+        "projects_any": {
+          "type": "array"
+        },
+        "workspace_gid": {
+          "type": "string"
+        },
+        "resource_subtype": {
+          "type": "string"
+        },
+        "composio_execution_message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_gid"
+      ]
+    },
+    "ASANA_UPDATE_A_TASK": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        },
+        "task_gid": {
+          "type": "string"
+        },
+        "opt_fields": {
+          "type": "array"
+        },
+        "opt_pretty": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "task_gid",
+        "data"
+      ]
+    },
+    "BOX_FIND_FILE_FOR_SHARED_LINK": {
+      "type": "object",
+      "properties": {
+        "boxapi": {
+          "type": "string"
+        },
+        "fields": {},
+        "shared_link": {
+          "type": "string"
+        },
+        "shared_link_password": {
+          "type": "string"
+        }
+      }
+    },
+    "BOX_GET_FILE_INFORMATION": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "string"
+        },
+        "file_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_id"
+      ]
+    },
+    "BOX_GET_FOLDER": {
+      "type": "object",
+      "properties": {
+        "sort": {
+          "type": "string",
+          "enum": [
+            "date",
+            "id",
+            "name",
+            "size"
+          ]
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "ASC",
+            "DESC"
+          ]
+        },
+        "folder_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "folder_id"
+      ]
+    },
+    "BOX_LIST_FILE_COMMENTS": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "file_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_id"
+      ]
+    },
+    "BOX_LIST_ITEMS_IN_FOLDER": {
+      "type": "object",
+      "properties": {
+        "sort": {
+          "type": "string",
+          "enum": [
+            "date",
+            "id",
+            "name",
+            "size"
+          ]
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "marker": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "ASC",
+            "DESC"
+          ]
+        },
+        "folder_id": {
+          "type": "string"
+        },
+        "usemarker": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "folder_id"
+      ]
+    },
+    "BOX_SEARCH_FOR_CONTENT": {
+      "type": "object",
+      "properties": {
+        "sort": {
+          "type": "string",
+          "enum": [
+            "modified_at",
+            "relevance"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "file",
+            "folder",
+            "web_link"
+          ]
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "query": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "enterprise_content",
+            "user_content"
+          ]
+        },
+        "fields": {
+          "type": "array"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "ASC",
+            "DESC"
+          ]
+        },
+        "mdfilters": {
+          "type": "array"
+        },
+        "size_range": {
+          "type": "array"
+        },
+        "content_types": {
+          "type": "array"
+        },
+        "trash_content": {
+          "type": "string",
+          "enum": [
+            "all_items",
+            "non_trashed_only",
+            "trashed_only"
+          ]
+        },
+        "owner_user_ids": {
+          "type": "array"
+        },
+        "file_extensions": {
+          "type": "array"
+        },
+        "created_at_range": {
+          "type": "array"
+        },
+        "deleted_at_range": {
+          "type": "array"
+        },
+        "deleted_user_ids": {
+          "type": "array"
+        },
+        "updated_at_range": {
+          "type": "array"
+        },
+        "ancestor_folder_ids": {
+          "type": "array"
+        },
+        "recent_updater_user_ids": {
+          "type": "array"
+        },
+        "include_recent_shared_links": {
+          "type": "boolean"
+        }
+      }
+    },
+    "CALENDLY_CANCEL_SCHEDULED_EVENT": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "event_uuid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_uuid"
+      ]
+    },
+    "CALENDLY_GET_EVENT_TYPE_AVAILABILITY": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "event_type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_type"
+      ]
+    },
+    "CALENDLY_GET_ORGANIZATION": {
+      "type": "object",
+      "properties": {
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "uuid"
+      ]
+    },
+    "CALENDLY_GET_USER": {
+      "type": "object",
+      "properties": {
+        "uuid": {
+          "type": "string"
+        }
+      }
+    },
+    "CALENDLY_LIST_EVENT_TYPES": {
+      "type": "object",
+      "properties": {
+        "sort": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "page_token": {
+          "type": "string"
+        },
+        "organization": {
+          "type": "string"
+        },
+        "admin_managed": {
+          "type": "boolean"
+        },
+        "user_availability_schedule": {
+          "type": "string"
+        }
+      }
+    },
+    "CALENDLY_LIST_SCHEDULED_EVENTS": {
+      "type": "object",
+      "properties": {
+        "sort": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "group": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "canceled"
+          ]
+        },
+        "page_token": {
+          "type": "string"
+        },
+        "organization": {
+          "type": "string"
+        },
+        "invitee_email": {
+          "type": "string"
+        },
+        "max_start_time": {
+          "type": "string"
+        },
+        "min_start_time": {
+          "type": "string"
+        }
+      }
+    },
+    "CANVA_ACCESS_USER_SPECIFIC_BRAND_TEMPLATES_LIST": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "dataset": {
+          "type": "string",
+          "enum": [
+            "any",
+            "non_empty"
+          ]
+        },
+        "sort_by": {
+          "type": "string",
+          "enum": [
+            "relevance",
+            "modified_descending",
+            "modified_ascending",
+            "title_descending",
+            "title_ascending"
+          ]
+        },
+        "ownership": {
+          "type": "string",
+          "enum": [
+            "any",
+            "owned",
+            "shared"
+          ]
+        },
+        "continuation": {
+          "type": "string"
+        }
+      }
+    },
+    "CANVA_CREATE_CANVA_DESIGN_EXPORT_JOB": {
+      "type": "object",
+      "properties": {
+        "format": {},
+        "design_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "design_id",
+        "format"
+      ]
+    },
+    "CANVA_GET_DESIGN_EXPORT_JOB_RESULT": {
+      "type": "object",
+      "properties": {
+        "exportId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "exportId"
+      ]
+    },
+    "CANVA_LIST_FOLDER_ITEMS_BY_TYPE_WITH_SORTING": {
+      "type": "object",
+      "properties": {
+        "sort_by": {
+          "type": "string",
+          "enum": [
+            "created_ascending",
+            "created_descending",
+            "modified_ascending",
+            "modified_descending",
+            "title_ascending",
+            "title_descending"
+          ]
+        },
+        "folderId": {
+          "type": "string"
+        },
+        "item_types": {
+          "type": "array"
+        },
+        "continuation": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "folderId"
+      ]
+    },
+    "CANVA_LIST_USER_DESIGNS": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "sort_by": {
+          "type": "string",
+          "enum": [
+            "relevance",
+            "modified_descending",
+            "modified_ascending",
+            "title_descending",
+            "title_ascending"
+          ]
+        },
+        "ownership": {
+          "type": "string",
+          "enum": [
+            "any",
+            "owned",
+            "shared"
+          ]
+        },
+        "continuation": {
+          "type": "string"
+        }
+      }
+    },
+    "CLICKUP_CREATE_DOC": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "parent_id": {
+          "type": "string"
+        },
+        "parent_type": {
+          "type": "string",
+          "enum": [
+            "space",
+            "folder",
+            "list"
+          ]
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "name"
+      ]
+    },
+    "CLICKUP_CREATE_LIST": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "assignee": {
+          "type": "integer"
+        },
+        "due_date": {
+          "type": "integer"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "folder_id": {
+          "type": "string"
+        },
+        "due_date_time": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "folder_id",
+        "name"
+      ]
+    },
+    "CLICKUP_CREATE_THREADED_COMMENT": {
+      "type": "object",
+      "properties": {
+        "assignee": {
+          "type": "integer"
+        },
+        "comment_id": {
+          "type": "string"
+        },
+        "notify_all": {
+          "type": "boolean"
+        },
+        "comment_text": {
+          "type": "string"
+        },
+        "group_assignee": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "comment_id",
+        "comment_text",
+        "notify_all"
+      ]
+    },
+    "CLICKUP_GET_DOC_PAGE_CONTENT": {
+      "type": "object",
+      "properties": {
+        "doc_id": {
+          "type": "string"
+        },
+        "page_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "doc_id",
+        "page_id"
+      ]
+    },
+    "CLICKUP_GET_TASK": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "team_id": {
+          "type": "integer"
+        },
+        "custom_task_ids": {
+          "type": "boolean"
+        },
+        "include_subtasks": {
+          "type": "boolean"
+        },
+        "include_markdown_description": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "task_id"
+      ]
+    },
+    "CLICKUP_MOVE_TASK_TO_HOME_LIST": {
+      "type": "object",
+      "properties": {
+        "list_id": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        },
+        "status_mappings": {
+          "type": "array"
+        },
+        "move_custom_fields": {
+          "type": "boolean"
+        },
+        "custom_fields_to_move": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "task_id",
+        "list_id"
+      ]
+    },
+    "DISCORD_GET_GATEWAY": {
+      "type": "object",
+      "properties": {}
+    },
+    "DISCORD_GET_INVITE": {
+      "type": "object",
+      "properties": {
+        "invite_code": {
+          "type": "string"
+        },
+        "with_counts": {
+          "type": "boolean"
+        },
+        "with_expiration": {
+          "type": "boolean"
+        },
+        "guild_scheduled_event_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "invite_code"
+      ]
+    },
+    "DISCORD_GET_USER": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "user_id"
+      ]
+    },
+    "DISCORD_INVITE_RESOLVE": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "with_counts": {
+          "type": "boolean"
+        },
+        "with_expiration": {
+          "type": "boolean"
+        },
+        "guild_scheduled_event_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ]
+    },
+    "DROPBOX_FILES_SEARCH": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "filename",
+            "filename_and_content",
+            "deleted_filename"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        },
+        "start": {
+          "type": "integer"
+        },
+        "max_results": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "DROPBOX_GET_ACCOUNT": {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "account_id"
+      ]
+    },
+    "DROPBOX_GET_SHARED_FOLDER_METADATA": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array"
+        },
+        "shared_folder_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "shared_folder_id"
+      ]
+    },
+    "DROPBOX_GET_SPACE_USAGE": {
+      "type": "object",
+      "properties": {}
+    },
+    "DROPBOX_GET_TEAM_INFO": {
+      "type": "object",
+      "properties": {}
+    },
+    "DROPBOX_GET_TEAM_LOG_EVENTS": {
+      "type": "object",
+      "properties": {
+        "time": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        }
+      }
+    },
+    "EXCEL_ADD_WORKSHEET": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "item_id": {
+          "type": "string"
+        },
+        "drive_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "name"
+      ]
+    },
+    "EXCEL_GET_RANGE": {
+      "type": "object",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "item_id": {
+          "type": "string"
+        },
+        "drive_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "worksheet_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "worksheet_id",
+        "address"
+      ]
+    },
+    "EXCEL_GET_WORKBOOK": {
+      "type": "object",
+      "properties": {
+        "expand": {
+          "type": "array"
+        },
+        "item_id": {
+          "type": "string"
+        },
+        "drive_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "drive_id",
+        "item_id"
+      ]
+    },
+    "EXCEL_LIST_FILES": {
+      "type": "object",
+      "properties": {
+        "top": {
+          "type": "integer"
+        },
+        "path": {
+          "type": "string"
+        },
+        "drive_id": {
+          "type": "string"
+        },
+        "skip_token": {
+          "type": "string"
+        }
+      }
+    },
+    "EXCEL_LIST_TABLES": {
+      "type": "object",
+      "properties": {
+        "top": {
+          "type": "integer"
+        },
+        "skip": {
+          "type": "integer"
+        },
+        "item_id": {
+          "type": "string"
+        },
+        "drive_id": {
+          "type": "string"
+        },
+        "worksheet": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "worksheet"
+      ]
+    },
+    "EXCEL_LIST_WORKSHEETS": {
+      "type": "object",
+      "properties": {
+        "top": {
+          "type": "integer"
+        },
+        "skip": {
+          "type": "integer"
+        },
+        "item_id": {
+          "type": "string"
+        },
+        "drive_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id"
+      ]
+    },
+    "EXCEL_SORT_RANGE": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array"
+        },
+        "item_id": {
+          "type": "string"
+        },
+        "site_id": {
+          "type": "string"
+        },
+        "drive_id": {
+          "type": "string"
+        },
+        "worksheet": {
+          "type": "string"
+        },
+        "range_type": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "worksheet",
+        "range_type",
+        "fields"
+      ]
+    },
+    "EXCEL_UPDATE_RANGE": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "array"
+        },
+        "address": {
+          "type": "string"
+        },
+        "item_id": {
+          "type": "string"
+        },
+        "drive_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "worksheet_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "worksheet_id",
+        "address",
+        "values"
+      ]
+    },
+    "FIGMA_DOWNLOAD_FIGMA_IMAGES": {
+      "type": "object",
+      "properties": {
+        "scale": {
+          "type": "number"
+        },
+        "images": {
+          "type": "array"
+        },
+        "file_key": {
+          "type": "string"
+        },
+        "svg_include_id": {
+          "type": "boolean"
+        },
+        "svg_outline_text": {
+          "type": "boolean"
+        },
+        "svg_simplify_stroke": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "file_key",
+        "images"
+      ]
+    },
+    "FIGMA_GET_COMMENTS_IN_A_FILE": {
+      "type": "object",
+      "properties": {
+        "as_md": {
+          "type": "boolean"
+        },
+        "file_key": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_key"
+      ]
+    },
+    "FIGMA_GET_FILES_IN_A_PROJECT": {
+      "type": "object",
+      "properties": {
+        "project_id": {
+          "type": "string"
+        },
+        "branch_data": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "project_id"
+      ]
+    },
+    "FIGMA_GET_FILE_METADATA": {
+      "type": "object",
+      "properties": {
+        "file_key": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_key"
+      ]
+    },
+    "FIGMA_GET_FILE_NODES": {
+      "type": "object",
+      "properties": {
+        "ids": {},
+        "depth": {
+          "type": "integer"
+        },
+        "version": {
+          "type": "string"
+        },
+        "file_key": {
+          "type": "string"
+        },
+        "geometry": {
+          "type": "string"
+        },
+        "plugin_data": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_key",
+        "ids"
+      ]
+    },
+    "FIGMA_GET_PROJECTS_IN_A_TEAM": {
+      "type": "object",
+      "properties": {
+        "team_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "team_id"
+      ]
+    },
+    "FRESHDESK_GET_ACCOUNT": {
+      "type": "object",
+      "properties": {}
+    },
+    "FRESHDESK_GET_AGENT": {
+      "type": "object",
+      "properties": {
+        "agent_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "agent_id"
+      ]
+    },
+    "FRESHDESK_GET_AGENTS": {
+      "type": "object",
+      "properties": {
+        "term": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "term"
+      ]
+    },
+    "FRESHDESK_GET_COMPANIES": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "per_page": {
+          "type": "integer"
+        }
+      }
+    },
+    "FRESHDESK_GET_COMPANY": {
+      "type": "object",
+      "properties": {
+        "company_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "company_id"
+      ]
+    },
+    "FRESHDESK_GET_COMPANY_FIELDS": {
+      "type": "object",
+      "properties": {}
+    },
+    "GMAIL_CREATE_EMAIL_DRAFT": {
+      "type": "object",
+      "properties": {
+        "cc": {
+          "type": "array"
+        },
+        "bcc": {
+          "type": "array"
+        },
+        "body": {
+          "type": "string"
+        },
+        "is_html": {
+          "type": "boolean"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "attachment": {},
+        "recipient_email": {
+          "type": "string"
+        },
+        "extra_recipients": {
+          "type": "array"
+        }
+      }
+    },
+    "GMAIL_FETCH_EMAILS": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "verbose": {
+          "type": "boolean"
+        },
+        "ids_only": {
+          "type": "boolean"
+        },
+        "label_ids": {
+          "type": "array"
+        },
+        "page_token": {
+          "type": "string"
+        },
+        "max_results": {
+          "type": "integer"
+        },
+        "include_payload": {
+          "type": "boolean"
+        },
+        "include_spam_trash": {
+          "type": "boolean"
+        }
+      }
+    },
+    "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "message_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "message_id"
+      ]
+    },
+    "GMAIL_LIST_DRAFTS": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string"
+        },
+        "verbose": {
+          "type": "boolean"
+        },
+        "page_token": {
+          "type": "string"
+        },
+        "max_results": {
+          "type": "integer"
+        }
+      }
+    },
+    "GMAIL_REPLY_TO_THREAD": {
+      "type": "object",
+      "properties": {
+        "cc": {
+          "type": "array"
+        },
+        "bcc": {
+          "type": "array"
+        },
+        "is_html": {
+          "type": "boolean"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "attachment": {},
+        "message_body": {
+          "type": "string"
+        },
+        "recipient_email": {
+          "type": "string"
+        },
+        "extra_recipients": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "thread_id"
+      ]
+    },
+    "GMAIL_SEND_EMAIL": {
+      "type": "object",
+      "properties": {
+        "cc": {
+          "type": "array"
+        },
+        "bcc": {
+          "type": "array"
+        },
+        "body": {
+          "type": "string"
+        },
+        "is_html": {
+          "type": "boolean"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "attachment": {},
+        "from_email": {
+          "type": "string"
+        },
+        "recipient_email": {
+          "type": "string"
+        },
+        "extra_recipients": {
+          "type": "array"
+        }
+      }
+    },
+    "GOOGLECALENDAR_CREATE_EVENT": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "attendees": {
+          "type": "array"
+        },
+        "eventType": {
+          "type": "string",
+          "enum": [
+            "birthday",
+            "default",
+            "focusTime",
+            "outOfOffice",
+            "workingLocation"
+          ]
+        },
+        "recurrence": {
+          "type": "array"
+        },
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "default",
+            "public",
+            "private",
+            "confidential"
+          ]
+        },
+        "calendar_id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "end_datetime": {
+          "type": "string"
+        },
+        "send_updates": {
+          "type": "string",
+          "enum": [
+            "all",
+            "externalOnly",
+            "none"
+          ]
+        },
+        "transparency": {
+          "type": "string",
+          "enum": [
+            "opaque",
+            "transparent"
+          ]
+        },
+        "start_datetime": {
+          "type": "string"
+        },
+        "guestsCanModify": {
+          "type": "boolean"
+        },
+        "exclude_organizer": {
+          "type": "boolean"
+        },
+        "birthdayProperties": {
+          "type": "object"
+        },
+        "create_meeting_room": {
+          "type": "boolean"
+        },
+        "event_duration_hour": {
+          "type": "integer"
+        },
+        "extended_properties": {
+          "type": "object"
+        },
+        "focusTimeProperties": {
+          "type": "object"
+        },
+        "guestsCanInviteOthers": {
+          "type": "boolean"
+        },
+        "outOfOfficeProperties": {
+          "type": "object"
+        },
+        "event_duration_minutes": {
+          "type": "integer"
+        },
+        "guestsCanSeeOtherGuests": {
+          "type": "boolean"
+        },
+        "workingLocationProperties": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "start_datetime"
+      ]
+    },
+    "GOOGLECALENDAR_FIND_EVENT": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "order_by": {
+          "type": "string"
+        },
+        "time_max": {
+          "type": "string"
+        },
+        "time_min": {
+          "type": "string"
+        },
+        "page_token": {
+          "type": "string"
+        },
+        "calendar_id": {
+          "type": "string"
+        },
+        "event_types": {
+          "type": "array"
+        },
+        "max_results": {
+          "type": "integer"
+        },
+        "updated_min": {
+          "type": "string"
+        },
+        "show_deleted": {
+          "type": "boolean"
+        },
+        "single_events": {
+          "type": "boolean"
+        }
+      }
+    },
+    "GOOGLECALENDAR_FIND_FREE_SLOTS": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array"
+        },
+        "time_max": {
+          "type": "string"
+        },
+        "time_min": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "group_expansion_max": {
+          "type": "integer"
+        },
+        "calendar_expansion_max": {
+          "type": "integer"
+        }
+      }
+    },
+    "GOOGLECALENDAR_LIST_CALENDARS": {
+      "type": "object",
+      "properties": {
+        "page_token": {
+          "type": "string"
+        },
+        "sync_token": {
+          "type": "string"
+        },
+        "max_results": {
+          "type": "integer"
+        },
+        "show_hidden": {
+          "type": "boolean"
+        },
+        "show_deleted": {
+          "type": "boolean"
+        },
+        "min_access_role": {
+          "type": "string"
+        }
+      }
+    },
+    "GOOGLEDOCS_COPY_DOCUMENT": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "document_id": {
+          "type": "string"
+        },
+        "include_shared_drives": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "document_id"
+      ]
+    },
+    "GOOGLEDOCS_CREATE_DOCUMENT2": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title"
+      ]
+    },
+    "GOOGLEDOCS_CREATE_DOCUMENT_MARKDOWN": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "image_assets": {
+          "type": "array"
+        },
+        "markdown_text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title"
+      ]
+    },
+    "GOOGLEDOCS_CREATE_FOOTER": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "DEFAULT"
+          ]
+        },
+        "document_id": {
+          "type": "string"
+        },
+        "section_break_location": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "document_id",
+        "type"
+      ]
+    },
+    "GOOGLEDOCS_GET_DOCUMENT_PLAINTEXT": {
+      "type": "object",
+      "properties": {
+        "tab_ids": {
+          "type": "array"
+        },
+        "document_id": {
+          "type": "string"
+        },
+        "include_tables": {
+          "type": "boolean"
+        },
+        "include_footers": {
+          "type": "boolean"
+        },
+        "include_headers": {
+          "type": "boolean"
+        },
+        "include_footnotes": {
+          "type": "boolean"
+        },
+        "table_row_delimiter": {
+          "type": "string"
+        },
+        "include_tabs_content": {
+          "type": "boolean"
+        },
+        "table_cell_delimiter": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id"
+      ]
+    },
+    "GOOGLEDOCS_LIST_SPREADSHEET_CHARTS": {
+      "type": "object",
+      "properties": {
+        "spreadsheet_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "spreadsheet_id"
+      ]
+    },
+    "GOOGLEDRIVE_CREATE_FILE_FROM_TEXT": {
+      "type": "object",
+      "properties": {
+        "file_name": {
+          "type": "string"
+        },
+        "mime_type": {
+          "type": "string"
+        },
+        "parent_id": {
+          "type": "string"
+        },
+        "text_content": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_name",
+        "text_content"
+      ]
+    },
+    "GOOGLEDRIVE_DOWNLOAD_FILE": {
+      "type": "object",
+      "properties": {
+        "fileId": {
+          "type": "string"
+        },
+        "mime_type": {
+          "type": "string",
+          "enum": [
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.oasis.opendocument.text",
+            "application/rtf",
+            "application/pdf",
+            "text/plain",
+            "application/zip",
+            "application/epub+zip",
+            "text/html",
+            "text/markdown",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.oasis.opendocument.spreadsheet",
+            "text/csv",
+            "text/tab-separated-values",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.oasis.opendocument.presentation",
+            "image/jpeg",
+            "image/png",
+            "image/svg+xml",
+            "application/vnd.google-apps.script+json",
+            "application/vnd.google-apps.vid"
+          ]
+        }
+      },
+      "required": [
+        "fileId"
+      ]
+    },
+    "GOOGLEDRIVE_FIND_FILE": {
+      "type": "object",
+      "properties": {
+        "q": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "string"
+        },
+        "spaces": {
+          "type": "string"
+        },
+        "corpora": {
+          "type": "string",
+          "enum": [
+            "user",
+            "drive",
+            "domain",
+            "allDrives"
+          ]
+        },
+        "driveId": {
+          "type": "string"
+        },
+        "orderBy": {
+          "type": "string"
+        },
+        "pageSize": {
+          "type": "integer"
+        },
+        "folder_id": {
+          "type": "string"
+        },
+        "pageToken": {
+          "type": "string"
+        },
+        "include_labels": {
+          "type": "string"
+        },
+        "pagetoken_dropped": {
+          "type": "boolean"
+        },
+        "supportsAllDrives": {
+          "type": "boolean"
+        },
+        "original_email_query": {
+          "type": "string"
+        },
+        "editors_field_removed": {
+          "type": "boolean"
+        },
+        "email_query_transformed": {
+          "type": "boolean"
+        },
+        "orderby_size_transformed": {
+          "type": "boolean"
+        },
+        "original_bare_text_query": {
+          "type": "string"
+        },
+        "includeItemsFromAllDrives": {
+          "type": "boolean"
+        },
+        "emailaddress_field_removed": {
+          "type": "boolean"
+        },
+        "original_invalid_pagetoken": {
+          "type": "string"
+        },
+        "bare_text_query_transformed": {
+          "type": "boolean"
+        },
+        "include_permissions_for_view": {
+          "type": "string"
+        }
+      }
+    },
+    "GOOGLEDRIVE_FIND_FOLDER": {
+      "type": "object",
+      "properties": {
+        "starred": {
+          "type": "boolean"
+        },
+        "name_exact": {
+          "type": "string"
+        },
+        "name_contains": {
+          "type": "string"
+        },
+        "modified_after": {
+          "type": "string"
+        },
+        "parent_folder_id": {
+          "type": "string"
+        },
+        "name_not_contains": {
+          "type": "string"
+        },
+        "full_text_contains": {
+          "type": "string"
+        },
+        "full_text_not_contains": {
+          "type": "string"
+        }
+      }
+    },
+    "GOOGLEDRIVE_LIST_FILES": {
+      "type": "object",
+      "properties": {
+        "q": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "string"
+        },
+        "spaces": {
+          "type": "string"
+        },
+        "corpora": {
+          "type": "string"
+        },
+        "driveId": {
+          "type": "string"
+        },
+        "orderBy": {
+          "type": "string"
+        },
+        "folderId": {
+          "type": "string"
+        },
+        "pageSize": {
+          "type": "integer"
+        },
+        "pageToken": {
+          "type": "string"
+        },
+        "includeLabels": {
+          "type": "string"
+        },
+        "supportsAllDrives": {
+          "type": "boolean"
+        },
+        "includeItemsFromAllDrives": {
+          "type": "boolean"
+        },
+        "includePermissionsForView": {
+          "type": "string"
+        }
+      }
+    },
+    "GOOGLEDRIVE_UPLOAD_FILE": {
+      "type": "object",
+      "properties": {
+        "file_to_upload": {
+          "type": "object"
+        },
+        "folder_to_upload_to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_to_upload"
+      ]
+    },
+    "GOOGLEMEET_GET_CONFERENCE_RECORD_BY_NAME": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "GOOGLEMEET_GET_PARTICIPANT_SESSION": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "GOOGLEMEET_LIST_CONFERENCE_RECORDS": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer"
+        },
+        "page_token": {
+          "type": "string"
+        }
+      }
+    },
+    "GOOGLEMEET_LIST_PARTICIPANTS": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer"
+        },
+        "page_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "parent"
+      ]
+    },
+    "GOOGLEMEET_LIST_PARTICIPANT_SESSIONS": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer"
+        },
+        "page_token": {
+          "type": "string"
+        },
+        "participant_id": {
+          "type": "string"
+        },
+        "conference_record_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "conference_record_id",
+        "participant_id"
+      ]
+    },
+    "GOOGLEMEET_LIST_RECORDINGS": {
+      "type": "object",
+      "properties": {
+        "parent": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer"
+        },
+        "page_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "parent"
+      ]
+    },
+    "GOOGLESHEETS_ADD_SHEET": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "object"
+        },
+        "force_unique": {
+          "type": "boolean"
+        },
+        "spreadsheet_id": {
+          "type": "string"
+        },
+        "data_source_config": {
+          "type": "object"
+        },
+        "object_sheet_config": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "spreadsheet_id"
+      ]
+    },
+    "GOOGLESHEETS_BATCH_GET": {
+      "type": "object",
+      "properties": {
+        "ranges": {
+          "type": "array"
+        },
+        "majorDimension": {
+          "type": "string",
+          "enum": [
+            "DIMENSION_UNSPECIFIED",
+            "ROWS",
+            "COLUMNS"
+          ]
+        },
+        "spreadsheet_id": {
+          "type": "string"
+        },
+        "valueRenderOption": {
+          "type": "string",
+          "enum": [
+            "FORMATTED_VALUE",
+            "UNFORMATTED_VALUE",
+            "FORMULA"
+          ]
+        },
+        "dateTimeRenderOption": {
+          "type": "string",
+          "enum": [
+            "SERIAL_NUMBER",
+            "FORMATTED_STRING"
+          ]
+        },
+        "empty_strings_filtered": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "spreadsheet_id"
+      ]
+    },
+    "GOOGLESHEETS_GET_SHEET_NAMES": {
+      "type": "object",
+      "properties": {
+        "exclude_hidden": {
+          "type": "boolean"
+        },
+        "spreadsheet_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "spreadsheet_id"
+      ]
+    },
+    "GOOGLESHEETS_GET_SPREADSHEET_INFO": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "string"
+        },
+        "ranges": {
+          "type": "array"
+        },
+        "spreadsheet_id": {
+          "type": "string"
+        },
+        "include_grid_data": {
+          "type": "boolean"
+        },
+        "exclude_tables_in_banded_ranges": {
+          "type": "boolean"
+        }
+      }
+    },
+    "GOOGLESHEETS_LOOKUP_SPREADSHEET_ROW": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "range": {
+          "type": "string"
+        },
+        "case_sensitive": {
+          "type": "boolean"
+        },
+        "spreadsheet_id": {
+          "type": "string"
+        },
+        "value_render_option": {
+          "type": "string",
+          "enum": [
+            "FORMATTED_VALUE",
+            "UNFORMATTED_VALUE",
+            "FORMULA"
+          ]
+        },
+        "normalize_whitespace": {
+          "type": "boolean"
+        },
+        "date_time_render_option": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "spreadsheet_id",
+        "query"
+      ]
+    },
+    "GOOGLESHEETS_SEARCH_SPREADSHEETS": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "order_by": {
+          "type": "string"
+        },
+        "page_token": {
+          "type": "string"
+        },
+        "max_results": {
+          "type": "integer"
+        },
+        "search_type": {
+          "type": "string",
+          "enum": [
+            "name",
+            "content",
+            "both"
+          ]
+        },
+        "starred_only": {
+          "type": "boolean"
+        },
+        "created_after": {
+          "type": "string"
+        },
+        "modified_after": {
+          "type": "string"
+        },
+        "shared_with_me": {
+          "type": "boolean"
+        },
+        "include_trashed": {
+          "type": "boolean"
+        },
+        "include_shared_drives": {
+          "type": "boolean"
+        }
+      }
+    },
+    "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND": {
+      "type": "object",
+      "properties": {
+        "range": {
+          "type": "string"
+        },
+        "values": {
+          "type": "array"
+        },
+        "spreadsheetId": {
+          "type": "string"
+        },
+        "majorDimension": {
+          "type": "string",
+          "enum": [
+            "ROWS",
+            "COLUMNS"
+          ]
+        },
+        "insertDataOption": {
+          "type": "string",
+          "enum": [
+            "OVERWRITE",
+            "INSERT_ROWS"
+          ]
+        },
+        "valueInputOption": {
+          "type": "string",
+          "enum": [
+            "RAW",
+            "USER_ENTERED"
+          ]
+        },
+        "includeValuesInResponse": {
+          "type": "boolean"
+        },
+        "responseValueRenderOption": {
+          "type": "string",
+          "enum": [
+            "FORMATTED_VALUE",
+            "UNFORMATTED_VALUE",
+            "FORMULA"
+          ]
+        },
+        "responseDateTimeRenderOption": {
+          "type": "string",
+          "enum": [
+            "SERIAL_NUMBER",
+            "FORMATTED_STRING"
+          ]
+        }
+      },
+      "required": [
+        "spreadsheetId",
+        "range",
+        "valueInputOption",
+        "values"
+      ]
+    },
+    "GOOGLETASKS_DELETE_TASK": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "tasklist_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tasklist_id",
+        "task_id"
+      ]
+    },
+    "GOOGLETASKS_GET_TASK": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "tasklist_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tasklist_id",
+        "task_id"
+      ]
+    },
+    "GOOGLETASKS_INSERT_TASK": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "due": {
+          "type": "string"
+        },
+        "etag": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "needsAction",
+            "completed"
+          ]
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "completed": {
+          "type": "string"
+        },
+        "task_parent": {
+          "type": "string"
+        },
+        "tasklist_id": {
+          "type": "string"
+        },
+        "task_previous": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "tasklist_id"
+      ]
+    },
+    "GOOGLETASKS_LIST_ALL_TASKS": {
+      "type": "object",
+      "properties": {
+        "dueMax": {
+          "type": "string"
+        },
+        "dueMin": {
+          "type": "string"
+        },
+        "showHidden": {
+          "type": "boolean"
+        },
+        "updatedMin": {
+          "type": "string"
+        },
+        "showDeleted": {
+          "type": "boolean"
+        },
+        "completedMax": {
+          "type": "string"
+        },
+        "completedMin": {
+          "type": "string"
+        },
+        "showAssigned": {
+          "type": "boolean"
+        },
+        "showCompleted": {
+          "type": "boolean"
+        },
+        "max_tasks_total": {
+          "type": "integer"
+        }
+      }
+    },
+    "GOOGLETASKS_LIST_TASK_LISTS": {
+      "type": "object",
+      "properties": {
+        "pageToken": {
+          "type": "string"
+        },
+        "maxResults": {
+          "type": "integer"
+        }
+      }
+    },
+    "GOOGLETASKS_UPDATE_TASK": {
+      "type": "object",
+      "properties": {
+        "due": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "completed": {
+          "type": "string"
+        },
+        "tasklist_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tasklist_id",
+        "task_id"
+      ]
+    },
+    "HUBSPOT_CREATE_CONTACT": {
+      "type": "object",
+      "properties": {
+        "fax": {
+          "type": "string"
+        },
+        "zip": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "photo": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "degree": {
+          "type": "string"
+        },
+        "gender": {
+          "type": "string"
+        },
+        "school": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "company": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "ip_city": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string"
+        },
+        "industry": {
+          "type": "string"
+        },
+        "ip_state": {
+          "type": "string"
+        },
+        "jobtitle": {
+          "type": "string"
+        },
+        "lastname": {
+          "type": "string"
+        },
+        "closedate": {
+          "type": "string"
+        },
+        "firstname": {
+          "type": "string"
+        },
+        "ip_latlon": {
+          "type": "string"
+        },
+        "num_notes": {
+          "type": "string"
+        },
+        "ownername": {
+          "type": "string"
+        },
+        "seniority": {
+          "type": "string"
+        },
+        "createdate": {
+          "type": "string"
+        },
+        "ip_country": {
+          "type": "string"
+        },
+        "ip_zipcode": {
+          "type": "string"
+        },
+        "owneremail": {
+          "type": "string"
+        },
+        "salutation": {
+          "type": "string"
+        },
+        "start_date": {
+          "type": "string"
+        },
+        "twitterbio": {
+          "type": "string"
+        },
+        "work_email": {
+          "type": "string"
+        },
+        "linkedinbio": {
+          "type": "string"
+        },
+        "mobilephone": {
+          "type": "string"
+        },
+        "associations": {
+          "type": "array"
+        },
+        "company_size": {
+          "type": "string"
+        },
+        "hubspotscore": {
+          "type": "string"
+        },
+        "job_function": {
+          "type": "string"
+        },
+        "numemployees": {
+          "type": "string"
+        },
+        "annualrevenue": {
+          "type": "string"
+        },
+        "date_of_birth": {
+          "type": "string"
+        },
+        "days_to_close": {
+          "type": "string"
+        },
+        "followercount": {
+          "type": "string"
+        },
+        "ip_state_code": {
+          "type": "string"
+        },
+        "total_revenue": {
+          "type": "string"
+        },
+        "twitterhandle": {
+          "type": "string"
+        },
+        "field_of_study": {
+          "type": "string"
+        },
+        "hs_legal_basis": {
+          "type": "string",
+          "enum": [
+            "Legitimate interest – prospect/lead",
+            "Legitimate interest – existing customer",
+            "Legitimate interest - other",
+            "Performance of a contract",
+            "Freely given consent from contact",
+            "Not applicable"
+          ]
+        },
+        "lifecyclestage": {
+          "type": "string"
+        },
+        "marital_status": {
+          "type": "string"
+        },
+        "graduation_date": {
+          "type": "string"
+        },
+        "hs_all_team_ids": {
+          "type": "string"
+        },
+        "hubspot_team_id": {
+          "type": "string"
+        },
+        "ip_country_code": {
+          "type": "string"
+        },
+        "military_status": {
+          "type": "string"
+        },
+        "hs_all_owner_ids": {
+          "type": "string"
+        },
+        "hubspot_owner_id": {
+          "type": "string"
+        },
+        "lastmodifieddate": {
+          "type": "string"
+        },
+        "custom_properties": {
+          "type": "object"
+        },
+        "kloutscoregeneral": {
+          "type": "string"
+        },
+        "notes_last_updated": {
+          "type": "string"
+        },
+        "recent_deal_amount": {
+          "type": "string"
+        },
+        "associatedcompanyid": {
+          "type": "string"
+        },
+        "currentlyinworkflow": {
+          "type": "string"
+        },
+        "hs_all_contact_vids": {
+          "type": "string"
+        },
+        "hs_analytics_source": {
+          "type": "string"
+        },
+        "linkedinconnections": {
+          "type": "string"
+        },
+        "num_contacted_notes": {
+          "type": "string"
+        },
+        "relationship_status": {
+          "type": "string"
+        },
+        "twitterprofilephoto": {
+          "type": "string"
+        },
+        "hs_additional_emails": {
+          "type": "string"
+        },
+        "hs_analytics_revenue": {
+          "type": "string"
+        },
+        "notes_last_contacted": {
+          "type": "string"
+        },
+        "num_associated_deals": {
+          "type": "string"
+        },
+        "first_conversion_date": {
+          "type": "string"
+        },
+        "hs_analytics_last_url": {
+          "type": "string"
+        },
+        "num_conversion_events": {
+          "type": "string"
+        },
+        "hs_analytics_first_url": {
+          "type": "string"
+        },
+        "recent_conversion_date": {
+          "type": "string"
+        },
+        "recent_deal_close_date": {
+          "type": "string"
+        },
+        "first_deal_created_date": {
+          "type": "string"
+        },
+        "hs_analytics_num_visits": {
+          "type": "string"
+        },
+        "webinareventlastupdated": {
+          "type": "string"
+        },
+        "notes_next_activity_date": {
+          "type": "string"
+        },
+        "hs_all_accessible_team_ids": {
+          "type": "string"
+        },
+        "hs_analytics_last_referrer": {
+          "type": "string"
+        },
+        "hs_analytics_source_data_1": {
+          "type": "string"
+        },
+        "hs_analytics_source_data_2": {
+          "type": "string"
+        },
+        "hubspot_owner_assigneddate": {
+          "type": "string"
+        },
+        "first_conversion_event_name": {
+          "type": "string"
+        },
+        "hs_analytics_first_referrer": {
+          "type": "string"
+        },
+        "hs_analytics_last_timestamp": {
+          "type": "string"
+        },
+        "hs_analytics_num_page_views": {
+          "type": "string"
+        },
+        "associatedcompanylastupdated": {
+          "type": "string"
+        },
+        "hs_analytics_first_timestamp": {
+          "type": "string"
+        },
+        "num_unique_conversion_events": {
+          "type": "string"
+        },
+        "recent_conversion_event_name": {
+          "type": "string"
+        },
+        "surveymonkeyeventlastupdated": {
+          "type": "string"
+        },
+        "engagements_last_meeting_booked": {
+          "type": "string"
+        },
+        "hs_analytics_average_page_views": {
+          "type": "string"
+        },
+        "hs_all_assigned_business_unit_ids": {
+          "type": "string"
+        },
+        "hs_analytics_last_visit_timestamp": {
+          "type": "string"
+        },
+        "hs_analytics_first_visit_timestamp": {
+          "type": "string"
+        },
+        "hs_analytics_num_event_completions": {
+          "type": "string"
+        },
+        "engagements_last_meeting_booked_medium": {
+          "type": "string"
+        },
+        "engagements_last_meeting_booked_source": {
+          "type": "string"
+        },
+        "engagements_last_meeting_booked_campaign": {
+          "type": "string"
+        },
+        "hs_analytics_last_touch_converting_campaign": {
+          "type": "string"
+        },
+        "hs_analytics_first_touch_converting_campaign": {
+          "type": "string"
+        }
+      }
+    },
+    "HUBSPOT_LIST_CONTACTS": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "properties": {
+          "type": "array"
+        },
+        "associations": {
+          "type": "array"
+        },
+        "propertiesWithHistory": {
+          "type": "array"
+        }
+      }
+    },
+    "HUBSPOT_LIST_DEALS": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "properties": {
+          "type": "array"
+        },
+        "associations": {
+          "type": "array"
+        },
+        "propertiesWithHistory": {
+          "type": "array"
+        }
+      }
+    },
+    "HUBSPOT_SEARCH_CONTACTS_BY_CRITERIA": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "query": {
+          "type": "string"
+        },
+        "sorts": {
+          "type": "array"
+        },
+        "properties": {
+          "type": "array"
+        },
+        "filterGroups": {
+          "type": "array"
+        },
+        "custom_properties": {
+          "type": "array"
+        }
+      }
+    },
+    "HUBSPOT_SEARCH_DEALS": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "query": {
+          "type": "string"
+        },
+        "sorts": {
+          "type": "array"
+        },
+        "properties": {
+          "type": "array"
+        },
+        "filterGroups": {
+          "type": "array"
+        },
+        "custom_properties": {
+          "type": "array"
+        }
+      }
+    },
+    "INSTAGRAM_CREATE_CAROUSEL_CONTAINER": {
+      "type": "object",
+      "properties": {
+        "caption": {
+          "type": "string"
+        },
+        "children": {
+          "type": "array"
+        },
+        "ig_user_id": {
+          "type": "string"
+        },
+        "child_image_urls": {
+          "type": "array"
+        },
+        "child_video_urls": {
+          "type": "array"
+        },
+        "child_image_files": {
+          "type": "array"
+        },
+        "child_video_files": {
+          "type": "array"
+        },
+        "graph_api_version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ig_user_id"
+      ]
+    },
+    "INSTAGRAM_GET_IG_MEDIA": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "string"
+        },
+        "ig_media_id": {
+          "type": "string"
+        },
+        "graph_api_version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ig_media_id"
+      ]
+    },
+    "INSTAGRAM_GET_IG_MEDIA_COMMENTS": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "before": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "string"
+        },
+        "ig_media_id": {
+          "type": "string"
+        },
+        "graph_api_version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ig_media_id"
+      ]
+    },
+    "INSTAGRAM_GET_IG_MEDIA_INSIGHTS": {
+      "type": "object",
+      "properties": {
+        "metric": {
+          "type": "array"
+        },
+        "period": {
+          "type": "string"
+        },
+        "ig_media_id": {
+          "type": "string"
+        },
+        "graph_api_version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ig_media_id",
+        "metric"
+      ]
+    },
+    "INSTAGRAM_GET_IG_USER_MEDIA": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "since": {
+          "type": "integer"
+        },
+        "until": {
+          "type": "integer"
+        },
+        "before": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "string"
+        },
+        "ig_user_id": {
+          "type": "string"
+        },
+        "graph_api_version": {
+          "type": "string"
+        },
+        "auto_resolve_fb_page_id": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ig_user_id"
+      ]
+    },
+    "INSTAGRAM_GET_PAGE_CONVERSATIONS": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "page_id": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "graph_api_version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "page_id"
+      ]
+    },
+    "INTERCOM_GET_CONVERSATION": {
+      "type": "object",
+      "properties": {
+        "display_as": {
+          "type": "string"
+        },
+        "conversation_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "conversation_id"
+      ]
+    },
+    "INTERCOM_GET_TICKET": {
+      "type": "object",
+      "properties": {
+        "ticket_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ticket_id"
+      ]
+    },
+    "INTERCOM_LIST_ALL_MACROS": {
+      "type": "object",
+      "properties": {
+        "per_page": {
+          "type": "integer"
+        },
+        "updated_since": {
+          "type": "integer"
+        },
+        "starting_after": {
+          "type": "string"
+        }
+      }
+    },
+    "INTERCOM_LIST_CONTACTS": {
+      "type": "object",
+      "properties": {
+        "per_page": {
+          "type": "integer"
+        },
+        "starting_after": {
+          "type": "string"
+        }
+      }
+    },
+    "INTERCOM_LIST_CONVERSATIONS": {
+      "type": "object",
+      "properties": {
+        "per_page": {
+          "type": "integer"
+        },
+        "starting_after": {
+          "type": "string"
+        }
+      }
+    },
+    "INTERCOM_LIST_SEGMENTS": {
+      "type": "object",
+      "properties": {
+        "include_count": {
+          "type": "boolean"
+        }
+      }
+    },
+    "JIRA_ADD_COMMENT": {
+      "type": "object",
+      "properties": {
+        "comment": {
+          "type": "string"
+        },
+        "issue_id_or_key": {
+          "type": "string"
+        },
+        "visibility_type": {
+          "type": "string"
+        },
+        "visibility_value": {
+          "type": "string"
+        },
+        "additional_properties": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "issue_id_or_key",
+        "comment"
+      ]
+    },
+    "JIRA_CREATE_ISSUE": {
+      "type": "object",
+      "properties": {
+        "labels": {
+          "type": "array"
+        },
+        "parent": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "assignee": {
+          "type": "string"
+        },
+        "due_date": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "string"
+        },
+        "reporter": {
+          "type": "string"
+        },
+        "versions": {
+          "type": "array"
+        },
+        "sprint_id": {
+          "type": "integer"
+        },
+        "components": {
+          "type": "array"
+        },
+        "issue_type": {
+          "type": "string"
+        },
+        "description": {},
+        "environment": {},
+        "project_key": {
+          "type": "string"
+        },
+        "fix_versions": {
+          "type": "array"
+        },
+        "assignee_name": {
+          "type": "string"
+        },
+        "additional_properties": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "project_key",
+        "summary",
+        "issue_type"
+      ]
+    },
+    "JIRA_GET_ALL_PROJECTS": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "view",
+            "browse",
+            "edit",
+            "create"
+          ]
+        },
+        "expand": {
+          "type": "string"
+        },
+        "status": {
+          "type": "array"
+        },
+        "orderBy": {
+          "type": "string"
+        },
+        "startAt": {
+          "type": "integer"
+        },
+        "categoryId": {
+          "type": "integer"
+        },
+        "maxResults": {
+          "type": "integer"
+        },
+        "properties": {
+          "type": "array"
+        }
+      }
+    },
+    "JIRA_GET_ISSUE": {
+      "type": "object",
+      "properties": {
+        "expand": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "issue_key": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "array"
+        },
+        "fields_by_keys": {
+          "type": "boolean"
+        },
+        "update_history": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "issue_key"
+      ]
+    },
+    "JIRA_SEARCH_FOR_ISSUES_USING_JQL_GET": {
+      "type": "object",
+      "properties": {
+        "jql": {
+          "type": "string"
+        },
+        "expand": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "fail_fast": {
+          "type": "boolean"
+        },
+        "properties": {
+          "type": "array"
+        },
+        "max_results": {
+          "type": "integer"
+        },
+        "fields_by_keys": {
+          "type": "boolean"
+        },
+        "next_page_token": {
+          "type": "string"
+        },
+        "reconcile_issues": {
+          "type": "array"
+        }
+      }
+    },
+    "JIRA_TRANSITION_ISSUE": {
+      "type": "object",
+      "properties": {
+        "comment": {
+          "type": "string"
+        },
+        "assignee": {
+          "type": "string"
+        },
+        "resolution": {
+          "type": "string"
+        },
+        "assignee_name": {
+          "type": "string"
+        },
+        "issue_id_or_key": {
+          "type": "string"
+        },
+        "transition_fields": {
+          "type": "object"
+        },
+        "additional_properties": {
+          "type": "object"
+        },
+        "transition_id_or_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "issue_id_or_key",
+        "transition_id_or_name"
+      ]
+    },
+    "JOTFORM_GET_SYSTEM_PLAN": {
+      "type": "object",
+      "properties": {
+        "planName": {
+          "type": "string",
+          "enum": [
+            "FREE",
+            "BRONZE",
+            "SILVER",
+            "GOLD",
+            "PLATINUM"
+          ]
+        }
+      },
+      "required": [
+        "planName"
+      ]
+    },
+    "JOTFORM_GET_USER_DETAILS": {
+      "type": "object",
+      "properties": {}
+    },
+    "JOTFORM_GET_USER_FOLDERS": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string"
+        },
+        "add_resources": {
+          "type": "boolean"
+        }
+      }
+    },
+    "JOTFORM_GET_USER_FORMS": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "folder": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "search": {
+          "type": "string"
+        },
+        "orderby": {
+          "type": "string"
+        },
+        "sorting": {
+          "type": "string"
+        }
+      }
+    },
+    "JOTFORM_GET_USER_HISTORY": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "enum": [
+            "lastWeek",
+            "lastMonth",
+            "last3Months",
+            "last6Months",
+            "lastYear",
+            "all"
+          ]
+        },
+        "action": {
+          "type": "string"
+        },
+        "sortBy": {
+          "type": "string",
+          "enum": [
+            "ASC",
+            "DESC"
+          ]
+        },
+        "endDate": {
+          "type": "string"
+        },
+        "startDate": {
+          "type": "string"
+        }
+      }
+    },
+    "JOTFORM_GET_USER_REPORTS": {
+      "type": "object",
+      "properties": {}
+    },
+    "KLAVIYO_ADD_PROFILE_TO_LIST": {
+      "type": "object",
+      "properties": {
+        "emails": {
+          "type": "array"
+        },
+        "list_id": {
+          "type": "string"
+        },
+        "profile_ids": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "list_id"
+      ]
+    },
+    "KLAVIYO_CREATE_LIST": {
+      "type": "object",
+      "properties": {
+        "data__type": {
+          "type": "string",
+          "enum": [
+            "list"
+          ]
+        },
+        "data__attributes__name": {
+          "type": "string"
+        }
+      }
+    },
+    "KLAVIYO_GET_BULK_DELETE_CATALOG_ITEMS_JOB": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id"
+      ]
+    },
+    "KLAVIYO_GET_BULK_UPDATE_CATEGORIES_JOB": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "string"
+        },
+        "include_categories": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "job_id"
+      ]
+    },
+    "KLAVIYO_GET_CAMPAIGN": {
+      "type": "object",
+      "properties": {
+        "campaign_id": {
+          "type": "string"
+        },
+        "include_tags": {
+          "type": "boolean"
+        },
+        "include_messages": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    },
+    "KLAVIYO_GET_CAMPAIGNS": {
+      "type": "object",
+      "properties": {
+        "sort": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "-created_at",
+            "id",
+            "-id",
+            "name",
+            "-name",
+            "scheduled_at",
+            "-scheduled_at",
+            "updated_at",
+            "-updated_at"
+          ]
+        },
+        "filter": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "email",
+            "sms"
+          ]
+        },
+        "page_cursor": {
+          "type": "string"
+        },
+        "include_archived": {
+          "type": "boolean"
+        }
+      }
+    },
+    "LINKEDIN_CREATE_ARTICLE_OR_URL_SHARE": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "visibility": {
+          "type": "object"
+        },
+        "lifecycleState": {
+          "type": "string",
+          "enum": [
+            "PUBLISHED",
+            "DRAFT"
+          ]
+        },
+        "specificContent": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "author",
+        "specificContent",
+        "visibility"
+      ]
+    },
+    "LINKEDIN_GET_PERSON": {
+      "type": "object",
+      "properties": {
+        "person_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "person_id"
+      ]
+    },
+    "LINKEDIN_GET_POST_CONTENT": {
+      "type": "object",
+      "properties": {
+        "post_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "post_id"
+      ]
+    },
+    "LINKEDIN_INITIALIZE_IMAGE_UPLOAD": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner"
+      ]
+    },
+    "LINKEDIN_REGISTER_IMAGE_UPLOAD": {
+      "type": "object",
+      "properties": {
+        "recipe": {
+          "type": "string"
+        },
+        "owner_urn": {
+          "type": "string"
+        },
+        "supported_upload_mechanism": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "owner_urn"
+      ]
+    },
+    "MAILCHIMP_GET_AUDIENCES_CONTACTS": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "sort_dir": {
+          "type": "string",
+          "enum": [
+            "ASC",
+            "DESC"
+          ]
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "updated_at"
+          ]
+        },
+        "audience_id": {
+          "type": "string"
+        },
+        "created_since": {
+          "type": "string"
+        },
+        "updated_since": {
+          "type": "string"
+        },
+        "created_before": {
+          "type": "string"
+        },
+        "exclude_fields": {
+          "type": "array"
+        },
+        "updated_before": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "audience_id"
+      ]
+    },
+    "MAILCHIMP_GET_AUDIENCES_CONTACTS_DETAIL": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array"
+        },
+        "contact_id": {
+          "type": "string"
+        },
+        "audience_id": {
+          "type": "string"
+        },
+        "exclude_fields": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "audience_id",
+        "contact_id"
+      ]
+    },
+    "MAILCHIMP_GET_CAMPAIGN_INFO": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array"
+        },
+        "campaign_id": {
+          "type": "string"
+        },
+        "exclude_fields": {
+          "type": "array"
+        },
+        "include_resend_shortcut_eligibility": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "campaign_id"
+      ]
+    },
+    "MAILCHIMP_GET_LISTS_INFO": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer"
+        },
+        "email": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "sort_dir": {
+          "type": "string",
+          "enum": [
+            "ASC",
+            "DESC"
+          ]
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "date_created"
+          ]
+        },
+        "exclude_fields": {
+          "type": "array"
+        },
+        "since_date_created": {
+          "type": "string"
+        },
+        "before_date_created": {
+          "type": "string"
+        },
+        "has_ecommerce_store": {
+          "type": "boolean"
+        },
+        "include_total_contacts": {
+          "type": "boolean"
+        },
+        "since_campaign_last_sent": {
+          "type": "string"
+        },
+        "before_campaign_last_sent": {
+          "type": "string"
+        }
+      }
+    },
+    "MAILCHIMP_LIST_CAMPAIGNS": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "regular",
+            "plaintext",
+            "absplit",
+            "rss",
+            "variate"
+          ]
+        },
+        "count": {
+          "type": "integer"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "save",
+            "paused",
+            "schedule",
+            "sending",
+            "sent"
+          ]
+        },
+        "list_id": {
+          "type": "string"
+        },
+        "sort_dir": {
+          "type": "string",
+          "enum": [
+            "ASC",
+            "DESC"
+          ]
+        },
+        "folder_id": {
+          "type": "string"
+        },
+        "member_id": {
+          "type": "string"
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "create_time",
+            "send_time"
+          ]
+        },
+        "exclude_fields": {
+          "type": "array"
+        },
+        "since_send_time": {
+          "type": "string"
+        },
+        "before_send_time": {
+          "type": "string"
+        },
+        "since_create_time": {
+          "type": "string"
+        },
+        "before_create_time": {
+          "type": "string"
+        },
+        "include_resend_shortcut_eligibility": {
+          "type": "boolean"
+        }
+      }
+    },
+    "MAILCHIMP_LIST_RECENT_ACTIVITY": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "list_id": {
+          "type": "string"
+        },
+        "exclude_fields": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "list_id"
+      ]
+    },
+    "MICROSOFT_TEAMS_GET_CHANNEL": {
+      "type": "object",
+      "properties": {
+        "expand": {
+          "type": "string"
+        },
+        "select": {
+          "type": "string"
+        },
+        "team_id": {
+          "type": "string"
+        },
+        "channel_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "team_id",
+        "channel_id"
+      ]
+    },
+    "MICROSOFT_TEAMS_GET_CHAT_MESSAGE": {
+      "type": "object",
+      "properties": {
+        "chat_id": {
+          "type": "string"
+        },
+        "message_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "chat_id",
+        "message_id"
+      ]
+    },
+    "MICROSOFT_TEAMS_GET_MEETING_TRANSCRIPT_CONTENT": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "transcript_id": {
+          "type": "string"
+        },
+        "online_meeting_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "online_meeting_id",
+        "transcript_id"
+      ]
+    },
+    "MICROSOFT_TEAMS_GET_MY_PROFILE": {
+      "type": "object",
+      "properties": {
+        "select": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      }
+    },
+    "MICROSOFT_TEAMS_GET_PRIMARY_CHANNEL": {
+      "type": "object",
+      "properties": {
+        "expand": {
+          "type": "string"
+        },
+        "select": {
+          "type": "string"
+        },
+        "team_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "team_id"
+      ]
+    },
+    "MICROSOFT_TEAMS_GET_SCHEDULE": {
+      "type": "object",
+      "properties": {
+        "expand": {
+          "type": "string"
+        },
+        "select": {
+          "type": "string"
+        },
+        "team_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "team_id"
+      ]
+    },
+    "MIRO_GET_BOARD": {
+      "type": "object",
+      "properties": {
+        "board_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "board_id"
+      ]
+    },
+    "MIRO_GET_BOARDS": {
+      "type": "object",
+      "properties": {
+        "sort": {
+          "type": "string",
+          "enum": [
+            "default",
+            "last_created",
+            "last_opened",
+            "last_modified",
+            "alphabetically"
+          ]
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "team_id": {
+          "type": "string"
+        },
+        "project_id": {
+          "type": "string"
+        }
+      }
+    },
+    "MIRO_GET_BOARDS2": {
+      "type": "object",
+      "properties": {
+        "sort": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "team_id": {
+          "type": "string"
+        },
+        "project_id": {
+          "type": "string"
+        }
+      }
+    },
+    "MIRO_GET_BOARD_MEMBERS": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "board_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "board_id"
+      ]
+    },
+    "MIRO_GET_FRAME_ITEM": {
+      "type": "object",
+      "properties": {
+        "item_id": {
+          "type": "string"
+        },
+        "board_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "board_id",
+        "item_id"
+      ]
+    },
+    "MIRO_GET_TAG": {
+      "type": "object",
+      "properties": {
+        "tag_id": {
+          "type": "string"
+        },
+        "board_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "board_id",
+        "tag_id"
+      ]
+    },
+    "MONDAY_ADD_USERS_TO_BOARD": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "owner",
+            "subscriber"
+          ]
+        },
+        "board_id": {
+          "type": "integer"
+        },
+        "user_ids": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "board_id",
+        "user_ids"
+      ]
+    },
+    "MONDAY_GET_ITEMS": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "newest_first": {
+          "type": "boolean"
+        },
+        "exclude_nonactive": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ids"
+      ]
+    },
+    "MONDAY_LIST_BOARDS": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "MONDAY_LIST_BOARD_ITEMS": {
+      "type": "object",
+      "properties": {
+        "board_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "board_id"
+      ]
+    },
+    "MONDAY_LIST_ITEMS_BY_COLUMN_VALUES": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "columns": {
+          "type": "array"
+        },
+        "board_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "board_id"
+      ]
+    },
+    "MONDAY_LIST_USERS": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "limit": {
+          "type": "integer"
+        }
+      }
+    },
+    "NOTION_APPEND_TEXT_BLOCKS": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "string"
+        },
+        "block_id": {
+          "type": "string"
+        },
+        "children": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "block_id",
+        "children"
+      ]
+    },
+    "NOTION_CREATE_NOTION_PAGE": {
+      "type": "object",
+      "properties": {
+        "icon": {
+          "type": "string"
+        },
+        "cover": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "markdown": {
+          "type": "string"
+        },
+        "parent_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "parent_id",
+        "title"
+      ]
+    },
+    "NOTION_FETCH_DATABASE": {
+      "type": "object",
+      "properties": {
+        "database_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "database_id"
+      ]
+    },
+    "NOTION_GET_PAGE_MARKDOWN": {
+      "type": "object",
+      "properties": {
+        "page_id": {
+          "type": "string"
+        },
+        "include_transcript": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "page_id"
+      ]
+    },
+    "NOTION_QUERY_DATABASE": {
+      "type": "object",
+      "properties": {
+        "sorts": {
+          "type": "array"
+        },
+        "page_size": {
+          "type": "integer"
+        },
+        "database_id": {
+          "type": "string"
+        },
+        "start_cursor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "database_id"
+      ]
+    },
+    "NOTION_SEARCH_NOTION_PAGE": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "direction": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "filter_value": {
+          "type": "string",
+          "enum": [
+            "page",
+            "database"
+          ]
+        },
+        "start_cursor": {
+          "type": "string"
+        },
+        "filter_property": {
+          "type": "string"
+        },
+        "filter_properties": {
+          "type": "array"
+        }
+      }
+    },
+    "ONENOTE_GET_GROUP_SECTIONS": {
+      "type": "object",
+      "properties": {
+        "expand": {
+          "type": "array"
+        },
+        "select": {
+          "type": "array"
+        },
+        "group_id": {
+          "type": "string"
+        },
+        "section_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "group_id",
+        "section_id"
+      ]
+    },
+    "ONENOTE_GET_NOTEBOOK_FROM_WEB_URL": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string"
+        },
+        "web_url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "user_id",
+        "web_url"
+      ]
+    },
+    "ONENOTE_GET_NOTEBOOK_SECTION_GROUP": {
+      "type": "object",
+      "properties": {
+        "expand": {
+          "type": "string"
+        },
+        "select": {
+          "type": "string"
+        },
+        "group_id": {
+          "type": "string"
+        },
+        "section_group_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "group_id",
+        "section_group_id"
+      ]
+    },
+    "ONENOTE_GET_ONENOTE_GROUP_SECTIONS_PAGES": {
+      "type": "object",
+      "properties": {
+        "expand": {
+          "type": "array"
+        },
+        "select": {
+          "type": "array"
+        },
+        "page_id": {
+          "type": "string"
+        },
+        "group_id": {
+          "type": "string"
+        },
+        "section_id": {
+          "type": "string"
+        },
+        "notebook_id": {
+          "type": "string"
+        },
+        "section_group_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "group_id",
+        "notebook_id",
+        "section_group_id",
+        "section_id",
+        "page_id"
+      ]
+    },
+    "ONENOTE_GET_SITE_SECTIONS": {
+      "type": "object",
+      "properties": {
+        "expand": {
+          "type": "array"
+        },
+        "select": {
+          "type": "array"
+        },
+        "site_id": {
+          "type": "string"
+        },
+        "section_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "site_id",
+        "section_id"
+      ]
+    },
+    "ONENOTE_GET_SITE_SECTIONS_PAGES": {
+      "type": "object",
+      "properties": {
+        "expand": {
+          "type": "array"
+        },
+        "select": {
+          "type": "array"
+        },
+        "page_id": {
+          "type": "string"
+        },
+        "site_id": {
+          "type": "string"
+        },
+        "section_id": {
+          "type": "string"
+        },
+        "notebook_id": {
+          "type": "string"
+        },
+        "section_group_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "site_id",
+        "notebook_id",
+        "section_group_id",
+        "section_id",
+        "page_id"
+      ]
+    },
+    "ONE_DRIVE_GET_DRIVE": {
+      "type": "object",
+      "properties": {
+        "drive_id": {
+          "type": "string"
+        },
+        "expand_fields": {
+          "type": "array"
+        },
+        "select_fields": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "drive_id"
+      ]
+    },
+    "ONE_DRIVE_GET_DRIVE_ITEM_BY_SHARING_URL": {
+      "type": "object",
+      "properties": {
+        "sharing_url": {
+          "type": "string"
+        },
+        "prefer_redeem": {
+          "type": "string",
+          "enum": [
+            "redeemSharingLinkIfNecessary",
+            "redeemSharingLink"
+          ]
+        },
+        "select_fields": {
+          "type": "array"
+        },
+        "expand_children": {
+          "type": "boolean"
+        },
+        "share_id_or_encoded_url": {
+          "type": "string"
+        }
+      }
+    },
+    "ONE_DRIVE_GET_FOLLOWED_ITEM": {
+      "type": "object",
+      "properties": {
+        "drive_id": {
+          "type": "string"
+        },
+        "driveItem_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "drive_id",
+        "driveItem_id"
+      ]
+    },
+    "ONE_DRIVE_GET_GROUP_DRIVE": {
+      "type": "object",
+      "properties": {
+        "group_id": {
+          "type": "string"
+        },
+        "select_fields": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "group_id"
+      ]
+    },
+    "ONE_DRIVE_GET_ITEM": {
+      "type": "object",
+      "properties": {
+        "item_id": {
+          "type": "string"
+        },
+        "drive_id": {
+          "type": "string"
+        },
+        "select_fields": {
+          "type": "array"
+        },
+        "expand_relations": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "item_id"
+      ]
+    },
+    "ONE_DRIVE_GET_ITEM_PERMISSIONS": {
+      "type": "object",
+      "properties": {
+        "select": {
+          "type": "string"
+        },
+        "item_id": {
+          "type": "string"
+        },
+        "site_id": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "drive_id": {
+          "type": "string"
+        },
+        "group_id": {
+          "type": "string"
+        },
+        "item_path": {
+          "type": "string"
+        },
+        "if_none_match": {
+          "type": "string"
+        }
+      }
+    },
+    "OUTLOOK_CREATE_DRAFT": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "is_html": {
+          "type": "boolean"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "attachment": {},
+        "cc_recipients": {
+          "type": "array"
+        },
+        "to_recipients": {
+          "type": "array"
+        },
+        "bcc_recipients": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "subject",
+        "body"
+      ]
+    },
+    "OUTLOOK_GET_MESSAGE": {
+      "type": "object",
+      "properties": {
+        "select": {
+          "type": "array"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "message_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "message_id"
+      ]
+    },
+    "OUTLOOK_LIST_MESSAGES": {
+      "type": "object",
+      "properties": {
+        "top": {
+          "type": "integer"
+        },
+        "skip": {
+          "type": "integer"
+        },
+        "folder": {
+          "type": "string"
+        },
+        "search": {
+          "type": "string"
+        },
+        "select": {
+          "type": "array"
+        },
+        "is_read": {
+          "type": "boolean"
+        },
+        "orderby": {
+          "type": "array"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "categories": {
+          "type": "array"
+        },
+        "importance": {
+          "type": "string"
+        },
+        "from_address": {
+          "type": "string"
+        },
+        "conversation_id": {
+          "type": "string"
+        },
+        "has_attachments": {
+          "type": "boolean"
+        },
+        "response_detail": {
+          "type": "string",
+          "enum": [
+            "minimal",
+            "full"
+          ]
+        },
+        "subject_contains": {
+          "type": "string"
+        },
+        "subject_endswith": {
+          "type": "string"
+        },
+        "sent_date_time_gt": {
+          "type": "string"
+        },
+        "sent_date_time_lt": {
+          "type": "string"
+        },
+        "subject_startswith": {
+          "type": "string"
+        },
+        "received_date_time_ge": {
+          "type": "string"
+        },
+        "received_date_time_gt": {
+          "type": "string"
+        },
+        "received_date_time_le": {
+          "type": "string"
+        },
+        "received_date_time_lt": {
+          "type": "string"
+        }
+      }
+    },
+    "OUTLOOK_REPLY_EMAIL": {
+      "type": "object",
+      "properties": {
+        "comment": {
+          "type": "string"
+        },
+        "is_html": {
+          "type": "boolean"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "cc_emails": {
+          "type": "array"
+        },
+        "bcc_emails": {
+          "type": "array"
+        },
+        "message_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "message_id",
+        "comment"
+      ]
+    },
+    "OUTLOOK_SEARCH_MESSAGES": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "integer"
+        },
+        "query": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "fromEmail": {
+          "type": "string"
+        },
+        "from_index": {
+          "type": "integer"
+        },
+        "hasAttachments": {
+          "type": "boolean"
+        },
+        "enable_top_results": {
+          "type": "boolean"
+        }
+      }
+    },
+    "OUTLOOK_SEND_EMAIL": {
+      "type": "object",
+      "properties": {
+        "to": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "is_html": {
+          "type": "boolean"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "to_name": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "cc_emails": {
+          "type": "array"
+        },
+        "attachment": {},
+        "bcc_emails": {
+          "type": "array"
+        },
+        "from_address": {
+          "type": "string"
+        },
+        "save_to_sent_items": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "subject",
+        "body",
+        "to"
+      ]
+    },
+    "PIPEDRIVE_GET_ACTIVITY_FIELD": {
+      "type": "object",
+      "properties": {
+        "field_code": {
+          "type": "string"
+        },
+        "include_fields": {
+          "type": "string",
+          "enum": [
+            "ui_visibility"
+          ]
+        }
+      },
+      "required": [
+        "field_code"
+      ]
+    },
+    "PIPEDRIVE_GET_ALL_LEADS": {
+      "type": "object",
+      "properties": {
+        "sort": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        },
+        "owner_id": {
+          "type": "integer"
+        },
+        "filter_id": {
+          "type": "integer"
+        },
+        "person_id": {
+          "type": "integer"
+        },
+        "archived_status": {
+          "type": "string",
+          "enum": [
+            "archived",
+            "not_archived",
+            "all"
+          ]
+        },
+        "organization_id": {
+          "type": "integer"
+        }
+      }
+    },
+    "PIPEDRIVE_GET_ALL_PRODUCTS": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        },
+        "user_id": {
+          "type": "integer"
+        },
+        "filter_id": {
+          "type": "integer"
+        },
+        "first_char": {
+          "type": "string"
+        },
+        "get_summary": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PIPEDRIVE_GET_DEAL": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "custom_fields": {
+          "type": "string"
+        },
+        "include_fields": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "PIPEDRIVE_GET_DEAL_FIELD": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "PIPEDRIVE_GET_LEAD_CONVERSION_STATUS": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "conversion_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "conversion_id"
+      ]
+    },
+    "QUICKBOOKS_GET_AGED_RECEIVABLES_REPORT": {
+      "type": "object",
+      "properties": {
+        "arpaid": {
+          "type": "string",
+          "enum": [
+            "All",
+            "Paid",
+            "Unpaid"
+          ]
+        },
+        "date_macro": {
+          "type": "string"
+        },
+        "num_periods": {
+          "type": "integer"
+        },
+        "report_date": {
+          "type": "string"
+        },
+        "aging_method": {
+          "type": "string",
+          "enum": [
+            "Report_Date",
+            "Current"
+          ]
+        },
+        "aging_period": {
+          "type": "integer"
+        },
+        "customer_ids": {
+          "type": "array"
+        },
+        "minorversion": {
+          "type": "string"
+        }
+      }
+    },
+    "QUICKBOOKS_GET_BALANCE_SHEET_REPORT": {
+      "type": "object",
+      "properties": {
+        "date_macro": {
+          "type": "string",
+          "enum": [
+            "Today",
+            "Yesterday",
+            "This Week",
+            "Last Week",
+            "This Week-to-date",
+            "Last Week-to-date",
+            "Next Week",
+            "Next 4 Weeks",
+            "This Month",
+            "Last Month",
+            "This Month-to-date",
+            "Last Month-to-date",
+            "Next Month",
+            "This Fiscal Quarter",
+            "Last Fiscal Quarter",
+            "This Fiscal Quarter-to-date",
+            "Last Fiscal Quarter-to-date",
+            "Next Fiscal Quarter",
+            "This Fiscal Year",
+            "Last Fiscal Year",
+            "This Fiscal Year-to-date",
+            "Last Fiscal Year-to-date",
+            "Next Fiscal Year"
+          ]
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "ascend",
+            "descend"
+          ]
+        },
+        "report_date": {
+          "type": "string"
+        },
+        "department_ids": {
+          "type": "array"
+        },
+        "accounting_method": {
+          "type": "string",
+          "enum": [
+            "Cash",
+            "Accrual"
+          ]
+        },
+        "summarize_column_by": {
+          "type": "string",
+          "enum": [
+            "Total",
+            "Month",
+            "Week",
+            "Days",
+            "Quarter",
+            "Year",
+            "Customers",
+            "Vendors",
+            "Classes",
+            "Departments",
+            "Employees",
+            "ProductsAndServices"
+          ]
+        }
+      }
+    },
+    "QUICKBOOKS_GET_CHANGED_ENTITIES": {
+      "type": "object",
+      "properties": {
+        "entities": {
+          "type": "string"
+        },
+        "changedSince": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "entities",
+        "changedSince"
+      ]
+    },
+    "QUICKBOOKS_GET_COMPANY_INFO": {
+      "type": "object",
+      "properties": {
+        "minorversion": {
+          "type": "integer"
+        }
+      }
+    },
+    "QUICKBOOKS_GET_GENERAL_LEDGER_REPORT": {
+      "type": "object",
+      "properties": {
+        "columns": {
+          "type": "string"
+        },
+        "sort_by": {
+          "type": "string"
+        },
+        "end_date": {
+          "type": "string"
+        },
+        "class_ids": {
+          "type": "array"
+        },
+        "date_macro": {
+          "type": "string",
+          "enum": [
+            "Today",
+            "Yesterday",
+            "This Week",
+            "Last Week",
+            "This Week-to-date",
+            "Last Week-to-date",
+            "Next Week",
+            "Next 4 Weeks",
+            "This Month",
+            "Last Month",
+            "This Month-to-date",
+            "Last Month-to-date",
+            "Next Month",
+            "This Fiscal Quarter",
+            "Last Fiscal Quarter",
+            "This Fiscal Quarter-to-date",
+            "Last Fiscal Quarter-to-date",
+            "Next Fiscal Quarter",
+            "This Fiscal Year",
+            "Last Fiscal Year",
+            "This Fiscal Year-to-date",
+            "Last Fiscal Year-to-date",
+            "Next Fiscal Year"
+          ]
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "ascend",
+            "descend"
+          ]
+        },
+        "start_date": {
+          "type": "string"
+        },
+        "vendor_ids": {
+          "type": "array"
+        },
+        "account_ids": {
+          "type": "array"
+        },
+        "account_type": {
+          "type": "string"
+        },
+        "customer_ids": {
+          "type": "array"
+        },
+        "department_ids": {
+          "type": "array"
+        },
+        "accounting_method": {
+          "type": "string",
+          "enum": [
+            "Cash",
+            "Accrual"
+          ]
+        },
+        "source_account_ids": {
+          "type": "array"
+        },
+        "source_account_type": {
+          "type": "string"
+        }
+      }
+    },
+    "QUICKBOOKS_GET_PROFIT_AND_LOSS_DETAIL_REPORT": {
+      "type": "object",
+      "properties": {
+        "end_date": {
+          "type": "string"
+        },
+        "class_ids": {
+          "type": "array"
+        },
+        "date_macro": {
+          "type": "string",
+          "enum": [
+            "Today",
+            "Yesterday",
+            "This Week",
+            "Last Week",
+            "This Week-to-date",
+            "Last Week-to-date",
+            "Next Week",
+            "Next 4 Weeks",
+            "This Month",
+            "Last Month",
+            "This Month-to-date",
+            "Last Month-to-date",
+            "Next Month",
+            "This Fiscal Quarter",
+            "Last Fiscal Quarter",
+            "This Fiscal Quarter-to-date",
+            "Last Fiscal Quarter-to-date",
+            "Next Fiscal Quarter",
+            "This Fiscal Year",
+            "Last Fiscal Year",
+            "This Fiscal Year-to-date",
+            "Last Fiscal Year-to-date",
+            "Next Fiscal Year"
+          ]
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "ascend",
+            "descend"
+          ]
+        },
+        "start_date": {
+          "type": "string"
+        },
+        "vendor_ids": {
+          "type": "array"
+        },
+        "report_date": {
+          "type": "string"
+        },
+        "customer_ids": {
+          "type": "array"
+        },
+        "department_ids": {
+          "type": "array"
+        },
+        "accounting_method": {
+          "type": "string",
+          "enum": [
+            "Cash",
+            "Accrual"
+          ]
+        },
+        "summarize_column_by": {
+          "type": "string",
+          "enum": [
+            "Total",
+            "Month",
+            "Week",
+            "Days",
+            "Quarter",
+            "Year",
+            "Customers",
+            "Vendors",
+            "Classes",
+            "Departments",
+            "Employees",
+            "ProductsAndServices"
+          ]
+        }
+      }
+    },
+    "REDDIT_GET": {
+      "type": "object",
+      "properties": {
+        "show": {
+          "type": "string"
+        },
+        "sort": {
+          "type": "string"
+        },
+        "after": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "before": {
+          "type": "string"
+        },
+        "time_filter": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sort"
+      ]
+    },
+    "REDDIT_GET_CONTROVERSIAL_POSTS": {
+      "type": "object",
+      "properties": {
+        "t": {
+          "type": "string",
+          "enum": [
+            "hour",
+            "day",
+            "week",
+            "month",
+            "year",
+            "all"
+          ]
+        },
+        "after": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "before": {
+          "type": "string"
+        }
+      }
+    },
+    "REDDIT_GET_NEW": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "before": {
+          "type": "string"
+        },
+        "subreddit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "subreddit"
+      ]
+    },
+    "REDDIT_GET_REDDIT_USER_ABOUT": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "username"
+      ]
+    },
+    "REDDIT_GET_R_TOP": {
+      "type": "object",
+      "properties": {
+        "t": {
+          "type": "string",
+          "enum": [
+            "hour",
+            "day",
+            "week",
+            "month",
+            "year",
+            "all"
+          ]
+        },
+        "show": {
+          "type": "string"
+        },
+        "after": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "before": {
+          "type": "string"
+        },
+        "sr_detail": {
+          "type": "boolean"
+        },
+        "subreddit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "subreddit"
+      ]
+    },
+    "REDDIT_GET_SUBREDDITS_SEARCH": {
+      "type": "object",
+      "properties": {
+        "q": {
+          "type": "string"
+        },
+        "show": {
+          "type": "string"
+        },
+        "sort": {
+          "type": "string",
+          "enum": [
+            "relevance",
+            "activity"
+          ]
+        },
+        "after": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "before": {
+          "type": "string"
+        },
+        "sr_detail": {
+          "type": "boolean"
+        },
+        "show_users": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "q"
+      ]
+    },
+    "SALESFORCE_CREATE_LEAD": {
+      "type": "object",
+      "properties": {
+        "City": {
+          "type": "string"
+        },
+        "Email": {
+          "type": "string"
+        },
+        "Phone": {
+          "type": "string"
+        },
+        "State": {
+          "type": "string"
+        },
+        "Title": {
+          "type": "string"
+        },
+        "Rating": {
+          "type": "string"
+        },
+        "Status": {
+          "type": "string"
+        },
+        "Street": {
+          "type": "string"
+        },
+        "Company": {
+          "type": "string"
+        },
+        "Country": {
+          "type": "string"
+        },
+        "Website": {
+          "type": "string"
+        },
+        "Industry": {
+          "type": "string"
+        },
+        "LastName": {
+          "type": "string"
+        },
+        "FirstName": {
+          "type": "string"
+        },
+        "LeadSource": {
+          "type": "string"
+        },
+        "PostalCode": {
+          "type": "string"
+        },
+        "CustomFields": {
+          "type": "object"
+        },
+        "AnnualRevenue": {
+          "type": "number"
+        },
+        "allow_duplicates": {
+          "type": "boolean"
+        },
+        "NumberOfEmployees": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "LastName",
+        "Company"
+      ]
+    },
+    "SALESFORCE_EXECUTE_SOQL_QUERY": {
+      "type": "object",
+      "properties": {
+        "soql_query": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "soql_query"
+      ]
+    },
+    "SALESFORCE_GET_ACCOUNT": {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "account_id"
+      ]
+    },
+    "SALESFORCE_SEARCH_CONTACTS": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "string"
+        },
+        "account_name": {
+          "type": "string"
+        }
+      }
+    },
+    "SALESFORCE_SEARCH_OPPORTUNITIES": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "fields": {
+          "type": "string"
+        },
+        "is_won": {
+          "type": "boolean"
+        },
+        "is_closed": {
+          "type": "boolean"
+        },
+        "amount_max": {
+          "type": "number"
+        },
+        "amount_min": {
+          "type": "number"
+        },
+        "stage_name": {
+          "type": "string"
+        },
+        "lead_source": {
+          "type": "string"
+        },
+        "account_name": {
+          "type": "string"
+        },
+        "close_date_to": {
+          "type": "string"
+        },
+        "close_date_from": {
+          "type": "string"
+        }
+      }
+    },
+    "SALESFORCE_UPDATE_RECORD": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "object"
+        },
+        "api_name": {
+          "type": "string"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "use_default_rule": {
+          "type": "boolean"
+        },
+        "trigger_user_email": {
+          "type": "boolean"
+        },
+        "if_unmodified_since": {
+          "type": "string"
+        },
+        "trigger_other_email": {
+          "type": "boolean"
+        },
+        "allow_save_on_duplicate": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "record_id",
+        "fields"
+      ]
+    },
+    "SENDGRID_ADD_OR_UPDATE_A_CONTACT": {
+      "type": "object",
+      "properties": {
+        "contacts": {
+          "type": "array"
+        },
+        "list_ids": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "contacts"
+      ]
+    },
+    "SENDGRID_CREATE_A_LIST": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "SENDGRID_GET_TOTAL_CONTACT_COUNT": {
+      "type": "object",
+      "properties": {}
+    },
+    "SENDGRID_RETRIEVE_ALL_CAMPAIGNS": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "offset": {
+          "type": "integer"
+        }
+      }
+    },
+    "SENDGRID_RETRIEVE_ALL_LISTS": {
+      "type": "object",
+      "properties": {
+        "page_size": {
+          "type": "integer"
+        },
+        "page_token": {
+          "type": "string"
+        }
+      }
+    },
+    "SENDGRID_SEARCH_CONTACTS": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "SHOPIFY_GET_CUSTOMER": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "string"
+        },
+        "customer_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "customer_id"
+      ]
+    },
+    "SHOPIFY_GET_CUSTOMERS_SEARCH": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "order": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "SHOPIFY_GET_ORDER": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "string"
+        },
+        "order_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "order_id"
+      ]
+    },
+    "SHOPIFY_GET_SHOP_CONFIGURATION": {
+      "type": "object",
+      "properties": {}
+    },
+    "SHOPIFY_GET_SHOP_DETAILS": {
+      "type": "object",
+      "properties": {}
+    },
+    "SHOPIFY_LIST_CUSTOMERS": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "fields": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "since_id": {
+          "type": "string"
+        },
+        "page_info": {
+          "type": "string"
+        },
+        "created_at_max": {
+          "type": "string"
+        },
+        "created_at_min": {
+          "type": "string"
+        },
+        "updated_at_max": {
+          "type": "string"
+        },
+        "updated_at_min": {
+          "type": "string"
+        }
+      }
+    },
+    "SLACK_ADD_REACTION_TO_AN_ITEM": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "name",
+        "timestamp"
+      ]
+    },
+    "SLACK_FETCH_CONVERSATION_HISTORY": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "latest": {
+          "type": "string"
+        },
+        "oldest": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "inclusive": {
+          "type": "boolean"
+        },
+        "include_all_metadata": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "channel"
+      ]
+    },
+    "SLACK_LIST_ALL_CHANNELS": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "types": {
+          "type": "string"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "team_id": {
+          "type": "string"
+        },
+        "exclude_archived": {
+          "type": "boolean"
+        }
+      }
+    },
+    "SLACK_SEARCH_MESSAGES": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "sort": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "query": {
+          "type": "string"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "team_id": {
+          "type": "string"
+        },
+        "sort_dir": {
+          "type": "string"
+        },
+        "highlight": {
+          "type": "boolean"
+        },
+        "auto_paginate": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "SLACK_SEND_MESSAGE": {
+      "type": "object",
+      "properties": {
+        "blocks": {
+          "type": "array"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "thread_ts": {
+          "type": "string"
+        },
+        "unfurl_links": {
+          "type": "boolean"
+        },
+        "unfurl_media": {
+          "type": "boolean"
+        },
+        "fallback_text": {
+          "type": "string"
+        },
+        "markdown_text": {
+          "type": "string"
+        },
+        "reply_broadcast": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "channel"
+      ]
+    },
+    "SPOTIFY_ADD_ITEMS_TO_PLAYLIST": {
+      "type": "object",
+      "properties": {
+        "uris": {},
+        "position": {
+          "type": "integer"
+        },
+        "playlist_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "playlist_id",
+        "uris"
+      ]
+    },
+    "SPOTIFY_CREATE_PLAYLIST": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "public": {
+          "type": "boolean"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "collaborative": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "user_id",
+        "name"
+      ]
+    },
+    "SPOTIFY_GET_ARTIST_S_TOP_TRACKS": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "market": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "SPOTIFY_GET_PLAYLIST": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "string"
+        },
+        "market": {
+          "type": "string"
+        },
+        "playlist_id": {
+          "type": "string"
+        },
+        "additional_types": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "playlist_id"
+      ]
+    },
+    "SPOTIFY_GET_SHOW": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "market": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "SPOTIFY_GET_SHOW_EPISODES": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "market": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "SQUARE_GET_CURRENT_MERCHANT": {
+      "type": "object",
+      "properties": {}
+    },
+    "SQUARE_GET_MERCHANT": {
+      "type": "object",
+      "properties": {
+        "merchant_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "merchant_id"
+      ]
+    },
+    "SQUARE_LIST_CHANNELS": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "reference_id": {
+          "type": "string"
+        },
+        "reference_type": {
+          "type": "string"
+        }
+      }
+    },
+    "SQUARE_LIST_CUSTOMERS": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "boolean"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "sort_field": {
+          "type": "string",
+          "enum": [
+            "DEFAULT",
+            "CREATED_AT"
+          ]
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "ASC",
+            "DESC"
+          ]
+        }
+      }
+    },
+    "SQUARE_LIST_CUSTOMER_GROUPS": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "cursor": {
+          "type": "string"
+        }
+      }
+    },
+    "SQUARE_LIST_CUSTOMER_SEGMENTS": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "cursor": {
+          "type": "string"
+        }
+      }
+    },
+    "STRIPE_GET_BALANCE_HISTORY": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "payout": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "created": {
+          "type": "object"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "ending_before": {
+          "type": "string"
+        },
+        "starting_after": {
+          "type": "string"
+        }
+      }
+    },
+    "STRIPE_GET_V1_CUSTOMERS_SEARCH_CUSTOMERS": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "query": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "STRIPE_LIST_CHARGES": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "created": {
+          "type": "object"
+        },
+        "customer": {
+          "type": "string"
+        },
+        "ending_before": {
+          "type": "string"
+        },
+        "payment_intent": {
+          "type": "string"
+        },
+        "starting_after": {
+          "type": "string"
+        },
+        "transfer_group": {
+          "type": "string"
+        }
+      }
+    },
+    "STRIPE_LIST_CUSTOMERS": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "created": {
+          "type": "object"
+        },
+        "test_clock": {
+          "type": "string"
+        },
+        "ending_before": {
+          "type": "string"
+        },
+        "starting_after": {
+          "type": "string"
+        }
+      }
+    },
+    "STRIPE_LIST_INVOICES": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "created": {
+          "type": "object"
+        },
+        "customer": {
+          "type": "string"
+        },
+        "subscription": {
+          "type": "string"
+        },
+        "ending_before": {
+          "type": "string"
+        },
+        "starting_after": {
+          "type": "string"
+        },
+        "collection_method": {
+          "type": "string"
+        }
+      }
+    },
+    "STRIPE_LIST_PAYMENT_INTENTS": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "created": {
+          "type": "object"
+        },
+        "customer": {
+          "type": "string"
+        },
+        "ending_before": {
+          "type": "string"
+        },
+        "starting_after": {
+          "type": "string"
+        },
+        "customer_account": {
+          "type": "string"
+        }
+      }
+    },
+    "TELEGRAM_GET_CHAT_MEMBER": {
+      "type": "object",
+      "properties": {
+        "chat_id": {},
+        "user_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "chat_id",
+        "user_id"
+      ]
+    },
+    "TELEGRAM_SEND_MESSAGE": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "chat_id": {},
+        "parse_mode": {
+          "type": "string",
+          "enum": [
+            "Markdown",
+            "MarkdownV2",
+            "HTML"
+          ]
+        },
+        "reply_markup": {
+          "type": "string"
+        },
+        "reply_to_message_id": {
+          "type": "integer"
+        },
+        "disable_notification": {
+          "type": "boolean"
+        },
+        "disable_web_page_preview": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "chat_id",
+        "text"
+      ]
+    },
+    "TODOIST_CLOSE_TASK": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id"
+      ]
+    },
+    "TODOIST_CREATE_PROJECT": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string",
+          "enum": [
+            "berry_red",
+            "red",
+            "orange",
+            "yellow",
+            "olive_green",
+            "lime_green",
+            "green",
+            "mint_green",
+            "teal",
+            "sky_blue",
+            "light_blue",
+            "blue",
+            "grape",
+            "violet",
+            "lavender",
+            "magenta",
+            "salmon",
+            "charcoal",
+            "grey",
+            "taupe"
+          ]
+        },
+        "favorite": {
+          "type": "boolean"
+        },
+        "parent_id": {
+          "type": "string"
+        },
+        "view_style": {
+          "type": "string",
+          "enum": [
+            "list",
+            "board"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "TODOIST_CREATE_TASK": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "type": "integer"
+        },
+        "labels": {
+          "type": "array"
+        },
+        "content": {
+          "type": "string"
+        },
+        "due_date": {
+          "type": "string"
+        },
+        "due_lang": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "integer"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "parent_id": {
+          "type": "string"
+        },
+        "due_string": {
+          "type": "string"
+        },
+        "project_id": {
+          "type": "string"
+        },
+        "section_id": {
+          "type": "string"
+        },
+        "assignee_id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "due_datetime": {
+          "type": "string"
+        },
+        "duration_unit": {
+          "type": "string",
+          "enum": [
+            "minute",
+            "day"
+          ]
+        }
+      },
+      "required": [
+        "content"
+      ]
+    },
+    "TODOIST_GET_ALL_PROJECTS": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "cursor": {
+          "type": "string"
+        }
+      }
+    },
+    "TODOIST_GET_ALL_TASKS": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "filter": {
+          "type": "string"
+        }
+      }
+    },
+    "TODOIST_UPDATE_TASK": {
+      "type": "object",
+      "properties": {
+        "labels": {
+          "type": "array"
+        },
+        "content": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "due_date": {
+          "type": "string"
+        },
+        "due_lang": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "integer"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "due_string": {
+          "type": "string"
+        },
+        "assignee_id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "due_datetime": {
+          "type": "string"
+        },
+        "deadline_date": {
+          "type": "string"
+        },
+        "duration_unit": {
+          "type": "string",
+          "enum": [
+            "minute",
+            "day"
+          ]
+        }
+      },
+      "required": [
+        "task_id"
+      ]
+    },
+    "TRELLO_ADD_CARDS": {
+      "type": "object",
+      "properties": {
+        "due": {
+          "type": "string"
+        },
+        "pos": {
+          "type": "string"
+        },
+        "desc": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "closed": {
+          "type": "string"
+        },
+        "idList": {
+          "type": "string"
+        },
+        "idBoard": {
+          "type": "string"
+        },
+        "idLabels": {
+          "type": "string"
+        },
+        "idMembers": {
+          "type": "string"
+        },
+        "urlSource": {
+          "type": "string"
+        },
+        "fileSource": {
+          "type": "string"
+        },
+        "subscribed": {
+          "type": "string"
+        },
+        "idCardSource": {
+          "type": "string"
+        },
+        "keepFromSource": {
+          "type": "string"
+        },
+        "idAttachmentCover": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "idList"
+      ]
+    },
+    "TRELLO_GET_BOARDS_CARDS_BY_ID_BOARD": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "string"
+        },
+        "since": {
+          "type": "string"
+        },
+        "before": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "string"
+        },
+        "filter": {
+          "type": "string"
+        },
+        "actions": {
+          "type": "string"
+        },
+        "idBoard": {
+          "type": "string"
+        },
+        "members": {
+          "type": "string"
+        },
+        "stickers": {
+          "type": "string"
+        },
+        "checklists": {
+          "type": "string"
+        },
+        "attachments": {
+          "type": "string"
+        },
+        "member_fields": {
+          "type": "string"
+        },
+        "checkItemStates": {
+          "type": "string"
+        },
+        "attachment_fields": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "idBoard"
+      ]
+    },
+    "TRELLO_GET_BOARDS_LISTS_BY_ID_BOARD": {
+      "type": "object",
+      "properties": {
+        "cards": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "string"
+        },
+        "filter": {
+          "type": "string"
+        },
+        "idBoard": {
+          "type": "string"
+        },
+        "card_fields": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "idBoard"
+      ]
+    },
+    "TRELLO_GET_CARDS_BY_ID_CARD": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "type": "string"
+        },
+        "board": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "string"
+        },
+        "idCard": {
+          "type": "string"
+        },
+        "actions": {
+          "type": "string"
+        },
+        "members": {
+          "type": "string"
+        },
+        "stickers": {
+          "type": "string"
+        },
+        "checklists": {
+          "type": "string"
+        },
+        "attachments": {
+          "type": "string"
+        },
+        "list_fields": {
+          "type": "string"
+        },
+        "board_fields": {
+          "type": "string"
+        },
+        "membersVoted": {
+          "type": "string"
+        },
+        "action_fields": {
+          "type": "string"
+        },
+        "actions_limit": {
+          "type": "string"
+        },
+        "member_fields": {
+          "type": "string"
+        },
+        "sticker_fields": {
+          "type": "string"
+        },
+        "actions_display": {
+          "type": "string"
+        },
+        "checkItemStates": {
+          "type": "string"
+        },
+        "actions_entities": {
+          "type": "string"
+        },
+        "checklist_fields": {
+          "type": "string"
+        },
+        "attachment_fields": {
+          "type": "string"
+        },
+        "memberVoted_fields": {
+          "type": "string"
+        },
+        "checkItemState_fields": {
+          "type": "string"
+        },
+        "action_memberCreator_fields": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "idCard"
+      ]
+    },
+    "TRELLO_GET_SEARCH": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "idCards": {
+          "type": "string"
+        },
+        "partial": {
+          "type": "string"
+        },
+        "idBoards": {
+          "type": "string"
+        },
+        "card_list": {
+          "type": "string"
+        },
+        "card_board": {
+          "type": "string"
+        },
+        "cards_page": {
+          "type": "string"
+        },
+        "modelTypes": {
+          "type": "string"
+        },
+        "card_fields": {
+          "type": "string"
+        },
+        "cards_limit": {
+          "type": "string"
+        },
+        "board_fields": {
+          "type": "string"
+        },
+        "boards_limit": {
+          "type": "string"
+        },
+        "card_members": {
+          "type": "string"
+        },
+        "card_stickers": {
+          "type": "string"
+        },
+        "member_fields": {
+          "type": "string"
+        },
+        "members_limit": {
+          "type": "string"
+        },
+        "idOrganizations": {
+          "type": "string"
+        },
+        "card_attachments": {
+          "type": "string"
+        },
+        "organization_fields": {
+          "type": "string"
+        },
+        "organizations_limit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "TRELLO_UPDATE_CARDS_BY_ID_CARD": {
+      "type": "object",
+      "properties": {
+        "due": {
+          "type": "string"
+        },
+        "pos": {
+          "type": "string"
+        },
+        "desc": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "closed": {
+          "type": "string"
+        },
+        "idCard": {
+          "type": "string"
+        },
+        "idList": {
+          "type": "string"
+        },
+        "labels": {
+          "type": "string"
+        },
+        "idBoard": {
+          "type": "string"
+        },
+        "idLabels": {
+          "type": "string"
+        },
+        "idMembers": {
+          "type": "string"
+        },
+        "urlSource": {
+          "type": "string"
+        },
+        "fileSource": {
+          "type": "string"
+        },
+        "subscribed": {
+          "type": "string"
+        },
+        "idCardSource": {
+          "type": "string"
+        },
+        "keepFromSource": {
+          "type": "string"
+        },
+        "idAttachmentCover": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "idCard"
+      ]
+    },
+    "TWITTER_CREATE_LIST": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "private": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "TWITTER_CREATION_OF_A_POST": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "card_uri": {
+          "type": "string"
+        },
+        "nullcast": {
+          "type": "boolean"
+        },
+        "geo_place_id": {
+          "type": "string"
+        },
+        "poll_options": {
+          "type": "array"
+        },
+        "quote_tweet_id": {
+          "type": "string"
+        },
+        "reply_settings": {
+          "type": "string",
+          "enum": [
+            "following",
+            "mentionedUsers",
+            "subscribers"
+          ]
+        },
+        "media_media_ids": {
+          "type": "array"
+        },
+        "poll_reply_settings": {
+          "type": "string"
+        },
+        "media_tagged_user_ids": {
+          "type": "array"
+        },
+        "poll_duration_minutes": {
+          "type": "integer"
+        },
+        "direct_message_deep_link": {
+          "type": "string"
+        },
+        "for_super_followers_only": {
+          "type": "boolean"
+        },
+        "reply_in_reply_to_tweet_id": {
+          "type": "string"
+        },
+        "reply_exclude_reply_user_ids": {
+          "type": "array"
+        }
+      }
+    },
+    "TWITTER_DELETE_LIST": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "TWITTER_GET_BLOCKED_USERS": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "expansions": {
+          "type": "array"
+        },
+        "max_results": {
+          "type": "integer"
+        },
+        "user_fields": {
+          "type": "array"
+        },
+        "tweet_fields": {
+          "type": "array"
+        },
+        "pagination_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "TWITTER_GET_POST_ANALYTICS": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array"
+        },
+        "end_time": {
+          "type": "string"
+        },
+        "start_time": {
+          "type": "string"
+        },
+        "granularity": {
+          "type": "string",
+          "enum": [
+            "hourly",
+            "daily",
+            "weekly",
+            "total"
+          ]
+        },
+        "analytics.fields": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "ids",
+        "start_time",
+        "end_time"
+      ]
+    },
+    "TWITTER_RECENT_SEARCH": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "end_time": {
+          "type": "string"
+        },
+        "since_id": {
+          "type": "string"
+        },
+        "until_id": {
+          "type": "string"
+        },
+        "expansions": {
+          "type": "array"
+        },
+        "next_token": {
+          "type": "string"
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "recency",
+            "relevancy"
+          ]
+        },
+        "start_time": {
+          "type": "string"
+        },
+        "max_results": {
+          "type": "integer"
+        },
+        "poll_fields": {
+          "type": "array"
+        },
+        "user_fields": {
+          "type": "array"
+        },
+        "media_fields": {
+          "type": "array"
+        },
+        "place_fields": {
+          "type": "array"
+        },
+        "tweet_fields": {
+          "type": "array"
+        },
+        "pagination_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "TYPEFORM_GET_ABOUT_ME": {
+      "type": "object",
+      "properties": {}
+    },
+    "TYPEFORM_GET_FORM": {
+      "type": "object",
+      "properties": {
+        "form_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "form_id"
+      ]
+    },
+    "TYPEFORM_GET_FORM_RESPONSES": {
+      "type": "object",
+      "properties": {
+        "sort": {
+          "type": "string"
+        },
+        "after": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        },
+        "since": {
+          "type": "string"
+        },
+        "until": {
+          "type": "string"
+        },
+        "before": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "form_id": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer"
+        },
+        "response_type": {
+          "type": "array"
+        },
+        "answered_fields": {
+          "type": "array"
+        },
+        "excluded_response_ids": {
+          "type": "string"
+        },
+        "included_response_ids": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "form_id"
+      ]
+    },
+    "TYPEFORM_GET_WORKSPACE": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id"
+      ]
+    },
+    "TYPEFORM_LIST_FORMS": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "search": {
+          "type": "string"
+        },
+        "sort_by": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "last_updated_at"
+          ]
+        },
+        "order_by": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "page_size": {
+          "type": "integer"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      }
+    },
+    "TYPEFORM_LIST_THEMES": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "page_size": {
+          "type": "integer"
+        }
+      }
+    },
+    "WEBEX_GET_TEAM_DETAILS": {
+      "type": "object",
+      "properties": {
+        "teamId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "teamId"
+      ]
+    },
+    "WEBEX_LIST_TEAMS": {
+      "type": "object",
+      "properties": {
+        "max": {
+          "type": "integer"
+        }
+      }
+    },
+    "WEBEX_LIST_WEBHOOKS": {
+      "type": "object",
+      "properties": {
+        "max": {
+          "type": "integer"
+        },
+        "ownedBy": {
+          "type": "string",
+          "enum": [
+            "creator",
+            "org"
+          ]
+        }
+      }
+    },
+    "WEBEX_MESSAGING_GET_MEMBERSHIP_DETAILS": {
+      "type": "object",
+      "properties": {
+        "membershipId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "membershipId"
+      ]
+    },
+    "WEBEX_MESSAGING_GET_MESSAGE_DETAILS": {
+      "type": "object",
+      "properties": {
+        "messageId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "messageId"
+      ]
+    },
+    "WEBEX_MESSAGING_GET_TEAM_MEMBERSHIP_DETAILS": {
+      "type": "object",
+      "properties": {
+        "membershipId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "membershipId"
+      ]
+    },
+    "XERO_GET_ACCOUNT": {
+      "type": "object",
+      "properties": {
+        "tenant_id": {
+          "type": "string"
+        },
+        "account_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "account_id"
+      ]
+    },
+    "XERO_GET_ASSET": {
+      "type": "object",
+      "properties": {
+        "asset_id": {
+          "type": "string"
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "asset_id"
+      ]
+    },
+    "XERO_GET_BALANCE_SHEET_REPORT": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string"
+        },
+        "periods": {
+          "type": "integer"
+        },
+        "tenant_id": {
+          "type": "string"
+        },
+        "timeframe": {
+          "type": "string"
+        },
+        "paymentsOnly": {
+          "type": "boolean"
+        },
+        "standardLayout": {
+          "type": "boolean"
+        },
+        "trackingOptionID": {
+          "type": "string"
+        }
+      }
+    },
+    "XERO_GET_BUDGET": {
+      "type": "object",
+      "properties": {
+        "DateTo": {
+          "type": "string"
+        },
+        "DateFrom": {
+          "type": "string"
+        },
+        "budget_id": {
+          "type": "string"
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "budget_id"
+      ]
+    },
+    "XERO_GET_CONNECTIONS": {
+      "type": "object",
+      "properties": {}
+    },
+    "XERO_GET_CONTACTS": {
+      "type": "object",
+      "properties": {
+        "IDs": {
+          "type": "array"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "order": {
+          "type": "string"
+        },
+        "where": {
+          "type": "string"
+        },
+        "pageSize": {
+          "type": "integer"
+        },
+        "ContactID": {
+          "type": "string"
+        },
+        "searchTerm": {
+          "type": "string"
+        },
+        "summaryOnly": {
+          "type": "boolean"
+        },
+        "includeArchived": {
+          "type": "boolean"
+        },
+        "If-Modified-Since": {
+          "type": "string"
+        }
+      }
+    },
+    "YOUTUBE_ADD_VIDEO_TO_PLAYLIST": {
+      "type": "object",
+      "properties": {
+        "videoId": {
+          "type": "string"
+        },
+        "position": {
+          "type": "integer"
+        },
+        "playlistId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "playlistId",
+        "videoId"
+      ]
+    },
+    "YOUTUBE_CREATE_PLAYLIST": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "privacyStatus": {
+          "type": "string",
+          "enum": [
+            "public",
+            "private",
+            "unlisted"
+          ]
+        }
+      },
+      "required": [
+        "title"
+      ]
+    },
+    "YOUTUBE_LIST_CAPTION_TRACK": {
+      "type": "object",
+      "properties": {
+        "part": {
+          "type": "string"
+        },
+        "video_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "video_id"
+      ]
+    },
+    "YOUTUBE_LIST_COMMENTS": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "part": {
+          "type": "string"
+        },
+        "parentId": {
+          "type": "string"
+        },
+        "pageToken": {
+          "type": "string"
+        },
+        "maxResults": {
+          "type": "integer"
+        },
+        "textFormat": {
+          "type": "string",
+          "enum": [
+            "html",
+            "plainText"
+          ]
+        }
+      }
+    },
+    "YOUTUBE_LIST_COMMENT_THREADS": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "part": {
+          "type": "string"
+        },
+        "order": {
+          "type": "string",
+          "enum": [
+            "time",
+            "relevance"
+          ]
+        },
+        "videoId": {
+          "type": "string"
+        },
+        "pageToken": {
+          "type": "string"
+        },
+        "maxResults": {
+          "type": "integer"
+        },
+        "textFormat": {
+          "type": "string",
+          "enum": [
+            "html",
+            "plainText"
+          ]
+        },
+        "searchTerms": {
+          "type": "string"
+        },
+        "allThreadsRelatedToChannelId": {
+          "type": "string"
+        }
+      }
+    },
+    "YOUTUBE_UPDATE_PLAYLIST": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "part": {
+          "type": "string"
+        },
+        "status": {
+          "type": "object"
+        },
+        "snippet": {
+          "type": "object"
+        },
+        "onBehalfOfContentOwner": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "snippet"
+      ]
+    },
+    "ZENDESK_GET_ATTACHMENT": {
+      "type": "object",
+      "properties": {
+        "attachment_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "attachment_id"
+      ]
+    },
+    "ZENDESK_GET_USER": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "user_id"
+      ]
+    },
+    "ZENDESK_GET_USERS_ASSIGNED_TICKETS": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "sort_by": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "id",
+            "priority",
+            "status",
+            "updated_at"
+          ]
+        },
+        "user_id": {
+          "type": "integer"
+        },
+        "per_page": {
+          "type": "integer"
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        }
+      },
+      "required": [
+        "user_id"
+      ]
+    },
+    "ZENDESK_GET_USERS_CCD_TICKETS": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "sort_by": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "id",
+            "priority",
+            "status",
+            "updated_at"
+          ]
+        },
+        "user_id": {
+          "type": "integer"
+        },
+        "per_page": {
+          "type": "integer"
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        }
+      },
+      "required": [
+        "user_id"
+      ]
+    },
+    "ZENDESK_GET_USERS_FOLLOWED_TICKETS": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "string"
+        },
+        "sort_by": {
+          "type": "string",
+          "enum": [
+            "id",
+            "subject",
+            "deleted_at",
+            "created_at",
+            "updated_at",
+            "status",
+            "requester",
+            "requester.name",
+            "group",
+            "assignee",
+            "assignee.name"
+          ]
+        },
+        "user_id": {
+          "type": "integer"
+        },
+        "per_page": {
+          "type": "integer"
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "exclude_archived": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "user_id"
+      ]
+    },
+    "ZENDESK_GET_USERS_REQUESTED_TICKETS": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "sort_by": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "id",
+            "priority",
+            "status",
+            "updated_at"
+          ]
+        },
+        "user_id": {
+          "type": "integer"
+        },
+        "per_page": {
+          "type": "integer"
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        }
+      },
+      "required": [
+        "user_id"
+      ]
+    },
+    "ZOHO_GET_RELATED_LISTS": {
+      "type": "object",
+      "properties": {
+        "layout_id": {
+          "type": "string"
+        },
+        "module_api_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "module_api_name"
+      ]
+    },
+    "ZOHO_GET_RELATED_RECORDS": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "string"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "fields": {
+          "type": "string"
+        },
+        "sort_by": {
+          "type": "string",
+          "enum": [
+            "id",
+            "Created_Time",
+            "Modified_Time"
+          ]
+        },
+        "per_page": {
+          "type": "integer"
+        },
+        "converted": {
+          "type": "string",
+          "enum": [
+            "false",
+            "true",
+            "both"
+          ]
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "page_token": {
+          "type": "string"
+        },
+        "sort_order": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "module_api_name": {
+          "type": "string"
+        },
+        "related_list_api_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "module_api_name",
+        "record_id",
+        "related_list_api_name",
+        "fields"
+      ]
+    },
+    "ZOHO_GET_ZOHO_USERS": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "string"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string"
+        },
+        "per_page": {
+          "type": "integer"
+        },
+        "if_modified_since": {
+          "type": "string"
+        }
+      }
+    },
+    "ZOHO_LIST_MODULES": {
+      "type": "object",
+      "properties": {}
+    },
+    "ZOHO_LIST_RECORD_ATTACHMENTS": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "fields": {
+          "type": "string"
+        },
+        "per_page": {
+          "type": "integer"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "module_api_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "module_api_name",
+        "record_id"
+      ]
+    },
+    "ZOHO_SEARCH_ZOHO_RECORDS": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "word": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "string"
+        },
+        "criteria": {
+          "type": "string"
+        },
+        "per_page": {
+          "type": "integer"
+        },
+        "module_api_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "module_api_name"
+      ]
+    },
+    "ZOOM_GET_A_MEETING": {
+      "type": "object",
+      "properties": {
+        "meetingId": {
+          "type": "integer"
+        },
+        "occurrence_id": {
+          "type": "string"
+        },
+        "show_previous_occurrences": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "meetingId"
+      ]
+    },
+    "ZOOM_GET_A_MEETING_SUMMARY": {
+      "type": "object",
+      "properties": {
+        "meetingId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "meetingId"
+      ]
+    },
+    "ZOOM_GET_MEETING_RECORDINGS": {
+      "type": "object",
+      "properties": {
+        "ttl": {
+          "type": "integer"
+        },
+        "meetingId": {
+          "type": "string"
+        },
+        "include_fields": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "meetingId"
+      ]
+    },
+    "ZOOM_GET_USER": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "login_type": {
+          "type": "integer"
+        },
+        "encrypted_email": {
+          "type": "boolean"
+        },
+        "search_by_unique_id": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "userId"
+      ]
+    },
+    "ZOOM_LIST_ALL_RECORDINGS": {
+      "type": "object",
+      "properties": {
+        "mc": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "trash": {
+          "type": "boolean"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer"
+        },
+        "meeting_id": {
+          "type": "string"
+        },
+        "trash_type": {
+          "type": "string"
+        },
+        "next_page_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "user_id"
+      ]
+    },
+    "ZOOM_LIST_MEETINGS": {
+      "type": "object",
+      "properties": {
+        "to": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "scheduled",
+            "live",
+            "upcoming",
+            "upcoming_meetings",
+            "previous_meetings"
+          ]
+        },
+        "userId": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer"
+        },
+        "page_number": {
+          "type": "integer"
+        },
+        "next_page_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "userId"
+      ]
+    }
   }
 }
