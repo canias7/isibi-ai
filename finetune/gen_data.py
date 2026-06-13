@@ -252,7 +252,6 @@ def generate(n: int, seed: int = 0) -> None:
     teacher = make_teacher()
     DATA.mkdir(exist_ok=True)
     all_path = DATA / "all.jsonl"      # incremental safety copy (survives interrupts)
-    all_path.unlink(missing_ok=True)
     kept: list[dict[str, Any]] = []
     seen: set[str] = set()
     attempts = 0
@@ -280,12 +279,17 @@ def generate(n: int, seed: int = 0) -> None:
                 print(f"  rejected: {errs[0]}")
                 continue
             kept.append(row(connected, req, wf))
-            with all_path.open("a", encoding="utf-8") as f:
+            # Only truncate all.jsonl once we actually have an example — a run that
+            # keeps 0 (quota exhausted / teacher down) must NOT clobber existing data.
+            with all_path.open("w" if len(kept) == 1 else "a", encoding="utf-8") as f:
                 f.write(json.dumps(kept[-1], ensure_ascii=False) + "\n")
             print(f"[{len(kept)}/{n}] {req[:70]}")
             if len(kept) >= n:
                 break
 
+    if not kept:
+        print("no examples kept (teacher unreachable / quota?) — left existing data untouched")
+        return
     rng.shuffle(kept)
     n_val = max(1, len(kept) // 10)
     _write(DATA / "val.jsonl", kept[:n_val])
