@@ -12,6 +12,13 @@ const COMPOSIO_BASE = "https://backend.composio.dev/api";
 const SB_URL = Deno.env.get("SUPABASE_URL");
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const MODEL = "claude-opus-4-8";
+// Optional local fine-tuned model (OpenAI-compatible — e.g. Ollama via a tunnel).
+// When LOCAL_WF_URL is set, the builder tries it for a one-shot emit before Opus:
+// free + fast on clear requests, falls back to Opus on any miss. Fully INERT (no
+// behavior change at all) until the secret is configured.
+const LOCAL_WF_URL = Deno.env.get("LOCAL_WF_URL");            // e.g. https://x.trycloudflare.com/v1
+const LOCAL_WF_MODEL = Deno.env.get("LOCAL_WF_MODEL") || "gf-workflows";
+const LOCAL_WF_KEY = Deno.env.get("LOCAL_WF_KEY") || "ollama";
 
 const ALLOWED_ORIGINS = new Set([
   "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
@@ -281,6 +288,103 @@ const CANNOT_BUILD_TOOL = {
   },
 };
 
+// ---- Local fine-tuned model: optional one-shot emit fast path -------------
+const SPECIAL_NODE_APPS = new Set(["schedule", "event", "ai", "decision"]);
+
+// Mirrors what the model was fine-tuned on (finetune/schema.py SCHEMA_DOC): emit
+// ONE workflow as a single JSON object, nothing else.
+const LOCAL_SYS = `You are the Go Farther workflow builder. Turn the user's request into ONE workflow as a single JSON object and output ONLY that JSON — no prose, no code fences.
+Shape: {"title":string,"instruction":string,"trigger":{"type":"schedule"|"event","schedule"?:{"freq":"daily"|"weekly"|"hourly","hour":0-23,"minute":0-59,"weekday"?:0-6},"event"?:{"app":connectorId,"filter":string,"window"?:{"start":0-1439,"end":0-1439,"days":[0-6]}}},"nodes":[{"id":"n1","kind":"trigger"|"action"|"decision","app":connectorId|"schedule"|"event"|"ai"|"decision","label":string,"detail":string}],"edges":[{"from":nodeId,"to":nodeId,"branch"?:"yes"|"no"}]}
+Rules: the FIRST node is the trigger. Only use connected apps for app steps and event triggers. Built-in abilities (reminders, weather, maps, image, memory, bank) are "ai" nodes. 24-hour times (4pm=16); weekday Sun=0..Sat=6. Every edge references a node you defined. A decision node has exactly two outgoing edges, branch "yes" and "no", to different nodes. Independent steps may fan out (one node, multiple edges, no branch). The instruction is one self-contained paragraph that handles the empty case gracefully.`;
+
+function extractJson(text: string): any | null {
+  const s = text.indexOf("{"), e = text.lastIndexOf("}");
+  if (s < 0 || e <= s) return null;
+  try { return JSON.parse(text.slice(s, e + 1)); } catch { return null; }
+}
+
+// Structural validity — only the parts the runner relies on. Returns an error
+// string (used to re-prompt the model) or null when sound. Deliberately does NOT
+// police tool names in prose: the runner resolves tools at run time, so a fuzzy
+// tool mention there is survivable (unlike in training data).
+function validateGraph(plan: any): string | null {
+  if (!plan || typeof plan !== "object") return "not a JSON object";
+  if (typeof plan.title !== "string" || !plan.title.trim()) return "missing title";
+  if (typeof plan.instruction !== "string" || !plan.instruction.trim()) return "missing instruction";
+  const t = plan.trigger;
+  if (!t || (t.type !== "schedule" && t.type !== "event")) return "trigger.type must be schedule or event";
+  if (t.type === "schedule") {
+    const s = t.schedule;
+    if (!s || !["daily", "weekly", "hourly"].includes(s.freq)) return "schedule.freq invalid";
+    if (typeof s.hour !== "number" || s.hour < 0 || s.hour > 23) return "schedule.hour must be 0-23";
+  } else if (typeof t.event?.app !== "string" || !APP_TO_SLUG[t.event.app]) {
+    return "event.app must be a connector id";
+  }
+  const nodes = plan.nodes;
+  if (!Array.isArray(nodes) || !nodes.length) return "nodes must be a non-empty array";
+  if (nodes[0]?.kind !== "trigger") return "first node must be the trigger";
+  const ids = new Set<string>();
+  for (const n of nodes) {
+    if (!n || typeof n.id !== "string" || !n.id) return "node missing id";
+    if (ids.has(n.id)) return `duplicate node id ${n.id}`;
+    ids.add(n.id);
+    if (!["trigger", "action", "decision"].includes(n.kind)) return `node ${n.id} kind invalid`;
+    if (!APP_TO_SLUG[n.app] && !SPECIAL_NODE_APPS.has(n.app)) return `node ${n.id} app "${n.app}" invalid`;
+    if (typeof n.label !== "string" || !n.label.trim()) return `node ${n.id} missing label`;
+  }
+  const edges = plan.edges;
+  if (!Array.isArray(edges)) return "edges must be an array";
+  for (const e of edges) {
+    if (!e || !ids.has(e.from)) return "edge from an unknown node";
+    if (!ids.has(e.to)) return "edge to an unknown node";
+  }
+  for (const n of nodes) {
+    if (n.kind === "decision") {
+      const outs = edges.filter((e: any) => e?.from === n.id);
+      const br = new Set(outs.map((e: any) => e?.branch));
+      if (!br.has("yes") || !br.has("no")) return `decision ${n.id} needs yes and no branches`;
+      const yes = outs.find((e: any) => e?.branch === "yes")?.to;
+      const no = outs.find((e: any) => e?.branch === "no")?.to;
+      if (yes && yes === no) return `decision ${n.id} branches must differ`;
+    }
+  }
+  return null;
+}
+
+async function callLocal(system: string, user: string): Promise<string> {
+  const res = await fetch(`${LOCAL_WF_URL}/chat/completions`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "authorization": `Bearer ${LOCAL_WF_KEY}` },
+    body: JSON.stringify({
+      model: LOCAL_WF_MODEL, temperature: 0.1, max_tokens: 1500,
+      messages: [{ role: "system", content: system }, { role: "user", content: user }],
+    }),
+  });
+  if (!res.ok) throw new Error(`local ${res.status}`);
+  const data = await res.json();
+  return String(data?.choices?.[0]?.message?.content ?? "");
+}
+
+// One-shot emit from the local model with a single self-correct retry. Returns a
+// structurally valid plan, or null to fall back to Opus.
+async function localEmit(messages: { role: string; content: string }[], apps: string[]): Promise<any | null> {
+  const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content || "";
+  if (!lastUser) return null;
+  const sys = `${LOCAL_SYS}\nConnected apps (use ONLY these connector ids): ${apps.join(", ") || "(none)"}.`;
+  let user = lastUser;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let text: string;
+    try { text = await callLocal(sys, user); } catch { return null; }
+    const plan = extractJson(text);
+    if (plan) {
+      const err = validateGraph(plan);
+      if (!err) return plan;
+      user = `${lastUser}\n\nYour previous attempt was invalid (${err}). Fix it and output only the corrected workflow JSON.`;
+    }
+  }
+  return null;
+}
+
 // Top-down tree layout: BFS depth from the trigger sets the row; siblings spread
 // horizontally. Gives the client sensible starting positions (the user can drag).
 function layout(nodes: any[], edges: any[]): any[] {
@@ -443,7 +547,15 @@ Request: "When an email from my boss arrives, Slack me a one-line summary." (Gma
   // otherwise guess at; execute those server-side and loop until it asks or emits.
   const apiMessages: any[] = messages.map((m) => ({ role: m.role, content: m.content }));
   let content: any[] = [];
-  for (let turn = 0; turn < 4; turn++) {
+  // Fast path: the local fine-tuned model emits a workflow in one shot (free).
+  // Only on a fresh build (no clarifying round yet) and only if its graph is
+  // structurally valid; the existing build path below still does the connected-
+  // apps safety check. On any miss this is empty and we fall through to Opus.
+  if (LOCAL_WF_URL && askedCount === 0) {
+    const localPlan = await localEmit(messages, apps);
+    if (localPlan) content = [{ type: "tool_use", name: "emit_workflow", input: localPlan }];
+  }
+  for (let turn = 0; !content.length && turn < 4; turn++) {
     reqBody.messages = apiMessages;
     let res: Response;
     try {
