@@ -9,3 +9,4 @@ runner_data/
 runner_outputs/
 runner_lora/
 runner_gguf/
+chat_data/
