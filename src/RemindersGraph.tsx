@@ -175,31 +175,35 @@ export default function RemindersGraph({ reminders, loaded, loadErr, onRetry, on
           </div>
         )}
 
-        {groups.map(([label, items]) => (
-          <div className="rem-sec" key={label}>
-            <div className="rem-sec-label">{label}</div>
-            {items.map((r) => (
-              <div key={r.id} className={`rem-card${selectedId === r.id ? ' sel' : ''}${r.enabled ? '' : ' off'}`}>
-                <button className="rem-card-main" onClick={() => select(r)}>
-                  <span className="rem-card-row1">
-                    <span className="rem-card-time">{rowTime(r)}</span>
-                    {r.repeat !== 'none' && <span className="rem-card-badge">{repLabel[r.repeat]}</span>}
-                  </span>
-                  <span className="rem-card-title">{cleanReminderTitle(r.title)}</span>
-                </button>
-                <button
-                  className="rem-card-toggle"
-                  role="switch"
-                  aria-checked={r.enabled}
-                  aria-label={`${cleanReminderTitle(r.title)} — ${r.enabled ? 'on' : 'off'}`}
-                  onClick={() => { void tap(); onToggle(r.id, !r.enabled); }}
-                >
-                  <span className={`tgl ${r.enabled ? 'on' : ''}`}><span className="tgl-knob" /></span>
-                </button>
+        {groups.length > 0 && (
+          <div className="rem-rail">
+            {groups.map(([label, items]) => (
+              <div className="rem-sec" key={label}>
+                <div className="rem-sec-label">{label}</div>
+                {items.map((r) => (
+                  <div key={r.id} className={`rem-card${selectedId === r.id ? ' sel' : ''}${r.enabled ? '' : ' off'}`}>
+                    <button className="rem-card-main" onClick={() => select(r)}>
+                      <span className="rem-card-row1">
+                        <span className="rem-card-time">{rowTime(r)}</span>
+                        {r.repeat !== 'none' && <span className="rem-card-badge">{repLabel[r.repeat]}</span>}
+                      </span>
+                      <span className="rem-card-title">{cleanReminderTitle(r.title)}</span>
+                    </button>
+                    <button
+                      className="rem-card-toggle"
+                      role="switch"
+                      aria-checked={r.enabled}
+                      aria-label={`${cleanReminderTitle(r.title)} — ${r.enabled ? 'on' : 'off'}`}
+                      onClick={() => { void tap(); onToggle(r.id, !r.enabled); }}
+                    >
+                      <span className={`tgl ${r.enabled ? 'on' : ''}`}><span className="tgl-knob" /></span>
+                    </button>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
-        ))}
+        )}
       </div>
 
       <div className="memg-compose-wrap">
