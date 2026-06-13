@@ -1,0 +1,79 @@
+"""Score a served model against the held-out val set.
+
+Points an OpenAI-compatible endpoint (your Ollama server, or the base model for a
+baseline) at each val prompt and reports:
+  - % output that parses as JSON
+  - % that passes the real workflow schema
+  - % that only uses the apps the prompt said were connected
+
+Usage:
+    # fine-tuned model via Ollama:
+    python eval.py --base-url http://localhost:11434/v1 --model gf-workflows
+    # baseline (stock Qwen) for comparison:
+    python eval.py --base-url http://localhost:11434/v1 --model qwen2.5:7b-instruct
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+from pathlib import Path
+
+from openai import OpenAI
+
+from schema import parse_and_validate
+
+HERE = Path(__file__).parent
+
+
+def connected_from_system(system: str) -> set[str]:
+    """Recover the connected app ids from the system prompt's bullet list."""
+    apps: set[str] = set()
+    for m in re.finditer(r"^- ([a-z0-9_]+):", system, re.MULTILINE):
+        apps.add(m.group(1))
+    return apps | {"schedule", "event", "ai", "decision"}
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--base-url", default="http://localhost:11434/v1")
+    ap.add_argument("--model", required=True)
+    ap.add_argument("--api-key", default="ollama")
+    ap.add_argument("--file", default=str(HERE / "data" / "val.jsonl"))
+    args = ap.parse_args()
+
+    client = OpenAI(base_url=args.base_url, api_key=args.api_key)
+    rows = [json.loads(l) for l in Path(args.file).read_text().splitlines() if l.strip()]
+
+    n = len(rows)
+    json_ok = schema_ok = apps_ok = 0
+    for i, r in enumerate(rows, 1):
+        resp = client.chat.completions.create(
+            model=args.model, max_tokens=2048,
+            messages=[{"role": "system", "content": r["system"]},
+                      {"role": "user", "content": r["user"]}],
+        )
+        text = resp.choices[0].message.content or ""
+        connected = connected_from_system(r["system"])
+        ok, errs, wf = parse_and_validate(text, connected=connected)
+        if wf is not None:
+            json_ok += 1
+        if ok:
+            schema_ok += 1
+            apps_ok += 1
+        else:
+            # was it ONLY an unconnected-app problem, or structurally broken?
+            ok2, _, _ = parse_and_validate(text)  # ignore connected-check
+            if ok2:
+                schema_ok += 1
+        tag = "ok" if ok else (errs[0] if errs else "fail")
+        print(f"[{i}/{n}] {tag}")
+
+    print("\n--- results ---")
+    print(f"valid JSON:        {json_ok}/{n}  ({100*json_ok//max(n,1)}%)")
+    print(f"schema-valid:      {schema_ok}/{n}  ({100*schema_ok//max(n,1)}%)")
+    print(f"apps all connected:{apps_ok}/{n}  ({100*apps_ok//max(n,1)}%)")
+
+
+if __name__ == "__main__":
+    main()

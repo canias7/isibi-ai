@@ -8,6 +8,12 @@
 .page-sub { color: var(--text-dim); margin: 0 0 1.2941rem; font-size: var(--fs-body-s); line-height: 1.55; }
 
 /* ---- Settings ---- */
+/* Warm ambient glow behind the page so the frosted-glass cards refract it. */
+.settings-page {
+  background:
+    radial-gradient(120vw 60vh at 50% -6%, rgba(224, 161, 58, 0.13), transparent 60%),
+    radial-gradient(100vw 55vh at 50% 106%, rgba(224, 161, 58, 0.06), transparent 60%);
+}
 .set-account {
   display: flex;
   align-items: center;
@@ -47,7 +53,11 @@
   margin-top: 22px;
 }
 .set-card {
-  background: var(--bubble-user);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-hi), var(--glass-shadow);
   border-radius: var(--r-card);
   overflow: hidden;
 }
@@ -55,8 +65,11 @@
 /* Sound style picker — chips under the Sounds toggle; tapping previews. */
 .snd-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 4px; }
 .snd-chip {
-  border: 1px solid var(--line-2);
-  background: #ffffff0a;
+  border: 1px solid var(--glass-edge);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-hi);
   color: var(--text);
   font: inherit;
   font-size: var(--fs-footnote);
@@ -337,8 +350,11 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
   position: relative;
   display: flex; align-items: center; gap: 10px;
   margin-left: 30px;
-  background: #17181b;
-  border: 1px solid var(--line-1);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-hi);
   border-radius: var(--r-card);
   padding: 12px 14px;
   margin-bottom: 9px;
@@ -445,7 +461,8 @@ html.gf-modal-open, html.gf-modal-open body { overflow: hidden; overscroll-behav
 .memg-mrow {
   position: relative; z-index: 1;
   display: flex; align-items: center; gap: 11px;
-  background: #17181b; border: 1px solid var(--line-1); border-radius: var(--r-card);
+  background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--r-card);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: var(--glass-hi);
   padding: 13px 14px; color: var(--text); font: inherit; text-align: left; cursor: pointer;
   touch-action: pan-y; user-select: none; -webkit-user-select: none;
   transition: transform 0.22s var(--ease-exit); will-change: transform;

@@ -1,0 +1,14 @@
+# Training stack — CUDA GPU only (your 16 GB box). Install Unsloth per their
+# current instructions for your CUDA/torch version:
+#   https://github.com/unslothai/unsloth#installation
+# The pins below are a known-good starting point; Unsloth's installer may pull
+# matching torch/xformers/bitsandbytes for your CUDA.
+unsloth
+trl>=0.12.0
+transformers>=4.46.0
+datasets>=3.0.0
+accelerate>=1.0.0
+peft>=0.13.0
+bitsandbytes>=0.44.0
+# GGUF export uses llama.cpp under the hood; Unsloth fetches it on first
+# save_pretrained_gguf(). Ensure cmake + a C compiler are installed.

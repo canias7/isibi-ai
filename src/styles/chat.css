@@ -86,6 +86,10 @@
   max-width: 768px;
   margin: 0 auto;
   background: var(--composer);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-hi), var(--glass-shadow);
   border-radius: var(--r-sheet);
   display: flex;
   flex-direction: column;

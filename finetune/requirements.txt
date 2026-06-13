@@ -1,0 +1,6 @@
+# Data generation + evaluation (runs anywhere, CPU is fine).
+anthropic>=0.40.0      # TEACHER=anthropic
+openai>=1.40.0         # TEACHER=openai (Groq/OpenRouter/vLLM/Ollama) + eval.py
+
+# Training deps are separate (CUDA-only) — see requirements-train.txt and the
+# README. Do NOT install Unsloth on a non-GPU machine.

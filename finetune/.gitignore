@@ -1,0 +1,7 @@
+data/
+outputs/
+lora_model/
+gguf_model/
+__pycache__/
+*.pyc
+.env
