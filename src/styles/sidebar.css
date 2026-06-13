@@ -575,6 +575,8 @@
   padding: 12px 14px;
   margin: 3px 0;
   background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--glass-hi);
   border-radius: var(--r-row);

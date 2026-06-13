@@ -99,8 +99,11 @@
   width: 58px;
   height: 58px;
   border-radius: 50%;
-  border: 1px solid var(--line-3);
-  background: #ffffff14;
+  border: 1px solid var(--glass-edge);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-hi);
   color: var(--text);
   display: grid;
   place-items: center;
@@ -108,7 +111,7 @@
   flex: 0 0 auto;
   transition: transform var(--dur-press) ease, background var(--dur-press) ease;
 }
-.call-cam:active { transform: scale(0.92); background: #ffffff24; }
+.call-cam:active { transform: scale(0.92); background: var(--glass-strong); }
 
 /* Live Lens: camera preview shown on the call while active. The orb shrinks to
    make room; the camera button glows accent while the lens is on. */

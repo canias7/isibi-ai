@@ -236,9 +236,10 @@ input, textarea { caret-color: var(--brand); }
   padding: 13px 18px;
   border-radius: var(--r-sheet);
   cursor: pointer;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  transition: background var(--dur-press) ease, border-color var(--dur-press) ease, transform 0.1s ease;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-hi);
+  transition: background var(--dur-press) ease, border-color var(--dur-press) ease, transform var(--dur-press) ease;
 }
 .sug:active { transform: scale(0.98); background: #ffffff16; }
 .sug:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
