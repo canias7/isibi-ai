@@ -469,6 +469,37 @@ async function tryMlBuild(connected: string[], userText: string): Promise<any | 
   }
 }
 
+// Constrained-decoding grammar (mirrors finetune/grammar.py workflow_json_schema()):
+// locks the workflow shape + app/kind/freq/branch enums (app enum = all connector
+// ids + specials) so the local model can't emit invalid structure or phantom apps.
+const WF_SCHEMA = {"type": "object", "additionalProperties": false, "properties": {"title": {"type": "string"}, "instruction": {"type": "string"}, "trigger": {"type": "object", "properties": {"type": {"type": "string", "enum": ["schedule", "event"]}, "schedule": {"type": "object", "properties": {"freq": {"type": "string", "enum": ["daily", "weekly", "hourly"]}, "hour": {"type": "integer", "minimum": 0, "maximum": 23}, "minute": {"type": "integer", "minimum": 0, "maximum": 59}, "weekday": {"type": "integer", "minimum": 0, "maximum": 6}}}, "event": {"type": "object", "properties": {"app": {"type": "string", "enum": ["gmail", "gcal", "gdrive", "canva", "figma", "notion", "jira", "slack", "hubspot", "m365", "googlesheets", "googledocs", "excel", "one_drive", "dropbox", "box", "onenote", "airtable", "todoist", "googletasks", "asana", "trello", "clickup", "monday", "miro", "calendly", "zoom", "googlemeet", "microsoft_teams", "webex", "telegram", "discord", "linkedin", "reddit", "youtube", "instagram", "twitter", "spotify", "salesforce", "pipedrive", "zoho", "zendesk", "intercom", "freshdesk", "shopify", "stripe", "square", "quickbooks", "xero", "typeform", "jotform", "mailchimp", "sendgrid", "klaviyo"]}, "filter": {"type": "string"}}}}, "required": ["type"]}, "nodes": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "kind": {"type": "string", "enum": ["trigger", "action", "decision"]}, "app": {"type": "string", "enum": ["gmail", "gcal", "gdrive", "canva", "figma", "notion", "jira", "slack", "hubspot", "m365", "googlesheets", "googledocs", "excel", "one_drive", "dropbox", "box", "onenote", "airtable", "todoist", "googletasks", "asana", "trello", "clickup", "monday", "miro", "calendly", "zoom", "googlemeet", "microsoft_teams", "webex", "telegram", "discord", "linkedin", "reddit", "youtube", "instagram", "twitter", "spotify", "salesforce", "pipedrive", "zoho", "zendesk", "intercom", "freshdesk", "shopify", "stripe", "square", "quickbooks", "xero", "typeform", "jotform", "mailchimp", "sendgrid", "klaviyo", "schedule", "event", "ai", "decision"]}, "label": {"type": "string"}, "detail": {"type": "string"}}, "required": ["id", "kind", "app", "label"]}}, "edges": {"type": "array", "items": {"type": "object", "properties": {"from": {"type": "string"}, "to": {"type": "string"}, "branch": {"type": "string", "enum": ["yes", "no"]}}, "required": ["from", "to"]}}}, "required": ["title", "instruction", "trigger", "nodes", "edges"]};
+
+// One grammar-constrained completion from the local model; returns raw text or null.
+async function mlGrammar(msgs: any[]): Promise<string | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ML_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${ML_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${ML_KEY}` },
+      signal: ctrl.signal,
+      body: JSON.stringify({
+        model: ML_MODEL, max_tokens: 2048, temperature: 0.2,
+        messages: msgs,
+        response_format: { type: "json_schema", json_schema: { name: "workflow", schema: WF_SCHEMA, strict: true } },
+      }),
+    });
+    if (!res.ok) { console.log(`ml grammar endpoint ${res.status}`); return null; }
+    const data = await res.json();
+    return data?.choices?.[0]?.message?.content ?? null;
+  } catch (e) {
+    console.log("ml grammar call failed:", String(e).slice(0, 120));
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 
 // Top-down tree layout: BFS depth from the trigger sets the row; siblings spread
 // horizontally. Gives the client sensible starting positions (the user can drag).
@@ -543,10 +574,12 @@ Deno.serve(async (req: Request) => {
   // Accept either a single `description` or the running `messages` conversation
   // ([{role:'user'|'assistant', text}]). The assistant turns are prior questions.
   let tz = "UTC";
+  let engineParam = "lazy";   // body.engine: 'lazy' (local model only, DEFAULT) | 'opus' (Claude flow)
   let messages: { role: "user" | "assistant"; content: string }[] = [];
   try {
     const b = await req.json();
     if (typeof b.tz === "string" && b.tz) tz = b.tz;
+    if (b.engine === "opus" || b.engine === "lazy") engineParam = b.engine;
     if (Array.isArray(b.messages)) {
       messages = b.messages
         .map((m: any) => ({ role: m?.role === "assistant" ? "assistant" : "user", content: String(m?.text ?? m?.content ?? "").slice(0, 2000) }))
@@ -562,6 +595,40 @@ Deno.serve(async (req: Request) => {
   const apps = await connectedApps(uid);
   const appList = apps.length ? apps.join(", ") : "(none connected yet)";
   const askedCount = messages.filter((m) => m.role === "assistant").length;
+
+  let content: any[] = [];
+  let engine = engineParam === "opus" ? "opus" : "ml";
+
+  // ===== Lazy engine (DEFAULT): the local fine-tuned model ONLY, grammar-constrained.
+  // One self-correct retry on a validation miss, then a friendly "couldn't build" —
+  // NO Opus fallback. =====
+  if (engineParam !== "opus") {
+    const ALL = new Set(CATALOG.validApps);   // structural validation only here; the real
+                                               // connected-apps ("Not connected") check runs in finalize below
+    const sys = mlSystemPrompt(apps);
+    const lastUserMsg = messages[messages.length - 1].content;
+    let msgs: any[] = [{ role: "system", content: sys }, { role: "user", content: lastUserMsg }];
+    let text = await mlGrammar(msgs);
+    let wf = text ? extractJson(text) : null;
+    let errs = wf ? validateStructural(wf, ALL) : ["the model returned no usable JSON"];
+    if (errs.length) {
+      // ONE self-correct retry: same prompt + the validation error.
+      msgs = [
+        { role: "system", content: sys },
+        { role: "user", content: lastUserMsg },
+        { role: "assistant", content: text ?? "" },
+        { role: "user", content: `Your previous output failed: ${errs[0]}. Re-emit the full corrected JSON only.` },
+      ];
+      text = await mlGrammar(msgs);
+      wf = text ? extractJson(text) : null;
+      errs = wf ? validateStructural(wf, ALL) : ["the model returned no usable JSON"];
+    }
+    if (errs.length || !wf) {
+      console.log("lazy build failed after retry:", errs[0]);
+      return J({ blocked: { message: "I couldn't build that one — try describing it differently." } });
+    }
+    content = [{ type: "tool_use", name: "emit_workflow", input: wf }];
+  } else {
   // Memory FIRST: give the builder what the user already told us, so it can resolve
   // a person/recipient/preference from a saved fact before any lookup or question.
   const memOn = await memoryEnabled(uid);
@@ -631,20 +698,7 @@ Request: "When an email from my boss arrives, Slack me a one-line summary." (Gma
   // The model may call find_contact (read-only) to resolve a person it would
   // otherwise guess at; execute those server-side and loop until it asks or emits.
   const apiMessages: any[] = messages.map((m) => ({ role: m.role, content: m.content }));
-  let content: any[] = [];
-  let engine = "opus";
-  // Fast path: the fine-tuned local model emits a workflow in one shot, gated
-  // on WORKFLOW_MODEL_BASE_URL and only on a fresh single-turn build. Its graph
-  // is structurally validated + connected-apps-checked here; the build path
-  // below still re-checks. On any miss this stays empty -> fall through to Opus.
-  if (ML_BASE_URL && askedCount === 0 && messages.length === 1) {
-    const wf = await tryMlBuild(apps, messages[messages.length - 1].content);
-    if (wf && validateStructural(wf, new Set(apps)).length === 0) {
-      content = [{ type: "tool_use", name: "emit_workflow", input: wf }];
-      engine = "ml";
-    }
-  }
-  for (let turn = 0; !content.length && turn < 4; turn++) {
+  for (let turn = 0; turn < 4; turn++) {
     reqBody.messages = apiMessages;
     let res: Response;
     try {
@@ -678,6 +732,7 @@ Request: "When an email from my boss arrives, Slack me a one-line summary." (Gma
     }
     break;
   }
+  }  // end opus engine
 
   // Clarifying questions path. Each question is multiple-choice: a header, the
   // question, and tappable options ({label, description?}). The app adds "Other".
