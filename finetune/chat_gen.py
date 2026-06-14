@@ -44,9 +44,11 @@ CHAT_SYS = (
 BRAINSTORM = (
     "A user has these apps connected: {apps} (plus reminders, weather, maps, image "
     "generation, and bank tools). Write {k} DIFFERENT one-line things they might "
-    "say to this assistant. Mix: general questions needing NO tool, app actions "
-    "(email/calendar/tasks/etc.), quick facts (weather/maps), money questions "
-    "(bank), and casual chat. One per line, no numbering."
+    "say to this assistant. Make ABOUT HALF of them general-knowledge / open-ended "
+    "questions that need NO tool — explain a concept, how-to, definitions, advice, "
+    "facts, reasoning, recommendations — so the assistant practices answering from "
+    "knowledge. The rest: a mix of app actions (email/calendar/tasks/etc.), quick "
+    "facts (weather/maps), money questions (bank), and casual chat. One per line, no numbering."
 )
 
 TRACE = (
