@@ -11,6 +11,7 @@ grad-accum 8 / seq 4096. Lower MAX_SEQ if you OOM.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from datasets import load_dataset
@@ -20,8 +21,13 @@ from unsloth.chat_templates import train_on_responses_only
 
 HERE = Path(__file__).parent
 
-BASE = "unsloth/Qwen2.5-7B-Instruct"
-MAX_SEQ = 4096   # tool-use traces run longer than builder emits
+# Config via env so the same script does 7B locally or 14B on a rented GPU.
+# 14B (24GB+):  GF_BASE=unsloth/Qwen2.5-14B-Instruct GF_MAX_SEQ=3072 python runner_train.py
+BASE = os.environ.get("GF_BASE", "unsloth/Qwen2.5-7B-Instruct")
+MAX_SEQ = int(os.environ.get("GF_MAX_SEQ", "4096"))   # tool-use traces run longer than builder emits
+BATCH = int(os.environ.get("GF_BATCH", "1"))
+GRAD_ACCUM = int(os.environ.get("GF_GRAD_ACCUM", "8"))
+EPOCHS = int(os.environ.get("GF_EPOCHS", "3"))
 
 
 def to_text(tokenizer):
@@ -48,8 +54,8 @@ def main() -> None:
     trainer = SFTTrainer(
         model=model, tokenizer=tok, train_dataset=ds,
         args=SFTConfig(
-            per_device_train_batch_size=1, gradient_accumulation_steps=8,
-            warmup_steps=5, num_train_epochs=3, learning_rate=2e-4,
+            per_device_train_batch_size=BATCH, gradient_accumulation_steps=GRAD_ACCUM,
+            warmup_steps=5, num_train_epochs=EPOCHS, learning_rate=2e-4,
             logging_steps=5, optim="adamw_8bit", weight_decay=0.01,
             lr_scheduler_type="linear", seed=3407, output_dir=str(HERE / "runner_outputs"),
             max_seq_length=MAX_SEQ, dataset_text_field="text", report_to="none",

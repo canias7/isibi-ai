@@ -13,6 +13,7 @@ drop MAX_SEQ to 1536 or BATCH to 1 (bump GRAD_ACCUM to keep the effective batch)
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from datasets import load_dataset
@@ -22,12 +23,14 @@ from unsloth.chat_templates import train_on_responses_only
 
 HERE = Path(__file__).parent
 
-BASE = "unsloth/Qwen2.5-7B-Instruct"   # swap to 14B only if you have the headroom
-MAX_SEQ = 2048
-BATCH = 2
-GRAD_ACCUM = 4
-EPOCHS = 3
-LR = 2e-4
+# Config via env so the SAME script does 7B locally or 14B on a rented GPU.
+# 14B on a 24GB+ box:  GF_BASE=unsloth/Qwen2.5-14B-Instruct GF_BATCH=1 GF_GRAD_ACCUM=8 python train.py
+BASE = os.environ.get("GF_BASE", "unsloth/Qwen2.5-7B-Instruct")
+MAX_SEQ = int(os.environ.get("GF_MAX_SEQ", "2048"))
+BATCH = int(os.environ.get("GF_BATCH", "2"))
+GRAD_ACCUM = int(os.environ.get("GF_GRAD_ACCUM", "4"))
+EPOCHS = int(os.environ.get("GF_EPOCHS", "3"))
+LR = float(os.environ.get("GF_LR", "2e-4"))
 
 
 def to_text(tokenizer):
