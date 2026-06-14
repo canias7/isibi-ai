@@ -144801,6 +144801,1313 @@
    "required": [
     "scheduled_message_id"
    ]
+  },
+  "OUTLOOK_CREATE_CALENDAR": {
+   "type": "object",
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "color": {
+     "type": "string",
+     "enum": [
+      "auto",
+      "lightBlue",
+      "lightGreen",
+      "lightOrange",
+      "lightGray",
+      "lightYellow",
+      "lightTeal",
+      "lightPink",
+      "lightBrown",
+      "lightPurple",
+      "lightRed"
+     ]
+    },
+    "user_id": {
+     "type": "string"
+    },
+    "hex_color": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "name"
+   ]
+  },
+  "OUTLOOK_CREATE_CONTACT_FOLDER": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "string"
+    },
+    "display_name": {
+     "type": "string"
+    },
+    "parent_folder_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "display_name"
+   ]
+  },
+  "OUTLOOK_CREATE_MAIL_FOLDER": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "string"
+    },
+    "is_hidden": {
+     "type": "boolean"
+    },
+    "display_name": {
+     "type": "string"
+    },
+    "return_existing_if_exists": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "display_name"
+   ]
+  },
+  "OUTLOOK_CREATE_MASTER_CATEGORY": {
+   "type": "object",
+   "properties": {
+    "color": {
+     "type": "string",
+     "enum": [
+      "preset0",
+      "preset1",
+      "preset2",
+      "preset3",
+      "preset4",
+      "preset5",
+      "preset6",
+      "preset7",
+      "preset8",
+      "preset9",
+      "preset10",
+      "preset11",
+      "preset12",
+      "preset13",
+      "preset14",
+      "preset15",
+      "preset16",
+      "preset17",
+      "preset18",
+      "preset19",
+      "preset20",
+      "preset21",
+      "preset22",
+      "preset23",
+      "preset24"
+     ]
+    },
+    "user_id": {
+     "type": "string"
+    },
+    "display_name": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "display_name"
+   ]
+  },
+  "OUTLOOK_LIST_EVENT_ATTACHMENTS": {
+   "type": "object",
+   "properties": {
+    "top": {
+     "type": "integer"
+    },
+    "skip": {
+     "type": "integer"
+    },
+    "filter": {
+     "type": "string"
+    },
+    "select": {
+     "type": "array"
+    },
+    "orderby": {
+     "type": "array"
+    },
+    "user_id": {
+     "type": "string"
+    },
+    "event_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "event_id"
+   ]
+  },
+  "OUTLOOK_LIST_OUTLOOK_ATTACHMENTS": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "string"
+    },
+    "message_id": {
+     "type": "string"
+    },
+    "response_detail": {
+     "type": "string",
+     "enum": [
+      "minimal",
+      "full"
+     ]
+    }
+   },
+   "required": [
+    "message_id"
+   ]
+  },
+  "OUTLOOK_LIST_REMINDERS": {
+   "type": "object",
+   "properties": {
+    "userId": {
+     "type": "string"
+    },
+    "endDateTime": {
+     "type": "string"
+    },
+    "startDateTime": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "startDateTime",
+    "endDateTime"
+   ]
+  },
+  "FRESHDESK_CREATE_TICKET": {
+   "type": "object",
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "tags": {
+     "type": "array"
+    },
+    "email": {
+     "type": "string"
+    },
+    "phone": {
+     "type": "string"
+    },
+    "due_by": {
+     "type": "string"
+    },
+    "source": {
+     "type": "string",
+     "enum": [
+      "email",
+      "portal",
+      "phone",
+      "chat",
+      "feedback_widget",
+      "outbound_email"
+     ]
+    },
+    "status": {
+     "type": "string",
+     "enum": [
+      "open",
+      "pending",
+      "resolved",
+      "closed"
+     ]
+    },
+    "subject": {
+     "type": "string"
+    },
+    "group_id": {
+     "type": "integer"
+    },
+    "priority": {
+     "type": "string",
+     "enum": [
+      "low",
+      "medium",
+      "high",
+      "urgent"
+     ]
+    },
+    "cc_emails": {
+     "type": "array"
+    },
+    "fr_due_by": {
+     "type": "string"
+    },
+    "company_id": {
+     "type": "integer"
+    },
+    "product_id": {
+     "type": "integer"
+    },
+    "twitter_id": {
+     "type": "string"
+    },
+    "attachments": {
+     "type": "array"
+    },
+    "description": {
+     "type": "string"
+    },
+    "facebook_id": {
+     "type": "string"
+    },
+    "requester_id": {
+     "type": "integer"
+    },
+    "responder_id": {
+     "type": "integer"
+    },
+    "custom_fields": {
+     "type": "object"
+    },
+    "email_config_id": {
+     "type": "integer"
+    },
+    "lookup_parameter": {
+     "type": "string"
+    },
+    "internal_agent_id": {
+     "type": "integer"
+    },
+    "internal_group_id": {
+     "type": "integer"
+    },
+    "unique_external_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "subject",
+    "description"
+   ]
+  },
+  "FRESHDESK_DELETE_TICKET": {
+   "type": "object",
+   "properties": {
+    "ticket_id": {
+     "type": "integer"
+    }
+   },
+   "required": [
+    "ticket_id"
+   ]
+  },
+  "FRESHDESK_GET_TICKETS": {
+   "type": "object",
+   "properties": {
+    "page": {
+     "type": "integer"
+    },
+    "filter": {
+     "type": "string"
+    },
+    "status": {
+     "type": "string",
+     "enum": [
+      "open",
+      "pending",
+      "resolved",
+      "closed",
+      "waiting_on_customer",
+      "waiting_on_third_party"
+     ]
+    },
+    "sort_by": {
+     "type": "string"
+    },
+    "agent_id": {
+     "type": "integer"
+    },
+    "group_id": {
+     "type": "integer"
+    },
+    "per_page": {
+     "type": "integer"
+    },
+    "priority": {
+     "type": "string",
+     "enum": [
+      "low",
+      "medium",
+      "high",
+      "urgent"
+     ]
+    },
+    "sort_order": {
+     "type": "string"
+    },
+    "requester_id": {
+     "type": "integer"
+    },
+    "created_since": {
+     "type": "string"
+    }
+   }
+  },
+  "FRESHDESK_UPDATE_TICKET": {
+   "type": "object",
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "tags": {
+     "type": "array"
+    },
+    "type": {
+     "type": "string"
+    },
+    "email": {
+     "type": "string"
+    },
+    "phone": {
+     "type": "string"
+    },
+    "due_by": {
+     "type": "string"
+    },
+    "source": {
+     "type": "string",
+     "enum": [
+      "email",
+      "portal",
+      "phone",
+      "forum",
+      "twitter",
+      "facebook",
+      "chat",
+      "mobihelp",
+      "feedback_widget",
+      "outbound_email"
+     ]
+    },
+    "status": {
+     "type": "string",
+     "enum": [
+      "open",
+      "pending",
+      "resolved",
+      "closed",
+      "waiting_on_customer",
+      "waiting_on_third_party"
+     ]
+    },
+    "subject": {
+     "type": "string"
+    },
+    "group_id": {
+     "type": "integer"
+    },
+    "priority": {
+     "type": "string",
+     "enum": [
+      "low",
+      "medium",
+      "high",
+      "urgent"
+     ]
+    },
+    "fr_due_by": {
+     "type": "string"
+    },
+    "parent_id": {
+     "type": "integer"
+    },
+    "ticket_id": {
+     "type": "integer"
+    },
+    "company_id": {
+     "type": "integer"
+    },
+    "product_id": {
+     "type": "integer"
+    },
+    "twitter_id": {
+     "type": "string"
+    },
+    "attachments": {
+     "type": "array"
+    },
+    "description": {
+     "type": "string"
+    },
+    "facebook_id": {
+     "type": "string"
+    },
+    "requester_id": {
+     "type": "integer"
+    },
+    "responder_id": {
+     "type": "integer"
+    },
+    "custom_fields": {
+     "type": "object"
+    },
+    "email_config_id": {
+     "type": "integer"
+    },
+    "lookup_parameter": {
+     "type": "string"
+    },
+    "internal_agent_id": {
+     "type": "integer"
+    },
+    "internal_group_id": {
+     "type": "integer"
+    },
+    "unique_external_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "ticket_id"
+   ]
+  },
+  "FRESHDESK_VIEW_TICKET": {
+   "type": "object",
+   "properties": {
+    "include": {
+     "type": "string"
+    },
+    "ticket_id": {
+     "type": "integer"
+    }
+   },
+   "required": [
+    "ticket_id"
+   ]
+  },
+  "QUICKBOOKS_CREATE_ACCOUNT": {
+   "type": "object",
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "active": {
+     "type": "boolean"
+    },
+    "parent_ref": {
+     "type": "object"
+    },
+    "description": {
+     "type": "string"
+    },
+    "sub_account": {
+     "type": "boolean"
+    },
+    "account_type": {
+     "type": "string",
+     "enum": [
+      "Bank",
+      "Other Current Asset",
+      "Fixed Asset",
+      "Other Asset",
+      "Accounts Receivable",
+      "Equity",
+      "Expense",
+      "Other Expense",
+      "Cost of Goods Sold",
+      "Accounts Payable",
+      "Credit Card",
+      "Long Term Liability",
+      "Other Current Liability",
+      "Income",
+      "Other Income"
+     ]
+    },
+    "currency_ref": {
+     "type": "object"
+    },
+    "account_number": {
+     "type": "string"
+    },
+    "opening_balance": {
+     "type": "number"
+    },
+    "account_sub_type": {},
+    "opening_balance_date": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "name",
+    "account_type"
+   ]
+  },
+  "QUICKBOOKS_CREATE_CUSTOMER": {
+   "type": "object",
+   "properties": {
+    "Fax": {
+     "type": "object"
+    },
+    "Job": {
+     "type": "boolean"
+    },
+    "Notes": {
+     "type": "string"
+    },
+    "title": {
+     "type": "string"
+    },
+    "Active": {
+     "type": "boolean"
+    },
+    "Mobile": {
+     "type": "object"
+    },
+    "suffix": {
+     "type": "string"
+    },
+    "Balance": {
+     "type": "number"
+    },
+    "Taxable": {
+     "type": "boolean"
+    },
+    "WebAddr": {
+     "type": "object"
+    },
+    "BillAddr": {
+     "type": "object"
+    },
+    "ShipAddr": {
+     "type": "object"
+    },
+    "ParentRef": {
+     "type": "object"
+    },
+    "ResaleNum": {
+     "type": "string"
+    },
+    "given_name": {
+     "type": "string"
+    },
+    "CompanyName": {
+     "type": "string"
+    },
+    "CurrencyRef": {
+     "type": "object"
+    },
+    "family_name": {
+     "type": "string"
+    },
+    "middle_name": {
+     "type": "string"
+    },
+    "PrimaryPhone": {
+     "type": "object"
+    },
+    "display_name": {
+     "type": "string"
+    },
+    "AlternatePhone": {
+     "type": "object"
+    },
+    "BillWithParent": {
+     "type": "boolean"
+    },
+    "OpenBalanceDate": {
+     "type": "string"
+    },
+    "PrimaryEmailAddr": {
+     "type": "object"
+    },
+    "PrintOnCheckName": {
+     "type": "string"
+    },
+    "PreferredDeliveryMethod": {
+     "type": "string",
+     "enum": [
+      "Print",
+      "Email",
+      "None"
+     ]
+    }
+   }
+  },
+  "QUICKBOOKS_CREATE_EMPLOYEE": {
+   "type": "object",
+   "properties": {
+    "fax": {
+     "type": "object"
+    },
+    "ssn": {
+     "type": "string"
+    },
+    "title": {
+     "type": "string"
+    },
+    "active": {
+     "type": "boolean"
+    },
+    "gender": {
+     "type": "string"
+    },
+    "mobile": {
+     "type": "object"
+    },
+    "suffix": {
+     "type": "string"
+    },
+    "web_addr": {
+     "type": "object"
+    },
+    "bill_rate": {
+     "type": "number"
+    },
+    "cost_rate": {
+     "type": "number"
+    },
+    "birth_date": {
+     "type": "string"
+    },
+    "given_name": {
+     "type": "string"
+    },
+    "hired_date": {
+     "type": "string"
+    },
+    "other_addr": {
+     "type": "object"
+    },
+    "family_name": {
+     "type": "string"
+    },
+    "middle_name": {
+     "type": "string"
+    },
+    "company_name": {
+     "type": "string"
+    },
+    "custom_field": {
+     "type": "array"
+    },
+    "display_name": {
+     "type": "string"
+    },
+    "organization": {
+     "type": "boolean"
+    },
+    "primary_addr": {
+     "type": "object"
+    },
+    "billable_time": {
+     "type": "boolean"
+    },
+    "employee_type": {
+     "type": "string"
+    },
+    "primary_phone": {
+     "type": "object"
+    },
+    "released_date": {
+     "type": "string"
+    },
+    "use_time_entry": {
+     "type": "boolean"
+    },
+    "alternate_phone": {
+     "type": "object"
+    },
+    "employee_number": {
+     "type": "string"
+    },
+    "other_contact_info": {
+     "type": "array"
+    },
+    "primary_email_addr": {
+     "type": "object"
+    },
+    "print_on_check_name": {
+     "type": "string"
+    },
+    "default_tax_code_ref": {
+     "type": "object"
+    }
+   },
+   "required": [
+    "given_name",
+    "family_name"
+   ]
+  },
+  "QUICKBOOKS_CREATE_VENDOR": {
+   "type": "object",
+   "properties": {
+    "fax": {
+     "type": "object"
+    },
+    "gstin": {
+     "type": "string"
+    },
+    "notes": {
+     "type": "string"
+    },
+    "title": {
+     "type": "string"
+    },
+    "active": {
+     "type": "boolean"
+    },
+    "mobile": {
+     "type": "object"
+    },
+    "suffix": {
+     "type": "string"
+    },
+    "balance": {
+     "type": "number"
+    },
+    "acct_num": {
+     "type": "string"
+    },
+    "term_ref": {
+     "type": "object"
+    },
+    "web_addr": {
+     "type": "object"
+    },
+    "bill_addr": {
+     "type": "object"
+    },
+    "bill_rate": {
+     "type": "number"
+    },
+    "ship_addr": {
+     "type": "object"
+    },
+    "given_name": {
+     "type": "string"
+    },
+    "parent_ref": {
+     "type": "object"
+    },
+    "family_name": {
+     "type": "string"
+    },
+    "middle_name": {
+     "type": "string"
+    },
+    "tax_country": {
+     "type": "string"
+    },
+    "tds_enabled": {
+     "type": "boolean"
+    },
+    "vendor_1099": {
+     "type": "boolean"
+    },
+    "company_name": {
+     "type": "string"
+    },
+    "contact_name": {
+     "type": "string"
+    },
+    "credit_limit": {
+     "type": "number"
+    },
+    "currency_ref": {
+     "type": "object"
+    },
+    "display_name": {
+     "type": "string"
+    },
+    "t4a_eligible": {
+     "type": "boolean"
+    },
+    "primary_phone": {
+     "type": "object"
+    },
+    "ap_account_ref": {
+     "type": "object"
+    },
+    "t5018_eligible": {
+     "type": "boolean"
+    },
+    "tax_identifier": {
+     "type": "string"
+    },
+    "alternate_phone": {
+     "type": "object"
+    },
+    "business_number": {
+     "type": "string"
+    },
+    "alt_contact_name": {
+     "type": "string"
+    },
+    "open_balance_date": {
+     "type": "string"
+    },
+    "primary_email_addr": {
+     "type": "object"
+    },
+    "tds_entity_type_id": {
+     "type": "integer"
+    },
+    "print_on_check_name": {
+     "type": "string"
+    },
+    "tax_reporting_basis": {
+     "type": "string"
+    },
+    "tds_section_type_id": {
+     "type": "integer"
+    },
+    "default_tax_code_ref": {
+     "type": "object"
+    },
+    "gst_registration_type": {
+     "type": "string"
+    },
+    "tax_id_effective_date": {
+     "type": "string"
+    },
+    "tds_override_threshold": {
+     "type": "boolean"
+    }
+   }
+  },
+  "QUICKBOOKS_CUSTOMER_BALANCE_DETAIL": {
+   "type": "object",
+   "properties": {
+    "arpaid": {
+     "type": "string",
+     "enum": [
+      "All",
+      "Paid",
+      "Unpaid"
+     ]
+    },
+    "columns": {
+     "type": "string"
+    },
+    "custom1": {
+     "type": "string"
+    },
+    "shipvia": {
+     "type": "string"
+    },
+    "sort_by": {
+     "type": "string"
+    },
+    "term_ids": {
+     "type": "array"
+    },
+    "sort_order": {
+     "type": "string",
+     "enum": [
+      "ascend",
+      "descend"
+     ]
+    },
+    "end_duedate": {
+     "type": "string"
+    },
+    "report_date": {
+     "type": "string"
+    },
+    "aging_method": {
+     "type": "string",
+     "enum": [
+      "Report_Date",
+      "Current"
+     ]
+    },
+    "customer_ids": {
+     "type": "array"
+    },
+    "start_duedate": {
+     "type": "string"
+    },
+    "department_ids": {
+     "type": "array"
+    }
+   }
+  },
+  "QUICKBOOKS_CUSTOMER_BALANCE_REPORT": {
+   "type": "object",
+   "properties": {
+    "qzurl": {
+     "type": "string"
+    },
+    "arpaid": {
+     "type": "string",
+     "enum": [
+      "All",
+      "Paid",
+      "Unpaid"
+     ]
+    },
+    "date_macro": {
+     "type": "string",
+     "enum": [
+      "Today",
+      "Yesterday",
+      "This Week",
+      "Last Week",
+      "This Week-to-date",
+      "Last Week-to-date",
+      "Next Week",
+      "Next 4 Weeks",
+      "This Month",
+      "Last Month",
+      "This Month-to-date",
+      "Last Month-to-date",
+      "Next Month",
+      "This Fiscal Quarter",
+      "Last Fiscal Quarter",
+      "This Fiscal Quarter-to-date",
+      "Last Fiscal Quarter-to-date",
+      "Next Fiscal Quarter",
+      "This Fiscal Year",
+      "Last Fiscal Year",
+      "This Fiscal Year-to-date",
+      "Last Fiscal Year-to-date",
+      "Next Fiscal Year"
+     ]
+    },
+    "sort_order": {
+     "type": "string",
+     "enum": [
+      "ascend",
+      "descend"
+     ]
+    },
+    "report_date": {
+     "type": "string"
+    },
+    "customer_ids": {
+     "type": "array"
+    },
+    "department_ids": {
+     "type": "array"
+    },
+    "accounting_method": {
+     "type": "string",
+     "enum": [
+      "Cash",
+      "Accrual"
+     ]
+    },
+    "summarize_column_by": {
+     "type": "string",
+     "enum": [
+      "Total",
+      "Month",
+      "Week",
+      "Days",
+      "Quarter",
+      "Year",
+      "Customers",
+      "Vendors",
+      "Classes",
+      "Departments",
+      "Employees",
+      "ProductsAndServices"
+     ]
+    }
+   }
+  },
+  "QUICKBOOKS_QUERY_ACCOUNT": {
+   "type": "object",
+   "properties": {
+    "query": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "query"
+   ]
+  },
+  "QUICKBOOKS_READ_ACCOUNT": {
+   "type": "object",
+   "properties": {
+    "account_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "account_id"
+   ]
+  },
+  "QUICKBOOKS_READ_CUSTOMER": {
+   "type": "object",
+   "properties": {
+    "customer_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "customer_id"
+   ]
+  },
+  "QUICKBOOKS_READ_EMPLOYEE": {
+   "type": "object",
+   "properties": {
+    "employee_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "employee_id"
+   ]
+  },
+  "QUICKBOOKS_READ_VENDOR": {
+   "type": "object",
+   "properties": {
+    "vendor_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "vendor_id"
+   ]
+  },
+  "QUICKBOOKS_VENDOR_BALANCE_DETAIL": {
+   "type": "object",
+   "properties": {
+    "arpaid": {
+     "type": "string",
+     "enum": [
+      "All",
+      "Paid",
+      "Unpaid"
+     ]
+    },
+    "columns": {
+     "type": "string"
+    },
+    "sort_by": {
+     "type": "string"
+    },
+    "term_ids": {
+     "type": "array"
+    },
+    "date_macro": {
+     "type": "string",
+     "enum": [
+      "Today",
+      "Yesterday",
+      "This Week",
+      "Last Week",
+      "This Week-to-date",
+      "Last Week-to-date",
+      "Next Week",
+      "Next 4 Weeks",
+      "This Month",
+      "Last Month",
+      "This Month-to-date",
+      "Last Month-to-date",
+      "Next Month",
+      "This Fiscal Quarter",
+      "Last Fiscal Quarter",
+      "This Fiscal Quarter-to-date",
+      "Last Fiscal Quarter-to-date",
+      "Next Fiscal Quarter",
+      "This Fiscal Year",
+      "Last Fiscal Year",
+      "This Fiscal Year-to-date",
+      "Last Fiscal Year-to-date",
+      "Next Fiscal Year"
+     ]
+    },
+    "sort_order": {
+     "type": "string",
+     "enum": [
+      "ascend",
+      "descend"
+     ]
+    },
+    "vendor_ids": {
+     "type": "array"
+    },
+    "end_duedate": {
+     "type": "string"
+    },
+    "num_periods": {
+     "type": "integer"
+    },
+    "report_date": {
+     "type": "string"
+    },
+    "aging_method": {
+     "type": "string",
+     "enum": [
+      "Report_Date",
+      "Current"
+     ]
+    },
+    "aging_period": {
+     "type": "integer"
+    },
+    "duedate_macro": {
+     "type": "string",
+     "enum": [
+      "Today",
+      "Yesterday",
+      "This Week",
+      "Last Week",
+      "This Week-to-date",
+      "Last Week-to-date",
+      "Next Week",
+      "Next 4 Weeks",
+      "This Month",
+      "Last Month",
+      "This Month-to-date",
+      "Last Month-to-date",
+      "Next Month",
+      "This Fiscal Quarter",
+      "Last Fiscal Quarter",
+      "This Fiscal Quarter-to-date",
+      "Last Fiscal Quarter-to-date",
+      "Next Fiscal Quarter",
+      "This Fiscal Year",
+      "Last Fiscal Year",
+      "This Fiscal Year-to-date",
+      "Last Fiscal Year-to-date",
+      "Next Fiscal Year"
+     ]
+    },
+    "start_duedate": {
+     "type": "string"
+    },
+    "department_ids": {
+     "type": "array"
+    },
+    "accounting_method": {
+     "type": "string",
+     "enum": [
+      "Cash",
+      "Accrual"
+     ]
+    }
+   }
+  },
+  "DROPBOX_DELETE_FILE_OR_FOLDER": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "DROPBOX_GET_ABOUT_ME": {
+   "type": "object",
+   "properties": {}
+  },
+  "DROPBOX_LIST_FILES_IN_FOLDER": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "limit": {
+     "type": "integer"
+    },
+    "recursive": {
+     "type": "boolean"
+    },
+    "include_deleted": {
+     "type": "boolean"
+    },
+    "include_media_info": {
+     "type": "boolean"
+    },
+    "include_non_downloadable_files": {
+     "type": "boolean"
+    }
+   }
+  },
+  "DROPBOX_LIST_FOLDERS": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "limit": {
+     "type": "integer"
+    },
+    "recursive": {
+     "type": "boolean"
+    },
+    "include_deleted": {
+     "type": "boolean"
+    }
+   }
+  },
+  "DROPBOX_MOVE_FILE_OR_FOLDER": {
+   "type": "object",
+   "properties": {
+    "to_path": {
+     "type": "string"
+    },
+    "from_path": {
+     "type": "string"
+    },
+    "autorename": {
+     "type": "boolean"
+    },
+    "allow_shared_folder": {
+     "type": "boolean"
+    },
+    "allow_ownership_transfer": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "from_path",
+    "to_path"
+   ]
+  },
+  "DROPBOX_READ_FILE": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "DROPBOX_UPLOAD_FILE": {
+   "type": "object",
+   "properties": {
+    "mode": {
+     "type": "string"
+    },
+    "mute": {
+     "type": "boolean"
+    },
+    "path": {
+     "type": "string"
+    },
+    "content": {
+     "type": "object"
+    },
+    "autorename": {
+     "type": "boolean"
+    },
+    "strict_conflict": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path",
+    "content"
+   ]
   }
  }
 }
