@@ -10,3 +10,4 @@ runner_outputs/
 runner_lora/
 runner_gguf/
 chat_data/
+auth_validation_results.json
