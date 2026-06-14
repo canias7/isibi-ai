@@ -88,11 +88,14 @@ ALIASES: dict[str, str] = {
 }
 
 # --- Universe expansion ------------------------------------------------------
-# Merge every OTHER Composio connector (catalog_connectors.json, built by
-# build_universe_catalog.py) on top of the verbatim 54 above. The 54 stay exactly
-# as hand-curated/prod; everything else is added so the model's catalog can span
-# the whole Composio universe. Safe to ship without the file — then it's just the
-# 54. The 54 always win on any slug collision.
+# Merge every Composio connector (catalog_connectors.json, built by
+# build_universe_catalog.py + rebalance_tools.py) so the catalog spans the whole
+# universe at ~20 balanced tools/app. gmail & outlook are hand-set — preserved
+# verbatim; every other connector (incl. the other originals) takes the
+# rebalanced set. Safe to ship without the file (then it's just the hardcoded 54).
+KEEP_VERBATIM = {"gmail", "outlook"}
+
+
 def _merge_universe() -> int:
     f = Path(__file__).parent / "catalog_connectors.json"
     if not f.exists():
@@ -104,19 +107,24 @@ def _merge_universe() -> int:
     taken = {ALIASES.get(s, s) for s in ALLOWED}
     added = 0
     for slug, info in (data.get("connectors") or {}).items():
-        if slug in ALLOWED:
-            continue  # never override the verbatim 54
+        if slug in KEEP_VERBATIM:
+            continue  # never touch the hand-set gmail/outlook
         tools = info.get("tools") or []
         if not tools:
             continue
-        fid = info.get("frontend_id", slug)
-        if fid != slug and fid in taken:
-            fid = slug  # avoid colliding with an existing frontend id
-        ALLOWED[slug] = tools
-        if fid != slug:
-            ALIASES[slug] = fid
-        taken.add(fid)
-        added += 1
+        if slug in ALLOWED:
+            # an original (not gmail/outlook): KEEP its hand-curated tools, then
+            # top up from the rebalanced set to ~20 — never lose the good picks.
+            ALLOWED[slug] = (ALLOWED[slug] + [t for t in tools if t not in ALLOWED[slug]])[:20]
+        else:                            # new connector — register its id/alias
+            fid = info.get("frontend_id", slug)
+            if fid != slug and fid in taken:
+                fid = slug
+            if fid != slug:
+                ALIASES[slug] = fid
+            taken.add(fid)
+            added += 1
+            ALLOWED[slug] = tools
     return added
 
 

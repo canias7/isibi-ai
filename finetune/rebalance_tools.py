@@ -31,7 +31,7 @@ INDEX = HERE / "connectors" / "index.json"
 READ = ["SEARCH", "LIST", "GET", "FETCH", "FIND", "RETRIEVE", "READ", "QUERY", "DOWNLOAD", "EXPORT", "COUNT"]
 WRITE = ["CREATE", "SEND", "UPDATE", "ADD", "POST", "REPLY", "UPLOAD", "EDIT", "SET",
          "MODIFY", "DELETE", "REMOVE", "MOVE", "CLOSE", "MERGE", "ARCHIVE", "CANCEL", "ASSIGN"]
-CAP = 10
+CAP = 20
 
 
 def cat_of(slug: str) -> str:
@@ -129,10 +129,10 @@ def main() -> None:
     CATALOG.write_text(json.dumps(cat, ensure_ascii=False, indent=1) + "\n")
     SCHEMAS.write_text(json.dumps(schemas, ensure_ascii=False, indent=1) + "\n")
 
-    # backend ALLOWED additions: app connectors beyond the verbatim 54
-    supported = {s for s, t in idx.items() if t.get("supported")}
-    allow = {s: conn[s]["tools"][:8] for s in app_slugs
-             if s in conn and s not in supported and conn[s]["tools"]}
+    # backend ALLOWED additions: every app connector except the hand-set gmail/outlook
+    keep = {"gmail", "outlook"}
+    allow = {s: conn[s]["tools"] for s in app_slugs
+             if s in conn and s not in keep and conn[s]["tools"]}
     ad = json.loads(ALLOW.read_text())
     ad["ALLOWED_additions"] = allow
     ALLOW.write_text(json.dumps(ad, indent=2) + "\n")
