@@ -39,7 +39,25 @@ DATA = HERE / "data"
 # samples toward toolkits that make useful automations.
 # Apps with a real create/send/update tool in ALLOWED (so a workflow can produce
 # an outcome), spread across categories so the dataset isn't all email + chat.
-ACTIONY = [
+# Verbs that mean a tool can produce an outcome (send/create/update/…), so a
+# connector with one can anchor a useful automation.
+_WRITE_VERBS = {
+    "CREATE", "SEND", "UPDATE", "ADD", "POST", "REPLY", "UPLOAD", "EDIT", "SET",
+    "MODIFY", "DELETE", "REMOVE", "MOVE", "CLOSE", "MERGE", "ARCHIVE", "CANCEL",
+    "ASSIGN", "INSERT", "WRITE", "APPEND", "PUBLISH",
+}
+
+
+def _is_actiony(slug: str) -> bool:
+    return any(p in _WRITE_VERBS for t in tools_for(slug) for p in t.split("_")[1:])
+
+
+# Hand-picked core (kept readable, spread across categories) + EVERY other
+# connector in ALLOWED that can take an action. Primaries are sampled from this,
+# so the builder learns to author across the whole 826-connector universe — not
+# just the original core. (The existing core-heavy data keeps the common apps
+# dense; this just adds the long tail.)
+_CORE_ACTIONY = [
     # messaging
     "gmail", "outlook", "slack", "telegram",
     # project / tasks
@@ -51,6 +69,7 @@ ACTIONY = [
     # social
     "linkedin", "twitter", "youtube", "spotify", "instagram",
 ]
+ACTIONY = list(dict.fromkeys(_CORE_ACTIONY + [s for s in ALLOWED if _is_actiony(s)]))
 
 SYSTEM = (
     "You are the Go Farther workflow builder. The user describes an automation; "
