@@ -76,17 +76,24 @@ def execute(tool: str, user_id: str, key: str):
 def classify(code: int, body: dict) -> str:
     if code == 404:
         return "dead"                         # Tool not found
+    blob = json.dumps(body).lower()
+    # "needs args" — the tool ran but rejected our empty arguments. This is a
+    # WORKING tool (keep); we just didn't supply its required params. Composio
+    # returns these as 200 successful=false OR 400 with a missing-fields message.
+    needs_args = any(s in blob for s in (
+        "fields are missing", "missing required", "invalid request data",
+        "is required", "reason\": \"required", "missing summary", "required field"))
     if code == 200:
-        # Composio wraps tool errors in 200 sometimes — check successful flag
         ok = body.get("successful", body.get("success"))
         if ok is False:
-            return "runtime_error"
+            return "needs_args" if needs_args else "runtime_error"
         return "works"
     if code == 400:
-        msg = json.dumps(body).lower()
-        if "no connected account" in msg or "connectednotfound" in msg or "1810" in msg:
+        if "no connected account" in blob or "connectednotfound" in blob or "1810" in blob:
             return "no_connection"            # user didn't connect this app
-        return "needs_args"                   # exists, empty-args rejected (read tool that needs a param)
+        if needs_args:
+            return "needs_args"
+        return "runtime_error"                # real arg-independent 400 (suspect)
     return f"err_{code}"
 
 
