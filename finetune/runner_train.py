@@ -14,10 +14,13 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from datasets import load_dataset
-from trl import SFTConfig, SFTTrainer
+# Unsloth must be imported BEFORE trl/transformers so its patches apply (the
+# trl-0.24 SFTTrainer fix); otherwise the '<EOS_TOKEN>' sentinel can leak through.
 from unsloth import FastLanguageModel
 from unsloth.chat_templates import train_on_responses_only
+
+from datasets import load_dataset
+from trl import SFTConfig, SFTTrainer
 
 HERE = Path(__file__).parent
 
@@ -52,13 +55,13 @@ def main() -> None:
     ds = ds.map(to_text(tok))
 
     trainer = SFTTrainer(
-        model=model, tokenizer=tok, train_dataset=ds,
+        model=model, processing_class=tok, train_dataset=ds,
         args=SFTConfig(
             per_device_train_batch_size=BATCH, gradient_accumulation_steps=GRAD_ACCUM,
             warmup_steps=5, num_train_epochs=EPOCHS, learning_rate=2e-4,
             logging_steps=5, optim="adamw_8bit", weight_decay=0.01,
             lr_scheduler_type="linear", seed=3407, output_dir=str(HERE / "runner_outputs"),
-            max_seq_length=MAX_SEQ, dataset_text_field="text", report_to="none",
+            max_length=MAX_SEQ, dataset_text_field="text", report_to="none",
         ),
     )
     # Train only on assistant turns (tool calls + final) — mask user/tool turns.
