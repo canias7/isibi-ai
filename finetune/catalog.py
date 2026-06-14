@@ -130,6 +130,35 @@ def _merge_universe() -> int:
 
 UNIVERSE_ADDED = _merge_universe()
 
+
+# --- Drop tools that don't actually execute (404 on Composio's execute endpoint),
+# validated by finetune/validate_tools.py -> broken_tools.json. gmail/outlook are
+# left as hand-set; every other connector loses its dead tools, and one left with
+# none is removed entirely (e.g. linkedin/zoho/square turned out fully dead).
+def _drop_broken() -> int:
+    f = Path(__file__).parent / "broken_tools.json"
+    if not f.exists():
+        return 0
+    try:
+        broken = set(json.loads(f.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return 0
+    removed = 0
+    for slug in list(ALLOWED):
+        if slug in KEEP_VERBATIM:
+            continue
+        kept = [t for t in ALLOWED[slug] if t not in broken]
+        if kept:
+            ALLOWED[slug] = kept
+        else:
+            del ALLOWED[slug]
+            ALIASES.pop(slug, None)
+            removed += 1
+    return removed
+
+
+BROKEN_REMOVED = _drop_broken()
+
 # Always-available built-in tools (no connector). In a graph these are reached
 # through an 'ai' node whose detail names the action; listed here so generated
 # requests/instructions can reference them realistically.
