@@ -369,3 +369,6 @@ input, textarea { caret-color: var(--brand); }
 }
 .msg.assistant .bubble { max-width: 100%; }
 
+/* Inline brand SVGs (BrandLogo) scale to fill their sized wrapper. */
+.gf-brandsvg svg { width: 100%; height: 100%; display: block; }
+
