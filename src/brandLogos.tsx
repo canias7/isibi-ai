@@ -3,7 +3,9 @@
    BrandLogo component; the rule is a dev-only Fast Refresh hint, not correctness. */
 // Inline brand glyphs (from simple-icons) so app logos never depend on an external
 // CDN — the native webview wasn't loading remote images. Keyed by connector id.
-import { BRAND_SVGS } from './brandSvgs';
+import { useEffect, useState } from 'react';
+import { BRAND_SVG_IDS } from './brandSvgKeys';
+import { cachedBrandSvg, loadBrandSvgs } from './brandSvgLoad';
 
 type Brand = { path: string; color: string };
 export const BRANDS: Record<string, Brand> = {
@@ -218,15 +220,23 @@ export function BrandLogo({ app, size = 22 }: { app: string; size?: number }) {
       </svg>
     );
   }
-  // Full multi-color SVG (Composio), bundled inline so the native webview renders
-  // it. Sized by the wrapper; the inner svg fills it (see .gf-brandsvg in CSS).
-  const svg = BRAND_SVGS[app];
-  if (svg) {
-    return (
-      <span className="gf-brandsvg" aria-hidden="true"
-        style={{ width: size, height: size, display: 'inline-block', lineHeight: 0 }}
-        dangerouslySetInnerHTML={{ __html: svg }} />
-    );
-  }
-  return null;
+  return BRAND_SVG_IDS.has(app) ? <LazyBrandSvg app={app} size={size} /> : null;
+}
+
+// Full multi-color Composio SVG, loaded from the lazy chunk on first use (cached
+// after). Renders nothing until loaded; the inner svg fills the box (.gf-brandsvg).
+function LazyBrandSvg({ app, size }: { app: string; size: number }) {
+  const [svg, setSvg] = useState<string | undefined>(() => cachedBrandSvg(app));
+  useEffect(() => {
+    if (svg) return;
+    let live = true;
+    void loadBrandSvgs().then((m) => { if (live) setSvg(m[app]); });
+    return () => { live = false; };
+  }, [app, svg]);
+  if (!svg) return <span aria-hidden="true" style={{ width: size, height: size, display: 'inline-block' }} />;
+  return (
+    <span className="gf-brandsvg" aria-hidden="true"
+      style={{ width: size, height: size, display: 'inline-block', lineHeight: 0 }}
+      dangerouslySetInnerHTML={{ __html: svg }} />
+  );
 }
