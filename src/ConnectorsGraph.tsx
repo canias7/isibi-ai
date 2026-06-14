@@ -96,7 +96,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const [detail, setDetail] = useState<Connector | null>(null); // tapped app -> tools/disconnect sheet
   const [manage, setManage] = useState<Connector | null>(null); // ToolManager open
   const [pickQuery, setPickQuery] = useState('');       // connect-picker search
-  const [pickSort, setPickSort] = useState<'rec' | 'az' | 'easy'>('rec'); // connect-picker sort order
+  const [pickSort, setPickSort] = useState<'pop' | 'az'>('pop'); // connect-picker sort order
   const [keyFor, setKeyFor] = useState<Connector | null>(null); // API-key / keyless connect sheet
   const [keyVal, setKeyVal] = useState('');
   const [keyBusy, setKeyBusy] = useState(false);
@@ -752,7 +752,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
           <input className="cg-pick-search" value={pickQuery} onChange={(e) => setPickQuery(e.target.value)}
             placeholder="Search apps…" aria-label="Search apps" autoComplete="off" autoCapitalize="off" spellCheck={false} />
           <div className="cg-sort" role="group" aria-label="Sort apps">
-            {([['rec', 'Recommended'], ['az', 'A–Z'], ['easy', 'Easiest']] as const).map(([k, label]) => (
+            {([['pop', 'Most popular'], ['az', 'A–Z']] as const).map(([k, label]) => (
               <button key={k} type="button" className={`cg-sort-btn${pickSort === k ? ' active' : ''}`}
                 aria-pressed={pickSort === k} onClick={() => setPickSort(k)}>{label}</button>
             ))}
@@ -764,15 +764,10 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
               if (!filtered.length) {
                 return <div className="cg-pick-empty">{q ? 'No apps match that.' : "Everything's connected — you're all set."}</div>;
               }
-              // Sort: Recommended = the curated CATALOG order; A–Z = by name; Easiest =
-              // one-click OAuth first, then keyless, then API-key (apps you connect
-              // without pasting a key), name as the tiebreak.
-              const easyRank = (c: Connector) => (c.auth === 'apikey' ? 2 : c.auth === 'keyless' ? 1 : 0);
+              // Sort: Most popular = the curated CATALOG order; A–Z = by name.
               const all = pickSort === 'az'
                 ? [...filtered].sort((a, b) => a.name.localeCompare(b.name))
-                : pickSort === 'easy'
-                  ? [...filtered].sort((a, b) => easyRank(a) - easyRank(b) || a.name.localeCompare(b.name))
-                  : filtered;
+                : filtered;
               // Cap the no-search view so a ~1000-app catalog renders fast; search reveals all.
               const CAP = 80;
               const rows = q ? all : all.slice(0, CAP);
