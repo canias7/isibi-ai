@@ -28,7 +28,9 @@ pip install -r requirements-train.txt
 
 # Data is gitignored — it must already be here (generated with a teacher key, or
 # uploaded). Builder needs data/train.jsonl; runner needs runner_data/train.jsonl.
-DATA="data/train.jsonl"; [ "$SCRIPT" = "runner_train.py" ] && DATA="runner_data/train.jsonl"
+DATA="data/train.jsonl"
+[ "$SCRIPT" = "runner_train.py" ] && DATA="runner_data/train.jsonl"
+[ "$SCRIPT" = "chat_train.py" ] && DATA="chat_data/train.jsonl"
 if [ ! -f "$DATA" ]; then
   echo "!! missing $DATA — generate it first (see CLOUD.md step 2) or scp it up." >&2
   exit 1
