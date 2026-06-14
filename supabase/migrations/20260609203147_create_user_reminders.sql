@@ -1,6 +1,3 @@
--- Per-user reminders: a title + a time, optionally repeating. RLS-scoped to the
--- owner (same shape as user_memory). Scheduled on-device as local notifications;
--- this table is the cross-device source of truth for the list.
 create table if not exists public.user_reminders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
