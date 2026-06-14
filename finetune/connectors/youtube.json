@@ -1,0 +1,1292 @@
+{
+  "slug": "youtube",
+  "name": "YouTube",
+  "tool_count": 50,
+  "tools": [
+    {
+      "slug": "YOUTUBE_ADD_VIDEO_TO_PLAYLIST",
+      "name": "Add Video to Playlist",
+      "description": "Tool to add a video to a playlist by inserting a playlist item. Use when organizing videos into playlists or building curated collections.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "playlistId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "playlistId",
+          "videoId"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_CREATE_CHANNEL_SECTION",
+      "name": "Insert Channel Section",
+      "description": "Tool to create a new channel section for the authenticated user's YouTube channel. Use when organizing channel content into sections like f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "snippet": {
+            "type": "object"
+          },
+          "contentDetails": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "snippet"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_CREATE_COMMENT_REPLY",
+      "name": "Insert Comment Reply",
+      "description": "Tool to create a reply to an existing YouTube comment. Use when responding to user comments or engaging in conversations on videos.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "parentId": {
+            "type": "string"
+          },
+          "textOriginal": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "parentId",
+          "textOriginal"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_CREATE_PLAYLIST",
+      "name": "Create Playlist",
+      "description": "Tool to create a new YouTube playlist on the authenticated user's channel. Use when organizing videos into collections or building curated …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "privacyStatus": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private",
+              "unlisted"
+            ]
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_DELETE_CHANNEL_SECTION",
+      "name": "Delete Channel Section",
+      "description": "Tool to delete a YouTube channel section. Use when you need to remove a channel section from a channel. The channel section must exist and …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "onBehalfOfContentOwner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_DELETE_COMMENT",
+      "name": "Delete Comment",
+      "description": "Tool to delete a YouTube comment owned by the authenticated user or channel. Use when you need to remove a comment from a video. The commen…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_DELETE_PLAYLIST",
+      "name": "Delete Playlist",
+      "description": "Tool to delete a YouTube playlist owned by the authenticated user/channel. Use when you need to permanently remove a playlist from YouTube.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "confirmDelete": {
+            "type": "boolean"
+          },
+          "onBehalfOfContentOwner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "confirmDelete"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_DELETE_PLAYLIST_ITEM",
+      "name": "Delete Playlist Item",
+      "description": "Tool to delete a playlist item (remove a video from a playlist). Use when removing specific videos from playlists.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_DELETE_VIDEO",
+      "name": "Delete Video",
+      "description": "Tool to delete a YouTube video owned by the authenticated user/channel. Use when you need to permanently remove a video from YouTube. Requi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string"
+          },
+          "confirmDelete": {
+            "type": "boolean"
+          },
+          "onBehalfOfContentOwner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "videoId",
+          "confirmDelete"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_GET_CHANNEL_ACTIVITIES",
+      "name": "Get Channel Activities",
+      "description": "Gets recent activities from a YouTube channel including video uploads, playlist additions, likes, and other channel events.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "part": {
+            "type": "string"
+          },
+          "channelId": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "publishedAfter": {
+            "type": "string"
+          },
+          "publishedBefore": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channelId"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_GET_CHANNEL_ID_BY_HANDLE",
+      "name": "Get channel ID by handle",
+      "description": "Retrieves the YouTube Channel ID for a specific YouTube channel handle.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "channel_handle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_handle"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_GET_CHANNEL_STATISTICS",
+      "name": "Get Channel Statistics",
+      "description": "Gets detailed statistics for YouTube channels including subscriber counts, view counts, and video counts. Channels can be identified using …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "mine": {
+            "type": "boolean"
+          },
+          "part": {
+            "type": "string"
+          },
+          "forHandle": {
+            "type": "string"
+          },
+          "forUsername": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "YOUTUBE_GET_VIDEO_DETAILS_BATCH",
+      "name": "Video Details Batch",
+      "description": "Retrieves multiple YouTube video resource parts in a single batch call. Use when you need cohort-level metrics for many videos to reduce qu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "hl": {
+            "type": "string"
+          },
+          "id": {
+            "type": "array"
+          },
+          "parts": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_GET_VIDEO_RATING",
+      "name": "Get Video Rating",
+      "description": "Retrieves the ratings that the authorized user gave to a list of specified videos. Use when you need to check if a user has liked or dislik…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "onBehalfOfContentOwner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_CAPTION_TRACK",
+      "name": "List captions",
+      "description": "Retrieves a list of caption tracks for a YouTube video. Returns an empty items list if no captions are available. Raises ExecutionFailed if…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "part": {
+            "type": "string"
+          },
+          "video_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "video_id"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_CHANNEL_SECTIONS",
+      "name": "List Channel Sections",
+      "description": "Tool to retrieve channel sections from YouTube. Use when you need to get the layout sections of a channel's homepage. Channel sections orga…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "hl": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mine": {
+            "type": "boolean"
+          },
+          "part": {
+            "type": "string"
+          },
+          "channelId": {
+            "type": "string"
+          },
+          "onBehalfOfContentOwner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "part"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_CHANNEL_VIDEOS",
+      "name": "List channel videos",
+      "description": "Lists videos from a specified YouTube channel. This action primarily uses the playlistItems.list endpoint with the channel's uploads playli…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "mine": {
+            "type": "boolean"
+          },
+          "part": {
+            "type": "string"
+          },
+          "channelId": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_COMMENTS",
+      "name": "List Comments",
+      "description": "List individual comments from YouTube videos. Returns comment details including author, text, timestamps, and engagement metrics. Use 'id' …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "textFormat": {
+            "type": "string",
+            "enum": [
+              "html",
+              "plainText"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_COMMENT_THREADS",
+      "name": "List Comment Threads (Deprecated)",
+      "description": "DEPRECATED: Use YOUTUBE_LIST_COMMENT_THREADS2 instead. List comment threads from YouTube videos or channels for qualitative analysis and re…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "order": {
+            "type": "string",
+            "enum": [
+              "time",
+              "relevance"
+            ]
+          },
+          "videoId": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "textFormat": {
+            "type": "string",
+            "enum": [
+              "html",
+              "plainText"
+            ]
+          },
+          "searchTerms": {
+            "type": "string"
+          },
+          "allThreadsRelatedToChannelId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_COMMENT_THREADS2",
+      "name": "List Comment Threads",
+      "description": "Tool to retrieve comment threads from YouTube videos or channels matching API request parameters. Use when you need to fetch comments with …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "order": {
+            "type": "string",
+            "enum": [
+              "relevance",
+              "time"
+            ]
+          },
+          "videoId": {
+            "type": "string"
+          },
+          "channelId": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "textFormat": {
+            "type": "string",
+            "enum": [
+              "html",
+              "plainText"
+            ]
+          },
+          "searchTerms": {
+            "type": "string"
+          },
+          "moderationStatus": {
+            "type": "string",
+            "enum": [
+              "heldForReview",
+              "likelySpam",
+              "published"
+            ]
+          },
+          "allThreadsRelatedToChannelId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "part"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_I18N_LANGUAGES",
+      "name": "List I18n Languages",
+      "description": "Returns a list of application languages that the YouTube website supports. Use this when you need to retrieve all available language option…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "hl": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_I18N_REGIONS",
+      "name": "List I18n Regions",
+      "description": "Tool to retrieve a list of content regions that the YouTube website supports. Returns region codes (ISO 3166-1 alpha-2) and localized regio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "hl": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_LIVE_CHAT_MESSAGES",
+      "name": "List Live Chat Messages",
+      "description": "Tool to list live chat messages for a specific chat. Use for monitoring live chat during broadcasts or retrieving chat history. Returns mes…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "hl": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "liveChatId": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "profileImageSize": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "liveChatId"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_MOST_POPULAR_VIDEOS",
+      "name": "List Most Popular Videos",
+      "description": "DEPRECATED: Use YOUTUBE_UPDATE_VIDEO instead. Tool to list the current most-popular (charts/trending) YouTube videos for a region and/or ca…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "part": {
+            "type": "string"
+          },
+          "chart": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "regionCode": {
+            "type": "string"
+          },
+          "videoCategoryId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_PLAYLIST_IMAGES",
+      "name": "List Playlist Images",
+      "description": "Tool to retrieve playlist images associated with a specific playlist. Use when fetching custom thumbnail images for playlists.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "onBehalfOfContentOwner": {
+            "type": "string"
+          },
+          "onBehalfOfContentOwnerChannel": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_PLAYLIST_ITEMS",
+      "name": "List Playlist Items",
+      "description": "Tool to list videos in a playlist, with pagination support. Use when walking through a channel's uploads playlist to enumerate all videos.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "part": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "videoId": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "playlistId": {
+            "type": "string"
+          },
+          "onBehalfOfContentOwner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "playlistId"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_SUPER_CHAT_EVENTS",
+      "name": "List Super Chat Events",
+      "description": "Lists Super Chat events for a channel, showing supporter purchases during live streams. Returns Super Chat and Super Sticker events from th…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "hl": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_USER_PLAYLISTS",
+      "name": "List user playlists",
+      "description": "Retrieves playlists owned by the authenticated user, implicitly using mine=True.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "part": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_USER_SUBSCRIPTIONS",
+      "name": "List user subscriptions",
+      "description": "Retrieves the authenticated user's YouTube channel subscriptions, allowing specification of response parts and pagination.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "part": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_VIDEO_ABUSE_REPORT_REASONS",
+      "name": "List Video Abuse Report Reasons",
+      "description": "Tool to retrieve a list of abuse report reasons that can be used to report abusive videos on YouTube. Use when you need to display availabl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "hl": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "YOUTUBE_LIST_VIDEO_CATEGORIES",
+      "name": "List Video Categories",
+      "description": "Tool to list YouTube video categories that can be associated with videos. Use when you need to retrieve available video categories for a sp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "hl": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "regionCode": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "YOUTUBE_LOAD_CAPTIONS",
+      "name": "Download YouTube caption track",
+      "description": "Downloads a specific YouTube caption track, which must be owned by the authenticated user, and returns its content as text. Note: This acti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tfmt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_MARK_COMMENT_AS_SPAM",
+      "name": "Mark Comment as Spam",
+      "description": "Tool to mark one or more YouTube comments as spam. Use when moderating comments to flag spam content. Note: This endpoint is deprecated but…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_MULTIPART_UPLOAD_VIDEO",
+      "name": "Multipart upload video",
+      "description": "Uploads a video to YouTube using multipart upload in a single request. Use when you want to upload both metadata and video file together. T…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "videoFile": {
+            "type": "object"
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "privacyStatus": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "description",
+          "categoryId",
+          "privacyStatus",
+          "videoFile"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_POST_COMMENT",
+      "name": "Post Comment on Video",
+      "description": "Tool to post a new top-level comment on a YouTube video. Use when creating comments to engage with video content or respond to user request…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string"
+          },
+          "channelId": {
+            "type": "string"
+          },
+          "textOriginal": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "videoId",
+          "channelId",
+          "textOriginal"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_RATE_VIDEO",
+      "name": "Rate Video",
+      "description": "Tool to add a like or dislike rating to a YouTube video, or remove an existing rating. Use when you need to rate videos on behalf of the au…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "string",
+            "enum": [
+              "like",
+              "dislike",
+              "none"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "rating"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_REPORT_VIDEO_ABUSE",
+      "name": "Report Video for Abuse",
+      "description": "Tool to report a YouTube video for containing abusive content. Use when you need to flag videos that violate YouTube's community guidelines…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string"
+          },
+          "comments": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "reasonId": {
+            "type": "string",
+            "enum": [
+              "N",
+              "V",
+              "C",
+              "M",
+              "E",
+              "H"
+            ]
+          },
+          "secondaryReasonId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "videoId",
+          "reasonId"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_SEARCH_YOU_TUBE",
+      "name": "Search YouTube",
+      "description": "Searches YouTube for videos, channels, or playlists using a query term, returning the raw API response.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "order": {
+            "type": "string",
+            "enum": [
+              "date",
+              "rating",
+              "relevance",
+              "title",
+              "videoCount",
+              "viewCount"
+            ]
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "regionCode": {
+            "type": "string"
+          },
+          "publishedAfter": {
+            "type": "string"
+          },
+          "publishedBefore": {
+            "type": "string"
+          },
+          "relevanceLanguage": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_SET_COMMENT_MODERATION_STATUS",
+      "name": "Set Comment Moderation Status",
+      "description": "Tool to set the moderation status of one or more YouTube comments. Use when moderating comments to hold for review, publish, or reject them…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "banAuthor": {
+            "type": "boolean"
+          },
+          "moderationStatus": {
+            "type": "string",
+            "enum": [
+              "heldForReview",
+              "published",
+              "rejected"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "moderationStatus"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_SUBSCRIBE_CHANNEL",
+      "name": "Subscribe to channel",
+      "description": "Subscribes the authenticated user to a specified YouTube channel, identified by its unique `channelId` which must be valid and existing.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channelId"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_UNSUBSCRIBE_CHANNEL",
+      "name": "Unsubscribe from channel",
+      "description": "Tool to unsubscribe the authenticated user from a YouTube channel by deleting a subscription. Use when you need to remove an existing subsc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "subscriptionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subscriptionId"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_UPDATE_CAPTION",
+      "name": "Update caption track",
+      "description": "Updates a YouTube caption track's metadata such as name, language, or draft status. Use this to modify existing caption track properties wi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "snippet": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "snippet"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_UPDATE_CHANNEL",
+      "name": "Update channel",
+      "description": "Updates a channel's metadata including branding settings and localizations. Only brandingSettings, invideoPromotion, and localizations prop…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "localizations": {
+            "type": "object"
+          },
+          "brandingSettings": {
+            "type": "object"
+          },
+          "invideoPromotion": {
+            "type": "object"
+          },
+          "onBehalfOfContentOwner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_UPDATE_CHANNEL_SECTION",
+      "name": "Update Channel Section",
+      "description": "Tool to update an existing YouTube channel section by ID. Use when modifying section properties like title, position, or featured content.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "snippet": {
+            "type": "object"
+          },
+          "contentDetails": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_UPDATE_COMMENT",
+      "name": "Update Comment",
+      "description": "Tool to modify the text of an existing YouTube comment. Use when updating or correcting a previously posted comment.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "textOriginal": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "textOriginal"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_UPDATE_PLAYLIST",
+      "name": "Update Playlist",
+      "description": "Tool to modify an existing YouTube playlist's metadata (title, description, privacy status). Use when updating playlist information for the…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "status": {
+            "type": "object"
+          },
+          "snippet": {
+            "type": "object"
+          },
+          "onBehalfOfContentOwner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "snippet"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_UPDATE_PLAYLIST_ITEM",
+      "name": "Update Playlist Item",
+      "description": "Tool to modify a playlist item's properties such as position or note. Use when reordering videos in a playlist or updating item metadata.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "status": {
+            "type": "object"
+          },
+          "snippet": {
+            "type": "object"
+          },
+          "contentDetails": {
+            "type": "object"
+          },
+          "onBehalfOfContentOwner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "snippet"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_UPDATE_THUMBNAIL",
+      "name": "Update thumbnail",
+      "description": "Sets the custom thumbnail for a YouTube video using an image from a URL. Requirements: - The authenticated user must own the video or have …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string"
+          },
+          "thumbnailUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "videoId",
+          "thumbnailUrl"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_UPDATE_VIDEO",
+      "name": "Update video",
+      "description": "Updates metadata for a YouTube video identified by videoId, which must exist; an empty list for tags removes all existing tags.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "video_id": {
+            "type": "string"
+          },
+          "category_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "privacy_status": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private",
+              "unlisted"
+            ]
+          },
+          "composio_execution_message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "video_id"
+        ]
+      }
+    },
+    {
+      "slug": "YOUTUBE_UPLOAD_VIDEO",
+      "name": "Upload video",
+      "description": "Uploads a video from a local file path to a YouTube channel; the video file must be in a YouTube-supported format.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "privacyStatus": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private",
+              "unlisted"
+            ]
+          },
+          "videoFilePath": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "title",
+          "description",
+          "tags",
+          "categoryId",
+          "privacyStatus",
+          "videoFilePath"
+        ]
+      }
+    }
+  ]
+}

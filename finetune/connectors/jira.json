@@ -1,0 +1,2495 @@
+{
+  "slug": "jira",
+  "name": "Jira",
+  "tool_count": 97,
+  "tools": [
+    {
+      "slug": "JIRA_ADD_ATTACHMENT",
+      "name": "Add Attachment",
+      "description": "Uploads and attaches a file to a Jira issue.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "issue_key": {
+            "type": "string"
+          },
+          "file_to_upload": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "issue_key",
+          "file_to_upload"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_ADD_COMMENT",
+      "name": "Add Comment",
+      "description": "Adds a comment using Atlassian Document Format (ADF) for rich text to an existing Jira issue.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          },
+          "visibility_type": {
+            "type": "string"
+          },
+          "visibility_value": {
+            "type": "string"
+          },
+          "additional_properties": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "issue_id_or_key",
+          "comment"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_ADD_USERS_TO_PROJECT_ROLE",
+      "name": "Add Users to Project Role",
+      "description": "Adds users and optionally groups to a project role.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "role_id": {
+            "type": "integer"
+          },
+          "group_names": {
+            "type": "array"
+          },
+          "user_account_ids": {
+            "type": "array"
+          },
+          "project_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id_or_key",
+          "role_id",
+          "user_account_ids"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_ADD_USER_TO_GROUP",
+      "name": "Add User to Group",
+      "description": "Adds a user to a Jira group.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "group_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_ADD_WATCHER_TO_ISSUE",
+      "name": "Add Watcher to Issue",
+      "description": "Adds a user to an issue's watcher list by account ID. Requires the authenticated user to have permission to view the issue and manage watch…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key",
+          "account_id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_ADD_WORKLOG",
+      "name": "Add Worklog",
+      "description": "Tool to add a worklog entry to a Jira issue. Use when logging time spent on an issue.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "comment": {
+            "type": "object"
+          },
+          "started": {
+            "type": "string"
+          },
+          "reduce_by": {
+            "type": "string"
+          },
+          "time_spent": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "object"
+          },
+          "new_estimate": {
+            "type": "string"
+          },
+          "notify_users": {
+            "type": "boolean"
+          },
+          "adjust_estimate": {
+            "type": "string",
+            "enum": [
+              "new",
+              "leave",
+              "manual",
+              "auto"
+            ]
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          },
+          "time_spent_seconds": {
+            "type": "integer"
+          },
+          "override_editable_flag": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "issue_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_ANALYSE_EXPRESSION",
+      "name": "Analyse Jira Expression",
+      "description": "Analyses Jira expressions for syntax validation, type checking, and complexity analysis. Use when you need to validate Jira expression synt…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "check": {
+            "type": "string",
+            "enum": [
+              "syntax",
+              "type",
+              "complexity"
+            ]
+          },
+          "expressions": {
+            "type": "array"
+          },
+          "context_variables": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "expressions"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_ASSIGN_ISSUE",
+      "name": "Assign Issue",
+      "description": "Assigns a Jira issue to a user, default assignee, or unassigns; supports email/name lookup.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string"
+          },
+          "assignee_name": {
+            "type": "string"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_BULK_CREATE_ISSUE",
+      "name": "Bulk Create Issues",
+      "description": "Creates multiple Jira issues (up to 50 per call) with full feature support including markdown, assignee resolution, and priority handling.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "issues": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "issues"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_CHECK_PERMISSIONS",
+      "name": "Check User Permissions",
+      "description": "Check user permissions for global and project-level operations in Jira. Use this action to verify whether a user has specific permissions a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string"
+          },
+          "global_permissions": {
+            "type": "array"
+          },
+          "project_permissions": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_CREATE_GROUP",
+      "name": "Create Group",
+      "description": "Creates a new group in Jira with the specified name.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_CREATE_ISSUE",
+      "name": "Create Issue",
+      "description": "Creates a new Jira issue (e.g., bug, task, story) in a specified project. IMPORTANT: Different Jira projects may have custom required field…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "labels": {
+            "type": "array"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "reporter": {
+            "type": "string"
+          },
+          "versions": {
+            "type": "array"
+          },
+          "sprint_id": {
+            "type": "integer"
+          },
+          "components": {
+            "type": "array"
+          },
+          "issue_type": {
+            "type": "string"
+          },
+          "description": {},
+          "environment": {},
+          "project_key": {
+            "type": "string"
+          },
+          "fix_versions": {
+            "type": "array"
+          },
+          "assignee_name": {
+            "type": "string"
+          },
+          "additional_properties": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_key",
+          "summary",
+          "issue_type"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_CREATE_ISSUE_LINK",
+      "name": "Link Issues",
+      "description": "Links two Jira issues using a specified link type with optional comment.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string"
+          },
+          "link_type": {
+            "type": "string"
+          },
+          "inward_issue_key": {
+            "type": "string"
+          },
+          "outward_issue_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "inward_issue_key",
+          "outward_issue_key",
+          "link_type"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_CREATE_JQL_AUTOCOMPLETEDATA",
+      "name": "Get JQL Autocomplete Data",
+      "description": "Retrieves JQL autocomplete reference data including reserved words, field names, and function names. Use when building JQL query editors or…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project_ids": {
+            "type": "array"
+          },
+          "include_collapsed_fields": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_CREATE_PROJECT",
+      "name": "Create Project",
+      "description": "Creates a new Jira project with required lead, template, and type configuration.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar_id": {
+            "type": "integer"
+          },
+          "category_id": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "assignee_type": {
+            "type": "string",
+            "enum": [
+              "PROJECT_LEAD",
+              "UNASSIGNED"
+            ]
+          },
+          "lead_account_id": {
+            "type": "string"
+          },
+          "project_type_key": {
+            "type": "string",
+            "enum": [
+              "business",
+              "software",
+              "service_desk"
+            ]
+          },
+          "permission_scheme": {
+            "type": "integer"
+          },
+          "notification_scheme": {
+            "type": "integer"
+          },
+          "project_template_key": {
+            "type": "string"
+          },
+          "additional_properties": {
+            "type": "object"
+          },
+          "issue_security_scheme": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "project_type_key",
+          "project_template_key",
+          "lead_account_id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_CREATE_SPRINT",
+      "name": "Create Sprint",
+      "description": "Creates a new sprint on a Jira board with optional start/end dates and goal.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "goal": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "end_date": {
+            "type": "string"
+          },
+          "start_date": {
+            "type": "string"
+          },
+          "origin_board_id": {
+            "type": "integer"
+          },
+          "additional_properties": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "name",
+          "origin_board_id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_CREATE_VERSION",
+      "name": "Create Version",
+      "description": "Creates a new version for releases or milestones in a Jira project.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "released": {
+            "type": "boolean"
+          },
+          "projectId": {
+            "type": "integer"
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "releaseDate": {
+            "type": "string"
+          },
+          "additional_properties": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "name",
+          "projectId"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_DELETE_COMMENT",
+      "name": "Delete Comment",
+      "description": "Deletes a specific comment from a Jira issue using its ID and the issue's ID/key; requires user permission to delete comments on the issue.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "issueIdOrKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issueIdOrKey",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_DELETE_ISSUE",
+      "name": "Delete Issue",
+      "description": "Permanently and irreversibly deletes a Jira issue by its ID or key. Obtain explicit user confirmation before calling.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "delete_subtasks": {
+            "type": "boolean"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_DELETE_VERSION",
+      "name": "Delete Version",
+      "description": "Deletes a Jira version and optionally reassigns its issues.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "version_id": {
+            "type": "string"
+          },
+          "move_fix_issues_to": {
+            "type": "string"
+          },
+          "move_affected_issues_to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version_id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_DELETE_WORKLOG",
+      "name": "Delete Worklog",
+      "description": "Deletes a worklog from a Jira issue with estimate adjustment options.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "worklog_id": {
+            "type": "string"
+          },
+          "increase_by": {
+            "type": "string"
+          },
+          "new_estimate": {
+            "type": "string"
+          },
+          "notify_users": {
+            "type": "boolean"
+          },
+          "adjust_estimate": {
+            "type": "string",
+            "enum": [
+              "new",
+              "leave",
+              "manual",
+              "auto"
+            ]
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          },
+          "override_editable_flag": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "issue_id_or_key",
+          "worklog_id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_EDIT_ISSUE",
+      "name": "Edit Issue",
+      "description": "Updates an existing Jira issue with field values and operations. Supports direct field parameters (summary, description, assignee, priority…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "labels": {
+            "type": "array"
+          },
+          "update": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "notify_users": {
+            "type": "boolean"
+          },
+          "return_issue": {
+            "type": "boolean"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          },
+          "sprint_id_or_name": {
+            "type": "string"
+          },
+          "priority_id_or_name": {
+            "type": "string"
+          },
+          "additional_properties": {
+            "type": "object"
+          },
+          "override_editable_flag": {
+            "type": "boolean"
+          },
+          "override_screen_security": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "issue_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_EVALUATE_JIRA_EXPRESSION",
+      "name": "Evaluate Jira Expression",
+      "description": "Tool to evaluate Jira expressions using the enhanced search API. Use when you need to extract or transform data from Jira using Jira expres…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "context": {
+            "type": "object"
+          },
+          "expression": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expression"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_FETCH_BULK_ISSUES",
+      "name": "Bulk Fetch Issues",
+      "description": "Tool to bulk fetch multiple Jira issues by their IDs or keys (max 100 per call). Use when you need to retrieve details for multiple issues …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "array"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "properties": {
+            "type": "array"
+          },
+          "fieldsByKeys": {
+            "type": "boolean"
+          },
+          "issueIdsOrKeys": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "issueIdsOrKeys"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_FIND_USERS",
+      "name": "Find Users (Deprecated)",
+      "description": "DEPRECATED: Use JIRA_FIND_USERS2 instead. Searches for Jira users by email or display name to find account IDs; essential for assigning iss…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "start_at": {
+            "type": "integer"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_FIND_USERS2",
+      "name": "Find Users 2",
+      "description": "Tool to find users in Jira by query string, account ID, or property search. Use when you need to search for users to assign to issues, add …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "startAt": {
+            "type": "integer"
+          },
+          "property": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_FIND_USERS_FOR_PICKER",
+      "name": "Find Users For Picker",
+      "description": "Find users for picker components by matching query against user attributes like display name and email.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "avatarSize": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "showAvatar": {
+            "type": "boolean"
+          },
+          "excludeAccountIds": {
+            "type": "array"
+          },
+          "excludeConnectUsers": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_ALL_GROUPS",
+      "name": "Get All Groups",
+      "description": "Retrieves all groups from the Jira instance with pagination support. Useful for resolving correct group names or IDs before passing them to…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "start_at": {
+            "type": "integer"
+          },
+          "max_results": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_ALL_ISSUE_TYPE_SCHEMES",
+      "name": "Get All Issue Type Schemes",
+      "description": "Retrieves all Jira issue type schemes with optional filtering and pagination.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "array"
+          },
+          "start_at": {
+            "type": "integer"
+          },
+          "max_results": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_ALL_PROJECTS",
+      "name": "Get all projects",
+      "description": "Retrieves all visible projects using the modern paginated Jira API with server-side filtering and pagination support. Results reflect only …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "view",
+              "browse",
+              "edit",
+              "create"
+            ]
+          },
+          "expand": {
+            "type": "string"
+          },
+          "status": {
+            "type": "array"
+          },
+          "orderBy": {
+            "type": "string"
+          },
+          "startAt": {
+            "type": "integer"
+          },
+          "categoryId": {
+            "type": "integer"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "properties": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_ALL_STATUSES",
+      "name": "Get Issue Statuses",
+      "description": "Retrieves all issue statuses associated with workflows from Jira. Returns global statuses that may not be valid for every project or workfl…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JIRA_GET_ALL_USERS",
+      "name": "Get All Users",
+      "description": "Retrieves all users from the Jira instance including active, inactive, app accounts, and system accounts, with pagination support. On Jira …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "start_at": {
+            "type": "integer"
+          },
+          "max_results": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_ATTACHMENT",
+      "name": "Get Attachment",
+      "description": "Retrieves the binary content of a Jira attachment by ID. Use when you need to download a specific file attached to an issue.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_name": {
+            "type": "string"
+          },
+          "attachment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "attachment_id",
+          "file_name"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_ATTACHMENT_META",
+      "name": "Get Attachment Meta",
+      "description": "Tool to retrieve Jira attachment settings including upload limits and enabled status. Use when you need to check if attachments are enabled…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JIRA_GET_COMMENT",
+      "name": "Get Comment",
+      "description": "Retrieves a specific comment by ID from a Jira issue with optional expansions.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "comment_id": {
+            "type": "string"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key",
+          "comment_id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_COMPONENTS",
+      "name": "Get Component",
+      "description": "Tool to retrieve components from Jira projects with search and filtering. Use when you need to list or find components across projects, opt…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "orderBy": {
+            "type": "string",
+            "enum": [
+              "description",
+              "-description",
+              "+description",
+              "name",
+              "-name",
+              "+name"
+            ]
+          },
+          "startAt": {
+            "type": "integer"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "projectIdsOrKeys": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_CREATE_METADATA_ISSUE_TYPE_FIELDS",
+      "name": "Get Create Field Metadata for Issue Type",
+      "description": "Tool to retrieve field metadata for a specific issue type in a project. Use this to discover required fields, allowed values, and field con…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "startAt": {
+            "type": "integer"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "issueTypeId": {
+            "type": "string"
+          },
+          "projectIdOrKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectIdOrKey",
+          "issueTypeId"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_CURRENT_USER",
+      "name": "Get Current User",
+      "description": "Retrieves detailed information about the currently authenticated Jira user. The returned `accountId` is the correct identifier for fields l…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_DASHBOARDS",
+      "name": "Get Dashboards",
+      "description": "Tool to list and search Jira dashboards visible to the current user. Use when you need to discover available dashboards, filter by ownershi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string",
+            "enum": [
+              "my",
+              "favourite"
+            ]
+          },
+          "startAt": {
+            "type": "integer"
+          },
+          "maxResults": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_FAVORITE_FILTERS",
+      "name": "Get Favorite Filters",
+      "description": "Tool to retrieve favorite filters for the current user. Use when you need to discover which saved filters the user has marked as favorites.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_FIELDS",
+      "name": "Get fields",
+      "description": "Tool to retrieve Jira issue fields metadata. Use before editing an issue to discover custom field IDs and names. Custom fields are addresse…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "issue_type": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "custom_only": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_FIELDS_PAGINATED",
+      "name": "Get custom fields paginated",
+      "description": "Tool to retrieve Jira fields in pages. Use when you need to filter or page through custom and system fields.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "array"
+          },
+          "type": {
+            "type": "array"
+          },
+          "query": {
+            "type": "string"
+          },
+          "expand": {
+            "type": "array"
+          },
+          "orderBy": {
+            "type": "string",
+            "enum": [
+              "contextsCount",
+              "-contextsCount",
+              "+contextsCount",
+              "lastUsed",
+              "-lastUsed",
+              "+lastUsed",
+              "name",
+              "-name",
+              "+name",
+              "screensCount",
+              "-screensCount",
+              "+screensCount",
+              "projectsCount",
+              "-projectsCount",
+              "+projectsCount"
+            ]
+          },
+          "startAt": {
+            "type": "integer"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "projectIds": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_FILTER",
+      "name": "Get Filter",
+      "description": "Retrieves a specific Jira saved filter by ID, including its JQL and sharing metadata, to reuse in subsequent searches. Use when you need to…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "overrideSharePermissions": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_GROUP",
+      "name": "Get Group",
+      "description": "Retrieves details of a specific Jira group by name or ID. Use JIRA_GET_ALL_GROUPS to discover valid group names/IDs first. Some system-mana…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "group_name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_INFO",
+      "name": "Get Service Management Info",
+      "description": "Retrieves runtime information for the Jira Service Management instance. Use when you need to check the version, build date, or license stat…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JIRA_GET_ISSUE",
+      "name": "Get Issue",
+      "description": "Retrieves a Jira issue by ID or key with customizable fields and expansions. Request only needed fields and expansions to avoid large respo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "issue_key": {
+            "type": "string"
+          },
+          "properties": {
+            "type": "array"
+          },
+          "fields_by_keys": {
+            "type": "boolean"
+          },
+          "update_history": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "issue_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_ISSUE_CREATE_METADATA",
+      "name": "Get Create Issue Metadata",
+      "description": "Tool to retrieve issue creation metadata for Jira projects. Use this to discover available projects, issue types, and required fields befor…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "projectIds": {
+            "type": "array"
+          },
+          "projectKeys": {
+            "type": "array"
+          },
+          "issuetypeIds": {
+            "type": "array"
+          },
+          "issuetypeNames": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_ISSUE_EDIT_METADATA",
+      "name": "Get Issue Edit Meta",
+      "description": "Tool to retrieve editable fields for a Jira issue. Use before running an edit action to fetch custom field metadata and required fields.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "issue_id_or_key": {
+            "type": "string"
+          },
+          "override_editable_flag": {
+            "type": "boolean"
+          },
+          "override_screen_security": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "issue_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_ISSUE_LINK_TYPES",
+      "name": "Get Issue Link Types",
+      "description": "Retrieves all configured issue link types from Jira.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JIRA_GET_ISSUE_PICKER_SUGGESTIONS",
+      "name": "Get issue picker",
+      "description": "Tool to get issue picker suggestions from Jira. Use when you need to search for issues and get auto-completion suggestions.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "currentJQL": {
+            "type": "string"
+          },
+          "showSubTasks": {
+            "type": "boolean"
+          },
+          "currentIssueKey": {
+            "type": "string"
+          },
+          "currentProjectId": {
+            "type": "string"
+          },
+          "showSubTaskParent": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_ISSUE_PROPERTY",
+      "name": "Get Issue Property",
+      "description": "Retrieves a custom property from a Jira issue by key.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "property_key": {
+            "type": "string"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key",
+          "property_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_ISSUE_RESOLUTIONS",
+      "name": "Get Issue Resolutions",
+      "description": "Retrieves all available issue resolution types from Jira.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JIRA_GET_ISSUE_TYPES",
+      "name": "Get issue types",
+      "description": "Retrieves all Jira issue types available to the user using the modern API v3 endpoint; results vary based on 'Administer Jira' global or 'B…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JIRA_GET_ISSUE_WATCHERS",
+      "name": "Get Issue Watchers",
+      "description": "Retrieves users watching a Jira issue for update notifications. Watcher data access may be restricted by Jira permissions. Returns all watc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "start_at": {
+            "type": "integer"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_ISSUE_WORKLOGS",
+      "name": "Get Issue Worklogs (Deprecated)",
+      "description": "DEPRECATED: Use JIRA_GET_WORKLOG instead. This action is deprecated because it lacks the expand parameter for worklog properties. Use JIRA_…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "start_at": {
+            "type": "integer"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "started_after": {
+            "type": "integer"
+          },
+          "started_before": {
+            "type": "integer"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_JQL_AUTOCOMPLETEDATA",
+      "name": "Get JQL autocomplete reference data",
+      "description": "Tool to retrieve JQL autocomplete reference data. Use when you need to discover available JQL fields, functions, and reserved words for bui…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JIRA_GET_JQL_AUTOCOMPLETEDATA_SUGGESTIONS",
+      "name": "Get JQL autocomplete suggestions",
+      "description": "Tool to get JQL field auto-complete suggestions. Use when building JQL queries to discover valid field values or predicate options.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fieldName": {
+            "type": "string"
+          },
+          "fieldValue": {
+            "type": "string"
+          },
+          "predicateName": {
+            "type": "string"
+          },
+          "predicateValue": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_MY_PERMISSIONS",
+      "name": "Get My Permissions",
+      "description": "Tool to retrieve the user's permissions in Jira. Use when checking what actions the authenticated user can perform in a specific context (p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "issueId": {
+            "type": "string"
+          },
+          "issueKey": {
+            "type": "string"
+          },
+          "commentId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "string"
+          },
+          "projectUuid": {
+            "type": "string"
+          },
+          "projectConfigurationUuid": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_MYPREFERENCES_LOCALE",
+      "name": "Get User Locale Preference",
+      "description": "Tool to retrieve the locale preference of the currently authenticated Jira user. Use when you need to know the user's language and regional…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JIRA_GET_PERMISSIONS",
+      "name": "Get Permissions",
+      "description": "Tool to retrieve all available Jira permissions. Use when you need to list all permission types that exist in Jira, including project and g…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JIRA_GET_PERMITTED_PROJECTS",
+      "name": "Get Permitted Projects",
+      "description": "Tool to retrieve projects where the current user has specific permissions. Use when you need to find which projects a user can access with …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "permissions"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_PROJECT",
+      "name": "Get Project",
+      "description": "Retrieves details of a Jira project by its ID or key.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "properties": {
+            "type": "string"
+          },
+          "project_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_PROJECT_ROLES",
+      "name": "Get Project Roles",
+      "description": "Retrieves all available roles for a Jira project. Role IDs are project-specific and must not be reused across projects; call this action pe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_PROJECT_TYPE",
+      "name": "Get Project Type",
+      "description": "Retrieves detailed information about a specific Jira project type by its key. Use when you need to get metadata about project types like so…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project_type_key": {
+            "type": "string",
+            "enum": [
+              "software",
+              "service_desk",
+              "business",
+              "product_discovery"
+            ]
+          }
+        },
+        "required": [
+          "project_type_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_PROJECT_VERSIONS",
+      "name": "Get Project Versions",
+      "description": "Retrieves all versions for a Jira project with optional expansion. Use version IDs from the response (not names) when setting fixVersions o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "project_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_RECENT_PROJECTS",
+      "name": "Get Recent Projects",
+      "description": "Retrieves a list of projects recently accessed by the authenticated user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "properties": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_GET_REMOTE_ISSUE_LINKS",
+      "name": "Get Issue Remote Links",
+      "description": "Retrieves links from a Jira issue to external resources.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "global_id": {
+            "type": "string"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_SERVER_INFO",
+      "name": "Get Server Info",
+      "description": "Tool to retrieve Jira instance server information. Use when you need details about the Jira version, build, deployment type, or server conf…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JIRA_GET_SERVICE_DESK_REQUEST_TYPE_FIELDS",
+      "name": "Get Service Desk Request Type Fields",
+      "description": "Tool to retrieve JSM request type field metadata for filling out portal requests. Use when you need to know which fields are required and t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "requestTypeId": {
+            "type": "string"
+          },
+          "serviceDeskId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "serviceDeskId",
+          "requestTypeId"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_SYSTEM_AVATARS",
+      "name": "Get System Avatars",
+      "description": "Tool to retrieve all system avatars for a specific type (issuetype, project, user, or priority). Use when you need to get a list of availab…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "issuetype",
+              "project",
+              "user",
+              "priority"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_TRANSITIONS",
+      "name": "Get Transitions",
+      "description": "Retrieves available workflow transitions for a Jira issue. Always use the numeric `id` from the response when calling JIRA_TRANSITION_ISSUE…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "transition_id": {
+            "type": "string"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          },
+          "skip_remote_only_condition": {
+            "type": "boolean"
+          },
+          "sort_by_ops_bar_and_status": {
+            "type": "boolean"
+          },
+          "include_unavailable_transitions": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "issue_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_UNIVERSAL_AVATAR_TYPE_OWNER",
+      "name": "Get Universal Avatar Type Owner",
+      "description": "Tool to retrieve all avatars (system and custom) for a specific type and entity in Jira. Use when you need to view available avatar options…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "project",
+              "issuetype",
+              "priority"
+            ]
+          },
+          "entityId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "entityId"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_UNIVERSAL_AVATAR_VIEW_TYPE",
+      "name": "Get Universal Avatar View Type",
+      "description": "Tool to retrieve the default avatar image for a specific type (project, issuetype, or priority) from Jira. Use when you need to download th…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "size": {
+            "type": "string",
+            "enum": [
+              "xsmall",
+              "small",
+              "medium",
+              "large",
+              "xlarge"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "issuetype",
+              "project",
+              "priority"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "png",
+              "svg"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_VIEW_TYPE_AVATAR",
+      "name": "Get Avatar Image",
+      "description": "Tool to retrieve a specific avatar image by type and ID from Jira. Use when you need to download avatar images for projects, issue types, o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "xsmall",
+              "small",
+              "medium",
+              "large",
+              "xlarge"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "issuetype",
+              "project",
+              "priority"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "png",
+              "svg"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_VOTES",
+      "name": "Get Issue Votes",
+      "description": "Fetches voting details for a Jira issue; requires voting to be enabled in Jira's general settings.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "issue_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_GET_WORKLOG",
+      "name": "Get Worklogs",
+      "description": "Retrieves worklogs for a specified Jira issue.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "start_at": {
+            "type": "integer"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "started_after": {
+            "type": "integer"
+          },
+          "started_before": {
+            "type": "integer"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_LIST_ALL_PROJECTS",
+      "name": "List All Projects",
+      "description": "Tool to list all projects accessible to the user. Use when you need to retrieve a comprehensive list of all Jira projects.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "recent": {
+            "type": "integer"
+          },
+          "properties": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_LIST_BOARDS",
+      "name": "List Boards",
+      "description": "Retrieves paginated Jira boards with filtering and sorting options. Use `start_at` and `max_results` together, looping through pages to ret…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "scrum",
+              "kanban"
+            ]
+          },
+          "orderBy": {
+            "type": "string"
+          },
+          "start_at": {
+            "type": "integer"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "includePrivate": {
+            "type": "boolean"
+          },
+          "projectKeyOrId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_LIST_COMMENTS",
+      "name": "List Comments by IDs",
+      "description": "Tool to retrieve multiple comments by their IDs in a single request. Use when you need to fetch specific comments efficiently. Supports up …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "expand": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_LIST_FILTERS",
+      "name": "List Jira Filters",
+      "description": "Tool to search and list Jira saved filters (saved searches) visible to the current user. Use when you need to discover existing filters, fi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "array"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "orderBy": {
+            "type": "string"
+          },
+          "startAt": {
+            "type": "integer"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "groupname": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "integer"
+          },
+          "filterName": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_LIST_GROUPS_PICKER",
+      "name": "List Groups (Picker)",
+      "description": "Tool to search and list groups using Jira's picker endpoint. Use when you need to find groups by name or get a filtered list of groups.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "exclude": {
+            "type": "array"
+          },
+          "exclude_id": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "case_insensitive": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_LIST_ISSUE_COMMENTS",
+      "name": "List Issue Comments",
+      "description": "Retrieves paginated comments from a Jira issue with optional ordering. Paginate by incrementing `start_at` by `max_results` until the cumul…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "order_by": {
+            "type": "string"
+          },
+          "start_at": {
+            "type": "integer"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_LIST_PROJECT_TYPES",
+      "name": "List Project Types",
+      "description": "Retrieves all Jira project types available in the instance. Use when you need to discover available project types or list all types without…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JIRA_LIST_SPRINTS",
+      "name": "List Sprints",
+      "description": "Retrieves paginated sprints from a Jira board with optional state filtering.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "board_id": {
+            "type": "integer"
+          },
+          "start_at": {
+            "type": "integer"
+          },
+          "max_results": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "board_id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_MOVE_ISSUE_TO_SPRINT",
+      "name": "Move Issues to Sprint",
+      "description": "Moves one or more Jira issues to a specified active sprint.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "issues": {
+            "type": "array"
+          },
+          "sprint_id": {
+            "type": "integer"
+          },
+          "rank_after_issue": {
+            "type": "string"
+          },
+          "rank_before_issue": {
+            "type": "string"
+          },
+          "rank_custom_field_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sprint_id",
+          "issues"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_PARSE_JQL_QUERIES",
+      "name": "Parse JQL Queries",
+      "description": "Parse and validate JQL queries, returning their abstract syntax tree structure along with any errors or warnings. Use when you need to vali…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "queries": {
+            "type": "array"
+          },
+          "validation": {
+            "type": "string",
+            "enum": [
+              "strict",
+              "warn",
+              "none"
+            ]
+          }
+        },
+        "required": [
+          "queries"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_REMOVE_USER_FROM_GROUP",
+      "name": "Remove User from Group",
+      "description": "Removes a user from a Jira group. This is a destructive operation that revokes group-based permissions; confirm intent before calling.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "group_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_REMOVE_USER_FROM_PROJECT_ROLE",
+      "name": "Remove User from Project Role",
+      "description": "Removes a user or group from a project role.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "role_id": {
+            "type": "integer"
+          },
+          "group_name": {
+            "type": "string"
+          },
+          "user_account_id": {
+            "type": "string"
+          },
+          "project_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id_or_key",
+          "role_id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_REMOVE_WATCHER_FROM_ISSUE",
+      "name": "Remove Watcher from Issue",
+      "description": "Removes a user from an issue's watcher list by account ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key",
+          "account_id"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_SEARCH_APPROXIMATE_COUNT",
+      "name": "Search Approximate Count",
+      "description": "Count issues matching a JQL query using approximate count endpoint. Use when you need a fast count of issues without retrieving full issue …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "jql": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "jql"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_SEARCH_DASHBOARDS",
+      "name": "Search Dashboards",
+      "description": "Tool to search for Jira dashboards with filtering, sorting, and pagination support. Use when you need to find dashboards by name, owner, sh…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived",
+              "deleted"
+            ]
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "orderBy": {
+            "type": "string",
+            "enum": [
+              "description",
+              "-description",
+              "+description",
+              "id",
+              "-id",
+              "+id",
+              "name",
+              "-name",
+              "+name",
+              "owner",
+              "-owner",
+              "+owner"
+            ]
+          },
+          "startAt": {
+            "type": "integer"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "groupname": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "integer"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "dashboardName": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_SEARCH_FOR_ISSUES_USING_JQL_GET",
+      "name": "Search Issues Using JQL (GET)",
+      "description": "Searches for Jira issues using JQL with pagination and field selection.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "jql": {
+            "type": "string"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "fail_fast": {
+            "type": "boolean"
+          },
+          "properties": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "fields_by_keys": {
+            "type": "boolean"
+          },
+          "next_page_token": {
+            "type": "string"
+          },
+          "reconcile_issues": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_SEARCH_FOR_ISSUES_USING_JQL_POST",
+      "name": "Search Issues Using JQL Enhanced (POST)",
+      "description": "DEPRECATED: Use JIRA_SEARCH_ISSUES instead. Searches for Jira Cloud issues using Enhanced JQL via POST request; supports eventual consisten…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "jql": {
+            "type": "string"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "properties": {
+            "type": "array"
+          },
+          "fieldsByKeys": {
+            "type": "boolean"
+          },
+          "nextPageToken": {
+            "type": "string"
+          },
+          "reconcileIssues": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_SEARCH_ISSUES",
+      "name": "Search issues",
+      "description": "Advanced Jira issue search supporting structured filters and raw JQL. At least one filter parameter (e.g., jql, project_key, updated_after)…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "jql": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "labels": {
+            "type": "array"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "project_key": {
+            "type": "string"
+          },
+          "text_search": {
+            "type": "string"
+          },
+          "created_after": {
+            "type": "string"
+          },
+          "updated_after": {
+            "type": "string"
+          },
+          "created_before": {
+            "type": "string"
+          },
+          "updated_before": {
+            "type": "string"
+          },
+          "next_page_token": {
+            "type": "string"
+          },
+          "sprint_id_or_name": {
+            "type": "string"
+          },
+          "status_id_or_name": {
+            "type": "string"
+          },
+          "preserved_order_by": {
+            "type": "string"
+          },
+          "priority_id_or_name": {
+            "type": "string"
+          },
+          "issue_type_id_or_name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JIRA_SEND_NOTIFICATION_FOR_ISSUE",
+      "name": "Send Notification for Issue",
+      "description": "Sends a customized email notification for a Jira issue.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "object"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "restrict": {
+            "type": "object"
+          },
+          "html_body": {
+            "type": "string"
+          },
+          "text_body": {
+            "type": "string"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key",
+          "subject",
+          "text_body",
+          "to"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_TRANSITION_ISSUE",
+      "name": "Transition Issue",
+      "description": "Transitions a Jira issue to a different workflow state, with support for transition name lookup and user assignment by email. IMPORTANT: On…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "resolution": {
+            "type": "string"
+          },
+          "assignee_name": {
+            "type": "string"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          },
+          "transition_fields": {
+            "type": "object"
+          },
+          "additional_properties": {
+            "type": "object"
+          },
+          "transition_id_or_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key",
+          "transition_id_or_name"
+        ]
+      }
+    },
+    {
+      "slug": "JIRA_UPDATE_COMMENT",
+      "name": "Update Comment",
+      "description": "Updates text content or visibility of an existing Jira comment.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "comment_id": {
+            "type": "string"
+          },
+          "comment_text": {
+            "type": "string"
+          },
+          "notify_users": {
+            "type": "boolean"
+          },
+          "issue_id_or_key": {
+            "type": "string"
+          },
+          "visibility_type": {
+            "type": "string"
+          },
+          "visibility_value": {
+            "type": "string"
+          },
+          "additional_properties": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_id_or_key",
+          "comment_id",
+          "comment_text"
+        ]
+      }
+    }
+  ]
+}

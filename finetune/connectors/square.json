@@ -1,0 +1,1974 @@
+{
+  "slug": "square",
+  "name": "Square",
+  "tool_count": 96,
+  "tools": [
+    {
+      "slug": "SQUARE_ACCEPT_DISPUTE",
+      "name": "Accept Dispute",
+      "description": "Accept a dispute and acknowledge liability, returning funds to the cardholder. When you accept a dispute, Square debits the disputed amount…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dispute_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dispute_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_ADD_GROUP_TO_CUSTOMER",
+      "name": "Add Group to Customer",
+      "description": "Tool to add a customer to a customer group. Use when you need to associate a customer with a specific group for targeted marketing, loyalty…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "customer_id",
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_CALCULATE_ORDER",
+      "name": "Calculate Order",
+      "description": "Tool to preview order pricing without creating an order. Use when you need to calculate the total cost, taxes, discounts, and other pricing…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "object"
+          },
+          "proposed_rewards": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "order"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_CANCEL_INVOICE",
+      "name": "Cancel Invoice",
+      "description": "Cancels a Square invoice, preventing further payments from being collected. Requirements: - Invoice must be in SCHEDULED, UNPAID, or PARTIA…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "invoice_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_id",
+          "version"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_CANCEL_PAYMENT",
+      "name": "Cancel Payment",
+      "description": "Cancels (voids) a payment that is in APPROVED status. This is typically used in delayed capture scenarios where a payment was authorized bu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "payment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "payment_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_CREATE_BULK_CUSTOMERS",
+      "name": "Create Bulk Customers",
+      "description": "Tool to create multiple customer profiles in a single request. Use when you need to efficiently create up to 100 customers at once. Each cu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "customers": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "customers"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_CREATE_CARD",
+      "name": "Create Card",
+      "description": "Tool to create a card on file. Use when you need to securely store a customer's card for future payments. Requires a valid nonce or payment…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "card": {
+            "type": "object"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "verification_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "source_id",
+          "card"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_CREATE_CUSTOMER",
+      "name": "Create Customer",
+      "description": "Tool to create a new customer profile in Square. Use when you need to add a customer to the Square account. At least one of given_name, fam…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "address": {
+            "type": "object"
+          },
+          "tax_ids": {
+            "type": "object"
+          },
+          "birthday": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "given_name": {
+            "type": "string"
+          },
+          "family_name": {
+            "type": "string"
+          },
+          "company_name": {
+            "type": "string"
+          },
+          "phone_number": {
+            "type": "string"
+          },
+          "reference_id": {
+            "type": "string"
+          },
+          "email_address": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SQUARE_CREATE_CUSTOMER_CUSTOM_ATTRIBUTE_DEFINITION",
+      "name": "Create Customer Custom Attribute Definition",
+      "description": "Tool to create a customer-related custom attribute definition. Use when you need to define a new custom attribute that can be applied to cu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "custom_attribute_definition": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "custom_attribute_definition"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_CREATE_CUSTOMER_GROUP",
+      "name": "Create Customer Group",
+      "description": "Tool to create a new customer group for a business. Use when you need to organize customers into groups for targeted marketing or segmentat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "object"
+          },
+          "idempotency_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_CREATE_DISPUTE_EVIDENCE_FILE",
+      "name": "Create Dispute Evidence File",
+      "description": "Tool to upload a file as dispute evidence. Use when you need to attach supporting documents (PDF, image, etc.) to an existing dispute. Use …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "dispute_id": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "evidence_type": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "inline_file_name": {
+            "type": "string"
+          },
+          "inline_file_mimetype": {
+            "type": "string"
+          },
+          "inline_file_content_base64": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dispute_id",
+          "idempotency_key",
+          "file"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_CREATE_DISPUTE_EVIDENCE_TEXT",
+      "name": "Create Dispute Evidence Text",
+      "description": "Upload text evidence for a dispute challenge. Use this to submit textual information (up to 500 characters) that supports your case in a pa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dispute_id": {
+            "type": "string"
+          },
+          "evidence_text": {
+            "type": "string"
+          },
+          "evidence_type": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dispute_id",
+          "idempotency_key",
+          "evidence_text"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_CREATE_INVOICE_ATTACHMENT",
+      "name": "Create Invoice Attachment",
+      "description": "Upload and attach a file to a Square invoice. Use this action to add supplementary documents (receipts, contracts, supporting documentation…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "invoice_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_id",
+          "file"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_CREATE_LOCATION",
+      "name": "Create Location",
+      "description": "Tool to create a new business location in a Square account. Use when you need to add a new physical or mobile location for the merchant.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "location"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_CREATE_LOCATION_CUSTOM_ATTRIBUTE_DEFINITION",
+      "name": "Create Location Custom Attribute Definition",
+      "description": "Tool to create a location-related custom attribute definition. Use when you need to define new custom attributes for Square location object…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "custom_attribute_definition": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "custom_attribute_definition"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_CUSTOMER",
+      "name": "Delete Customer",
+      "description": "Tool to delete a Square customer profile. Use when you need to permanently remove a customer record from Square.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "customer_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "customer_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_CUSTOMER_CUSTOM_ATTRIBUTE",
+      "name": "Delete Customer Custom Attribute",
+      "description": "Tool to delete a custom attribute from a customer profile. Use when you need to remove custom data associated with a specific customer. Req…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "customer_id",
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_CUSTOMER_CUSTOM_ATTRIBUTE_DEFINITION",
+      "name": "Delete Customer Custom Attribute Definition",
+      "description": "Tool to delete a customer-related custom attribute definition. Use when you need to remove a custom attribute definition that is no longer …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_CUSTOMER_GROUP",
+      "name": "Delete Customer Group",
+      "description": "Tool to delete a customer group by its ID. Use when you need to permanently remove a customer group from Square.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_CUSTOMERS_BULK",
+      "name": "Bulk Delete Customers",
+      "description": "Tool to bulk delete customer profiles from Square. Use when you need to delete multiple customer profiles at once (1-100 customers per requ…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "customer_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "customer_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_DISPUTE_EVIDENCE",
+      "name": "Delete Dispute Evidence",
+      "description": "Removes a specific piece of evidence from a dispute. Evidence that is removed will NOT be sent to the bank. This action requires the DISPUT…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dispute_id": {
+            "type": "string"
+          },
+          "evidence_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dispute_id",
+          "evidence_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_INVOICE",
+      "name": "Delete Invoice",
+      "description": "Tool to delete a Square invoice (only DRAFT invoices can be deleted).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "invoice_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_INVOICE_ATTACHMENT",
+      "name": "Delete Invoice Attachment",
+      "description": "Tool to delete an attachment from a Square invoice. Endpoint: DELETE /v2/invoices/{invoice_id}/attachments/{attachment_id}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "invoice_id": {
+            "type": "string"
+          },
+          "attachment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_id",
+          "attachment_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_LOCATION_CUSTOM_ATTRIBUTE",
+      "name": "Delete Location Custom Attribute",
+      "description": "Tool to delete a custom attribute from a location. Use when you need to remove custom data associated with a specific business location. Re…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "location_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id",
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_LOCATION_CUSTOM_ATTRIBUTE_DEFINITION",
+      "name": "Delete Location Custom Attribute Definition",
+      "description": "Tool to delete a location-related custom attribute definition. Once deleted, the custom attribute definition cannot be used to add custom a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_LOCATIONS_CUSTOM_ATTRIBUTES_BATCH",
+      "name": "Delete Locations Custom Attributes (Batch)",
+      "description": "Tool to delete custom attributes from multiple locations in a single batch request. Use when you need to remove custom metadata from multip…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "values"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_MERCHANT_CUSTOM_ATTRIBUTE",
+      "name": "Delete Merchant Custom Attribute",
+      "description": "Tool to delete a custom attribute from a merchant profile. Use when you need to remove custom data associated with a specific merchant. Req…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "merchant_id",
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_MERCHANT_CUSTOM_ATTRIBUTE_DEFINITION",
+      "name": "Delete Merchant Custom Attribute Definition",
+      "description": "Tool to delete a merchant-related custom attribute definition. Once deleted, the custom attribute definition cannot be used to add custom a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_MERCHANTS_CUSTOM_ATTRIBUTES_BATCH",
+      "name": "Delete Merchants Custom Attributes (Batch)",
+      "description": "Tool to delete custom attributes from multiple merchants in a single batch request. Use when you need to remove custom metadata from mercha…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "values"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_DELETE_WEBHOOK_SUBSCRIPTION",
+      "name": "Delete Webhook Subscription",
+      "description": "Permanently deletes a webhook subscription by its ID. Once deleted, the subscription will no longer receive event notifications. This actio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "subscription_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subscription_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_GET_BUSINESS_BOOKING_PROFILE",
+      "name": "Get Business Booking Profile",
+      "description": "Tool to retrieve the business booking profile for a Square merchant via GraphQL. Use when you need to check if bookings are enabled, view c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "merchant_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "merchant_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_GET_CURRENT_MERCHANT",
+      "name": "Get Current Merchant",
+      "description": "Tool to retrieve merchant information associated with the access token using Square's GraphQL API. Use when you need to obtain the merchant…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SQUARE_GET_CUSTOMER_CUSTOM_ATTRIBUTE",
+      "name": "Get Customer Custom Attribute",
+      "description": "Retrieves a custom attribute from a customer profile in Square. Use this when you need to access specific custom data associated with a cus…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "with_definition": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "customer_id",
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_GET_CUSTOMERS_CUSTOM_ATTRIBUTE_DEFINITIONS",
+      "name": "Get Customer Custom Attribute Definition",
+      "description": "Tool to retrieve a customer-related custom attribute definition from Square. Use when you need to fetch the schema, visibility, or metadata…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_GET_CUSTOMERS_GRAPHQL",
+      "name": "Get Customers via GraphQL",
+      "description": "Tool to retrieve customer profiles from Square Customer Directory using GraphQL API. Use when you need to fetch customer information includ…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "merchant_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "merchant_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_GET_DISPUTE_EVIDENCE",
+      "name": "Get Dispute Evidence",
+      "description": "Retrieves detailed information about a specific piece of evidence that was uploaded for a dispute. Use this action to: - Get metadata about…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dispute_id": {
+            "type": "string"
+          },
+          "evidence_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dispute_id",
+          "evidence_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_GET_INVOICE",
+      "name": "Get Invoice",
+      "description": "Retrieves detailed information about a specific Square invoice by its ID. Returns the complete invoice object including payment requests, r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "invoice_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_GET_MERCHANT",
+      "name": "Get Merchant",
+      "description": "Tool to retrieve detailed information about a specific Square merchant by ID. Use when you need to fetch merchant profile data including bu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "merchant_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "merchant_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_GET_ONLINE_CHECKOUT_LOCATION_SETTINGS",
+      "name": "Get Online Checkout Location Settings",
+      "description": "Tool to retrieve location-level settings for Square online checkout. Use when you need to get checkout configuration including customer not…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "location_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_CHANNELS",
+      "name": "List Channels",
+      "description": "Tool to list requested channels from Square. Use when you need to retrieve channel information for a specific reference type, reference ID,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "reference_id": {
+            "type": "string"
+          },
+          "reference_type": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_CUSTOMER_CUSTOM_ATTRIBUTE_DEFINITIONS",
+      "name": "List Customer Custom Attribute Definitions",
+      "description": "Tool to list customer-related custom attribute definitions from Square. Use when you need to discover available custom attributes that can …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_CUSTOMER_CUSTOM_ATTRIBUTE_DEFINITIONS_GRAPH_QL",
+      "name": "List Customer Custom Attribute Definitions (GraphQL)",
+      "description": "Tool to retrieve customer custom attribute definitions via Square's GraphQL API. Use when you need to discover available custom attributes …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "merchant_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "merchant_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_CUSTOMER_CUSTOM_ATTRIBUTES",
+      "name": "List Customer Custom Attributes",
+      "description": "Tool to list custom attributes for a customer profile. Use when you need to retrieve all custom data associated with a specific customer, i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "with_definitions": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "customer_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_CUSTOMER_GROUPS",
+      "name": "List Customer Groups",
+      "description": "Tool to retrieve the list of customer groups of a business. Use when you need to discover customer group IDs or list all customer groups fo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_CUSTOMERS",
+      "name": "List Customers",
+      "description": "Tool to retrieve customer profiles associated with a Square account. Use when you need to list customers for CRM, reporting, or customer ma…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "sort_field": {
+            "type": "string",
+            "enum": [
+              "DEFAULT",
+              "CREATED_AT"
+            ]
+          },
+          "sort_order": {
+            "type": "string",
+            "enum": [
+              "ASC",
+              "DESC"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_CUSTOMER_SEGMENTS",
+      "name": "List Customer Segments",
+      "description": "Tool to retrieve the list of customer segments of a business. Use when you need to discover customer segment IDs for targeting or filtering…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_DISPUTE_EVIDENCE",
+      "name": "List Dispute Evidence",
+      "description": "Tool to list evidence items associated with a given dispute. Endpoint: GET /v2/disputes/{dispute_id}/evidence",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "dispute_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dispute_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_INVOICES",
+      "name": "List Invoices",
+      "description": "Tool to list invoices for a Square location.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "location_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_LOCATION_CUSTOM_ATTRIBUTE_DEFINITIONS",
+      "name": "List Location Custom Attribute Definitions",
+      "description": "Tool to list location-related custom attribute definitions from Square. Use when you need to discover available custom attributes that can …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "visibilityFilter": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_LOCATIONS",
+      "name": "List Locations",
+      "description": "Tool to retrieve all business locations from a Square account. Use when you need to discover available location IDs for other Square API ca…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_LOCATIONS_CUSTOM_ATTRIBUTES",
+      "name": "List Locations Custom Attributes",
+      "description": "Tool to list custom attributes for a specific location in Square. Use when you need to retrieve all custom attribute values associated with…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "location_id": {
+            "type": "string"
+          },
+          "with_definitions": {
+            "type": "boolean"
+          },
+          "visibility_filter": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_MERCHANT_CUSTOM_ATTRIBUTE_DEFINITIONS",
+      "name": "List Merchant Custom Attribute Definitions",
+      "description": "Tool to list merchant-related custom attribute definitions from Square. Use when you need to discover available custom attributes that can …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "visibility_filter": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_MERCHANTS",
+      "name": "List Merchants",
+      "description": "Tool to retrieve merchant account information associated with the access token. Use when you need to get merchant profile details including…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_MERCHANTS_CUSTOM_ATTRIBUTES",
+      "name": "List Merchants Custom Attributes",
+      "description": "Tool to list custom attributes for a specific merchant in Square. Use when you need to retrieve all custom attribute values associated with…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "with_definitions": {
+            "type": "boolean"
+          },
+          "visibility_filter": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "merchant_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_PAYMENTS",
+      "name": "List Payments",
+      "description": "Tool to list payments by location and time range to enable reconciliation and net sales reporting from Square POS. Use when you need to ret…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "last_4": {
+            "type": "string"
+          },
+          "end_time": {
+            "type": "string"
+          },
+          "begin_time": {
+            "type": "string"
+          },
+          "card_brand": {
+            "type": "string"
+          },
+          "sort_field": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "string"
+          },
+          "location_id": {
+            "type": "string"
+          },
+          "offline_end_time": {
+            "type": "string"
+          },
+          "is_offline_payment": {
+            "type": "boolean"
+          },
+          "offline_begin_time": {
+            "type": "string"
+          },
+          "updated_at_end_time": {
+            "type": "string"
+          },
+          "updated_at_begin_time": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_WEBHOOK_EVENT_TYPES",
+      "name": "List Webhook Event Types",
+      "description": "Tool to list available webhook event types. Use when you need to discover event types before creating or updating a webhook subscription.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "api_version": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SQUARE_LIST_WEBHOOK_SUBSCRIPTIONS",
+      "name": "List Webhook Subscriptions",
+      "description": "List all webhook subscriptions owned by your application. Returns webhook subscriptions with their event types, notification URLs, and stat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "string"
+          },
+          "include_disabled": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SQUARE_REMOVE_GROUP_FROM_CUSTOMER",
+      "name": "Remove Group From Customer",
+      "description": "Removes a customer from a customer group. Use this when you need to disassociate a customer from a specific group. Once removed, the custom…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "customer_id",
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_BULK_CUSTOMERS",
+      "name": "Retrieve Bulk Customers",
+      "description": "Tool to retrieve multiple customer profiles in a single request. Use when you need to efficiently fetch up to 100 customer profiles by thei…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "customer_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "customer_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_CHANNEL",
+      "name": "Retrieve Channel",
+      "description": "Retrieve a Square channel by its ID. Channels represent different distribution points for catalog content, including physical locations and…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_CHANNELS_BULK",
+      "name": "Bulk Retrieve Channels",
+      "description": "Tool to bulk retrieve multiple Square channels by their IDs in a single request. Use when you need to fetch specific channels by their uniq…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "channel_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "channel_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_CUSTOMER",
+      "name": "Retrieve Customer",
+      "description": "Tool to retrieve detailed information about a specific Square customer by ID. Use when you need to fetch customer profile data including co…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "customer_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "customer_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_CUSTOMER_GROUP",
+      "name": "Retrieve Customer Group",
+      "description": "Tool to retrieve a specific Square customer group by ID. Use when you need to fetch details about a customer group including its name and t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_CUSTOMER_SEGMENT",
+      "name": "Retrieve Customer Segment",
+      "description": "Tool to retrieve a specific customer segment by its ID. Use when you need to get details about a customer segment including its name and ti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "segment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "segment_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_DISPUTE",
+      "name": "Retrieve Dispute",
+      "description": "Tool to retrieve a Square dispute by ID. Endpoint: GET /v2/disputes/{dispute_id}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dispute_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dispute_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_LOCATION",
+      "name": "Retrieve Location",
+      "description": "Tool to retrieve detailed information about a specific Square location by ID. Use when you need to get complete details about a specific lo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "location_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_LOCATION_CUSTOM_ATTRIBUTE",
+      "name": "Retrieve Location Custom Attribute",
+      "description": "Retrieves a custom attribute associated with a location in Square. Use this when you need to access specific custom data associated with a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "location_id": {
+            "type": "string"
+          },
+          "with_definition": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "location_id",
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_LOCATION_CUSTOM_ATTRIBUTE_DEFINITION",
+      "name": "Retrieve Location Custom Attribute Definition",
+      "description": "Tool to retrieve a location-related custom attribute definition. Use when you need to get the schema, visibility, and metadata for a custom…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_MERCHANT_CUSTOM_ATTRIBUTE",
+      "name": "Retrieve Merchant Custom Attribute",
+      "description": "Retrieves a custom attribute associated with a merchant in Square. Use this when you need to access specific custom data associated with a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "with_definition": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "merchant_id",
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_MERCHANT_CUSTOM_ATTRIBUTE_DEFINITION",
+      "name": "Retrieve Merchant Custom Attribute Definition",
+      "description": "Tool to retrieve a merchant-related custom attribute definition from Square. Use when you need to fetch the schema, visibility, or metadata…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_MERCHANTS",
+      "name": "Retrieve Merchants",
+      "description": "Tool to retrieve merchant information including status, main location details, and capabilities using Square's GraphQL API. Use when you ne…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "merchant_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "merchant_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_ORDER",
+      "name": "Retrieve Order",
+      "description": "Retrieves detailed information about a specific Square order by its ID. Use this tool when you need to: - Fetch complete details of an orde…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_PAYMENT_LINK",
+      "name": "Retrieve Payment Link",
+      "description": "Retrieves a Square-hosted payment link by ID. Returns complete payment link details including the checkout URL, associated order ID, checko…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_TOKEN_STATUS",
+      "name": "Retrieve Token Status",
+      "description": "Tool to retrieve information about an OAuth access token or personal access token. Use when you need to verify token validity, check token …",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SQUARE_RETRIEVE_WEBHOOK_SUBSCRIPTION",
+      "name": "Retrieve Webhook Subscription",
+      "description": "Retrieve a Square webhook subscription by its ID. Returns subscription details including name, enabled status, event types, notification UR…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "subscription_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subscription_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_SEARCH_CUSTOMERS",
+      "name": "Search Customers",
+      "description": "Tool to search customer profiles in Square Customer Directory. Use when you need to find customers by email, phone, creation date, or other…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "object"
+          },
+          "cursor": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SQUARE_SEARCH_ORDERS",
+      "name": "Search Orders",
+      "description": "Tool to search orders across one or more Square locations with filters. Use when you need to find orders within a date range, by state, by …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "object"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "location_ids": {
+            "type": "array"
+          },
+          "return_entries": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "location_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_SUBMIT_DISPUTE_EVIDENCE",
+      "name": "Submit Dispute Evidence",
+      "description": "Submits evidence for a dispute to the cardholder's bank. IMPORTANT: You must upload evidence FIRST using CreateDisputeEvidenceText or Creat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dispute_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dispute_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_TEST_WEBHOOK_SUBSCRIPTION",
+      "name": "Test Webhook Subscription",
+      "description": "Tests a webhook subscription by sending a test event to the configured notification URL. Use this to verify that your webhook endpoint is c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "event_type": {
+            "type": "string"
+          },
+          "subscription_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subscription_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPDATE_CUSTOMER",
+      "name": "Update Customer",
+      "description": "Tool to update an existing Square customer profile. Use when you need to modify customer details like name, email, address, or phone number…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "address": {
+            "type": "object"
+          },
+          "tax_ids": {
+            "type": "object"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "birthday": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "given_name": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "family_name": {
+            "type": "string"
+          },
+          "company_name": {
+            "type": "string"
+          },
+          "phone_number": {
+            "type": "string"
+          },
+          "reference_id": {
+            "type": "string"
+          },
+          "email_address": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "customer_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPDATE_CUSTOMER_CUSTOM_ATTRIBUTE_DEFINITION",
+      "name": "Update Customer Custom Attribute Definition",
+      "description": "Tool to update a customer-related custom attribute definition in Square. Use when you need to modify the name, description, visibility, or …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "object"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPDATE_CUSTOMER_GROUP",
+      "name": "Update Customer Group",
+      "description": "Tool to update a customer group's information by its ID. Use when you need to modify the name or other attributes of an existing customer g…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "object"
+          },
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id",
+          "group"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPDATE_CUSTOMERS_BULK",
+      "name": "Bulk Update Customers",
+      "description": "Tool to update multiple customer profiles in a single batch operation. Use when you need to efficiently update 1-100 customer profiles at o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "customers": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "customers"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPDATE_LOCATION",
+      "name": "Update Location",
+      "description": "Tool to update an existing business location in a Square account. Use when you need to modify location details like name, description, addr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "object"
+          },
+          "location_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id",
+          "location"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPDATE_LOCATION_CUSTOM_ATTRIBUTE_DEFINITION",
+      "name": "Update Location Custom Attribute Definition",
+      "description": "Tool to update a location-related custom attribute definition in Square. Use when you need to modify the description, name, visibility, or …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "custom_attribute_definition": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "key",
+          "custom_attribute_definition"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPDATE_MERCHANT_CUSTOM_ATTRIBUTE_DEFINITION",
+      "name": "Update Merchant Custom Attribute Definition",
+      "description": "Tool to update a merchant-related custom attribute definition in Square. Use when you need to modify the description, name, visibility, or …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "custom_attribute_definition": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "key",
+          "custom_attribute_definition"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPDATE_ONLINE_CHECKOUT_LOCATION_SETTINGS",
+      "name": "Update Online Checkout Location Settings",
+      "description": "Tool to update location-level settings for Square online checkout. Use when you need to modify checkout configuration including customer no…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "location_id": {
+            "type": "string"
+          },
+          "location_settings": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "location_id",
+          "location_settings"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPDATE_ORDER",
+      "name": "Update Order",
+      "description": "Updates an existing Square order by adding, modifying, or removing fields. Use for OPEN or DRAFT orders only (COMPLETED/CANCELED orders can…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "object"
+          },
+          "order_id": {
+            "type": "string"
+          },
+          "fields_to_clear": {
+            "type": "array"
+          },
+          "idempotency_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPDATE_WEBHOOK_SUBSCRIPTION",
+      "name": "Update Webhook Subscription",
+      "description": "Tool to update a Square webhook subscription. Use when you need to modify subscription settings such as name, enabled state, event types, n…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "api_version": {
+            "type": "string"
+          },
+          "event_types": {
+            "type": "array"
+          },
+          "subscription_id": {
+            "type": "string"
+          },
+          "notification_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subscription_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPDATE_WEBHOOK_SUBSCRIPTION_SIGNATURE_KEY",
+      "name": "Update Webhook Subscription Signature Key",
+      "description": "Tool to rotate the signature key for a webhook subscription. Use when you need to replace the current signature key for security purposes.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "subscription_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subscription_id"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPSERT_CUSTOMER_CUSTOM_ATTRIBUTE",
+      "name": "Upsert Customer Custom Attribute",
+      "description": "Tool to create or update a custom attribute for a customer profile. Use when you need to store custom data on a customer record, such as pr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "custom_attribute": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "customer_id",
+          "key",
+          "custom_attribute"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPSERT_CUSTOMER_CUSTOM_ATTRIBUTES_BATCH",
+      "name": "Batch Upsert Customer Custom Attributes",
+      "description": "Tool to create or update custom attributes for multiple customers in a single batch request. Use when you need to set custom data on custom…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "values"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPSERT_LOCATION_CUSTOM_ATTRIBUTE",
+      "name": "Upsert Location Custom Attribute",
+      "description": "Tool to create or update a custom attribute for a location. Use when you need to store custom data on a location record, such as capacity l…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "location_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "custom_attribute": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "location_id",
+          "key",
+          "custom_attribute"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPSERT_LOCATIONS_CUSTOM_ATTRIBUTES_BATCH",
+      "name": "Batch Upsert Locations Custom Attributes",
+      "description": "Tool to create or update custom attributes for multiple locations in a single batch request. Use when you need to set custom data on locati…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "values"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPSERT_MERCHANT_CUSTOM_ATTRIBUTE",
+      "name": "Upsert Merchant Custom Attribute",
+      "description": "Tool to create or update a custom attribute for a merchant profile. Use when you need to store custom data on a merchant record, such as bu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "custom_attribute": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "merchant_id",
+          "key",
+          "custom_attribute"
+        ]
+      }
+    },
+    {
+      "slug": "SQUARE_UPSERT_MERCHANTS_CUSTOM_ATTRIBUTES_BATCH",
+      "name": "Batch Upsert Merchants Custom Attributes",
+      "description": "Tool to create or update custom attributes for multiple merchants in a single batch request. Use when you need to set custom data on mercha…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "values"
+        ]
+      }
+    }
+  ]
+}

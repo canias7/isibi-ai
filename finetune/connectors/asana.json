@@ -1,0 +1,4045 @@
+{
+  "slug": "asana",
+  "name": "Asana",
+  "tool_count": 153,
+  "tools": [
+    {
+      "slug": "ASANA_ADD_FOLLOWERS_TO_PROJECT",
+      "name": "Add Followers to Project",
+      "description": "Tool to add followers to a project in Asana. Use this tool when you need to add one or more users as followers to a specific project. Follo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "followers": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid",
+          "followers"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_ADD_FOLLOWERS_TO_TASK",
+      "name": "Add Followers to Task",
+      "description": "Tool to add followers to a task in Asana. Use this tool when you need to add one or more users as followers to a specific task. This will n…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_gid": {
+            "type": "string"
+          },
+          "followers": {
+            "type": "array"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_gid",
+          "followers"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_ADD_ITEM_TO_PORTFOLIO",
+      "name": "Add item to portfolio",
+      "description": "Add a project (or other supported item) to an Asana portfolio using the native addItem endpoint. Use when a workflow needs to attach a newl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "type": "string"
+          },
+          "insert_after": {
+            "type": "string"
+          },
+          "insert_before": {
+            "type": "string"
+          },
+          "portfolio_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "portfolio_gid",
+          "item"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_ADD_MEMBERS_TO_PROJECT",
+      "name": "Add Members to Project",
+      "description": "Tool to add users to a project in Asana. Use this tool when you need to add one or more users as members to a specific project. Members can…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid",
+          "members"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_ADD_PROJECT_FOR_TASK",
+      "name": "Add Project to Task",
+      "description": "Tool to add a project to a task in Asana. Use when you need to associate a task with a project. Optionally position the task within the pro…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "section": {
+            "type": "string"
+          },
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "insert_after": {
+            "type": "string"
+          },
+          "insert_before": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_gid",
+          "project"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_ADD_SUPPORTING_RELATIONSHIP",
+      "name": "Add Supporting Relationship to Goal",
+      "description": "Tool to add a supporting goal relationship to a goal. Use when you want to link a project, task, portfolio, or another goal as a supporting…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "goal_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "goal_gid",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_ADD_TAG_TO_TASK",
+      "name": "Add Tag to Task",
+      "description": "Tool to add an existing tag to a task in Asana. Use when you need to add a tag for prioritization, routing, or automation workflows. Tags c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag_gid": {
+            "type": "string"
+          },
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_gid",
+          "tag_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_ADD_TASK_DEPENDENCIES",
+      "name": "Add Task Dependencies",
+      "description": "Tool to add dependency relationships to an Asana task. Use when you need to mark one or more tasks as prerequisites (dependencies) for anot…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "dependencies": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "task_gid",
+          "dependencies"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_ADD_TASK_TO_SECTION",
+      "name": "Add task to section",
+      "description": "Adds an existing task to a section, optionally positioning it before or after another task in that section; if no position is specified, th…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_gid": {
+            "type": "string"
+          },
+          "section_gid": {
+            "type": "string"
+          },
+          "insert_after": {
+            "type": "string"
+          },
+          "insert_before": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_gid",
+          "task_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_ADD_USER_TO_TEAM",
+      "name": "Add User for Team",
+      "description": "Tool to add a user to a team in Asana. Use this when you need to add a user to a specific team by providing their user GID, email, or \"me\" …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string"
+          },
+          "team_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_gid",
+          "user"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_ADD_USER_TO_WORKSPACE",
+      "name": "Add User for Workspace",
+      "description": "Tool to add a user to a workspace or organization in Asana. Use this when you need to add a user to a specific workspace by providing their…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid",
+          "user"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_APPROVE_ACCESS_REQUEST",
+      "name": "Approve Access Request",
+      "description": "Tool to approve an access request in Asana. Use when you need to grant access to a resource that requires approval workflow.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "access_request_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_request_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_ACCESS_REQUEST",
+      "name": "Create Access Request",
+      "description": "Tool to create an access request in Asana. Use when you need to request access to a project or portfolio that you don't currently have acce…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_ALLOCATION",
+      "name": "Create Allocation",
+      "description": "Creates a new allocation. Use when you need to schedule or assign a specific amount of a user's time per week to a task or project within a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "string"
+          },
+          "end_on": {
+            "type": "string"
+          },
+          "start_on": {
+            "type": "string"
+          },
+          "effort_type": {
+            "type": "string",
+            "enum": [
+              "hours",
+              "percent"
+            ]
+          },
+          "project_gid": {
+            "type": "string"
+          },
+          "assignee_gid": {
+            "type": "string"
+          },
+          "effort_value": {
+            "type": "number"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid",
+          "assignee_gid",
+          "effort_type",
+          "effort_value",
+          "start_on",
+          "end_on"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_A_PROJECT",
+      "name": "Create a project",
+      "description": "Creates a new Asana project in the specified workspace. Requires a `workspace` GID, and additionally a `team` GID if the workspace is an or…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_A_TAG_IN_A_WORKSPACE",
+      "name": "Create a tag in a workspace",
+      "description": "Creates a new tag, with properties like name and color defined in the request body, within a specific Asana workspace (using `workspace_gid…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_A_TASK",
+      "name": "Create task in asana with specific details",
+      "description": "Creates a new Asana task; requires 'workspace', 'parent', or 'projects' for association, and 'followers', 'projects', 'tags' are set only a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_ATTACHMENT_FOR_OBJECT",
+      "name": "Create Attachment for Object",
+      "description": "Tool to upload an attachment or link an external resource to a task, project, or project_brief in Asana. Use when you need to attach a file…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "file": {
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "connect_to_app": {
+            "type": "boolean"
+          },
+          "resource_subtype": {
+            "type": "string",
+            "enum": [
+              "asana",
+              "external"
+            ]
+          }
+        },
+        "required": [
+          "parent"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_ATTACHMENT_FOR_TASK",
+      "name": "Create Attachment for Task",
+      "description": "Tool to upload an attachment to a task. Use when you need to attach a file to a specific task in Asana.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "parent_gid": {
+            "type": "string"
+          },
+          "connect_to_app": {
+            "type": "boolean"
+          },
+          "resource_subtype": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "parent_gid",
+          "file"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_CUSTOM_FIELD",
+      "name": "Create Custom Field",
+      "description": "Tool to create a new custom field in a workspace. Use when you need to define a new field for tracking specific information within Asana ta…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_ENUM_OPTION_FOR_CUSTOM_FIELD",
+      "name": "Create Enum Option for Custom Field",
+      "description": "Tool to create a new enum option for a custom field in Asana. Use this when you need to add a new selectable option to an existing custom f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "custom_field_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "custom_field_gid",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_MEMBERSHIP",
+      "name": "Create Membership",
+      "description": "Tool to create a membership by adding a user or team to a project, goal, or portfolio. Use when you need to grant access to an Asana resour…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "member": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "access_level": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "member",
+          "parent"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_PROJECT_BRIEF",
+      "name": "Create Project Brief",
+      "description": "Tool to create a project brief for a project. Use when you need to add a detailed explanation (what and why) to a project.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "html_text": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid",
+          "html_text"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_PROJECT_FOR_TEAM",
+      "name": "Create project for team",
+      "description": "Tool to create a project in a team. Use when you need to create a new project within a specific Asana team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "team_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_gid",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_PROJECT_FOR_WORKSPACE",
+      "name": "Create project for workspace",
+      "description": "Tool to create a project in a workspace. Use when you need to create a new project within a specific Asana workspace. Note: The team field …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_PROJECT_STATUS_UPDATE",
+      "name": "Create Project Status Update",
+      "description": "Tool to create a new status update on a project. Use when you need to communicate the current status, progress, or any blockers related to …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "GREEN",
+              "YELLOW",
+              "RED",
+              "BLUE",
+              "COMPLETE"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "project_gid": {
+            "type": "string"
+          },
+          "status_type": {
+            "type": "string",
+            "enum": [
+              "on_track",
+              "at_risk",
+              "off_track",
+              "on_hold",
+              "complete"
+            ]
+          }
+        },
+        "required": [
+          "project_gid",
+          "title",
+          "text",
+          "status_type",
+          "color"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_SECTION_IN_PROJECT",
+      "name": "Create a section in a project",
+      "description": "Creates a new SECTION (not a task) in a project. Sections are organizational containers within a project used to group and categorize tasks…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "project_gid": {
+            "type": "string"
+          },
+          "insert_after": {
+            "type": "string"
+          },
+          "insert_before": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_STATUS_FOR_OBJECT",
+      "name": "Create Status Update for Object",
+      "description": "Tool to create a status update on a project, portfolio, or goal. Use when you need to communicate progress, blockers, or current state to a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "status_type": {
+            "type": "string",
+            "enum": [
+              "on_track",
+              "at_risk",
+              "off_track",
+              "on_hold",
+              "complete"
+            ]
+          }
+        },
+        "required": [
+          "parent",
+          "text",
+          "status_type"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_SUBTASK",
+      "name": "Create subtask",
+      "description": "Creates a new Asana subtask under an existing parent task (`task_gid`); `due_on` and `due_at` are mutually exclusive and cannot be set simu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "due_at": {
+            "type": "string"
+          },
+          "due_on": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "task_gid": {
+            "type": "string"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "followers": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "task_gid",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_TAG",
+      "name": "Create a tag",
+      "description": "Tool to create a new tag in an Asana workspace. Use when you need to create a tag for categorizing tasks. Tags help organize and filter tas…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_TASK_COMMENT",
+      "name": "Create task comment",
+      "description": "Adds a new text comment (story) to an existing Asana task, appearing in its activity feed.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "text"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_CREATE_TEAM",
+      "name": "Create Team",
+      "description": "Tool to create a new team in an Asana workspace. Use when you need to establish a new team for collaboration.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DELETE_ALLOCATION",
+      "name": "Delete Allocation",
+      "description": "Tool to delete an allocation by its ID. Use this when you need to remove a specific resource allocation in Asana.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "allocation_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "allocation_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DELETE_ATTACHMENT",
+      "name": "Delete Attachment",
+      "description": "Tool to delete an attachment by its globally unique identifier. Use when you need to remove an existing attachment from Asana.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "attachment_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "attachment_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DELETE_CUSTOM_FIELD",
+      "name": "Delete Custom Field",
+      "description": "Tool to delete a custom field by its globally unique identifier. Use when you need to remove an existing custom field from Asana.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "custom_field_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "custom_field_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DELETE_MEMBERSHIP",
+      "name": "Delete Membership",
+      "description": "Tool to delete a membership by its GID. Use this when you need to remove a user or team's access to a project, portfolio, goal, or custom f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "membership_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "membership_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DELETE_PROJECT",
+      "name": "Delete a project",
+      "description": "Delete a project.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DELETE_PROJECT_BRIEF",
+      "name": "Delete Project Brief",
+      "description": "Tool to delete a project brief by its GID. Use when you need to remove a project brief from Asana. Note: This requires the project_brief_gi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_brief_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_brief_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DELETE_PROJECT_STATUS",
+      "name": "Delete Project Status",
+      "description": "Tool to delete a project status by its GID. Use when you need to remove a specific project status update from Asana.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_status_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_status_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DELETE_SECTION",
+      "name": "Delete a section",
+      "description": "Tool to delete a section by its GID. Use when you need to permanently remove a section from a project.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "section_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DELETE_STATUS_UPDATE",
+      "name": "Delete Status Update",
+      "description": "Tool to delete a status update by its GID. Use when you need to remove a specific status update from Asana.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "status_update_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status_update_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DELETE_STORY",
+      "name": "Delete Story",
+      "description": "Tool to delete a story by its GID. Use when you need to remove a story from Asana.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "story_gid": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "story_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DELETE_TAG",
+      "name": "Delete a Tag",
+      "description": "Tool to delete a specific tag by its GID. Use when you need to remove an existing tag from Asana.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag_gid": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "tag_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DELETE_TASK",
+      "name": "Delete a task",
+      "description": "Delete a task.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DUPLICATE_PROJECT",
+      "name": "Duplicate Project",
+      "description": "Duplicate a project.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "team": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "project_gid": {
+            "type": "string"
+          },
+          "schedule_dates": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "project_gid",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_DUPLICATE_TASK",
+      "name": "Duplicate Task",
+      "description": "Duplicate a task",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "task_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_ACCESS_REQUESTS",
+      "name": "Get Access Requests",
+      "description": "Tool to retrieve access requests for a target object. Use when you need to get pending access requests for a specific resource like a proje…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "target"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_ALLOCATION",
+      "name": "Get Allocation",
+      "description": "Get an allocation by ID. Use when you need to retrieve the details of a specific allocation.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "allocation_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "allocation_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_ALLOCATIONS",
+      "name": "Get Allocations",
+      "description": "Tool to get multiple allocations. Requires either 'parent' (project GID) OR both 'assignee' AND 'workspace' together.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ASANA_GET_A_PROJECT",
+      "name": "Get a project",
+      "description": "Retrieves a specific Asana project by its `project_gid`, with an option to include additional fields for comprehensive details using `opt_f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_A_TASK",
+      "name": "Get a task",
+      "description": "Retrieves full details for a specified task GID accessible by the user; use `opt_fields` to customize returned data.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_ATTACHMENT",
+      "name": "Get Attachment",
+      "description": "Tool to get a single attachment by its globally unique identifier. Use when you need to retrieve details about a specific file attached to …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "string"
+          },
+          "attachment_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "attachment_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_AUDIT_LOG_EVENTS",
+      "name": "Get Audit Log Events",
+      "description": "Tool to get audit log events for a workspace. Use when you need to retrieve a log of actions performed within a specific Asana workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "end_at": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "start_at": {
+            "type": "string"
+          },
+          "actor_gid": {
+            "type": "string"
+          },
+          "actor_type": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "resource_gid": {
+            "type": "string"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_A_USER_TASK_LIST",
+      "name": "Get a user task list",
+      "description": "Retrieves a specific user's task list from Asana by its `user_task_list_gid`, optionally returning extended details like name, owner, and w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "user_task_list_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_task_list_gid",
+          "workspace"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_CURRENT_USER",
+      "name": "Get current user",
+      "description": "Retrieves the authenticated user's full record, including accessible workspaces, often used as an initial call to establish user context fo…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "ASANA_GET_CUSTOM_FIELD",
+      "name": "Get Custom Field",
+      "description": "Tool to get a single custom field by its globally unique identifier. Use when you need to retrieve the complete metadata and properties of …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "custom_field_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "custom_field_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_CUSTOM_FIELDS_FOR_WORKSPACE",
+      "name": "Get Custom Fields for Workspace",
+      "description": "Tool to get all custom fields in a workspace. Use when you need to retrieve a list of custom fields associated with a specific workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_CUSTOM_TYPES",
+      "name": "Get Custom Types",
+      "description": "Tool to get all custom types associated with a project. Use when you need to retrieve custom types that extend Asana objects for categoriza…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_EVENTS",
+      "name": "Get Events on a Resource",
+      "description": "Retrieve events on a resource to monitor changes. Use when you need to track activity or changes related to a specific Asana resource like …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sync": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "resource_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_FAVORITES_FOR_USER",
+      "name": "Get Favorites for User",
+      "description": "Tool to get a user's favorites within a specified workspace. Returns favorites ordered as they appear in the user's Asana sidebar.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "user_gid": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "resource_type": {
+            "type": "string",
+            "enum": [
+              "portfolio",
+              "project",
+              "tag",
+              "task",
+              "user",
+              "project_template"
+            ]
+          }
+        },
+        "required": [
+          "user_gid",
+          "workspace"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_GOAL",
+      "name": "Get Goal",
+      "description": "Retrieve the full record for a single goal by its GID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "goal_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "goal_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_GOAL_RELATIONSHIPS",
+      "name": "Get Goal Relationships",
+      "description": "Tool to retrieve goal relationships. Use when you need to get the relationships associated with a specific goal in Asana.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "goal_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "goal_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_GOALS",
+      "name": "Get Goals",
+      "description": "Tool to retrieve multiple goals. Requires exactly one scope parameter (workspace, team, portfolio, or project) to be specified. Can be opti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "portfolio": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "time_period": {
+            "type": "string"
+          },
+          "is_workspace_level": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ASANA_GET_JOB",
+      "name": "Get Job",
+      "description": "Tool to retrieve a job by its globally unique identifier. Use when you need to check the status of asynchronous operations like task duplic…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "job_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_MEMBERSHIP",
+      "name": "Get Membership",
+      "description": "Tool to retrieve a single membership by its ID. Use this when you need to get details about a specific membership relationship between a us…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "membership_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "membership_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_MEMBERSHIPS",
+      "name": "Get Memberships",
+      "description": "Tool to retrieve memberships for goals, projects, portfolios, or custom fields. Use this to find out who has access to a specific Asana res…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "member": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ASANA_GET_MULTIPLE_PROJECTS",
+      "name": "Get multiple projects",
+      "description": "Returns a list of projects filtered by workspace or team (one required), with optional archived status filter, supporting pagination for la…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ASANA_GET_MULTIPLE_TASKS",
+      "name": "Get multiple tasks",
+      "description": "Retrieves a list of tasks, allowing filtering by assignee (requires `workspace`), project, section, `completed_since`, and `modified_since`…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "section": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "modified_since": {
+            "type": "string"
+          },
+          "user_task_list": {
+            "type": "string"
+          },
+          "completed_since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ASANA_GET_MULTIPLE_USERS",
+      "name": "Get multiple users",
+      "description": "Returns a list of users in an Asana workspace or organization, optionally filtered by workspace or team GID, with support for pagination an…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ASANA_GET_MULTIPLE_WORKSPACES",
+      "name": "Get multiple workspaces",
+      "description": "Retrieves all workspaces accessible by the authenticated user, returning an empty list if the user has no accessible workspaces.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ASANA_GET_PORTFOLIO",
+      "name": "Get Portfolio",
+      "description": "Retrieve the full record for a single portfolio by its GID. Use this when you need to get detailed information about a specific portfolio.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "portfolio_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "portfolio_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_PORTFOLIO_ITEMS",
+      "name": "Get Portfolio Items",
+      "description": "Retrieve items in a portfolio. Use this to get a list of projects or other portfolios contained within a specific portfolio.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "portfolio_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "portfolio_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_PORTFOLIO_MEMBERSHIPS",
+      "name": "Get Portfolio Memberships",
+      "description": "Tool to retrieve multiple portfolio memberships. Use this tool when you need to list memberships for a specific portfolio, a user within a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "portfolio": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ASANA_GET_PORTFOLIOS",
+      "name": "Get Portfolios",
+      "description": "Retrieve multiple portfolios. Use when you need to list portfolios within a specific workspace, optionally filtered by owner.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "workspace",
+          "owner"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_PROJECT_BRIEF",
+      "name": "Get Project Brief",
+      "description": "Tool to retrieve a project brief by its GID. Use when you need to get the detailed explanation (what and why) of a project. Note: Requires …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_brief_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_brief_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_PROJECT_MEMBERSHIP",
+      "name": "Get Project Membership",
+      "description": "Tool to get a project membership by ID. Use when you need to retrieve details of a specific project membership.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_membership_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_membership_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_PROJECT_MEMBERSHIPS",
+      "name": "Get Project Memberships For Project",
+      "description": "Tool to get memberships from a specific project. Use when you need to see who has access to a project and their permission levels.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_PROJECTS_FOR_TASK",
+      "name": "Get Projects for Task",
+      "description": "Tool to get all projects a task is in. Use when you need to retrieve project associations for a specific task.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_PROJECTS_FOR_TEAM",
+      "name": "Get Projects for Team",
+      "description": "Tool to get a list of projects for a specific team in Asana. Use when you need to retrieve project details associated with a team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "team_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_PROJECT_STATUS",
+      "name": "Get Project Status",
+      "description": "Tool to retrieve the full record for a single project status by its GID. Use when you need to get the details of a specific project status …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_status_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_status_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_PROJECT_STATUS_UPDATES",
+      "name": "Get Project Status Updates",
+      "description": "Tool to get status updates for a specific project. Use when you need to retrieve the latest or historical status reports associated with an…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_PROJECT_TEMPLATES",
+      "name": "Get Multiple Project Templates",
+      "description": "Tool to retrieve multiple project templates. Use when you need to list available project templates in a workspace or team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "team_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ASANA_GET_PROJECT_TEMPLATES_FOR_TEAM",
+      "name": "Get Project Templates for Team",
+      "description": "Tool to get a team's project templates in Asana. Use when you need to retrieve project templates associated with a specific team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "team_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_REACTIONS_ON_OBJECT",
+      "name": "Get Reactions on Object",
+      "description": "Tool to get reactions with a specific emoji base character on an object. Use when you need to retrieve user reactions (emoji responses) on …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "emoji_base": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "target",
+          "emoji_base"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_SECTION",
+      "name": "Get Section",
+      "description": "Retrieve the full record for a single section by its GID. Use this when you need to get details about a specific section within a project.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "section_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_SECTIONS_IN_PROJECT",
+      "name": "Get sections in a project",
+      "description": "Returns compact records for all sections (used to group tasks) in a specified project.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "project_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_STATUS",
+      "name": "Get Status Update",
+      "description": "Tool to retrieve the full record for a single status update by its GID. Use when you need to get the details of a specific status update.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "status_update_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status_update_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_STATUS_UPDATES",
+      "name": "Get Status Updates",
+      "description": "Retrieve status updates from an object. Use when you need to get the latest or historical status updates for a specific project, portfolio,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "parent"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_STORIES_FOR_TASK",
+      "name": "Get Stories for Task",
+      "description": "Tool to get stories (comments, status updates, etc.) for a task. Use when you need to retrieve the history or discussion associated with a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "task_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_STORY",
+      "name": "Get Story",
+      "description": "Tool to retrieve a story. Use when you need to get the complete record for a single story.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "story_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "story_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TAG",
+      "name": "Get Tag",
+      "description": "Tool to get a single tag by its globally unique identifier. Use when you need to retrieve detailed information about a specific tag.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "tag_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TAGS",
+      "name": "Get Tags",
+      "description": "Get multiple tags in a workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ASANA_GET_TAGS_FOR_TASK",
+      "name": "Get Tags for Task",
+      "description": "Tool to get all tags associated with a specific task. Use when you need to retrieve tags for categorization, filtering, or understanding ta…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TAGS_FOR_WORKSPACE",
+      "name": "Get Tags For Workspace",
+      "description": "Tool to get all tags in a specific workspace. Use when you need to retrieve tags for categorizing tasks within a workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TASK_ATTACHMENTS",
+      "name": "Get Task Attachments",
+      "description": "Tool to get the list of attachments for a given task, project, or project_brief. Use when you need to retrieve files attached to a specific…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "parent_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "parent_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TASK_COUNTS_FOR_PROJECT",
+      "name": "Get Task Counts For Project",
+      "description": "Tool to get task count statistics for a project. Use when you need to retrieve the number of tasks, completed tasks, incomplete tasks, and …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TASKS_FOR_TAG",
+      "name": "Get tasks for tag",
+      "description": "Tool to retrieve tasks associated with a specific Asana tag by tag GID. Use when you need to list all tasks that have been tagged with a pa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "tag_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "tag_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TASKS_FOR_USER_TASK_LIST",
+      "name": "Get tasks for user task list",
+      "description": "Tool to retrieve tasks from a user task list by user task list GID. Use when you need to list tasks assigned to a specific user's task list.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "completed_since": {
+            "type": "string"
+          },
+          "user_task_list_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_task_list_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TASKS_FROM_A_PROJECT",
+      "name": "Retrieve tasks for project",
+      "description": "Retrieves tasks from a specified Asana project, allowing filtering by completion status and selection of optional fields for detailed respo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_gid": {
+            "type": "string"
+          },
+          "completed_since": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TASKS_FROM_SECTION",
+      "name": "Get tasks from a section",
+      "description": "Tool to retrieve tasks that belong to a specific Asana section (column/header) by section GID. Use when you need to list tasks within a par…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "section_gid": {
+            "type": "string"
+          },
+          "completed_since": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TASK_SUBTASKS",
+      "name": "Get Task Subtasks",
+      "description": "Tool to retrieve multiple task subtasks from a workspace. Use when you need to list or find available task subtasks.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "task_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TASK_TEMPLATES",
+      "name": "Get Task Templates",
+      "description": "Tool to retrieve multiple task templates from a workspace. Use when you need to list or find available task templates.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "string"
+          },
+          "project_gid": {
+            "type": "string"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ASANA_GET_TEAM",
+      "name": "Get Team",
+      "description": "Tool to retrieve details of a specific team by its GID. Use when you need to fetch information about a particular team in Asana.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TEAM_MEMBERSHIP",
+      "name": "Get Team Membership",
+      "description": "Tool to retrieve a complete team membership record by its GID. Use when you need to fetch details about a specific team membership in Asana.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "team_membership_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_membership_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TEAM_MEMBERSHIPS",
+      "name": "Get Team Memberships",
+      "description": "Tool to retrieve compact team membership records. Use when you need to list members of a team, teams a user belongs to, or all team members…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ASANA_GET_TEAM_MEMBERSHIPS_FOR_TEAM",
+      "name": "Get Team Memberships for Team",
+      "description": "Tool to get memberships from a specific team. Use when you need to retrieve the list of users who are members of a particular team, includi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "team_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TEAM_MEMBERSHIPS_FOR_USER",
+      "name": "Get Team Memberships For User",
+      "description": "Tool to get team memberships for a specific user. Use when you need to retrieve all teams that a user belongs to within a workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "user_gid": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "user_gid",
+          "workspace"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TEAMS_FOR_USER",
+      "name": "Get Teams for User",
+      "description": "Tool to get teams for a specific user in an organization. Returns the team records for all teams in the organization or workspace to which …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "user_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "organization": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_gid",
+          "organization"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TEAMS_IN_WORKSPACE",
+      "name": "Get teams in workspace",
+      "description": "Returns the compact records for all teams in the workspace visible to the authorized user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TIME_PERIOD",
+      "name": "Get Time Period",
+      "description": "Tool to retrieve the full record for a single time period by its GID. Use when you need to fetch detailed information about a specific time…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "time_period_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "time_period_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TIME_PERIODS",
+      "name": "Get Time Periods",
+      "description": "Tool to retrieve compact or full representations of time periods. Use this when you need to fetch information about specific time periods, …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "end_on": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "start_on": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TIME_TRACKING_ENTRIES",
+      "name": "Get Time Tracking Entries",
+      "description": "Tool to get multiple time tracking entries across workspace, tasks, or projects. Use when you need to retrieve time tracking information fo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "portfolio": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "attributable_to": {
+            "type": "string"
+          },
+          "entered_on_end_date": {
+            "type": "string"
+          },
+          "entered_on_start_date": {
+            "type": "string"
+          },
+          "timesheet_approval_status": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ASANA_GET_TIME_TRACKING_ENTRIES_FOR_TASK",
+      "name": "Get Time Tracking Entries for Task",
+      "description": "Tool to get time tracking entries for a task. Use when you need to retrieve time tracking information recorded on a specific task.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_TYPEAHEAD_OBJECTS",
+      "name": "Get Objects via Typeahead",
+      "description": "Tool to retrieve objects in a workspace via a typeahead search algorithm. Use when you need to quickly find objects like tasks, projects, u…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "resource_type": {
+            "type": "string",
+            "enum": [
+              "custom_field",
+              "goal",
+              "project",
+              "project_template",
+              "portfolio",
+              "tag",
+              "task",
+              "team",
+              "user"
+            ]
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_USER",
+      "name": "Get User",
+      "description": "Get a user by their ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "user_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_USER_FOR_WORKSPACE",
+      "name": "Get User in Workspace",
+      "description": "Tool to get a user in a workspace or organization by their GID. Use when you need to retrieve details about a specific user within a worksp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid",
+          "user_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_USERS_FOR_TEAM",
+      "name": "Get Users for Team",
+      "description": "Get users in a team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "team_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_USERS_FOR_WORKSPACE",
+      "name": "Get Users in Workspace",
+      "description": "Get users in a workspace or organization.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_USER_TASK_LIST",
+      "name": "Get User Task List",
+      "description": "Tool to get a single user task list by its globally unique identifier. Use when you need to retrieve information about a specific user's My…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "user_task_list_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_task_list_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_WEBHOOKS",
+      "name": "Get Webhooks",
+      "description": "Tool to retrieve multiple webhooks in a workspace. Use when you need to list all webhooks for a workspace or filter webhooks by a specific …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "workspace"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_WORKSPACE",
+      "name": "Get Workspace",
+      "description": "Tool to retrieve details of a specific workspace by its GID. Use when you need to get information about a particular Asana workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_WORKSPACE_MEMBERSHIP",
+      "name": "Get Workspace Membership",
+      "description": "Tool to retrieve a specific workspace membership by its GID. Use when you need to get details about a user's membership in a workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "workspace_membership_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_membership_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_WORKSPACE_MEMBERSHIPS",
+      "name": "Get Workspace Memberships",
+      "description": "Tool to retrieve the workspace memberships for a specific workspace. Use when you need to list members of a workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_WORKSPACE_MEMBERSHIPS_FOR_USER",
+      "name": "Get Workspace Memberships For User",
+      "description": "Tool to retrieve workspace memberships for a specific user. Use when you need to list all workspaces a user is a member of.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "user_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "user_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_GET_WORKSPACE_PROJECTS",
+      "name": "Get Workspace Projects",
+      "description": "Tool to retrieve the projects associated with a specific workspace. Use when you need to list all projects within a given Asana workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "string"
+          },
+          "opt_expand": {
+            "type": "array"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_INSERT_ENUM_OPTION_FOR_CUSTOM_FIELD",
+      "name": "Reorder Enum Option for Custom Field",
+      "description": "Tool to reorder an existing enum option within a custom field by moving it before or after another specified enum option. Use when you need…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "custom_field_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "custom_field_gid",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_INSERT_SECTION_FOR_PROJECT",
+      "name": "Move or Insert Section in Project",
+      "description": "Tool to move or reorder an existing section within a project by repositioning it before or after another section. Use when you need to chan…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_INSTANTIATE_PROJECT_TEMPLATE",
+      "name": "Instantiate Project Template",
+      "description": "Instantiate (create) a real Asana project from a project template, returning the async job record. Use when you need to create a new projec…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "team": {
+            "type": "string"
+          },
+          "is_strict": {
+            "type": "boolean"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "privacy_setting": {
+            "type": "string",
+            "enum": [
+              "public_to_workspace",
+              "private_to_team",
+              "private"
+            ]
+          },
+          "requested_dates": {
+            "type": "array"
+          },
+          "requested_roles": {
+            "type": "array"
+          },
+          "project_template_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_template_gid",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_REJECT_ACCESS_REQUEST",
+      "name": "Reject access request",
+      "description": "Tool to reject an access request. Use when you need to deny a user's request for access to a project or resource.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "access_request_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_request_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_REMOVE_FOLLOWER_FROM_TASK",
+      "name": "Remove Follower From Task",
+      "description": "Tool to remove one or more followers from a task. Use when you need to update the list of users following a specific task.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_gid": {
+            "type": "string"
+          },
+          "followers": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "task_gid",
+          "followers"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_REMOVE_FOLLOWERS_FOR_PROJECT",
+      "name": "Remove Followers For Project",
+      "description": "Tool to remove followers from a project in Asana. Use when you need to remove one or more users as followers from a specific project.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "followers": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid",
+          "followers"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_REMOVE_ITEM_FROM_PORTFOLIO",
+      "name": "Remove Item from Portfolio",
+      "description": "Tool to remove an item (e.g., a project) from an Asana portfolio. Use to undo/cleanup portfolio membership, support moves between portfolio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "portfolio_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "portfolio_gid",
+          "item"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_REMOVE_MEMBERS_FOR_PROJECT",
+      "name": "Remove Members from Project",
+      "description": "Tool to remove users from a project in Asana. Use this tool when you need to remove one or more users as members from a specific project.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_gid",
+          "members"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_REMOVE_PROJECT_FROM_TASK",
+      "name": "Remove Project from Task",
+      "description": "Tool to remove a project from a task in Asana. Use this when you need to disassociate a task from a specific project.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_gid",
+          "project"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_REMOVE_TAG_FROM_TASK",
+      "name": "Remove Tag from Task",
+      "description": "Tool to remove an existing tag from a task in Asana. Use this tool when you need to detach a tag from a specific task for cleanup or retagg…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_gid",
+          "tag"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_REMOVE_USER_FOR_TEAM",
+      "name": "Remove User For Team",
+      "description": "Tool to remove a user from a team. Use when you need to revoke team membership for a specific user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string"
+          },
+          "team_gid": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_gid",
+          "user"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_REMOVE_USER_FOR_WORKSPACE",
+      "name": "Remove User from Workspace",
+      "description": "Tool to remove a user from a workspace or organization. Use when you need to revoke a user's access to a specific workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid",
+          "user"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_SEARCH_TASKS_IN_WORKSPACE",
+      "name": "Search Tasks in Workspace",
+      "description": "Tool to search tasks across a workspace with advanced filters. Use when performing complex queries such as overdue tasks, by project or cus…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "assignee_any": {
+            "type": "array"
+          },
+          "projects_any": {
+            "type": "array"
+          },
+          "workspace_gid": {
+            "type": "string"
+          },
+          "resource_subtype": {
+            "type": "string"
+          },
+          "composio_execution_message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_SET_PARENT_FOR_TASK",
+      "name": "Set parent for task",
+      "description": "Tool to set the parent of a task in Asana. Use when you need to make a task a subtask of another task or remove the parent relationship.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "parent": {
+            "type": "string"
+          },
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "string"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "insert_after": {
+            "type": "string"
+          },
+          "insert_before": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_gid",
+          "parent"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_SUBMIT_PARALLEL_REQUESTS",
+      "name": "Submit Parallel Requests (Batch API)",
+      "description": "Tool to submit multiple Asana API requests in parallel using the Batch API. Use when you need to perform several operations efficiently, su…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_UPDATE_ALLOCATION",
+      "name": "Update Allocation",
+      "description": "Tool to update an existing allocation by its ID. Use this when you need to modify details like the start date, end date, effort, or assigne…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "allocation_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "allocation_gid",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_UPDATE_A_TASK",
+      "name": "Update a task",
+      "description": "Updates attributes of an existing Asana task identified by its task_gid.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "task_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_gid",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_UPDATE_CUSTOM_FIELD",
+      "name": "Update Custom Field",
+      "description": "Tool to update a custom field by its globally unique identifier. Use when you need to modify properties of an existing custom field in Asan…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "custom_field_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "custom_field_gid",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_UPDATE_ENUM_OPTION",
+      "name": "Update Enum Option",
+      "description": "Tool to update an enum option for a custom field. Use when you need to modify the name, color, or enabled status of an existing enum option.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "enum_option_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enum_option_gid",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_UPDATE_PROJECT",
+      "name": "Update a project",
+      "description": "Update a project.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "team": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "due_on": {
+            "type": "string"
+          },
+          "public": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "due_date": {
+            "type": "string"
+          },
+          "start_on": {
+            "type": "string"
+          },
+          "html_notes": {
+            "type": "string"
+          },
+          "is_template": {
+            "type": "boolean"
+          },
+          "project_gid": {
+            "type": "string"
+          },
+          "default_view": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "project_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_UPDATE_PROJECT_BRIEF",
+      "name": "Update Project Brief",
+      "description": "Tool to update a project brief by its GID. Use when you need to modify the content/description of a project brief. Note: Requires the proje…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "project_brief_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_brief_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_UPDATE_SECTION",
+      "name": "Update Section",
+      "description": "Update a section's name or position within a project. Use when you need to rename a section or reorder sections by specifying insert_before…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "section_gid": {
+            "type": "string"
+          },
+          "insert_after": {
+            "type": "string"
+          },
+          "insert_before": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_UPDATE_STORY",
+      "name": "Update Story",
+      "description": "Tool to update a story on a task. Use when you need to modify the text, html_text, or pin status of an existing story. Only comment stories…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "story_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "story_gid",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_UPDATE_TAG",
+      "name": "Update Tag",
+      "description": "Tool to update an existing tag by its globally unique identifier. Use when you need to change the name or color of a tag.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "tag_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tag_gid",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_UPDATE_TEAM",
+      "name": "Update a team",
+      "description": "Tool to update details of an existing team. Use when you need to change a team's name, description, or organization.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "team_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "organization": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_UPDATE_USER",
+      "name": "Update User",
+      "description": "Update a user's custom fields. Note: Asana's API has very limited user update capabilities - most user properties are read-only and managed…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_gid": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "custom_fields": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "user_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_UPDATE_USER_FOR_WORKSPACE",
+      "name": "Update User for Workspace",
+      "description": "Tool to update a user in a workspace or organization. Use when you need to modify user-specific custom field values for a workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_gid": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "workspace_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_gid",
+          "user_gid"
+        ]
+      }
+    },
+    {
+      "slug": "ASANA_UPDATE_WEBHOOK",
+      "name": "Update a webhook",
+      "description": "Tool to update an existing Asana webhook's filter configuration. Use when you need to modify which events trigger webhook notifications.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filters": {
+            "type": "array"
+          },
+          "opt_fields": {
+            "type": "array"
+          },
+          "opt_pretty": {
+            "type": "boolean"
+          },
+          "webhook_gid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_gid"
+        ]
+      }
+    }
+  ]
+}

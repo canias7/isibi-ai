@@ -1,0 +1,6680 @@
+{
+  "slug": "klaviyo",
+  "name": "Klaviyo",
+  "tool_count": 225,
+  "tools": [
+    {
+      "slug": "KLAVIYO_ADD_PROFILE_TO_LIST",
+      "name": "Add Profile to List",
+      "description": "Add profiles to a Klaviyo list by profile IDs or email addresses. This action subscribes profiles to a marketing list, which is ideal for g…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "emails": {
+            "type": "array"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "profile_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_ASSIGN_CAMPAIGN_MESSAGE_TEMPLATE",
+      "name": "Assign campaign message template",
+      "description": "Creates a non-reusable version of the template and assigns it to the message.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **S…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "campaign-message"
+            ]
+          },
+          "data__relationships__template__data__id": {
+            "type": "string"
+          },
+          "data__relationships__template__data__type": {
+            "type": "string",
+            "enum": [
+              "template"
+            ]
+          }
+        },
+        "required": [
+          "data__id",
+          "data__relationships__template__data__id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_BULK_CREATE_CLIENT_EVENTS",
+      "name": "Bulk create client events",
+      "description": "Use the client-side endpoint with a public API key to track profile activity. It accepts up to 1000 events/request with rates of 10/s burst…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "event-bulk-create"
+            ]
+          },
+          "data__attributes__events__data": {
+            "type": "array"
+          },
+          "data__attributes__profile__data__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__type": {
+            "type": "string",
+            "enum": [
+              "profile"
+            ]
+          },
+          "data__attributes__profile__data__attributes____kx": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__email": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__image": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__title": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__address1": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__address2": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__latitude": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__timezone": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__meta__patch__props__unset": {
+            "type": "array"
+          },
+          "data__attrs__profile__data__attrs__location__longitude": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__last__name": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__first__name": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__ip": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__organization": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__anonymous__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__zip": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__phone__number": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__city": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__region": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__country": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_BULK_CREATE_EVENTS",
+      "name": "Bulk create events",
+      "description": "Bulk create events for multiple profiles in a single request. Accepts up to 1,000 events with a 5MB max payload. Each event requires a prof…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "event-bulk-create-job"
+            ]
+          },
+          "data__attributes__events__bulk__create__data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "data__attributes__events__bulk__create__data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_CANCEL_CAMPAIGN_SEND",
+      "name": "Cancel Campaign Send",
+      "description": "Cancel or revert a campaign send job. Use 'cancel' to permanently stop a campaign (status becomes CANCELED), or 'revert' to return it to DR…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "cancel",
+              "revert"
+            ]
+          },
+          "campaign_send_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaign_send_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_BACK_IN_STOCK_SUBSCRIPTION",
+      "name": "Create back in stock subscription",
+      "description": "Use the server-side endpoint to subscribe to restock alerts, following the Back in Stock API guide. For client-side, use the POST endpoint …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "back-in-stock-subscription"
+            ]
+          },
+          "data__attributes__channels": {
+            "type": "array"
+          },
+          "data__attributes__profile__data__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__type": {
+            "type": "string",
+            "enum": [
+              "profile"
+            ]
+          },
+          "data__relationships__variant__data__id": {
+            "type": "string"
+          },
+          "data__relationships__variant__data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-variant"
+            ]
+          },
+          "data__attributes__profile__data__attributes__email": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__anonymous__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__phone__number": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_CAMPAIGN",
+      "name": "Create campaign",
+      "description": "Creates a campaign given a set of parameters, then returns it.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `campa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "campaign"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__attributes__send__options": {
+            "type": "object"
+          },
+          "data__attributes__tracking__options": {
+            "type": "object"
+          },
+          "data__attributes__audiences__excluded": {
+            "type": "array"
+          },
+          "data__attributes__audiences__included": {
+            "type": "array"
+          },
+          "data__attributes__send__strategy__method": {
+            "type": "string"
+          },
+          "data__attributes__campaign__messages__data": {
+            "type": "array"
+          },
+          "data__attributes__send__strategy__options__sto__date": {
+            "type": "string"
+          },
+          "data__attrs__send__strategy__options__throttled__datetime": {
+            "type": "string"
+          },
+          "data__attributes__send__strategy__options__static__datetime": {
+            "type": "string"
+          },
+          "data__attributes__send__strategy__options__static__is__local": {
+            "type": "boolean"
+          },
+          "data__attrs__send__strategy__options__static__past__recipients": {
+            "type": "boolean"
+          },
+          "data__attrs__send__strategy__options__throttled__throttle__pct": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_CAMPAIGN_CLONE",
+      "name": "Create campaign clone",
+      "description": "Clones an existing campaign, returning a new campaign based on the original with a new ID and name.<br><br>*Rate limits*:<br>Burst: `10/s`<…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "campaign"
+            ]
+          },
+          "data__attributes__new__name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_CAMPAIGN_RECIPIENT_ESTIMATION_JOB",
+      "name": "Create Campaign Recipient Estimation Job",
+      "description": "Start an asynchronous task to estimate the number of recipients for a campaign. This action creates a background job that calculates how ma…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "campaign_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaign_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_CAMPAIGN_SEND_JOB",
+      "name": "Create campaign send job",
+      "description": "Trigger a campaign to send asynchronously<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `campaigns:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "campaign-send-job"
+            ]
+          }
+        },
+        "required": [
+          "data__id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_CATALOG_CATEGORY",
+      "name": "Create catalog category",
+      "description": "Create a new catalog category.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalogs:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-category"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__catalog__type": {
+            "type": "string"
+          },
+          "data__relationships__items__data": {
+            "type": "array"
+          },
+          "data__attributes__integration__type": {
+            "type": "string",
+            "enum": [
+              "$custom"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_CATALOG_CATEGORY_RELATIONSHIPS_ITEMS",
+      "name": "Create catalog category relationships items",
+      "description": "Create a new item relationship for the given category ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalogs:w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_CATALOG_ITEM",
+      "name": "Create catalog item",
+      "description": "Create a new catalog item.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalogs:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-item"
+            ]
+          },
+          "data__attributes__url": {
+            "type": "string"
+          },
+          "data__attributes__price": {
+            "type": "number"
+          },
+          "data__attributes__title": {
+            "type": "string"
+          },
+          "data__attributes__images": {
+            "type": "array"
+          },
+          "data__attributes__published": {
+            "type": "boolean"
+          },
+          "data__attributes__description": {
+            "type": "string"
+          },
+          "data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__catalog__type": {
+            "type": "string"
+          },
+          "data__attributes__image__full__url": {
+            "type": "string"
+          },
+          "data__attributes__integration__type": {
+            "type": "string",
+            "enum": [
+              "$custom"
+            ]
+          },
+          "data__relationships__categories__data": {
+            "type": "array"
+          },
+          "data__attributes__image__thumbnail__url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_CATALOG_ITEM_RELATIONSHIPS_CATEGORIES",
+      "name": "Create catalog item relationships categories",
+      "description": "Create a new catalog category relationship for the given item ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `ca…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_CATALOG_VARIANT",
+      "name": "Create catalog variant",
+      "description": "Create a new variant for a related catalog item.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalogs:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-variant"
+            ]
+          },
+          "data__attributes__sku": {
+            "type": "string"
+          },
+          "data__attributes__url": {
+            "type": "string"
+          },
+          "data__attributes__price": {
+            "type": "number"
+          },
+          "data__attributes__title": {
+            "type": "string"
+          },
+          "data__attributes__images": {
+            "type": "array"
+          },
+          "data__attributes__published": {
+            "type": "boolean"
+          },
+          "data__attributes__description": {
+            "type": "string"
+          },
+          "data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__catalog__type": {
+            "type": "string"
+          },
+          "data__attributes__image__full__url": {
+            "type": "string"
+          },
+          "data__attributes__integration__type": {
+            "type": "string",
+            "enum": [
+              "$custom"
+            ]
+          },
+          "data__attributes__inventory__policy": {
+            "type": "integer"
+          },
+          "data__relationships__item__data__id": {
+            "type": "string"
+          },
+          "data__attributes__inventory__quantity": {
+            "type": "number"
+          },
+          "data__relationships__item__data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-item"
+            ]
+          },
+          "data__attributes__image__thumbnail__url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_CLIENT_BACK_IN_STOCK_SUBSCRIPTION",
+      "name": "Create client back in stock subscription",
+      "description": "Use the endpoint for client-side back in stock notifications with a public API key. For server-side, use POST /api/back-in-stock-subscripti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "back-in-stock-subscription"
+            ]
+          },
+          "data__attributes__channels": {
+            "type": "array"
+          },
+          "data__attributes__profile__data__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__type": {
+            "type": "string",
+            "enum": [
+              "profile"
+            ]
+          },
+          "data__relationships__variant__data__id": {
+            "type": "string"
+          },
+          "data__relationships__variant__data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-variant"
+            ]
+          },
+          "data__attributes__profile__data__attributes__email": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__anonymous__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__phone__number": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_CLIENT_EVENT2",
+      "name": "Create Client Event V2",
+      "description": "Create a client-side event in Klaviyo to track user interactions. This action uses the company_id in the request body instead of as a query…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "address1": {
+            "type": "string"
+          },
+          "address2": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "zip_code": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "longitude": {
+            "type": "string"
+          },
+          "unique_id": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string"
+          },
+          "event_time": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "properties": {
+            "type": "object"
+          },
+          "event_value": {
+            "type": "number"
+          },
+          "metric_name": {
+            "type": "string"
+          },
+          "organization": {
+            "type": "string"
+          },
+          "profile_email": {
+            "type": "string"
+          },
+          "value_currency": {
+            "type": "string"
+          },
+          "profile_properties": {
+            "type": "object"
+          },
+          "profile_external_id": {
+            "type": "string"
+          },
+          "profile_anonymous_id": {
+            "type": "string"
+          },
+          "profile_phone_number": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id",
+          "metric_name"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_CLIENT_SUBSCRIPTION",
+      "name": "Create client subscription",
+      "description": "Endpoint manages email/SMS opt-ins using consent and requires public API key for client use. Allows single-channel with details. Rate limit…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "subscription"
+            ]
+          },
+          "data__attributes__custom__source": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__id": {
+            "type": "string"
+          },
+          "data__relationships__list__data__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__type": {
+            "type": "string",
+            "enum": [
+              "profile"
+            ]
+          },
+          "data__relationships__list__data__type": {
+            "type": "string",
+            "enum": [
+              "list"
+            ]
+          },
+          "data__attributes__profile__data__attributes____kx": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__email": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__image": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__title": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__address1": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__address2": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__latitude": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__timezone": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__meta__patch__props__unset": {
+            "type": "array"
+          },
+          "data__attrs__profile__data__attrs__location__longitude": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__last__name": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__first__name": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__ip": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__organization": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__anonymous__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__zip": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__phone__number": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__city": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__region": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__country": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_COUPON",
+      "name": "Create coupon",
+      "description": "Creates a new coupon.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `coupons:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "coupon"
+            ]
+          },
+          "data__attributes__description": {
+            "type": "string"
+          },
+          "data__attributes__external__id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_COUPON_CODE",
+      "name": "Create coupon code",
+      "description": "Synchronously creates a coupon code for the given coupon.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3500/m` **Scopes:** `coupon-c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "coupon-code"
+            ]
+          },
+          "data__attributes__expires__at": {
+            "type": "string"
+          },
+          "data__attributes__unique__code": {
+            "type": "string"
+          },
+          "data__relationships__coupon__data__id": {
+            "type": "string"
+          },
+          "data__relationships__coupon__data__type": {
+            "type": "string",
+            "enum": [
+              "coupon"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_EVENT",
+      "name": "Create event",
+      "description": "Create or update a profile event with minimum identifiers and metric name. Success means validation, not completion. Burst limit: 350/s, St…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "event"
+            ]
+          },
+          "data__attributes__time": {
+            "type": "string"
+          },
+          "data__attributes__value": {
+            "type": "integer"
+          },
+          "data__attributes__properties": {
+            "type": "object"
+          },
+          "data__attributes__unique__id": {
+            "type": "string"
+          },
+          "data__attributes__value__currency": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__id": {
+            "type": "string"
+          },
+          "data__attributes__metric__data__type": {
+            "type": "string",
+            "enum": [
+              "metric"
+            ]
+          },
+          "data__attributes__profile__data__type": {
+            "type": "string",
+            "enum": [
+              "profile"
+            ]
+          },
+          "data__attributes__metric__data__attributes__name": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes____kx": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__email": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__image": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__title": {
+            "type": "string"
+          },
+          "data__attributes__metric__data__attributes__service": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__address1": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__address2": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__latitude": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__timezone": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__longitude": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__last__name": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__first__name": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__ip": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__organization": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__anonymous__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__zip": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__phone__number": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__city": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__meta__patch__props__unset": {
+            "type": "array"
+          },
+          "data__attributes__profile__data__attributes__location__region": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__country": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_LIST",
+      "name": "Create list",
+      "description": "Create a new list.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m`<br>Daily: `100/d` **Scopes:** `lists:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "list"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_OR_UPDATE_CLIENT_PROFILE",
+      "name": "Create or update client profile",
+      "description": "Update user profiles without tracking using a public client-side API; use a private server-side API for identifier changes. Burst rate is 3…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__id": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "profile"
+            ]
+          },
+          "data__attributes____kx": {
+            "type": "string"
+          },
+          "data__attributes__email": {
+            "type": "string"
+          },
+          "data__attributes__image": {
+            "type": "string"
+          },
+          "data__attributes__title": {
+            "type": "string"
+          },
+          "data__attributes__last__name": {
+            "type": "string"
+          },
+          "data__attributes__first__name": {
+            "type": "string"
+          },
+          "data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__location__ip": {
+            "type": "string"
+          },
+          "data__attributes__organization": {
+            "type": "string"
+          },
+          "data__attributes__anonymous__id": {
+            "type": "string"
+          },
+          "data__attributes__location__zip": {
+            "type": "string"
+          },
+          "data__attributes__phone__number": {
+            "type": "string"
+          },
+          "data__attributes__location__city": {
+            "type": "string"
+          },
+          "data__attributes__location__region": {
+            "type": "string"
+          },
+          "data__attributes__location__country": {
+            "type": "string"
+          },
+          "data__attributes__location__address1": {
+            "type": "string"
+          },
+          "data__attributes__location__address2": {
+            "type": "string"
+          },
+          "data__attributes__location__latitude": {
+            "type": "string"
+          },
+          "data__attributes__location__timezone": {
+            "type": "string"
+          },
+          "data__meta__patch__properties__unset": {
+            "type": "array"
+          },
+          "data__attributes__location__longitude": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_OR_UPDATE_CLIENT_PUSH_TOKEN",
+      "name": "Create or update client push token",
+      "description": "This endpoint for mobile SDKs (iOS & Android) creates/updates push tokens using a public API key. Push notifications must be enabled. For m…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "push-token"
+            ]
+          },
+          "data__attributes__token": {
+            "type": "string"
+          },
+          "data__attributes__vendor": {
+            "type": "string",
+            "enum": [
+              "apns",
+              "fcm"
+            ]
+          },
+          "profile_meta_patch_unset": {
+            "type": "array"
+          },
+          "data__attributes__platform": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios"
+            ]
+          },
+          "data__attributes__background": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "DENIED",
+              "RESTRICTED"
+            ]
+          },
+          "data__attributes__profile__data__id": {
+            "type": "string"
+          },
+          "data__attributes__enablement__status": {
+            "type": "string",
+            "enum": [
+              "AUTHORIZED",
+              "DENIED",
+              "NOT_DETERMINED",
+              "PROVISIONAL",
+              "UNAUTHORIZED"
+            ]
+          },
+          "data__attributes__profile__data__type": {
+            "type": "string",
+            "enum": [
+              "profile"
+            ]
+          },
+          "data__attributes__device__metadata__app__id": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__os__name": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios",
+              "ipados",
+              "macos",
+              "tvos"
+            ]
+          },
+          "data__attributes__device__metadata__app__name": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__app__build": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__device__id": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__environment": {
+            "type": "string",
+            "enum": [
+              "debug",
+              "release"
+            ]
+          },
+          "data__attributes__device__metadata__os__version": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__app__version": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__klaviyo__sdk": {
+            "type": "string",
+            "enum": [
+              "android",
+              "swift"
+            ]
+          },
+          "data__attributes__device__metadata__manufacturer": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__sdk__version": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__device__model": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes____kx": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__email": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__image": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__title": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__address1": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__address2": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__latitude": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__timezone": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__longitude": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__last__name": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__first__name": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__ip": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__organization": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__anonymous__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__zip": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__phone__number": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__city": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__region": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__country": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_OR_UPDATE_PROFILE",
+      "name": "Create or Update Profile",
+      "description": "Create or update a profile in Klaviyo with the given attributes. This action allows you to create a new profile or update an existing one i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "address1": {
+            "type": "string"
+          },
+          "address2": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "zip_code": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "longitude": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "properties": {
+            "type": "object"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "anonymous_id": {
+            "type": "string"
+          },
+          "organization": {
+            "type": "string"
+          },
+          "phone_number": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_OR_UPDATE_PUSH_TOKEN",
+      "name": "Create or update push token",
+      "description": "Create or update a push token for mobile push notifications. This server-side endpoint is used for migrating push tokens from other platfor…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "push-token"
+            ]
+          },
+          "data__attributes__token": {
+            "type": "string"
+          },
+          "data__attributes__vendor": {
+            "type": "string",
+            "enum": [
+              "apns",
+              "fcm"
+            ]
+          },
+          "profile_meta_patch_unset": {
+            "type": "array"
+          },
+          "data__attributes__platform": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios"
+            ]
+          },
+          "data__attributes__background": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "DENIED",
+              "RESTRICTED"
+            ]
+          },
+          "data__attributes__profile__data__id": {
+            "type": "string"
+          },
+          "data__attributes__enablement__status": {
+            "type": "string",
+            "enum": [
+              "AUTHORIZED",
+              "DENIED",
+              "NOT_DETERMINED",
+              "PROVISIONAL",
+              "UNAUTHORIZED"
+            ]
+          },
+          "data__attributes__profile__data__type": {
+            "type": "string",
+            "enum": [
+              "profile"
+            ]
+          },
+          "data__attributes__device__metadata__app__id": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__os__name": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios",
+              "ipados",
+              "macos",
+              "tvos"
+            ]
+          },
+          "data__attributes__device__metadata__app__name": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__app__build": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__device__id": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__environment": {
+            "type": "string",
+            "enum": [
+              "debug",
+              "release"
+            ]
+          },
+          "data__attributes__device__metadata__os__version": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__app__version": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__klaviyo__sdk": {
+            "type": "string",
+            "enum": [
+              "android",
+              "swift"
+            ]
+          },
+          "data__attributes__device__metadata__manufacturer": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__sdk__version": {
+            "type": "string"
+          },
+          "data__attributes__device__metadata__device__model": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes____kx": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__email": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__image": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__title": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__address1": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__address2": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__latitude": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__timezone": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__longitude": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__last__name": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__first__name": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__ip": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__organization": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__anonymous__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__zip": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__phone__number": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__city": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__region": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__country": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_PROFILE",
+      "name": "Create profile",
+      "description": "Create a new profile.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `profiles:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "profile"
+            ]
+          },
+          "data__attributes__email": {
+            "type": "string"
+          },
+          "data__attributes__image": {
+            "type": "string"
+          },
+          "data__attributes__title": {
+            "type": "string"
+          },
+          "data__attributes__last__name": {
+            "type": "string"
+          },
+          "data__attributes__first__name": {
+            "type": "string"
+          },
+          "data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__location__ip": {
+            "type": "string"
+          },
+          "data__attributes__organization": {
+            "type": "string"
+          },
+          "data__attributes__location__zip": {
+            "type": "string"
+          },
+          "data__attributes__phone__number": {
+            "type": "string"
+          },
+          "data__attributes__location__city": {
+            "type": "string"
+          },
+          "data__attributes__location__region": {
+            "type": "string"
+          },
+          "data__attributes__location__country": {
+            "type": "string"
+          },
+          "data__attributes__location__address1": {
+            "type": "string"
+          },
+          "data__attributes__location__address2": {
+            "type": "string"
+          },
+          "data__attributes__location__latitude": {
+            "type": "string"
+          },
+          "data__attributes__location__timezone": {
+            "type": "string"
+          },
+          "data__attributes__location__longitude": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_SEGMENT",
+      "name": "Create segment",
+      "description": "Create a segment.<br><br>*Rate limits*:<br>Burst: `1/s`<br>Steady: `15/m`<br>Daily: `100/d` **Scopes:** `segments:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "segment"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__attributes__is__starred": {
+            "type": "boolean"
+          },
+          "data__attributes__definition__condition__groups": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_TAG",
+      "name": "Create tag",
+      "description": "Summary: Instructions on creating a tag within an account's designated tag group with a maximum of 500 tags, with optional tag group specif…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "tag"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__relationships__tag__group__data__id": {
+            "type": "string"
+          },
+          "data__relationships__tag__group__data__type": {
+            "type": "string",
+            "enum": [
+              "tag-group"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_TAG_GROUP",
+      "name": "Create tag group",
+      "description": "Create tag groups up to 50 per account, defaulting to non-exclusive unless specified. Related resources can have multiple non-exclusive tag…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "tag-group"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__attributes__exclusive": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_TAG_RELATIONSHIPS",
+      "name": "Create Tag Relationships",
+      "description": "Associate a tag with other resources (flows, lists, segments, or campaigns) in Klaviyo. Use when you need to link a tag to one or more reso…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array"
+          },
+          "tag_id": {
+            "type": "string"
+          },
+          "related_resource": {
+            "type": "string",
+            "enum": [
+              "flows",
+              "lists",
+              "segments",
+              "campaigns"
+            ]
+          }
+        },
+        "required": [
+          "tag_id",
+          "related_resource",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_TEMPLATE",
+      "name": "Create template",
+      "description": "Summary: Custom HTML templates can be created unless an account reaches 1,000 template limit. Use sparse fieldsets to request specific fiel…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "template"
+            ]
+          },
+          "data__attributes__html": {
+            "type": "string"
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__attributes__text": {
+            "type": "string"
+          },
+          "data__attributes__editor__type": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_TEMPLATE_CLONE",
+      "name": "Create template clone",
+      "description": "Clone a template by its ID, but cloning fails if account has 1,000+ templates. API limit: 1,000 templates. Rate limits are 10 per second an…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "template"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_TEMPLATE_RENDER",
+      "name": "Create template render",
+      "description": "Render an email template with specific context and sparse fieldsets, then get HTML/plain text. Rate limit: 3/s burst, 60/m steady. Scope: t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "template"
+            ]
+          },
+          "data__attributes__context": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_CREATE_WEBHOOK",
+      "name": "Create webhook",
+      "description": "Create a new Webhook to receive real-time notifications when specific events occur in Klaviyo (e.g., email clicks, SMS sent). Rate limits: …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "webhook"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__attributes__description": {
+            "type": "string"
+          },
+          "data__attributes__secret__key": {
+            "type": "string"
+          },
+          "data__attributes__endpoint__url": {
+            "type": "string"
+          },
+          "data__relationships__webhook__topics__data": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_CAMPAIGN",
+      "name": "Delete campaign",
+      "description": "Delete a campaign with the given campaign ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `campaigns:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_CATALOG_CATEGORY",
+      "name": "Delete catalog category",
+      "description": "Delete a catalog category using the given category ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalogs:writ…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_CATALOG_CATEGORY_RELATIONSHIPS_ITEMS",
+      "name": "Delete catalog category relationships items",
+      "description": "Delete item relationships for the given category ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalogs:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_CATALOG_ITEM",
+      "name": "Delete catalog item",
+      "description": "Delete a catalog item with the given item ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalogs:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_CATALOG_ITEM_RELATIONSHIPS_CATEGORIES",
+      "name": "Delete catalog item relationships categories",
+      "description": "Delete catalog category relationships for the given item ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalog…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_CATALOG_VARIANT",
+      "name": "Delete catalog variant",
+      "description": "Delete a catalog item variant with the given variant ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalogs:wr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_COUPON",
+      "name": "Delete coupon",
+      "description": "Delete the coupon with the given coupon ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `coupons:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_COUPON_CODE",
+      "name": "Delete coupon code",
+      "description": "Deletes a coupon code specified by the given identifier synchronously. If a profile has been assigned to the coupon code, an exception will…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_FLOW",
+      "name": "Delete flow",
+      "description": "Delete a flow with the given flow ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `flows:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_LIST",
+      "name": "Delete list",
+      "description": "Delete a list with the given list ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `lists:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_SEGMENT",
+      "name": "Delete segment",
+      "description": "Delete a segment with the given segment ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `segments:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_TAG",
+      "name": "Delete tag",
+      "description": "Delete the tag with the given tag ID. Any associations between the tag and other resources will also be removed.<br><br>*Rate limits*:<br>B…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_TAG_GROUP",
+      "name": "Delete tag group",
+      "description": "Delete a specified tag group and its contents; associated resource links will be removed. The default group is undeletable. Rate limits: 3/…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_TAG_RELATIONSHIPS",
+      "name": "Delete Tag Relationships",
+      "description": "Remove a tag's association with other resources like flows, campaigns, lists, or segments. Use when you need to untag resources without del…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array"
+          },
+          "related_resource": {
+            "type": "string",
+            "enum": [
+              "flows",
+              "campaigns",
+              "lists",
+              "segments"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "related_resource",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_TEMPLATE",
+      "name": "Delete template",
+      "description": "Permanently delete a template from your Klaviyo account using its unique template ID. This action is destructive and cannot be undone. Rate…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_DELETE_WEBHOOK",
+      "name": "Delete webhook",
+      "description": "Permanently delete a webhook subscription from your Klaviyo account. This action removes the webhook configuration, stopping all future eve…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_ACCOUNT",
+      "name": "Get account",
+      "description": "Retrieve a single account object by its account ID. You can only request the account by which the private API key was generated.<br><br>*Ra…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__account": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_ACCOUNTS",
+      "name": "Get accounts",
+      "description": "Use a private API key to fetch an associated account's details like contact info, timezone, and currency, as well as validate the key. Rate…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields__account": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_BULK_CREATE_COUPON_CODES_JOB",
+      "name": "Get Bulk Create Coupon Codes Job",
+      "description": "Tool to get a coupon code bulk create job with the given job ID. Use when you need to check the status of a previously initiated bulk coupo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_BULK_DELETE_CATALOG_ITEMS_JOB",
+      "name": "Get Bulk Delete Catalog Items Job",
+      "description": "Get a catalog item bulk delete job with the given job ID. Use this to check the status and progress of a bulk delete operation for catalog …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_BULK_PROFILE_IMPORT_JOB",
+      "name": "Get bulk profile import job",
+      "description": "Get a bulk profile import job with the given job ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `lists:read` `pr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__list": {
+            "type": "array"
+          },
+          "fields__profile__bulk__import__job": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_BULK_PROFILE_IMPORT_JOB_ERRORS",
+      "name": "Get bulk profile import job errors",
+      "description": "Get import errors for the bulk profile import job with the given ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "page__size": {
+            "type": "integer"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__import__error": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_BULK_PROFILE_IMPORT_JOB_LISTS",
+      "name": "Get bulk profile import job lists",
+      "description": "Get list for the bulk profile import job with the given ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `lists:re…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__list": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_BULK_PROFILE_IMPORT_JOB_PROFILES",
+      "name": "Get bulk profile import job profiles",
+      "description": "Get profiles for the bulk profile import job with the given ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `prof…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "page__size": {
+            "type": "integer"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__profile": {
+            "type": "array"
+          },
+          "additional__fields__profile": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_BULK_PROFILE_IMPORT_JOB_RELATIONSHIPS_LISTS",
+      "name": "Get bulk profile import job relationships lists",
+      "description": "Get list relationship for the bulk profile import job with the given ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_BULK_PROFILE_IMPORT_JOB_RELATIONSHIPS_PROFILES",
+      "name": "Get bulk profile import job relationships profiles",
+      "description": "Get profile relationships for the bulk profile import job with the given ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Sc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "page__size": {
+            "type": "integer"
+          },
+          "page__cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_BULK_PROFILE_IMPORT_JOBS",
+      "name": "Get bulk profile import jobs",
+      "description": "Get all bulk profile import jobs. Returns a maximum of 100 jobs per request.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Sc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created_at",
+              "-created_at"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__size": {
+            "type": "integer"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__profile__bulk__import__job": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_BULK_UPDATE_CATALOG_ITEMS_JOB",
+      "name": "Get bulk update catalog items job",
+      "description": "Get a catalog item bulk update job with the given job ID. An `include` parameter can be provided to get the following related resource data…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__catalog__item": {
+            "type": "array"
+          },
+          "fields__catalog__item__bulk__update__job": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_BULK_UPDATE_CATEGORIES_JOB",
+      "name": "Get Bulk Update Categories Job",
+      "description": "Retrieve a catalog category bulk update job by its ID from Klaviyo. This action fetches the status and details of a bulk update job for cat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "include_categories": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_BULK_UPDATE_VARIANTS_JOB",
+      "name": "Get Bulk Update Variants Job",
+      "description": "Tool to retrieve a catalog variant bulk update job by its ID. Use when you need to check the status, progress, or results of a bulk update …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "string",
+            "enum": [
+              "variants"
+            ]
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGN",
+      "name": "Get Campaign",
+      "description": "Retrieve a specific campaign by its ID from Klaviyo. This action fetches detailed information about a single campaign including its name, s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "campaign_id": {
+            "type": "string"
+          },
+          "include_tags": {
+            "type": "boolean"
+          },
+          "include_messages": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "campaign_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGN_CAMPAIGN_MESSAGES",
+      "name": "Get campaign campaign messages",
+      "description": "Return all messages that belong to the given campaign.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `campaigns:rea…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__campaign": {
+            "type": "array"
+          },
+          "fields__template": {
+            "type": "array"
+          },
+          "fields__campaign__message": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGN_MESSAGE",
+      "name": "Get campaign message",
+      "description": "Returns a specific message based on a required id.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `campaigns:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__campaign": {
+            "type": "array"
+          },
+          "fields__template": {
+            "type": "array"
+          },
+          "fields__campaign__message": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGN_MESSAGE_CAMPAIGN",
+      "name": "Get campaign message campaign",
+      "description": "Return the related campaign<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `campaigns:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__campaign": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGN_MESSAGE_RELATIONSHIPS_CAMPAIGN",
+      "name": "Get campaign message relationships campaign",
+      "description": "Returns the ID of the related campaign<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `campaigns:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGN_MESSAGE_RELATIONSHIPS_TEMPLATE",
+      "name": "Get campaign message relationships template",
+      "description": "Returns the ID of the related template<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `campaigns:read` `templates:re…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGN_MESSAGE_TEMPLATE",
+      "name": "Get campaign message template",
+      "description": "Return the related template<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `campaigns:read` `templates:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__template": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGN_RECIPIENT_ESTIMATION",
+      "name": "Get campaign recipient estimation",
+      "description": "Get estimated recipients for a given campaign ID using `Create Campaign Recipient Estimation Job`. Rate limits are 10/s burst and 150/m ste…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__campaign__recipient__estimation": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGN_RECIPIENT_ESTIMATION_JOB",
+      "name": "Get campaign recipient estimation job",
+      "description": "Retrieve the status of a recipient estimation job triggered with the `Create Campaign Recipient Estimation Job` endpoint.<br><br>*Rate limi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__campaign__recipient__estimation__job": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGN_RELATIONSHIPS_CAMPAIGN_MESSAGES",
+      "name": "Get campaign relationships campaign messages",
+      "description": "Returns the IDs of all messages associated with the given campaign.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGN_RELATIONSHIPS_TAGS",
+      "name": "Get campaign relationships tags",
+      "description": "Returns the IDs of all tags associated with the given campaign.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `campai…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGNS",
+      "name": "Get Campaigns",
+      "description": "Retrieve campaigns from your Klaviyo account. This action allows you to fetch campaigns with optional filtering and sorting. Klaviyo requir…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created_at",
+              "-created_at",
+              "id",
+              "-id",
+              "name",
+              "-name",
+              "scheduled_at",
+              "-scheduled_at",
+              "updated_at",
+              "-updated_at"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "email",
+              "sms"
+            ]
+          },
+          "page_cursor": {
+            "type": "string"
+          },
+          "include_archived": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGN_SEND_JOB",
+      "name": "Get campaign send job",
+      "description": "Get a campaign send job<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `campaigns:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__campaign__send__job": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CAMPAIGN_TAGS",
+      "name": "Get campaign tags",
+      "description": "Return all tags that belong to the given campaign.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `campaigns:read` `ta…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__tag": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CATALOG_CATEGORIES",
+      "name": "Get catalog categories",
+      "description": "Retrieve up to 100 account catalog categories, sortable by creation date. Only `$custom` integration and `$default` catalog types supported…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__category": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CATALOG_CATEGORY",
+      "name": "Get catalog category",
+      "description": "Get a catalog category with the given category ID.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3500/m` **Scopes:** `catalogs:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__catalog__category": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CATALOG_CATEGORY_ITEMS",
+      "name": "Get catalog category items",
+      "description": "Retrieve up to 100 sorted items per request from a category using the category ID. Sort by 'created' field. Rate limits are 350/s burst and…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__item": {
+            "type": "array"
+          },
+          "fields__catalog__variant": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CATALOG_CATEGORY_RELATIONSHIPS_ITEMS",
+      "name": "Get catalog category relationships items",
+      "description": "Get all items in the given category ID. Returns a maximum of 100 items per request.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `350…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CATALOG_ITEM",
+      "name": "Get catalog item",
+      "description": "Get a specific catalog item with the given item ID.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3500/m` **Scopes:** `catalogs:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__catalog__item": {
+            "type": "array"
+          },
+          "fields__catalog__variant": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CATALOG_ITEM_CATEGORIES",
+      "name": "Get catalog item categories",
+      "description": "Retrieve the catalog categories for an item by ID, sorted by 'created' date, with a 100-category maximum per request. Rate limits: 350/s bu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__category": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CATALOG_ITEM_RELATIONSHIPS_CATEGORIES",
+      "name": "Get catalog item relationships categories",
+      "description": "Get all catalog categories that a particular item is in. Returns a maximum of 100 categories per request.<br><br>*Rate limits*:<br>Burst: `…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CATALOG_ITEMS",
+      "name": "Get catalog items",
+      "description": "Retrieve up to 100 sorted catalog items per account, with `$custom` integration and `$default` type. Rate limits: 350/s burst, 3500/m stead…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__item": {
+            "type": "array"
+          },
+          "fields__catalog__variant": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CATALOG_ITEM_VARIANTS",
+      "name": "Get catalog item variants",
+      "description": "Retrieve up to 100 variants per request for a specific item ID, sortable by creation date. Rate limits are 350/s burst and 3500/m steady. R…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__variant": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CATALOG_VARIANT",
+      "name": "Get catalog variant",
+      "description": "Get a catalog item variant with the given variant ID.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3500/m` **Scopes:** `catalogs:rea…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__catalog__variant": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CATALOG_VARIANTS",
+      "name": "Get catalog variants",
+      "description": "Retrieve up to 100 account variants per request, sortable by creation date. Supports only `$custom` integration and `$default` catalog type…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__variant": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_COUPON",
+      "name": "Get coupon",
+      "description": "Get a specific coupon with the given coupon ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `coupons:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__coupon": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_COUPON_CODE",
+      "name": "Get coupon code",
+      "description": "Returns a Coupon Code specified by the given identifier.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3500/m` **Scopes:** `coupon-co…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__coupon": {
+            "type": "array"
+          },
+          "fields__coupon__code": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_COUPON_CODE_BULK_CREATE_JOB",
+      "name": "Get coupon code bulk create job",
+      "description": "Get a coupon code bulk create job with the given job ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `coupon-code…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__coupon__code": {
+            "type": "array"
+          },
+          "fields__coupon__code__bulk__create__job": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_COUPON_CODE_BULK_CREATE_JOBS",
+      "name": "Get coupon code bulk create jobs",
+      "description": "Get all coupon code bulk create jobs. Returns a maximum of 100 jobs per request.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__coupon__code__bulk__create__job": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_COUPON_CODE_RELATIONSHIPS_COUPON",
+      "name": "Get coupon code relationships coupon",
+      "description": "Gets a list of coupon code relationships associated with the given coupon id<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Sc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_COUPON_CODES",
+      "name": "Get coupon codes",
+      "description": "Obtains coupon codes using necessary coupon or profile filters. Rate limits: 350/s, 3500/m. Requires 'coupon-codes:read' scope.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__coupon": {
+            "type": "array"
+          },
+          "fields__coupon__code": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_COUPON_CODES_FOR_COUPON",
+      "name": "Get coupon codes for coupon",
+      "description": "Gets a list of coupon codes associated with the given coupon id<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `coup…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__coupon__code": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_COUPON_FOR_COUPON_CODE",
+      "name": "Get coupon for coupon code",
+      "description": "Get the coupon associated with a given coupon code ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `coupons:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__coupon": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_COUPON_ID_FOR_COUPON_CODE",
+      "name": "Get Coupon ID for Coupon Code",
+      "description": "Tool to get the coupon relationship associated with a given coupon code ID. Use when you need to find which coupon is associated with a spe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_COUPON_RELATIONSHIPS_COUPON_CODES",
+      "name": "Get Coupon Relationships Coupon Codes",
+      "description": "Retrieves the coupon code relationships (resource identifiers) for a given coupon. Returns a list of coupon code IDs associated with the sp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_COUPONS",
+      "name": "Get coupons",
+      "description": "Get all coupons in an account. To learn more, see our [Coupons API guide](https://developers.klaviyo.com/en/docs/use_klaviyos_coupons_api).…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__coupon": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CREATE_CATEGORIES_JOB",
+      "name": "Get create categories job",
+      "description": "Get a catalog category bulk create job with the given job ID. An `include` parameter can be provided to get the following related resource …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__catalog__category": {
+            "type": "array"
+          },
+          "fields__catalog__category__bulk__create__job": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CREATE_CATEGORIES_JOBS",
+      "name": "Get create categories jobs",
+      "description": "Get all catalog category bulk create jobs. Returns a maximum of 100 jobs per request.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__category__bulk__create__job": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CREATE_ITEMS_JOB",
+      "name": "Get create items job",
+      "description": "Get a catalog item bulk create job with the given job ID. An `include` parameter can be provided to get the following related resource data…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__catalog__item": {
+            "type": "array"
+          },
+          "fields__catalog__item__bulk__create__job": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CREATE_ITEMS_JOBS",
+      "name": "Get create items jobs",
+      "description": "Get all catalog item bulk create jobs. Returns a maximum of 100 jobs per request.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3500/…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__item__bulk__create__job": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CREATE_VARIANTS_JOB",
+      "name": "Get create variants job",
+      "description": "Get a catalog variant bulk create job with the given job ID. An `include` parameter can be provided to get the following related resource d…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__catalog__variant": {
+            "type": "array"
+          },
+          "fields__catalog__variant__bulk__create__job": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_CREATE_VARIANTS_JOBS",
+      "name": "Get create variants jobs",
+      "description": "Get all catalog variant bulk create jobs. Returns a maximum of 100 jobs per request.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `35…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__variant__bulk__create__job": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_DELETE_CATEGORIES_JOB",
+      "name": "Get delete categories job",
+      "description": "Get a catalog category bulk delete job with the given job ID.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3500/m` **Scopes:** `cata…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "fields__catalog__category__bulk__delete__job": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_DELETE_CATEGORIES_JOBS",
+      "name": "Get delete categories jobs",
+      "description": "Get all catalog category bulk delete jobs. Returns a maximum of 100 jobs per request.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__category__bulk__delete__job": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_DELETE_ITEMS_JOBS",
+      "name": "Get delete items jobs",
+      "description": "Get all catalog item bulk delete jobs. Returns a maximum of 100 jobs per request.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3500/…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__item__bulk__delete__job": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_DELETE_VARIANTS_JOB",
+      "name": "Get delete variants job",
+      "description": "Get a catalog variant bulk delete job with the given job ID.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3500/m` **Scopes:** `catal…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "fields__catalog__variant__bulk__delete__job": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_DELETE_VARIANTS_JOBS",
+      "name": "Get delete variants jobs",
+      "description": "Get all catalog variant bulk delete jobs. Returns a maximum of 100 jobs per request.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `35…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__variant__bulk__delete__job": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_EVENT",
+      "name": "Get event",
+      "description": "Get an event with the given event ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `events:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__event": {
+            "type": "array"
+          },
+          "fields__metric": {
+            "type": "array"
+          },
+          "fields__profile": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_EVENT_METRIC",
+      "name": "Get event metric",
+      "description": "Get the metric for an event with the given event ID.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3500/m` **Scopes:** `events:read` …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__metric": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_EVENT_PROFILE",
+      "name": "Get event profile",
+      "description": "Get the profile associated with an event with the given event ID.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3500/m` **Scopes:** `…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__profile": {
+            "type": "array"
+          },
+          "additional__fields__profile": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_EVENT_RELATIONSHIPS",
+      "name": "Get Event Relationships",
+      "description": "Get metrics or profile relationships for a specific event. Use when you need to retrieve the metric or profile associated with an event. Ra…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "related_resource": {
+            "type": "string",
+            "enum": [
+              "metric",
+              "profile"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "related_resource"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_EVENTS",
+      "name": "Get events",
+      "description": "Get all events in an account Requests can be sorted by the following fields: `datetime`, `timestamp` Returns a maximum of 200 events per pa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "datetime",
+              "-datetime",
+              "timestamp",
+              "-timestamp"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__event": {
+            "type": "array"
+          },
+          "fields__metric": {
+            "type": "array"
+          },
+          "fields__profile": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW",
+      "name": "Get flow",
+      "description": "Get a flow with the given flow ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `flows:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__tag": {
+            "type": "array"
+          },
+          "fields__flow": {
+            "type": "array"
+          },
+          "fields__flow__action": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_ACTION",
+      "name": "Get flow action",
+      "description": "Get a flow action from a flow with the given flow action ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `flows:rea…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__flow": {
+            "type": "array"
+          },
+          "fields__flow__action": {
+            "type": "array"
+          },
+          "fields__flow__message": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_ACTION_FOR_MESSAGE",
+      "name": "Get flow action for message",
+      "description": "Get the flow action for a flow message with the given message ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `flow…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__flow__action": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_ACTION_MESSAGES",
+      "name": "Get flow action messages",
+      "description": "Retrieve up to 50 flow messages per request by action ID, sortable by various fields, with ascending/descending options, and paginated usin…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created",
+              "id",
+              "-id",
+              "name",
+              "-name",
+              "updated",
+              "-updated"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__size": {
+            "type": "integer"
+          },
+          "fields__flow__message": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_ACTION_RELATIONSHIPS_FLOW",
+      "name": "Get Parent Flow for Flow Action",
+      "description": "Get the parent flow associated with a given flow action ID. This endpoint returns the flow relationship data for a specific flow action, al…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_ACTION_RELATIONSHIPS_MESSAGES",
+      "name": "Get flow action relationships messages",
+      "description": "Retrieves up to 50 flow message relationships per request for a specified flow action ID, with cursor pagination. Rate limits: 3/s burst, 6…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created",
+              "id",
+              "-id",
+              "name",
+              "-name",
+              "updated",
+              "-updated"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__size": {
+            "type": "integer"
+          },
+          "page__cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_FLOW_ACTIONS",
+      "name": "Get flow flow actions",
+      "description": "Get all flow actions associated with the given flow ID. Returns a maximum of 50 flow actions per request, which can be paginated with curso…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "action_type",
+              "-action_type",
+              "created",
+              "-created",
+              "id",
+              "-id",
+              "status",
+              "-status",
+              "updated",
+              "-updated"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__size": {
+            "type": "integer"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__flow__action": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_FOR_FLOW_ACTION",
+      "name": "Get flow for flow action",
+      "description": "Get the flow associated with the given action ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `flows:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__flow": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_MESSAGE",
+      "name": "Get flow message",
+      "description": "Get the flow message of a flow with the given message ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `flows:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__template": {
+            "type": "array"
+          },
+          "fields__flow__action": {
+            "type": "array"
+          },
+          "fields__flow__message": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_MESSAGE_RELATIONSHIPS_ACTION",
+      "name": "Get flow message relationships action",
+      "description": "Get the flow action relationship for a specific flow message. This returns the parent flow action that contains the specified flow message …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_MESSAGE_RELATIONSHIPS_TEMPLATE",
+      "name": "Get flow message relationships template",
+      "description": "Returns the ID of the related template<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `templates:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_MESSAGE_TEMPLATE",
+      "name": "Get flow message template",
+      "description": "Return the related template<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `templates:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__template": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_RELATIONSHIPS_FLOW_ACTIONS",
+      "name": "Get flow relationships flow actions",
+      "description": "Retrieve all flow action relationships for a specific flow ID, sortable by `id`, `status`, `created`, `updated`. Refine with filters, max 5…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created",
+              "id",
+              "-id",
+              "status",
+              "-status",
+              "updated",
+              "-updated"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_RELATIONSHIPS_TAGS",
+      "name": "Get flow relationships tags",
+      "description": "Return the tag IDs of all tags associated with the given flow.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `flows:r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOWS",
+      "name": "Get flows",
+      "description": "Get all flows in an account. Returns a maximum of 50 flows per request, which can be paginated with cursor-based pagination.<br><br>*Rate l…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created",
+              "id",
+              "-id",
+              "name",
+              "-name",
+              "status",
+              "-status",
+              "trigger_type",
+              "-trigger_type",
+              "updated",
+              "-updated"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "page__size": {
+            "type": "integer"
+          },
+          "fields__tag": {
+            "type": "array"
+          },
+          "fields__flow": {
+            "type": "array"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__flow__action": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FLOW_TAGS",
+      "name": "Get flow tags",
+      "description": "Return all tags associated with the given flow ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `flows:read` `tags:r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__tag": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FORM",
+      "name": "Get form",
+      "description": "Get the form with the given ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `forms:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__form": {
+            "type": "array"
+          },
+          "fields__form__version": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FORM_FOR_FORM_VERSION",
+      "name": "Get form for form version",
+      "description": "Get the form associated with the given form version.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `forms:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__form": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FORM_ID_FOR_FORM_VERSION",
+      "name": "Get form id for form version",
+      "description": "Get the ID of the form associated with the given form version.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `forms:r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FORMS",
+      "name": "Get forms",
+      "description": "Get all forms in an account.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `forms:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created_at",
+              "-created_at",
+              "updated_at",
+              "-updated_at"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__size": {
+            "type": "integer"
+          },
+          "fields__form": {
+            "type": "array"
+          },
+          "page__cursor": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_FORM_VERSION",
+      "name": "Get form version",
+      "description": "Retrieve detailed information about a specific form version by its ID. Form versions represent different variations of a Klaviyo sign-up fo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__form__version": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_IMAGE",
+      "name": "Get image",
+      "description": "Get the image with the given image ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `images:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__image": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_IMAGES",
+      "name": "Get images",
+      "description": "Get all images in an account.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `images:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "format",
+              "-format",
+              "id",
+              "-id",
+              "name",
+              "-name",
+              "size",
+              "-size",
+              "updated_at",
+              "-updated_at"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__size": {
+            "type": "integer"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__image": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_LIST",
+      "name": "Get list",
+      "description": "API allows 75 req/sec and 700 req/min, but with 'profile_count' param, it's 1 req/sec and 15 req/min. 'lists:read' scope needed. See develo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__tag": {
+            "type": "array"
+          },
+          "fields__list": {
+            "type": "array"
+          },
+          "additional__fields__list": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_LIST_PROFILES",
+      "name": "Get list profiles",
+      "description": "Retrieve profiles in a list by ID, filterable by email/phone/push token/join date, sortable by join date. Regular rate limit: 75/s, 700/m; …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "joined_group_at",
+              "-joined_group_at"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__size": {
+            "type": "integer"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__profile": {
+            "type": "array"
+          },
+          "additional__fields__profile": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_LIST_RELATIONSHIPS",
+      "name": "Get List Relationships",
+      "description": "Get profile membership relationships for a Klaviyo list. Returns references (IDs) to profiles that are members of the specified list. Use w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "page_cursor": {
+            "type": "string"
+          },
+          "related_resource": {
+            "type": "string",
+            "enum": [
+              "profiles"
+            ]
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_LIST_RELATIONSHIPS_TAGS",
+      "name": "Get list relationships tags",
+      "description": "Returns the tag IDs of all tags associated with the given list.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `lists:…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_LISTS",
+      "name": "Get Lists",
+      "description": "Retrieve marketing lists from your Klaviyo account. This action allows you to fetch lists with optional filtering and sorting. You can filt…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created",
+              "id",
+              "-id",
+              "name",
+              "-name",
+              "updated",
+              "-updated"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page_cursor": {
+            "type": "string"
+          },
+          "include_tags": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_LIST_TAGS",
+      "name": "Get list tags",
+      "description": "Return all tags associated with the given list ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `lists:read` `tags:r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__tag": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_METRIC",
+      "name": "Get metric",
+      "description": "Get a metric with the given metric ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `metrics:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__metric": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_METRICS",
+      "name": "Get metrics",
+      "description": "Get all metrics in an account. Requests can be filtered by the following fields: integration `name`, integration `category` Returns a maxim…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__metric": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_PROFILE",
+      "name": "Get profile",
+      "description": "Get the profile with the given profile ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `profiles:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__list": {
+            "type": "array"
+          },
+          "fields__profile": {
+            "type": "array"
+          },
+          "fields__segment": {
+            "type": "array"
+          },
+          "additional__fields__profile": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_PROFILE_LISTS",
+      "name": "Get profile lists",
+      "description": "Get list memberships for a profile with the given profile ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `lists:re…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__list": {
+            "type": "array"
+          },
+          "page__cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_PROFILE_RELATIONSHIPS",
+      "name": "Get Profile Relationships",
+      "description": "Tool to get list membership or segment membership relationships for a profile with the given profile ID. Use when you need to determine whi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "related_resource": {
+            "type": "string",
+            "enum": [
+              "lists",
+              "segments"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "related_resource"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_PROFILES",
+      "name": "Get Profiles",
+      "description": "Retrieve profiles from your Klaviyo account. This action allows you to fetch profiles with optional filtering and sorting. You can filter b…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created",
+              "email",
+              "-email",
+              "id",
+              "-id",
+              "updated",
+              "-updated"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "page_cursor": {
+            "type": "string"
+          },
+          "include_subscriptions": {
+            "type": "boolean"
+          },
+          "include_predictive_analytics": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_PROFILE_SEGMENTS",
+      "name": "Get profile segments",
+      "description": "Get segment memberships for a profile with the given profile ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `profi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__segment": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_SEGMENT",
+      "name": "Get segment",
+      "description": "Fetch a segment by ID with default rates of 75/s and 700/m, or with `additional-fields` at 1/s and 15/m. For details, visit the provided gu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__tag": {
+            "type": "array"
+          },
+          "fields__segment": {
+            "type": "array"
+          },
+          "additional__fields__segment": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_SEGMENT_PROFILES",
+      "name": "Get segment profiles",
+      "description": "Retrieve profiles in a segment by ID, filtering by email, phone, token, or join date, and sorting by join date. Rate limit: 75/s burst, 700…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "joined_group_at",
+              "-joined_group_at"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__size": {
+            "type": "integer"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__profile": {
+            "type": "array"
+          },
+          "additional__fields__profile": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_SEGMENT_RELATIONSHIPS",
+      "name": "Get Segment Relationships",
+      "description": "Get all profile membership or tag relationships for a segment. Use 'profiles' to retrieve profile membership relationships or 'tags' to ret…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "related_resource": {
+            "type": "string",
+            "enum": [
+              "profiles",
+              "tags"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "related_resource"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_SEGMENTS",
+      "name": "Get segments",
+      "description": "Fetch segments from an account with filters like `name`, `created`, and `updated`. Max 10 results/page. Rate limits are 75/s burst, 700/m s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created",
+              "id",
+              "-id",
+              "name",
+              "-name",
+              "updated",
+              "-updated"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__tag": {
+            "type": "array"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__segment": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_SEGMENT_TAGS",
+      "name": "Get segment tags",
+      "description": "Return all tags associated with the given segment ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `segments:read` `…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__tag": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_TAG",
+      "name": "Get tag",
+      "description": "Retrieve the tag with the given tag ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `tags:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__tag": {
+            "type": "array"
+          },
+          "fields__tag__group": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_TAG_GROUP",
+      "name": "Get tag group",
+      "description": "Retrieve the tag group with the given tag group ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `tags:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__tag__group": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_TAG_GROUP_RELATIONSHIPS_TAGS",
+      "name": "Get tag group relationships tags",
+      "description": "Returns the tag IDs of all tags inside the given tag group.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `tags:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_TAG_GROUPS",
+      "name": "Get tag groups",
+      "description": "Retrieve up to 25 tag groups per account, sortable/filterable by specific attributes. Default group included. Supports cursor pagination an…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "id",
+              "-id",
+              "name",
+              "-name"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__tag__group": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_TAG_GROUP_TAGS",
+      "name": "Get tag group tags",
+      "description": "Return the tags for a given tag group ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `tags:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__tag": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_TAG_RELATIONSHIPS",
+      "name": "Get Tag Relationships",
+      "description": "Tool to retrieve relationship IDs for a tag. Returns the IDs of related resources (campaigns, flows, lists, segments, or tag-group) associa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "related_resource": {
+            "type": "string",
+            "enum": [
+              "campaigns",
+              "flows",
+              "lists",
+              "segments",
+              "tag-group"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "related_resource"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_TAGS",
+      "name": "Get tags",
+      "description": "Retrieve up to 50 account tags at once, filterable/sortable by name or id, with cursor pagination. Rate limits: 3/s burst, 60/m steady. Req…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "id",
+              "-id",
+              "name",
+              "-name"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__tag": {
+            "type": "array"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__tag__group": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_TAG_TAG_GROUP",
+      "name": "Get tag tag group",
+      "description": "Returns the tag group resource for a given tag ID.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `tags:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__tag__group": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_TEMPLATE",
+      "name": "Get template",
+      "description": "Get a template with the given template ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `templates:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields__template": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_TEMPLATES",
+      "name": "Get templates",
+      "description": "Retrieve account templates with sorting options (`id`, `name`, `created`, `updated`). Limit of 10 results per page, rate limits at 10/s bur…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created",
+              "id",
+              "-id",
+              "name",
+              "-name",
+              "updated",
+              "-updated"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__template": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_UPDATE_CATEGORIES_JOBS",
+      "name": "Get update categories jobs",
+      "description": "Get all catalog category bulk update jobs. Returns a maximum of 100 jobs per request.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__category__bulk__update__job": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_UPDATE_ITEMS_JOB",
+      "name": "Get update items job",
+      "description": "Get a catalog item bulk update job with the given job ID. An `include` parameter can be provided to get the following related resource data…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__catalog__item": {
+            "type": "array"
+          },
+          "fields__catalog__item__bulk__update__job": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_UPDATE_ITEMS_JOBS",
+      "name": "Get update items jobs",
+      "description": "Get all catalog item bulk update jobs. Returns a maximum of 100 jobs per request.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `3500/…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__item__bulk__update__job": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_UPDATE_VARIANTS_JOBS",
+      "name": "Get update variants jobs",
+      "description": "Get all catalog variant bulk update jobs. Returns a maximum of 100 jobs per request.<br><br>*Rate limits*:<br>Burst: `350/s`<br>Steady: `35…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__catalog__variant__bulk__update__job": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_VARIANT_IDS_FOR_CATALOG_ITEM",
+      "name": "Get Variant IDs for Catalog Item",
+      "description": "Tool to get all variant IDs related to a given catalog item ID. Returns a maximum of 100 variants per request. Use when you need to retriev…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created",
+              "-created"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page_cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_VERSION_IDS_FOR_FORM",
+      "name": "Get version ids for form",
+      "description": "Get the IDs of the form versions for the given form.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `forms:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_VERSIONS_FOR_FORM",
+      "name": "Get versions for form",
+      "description": "Get the form versions for the given form.<br><br>*Rate limits*:<br>Burst: `3/s`<br>Steady: `60/m` **Scopes:** `forms:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created_at",
+              "-created_at",
+              "updated_at",
+              "-updated_at"
+            ]
+          },
+          "filter": {
+            "type": "string"
+          },
+          "page__size": {
+            "type": "integer"
+          },
+          "page__cursor": {
+            "type": "string"
+          },
+          "fields__form__version": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_WEBHOOK",
+      "name": "Get webhook",
+      "description": "Get the webhook with the given ID.<br><br>*Rate limits*:<br>Burst: `1/s`<br>Steady: `15/m` **Scopes:** `webhooks:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array"
+          },
+          "fields__webhook": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_WEBHOOKS",
+      "name": "Get webhooks",
+      "description": "Get all webhooks in an account.<br><br>*Rate limits*:<br>Burst: `1/s`<br>Steady: `15/m` **Scopes:** `webhooks:read`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "include": {
+            "type": "array"
+          },
+          "fields__webhook": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_WEBHOOK_TOPIC",
+      "name": "Get webhook topic",
+      "description": "Retrieve details of a specific webhook topic by its ID. Webhook topics define the events that can trigger webhooks (e.g., email_delivered, …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_GET_WEBHOOK_TOPICS",
+      "name": "Get webhook topics",
+      "description": "Get all webhook topics in a Klaviyo account.<br><br>*Rate limits*:<br>Burst: `1/s`<br>Steady: `15/m` **Scopes:** `webhooks:read`",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "KLAVIYO_MERGE_PROFILES",
+      "name": "Merge profiles",
+      "description": "Merge one or more source profiles into a destination profile. The source profile(s) data (events, attributes, list memberships) will be tra…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "profile-merge"
+            ]
+          },
+          "data__relationships__profiles__data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "data__id",
+          "data__relationships__profiles__data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_QUERY_CAMPAIGN_VALUES",
+      "name": "Query campaign values",
+      "description": "Returns the requested campaign analytics values data<br><br>*Rate limits*:<br>Burst: `1/s`<br>Steady: `2/m`<br>Daily: `225/d` **Scopes:** `…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "campaign-values-report"
+            ]
+          },
+          "page_cursor": {
+            "type": "string"
+          },
+          "data__attributes__filter": {
+            "type": "string"
+          },
+          "data__attributes__timeframe": {
+            "type": "object"
+          },
+          "data__attributes__statistics": {
+            "type": "array"
+          },
+          "data__attributes__conversion__metric__id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data__attributes__conversion__metric__id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_QUERY_FLOW_SERIES",
+      "name": "Query flow series",
+      "description": "Returns time-series analytics data for flows, enabling performance tracking over time intervals. Use this to analyze flow metrics like open…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "flow-series-report"
+            ]
+          },
+          "page_cursor": {
+            "type": "string"
+          },
+          "data__attributes__filter": {
+            "type": "string"
+          },
+          "data__attributes__interval": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "hourly",
+              "monthly",
+              "weekly"
+            ]
+          },
+          "data__attributes__timeframe": {
+            "type": "object"
+          },
+          "data__attributes__statistics": {
+            "type": "array"
+          },
+          "data__attributes__conversion__metric__id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data__attributes__statistics",
+          "data__attributes__timeframe",
+          "data__attributes__interval",
+          "data__attributes__conversion__metric__id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_QUERY_FLOW_VALUES",
+      "name": "Query flow values",
+      "description": "Returns the requested flow analytics values data<br><br>*Rate limits*:<br>Burst: `1/s`<br>Steady: `2/m`<br>Daily: `225/d` **Scopes:** `flow…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "flow-values-report"
+            ]
+          },
+          "page_cursor": {
+            "type": "string"
+          },
+          "data__attributes__filter": {
+            "type": "string"
+          },
+          "data__attributes__timeframe": {
+            "type": "object"
+          },
+          "data__attributes__statistics": {
+            "type": "array"
+          },
+          "data__attributes__conversion_metric_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data__attributes__conversion_metric_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_QUERY_METRIC_AGGREGATES",
+      "name": "Query metric aggregates",
+      "description": "The Klaviyo endpoint fetches metric events, handling JSON requests for custom data queries, sorting, and filtering; offers grouping and tim…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "metric-aggregate"
+            ]
+          },
+          "data__attributes__by": {
+            "type": "array"
+          },
+          "data__attributes__sort": {
+            "type": "string",
+            "enum": [
+              "$attributed_channel",
+              "-$attributed_channel",
+              "$attributed_flow",
+              "-$attributed_flow",
+              "$attributed_message",
+              "-$attributed_message",
+              "$attributed_variation",
+              "-$attributed_variation",
+              "$campaign_channel",
+              "-$campaign_channel",
+              "$flow",
+              "-$flow",
+              "$flow_channel",
+              "-$flow_channel",
+              "$message",
+              "-$message",
+              "$message_send_cohort",
+              "-$message_send_cohort",
+              "$variation",
+              "-$variation",
+              "$variation_send_cohort",
+              "-$variation_send_cohort",
+              "Bot Click",
+              "-Bot Click",
+              "Bounce Type",
+              "-Bounce Type",
+              "Campaign Name",
+              "-Campaign Name",
+              "Client Canonical",
+              "-Client Canonical",
+              "Client Name",
+              "-Client Name",
+              "Client Type",
+              "-Client Type",
+              "Email Domain",
+              "-Email Domain",
+              "Failure Source",
+              "-Failure Source",
+              "Failure Type",
+              "-Failure Type",
+              "From Number",
+              "-From Number",
+              "From Phone Region",
+              "-From Phone Region",
+              "Inbox Provider",
+              "-Inbox Provider",
+              "List",
+              "-List",
+              "Message Name",
+              "-Message Name",
+              "Message Type",
+              "-Message Type",
+              "Method",
+              "-Method",
+              "Subject",
+              "-Subject",
+              "To Number",
+              "-To Number",
+              "To Phone Region",
+              "-To Phone Region",
+              "URL",
+              "-URL",
+              "count",
+              "-count",
+              "form_id",
+              "-form_id",
+              "sum_value",
+              "-sum_value",
+              "unique",
+              "-unique"
+            ]
+          },
+          "data__attributes__filter": {
+            "type": "array"
+          },
+          "data__attributes__interval": {
+            "type": "string",
+            "enum": [
+              "day",
+              "hour",
+              "month",
+              "week"
+            ]
+          },
+          "data__attributes__timezone": {
+            "type": "string"
+          },
+          "data__attributes__timeframe": {
+            "type": "object"
+          },
+          "data__attributes__metric__id": {
+            "type": "string"
+          },
+          "data__attributes__page__size": {
+            "type": "integer"
+          },
+          "data__attributes__measurements": {
+            "type": "array"
+          },
+          "data__attributes__page__cursor": {
+            "type": "string"
+          },
+          "data__attributes__return__fields": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_REMOVE_PROFILE_FROM_LIST",
+      "name": "Remove Profile from List",
+      "description": "Remove profiles from a Klaviyo list by profile IDs or email addresses. This action removes profiles from a marketing list without affecting…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "emails": {
+            "type": "array"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "profile_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_REQUEST_PROFILE_DELETION",
+      "name": "Request profile deletion",
+      "description": "To delete a profile, use only one identifier: email, phone number, or ID. Requests are asynchronous and can be tracked. Ensure legal compli…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "data-privacy-deletion-job"
+            ]
+          },
+          "data__attributes__profile__data__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__type": {
+            "type": "string",
+            "enum": [
+              "profile"
+            ]
+          },
+          "data__attributes__profile__data__attributes__email": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__phone__number": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_SPAWN_BULK_PROFILE_IMPORT_JOB",
+      "name": "Spawn bulk profile import job",
+      "description": "Initiate a job to create/update a batch of profiles, up to 10,000 with a max size of 5MB per request. Rate limits: 10/s burst, 150/m steady…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "profile-bulk-import-job"
+            ]
+          },
+          "data__attributes__profiles__data": {
+            "type": "array"
+          },
+          "data__relationships__lists__data": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_SPAWN_COUPON_CODE_BULK_CREATE_JOB",
+      "name": "Spawn coupon code bulk create job",
+      "description": "Create a coupon-code-bulk-create-job to bulk create a list of coupon codes. Max 1000 coupon codes per job. Max 100 jobs queued at once. Rat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "coupon-code-bulk-create-job"
+            ]
+          },
+          "data__attributes__coupon__codes__data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "data__attributes__coupon__codes__data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_SPAWN_CREATE_CATEGORIES_JOB",
+      "name": "Spawn create categories job",
+      "description": "Create bulk job for up to 100 catalog categories with a 5MB size limit and a max of 500 concurrent jobs. Rate limits: 75/s burst, 700/m ste…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-category-bulk-create-job"
+            ]
+          },
+          "data__attributes__categories__data": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_SPAWN_CREATE_ITEMS_JOB",
+      "name": "Spawn create items job",
+      "description": "Create batches of up to 100 catalog items with a 5MB size limit using the bulk job, which allows 500 concurrent jobs. Rate limits are 75/s …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-item-bulk-create-job"
+            ]
+          },
+          "data__attributes__items__data": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_SPAWN_CREATE_VARIANTS_JOB",
+      "name": "Spawn create variants job",
+      "description": "Initiate a job to bulk create up to 100 catalog variants, with a 5MB payload size limit. A max of 500 jobs can run concurrently. Rate limit…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-variant-bulk-create-job"
+            ]
+          },
+          "data__attributes__variants__data": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_SPAWN_DELETE_CATEGORIES_JOB",
+      "name": "Spawn delete categories job",
+      "description": "Delete multiple catalog categories in bulk, with a limit of 100 per request and a 5MB payload size. A maximum of 500 concurrent jobs permit…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-category-bulk-delete-job"
+            ]
+          },
+          "data__attributes__categories__data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "data__attributes__categories__data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_SPAWN_DELETE_ITEMS_JOB",
+      "name": "Spawn delete items job",
+      "description": "Delete batches of catalog items with a bulk job, max 100 items/request, 5MB size limit, and up to 500 concurrent jobs. Rate limits are 75/s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-item-bulk-delete-job"
+            ]
+          },
+          "data__attributes__items__data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "data__attributes__items__data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_SPAWN_DELETE_VARIANTS_JOB",
+      "name": "Spawn delete variants job",
+      "description": "Delete multiple catalog variants with a bulk job, max 100 per request, 5MB size limit. Only 500 jobs can run concurrently. Rate limits: 75/…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-variant-bulk-delete-job"
+            ]
+          },
+          "data__attributes__variants__data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "data__attributes__variants__data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_SPAWN_UPDATE_CATEGORIES_JOB",
+      "name": "Spawn update categories job",
+      "description": "Create a job to bulk update up to 100 categories, with a 5MB size limit and a maximum of 500 concurrent jobs. Burst rate limit is 75/s, ste…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-category-bulk-update-job"
+            ]
+          },
+          "data__attributes__categories__data": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_SPAWN_UPDATE_ITEMS_JOB",
+      "name": "Spawn update items job",
+      "description": "You can bulk update up to 100 catalog items with a 5MB payload limit. A max of 500 jobs can run concurrently. Rate limits are 75 requests/s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-item-bulk-update-job"
+            ]
+          },
+          "data__attributes__items__data": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_SPAWN_UPDATE_VARIANTS_JOB",
+      "name": "Spawn update variants job",
+      "description": "Create a job to bulk update up to 100 catalog variants with a 5MB payload limit. A max of 500 jobs may run concurrently. Rate limits are 75…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-variant-bulk-update-job"
+            ]
+          },
+          "data__attributes__variants__data": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_SUBSCRIBE_PROFILES",
+      "name": "Subscribe profiles",
+      "description": "The API supports double opt-in for marketing, with 'historical_import' bypassing consent. It resets opt-outs for returning users. Caps at 1…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "profile-subscription-bulk-create-job"
+            ]
+          },
+          "data__attributes__custom__source": {
+            "type": "string"
+          },
+          "data__attributes__profiles__data": {
+            "type": "array"
+          },
+          "data__relationships__list__data__id": {
+            "type": "string"
+          },
+          "data__attributes__historical__import": {
+            "type": "boolean"
+          },
+          "data__relationships__list__data__type": {
+            "type": "string",
+            "enum": [
+              "list"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_SUPPRESS_PROFILES",
+      "name": "Suppress profiles",
+      "description": "Suppress profiles by email, segment, or list ID to stop email marketing, regardless of consent. View guides for details. Max 100 emails per…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "profile-suppression-bulk-create-job"
+            ]
+          },
+          "data__attributes__profiles__data": {
+            "type": "array"
+          },
+          "data__relationships__list__data__id": {
+            "type": "string"
+          },
+          "data__relationships__list__data__type": {
+            "type": "string",
+            "enum": [
+              "list"
+            ]
+          },
+          "data__relationships__segment__data__id": {
+            "type": "string"
+          },
+          "data__relationships__segment__data__type": {
+            "type": "string",
+            "enum": [
+              "segment"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_UNREGISTER_CLIENT_PUSH_TOKEN",
+      "name": "Unregister client push token",
+      "description": "This endpoint unsubscribes a push token, for use with Klaviyo's mobile SDKs and a public API key. Push notifications must be on. Rate limit…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "push-token-unregister"
+            ]
+          },
+          "data__attributes__token": {
+            "type": "string"
+          },
+          "data__attributes__vendor": {
+            "type": "string",
+            "enum": [
+              "apns",
+              "fcm"
+            ]
+          },
+          "data__attributes__platform": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios"
+            ]
+          },
+          "data__attributes__profile__data__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__type": {
+            "type": "string",
+            "enum": [
+              "profile"
+            ]
+          },
+          "data__attributes__profile__data__attributes____kx": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__email": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__image": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__title": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__address1": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__address2": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__latitude": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__attrs__location__timezone": {
+            "type": "string"
+          },
+          "data__attrs__profile__data__meta__patch__props__unset": {
+            "type": "array"
+          },
+          "data__attrs__profile__data__attrs__location__longitude": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__last__name": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__first__name": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__ip": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__organization": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__anonymous__id": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__zip": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__phone__number": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__city": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__region": {
+            "type": "string"
+          },
+          "data__attributes__profile__data__attributes__location__country": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UNSUBSCRIBE_PROFILES",
+      "name": "Unsubscribe profiles",
+      "description": "Opt-out profiles from email or SMS marketing. Unsubscribe up to 100 profiles at a time with burst (75/s) and steady (700/m) rate limits. Us…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "profile-subscription-bulk-delete-job"
+            ]
+          },
+          "data__attributes__profiles__data": {
+            "type": "array"
+          },
+          "data__relationships__list__data__id": {
+            "type": "string"
+          },
+          "data__relationships__list__data__type": {
+            "type": "string",
+            "enum": [
+              "list"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_UNSUBSCRIBE_PROFILES_BULK",
+      "name": "Unsubscribe Profiles Bulk",
+      "description": "Tool to unsubscribe one or more profiles from a Klaviyo list. Use when you need to bulk unsubscribe up to 100 profiles from email or SMS ma…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "emails": {
+            "type": "array"
+          },
+          "list_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_id",
+          "emails"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UNSUPPRESS_PROFILES",
+      "name": "Unsuppress profiles",
+      "description": "Remove 'USER_SUPPRESSED' blocks on profiles manually via email, segment, or list ID. Does not affect unsubscribes or other suppressions. Li…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "profile-suppression-bulk-delete-job"
+            ]
+          },
+          "data__attributes__profiles__data": {
+            "type": "array"
+          },
+          "data__relationships__list__data__id": {
+            "type": "string"
+          },
+          "data__relationships__list__data__type": {
+            "type": "string",
+            "enum": [
+              "list"
+            ]
+          },
+          "data__relationships__segment__data__id": {
+            "type": "string"
+          },
+          "data__relationships__segment__data__type": {
+            "type": "string",
+            "enum": [
+              "segment"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "KLAVIYO_UNSUPPRESS_PROFILES_BULK",
+      "name": "Unsuppress Profiles (Bulk)",
+      "description": "Tool to unsuppress one or more profiles from email marketing by email address. Use when you need to remove USER_SUPPRESSED status from prof…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "suppressions": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "suppressions"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_CAMPAIGN",
+      "name": "Update Campaign",
+      "description": "Update a campaign with the specified attributes. This action allows you to modify campaign settings including name, audiences, and send str…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "campaign_id": {
+            "type": "string"
+          },
+          "send_options": {
+            "type": "object"
+          },
+          "sto_send_date": {
+            "type": "string"
+          },
+          "tracking_options": {
+            "type": "object"
+          },
+          "excluded_audiences": {
+            "type": "array"
+          },
+          "included_audiences": {
+            "type": "array"
+          },
+          "throttle_percentage": {
+            "type": "integer",
+            "enum": [
+              10,
+              11,
+              13,
+              14,
+              17,
+              20,
+              25,
+              33,
+              50
+            ]
+          },
+          "send_strategy_method": {
+            "type": "string",
+            "enum": [
+              "static",
+              "throttled",
+              "immediate",
+              "smart_send_time"
+            ]
+          },
+          "static_send_datetime": {
+            "type": "string"
+          },
+          "throttled_send_datetime": {
+            "type": "string"
+          },
+          "static_is_local_timezone": {
+            "type": "boolean"
+          },
+          "static_send_past_recipients_immediately": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "campaign_id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_CAMPAIGN_MESSAGE",
+      "name": "Update campaign message",
+      "description": "Update a campaign message<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `campaigns:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "campaign-message"
+            ]
+          },
+          "data__attributes__label": {
+            "type": "string"
+          },
+          "data__attributes__content": {
+            "type": "object"
+          },
+          "data__attributes__render__options__shorten__links": {
+            "type": "boolean"
+          },
+          "data__attributes__render__options__add__info__link": {
+            "type": "boolean"
+          },
+          "data__attributes__render__options__add__org__prefix": {
+            "type": "boolean"
+          },
+          "data__attributes__render__options__add__opt__out__language": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_CATALOG_CATEGORY",
+      "name": "Update catalog category",
+      "description": "Update a catalog category with the given category ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalogs:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-category"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__relationships__items__data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_CATALOG_CATEGORY_RELATIONSHIPS",
+      "name": "Update Catalog Category Relationships",
+      "description": "Tool to update item relationships for a catalog category. Replaces all existing item relationships with the provided list. Use when you nee…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array"
+          },
+          "related_resource": {
+            "type": "string",
+            "enum": [
+              "items"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "related_resource",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_CATALOG_CATEGORY_RELATIONSHIPS_ITEMS",
+      "name": "Update catalog category relationships items",
+      "description": "Update item relationships for the given category ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalogs:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_CATALOG_ITEM",
+      "name": "Update catalog item",
+      "description": "Update a catalog item with the given item ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalogs:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-item"
+            ]
+          },
+          "data__attributes__url": {
+            "type": "string"
+          },
+          "data__attributes__price": {
+            "type": "number"
+          },
+          "data__attributes__title": {
+            "type": "string"
+          },
+          "data__attributes__images": {
+            "type": "array"
+          },
+          "data__attributes__published": {
+            "type": "boolean"
+          },
+          "data__attributes__description": {
+            "type": "string"
+          },
+          "data__attributes__image__full__url": {
+            "type": "string"
+          },
+          "data__relationships__categories__data": {
+            "type": "array"
+          },
+          "data__attributes__image__thumbnail__url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_CATALOG_ITEM_RELATIONSHIPS_CATEGORIES",
+      "name": "Update catalog item relationships categories",
+      "description": "Update catalog category relationships for the given item ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalog…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_CATALOG_VARIANT",
+      "name": "Update catalog variant",
+      "description": "Update a catalog item variant with the given variant ID.<br><br>*Rate limits*:<br>Burst: `75/s`<br>Steady: `700/m` **Scopes:** `catalogs:wr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "catalog-variant"
+            ]
+          },
+          "data__attributes__sku": {
+            "type": "string"
+          },
+          "data__attributes__url": {
+            "type": "string"
+          },
+          "data__attributes__price": {
+            "type": "number"
+          },
+          "data__attributes__title": {
+            "type": "string"
+          },
+          "data__attributes__images": {
+            "type": "array"
+          },
+          "data__attributes__published": {
+            "type": "boolean"
+          },
+          "data__attributes__description": {
+            "type": "string"
+          },
+          "data__attributes__image__full__url": {
+            "type": "string"
+          },
+          "data__attributes__inventory__policy": {
+            "type": "integer"
+          },
+          "data__attributes__inventory__quantity": {
+            "type": "number"
+          },
+          "data__attributes__image__thumbnail__url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_COUPON",
+      "name": "Update coupon",
+      "description": "Update an existing coupon's properties. Currently, only the coupon description can be updated. The coupon ID (external_id) cannot be change…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "coupon"
+            ]
+          },
+          "data__attributes__description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_COUPON_CODE",
+      "name": "Update coupon code",
+      "description": "Updates a coupon code specified by the given identifier synchronously. We allow updating the 'status' and 'expires_at' of coupon codes.<br>…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "coupon-code"
+            ]
+          },
+          "data__attributes__status": {
+            "type": "string",
+            "enum": [
+              "ASSIGNED_TO_PROFILE",
+              "DELETING",
+              "PROCESSING",
+              "UNASSIGNED",
+              "USED",
+              "VERSION_NOT_ACTIVE"
+            ]
+          },
+          "data__attributes__expires__at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_FLOW_STATUS",
+      "name": "Update flow status",
+      "description": "Update the status of a flow with the given flow ID, and all actions in that flow. Flow statuses: - 'draft': Flow is disabled; no messages w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "flow"
+            ]
+          },
+          "data__attributes__status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "manual",
+              "live"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "data__attributes__status"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_IMAGE",
+      "name": "Update image",
+      "description": "Update the image with the given image ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `images:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "image"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__attributes__hidden": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_LIST",
+      "name": "Update list",
+      "description": "Update the name of a list with the given list ID.<br><br>*Rate limits*:<br>Burst: `10/s`<br>Steady: `150/m` **Scopes:** `lists:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "list"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_PROFILE",
+      "name": "Update profile",
+      "description": "Update profiles with the provided ID. Setting fields to `null` clears them; omitting fields retains existing data. Rate limits: 75/s burst,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "profile"
+            ]
+          },
+          "data__attributes__email": {
+            "type": "string"
+          },
+          "data__attributes__image": {
+            "type": "string"
+          },
+          "data__attributes__title": {
+            "type": "string"
+          },
+          "data__attributes__last__name": {
+            "type": "string"
+          },
+          "data__attributes__first__name": {
+            "type": "string"
+          },
+          "data__attributes__external__id": {
+            "type": "string"
+          },
+          "data__attributes__location__ip": {
+            "type": "string"
+          },
+          "data__attributes__organization": {
+            "type": "string"
+          },
+          "data__attributes__anonymous__id": {
+            "type": "string"
+          },
+          "data__attributes__location__zip": {
+            "type": "string"
+          },
+          "data__attributes__phone__number": {
+            "type": "string"
+          },
+          "data__attributes__location__city": {
+            "type": "string"
+          },
+          "data__attributes__location__region": {
+            "type": "string"
+          },
+          "data__attributes__location__country": {
+            "type": "string"
+          },
+          "data__attributes__location__address1": {
+            "type": "string"
+          },
+          "data__attributes__location__address2": {
+            "type": "string"
+          },
+          "data__attributes__location__latitude": {
+            "type": "string"
+          },
+          "data__attributes__location__timezone": {
+            "type": "string"
+          },
+          "data__meta__patch__properties__unset": {
+            "type": "array"
+          },
+          "data__attributes__location__longitude": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_SEGMENT",
+      "name": "Update segment",
+      "description": "Update a segment with the given segment ID.<br><br>*Rate limits*:<br>Burst: `1/s`<br>Steady: `15/m`<br>Daily: `100/d` **Scopes:** `segments…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "segment"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__attributes__is__starred": {
+            "type": "boolean"
+          },
+          "data__attributes__definition__condition__groups": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_TAG",
+      "name": "Update tag",
+      "description": "Update the tag with the given tag ID. Only a tag's `name` can be changed. A tag cannot be moved from one tag group to another. **Important*…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "tag"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "data__attributes__name"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_TAG_GROUP",
+      "name": "Update tag group",
+      "description": "Update the tag group with the given tag group ID. Only a tag group's `name` can be changed. A tag group's `exclusive` or `default` value ca…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "tag-group"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__attributes__return__fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_TEMPLATE",
+      "name": "Update template",
+      "description": "Update an existing email template by ID. Supports updating name, HTML content, and plaintext content. Note: This action only works with COD…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "template"
+            ]
+          },
+          "data__attributes__html": {
+            "type": "string"
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__attributes__text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPDATE_WEBHOOK",
+      "name": "Update webhook",
+      "description": "Update the webhook with the given ID.<br><br>*Rate limits*:<br>Burst: `1/s`<br>Steady: `15/m` **Scopes:** `webhooks:write`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data__id": {
+            "type": "string"
+          },
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "webhook"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__attributes__enabled": {
+            "type": "boolean"
+          },
+          "data__attributes__description": {
+            "type": "string"
+          },
+          "data__attributes__secret__key": {
+            "type": "string"
+          },
+          "data__attributes__endpoint__url": {
+            "type": "string"
+          },
+          "data__relationships__webhook__topics__data": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPLOAD_IMAGE_FROM_FILE",
+      "name": "Upload image from file",
+      "description": "Upload an image from a file. If you want to import an image from an existing url or a data uri, use the Upload Image From URL endpoint inst…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file"
+        ]
+      }
+    },
+    {
+      "slug": "KLAVIYO_UPLOAD_IMAGE_FROM_URL",
+      "name": "Upload image from url",
+      "description": "Import an image from a url or data uri. If you want to upload an image from a file, use the Upload Image From File endpoint instead.<br><br…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data__type": {
+            "type": "string",
+            "enum": [
+              "image"
+            ]
+          },
+          "data__attributes__name": {
+            "type": "string"
+          },
+          "data__attributes__hidden": {
+            "type": "boolean"
+          },
+          "data__attributes__import__from__url": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

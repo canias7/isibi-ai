@@ -1,0 +1,297 @@
+{
+  "slug": "googlemeet",
+  "name": "Google Meet",
+  "tool_count": 15,
+  "tools": [
+    {
+      "slug": "GOOGLEMEET_CREATE_MEET",
+      "name": "Create Google Meet Space",
+      "description": "Creates a new Google Meet space with optional configuration. Does not attach to any calendar event — calendar linking requires a separate C…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "config": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_END_ACTIVE_CONFERENCE",
+      "name": "End active conference",
+      "description": "Ends an active conference in a Google Meet space. REQUIRES 'space_name' parameter (e.g., 'spaces/jQCFfuBOdN5z' or just 'jQCFfuBOdN5z'). Use…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "space_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_name"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_GET_CONFERENCE_RECORD_BY_NAME",
+      "name": "Get conference record by name",
+      "description": "Tool to get a specific conference record by its resource name. Use when you have the conference record ID and need to retrieve detailed inf…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_GET_MEET",
+      "name": "Get Meet details",
+      "description": "Retrieve details of a Google Meet space using its unique identifier. Newly created spaces may return incomplete data; retry after 1–3 secon…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "space_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_name"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_GET_PARTICIPANT_SESSION",
+      "name": "Get Participant Details",
+      "description": "Retrieves detailed information about a specific participant session from a Google Meet conference record. Returns session details including…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_GET_RECORDINGS_BY_CONFERENCE_RECORD_ID",
+      "name": "Get recordings by conference record ID",
+      "description": "Retrieves recordings from Google Meet for a given conference record ID. Only returns recordings if recording was enabled and permitted by t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "conference_record_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conference_record_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_GET_TRANSCRIPT",
+      "name": "Get Transcript",
+      "description": "Retrieves a specific transcript by its resource name. Returns transcript details including state (STARTED, ENDED, FILE_GENERATED), start/en…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_GET_TRANSCRIPT_ENTRY",
+      "name": "Get Transcript Entry",
+      "description": "Fetches a single transcript entry by resource name for targeted inspection or incremental processing. Use when you have a specific transcri…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_GET_TRANSCRIPTS_BY_CONFERENCE_RECORD_ID",
+      "name": "Get transcripts by conference record ID",
+      "description": "Retrieves all transcripts for a specific Google Meet conference using its conference_record_id. Transcripts require processing time after a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "conference_record_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conference_record_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_LIST_CONFERENCE_RECORDS",
+      "name": "List Conference Records",
+      "description": "Tool to list conference records. Use when you need to retrieve a list of past conferences, optionally filtering them by criteria like meeti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_LIST_PARTICIPANTS",
+      "name": "List Participants",
+      "description": "Lists the participants in a conference record. By default, ordered by join time descending. Use to retrieve all participants who joined a s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "parent"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_LIST_PARTICIPANT_SESSIONS",
+      "name": "List Participant Sessions",
+      "description": "Lists all participant sessions for a specific participant in a Google Meet conference. A participant session represents each unique join or…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "participant_id": {
+            "type": "string"
+          },
+          "conference_record_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conference_record_id",
+          "participant_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_LIST_RECORDINGS",
+      "name": "List Recordings",
+      "description": "Tool to list recording resources from a conference record. Use when you need to retrieve recordings from a specific Google Meet conference.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "parent": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "parent"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_LIST_TRANSCRIPT_ENTRIES",
+      "name": "List Transcript Entries",
+      "description": "Tool to list structured transcript entries (speaker/time/text segments) for a specific Google Meet transcript. Use when you need to access …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_size": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "transcript_id": {
+            "type": "string"
+          },
+          "conference_record_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conference_record_id",
+          "transcript_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEMEET_UPDATE_SPACE",
+      "name": "Update Google Meet Space",
+      "description": "Updates the settings of an existing Google Meet space. Requires organizer/host privileges and the meetings.space.created OAuth scope. REQUI…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "config": {
+            "type": "object"
+          },
+          "updateMask": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  ]
+}

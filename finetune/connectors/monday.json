@@ -1,0 +1,2850 @@
+{
+  "slug": "monday",
+  "name": "Monday",
+  "tool_count": 125,
+  "tools": [
+    {
+      "slug": "MONDAY_ACCOUNT_TRIGGER_STATISTICS",
+      "name": "Get account trigger statistics",
+      "description": "Tool to retrieve statistics about account-level triggers and automations. Use when you need to monitor trigger execution metrics including …",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "MONDAY_ACTIVATE_USERS",
+      "name": "Activate users",
+      "description": "Tool to activate or reactivate users in a Monday.com account. Use when you need to enable user accounts that were previously deactivated. C…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_ADD_SUBSCRIBERS_TO_BOARD",
+      "name": "Add subscribers to board",
+      "description": "Tool to add users as subscribers to a Monday.com board. Use when granting subscriber or owner access to specific users on a board. Note: Th…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "subscriber"
+            ]
+          },
+          "board_id": {
+            "type": "integer"
+          },
+          "user_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "board_id",
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_ADD_SUBSCRIBERS_TO_OBJECT",
+      "name": "Add subscribers to object",
+      "description": "Tool to add subscribers or owners to a monday.com object. Use when you need to grant users notification access or ownership permissions to …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "subscriber"
+            ]
+          },
+          "user_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_ADD_TEAMS_TO_BOARD",
+      "name": "Add teams to board",
+      "description": "Tool to add teams to a Monday.com board with specified permission levels. Use when you need to associate teams with a board as owners or su…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "board_id": {
+            "type": "integer"
+          },
+          "team_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "board_id",
+          "team_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_ADD_USERS_TO_BOARD",
+      "name": "Add users to board",
+      "description": "Adds users to a Monday.com board with a specified role.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "subscriber"
+            ]
+          },
+          "board_id": {
+            "type": "integer"
+          },
+          "user_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "board_id",
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_ADD_USERS_TO_TEAM",
+      "name": "Add users to team",
+      "description": "Tool to add users to a Monday.com team. Use when updating team membership by adding user(s).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "integer"
+          },
+          "user_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "team_id",
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_ADD_USERS_TO_WORKSPACE",
+      "name": "Add users to workspace",
+      "description": "Tool to add one or more users to a workspace. Use when inviting existing users to collaborate in a workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "subscriber"
+            ]
+          },
+          "user_ids": {
+            "type": "array"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_AGGREGATE_DATA",
+      "name": "Aggregate board data",
+      "description": "Tool to aggregate data across Monday.com boards using groupings and aggregation functions like COUNT, SUM, MEAN, MIN, MAX. Use when you nee…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_APP_SUBSCRIPTION",
+      "name": "Get app subscription",
+      "description": "Tool to retrieve current app subscription data for the account. Use when you need to check subscription status, billing period, trial statu…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "MONDAY_ARCHIVE_BOARD",
+      "name": "Archive board",
+      "description": "Archives a specified, existing, and unarchived board in Monday.com; archived boards can typically be restored later.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "board_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_ARCHIVE_ITEM",
+      "name": "Archive item",
+      "description": "Archives an existing Monday.com item, moving it from active board views to the archive where it can be potentially restored.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_ARCHIVE_OBJECT",
+      "name": "Archive object",
+      "description": "Archives a Monday.com object by changing its state to archived rather than permanently deleting it. Use when you need to remove objects fro…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_ARCHIVE_WORKSPACE",
+      "name": "Archive workspace",
+      "description": "Tool to archive a Monday.com workspace. Use when you want to soft-remove a workspace from view.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_AUDIT_LOGS",
+      "name": "Get audit logs",
+      "description": "Tool to retrieve detailed security-related activity records for a Monday.com account. Use when you need to audit user actions, security eve…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "events": {
+            "type": "array"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "end_time": {
+            "type": "string"
+          },
+          "ip_address": {
+            "type": "string"
+          },
+          "start_time": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_BLOCKS",
+      "name": "Get document blocks",
+      "description": "Tool to retrieve document block data from workdocs via the API. Returns block metadata including type, content, position, and creation info…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "doc_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "doc_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_BOARDS",
+      "name": "Get boards",
+      "description": "Tool to retrieve board data via the Monday.com API. Returns core metadata (id, name, state, kind, hierarchy type, workspace) about one or m…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived",
+              "deleted",
+              "all"
+            ]
+          },
+          "order_by": {
+            "type": "string",
+            "enum": [
+              "created_at",
+              "used_at"
+            ]
+          },
+          "board_kind": {
+            "type": "string",
+            "enum": [
+              "private",
+              "public",
+              "share"
+            ]
+          },
+          "workspace_ids": {
+            "type": "array"
+          },
+          "hierarchy_type": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_CHANGE_SIMPLE_COLUMN_VALUE",
+      "name": "Change simple column value",
+      "description": "Changes a specific column's value for a Monday.com item using a simple string, suitable for Text, Status, or Dropdown columns; can create n…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "integer"
+          },
+          "board_id": {
+            "type": "integer"
+          },
+          "column_id": {
+            "type": "string"
+          },
+          "create_labels_if_missing": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "board_id",
+          "item_id",
+          "column_id",
+          "value"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_COLUMNS",
+      "name": "Get board columns",
+      "description": "Tool to retrieve column metadata from boards via the GraphQL API. Returns array of column information including type, title, settings, and …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_ids": {
+            "type": "array"
+          },
+          "column_ids": {
+            "type": "array"
+          },
+          "column_types": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "board_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CONNECTION_BOARD_IDS",
+      "name": "Get connection board IDs",
+      "description": "Tool to retrieve board IDs associated with connection columns. Use when you need to discover which boards can be linked through connection …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "board_ids": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_CONNECTIONS",
+      "name": "Get connections",
+      "description": "Tool to retrieve connection data for integrations with external services. Use when you need to inspect or manage integrations like Gmail, S…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "pagination": {
+            "type": "object"
+          },
+          "connection_state": {
+            "type": "string"
+          },
+          "with_automations": {
+            "type": "boolean"
+          },
+          "with_partial_scopes": {
+            "type": "boolean"
+          },
+          "with_state_validation": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_CONNECT_PROJECT_TO_PORTFOLIO",
+      "name": "Connect project to portfolio",
+      "description": "Links an existing project board to a portfolio board for centralized management. Requires boards:write scope and Enterprise plan.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "project_board_id": {
+            "type": "integer"
+          },
+          "portfolio_board_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "project_board_id",
+          "portfolio_board_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CONVERT_BOARD_TO_PROJECT",
+      "name": "Convert board to project",
+      "description": "Converts a regular Monday.com board into a project board with advanced project management features. Use when upgrading a board to enable pr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          },
+          "column_mappings": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "board_id",
+          "column_mappings"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_BOARD",
+      "name": "Create a Monday board",
+      "description": "Creates a Monday.com board; `template_id` if used must be accessible, and `folder_id` must be in `workspace_id` if both are provided.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "integer"
+          },
+          "board_kind": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private",
+              "share"
+            ]
+          },
+          "board_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "template_id": {
+            "type": "integer"
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "board_owner_ids": {
+            "type": "array"
+          },
+          "board_subscriber_ids": {
+            "type": "array"
+          },
+          "board_subscriber_teams_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "board_name",
+          "board_kind"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_COLUMN",
+      "name": "Create column",
+      "description": "Creates a new column with a specified type and title on a monday.com board.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "board_id": {
+            "type": "integer"
+          },
+          "defaults": {
+            "type": "string"
+          },
+          "column_type": {
+            "type": "string",
+            "enum": [
+              "status",
+              "text",
+              "long_text",
+              "numbers",
+              "date",
+              "dropdown",
+              "people",
+              "timeline",
+              "link",
+              "email",
+              "phone",
+              "rating",
+              "checkbox",
+              "country",
+              "file",
+              "hour",
+              "week",
+              "item_id",
+              "location",
+              "name",
+              "tags",
+              "vote",
+              "world_clock",
+              "creation_log",
+              "last_updated",
+              "auto_number",
+              "formula",
+              "connect_boards",
+              "button",
+              "time_tracking"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "after_column_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "board_id",
+          "column_type",
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_CUSTOM_ACTIVITY",
+      "name": "Create custom activity",
+      "description": "Tool to create a custom activity in the Monday.com Emails & Activities app. Use when you need to define a new activity type with specific c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "BRINK_PINK",
+              "CELTIC_BLUE",
+              "CORNFLOWER_BLUE",
+              "DINGY_DUNGEON",
+              "GO_GREEN",
+              "GRAY",
+              "LIGHT_DEEP_PINK",
+              "LIGHT_HOT_PINK",
+              "MAYA_BLUE",
+              "MEDIUM_TURQUOISE",
+              "PARADISE_PINK",
+              "PHILIPPINE_GREEN",
+              "PHILIPPINE_YELLOW",
+              "SLATE_BLUE",
+              "VIVID_CERULEAN",
+              "YANKEES_BLUE",
+              "YELLOW_GREEN",
+              "YELLOW_ORANGE"
+            ]
+          },
+          "icon_id": {
+            "type": "string",
+            "enum": [
+              "ASCENDING",
+              "CAMERA",
+              "CONFERENCE",
+              "FLAG",
+              "GIFT",
+              "HEADPHONES",
+              "HOMEKEYS",
+              "LOCATION",
+              "NOTEBOOK",
+              "PAPERPLANE",
+              "PLANE",
+              "PLIERS",
+              "TRIPOD",
+              "TWOFLAGS",
+              "UTENSILS"
+            ]
+          }
+        },
+        "required": [
+          "color",
+          "icon_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_DASHBOARD",
+      "name": "Create a Monday dashboard",
+      "description": "Tool to create a Monday.com dashboard with associated boards. Use when you need to establish a new dashboard in a workspace with specific b…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "PUBLIC"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "board_ids": {
+            "type": "array"
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "board_folder_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "board_ids",
+          "name",
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_DOC",
+      "name": "Create doc",
+      "description": "Tool to create a new doc in Monday.com. Use when you need to add a doc to a workspace or into a doc column on an item.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "private",
+              "public",
+              "share"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "integer"
+          },
+          "column_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_FOLDER",
+      "name": "Create a folder",
+      "description": "Tool to create a new folder in a Monday.com workspace to organize boards. Use when you need to structure boards within a workspace by group…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "DONE_GREEN",
+              "DARK_RED",
+              "LIPSTICK",
+              "SALADISH",
+              "EGG_YOK",
+              "WORKING_ORANGE",
+              "DARK_ORANGE",
+              "PEACH",
+              "SUNSET",
+              "STUCK_RED",
+              "SOFIA_PINK",
+              "PURPLE",
+              "DARK_PURPLE",
+              "BERRY",
+              "ROYAL",
+              "BLUISH_PURPLE",
+              "NAVY",
+              "BRIGHT_BLUE",
+              "DARK_BLUE",
+              "AQUAMARINE",
+              "CHILI_BLUE",
+              "RIVER",
+              "WINTER",
+              "EXPLOSIVE",
+              "TESLA",
+              "LIPSTICK_LIGHT",
+              "BUBBLE"
+            ]
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "parent_folder_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_GROUP",
+      "name": "Create group",
+      "description": "Creates a new group with the given `group_name` on an existing Monday.com board, identified by its `board_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "string"
+          },
+          "group_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "board_id",
+          "group_name"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_ITEM",
+      "name": "Create item",
+      "description": "Creates a new item on a Monday.com board, optionally assigning it to a group and setting column values.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "item_name": {
+            "type": "string"
+          },
+          "column_values": {}
+        },
+        "required": [
+          "board_id",
+          "item_name"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_ITEM_FROM_NL",
+      "name": "Create Item From Natural Language",
+      "description": "Creates a new item on a Monday.com board from a natural language description. Fetches the board's column schema at runtime, uses an LLM to …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "nl_query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "board_id",
+          "nl_query"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_NOTIFICATION",
+      "name": "Create notification",
+      "description": "Tool to send a notification to a user. Use when you need to alert a user about a board, item, or update. Call after obtaining the user and …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "target_id": {
+            "type": "integer"
+          },
+          "target_type": {
+            "type": "string",
+            "enum": [
+              "Post",
+              "Project"
+            ]
+          }
+        },
+        "required": [
+          "user_id",
+          "target_id",
+          "target_type",
+          "text"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_OBJECT",
+      "name": "Create object",
+      "description": "Tool to create any Monday.com object via GraphQL mutation. Use when you need to create workspaces, boards, items, columns, docs, updates, w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "variables": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_TAG",
+      "name": "Create tag",
+      "description": "Tool to create a new tag or return an existing tag. Use when you need to label items with color-coded tags on a public or private board.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          },
+          "tag_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tag_name"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_TIMELINE_ITEM",
+      "name": "Create timeline item",
+      "description": "Tool to create a new timeline item in the Emails & Activities app on a Monday.com item. Use when you need to establish a timeline event or …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "integer"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "time_range": {
+            "type": "object"
+          },
+          "custom_activity_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "custom_activity_id",
+          "title",
+          "timestamp"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_UPDATE",
+      "name": "Create update",
+      "description": "Tool to create a new update for an item or reply to an existing update. Use after determining the target item or update to comment on.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "integer"
+          },
+          "parent_id": {
+            "type": "integer"
+          },
+          "use_app_info": {
+            "type": "boolean"
+          },
+          "mentions_list": {
+            "type": "array"
+          },
+          "original_creation_date": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_USER",
+      "name": "Invite and create a Monday user",
+      "description": "Tool to invite and create a new user. Use when you need to programmatically add new users to your Monday account.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "emails": {
+            "type": "array"
+          },
+          "product": {
+            "type": "string",
+            "enum": [
+              "crm",
+              "dev",
+              "forms",
+              "knowledge",
+              "service",
+              "whiteboard",
+              "workflows",
+              "work_management"
+            ]
+          },
+          "user_role": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "GUEST",
+              "MEMBER",
+              "VIEW_ONLY"
+            ]
+          }
+        },
+        "required": [
+          "emails"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CREATE_WORKSPACE",
+      "name": "Create a Monday workspace",
+      "description": "Tool to create a Monday.com workspace. Use when you need to programmatically add a workspace after planning your project structure.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "account_product_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "kind"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_CUSTOM_ACTIVITY",
+      "name": "Get custom activity",
+      "description": "Tool to retrieve custom activity data from the Emails & Activities app. Use when you need to list available custom activities with their me…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "MONDAY_DEACTIVATE_USERS",
+      "name": "Deactivate users",
+      "description": "Tool to deactivate users from a monday.com account. Use when you need to remove users from the account; only admins can perform this action…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_ASSET",
+      "name": "Delete asset",
+      "description": "Tool to remove uploaded files. Since monday.com doesn't provide a direct asset deletion API, this tool deletes the enclosing update or clea…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "integer"
+          },
+          "asset_id": {
+            "type": "integer"
+          },
+          "board_id": {
+            "type": "string"
+          },
+          "column_id": {
+            "type": "string"
+          },
+          "update_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "asset_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_BOARD",
+      "name": "Delete board",
+      "description": "Tool to permanently delete a board from your Monday.com account. Use when you need to remove a board permanently after verifying its ID. Th…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "board_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_COLUMN",
+      "name": "Delete column",
+      "description": "Deletes a specified column from a Monday.com board; this action is destructive and cannot be undone via the API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          },
+          "column_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "board_id",
+          "column_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_CUSTOM_ACTIVITY",
+      "name": "Delete Custom Activity",
+      "description": "Tool to delete a custom activity from the Emails & Activities app. Use when you need to remove a custom activity by its unique identifier.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_DOC",
+      "name": "Delete doc",
+      "description": "Tool to delete a Monday.com doc by its ID. Use when you need to remove a doc that is no longer needed.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_FOLDER",
+      "name": "Delete folder",
+      "description": "Tool to permanently delete a folder and all its contents from a Monday.com workspace. Use when you need to remove a folder along with all n…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_GROUP",
+      "name": "Delete group",
+      "description": "Permanently deletes an existing group (and its items) from an existing board in Monday.com.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          },
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "board_id",
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_ITEM",
+      "name": "Delete item",
+      "description": "Permanently deletes an existing Monday.com item; this action is irreversible via the API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_OBJECT",
+      "name": "Delete object",
+      "description": "Tool to permanently delete a Monday.com object with a 30-day recovery grace period. Use when you need to remove any object type from Monday…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_SUBSCRIBERS_FROM_BOARD",
+      "name": "Delete subscribers from board",
+      "description": "Tool to remove subscribers from a Monday.com board. Use when revoking subscriber access for specific users on a board.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          },
+          "user_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "board_id",
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_TAG",
+      "name": "Delete tag",
+      "description": "Tool to remove a tag from an item in Monday.com. Important: Monday.com's GraphQL API does not provide a mutation to delete a tag from the a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag_id": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "integer"
+          },
+          "board_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tag_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_TEAM",
+      "name": "Delete team",
+      "description": "Tool to delete an existing team; use when you need to permanently remove a team by its ID after confirming it’s no longer needed.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_TEAMS_FROM_BOARD",
+      "name": "Delete teams from board",
+      "description": "Tool to remove teams from a board; use when you need to revoke team access to a specific board.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          },
+          "team_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "board_id",
+          "team_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_TEAMS_FROM_WORKSPACE",
+      "name": "Delete teams from workspace",
+      "description": "Tool to remove teams from a workspace. Use when revoking workspace access for specific teams.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_ids": {
+            "type": "array"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "team_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_TIMELINE_ITEM",
+      "name": "Delete timeline item",
+      "description": "Tool to delete a timeline item from the Emails & Activities app. Use when you need to remove an existing timeline event or activity from a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_UPDATE",
+      "name": "Delete update",
+      "description": "Tool to delete an update by its ID. Use when an update is no longer relevant. Use after confirming deletion is irreversible.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "update_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "update_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DELETE_WORKSPACE",
+      "name": "Delete workspace",
+      "description": "Tool to permanently delete a workspace by its ID. Use when a workspace is no longer needed. Use after confirming deletion is irreversible.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DOCS",
+      "name": "Retrieve Monday docs",
+      "description": "Tool to retrieve Monday.com document data via the API. Use when you need to fetch documents with filtering by IDs, object IDs, workspace ID…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "order_by": {
+            "type": "string",
+            "enum": [
+              "created_at",
+              "used_at"
+            ]
+          },
+          "object_ids": {
+            "type": "array"
+          },
+          "workspace_ids": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_DUPLICATE_BOARD",
+      "name": "Duplicate board",
+      "description": "Tool to duplicate a Monday.com board with its structure and optionally items and updates. Use when you need to create a copy of an existing…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          },
+          "folder_id": {
+            "type": "integer"
+          },
+          "board_name": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "duplicate_type": {
+            "type": "string",
+            "enum": [
+              "duplicate_board_with_structure",
+              "duplicate_board_with_pulses",
+              "duplicate_board_with_pulses_and_updates"
+            ]
+          },
+          "keep_subscribers": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "board_id",
+          "duplicate_type"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_DUPLICATE_ITEM",
+      "name": "Duplicate item",
+      "description": "Duplicates an item on a Monday.com board, optionally including its updates.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "integer"
+          },
+          "board_id": {
+            "type": "integer"
+          },
+          "with_updates": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "board_id",
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_EDIT_UPDATE",
+      "name": "Edit update",
+      "description": "Tool to modify the text content of an existing update on an item. Use when you need to correct or change a previously posted update.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "body": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "body"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_GET_ACCOUNT_INFO",
+      "name": "Get account info",
+      "description": "Retrieve account metadata and settings for the authenticated Monday.com account. Use this action to inspect account configuration such as: …",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "MONDAY_GET_ACTIVITY_LOGS",
+      "name": "Get board activity logs",
+      "description": "Tool to retrieve activity logs from a specific Monday.com board. Use when you need to track changes, user actions, or board history for aud…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "board_id": {
+            "type": "string"
+          },
+          "item_ids": {
+            "type": "array"
+          },
+          "user_ids": {
+            "type": "array"
+          },
+          "group_ids": {
+            "type": "array"
+          },
+          "column_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "board_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_GET_API_VERSION",
+      "name": "Get API version",
+      "description": "Tool to retrieve the Monday.com API version in use. Use when you need to check which API version is currently active for debugging or compa…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "MONDAY_GET_ASSETS",
+      "name": "Get assets",
+      "description": "Tool to retrieve file/asset metadata from monday.com by asset IDs. Returns file information including URL, name, size, extension, and thumb…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_GET_BOARD_VIEWS",
+      "name": "Get board views",
+      "description": "Tool to retrieve board view data via GraphQL API. Returns array of board view metadata including type, settings, filters, and access levels…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_ids": {
+            "type": "array"
+          },
+          "view_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "board_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_GET_FAVORITES",
+      "name": "Get favorites",
+      "description": "Tool to retrieve all favorited items for the authenticated user. Use when you need to query items that have been marked as favorites.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "MONDAY_GET_FOLDERS",
+      "name": "Get folders",
+      "description": "Tool to retrieve folder data from workspaces with filtering and pagination options. Use when you need to list folders from specific workspa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "workspace_ids": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_GET_FORM",
+      "name": "Get form details",
+      "description": "Tool to retrieve form metadata via the API using the form's unique token from the URL. Returns form configuration, questions, and settings.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_token"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_GET_ITEMS",
+      "name": "Get items by IDs",
+      "description": "Tool to retrieve specific items by their IDs from Monday.com, returning metadata including name, timestamps, state, board, and group inform…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "newest_first": {
+            "type": "boolean"
+          },
+          "exclude_nonactive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_GET_ME",
+      "name": "Get current user",
+      "description": "Tool to fetch the current authenticated user's profile and permissions. Use when you need to retrieve user metadata before performing other…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "api_version": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_GET_MUTATION_COMPLEXITY",
+      "name": "Get mutation complexity",
+      "description": "Tool to get complexity data of mutations in Monday.com. Use when you need to track API quota usage or monitor rate limits for mutation oper…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_GET_QUERY_COMPLEXITY",
+      "name": "Get query complexity",
+      "description": "Tool to retrieve complexity data and cost metrics for Monday.com API operations. Use when you need to monitor API rate limits and complexit…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "MONDAY_GET_TAGS",
+      "name": "Get tags",
+      "description": "Tool to retrieve tags from the account. Use when you need to list all tags or filter by specific IDs.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_GET_TEAMS",
+      "name": "Get teams",
+      "description": "Tool to retrieve teams from Monday.com. Use when you need an overview of teams in your account.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_GET_UPDATE_REPLIES",
+      "name": "Get update replies",
+      "description": "Retrieves updates and their replies for a specific Monday.com item. Use this to fetch conversation threads and discussions attached to an i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_GET_UPDATES",
+      "name": "Get item updates",
+      "description": "Tool to retrieve updates for a specific item. Use when you need to fetch the conversation history tied to an item.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_GET_VERSIONS",
+      "name": "Get API versions",
+      "description": "Tool to retrieve data about available API versions. Use when you need to check which API versions are supported by Monday.com.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "MONDAY_GET_VIEW_SCHEMA_BY_TYPE",
+      "name": "Get view schema by type",
+      "description": "Tool to retrieve type-specific board view configuration schemas via GraphQL API. Use when you need to understand the structure and availabl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "TABLE",
+              "FORM",
+              "DASHBOARD",
+              "APP"
+            ]
+          },
+          "mutation_type": {
+            "type": "string",
+            "enum": [
+              "CREATE",
+              "UPDATE"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "mutation_type"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_GET_WEBHOOKS",
+      "name": "Get webhooks",
+      "description": "Tool to retrieve webhooks for a board. Use when you need to list all webhooks on a board.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          },
+          "app_webhooks_only": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "board_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_GET_WORKSPACES",
+      "name": "Get workspaces",
+      "description": "Tool to retrieve workspaces. Use when you need to list workspaces with optional filtering, pagination, or ordering after authentication.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed"
+            ]
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "all",
+              "archived",
+              "deleted"
+            ]
+          },
+          "order_by": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_IMPORT_DOC_FROM_HTML",
+      "name": "Import doc from HTML",
+      "description": "Tool to import HTML content into a new Monday.com doc, converting it to doc blocks. Use when you need to create a doc from HTML content.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "private",
+              "public",
+              "share"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "integer"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "html",
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_ITEMS_PAGE",
+      "name": "Get items page",
+      "description": "Tool to retrieve items from a Monday.com board (or group) with server-side filtering, full column_values, and cursor-based pagination via i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "board_id": {
+            "type": "integer"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "query_params": {
+            "type": "object"
+          },
+          "include_column_values": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_LIKE_UPDATE",
+      "name": "Like update",
+      "description": "Tool to like an update on an item. Use when you want to express approval or acknowledgment of an update.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "update_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "update_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_LIST_BOARD_ITEMS",
+      "name": "List board items",
+      "description": "DEPRECATED: Use MONDAY_ITEMS_PAGE instead, which supports cursor-based pagination. This tool may silently omit items on larger boards. Resu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "board_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_LIST_BOARDS",
+      "name": "List Monday boards (Deprecated)",
+      "description": "DEPRECATED: Use MONDAY_BOARDS instead. Retrieves a list of boards from a Monday.com account, supporting pagination and filtering by state.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_LIST_COLUMNS",
+      "name": "List columns (Deprecated)",
+      "description": "DEPRECATED: Use MONDAY_COLUMNS instead. Lists all columns and their properties for a specified Monday.com `board_id`; the board must exist.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "board_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_LIST_GROUPS",
+      "name": "List groups",
+      "description": "Tool to retrieve all groups of a specified board. Use when you need to list groups on a board after confirming its board ID. Response is ne…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          },
+          "group_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "board_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_LIST_ITEMS",
+      "name": "List items",
+      "description": "Retrieves specified subitems from Monday.com using their IDs, returning raw JSON. Returned `column_values` fields (`text`, `value`) are fre…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "item_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_LIST_ITEMS_BY_COLUMN_VALUES",
+      "name": "List items by column values",
+      "description": "Tool to search for items on a Monday.com board based on column values using the items_page_by_column_values query. Use when you need to fin…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "array"
+          },
+          "board_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "board_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_LIST_SUBITEMS_BY_PARENT",
+      "name": "List subitems by parent",
+      "description": "Tool to retrieve subitems nested under parent items via GraphQL API. Use when you need to list subitems and their column values for specifi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "parent_item_ids": {
+            "type": "array"
+          },
+          "include_column_values": {
+            "type": "boolean"
+          },
+          "include_parent_fields": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "parent_item_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_LIST_TEAM_MEMBERS",
+      "name": "List team members",
+      "description": "Tool to list members of a specified team. Use when you need to retrieve all users in a given Monday.com team after confirming its team ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_ids": {
+            "type": "array"
+          },
+          "user_filters": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_LIST_USERS",
+      "name": "List users",
+      "description": "Retrieves a list of users from Monday.com. Paginate by starting at page=1, incrementing page on each request, and stopping when the returne…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_MOVE_ITEM_TO_BOARD",
+      "name": "Move item to board",
+      "description": "Moves a Monday.com item to a specified board and group; requires the item, target board, and target group to exist.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "integer"
+          },
+          "board_id": {
+            "type": "integer"
+          },
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "board_id",
+          "item_id",
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_MOVE_ITEM_TO_GROUP",
+      "name": "Move item to group",
+      "description": "Moves an item to a different group on the same Monday.com board; the item and group must exist.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "integer"
+          },
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_MUTE_BOARD_SETTINGS",
+      "name": "Query board mute settings",
+      "description": "Tool to query a board's notification mute settings. Use when you need to check if notifications are muted for specific boards.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "board_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_PIN_TO_TOP",
+      "name": "Pin update to top",
+      "description": "Tool to pin an update to the top of an item. Use when you need to highlight an important update or keep it visible at the top.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "integer"
+          },
+          "update_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "update_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_PUBLISH_OBJECT",
+      "name": "Publish object",
+      "description": "Tool to publish a Monday.com object. Use when you need to make an object publicly visible or change its state to published.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_QUERY_DASHBOARDS",
+      "name": "Query dashboards",
+      "description": "Tool to query dashboards via Monday.com objects API. Use when you need to list all dashboards with their metadata, owners, and subscribers.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "MONDAY_QUERY_SPRINTS",
+      "name": "Query sprints",
+      "description": "Tool to query sprint data for agile project management from Monday.com boards. Use when you need to retrieve sprint information including s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_ids": {
+            "type": "array"
+          },
+          "sprint_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "board_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_REMOVE_USERS_FROM_TEAM",
+      "name": "Remove users from team",
+      "description": "Tool to remove users from a Monday.com team. Use when updating team membership by removing user(s).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "integer"
+          },
+          "user_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "team_id",
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_REMOVE_USERS_FROM_WORKSPACE",
+      "name": "Remove users from workspace",
+      "description": "Tool to remove users from a workspace. Use when revoking access for specific users in a workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_ids": {
+            "type": "array"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_SET_BOARD_PERMISSION",
+      "name": "Set board permission",
+      "description": "Sets or updates a board's default role and permissions. Use when you need to configure default permissions for a board. Requires boards:wri…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          },
+          "basic_role_name": {
+            "type": "string",
+            "enum": [
+              "contributor",
+              "editor",
+              "viewer"
+            ]
+          }
+        },
+        "required": [
+          "board_id",
+          "basic_role_name"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_TIMELINE",
+      "name": "Get item timeline",
+      "description": "Tool to retrieve an item's Email & Activities (E&A) timeline data from Monday.com. Use when you need to access CRM activity tracking and cl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_TIMELINE_ITEM",
+      "name": "Get timeline item",
+      "description": "Tool to retrieve a specific timeline item from the Emails & Activities app by ID. Use when you need to fetch metadata including content, us…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UNLIKE_UPDATE",
+      "name": "Unlike update",
+      "description": "Tool to remove a like from an update on an item. Use when you want to retract a previously expressed approval or acknowledgment of an updat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "update_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "update_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UNPIN_FROM_TOP",
+      "name": "Unpin update from top",
+      "description": "Tool to unpin an update from the top of an item. Use when you want to remove a pinned update from the top position of an item's updates fee…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "integer"
+          },
+          "update_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "update_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UNPUBLISH_OBJECT",
+      "name": "Unpublish object",
+      "description": "Unpublish a Monday.com object (board, item, or workspace) to revert it from a published state. The operation will return success=true only …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_BOARD",
+      "name": "Update board",
+      "description": "Updates a specified attribute of an existing board on Monday.com.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "string"
+          },
+          "new_value": {
+            "type": "string"
+          },
+          "board_attribute": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "board_id",
+          "board_attribute",
+          "new_value"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_BOARD_HIERARCHY",
+      "name": "Update board hierarchy",
+      "description": "Updates a board's position, workspace, or product in Monday.com. Use when you need to move a board to a different workspace or folder, assi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          },
+          "attributes": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "board_id",
+          "attributes"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_COLUMN",
+      "name": "Update column",
+      "description": "Tool to update column title or description. Use when modifying a column’s metadata after creation.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "board_id": {
+            "type": "integer"
+          },
+          "column_id": {
+            "type": "string"
+          },
+          "column_property": {
+            "type": "string",
+            "enum": [
+              "description",
+              "title"
+            ]
+          }
+        },
+        "required": [
+          "board_id",
+          "column_id",
+          "column_property",
+          "value"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_DOC",
+      "name": "Update a doc",
+      "description": "Tool to update a doc's title or append markdown content. Use when renaming docs or adding Markdown blocks to existing docs.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "doc_id": {
+            "type": "string"
+          },
+          "markdown": {
+            "type": "string"
+          },
+          "after_block_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_EMAIL_DOMAIN",
+      "name": "Update email domain",
+      "description": "Tool to update users' email domains. Use when migrating users to a new email domain; requires admin privileges.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_ids": {
+            "type": "array"
+          },
+          "new_domain": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_ids",
+          "new_domain"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_FOLDER",
+      "name": "Update a Monday folder",
+      "description": "Tool to update a Monday.com folder's properties including name, color, or parent folder. Use when you need to modify existing folder detail…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "integer"
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "parent_folder_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_GROUP",
+      "name": "Update group",
+      "description": "Tool to update an existing group on a board. Use when you need to modify a group's attribute (title, color, or position) after confirming t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "type": "integer"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "new_value": {
+            "type": "string"
+          },
+          "group_attribute": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "board_id",
+          "group_id",
+          "group_attribute",
+          "new_value"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_ITEM",
+      "name": "Update item",
+      "description": "Tool to update an existing item's column value on Monday.com. Use when setting complex column types like Timeline or People.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "value": {},
+          "item_id": {
+            "type": "string"
+          },
+          "board_id": {
+            "type": "string"
+          },
+          "column_id": {
+            "type": "string"
+          },
+          "create_labels_if_missing": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "board_id",
+          "item_id",
+          "column_id",
+          "value"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_MULTIPLE_USERS",
+      "name": "Update multiple users",
+      "description": "Tool to update one or multiple users' attributes on Monday.com. Use when you need to batch update user profiles such as name, email, title,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_updates": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_updates"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_MUTE_BOARD_SETTINGS",
+      "name": "Update mute board settings",
+      "description": "Tool to update a board's notification mute settings. Use when you need to configure notification preferences for a specific board.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "array"
+          },
+          "board_id": {
+            "type": "string"
+          },
+          "mute_state": {
+            "type": "string",
+            "enum": [
+              "CURRENT_USER_MUTE_ALL",
+              "CUSTOM_SETTINGS",
+              "MENTIONS_AND_ASSIGNS_ONLY",
+              "MUTE_ALL",
+              "NOT_MUTED"
+            ]
+          }
+        },
+        "required": [
+          "board_id",
+          "mute_state"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_TAG",
+      "name": "Update tag",
+      "description": "Tool to return a tag's details or best-effort \"rename\" by creating or getting a tag with the requested name. The monday API does not suppor…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "tag_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tag_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_TEAM",
+      "name": "Update team",
+      "description": "Tool to update a team's details in Monday.com. Use after identifying the team and desired changes.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "is_guest_team": {
+            "type": "boolean"
+          },
+          "parent_team_id": {
+            "type": "string"
+          },
+          "subscriber_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_USERS_ROLE",
+      "name": "Update users role",
+      "description": "Tool to update users' roles to custom or default roles. Use when changing user permissions; admin-only operation. Cannot update your own ro…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "role_id": {
+            "type": "integer"
+          },
+          "new_role": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "GUEST",
+              "MEMBER",
+              "VIEW_ONLY"
+            ]
+          },
+          "user_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPDATE_WORKSPACE",
+      "name": "Update a Monday workspace",
+      "description": "Tool to update a Monday.com workspace. Use when you need to modify the name, description, visibility, or product placement of an existing w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "account_product_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_UPLOAD_ASSET",
+      "name": "Upload Asset",
+      "description": "Tool to upload a file to an update or file column. Use when you need to attach a file to an existing update or file column. File attachment…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "update",
+              "column"
+            ]
+          },
+          "item_id": {
+            "type": "integer"
+          },
+          "column_id": {
+            "type": "string"
+          },
+          "update_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "target",
+          "file"
+        ]
+      }
+    },
+    {
+      "slug": "MONDAY_USER_CONNECTIONS",
+      "name": "Get user connections",
+      "description": "Tool to query user-specific connection data from Monday.com. Use when you need to retrieve integration connections established by the authe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "with_automations": {
+            "type": "boolean"
+          },
+          "with_state_validation": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  ]
+}

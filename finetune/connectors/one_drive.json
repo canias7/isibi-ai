@@ -1,0 +1,2435 @@
+{
+  "slug": "one_drive",
+  "name": "OneDrive",
+  "tool_count": 81,
+  "tools": [
+    {
+      "slug": "ONE_DRIVE_ADD_WORKBOOK_WORKSHEET",
+      "name": "Add Workbook Worksheet",
+      "description": "Adds a new worksheet to an existing Excel workbook in OneDrive or SharePoint. The worksheet is created with the specified name and appended…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_CHECKIN_ITEM",
+      "name": "Check In Drive Item",
+      "description": "Tool to check in a checked out driveItem resource, making the version of the document available to others. Use when you need to check in a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "check_in_as": {
+            "type": "string"
+          },
+          "drive_item_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "drive_item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_CHECKOUT_ITEM",
+      "name": "Checkout Drive Item",
+      "description": "Tool to check out a driveItem to prevent others from editing it and make your changes invisible until checked in. Use when you need to lock…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "drive_id": {
+            "type": "string"
+          },
+          "drive_item_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "drive_item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_CLEAR_WORKBOOK_RANGE",
+      "name": "Clear Workbook Range",
+      "description": "Clears values, formats, or both from a worksheet range in an Excel workbook stored in OneDrive or SharePoint without deleting cells or shif…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "applyTo": {
+            "type": "string",
+            "enum": [
+              "All",
+              "Formats",
+              "Contents"
+            ]
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "worksheet_id_or_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id",
+          "worksheet_id_or_name",
+          "address"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_COPY_ITEM",
+      "name": "Copy Item",
+      "description": "Tool to copy a DriveItem (file or folder) to a new location asynchronously. Use when you need to duplicate an item, optionally renaming it …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "children_only": {
+            "type": "boolean"
+          },
+          "parent_reference": {
+            "type": "object"
+          },
+          "conflict_behavior": {
+            "type": "string",
+            "enum": [
+              "fail",
+              "replace",
+              "rename"
+            ]
+          },
+          "include_all_version_history": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_CREATE_ITEM_PERMISSION",
+      "name": "Create Drive Item Permission",
+      "description": "Tool to create a new permission on a OneDrive drive item. Use when you need to grant application or SharePoint group permissions to a file …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "drive_item_id": {
+            "type": "string"
+          },
+          "granted_to_v2": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "drive_id",
+          "drive_item_id",
+          "granted_to_v2",
+          "roles"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_CREATE_LINK",
+      "name": "Create Sharing Link",
+      "description": "Tool to create a sharing link for a DriveItem (file or folder) by its unique ID. Use when you need to generate a shareable link for an item…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "view",
+              "edit",
+              "embed"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "anonymous",
+              "organization",
+              "users"
+            ]
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "recipients": {
+            "type": "array"
+          },
+          "expiration_date_time": {
+            "type": "string"
+          },
+          "retain_inherited_permissions": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "item_id",
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_CREATE_SHAREPOINT_LIST_ITEM",
+      "name": "Create SharePoint List Item",
+      "description": "Create an item in a SharePoint list using Microsoft Graph through the OneDrive connection. Use when you need to add a new row/item to a Sha…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "object"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "list_id",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_DELETE_ITEM",
+      "name": "Delete Item",
+      "description": "Tool to delete a DriveItem (file or folder) by its unique ID from the authenticated user's OneDrive. Use when you need to remove an item fr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_DELETE_ITEM_PERMANENTLY",
+      "name": "Permanently Delete Drive Item",
+      "description": "Tool to permanently delete a driveItem by its ID without moving it to the recycle bin. Use when you need to irreversibly remove a file or f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_DELETE_ITEM_PERMISSION",
+      "name": "Delete Drive Item Permission",
+      "description": "Tool to delete a permission from a drive item. Use when you need to revoke sharing access to a file or folder. Only non-inherited sharing p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "perm_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "perm_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_DELETE_SHARE_PERMISSION",
+      "name": "Delete Shares Permission",
+      "description": "Tool to delete the permission navigation property for a shared drive item. Use when you need to remove a sharing link permission. This effe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "shared_drive_item_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shared_drive_item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_DELETE_SHAREPOINT_ITEM_PERMISSION",
+      "name": "Delete SharePoint Item Permission",
+      "description": "Revoke a Microsoft Graph beta permission from a SharePoint list or list item.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "permission_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "list_id",
+          "permission_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_DELETE_WORKBOOK_RANGE",
+      "name": "Delete Workbook Range",
+      "description": "Deletes a range of cells from a worksheet in an Excel workbook stored in OneDrive. Use this action when you need to remove a specific cell …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string"
+          },
+          "shift": {
+            "type": "string",
+            "enum": [
+              "Up",
+              "Left"
+            ]
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "worksheet": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id",
+          "worksheet",
+          "range",
+          "shift"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_DELETE_WORKBOOK_WORKSHEET",
+      "name": "Delete Workbook Worksheet",
+      "description": "Deletes a worksheet from a workbook in OneDrive by its ID or name. Use this action when you need to remove a specific worksheet from an Exc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "worksheet_id_or_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id",
+          "worksheet_id_or_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_DISCARD_CHECKOUT",
+      "name": "Discard Checkout",
+      "description": "Tool to discard the checkout of a driveItem, releasing it and discarding any changes made while checked out. Use when you need to cancel a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "drive_id": {
+            "type": "string"
+          },
+          "drive_item_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "drive_item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_DOWNLOAD_FILE",
+      "name": "Download a file",
+      "description": "Downloads a file from a user's OneDrive using its item ID, which must refer to a file and not a folder. Response contains a content object …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "html"
+            ]
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "if_none_match": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "file_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_DOWNLOAD_FILE_BY_PATH",
+      "name": "Download file by path",
+      "description": "Downloads the contents of a file from OneDrive by its path. The API returns a 302 redirect to a pre-authenticated download URL. Use when yo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "item_path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_path",
+          "file_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_DOWNLOAD_ITEM_AS_FORMAT",
+      "name": "Download item as format",
+      "description": "Tool to download the contents of a driveItem converted to a specific format (e.g., PDF or HTML). Use when you need to convert Office docume…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "html"
+            ]
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "path_and_filename": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "file_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_DOWNLOAD_ITEM_VERSION",
+      "name": "Download Drive Item Version Content",
+      "description": "Tool to download the contents of a specific previous version of a drive item (file). Returns the actual file content. Note: You cannot down…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "version_id",
+          "file_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_FOLLOW_ITEM",
+      "name": "Follow Drive Item",
+      "description": "Tool to follow a driveItem (file or folder) in OneDrive or SharePoint. Use when you need to add an item to the user's followed items list f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "drive_id": {
+            "type": "string"
+          },
+          "driveItem_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "driveItem_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_DOCUMENT_COMMENTS",
+      "name": "Get document comments",
+      "description": "Extracts comments from a Word .docx file in OneDrive. The action downloads the document, parses the OOXML comments part, and returns struct…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_DRIVE",
+      "name": "Get Drive",
+      "description": "Retrieves the properties and relationships of a Drive resource by its unique ID. Use this action when you need to get details about a speci…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "drive_id": {
+            "type": "string"
+          },
+          "expand_fields": {
+            "type": "array"
+          },
+          "select_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "drive_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_DRIVE_ITEM_BY_SHARING_URL",
+      "name": "Get DriveItem by Sharing URL",
+      "description": "Tool to resolve a OneDrive/SharePoint sharing URL (or shareId) to a DriveItem with driveId and itemId. Use when you have a sharing link fro…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sharing_url": {
+            "type": "string"
+          },
+          "prefer_redeem": {
+            "type": "string",
+            "enum": [
+              "redeemSharingLinkIfNecessary",
+              "redeemSharingLink"
+            ]
+          },
+          "select_fields": {
+            "type": "array"
+          },
+          "expand_children": {
+            "type": "boolean"
+          },
+          "share_id_or_encoded_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_FOLLOWED_ITEM",
+      "name": "Get Drives Following",
+      "description": "Tool to retrieve a specific followed driveItem from a drive. Use when you need to get details about a file or folder that the user has mark…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "drive_id": {
+            "type": "string"
+          },
+          "driveItem_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "driveItem_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_GROUP_DRIVE",
+      "name": "Get Group Drive",
+      "description": "Tool to retrieve the document library (drive) for a Microsoft 365 group. Use when you need to access the default document library associate…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "select_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_ITEM",
+      "name": "Get Item Metadata",
+      "description": "Retrieves the metadata of a DriveItem by its unique ID. Use this tool to get information about a specific file or folder in OneDrive when y…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "select_fields": {
+            "type": "array"
+          },
+          "expand_relations": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_ITEM_PERMISSIONS",
+      "name": "Get Item Permissions",
+      "description": "Retrieves the permissions of a DriveItem by its unique ID within a specific Drive. Use when you need to check who has access to a file or f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "select": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "item_path": {
+            "type": "string"
+          },
+          "if_none_match": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_ITEM_THUMBNAILS",
+      "name": "Get Item Thumbnails",
+      "description": "Tool to retrieve the thumbnails associated with a DriveItem. Use when you need to display visual previews of files. Response contains a `va…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "select": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "original_orientation": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_ITEM_VERSIONS",
+      "name": "Get Item Versions",
+      "description": "Tool to retrieve the version history of a DriveItem by its unique ID. Use when you need to access or list previous versions of a file. Vers…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_RECENT_ITEMS",
+      "name": "Get Recent Items",
+      "description": "Get files and folders recently accessed by the user. Returns items based on activity history (opened, edited, viewed), sorted by most recen…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "select": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_ROOT",
+      "name": "Get Drive Root Folder",
+      "description": "Tool to retrieve metadata for the root folder of the signed-in user's OneDrive. Use when you need information about the user's OneDrive roo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "select_fields": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_SHARE",
+      "name": "Get Shared Item by ShareId",
+      "description": "Tool to access a shared DriveItem or collection of shared items using a shareId or encoded sharing URL. Returns the sharedDriveItem resourc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "prefer_redeem": {
+            "type": "string",
+            "enum": [
+              "redeemSharingLinkIfNecessary",
+              "redeemSharingLink"
+            ]
+          },
+          "expand_children": {
+            "type": "boolean"
+          },
+          "share_id_or_encoded_sharing_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "share_id_or_encoded_sharing_url"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_SHARED_ITEMS",
+      "name": "Get Shared Items",
+      "description": "Tool to retrieve items shared with the authenticated user (not items the user has shared with others). Returns files and folders shared wit…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "allow_external": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_SHAREPOINT_LIST_ITEMS",
+      "name": "Get SharePoint List Items",
+      "description": "Tool to get the items (list items) within a specific SharePoint list on a site. Use when you need to retrieve data from a SharePoint list.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_SITE",
+      "name": "Get Site Details",
+      "description": "Retrieves metadata for a specific SharePoint site by its ID. Use this action when you need to get details like display name, web URL, and c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_SITE_PAGE_CONTENT",
+      "name": "Get SharePoint Site Page Content",
+      "description": "Gets the content of a modern SharePoint site page. Use when you need to retrieve the details and content of a specific page within a ShareP…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_SPECIAL_FOLDER",
+      "name": "Get Drive Special Folder",
+      "description": "Tool to retrieve a special folder in OneDrive by name. Use when you need to access well-known folders (documents, photos, approot, etc.) wi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "select_fields": {
+            "type": "array"
+          },
+          "expand_relations": {
+            "type": "array"
+          },
+          "special_folder_name": {
+            "type": "string",
+            "enum": [
+              "documents",
+              "photos",
+              "cameraroll",
+              "approot",
+              "music",
+              "recordings"
+            ]
+          }
+        },
+        "required": [
+          "special_folder_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_USER",
+      "name": "Get User Profile",
+      "description": "Retrieves the properties and profile information for a specific Microsoft user by their user ID or user principal name. Use this action whe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "select": {
+            "type": "array"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_WORKBOOK_USED_RANGE",
+      "name": "Get Workbook Used Range",
+      "description": "Retrieves the used range of a worksheet in an Excel workbook stored in OneDrive or SharePoint without requiring the caller to know an expli…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "values_only": {
+            "type": "boolean"
+          },
+          "worksheet_id_or_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id",
+          "worksheet_id_or_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GET_WORKBOOK_WORKSHEET",
+      "name": "Get Workbook Worksheet",
+      "description": "Retrieves a specific worksheet from an Excel workbook stored in OneDrive or SharePoint using Microsoft Graph API. Use this action when you …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "select": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "worksheet_id_or_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id",
+          "worksheet_id_or_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GRANT_SHARE_PERMISSION",
+      "name": "Grant Shares Permission",
+      "description": "Tool to grant users access to a link represented by a permission using an encoded sharing URL. Use when you need to give specific users acc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array"
+          },
+          "recipients": {
+            "type": "array"
+          },
+          "encoded_sharing_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "encoded_sharing_url",
+          "recipients",
+          "roles"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_GRANT_SHAREPOINT_ITEM_PERMISSION",
+      "name": "Grant SharePoint Item Permission",
+      "description": "Grant an application permission on a SharePoint list or list item using Microsoft Graph beta.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "granted_to_v2": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "site_id",
+          "list_id",
+          "granted_to_v2",
+          "roles"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_INVITE_USER_TO_ITEM",
+      "name": "Invite User to Drive Item",
+      "description": "Tool to invite users or grant permissions to a specific item in a OneDrive drive. Use when you need to share a file or folder with other us…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "recipients": {
+            "type": "array"
+          },
+          "require_sign_in": {
+            "type": "boolean"
+          },
+          "send_invitation": {
+            "type": "boolean"
+          },
+          "expiration_date_time": {
+            "type": "string"
+          },
+          "retain_inherited_permissions": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "item_id",
+          "recipients",
+          "roles"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_ACTIVITIES",
+      "name": "List Drive Activities",
+      "description": "Tool to retrieve recent activities on the authenticated user's OneDrive. Use when you need to track recent changes or actions performed acr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "drive_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_ALL_DRIVE_ITEMS",
+      "name": "List All Drive Items Recursively",
+      "description": "Recursively lists all files and folders in a OneDrive drive by traversing the entire folder hierarchy. Starts at the drive root and explore…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "drive_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_BUNDLES",
+      "name": "List Drive Bundles",
+      "description": "Tool to retrieve a list of bundle resources from a specified drive. Bundles are collections of files (e.g., photo albums). Use when you nee…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "skip_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_DRIVES",
+      "name": "List Drives",
+      "description": "Tool to retrieve a list of Drive resources available to the authenticated user, or for a specific user, group, or site. Use when you need t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "skip_token": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_FOLDER_CHILDREN",
+      "name": "List Folder Children",
+      "description": "List the direct children (files/folders) of a OneDrive/SharePoint folder by DriveItem ID or path. Returns reliable pagination tokens/nextLi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "array"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "next_link": {
+            "type": "string"
+          },
+          "skip_token": {
+            "type": "string"
+          },
+          "folder_path": {
+            "type": "string"
+          },
+          "use_me_drive": {
+            "type": "boolean"
+          },
+          "folder_item_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_ITEM_ACTIVITIES",
+      "name": "List Drive Item Activities",
+      "description": "Tool to list recent activities for a specific item in a OneDrive drive. Use when you need to track changes or actions performed on a file o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_ROOT_DRIVE_CHANGES",
+      "name": "List Root Drive Changes",
+      "description": "Tool to list changes in the root of the user's primary drive using a delta token. Use when you need to track file and folder modifications,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "token": {
+            "type": "string"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_SHARE_PERMISSIONS",
+      "name": "List Shares Permission",
+      "description": "Tool to retrieve permission details for a shared OneDrive or SharePoint item using a share ID. Use when you have an encoded sharing URL and…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "shared_drive_item_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shared_drive_item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_SHAREPOINT_ITEM_PERMISSIONS",
+      "name": "List SharePoint Item Permissions",
+      "description": "List Microsoft Graph beta permissions from a SharePoint list or list item.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "select": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_SHAREPOINT_LIST_ITEMS_DELTA",
+      "name": "List SharePoint List Items Delta",
+      "description": "Tool to track changes to items in a SharePoint list using a delta query. Use when you need to get newly created, updated, or deleted list i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "token": {
+            "type": "string"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_SITE_COLUMNS",
+      "name": "List Site Columns",
+      "description": "Tool to list all column definitions for a SharePoint site. Use this when you need to retrieve the schema or structure of columns within a s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "boolean"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_SITE_ITEMS_DELTA",
+      "name": "List Site Drive Items Delta",
+      "description": "Tool to track changes to DriveItems in the default document library of a SharePoint site. Use when you need to get a list of items that hav…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "token": {
+            "type": "string"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_SITE_LISTS",
+      "name": "List Site Lists",
+      "description": "Tool to list all lists under a specific SharePoint site. Use when you need to enumerate lists within a known site. Returns only Microsoft G…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_SITE_SUBSITES",
+      "name": "List Site Subsites",
+      "description": "Tool to list all subsites of a SharePoint site. Use when you need to retrieve a collection of subsites for a given parent site. IMPORTANT: …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_SUBSCRIPTIONS",
+      "name": "List Subscriptions",
+      "description": "Tool to list the current subscriptions for the authenticated user or app. Use this to retrieve details of existing webhook subscriptions. R…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_LIST_WORKBOOK_WORKSHEETS",
+      "name": "List Workbook Worksheets",
+      "description": "Retrieves a list of all worksheets in an Excel workbook stored in OneDrive or SharePoint. Returns worksheet metadata including IDs, names, …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "skip": {
+            "type": "integer"
+          },
+          "select": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_MOVE_ITEM",
+      "name": "Move Item",
+      "description": "Tool to move a file or folder to a new parent folder in OneDrive. Use when you need to reorganize your files or folders by changing their l…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "siteId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "driveId": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "parentReference": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "itemId",
+          "parentReference"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_ONEDRIVE_CREATE_FOLDER",
+      "name": "Create folder",
+      "description": "Creates a new folder in the user's OneDrive with configurable conflict behavior, optionally within a specified parent_folder (by ID or full…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "parent_folder": {
+            "type": "string"
+          },
+          "conflict_behavior": {
+            "type": "string",
+            "enum": [
+              "fail",
+              "rename",
+              "replace"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_ONEDRIVE_CREATE_TEXT_FILE",
+      "name": "Create a new text file",
+      "description": "Creates a new plain-text file with specified content in the authenticated user's personal OneDrive, using either the folder's unique ID or …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "folder": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "conflict_behavior": {
+            "type": "string",
+            "enum": [
+              "fail",
+              "replace",
+              "rename"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_ONEDRIVE_FIND_FILE",
+      "name": "Find Item",
+      "description": "Non-recursively finds an item (file or folder) in a specified OneDrive folder; if `folder` is provided as a path, it must actually exist. R…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "folder": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "response_detail": {
+            "type": "string",
+            "enum": [
+              "minimal",
+              "full"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_ONEDRIVE_FIND_FOLDER",
+      "name": "Find Folder",
+      "description": "Finds folders by name within an accessible parent folder in OneDrive, or lists all its direct child folders if no name is specified. Search…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "folder": {
+            "type": "string"
+          },
+          "select": {
+            "type": "array"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "skip_token": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_ONEDRIVE_LIST_ITEMS",
+      "name": "List OneDrive items",
+      "description": "Retrieves all files and folders as `driveItem` resources from the root of a specified user's OneDrive, automatically handling pagination. N…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "select": {
+            "type": "array"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_ONEDRIVE_UPLOAD_FILE",
+      "name": "Upload file",
+      "description": "Uploads a file to a specified OneDrive folder, automatically creating the destination folder if it doesn't exist, renaming on conflict, and…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "folder": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          },
+          "verify_ssl": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "defer_commit": {
+            "type": "boolean"
+          },
+          "if_match_etag": {
+            "type": "string"
+          },
+          "source_headers": {
+            "type": "object"
+          },
+          "file_system_info": {
+            "type": "object"
+          },
+          "conflict_behavior": {
+            "type": "string",
+            "enum": [
+              "rename",
+              "fail",
+              "replace"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_PREVIEW_DRIVE_ITEM",
+      "name": "Preview Drive Item",
+      "description": "Generates or retrieves a short-lived, permission-bound embeddable URL for a preview of a specific item. URLs expire and must be regenerated…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {},
+          "zoom": {
+            "type": "number"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "share_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_READ_WORKBOOK_RANGE",
+      "name": "Read Workbook Range",
+      "description": "Reads a range of cells from an Excel workbook worksheet stored in OneDrive or SharePoint using Microsoft Graph API. Returns cell values, fo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "select_fields": {
+            "type": "array"
+          },
+          "worksheet_id_or_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id",
+          "worksheet_id_or_name",
+          "address"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_RESTORE_DRIVE_ITEM",
+      "name": "Restore Deleted Item",
+      "description": "Tool to restore a deleted OneDrive driveItem (file or folder) from the recycle bin. Use when you need to recover a deleted item to its orig…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "parent_reference_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_RESTORE_ITEM_VERSION",
+      "name": "Restore Item Version",
+      "description": "Restores a previous version of a DriveItem (file) by creating a new version with the content of the specified version. Use this action when…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "version_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_SEARCH_ITEMS",
+      "name": "Search Items",
+      "description": "Search OneDrive for files and folders by keyword. Searches filenames, metadata, and file content to find matching items. Use when you need …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "top": {
+            "type": "integer"
+          },
+          "expand": {
+            "type": "string"
+          },
+          "select": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "skip_token": {
+            "type": "string"
+          },
+          "search_scope": {
+            "type": "string",
+            "enum": [
+              "drive",
+              "root"
+            ]
+          },
+          "stripped_annotations": {
+            "type": "array"
+          },
+          "transformed_path_query": {
+            "type": "string"
+          },
+          "transformed_kql_operator": {
+            "type": "string"
+          },
+          "transformed_parent_query": {
+            "type": "string"
+          },
+          "transformed_wildcard_query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_UNFOLLOW_ITEM",
+      "name": "Delete Drive Following",
+      "description": "Tool to unfollow a driveItem by removing it from the user's followed items collection. Use when you need to stop following a file or folder…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_UPDATE_DRIVE_ITEM_METADATA",
+      "name": "Update Drive Item Metadata",
+      "description": "Tool to update the metadata of a specific item (file or folder) in OneDrive. Use this to rename items, change descriptions, or move items t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "file_system_info": {
+            "type": "object"
+          },
+          "parent_reference_id": {
+            "type": "string"
+          },
+          "parent_reference_drive_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_UPDATE_DRIVE_ITEMS_PERMISSIONS",
+      "name": "Update Drive Item Permissions",
+      "description": "Tool to update the roles of an existing permission on a OneDrive drive item. Use when you need to change the access level (read, write, own…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "permission_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "permission_id",
+          "roles"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_UPDATE_FILE_CONTENT",
+      "name": "Update File Content",
+      "description": "Tool to update an existing file's content in OneDrive. When called without a `file` parameter, creates an upload session and returns its up…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "defer_commit": {
+            "type": "boolean"
+          },
+          "media_source": {
+            "type": "object"
+          },
+          "if_match_etag": {
+            "type": "string"
+          },
+          "file_system_info": {
+            "type": "object"
+          },
+          "conflict_behavior": {
+            "type": "string",
+            "enum": [
+              "replace",
+              "fail",
+              "rename"
+            ]
+          },
+          "drive_item_source": {
+            "type": "object"
+          },
+          "if_none_match_etag": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_UPDATE_SHAREPOINT_ITEM_PERMISSION",
+      "name": "Update SharePoint Item Permission",
+      "description": "Update an application permission on a SharePoint list or list item using Microsoft Graph beta.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "permission_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "list_id",
+          "permission_id",
+          "roles"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_UPDATE_SHAREPOINT_LIST_ITEM_FIELDS",
+      "name": "Update SharePoint List Item Fields",
+      "description": "Update field values on a SharePoint list item using Microsoft Graph through the OneDrive connection. Use when you need to modify one or mor…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "object"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "if_match": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "list_id",
+          "item_id",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_UPDATE_WORKBOOK_RANGE",
+      "name": "Update Workbook Range",
+      "description": "Updates a range in a workbook worksheet using Microsoft Graph API. Use this action when you need to write data, formulas, or number formats…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "array"
+          },
+          "address": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "formulas": {
+            "type": "array"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "number_format": {
+            "type": "array"
+          },
+          "worksheet_id_or_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id",
+          "worksheet_id_or_name",
+          "address"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_UPDATE_WORKBOOK_WORKSHEET",
+      "name": "Update Workbook Worksheet",
+      "description": "Updates properties of a worksheet in an Excel workbook stored in OneDrive. Use this action when you need to rename a worksheet, change its …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "Visible",
+              "Hidden",
+              "VeryHidden"
+            ]
+          },
+          "worksheet_id_or_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id",
+          "worksheet_id_or_name"
+        ]
+      }
+    },
+    {
+      "slug": "ONE_DRIVE_WRITE_WORKBOOK_CELL",
+      "name": "Write Workbook Cell",
+      "description": "Updates the value, formula, or format of a specific cell in an Excel workbook stored in OneDrive. Use this action when you need to write da…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "row": {
+            "type": "integer"
+          },
+          "column": {
+            "type": "integer"
+          },
+          "values": {
+            "type": "array"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "formulas": {
+            "type": "array"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "number_format": {
+            "type": "array"
+          },
+          "worksheet_id_or_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id",
+          "item_id",
+          "worksheet_id_or_name",
+          "row",
+          "column"
+        ]
+      }
+    }
+  ]
+}

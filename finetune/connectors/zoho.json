@@ -1,0 +1,435 @@
+{
+  "slug": "zoho",
+  "name": "Zoho",
+  "tool_count": 14,
+  "tools": [
+    {
+      "slug": "ZOHO_CONVERT_ZOHO_LEAD",
+      "name": "Convert Zoho CRM Lead",
+      "description": "Converts a lead into a contact, account, and optionally a deal in Zoho CRM.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "lead_id": {
+            "type": "string"
+          },
+          "assign_to": {
+            "type": "string"
+          },
+          "overwrite": {
+            "type": "boolean"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          },
+          "notify_lead_owner": {
+            "type": "boolean"
+          },
+          "notify_new_entity_owner": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lead_id"
+        ]
+      }
+    },
+    {
+      "slug": "ZOHO_CREATE_ZOHO_RECORD",
+      "name": "Create Zoho CRM Record",
+      "description": "Creates new records in a specified module in Zoho CRM. Bulk operations may partially succeed — inspect each item's status field in the resp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array"
+          },
+          "lar_id": {
+            "type": "string"
+          },
+          "trigger": {
+            "type": "array"
+          },
+          "module_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "module_api_name",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ZOHO_CREATE_ZOHO_TAG",
+      "name": "Create Zoho CRM Tag",
+      "description": "Creates a new tag in Zoho CRM for a specific module. Tags help organize and categorize CRM records. Each module can have up to 100 tags, an…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color_code": {
+            "type": "string"
+          },
+          "module_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "module_api_name",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "ZOHO_GET_MODULE_FIELDS",
+      "name": "Get Zoho CRM Module Fields Metadata",
+      "description": "Retrieves field metadata for a Zoho CRM module including API names, data types, permissions, and configuration details. Use this tool to di…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "include": {
+            "type": "string"
+          },
+          "field_unique_id": {
+            "type": "string"
+          },
+          "module_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "module_api_name"
+        ]
+      }
+    },
+    {
+      "slug": "ZOHO_GET_RELATED_LISTS",
+      "name": "Get Zoho CRM Related Lists Metadata",
+      "description": "Retrieves related list metadata for a Zoho CRM module to discover correct api_name values. Use this before updating related records to avoi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "layout_id": {
+            "type": "string"
+          },
+          "module_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "module_api_name"
+        ]
+      }
+    },
+    {
+      "slug": "ZOHO_GET_RELATED_RECORDS",
+      "name": "Get Zoho CRM Related Records",
+      "description": "Fetch related-list records (e.g., Notes, Attachments, Emails) for a Zoho CRM parent record using related_list_api_name. Use ZOHO_GET_RELATE…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "id",
+              "Created_Time",
+              "Modified_Time"
+            ]
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "converted": {
+            "type": "string",
+            "enum": [
+              "false",
+              "true",
+              "both"
+            ]
+          },
+          "record_id": {
+            "type": "string"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "module_api_name": {
+            "type": "string"
+          },
+          "related_list_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "module_api_name",
+          "record_id",
+          "related_list_api_name",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "ZOHO_GET_ZOHO_RECORDS",
+      "name": "Get Zoho CRM Records",
+      "description": "Retrieves records from a specified module in Zoho CRM. Notes: - Discrete (page/per_page) pagination is limited to the first 2,000 records. …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "cvid": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "id",
+              "Created_Time",
+              "Modified_Time"
+            ]
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "module_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "module_api_name"
+        ]
+      }
+    },
+    {
+      "slug": "ZOHO_GET_ZOHO_USERS",
+      "name": "Get Zoho CRM Users",
+      "description": "Tool to retrieve users from Zoho CRM. Use when you need to fetch user information such as IDs, names, emails, roles, or status for setting …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "if_modified_since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "ZOHO_LIST_MODULES",
+      "name": "List Zoho CRM Modules",
+      "description": "Lists all available Zoho CRM modules (standard + custom) to reliably select module API names/IDs for operations. Use this tool before calli…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "ZOHO_LIST_RECORD_ATTACHMENTS",
+      "name": "List Attachments for Zoho CRM Record",
+      "description": "Tool to list attachment metadata (id, File_Name, Size, Created_Time, etc.) for a specific Zoho CRM record. Use when you need to identify at…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "record_id": {
+            "type": "string"
+          },
+          "module_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "module_api_name",
+          "record_id"
+        ]
+      }
+    },
+    {
+      "slug": "ZOHO_SEARCH_ZOHO_RECORDS",
+      "name": "Search Zoho CRM Records",
+      "description": "Search for records within a Zoho CRM module using server-side queries. Use when you need to find specific records by criteria, email, phone…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "word": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "criteria": {
+            "type": "string"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "module_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "module_api_name"
+        ]
+      }
+    },
+    {
+      "slug": "ZOHO_UPDATE_RELATED_RECORDS",
+      "name": "Update Related Records in Zoho CRM",
+      "description": "Associates or updates relationships between records across different modules in Zoho CRM. This action creates or modifies relationships bet…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array"
+          },
+          "record_id": {
+            "type": "string"
+          },
+          "module_api_name": {
+            "type": "string"
+          },
+          "related_list_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "module_api_name",
+          "record_id",
+          "related_list_api_name",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ZOHO_UPDATE_ZOHO_RECORD",
+      "name": "Update Zoho CRM Record",
+      "description": "Updates existing records in a specified module in Zoho CRM. Supports updating up to 100 records per API call. Use field API names (not disp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array"
+          },
+          "lar_id": {
+            "type": "string"
+          },
+          "trigger": {
+            "type": "array"
+          },
+          "module_api_name": {
+            "type": "string"
+          },
+          "skip_feature_execution": {
+            "type": "array"
+          },
+          "apply_feature_execution": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "module_api_name",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "ZOHO_UPLOAD_ATTACHMENT",
+      "name": "Upload Attachment to Zoho CRM Record",
+      "description": "Tool to upload a file or attach a URL as an Attachment to a specific Zoho CRM record. Use when you need to store files (PDFs, documents, im…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "title": {
+            "type": "string"
+          },
+          "record_id": {
+            "type": "string"
+          },
+          "attachmentUrl": {
+            "type": "string"
+          },
+          "module_api_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "module_api_name",
+          "record_id"
+        ]
+      }
+    }
+  ]
+}

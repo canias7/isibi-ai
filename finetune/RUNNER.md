@@ -27,7 +27,23 @@ this to need more data + more iteration than the builder did.
 |------|------|
 | `runner_gen.py` | Distill **simulated tool-use traces** from a teacher, seeded by the builder dataset's `instruction`s. |
 | `runner_train.py` | QLoRA on the traces — trains only on assistant turns (tool calls + final), masks tool results. |
-| (eval) | The open problem — see below. |
+| `runner_eval.py` | Teacher-forced rollout vs the held-out val traces — scores trajectory / tool-set / structural (options 1+2 below). |
+| `tool_schemas.json` | Real tool **arg schemas** for grounding — builtins (`GF_*`) verbatim from gofarther-mcp; connectors filled by the fetch script. |
+| `tool_schemas.py` | Loads the schemas: real `parameters` for tool specs, `arg_signature` for the teacher menu, `validate_args` to drop bad-arg traces. |
+| `fetch_connector_schemas.py` | One-time snapshot of connector arg schemas from Composio into `tool_schemas.json` (needs `COMPOSIO_API_KEY`). |
+| `build_connector_catalog.py` → `connectors/` | FULL per-connector tool catalog (all 6,940 tools for the 54 connectors) + an index of every Composio toolkit — for widening the runner connector-by-connector later. See `connectors/README.md`. |
+| `build_universe_catalog.py` → `catalog_connectors.json` | Expands the model catalog to the WHOLE Composio universe — 958 connectors / ~10k important tools, grounded in `tool_schemas.json`. `catalog.py` merges it on top of the verbatim 54 (which always win). Generating *data* for the new connectors still needs a teacher key + a training run. |
+| `toolmap.py` / `toolmap.json` | Canonical tool contract — the model's vocabulary is OURS; one resolver maps each tool to a backend (Composio by default, our own `gf` for GF_*). Switch off Composio = edit overrides here, never retrain. See "Backend independence". |
+
+## Backend independence (not locked to Composio)
+The model emits **canonical** tool names/args; `toolmap.resolve(tool, args)` is the
+single seam to whatever executes them. Today it's identity (connector tools →
+Composio, `GF_*` → our own code — the hybrid already works). To move a tool onto
+your own connection later, add one entry to `toolmap.json` (`backend`,
+`backend_tool`, `arg_map`) — the weights never change. Everything else (scenarios,
+schema, grammar, eval, the workflow reasoning) is backend-agnostic; only the
+generated catalog/grounding is Composio-shaped, and that's regenerated, not
+retrained. The TS execution layer should mirror `resolve()`.
 
 ## Approach: simulated traces
 
@@ -47,7 +63,25 @@ assistant → "Emailed you a digest of 3 unread messages."
 ```
 
 Every trace is structurally checked (`valid_trace`): 1–5 tool steps, a final step,
-and **only real tools** from the connected apps' catalog (no phantom tools).
+**only real tools** from the connected apps' catalog (no phantom tools), and
+**args that fit each tool's real schema**.
+
+### Args grounding (the runner's quality lever)
+The builder taught us structure is easy once constrained; for the runner the hard
+part is **arguments**. A trace that calls `GMAIL_SEND_EMAIL` with the wrong arg
+names trains the student to fail against the real tool. So the pipeline grounds
+args in the real schemas (`tool_schemas.py` over `tool_schemas.json`):
+- tool specs the student trains on carry the **real `parameters`** (not a generic
+  blob), so it learns correct arg shapes;
+- the teacher's tool menu shows each tool's **signature** (`GF_WEATHER(location,
+  units?)`), so it uses real arg names;
+- `validate_args` **drops any trace** whose call args don't fit — unknown args,
+  missing required, or bad enums.
+
+Coverage is graceful: builtins (`GF_*`) ship now; connectors validate leniently
+until you snapshot them once with `COMPOSIO_API_KEY python fetch_connector_schemas.py`
+(then they're enforced too). At **serve** time, also grammar-constrain tool-call
+args to the same schema — the trick that took the builder from 89%→100%.
 
 **Run it** (same teacher flags as `gen_data.py`):
 ```bash
@@ -91,7 +125,16 @@ thing?" Options, roughly in order of effort:
 2. **Trajectory match** — compare the tool *sequence* against a held-out teacher trace (did it pick the right tools in a reasonable order?).
 3. **Outcome check** — run against a sandbox/mock MCP and assert the end state. (most real, most work.)
 
-Start with (1)+(2); graduate to (3) once it's promising.
+`runner_eval.py` implements (1)+(2): a teacher-forced rollout that replays the
+gold tool results and scores the model's tool trajectory against the held-out
+val set (structural / first-tool / tool-set / trajectory / finished). Graduate to
+(3) — outcome checks against a mock MCP — once it's promising.
+
+```bash
+python runner_eval.py --selftest                                  # offline logic check
+python runner_eval.py --base-url http://localhost:11434/v1 --model gf-runner
+python runner_eval.py --base-url http://localhost:11434/v1 --model qwen2.5:7b-instruct  # baseline
+```
 
 ## Honest expectations
 

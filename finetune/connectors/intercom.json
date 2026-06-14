@@ -1,0 +1,6450 @@
+{
+  "slug": "intercom",
+  "name": "Intercom",
+  "tool_count": 133,
+  "tools": [
+    {
+      "slug": "INTERCOM_ADD_SUBSCRIPTION_TO_A_CONTACT",
+      "name": "Add subscription to a contact",
+      "description": "You can add a specific subscription to a contact. In Intercom, we have two different subscription types based on user consent - opt-out and…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          },
+          "consent_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id",
+          "id",
+          "consent_type"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_ADD_TAG_TO_CONTACT",
+      "name": "Add tag to contact",
+      "description": "Tool to add a tag to a contact in Intercom. Use when you need to attach or add a specific tag to a contact for categorization or tracking p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_ARCHIVE_CONTACT",
+      "name": "Archive contact",
+      "description": "Tool to archive a single contact in Intercom. Use when you need to archive a contact by their ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_ASSIGN_CONVERSATION",
+      "name": "Assign conversation",
+      "description": "Assigns a conversation to a specific admin or team in Intercom. Mutates live conversation state; confirm intent before bulk-assigning multi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string"
+          },
+          "assignee_id": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_ATTACH_CONTACT_TO_COMPANY",
+      "name": "Attach contact to company",
+      "description": "Tool to attach a contact to a company in Intercom. Use when you need to associate a contact with a company.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id",
+          "company_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_ATTACH_CONTACT_TO_CONVERSATION",
+      "name": "Attach contact to conversation",
+      "description": "Tool to attach a contact participant to a conversation on behalf of admin or contact. Use when you need to add a new participant to an exis…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "admin_id": {
+            "type": "string"
+          },
+          "customer": {
+            "type": "object"
+          },
+          "conversation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "admin_id",
+          "customer"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_ATTACH_TAG_TO_CONVERSATION",
+      "name": "Attach tag to conversation",
+      "description": "Tool to add a tag to a specific conversation in Intercom. Use when you need to attach or tag a conversation.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "id",
+          "admin_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_ATTACH_TAG_TO_TICKET",
+      "name": "Attach tag to ticket",
+      "description": "Tool to add a tag to a ticket in Intercom. Use when you need to attach or add a specific tag to a ticket for categorization or tracking pur…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string"
+          },
+          "ticket_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_id",
+          "id",
+          "admin_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_BLOCK_CONTACT",
+      "name": "Block contact",
+      "description": "Tool to block a single contact in Intercom. Use when you need to block a contact, which will also archive their conversations.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CANCEL_DATA_EXPORT",
+      "name": "Cancel data export",
+      "description": "Tool to cancel an active content data export job. Use when you need to terminate an ongoing export and update its status to 'canceled'.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_identifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_identifier"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CLOSE_CONVERSATION",
+      "name": "Close conversation",
+      "description": "Closes a conversation in Intercom, marking it as resolved. Requires explicit user confirmation before calling; closing is irreversible with…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "admin_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_A_COLLECTION",
+      "name": "Create a collection",
+      "description": "You can create a new collection by making a POST request to `https://api.intercom.io/help_center/collections.`",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "help_center_id": {
+            "type": "integer"
+          },
+          "translated__content__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_translated_content"
+            ]
+          },
+          "translated__content__ar__name": {
+            "type": "string"
+          },
+          "translated__content__ar__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__bg__name": {
+            "type": "string"
+          },
+          "translated__content__bg__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__bs__name": {
+            "type": "string"
+          },
+          "translated__content__bs__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__ca__name": {
+            "type": "string"
+          },
+          "translated__content__ca__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__cs__name": {
+            "type": "string"
+          },
+          "translated__content__cs__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__da__name": {
+            "type": "string"
+          },
+          "translated__content__da__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__de__name": {
+            "type": "string"
+          },
+          "translated__content__de__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__el__name": {
+            "type": "string"
+          },
+          "translated__content__el__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__en__name": {
+            "type": "string"
+          },
+          "translated__content__en__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__es__name": {
+            "type": "string"
+          },
+          "translated__content__es__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__et__name": {
+            "type": "string"
+          },
+          "translated__content__et__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__fi__name": {
+            "type": "string"
+          },
+          "translated__content__fi__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__fr__name": {
+            "type": "string"
+          },
+          "translated__content__fr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__he__name": {
+            "type": "string"
+          },
+          "translated__content__he__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__hr__name": {
+            "type": "string"
+          },
+          "translated__content__hr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__hu__name": {
+            "type": "string"
+          },
+          "translated__content__hu__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__id__name": {
+            "type": "string"
+          },
+          "translated__content__id__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__it__name": {
+            "type": "string"
+          },
+          "translated__content__it__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__ja__name": {
+            "type": "string"
+          },
+          "translated__content__ja__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__ko__name": {
+            "type": "string"
+          },
+          "translated__content__ko__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__lt__name": {
+            "type": "string"
+          },
+          "translated__content__lt__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__lv__name": {
+            "type": "string"
+          },
+          "translated__content__lv__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__mn__name": {
+            "type": "string"
+          },
+          "translated__content__mn__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__nb__name": {
+            "type": "string"
+          },
+          "translated__content__nb__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__nl__name": {
+            "type": "string"
+          },
+          "translated__content__nl__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__pl__name": {
+            "type": "string"
+          },
+          "translated__content__pl__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__pt__name": {
+            "type": "string"
+          },
+          "translated__content__pt__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__ro__name": {
+            "type": "string"
+          },
+          "translated__content__ro__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__ru__name": {
+            "type": "string"
+          },
+          "translated__content__ru__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__sl__name": {
+            "type": "string"
+          },
+          "translated__content__sl__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__sr__name": {
+            "type": "string"
+          },
+          "translated__content__sr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__sv__name": {
+            "type": "string"
+          },
+          "translated__content__sv__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__tr__name": {
+            "type": "string"
+          },
+          "translated__content__tr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__vi__name": {
+            "type": "string"
+          },
+          "translated__content__vi__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__pt__BR__name": {
+            "type": "string"
+          },
+          "translated__content__pt__BR__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__zh__CN__name": {
+            "type": "string"
+          },
+          "translated__content__zh__CN__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__zh__TW__name": {
+            "type": "string"
+          },
+          "translated__content__zh__TW__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__ar__description": {
+            "type": "string"
+          },
+          "translated__content__bg__description": {
+            "type": "string"
+          },
+          "translated__content__bs__description": {
+            "type": "string"
+          },
+          "translated__content__ca__description": {
+            "type": "string"
+          },
+          "translated__content__cs__description": {
+            "type": "string"
+          },
+          "translated__content__da__description": {
+            "type": "string"
+          },
+          "translated__content__de__description": {
+            "type": "string"
+          },
+          "translated__content__el__description": {
+            "type": "string"
+          },
+          "translated__content__en__description": {
+            "type": "string"
+          },
+          "translated__content__es__description": {
+            "type": "string"
+          },
+          "translated__content__et__description": {
+            "type": "string"
+          },
+          "translated__content__fi__description": {
+            "type": "string"
+          },
+          "translated__content__fr__description": {
+            "type": "string"
+          },
+          "translated__content__he__description": {
+            "type": "string"
+          },
+          "translated__content__hr__description": {
+            "type": "string"
+          },
+          "translated__content__hu__description": {
+            "type": "string"
+          },
+          "translated__content__id__description": {
+            "type": "string"
+          },
+          "translated__content__it__description": {
+            "type": "string"
+          },
+          "translated__content__ja__description": {
+            "type": "string"
+          },
+          "translated__content__ko__description": {
+            "type": "string"
+          },
+          "translated__content__lt__description": {
+            "type": "string"
+          },
+          "translated__content__lv__description": {
+            "type": "string"
+          },
+          "translated__content__mn__description": {
+            "type": "string"
+          },
+          "translated__content__nb__description": {
+            "type": "string"
+          },
+          "translated__content__nl__description": {
+            "type": "string"
+          },
+          "translated__content__pl__description": {
+            "type": "string"
+          },
+          "translated__content__pt__description": {
+            "type": "string"
+          },
+          "translated__content__ro__description": {
+            "type": "string"
+          },
+          "translated__content__ru__description": {
+            "type": "string"
+          },
+          "translated__content__sl__description": {
+            "type": "string"
+          },
+          "translated__content__sr__description": {
+            "type": "string"
+          },
+          "translated__content__sv__description": {
+            "type": "string"
+          },
+          "translated__content__tr__description": {
+            "type": "string"
+          },
+          "translated__content__vi__description": {
+            "type": "string"
+          },
+          "translated__content__pt__BR__description": {
+            "type": "string"
+          },
+          "translated__content__zh__CN__description": {
+            "type": "string"
+          },
+          "translated__content__zh__TW__description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_AN_ARTICLE",
+      "name": "Create an article",
+      "description": "You can create a new article by making a POST request to `https://api.intercom.io/articles`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "author_id": {
+            "type": "integer"
+          },
+          "parent_id": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "parent_type": {
+            "type": "string"
+          },
+          "translated__content__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_translated_content"
+            ]
+          },
+          "translated__content__ar__url": {
+            "type": "string"
+          },
+          "translated__content__bg__url": {
+            "type": "string"
+          },
+          "translated__content__bs__url": {
+            "type": "string"
+          },
+          "translated__content__ca__url": {
+            "type": "string"
+          },
+          "translated__content__cs__url": {
+            "type": "string"
+          },
+          "translated__content__da__url": {
+            "type": "string"
+          },
+          "translated__content__de__url": {
+            "type": "string"
+          },
+          "translated__content__el__url": {
+            "type": "string"
+          },
+          "translated__content__en__url": {
+            "type": "string"
+          },
+          "translated__content__es__url": {
+            "type": "string"
+          },
+          "translated__content__et__url": {
+            "type": "string"
+          },
+          "translated__content__fi__url": {
+            "type": "string"
+          },
+          "translated__content__fr__url": {
+            "type": "string"
+          },
+          "translated__content__he__url": {
+            "type": "string"
+          },
+          "translated__content__hr__url": {
+            "type": "string"
+          },
+          "translated__content__hu__url": {
+            "type": "string"
+          },
+          "translated__content__id__url": {
+            "type": "string"
+          },
+          "translated__content__it__url": {
+            "type": "string"
+          },
+          "translated__content__ja__url": {
+            "type": "string"
+          },
+          "translated__content__ko__url": {
+            "type": "string"
+          },
+          "translated__content__lt__url": {
+            "type": "string"
+          },
+          "translated__content__lv__url": {
+            "type": "string"
+          },
+          "translated__content__mn__url": {
+            "type": "string"
+          },
+          "translated__content__nb__url": {
+            "type": "string"
+          },
+          "translated__content__nl__url": {
+            "type": "string"
+          },
+          "translated__content__pl__url": {
+            "type": "string"
+          },
+          "translated__content__pt__url": {
+            "type": "string"
+          },
+          "translated__content__ro__url": {
+            "type": "string"
+          },
+          "translated__content__ru__url": {
+            "type": "string"
+          },
+          "translated__content__sl__url": {
+            "type": "string"
+          },
+          "translated__content__sr__url": {
+            "type": "string"
+          },
+          "translated__content__sv__url": {
+            "type": "string"
+          },
+          "translated__content__tr__url": {
+            "type": "string"
+          },
+          "translated__content__vi__url": {
+            "type": "string"
+          },
+          "translated__content__ar__body": {
+            "type": "string"
+          },
+          "translated__content__ar__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__bg__body": {
+            "type": "string"
+          },
+          "translated__content__bg__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__bs__body": {
+            "type": "string"
+          },
+          "translated__content__bs__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__ca__body": {
+            "type": "string"
+          },
+          "translated__content__ca__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__cs__body": {
+            "type": "string"
+          },
+          "translated__content__cs__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__da__body": {
+            "type": "string"
+          },
+          "translated__content__da__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__de__body": {
+            "type": "string"
+          },
+          "translated__content__de__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__el__body": {
+            "type": "string"
+          },
+          "translated__content__el__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__en__body": {
+            "type": "string"
+          },
+          "translated__content__en__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__es__body": {
+            "type": "string"
+          },
+          "translated__content__es__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__et__body": {
+            "type": "string"
+          },
+          "translated__content__et__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__fi__body": {
+            "type": "string"
+          },
+          "translated__content__fi__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__fr__body": {
+            "type": "string"
+          },
+          "translated__content__fr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__he__body": {
+            "type": "string"
+          },
+          "translated__content__he__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__hr__body": {
+            "type": "string"
+          },
+          "translated__content__hr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__hu__body": {
+            "type": "string"
+          },
+          "translated__content__hu__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__id__body": {
+            "type": "string"
+          },
+          "translated__content__id__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__it__body": {
+            "type": "string"
+          },
+          "translated__content__it__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__ja__body": {
+            "type": "string"
+          },
+          "translated__content__ja__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__ko__body": {
+            "type": "string"
+          },
+          "translated__content__ko__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__lt__body": {
+            "type": "string"
+          },
+          "translated__content__lt__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__lv__body": {
+            "type": "string"
+          },
+          "translated__content__lv__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__mn__body": {
+            "type": "string"
+          },
+          "translated__content__mn__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__nb__body": {
+            "type": "string"
+          },
+          "translated__content__nb__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__nl__body": {
+            "type": "string"
+          },
+          "translated__content__nl__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__pl__body": {
+            "type": "string"
+          },
+          "translated__content__pl__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__pt__body": {
+            "type": "string"
+          },
+          "translated__content__pt__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__ro__body": {
+            "type": "string"
+          },
+          "translated__content__ro__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__ru__body": {
+            "type": "string"
+          },
+          "translated__content__ru__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__sl__body": {
+            "type": "string"
+          },
+          "translated__content__sl__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__sr__body": {
+            "type": "string"
+          },
+          "translated__content__sr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__sv__body": {
+            "type": "string"
+          },
+          "translated__content__sv__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__tr__body": {
+            "type": "string"
+          },
+          "translated__content__tr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__vi__body": {
+            "type": "string"
+          },
+          "translated__content__vi__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__ar__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__ar__title": {
+            "type": "string"
+          },
+          "translated__content__bg__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__bg__title": {
+            "type": "string"
+          },
+          "translated__content__bs__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__bs__title": {
+            "type": "string"
+          },
+          "translated__content__ca__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__ca__title": {
+            "type": "string"
+          },
+          "translated__content__cs__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__cs__title": {
+            "type": "string"
+          },
+          "translated__content__da__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__da__title": {
+            "type": "string"
+          },
+          "translated__content__de__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__de__title": {
+            "type": "string"
+          },
+          "translated__content__el__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__el__title": {
+            "type": "string"
+          },
+          "translated__content__en__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__en__title": {
+            "type": "string"
+          },
+          "translated__content__es__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__es__title": {
+            "type": "string"
+          },
+          "translated__content__et__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__et__title": {
+            "type": "string"
+          },
+          "translated__content__fi__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__fi__title": {
+            "type": "string"
+          },
+          "translated__content__fr__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__fr__title": {
+            "type": "string"
+          },
+          "translated__content__he__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__he__title": {
+            "type": "string"
+          },
+          "translated__content__hr__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__hr__title": {
+            "type": "string"
+          },
+          "translated__content__hu__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__hu__title": {
+            "type": "string"
+          },
+          "translated__content__id__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__id__title": {
+            "type": "string"
+          },
+          "translated__content__it__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__it__title": {
+            "type": "string"
+          },
+          "translated__content__ja__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__ja__title": {
+            "type": "string"
+          },
+          "translated__content__ko__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__ko__title": {
+            "type": "string"
+          },
+          "translated__content__lt__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__lt__title": {
+            "type": "string"
+          },
+          "translated__content__lv__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__lv__title": {
+            "type": "string"
+          },
+          "translated__content__mn__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__mn__title": {
+            "type": "string"
+          },
+          "translated__content__nb__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__nb__title": {
+            "type": "string"
+          },
+          "translated__content__nl__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__nl__title": {
+            "type": "string"
+          },
+          "translated__content__pl__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__pl__title": {
+            "type": "string"
+          },
+          "translated__content__pt__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__pt__title": {
+            "type": "string"
+          },
+          "translated__content__ro__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__ro__title": {
+            "type": "string"
+          },
+          "translated__content__ru__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__ru__title": {
+            "type": "string"
+          },
+          "translated__content__sl__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__sl__title": {
+            "type": "string"
+          },
+          "translated__content__sr__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__sr__title": {
+            "type": "string"
+          },
+          "translated__content__sv__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__sv__title": {
+            "type": "string"
+          },
+          "translated__content__tr__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__tr__title": {
+            "type": "string"
+          },
+          "translated__content__vi__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__vi__title": {
+            "type": "string"
+          },
+          "translated__content__pt__BR__url": {
+            "type": "string"
+          },
+          "translated__content__zh__CN__url": {
+            "type": "string"
+          },
+          "translated__content__zh__TW__url": {
+            "type": "string"
+          },
+          "translated__content__pt__BR__body": {
+            "type": "string"
+          },
+          "translated__content__pt__BR__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__zh__CN__body": {
+            "type": "string"
+          },
+          "translated__content__zh__CN__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__zh__TW__body": {
+            "type": "string"
+          },
+          "translated__content__zh__TW__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__pt__BR__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__pt__BR__title": {
+            "type": "string"
+          },
+          "translated__content__zh__CN__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__zh__CN__title": {
+            "type": "string"
+          },
+          "translated__content__zh__TW__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__zh__TW__title": {
+            "type": "string"
+          },
+          "translated__content__ar__author__id": {
+            "type": "integer"
+          },
+          "translated__content__bg__author__id": {
+            "type": "integer"
+          },
+          "translated__content__bs__author__id": {
+            "type": "integer"
+          },
+          "translated__content__ca__author__id": {
+            "type": "integer"
+          },
+          "translated__content__cs__author__id": {
+            "type": "integer"
+          },
+          "translated__content__da__author__id": {
+            "type": "integer"
+          },
+          "translated__content__de__author__id": {
+            "type": "integer"
+          },
+          "translated__content__el__author__id": {
+            "type": "integer"
+          },
+          "translated__content__en__author__id": {
+            "type": "integer"
+          },
+          "translated__content__es__author__id": {
+            "type": "integer"
+          },
+          "translated__content__et__author__id": {
+            "type": "integer"
+          },
+          "translated__content__fi__author__id": {
+            "type": "integer"
+          },
+          "translated__content__fr__author__id": {
+            "type": "integer"
+          },
+          "translated__content__he__author__id": {
+            "type": "integer"
+          },
+          "translated__content__hr__author__id": {
+            "type": "integer"
+          },
+          "translated__content__hu__author__id": {
+            "type": "integer"
+          },
+          "translated__content__id__author__id": {
+            "type": "integer"
+          },
+          "translated__content__it__author__id": {
+            "type": "integer"
+          },
+          "translated__content__ja__author__id": {
+            "type": "integer"
+          },
+          "translated__content__ko__author__id": {
+            "type": "integer"
+          },
+          "translated__content__lt__author__id": {
+            "type": "integer"
+          },
+          "translated__content__lv__author__id": {
+            "type": "integer"
+          },
+          "translated__content__mn__author__id": {
+            "type": "integer"
+          },
+          "translated__content__nb__author__id": {
+            "type": "integer"
+          },
+          "translated__content__nl__author__id": {
+            "type": "integer"
+          },
+          "translated__content__pl__author__id": {
+            "type": "integer"
+          },
+          "translated__content__pt__author__id": {
+            "type": "integer"
+          },
+          "translated__content__ro__author__id": {
+            "type": "integer"
+          },
+          "translated__content__ru__author__id": {
+            "type": "integer"
+          },
+          "translated__content__sl__author__id": {
+            "type": "integer"
+          },
+          "translated__content__sr__author__id": {
+            "type": "integer"
+          },
+          "translated__content__sv__author__id": {
+            "type": "integer"
+          },
+          "translated__content__tr__author__id": {
+            "type": "integer"
+          },
+          "translated__content__vi__author__id": {
+            "type": "integer"
+          },
+          "translated__content__ar__created__at": {
+            "type": "integer"
+          },
+          "translated__content__ar__description": {
+            "type": "string"
+          },
+          "translated__content__ar__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__bg__created__at": {
+            "type": "integer"
+          },
+          "translated__content__bg__description": {
+            "type": "string"
+          },
+          "translated__content__bg__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__bs__created__at": {
+            "type": "integer"
+          },
+          "translated__content__bs__description": {
+            "type": "string"
+          },
+          "translated__content__bs__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__ca__created__at": {
+            "type": "integer"
+          },
+          "translated__content__ca__description": {
+            "type": "string"
+          },
+          "translated__content__ca__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__cs__created__at": {
+            "type": "integer"
+          },
+          "translated__content__cs__description": {
+            "type": "string"
+          },
+          "translated__content__cs__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__da__created__at": {
+            "type": "integer"
+          },
+          "translated__content__da__description": {
+            "type": "string"
+          },
+          "translated__content__da__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__de__created__at": {
+            "type": "integer"
+          },
+          "translated__content__de__description": {
+            "type": "string"
+          },
+          "translated__content__de__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__el__created__at": {
+            "type": "integer"
+          },
+          "translated__content__el__description": {
+            "type": "string"
+          },
+          "translated__content__el__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__en__created__at": {
+            "type": "integer"
+          },
+          "translated__content__en__description": {
+            "type": "string"
+          },
+          "translated__content__en__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__es__created__at": {
+            "type": "integer"
+          },
+          "translated__content__es__description": {
+            "type": "string"
+          },
+          "translated__content__es__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__et__created__at": {
+            "type": "integer"
+          },
+          "translated__content__et__description": {
+            "type": "string"
+          },
+          "translated__content__et__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__fi__created__at": {
+            "type": "integer"
+          },
+          "translated__content__fi__description": {
+            "type": "string"
+          },
+          "translated__content__fi__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__fr__created__at": {
+            "type": "integer"
+          },
+          "translated__content__fr__description": {
+            "type": "string"
+          },
+          "translated__content__fr__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__he__created__at": {
+            "type": "integer"
+          },
+          "translated__content__he__description": {
+            "type": "string"
+          },
+          "translated__content__he__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__hr__created__at": {
+            "type": "integer"
+          },
+          "translated__content__hr__description": {
+            "type": "string"
+          },
+          "translated__content__hr__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__hu__created__at": {
+            "type": "integer"
+          },
+          "translated__content__hu__description": {
+            "type": "string"
+          },
+          "translated__content__hu__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__id__created__at": {
+            "type": "integer"
+          },
+          "translated__content__id__description": {
+            "type": "string"
+          },
+          "translated__content__id__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__it__created__at": {
+            "type": "integer"
+          },
+          "translated__content__it__description": {
+            "type": "string"
+          },
+          "translated__content__it__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__ja__created__at": {
+            "type": "integer"
+          },
+          "translated__content__ja__description": {
+            "type": "string"
+          },
+          "translated__content__ja__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__ko__created__at": {
+            "type": "integer"
+          },
+          "translated__content__ko__description": {
+            "type": "string"
+          },
+          "translated__content__ko__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__lt__created__at": {
+            "type": "integer"
+          },
+          "translated__content__lt__description": {
+            "type": "string"
+          },
+          "translated__content__lt__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__lv__created__at": {
+            "type": "integer"
+          },
+          "translated__content__lv__description": {
+            "type": "string"
+          },
+          "translated__content__lv__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__mn__created__at": {
+            "type": "integer"
+          },
+          "translated__content__mn__description": {
+            "type": "string"
+          },
+          "translated__content__mn__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__nb__created__at": {
+            "type": "integer"
+          },
+          "translated__content__nb__description": {
+            "type": "string"
+          },
+          "translated__content__nb__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__nl__created__at": {
+            "type": "integer"
+          },
+          "translated__content__nl__description": {
+            "type": "string"
+          },
+          "translated__content__nl__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__pl__created__at": {
+            "type": "integer"
+          },
+          "translated__content__pl__description": {
+            "type": "string"
+          },
+          "translated__content__pl__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__pt__created__at": {
+            "type": "integer"
+          },
+          "translated__content__pt__description": {
+            "type": "string"
+          },
+          "translated__content__pt__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__ro__created__at": {
+            "type": "integer"
+          },
+          "translated__content__ro__description": {
+            "type": "string"
+          },
+          "translated__content__ro__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__ru__created__at": {
+            "type": "integer"
+          },
+          "translated__content__ru__description": {
+            "type": "string"
+          },
+          "translated__content__ru__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__sl__created__at": {
+            "type": "integer"
+          },
+          "translated__content__sl__description": {
+            "type": "string"
+          },
+          "translated__content__sl__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__sr__created__at": {
+            "type": "integer"
+          },
+          "translated__content__sr__description": {
+            "type": "string"
+          },
+          "translated__content__sr__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__sv__created__at": {
+            "type": "integer"
+          },
+          "translated__content__sv__description": {
+            "type": "string"
+          },
+          "translated__content__sv__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__tr__created__at": {
+            "type": "integer"
+          },
+          "translated__content__tr__description": {
+            "type": "string"
+          },
+          "translated__content__tr__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__vi__created__at": {
+            "type": "integer"
+          },
+          "translated__content__vi__description": {
+            "type": "string"
+          },
+          "translated__content__vi__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__pt__BR__author__id": {
+            "type": "integer"
+          },
+          "translated__content__zh__CN__author__id": {
+            "type": "integer"
+          },
+          "translated__content__zh__TW__author__id": {
+            "type": "integer"
+          },
+          "translated__content__pt__BR__created__at": {
+            "type": "integer"
+          },
+          "translated__content__pt__BR__description": {
+            "type": "string"
+          },
+          "translated__content__pt__BR__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__zh__CN__created__at": {
+            "type": "integer"
+          },
+          "translated__content__zh__CN__description": {
+            "type": "string"
+          },
+          "translated__content__zh__CN__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__zh__TW__created__at": {
+            "type": "integer"
+          },
+          "translated__content__zh__TW__description": {
+            "type": "string"
+          },
+          "translated__content__zh__TW__updated__at": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "title",
+          "author_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_A_NOTE",
+      "name": "Create a note",
+      "description": "You can add a note to a single contact.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "body"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_CONTACT",
+      "name": "Create contact",
+      "description": "Tool to create a new contact in Intercom workspace. Use when you need to add a user or lead to Intercom. At least one identifier (email, ex…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "integer"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "last_seen_at": {
+            "type": "integer"
+          },
+          "signed_up_at": {
+            "type": "integer"
+          },
+          "custom_attributes": {
+            "type": "object"
+          },
+          "unsubscribed_from_emails": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_CONTENT_IMPORT_SOURCE",
+      "name": "Create content import source",
+      "description": "Tool to create a new content import source for the Fin Content Library. Use when you need to create a container for External Pages to be in…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "deactivated"
+            ]
+          },
+          "sync_behavior": {
+            "type": "string",
+            "enum": [
+              "api",
+              "automatic",
+              "manual"
+            ]
+          }
+        },
+        "required": [
+          "sync_behavior",
+          "url"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_CONVERSATION",
+      "name": "Create conversation",
+      "description": "Creates a new conversation in Intercom. Requires exactly one of from_user_id or from_contact_id — both are schema-optional but at least one…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "from_user_id": {
+            "type": "string"
+          },
+          "message_type": {
+            "type": "string"
+          },
+          "from_admin_id": {
+            "type": "string"
+          },
+          "from_contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_DATA_ATTRIBUTE",
+      "name": "Create data attribute",
+      "description": "Tool to create a custom data attribute for contacts or companies. Use when you need to define a new attribute to track additional informati…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string",
+            "enum": [
+              "contact",
+              "company"
+            ]
+          },
+          "options": {
+            "type": "array"
+          },
+          "data_type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "integer",
+              "float",
+              "boolean",
+              "date"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "messenger_writable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "model",
+          "data_type"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_DATA_EVENT",
+      "name": "Create data event",
+      "description": "Tool to submit a data event to Intercom to track user activities. Use when you need to notify Intercom of user actions and changes. Events …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "event_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_name",
+          "created_at"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_DATA_EXPORT",
+      "name": "Create data export",
+      "description": "Tool to initiate an async data export job for message content. Use when you need to export messages created within a specific timeframe. On…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "created_at_after": {
+            "type": "integer"
+          },
+          "created_at_before": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created_at_after",
+          "created_at_before"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_EXTERNAL_PAGE",
+      "name": "Create external page",
+      "description": "Tool to create an external page in Fin Content Library or update an existing page by external ID. Use when you need to ingest new content o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "integer"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "ai_agent_availability": {
+            "type": "boolean"
+          },
+          "ai_copilot_availability": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "title",
+          "html",
+          "url",
+          "locale",
+          "source_id",
+          "external_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_HELP_CENTER_SECTION",
+      "name": "Create help center section",
+      "description": "Tool to create a new help center section within a collection. Use when you need to add a new section to organize articles in the help cente…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "translated_content": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "name",
+          "parent_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_INTERNAL_ARTICLE",
+      "name": "Create internal article",
+      "description": "Tool to create a new internal article for team knowledge sharing. Use when you need to add new internal documentation or knowledge base art…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "integer"
+          },
+          "author_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "title",
+          "owner_id",
+          "author_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_OR_UPDATE_A_COMPANY",
+      "name": "Create or update a company",
+      "description": "You can create or update a company. Companies will be only visible in Intercom when there is at least one associated user. Companies are lo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "website": {
+            "type": "string"
+          },
+          "industry": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string"
+          },
+          "monthly_spend": {
+            "type": "integer"
+          },
+          "custom_attributes": {
+            "type": "object"
+          },
+          "remote_created_at": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_TAG",
+      "name": "Create or update tag",
+      "description": "Tool to create or update a tag, and optionally tag/untag companies or tag contacts. Use when you need to create a new tag, update an existi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "users": {
+            "type": "array"
+          },
+          "companies": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_TICKET",
+      "name": "Create ticket",
+      "description": "Tool to create a ticket in Intercom to track customer requests and issues. Use when you need to create a new support ticket with specified …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contacts": {
+            "type": "array"
+          },
+          "assignment": {
+            "type": "object"
+          },
+          "company_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "ticket_type_id": {
+            "type": "string"
+          },
+          "ticket_attributes": {
+            "type": "object"
+          },
+          "conversation_to_link_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_type_id",
+          "contacts"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_TICKET_TYPE",
+      "name": "Create a ticket type",
+      "description": "Tool to create a new ticket type that defines the data structure for tracking customer requests. Use when you need to establish a new categ…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "icon": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "is_internal": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "category"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_CREATE_TICKET_TYPE_ATTRIBUTE",
+      "name": "Create ticket type attribute",
+      "description": "Tool to create a new attribute for a ticket type in Intercom. Use when you need to add custom attributes to ticket types for data collectio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "data_type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "list",
+              "integer",
+              "decimal",
+              "boolean",
+              "datetime",
+              "files"
+            ]
+          },
+          "multiline": {
+            "type": "boolean"
+          },
+          "list_items": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "ticket_type_id": {
+            "type": "string"
+          },
+          "visible_on_create": {
+            "type": "boolean"
+          },
+          "required_to_create": {
+            "type": "boolean"
+          },
+          "visible_to_contacts": {
+            "type": "boolean"
+          },
+          "allow_multiple_values": {
+            "type": "boolean"
+          },
+          "required_to_create_for_contacts": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ticket_type_id",
+          "name",
+          "description",
+          "data_type"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DATA_EVENT_SUMMARIES",
+      "name": "Create event summaries",
+      "description": "Tool to create event summaries for a user to track event occurrences. Use when you need to bulk update event counts for a user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "event_summaries": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_id",
+          "event_summaries"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DELETE_A_COLLECTION",
+      "name": "Delete a collection",
+      "description": "You can delete a single collection by making a DELETE request to `https://api.intercom.io/collections/<id>`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DELETE_A_COMPANY",
+      "name": "Delete a company",
+      "description": "You can delete a single company.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DELETE_AN_ARTICLE",
+      "name": "Delete an article",
+      "description": "You can delete a single article by making a DELETE request to `https://api.intercom.io/articles/<id>`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DELETE_A_TAG_DELETE_TAG",
+      "name": "Delete a tag",
+      "description": "Tool to delete a tag from Intercom workspace. Use when you need to permanently remove a tag that is no longer needed.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tag_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DELETE_A_VISITOR",
+      "name": "Delete a visitor",
+      "description": "Tool to delete a visitor from the Intercom workspace. Use when you need to permanently remove a visitor record.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DELETE_CONTACT",
+      "name": "Delete a contact",
+      "description": "Tool to delete a contact from the Intercom workspace. Use when you need to permanently remove a contact record.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DELETE_CONTENT_IMPORT_SOURCE",
+      "name": "Delete content import source",
+      "description": "Tool to delete a content import source and all its external pages. Use when you need to remove a content import source from Intercom. This …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "source_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DELETE_EXTERNAL_PAGE",
+      "name": "Delete external page",
+      "description": "Tool to delete an external page from content library and AI answers. Use when you need to remove an external page from Intercom's AI knowle…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DELETE_INTERNAL_ARTICLE",
+      "name": "Delete internal article",
+      "description": "Tool to delete a single internal article by ID. Use when you need to permanently remove an internal article from Intercom.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "internal_article_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "internal_article_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DELETE_TICKET",
+      "name": "Delete ticket",
+      "description": "Tool to delete a ticket from the Intercom system. Use when you need to permanently remove a ticket.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DETACH_A_CONTACT",
+      "name": "Detach a contact from tag",
+      "description": "Tool to remove a tag from a specific contact in Intercom. Use when you need to detach or untag a contact.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag_id": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id",
+          "tag_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DETACH_CONTACT_FROM_COMPANY",
+      "name": "Detach contact from company",
+      "description": "Tool to detach a contact from a company in Intercom. Use when you need to remove a company association from a contact.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id",
+          "company_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DETACH_TAG_FROM_CONVERSATION",
+      "name": "Detach tag from conversation",
+      "description": "Tool to remove a tag from a specific conversation in Intercom. Use when you need to detach or untag a conversation.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag_id": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "tag_id",
+          "admin_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DETACH_TAG_FROM_TICKET",
+      "name": "Detach tag from ticket",
+      "description": "Tool to remove a tag from a ticket in Intercom. Use when you need to detach or remove a specific tag from a ticket.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag_id": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string"
+          },
+          "ticket_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_id",
+          "tag_id",
+          "admin_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_DOWNLOAD_DATA_EXPORT",
+      "name": "Download data export",
+      "description": "Tool to download content data export from Intercom. Use when you need to retrieve exported message data from a completed data export job. T…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_identifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_identifier"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_ENQUEUE_CREATE_TICKET",
+      "name": "Enqueue create ticket",
+      "description": "Tool to enqueue ticket creation for asynchronous processing. Use when you need to create a ticket in Intercom. The system attempts validati…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contacts": {
+            "type": "array"
+          },
+          "assignment": {
+            "type": "object"
+          },
+          "company_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "ticket_type_id": {
+            "type": "string"
+          },
+          "ticket_attributes": {
+            "type": "object"
+          },
+          "skip_notifications": {
+            "type": "boolean"
+          },
+          "conversation_to_link_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_type_id",
+          "contacts"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_FIND_TAG",
+      "name": "Find a tag",
+      "description": "Tool to retrieve details for a specific tag by its ID. Use when you need to get information about a particular tag in the workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tag_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_GET_A_CONTACT",
+      "name": "Get a contact",
+      "description": "You can fetch the details of a single contact.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_GET_CONTENT_IMPORT_SOURCE",
+      "name": "Get content import source",
+      "description": "Tool to retrieve a content import source by its ID. Use when you need to fetch details about a specific content import source from Intercom…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "source_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_GET_CONVERSATION",
+      "name": "Get conversation",
+      "description": "Retrieves a specific conversation by ID with all messages and details. Key response caveats: `conversation_parts` are paginated — walk all …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "display_as": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_GET_COUNTS",
+      "name": "Get entity counts",
+      "description": "Tool to retrieve summary counts for Intercom app entities including companies, users, leads, tags, segments, and conversations. Use when yo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_GET_CUSTOM_OBJECT_INSTANCE_BY_EXTERNAL_ID",
+      "name": "Get custom object instance by external ID",
+      "description": "Tool to retrieve a custom object instance by its external_id. Use when you need to fetch a specific custom object instance from Intercom us…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "external_id": {
+            "type": "string"
+          },
+          "custom_object_type_identifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "custom_object_type_identifier",
+          "external_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_GET_EXTERNAL_PAGE",
+      "name": "Get external page",
+      "description": "Tool to retrieve an external page from Fin Content Library by ID. Use when you need to fetch details of a specific external page including …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_GET_TICKET",
+      "name": "Get ticket",
+      "description": "Tool to retrieve a ticket from Intercom. Use when you need to fetch comprehensive details about a specific ticket including state, type, at…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_GET_TICKET_TYPE",
+      "name": "Get a ticket type",
+      "description": "Tool to retrieve details for a specific ticket type by its ID. Use when you need to get complete information about a ticket type including …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ticket_type_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_type_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_IDENTIFY_AN_ADMIN",
+      "name": "Identify an admin",
+      "description": "You can view the currently authorised admin along with the embedded app object (a \"workspace\" in legacy terminology). > 🚧 Single Sign On > …",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "INTERCOM_JOBS_STATUS",
+      "name": "Retrieve job status",
+      "description": "Tool to retrieve the status of job execution. Use when checking progress and outcome of asynchronous operations like data imports or export…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_ALL_ACTIVITY_LOGS",
+      "name": "List all activity logs",
+      "description": "You can get a log of activities by all admins in an app.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "created_at_after": {
+            "type": "string"
+          },
+          "created_at_before": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "created_at_after"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_ALL_ADMINS",
+      "name": "List all admins",
+      "description": "You can fetch a list of admins for a given workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_ALL_ARTICLES",
+      "name": "List all articles",
+      "description": "You can fetch a list of all articles by making a GET request to `https://api.intercom.io/articles`. > 📘 How are the articles sorted and ord…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_ALL_COLLECTIONS",
+      "name": "List all collections",
+      "description": "You can fetch a list of all collections by making a GET request to `https://api.intercom.io/help_center/collections`. Collections will be r…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_ALL_COMPANIES",
+      "name": "List all companies",
+      "description": "You can list companies. The company list is sorted by the `last_request_at` field and by default is ordered descending, most recently reque…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "string"
+          },
+          "per_page": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_ALL_HELP_CENTERS",
+      "name": "List all help centers",
+      "description": "You can list all Help Centers by making a GET request to `https://api.intercom.io/help_center/help_centers`.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_ALL_MACROS",
+      "name": "List all macros",
+      "description": "Tool to fetch a list of all macros (saved replies) in your workspace for use in automating responses. The macros are returned in descending…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "per_page": {
+            "type": "integer"
+          },
+          "updated_since": {
+            "type": "integer"
+          },
+          "starting_after": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_ALL_NOTES",
+      "name": "List all notes",
+      "description": "You can fetch a list of notes that are associated to a contact.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_ATTACHED_COMPANIES_FOR_CONTACT",
+      "name": "List attached companies for contact",
+      "description": "You can fetch a list of companies that are associated to a contact.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_ATTACHED_CONTACTS",
+      "name": "List attached contacts",
+      "description": "You can fetch a list of all contacts that belong to a company.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_ATTACHED_SEGMENTS_FOR_COMPANIES",
+      "name": "List attached segments for companies",
+      "description": "You can fetch a list of all segments that belong to a company.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_ATTACHED_SEGMENTS_FOR_CONTACT",
+      "name": "List attached segments for contact",
+      "description": "You can fetch a list of segments that are associated to a contact.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_AWAY_STATUS_REASONS",
+      "name": "List away status reasons",
+      "description": "Tool to retrieve all away status reasons for a workspace including deleted ones. Use when you need to list available away status options fo…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_CALLS",
+      "name": "List calls",
+      "description": "Tool to list all phone calls from Intercom with pagination support. Use when you need to retrieve call records, view call history, or itera…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_CALLS_WITH_TRANSCRIPTS",
+      "name": "List calls with transcripts",
+      "description": "Tool to retrieve calls by conversation IDs with transcripts when available. Use when you need to get call records with their transcripts fo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "conversation_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "conversation_ids"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_COMPANY_NOTES",
+      "name": "List company notes",
+      "description": "Tool to list all notes associated with a specific company. Use when you need to retrieve all notes that have been added to a company record.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_CONTACTS",
+      "name": "List all contacts",
+      "description": "Tool to list all contacts (users or leads) in your Intercom workspace with pagination support. Use when you need to retrieve multiple conta…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "per_page": {
+            "type": "integer"
+          },
+          "starting_after": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_CONTENT_IMPORT_SOURCES",
+      "name": "List content import sources",
+      "description": "Tool to retrieve all content import sources for the workspace. Use when you need to list all content sources for Fin Content Library.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "per_page": {
+            "type": "integer"
+          },
+          "starting_after": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_CONVERSATIONS",
+      "name": "List conversations",
+      "description": "Lists all conversations from Intercom with pagination support. This endpoint does not support filtering by state, assignee, or other attrib…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "per_page": {
+            "type": "integer"
+          },
+          "starting_after": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_DATA_ATTRIBUTES",
+      "name": "List data attributes",
+      "description": "Tool to list all data attributes for contacts, companies, and conversations. Use when you need to retrieve metadata about available data at…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "contact",
+              "company",
+              "conversation"
+            ]
+          },
+          "include_archived": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_DATA_EVENTS",
+      "name": "List data events",
+      "description": "Tool to retrieve a log of data events belonging to a customer. Use when you need to list events for a specific user. Note: Only events less…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "boolean"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "intercom_user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_EXTERNAL_PAGES",
+      "name": "List external pages",
+      "description": "Tool to list all external pages from Fin Content Library. Use when you need to retrieve external pages used for AI-generated answers in Int…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "per_page": {
+            "type": "integer"
+          },
+          "starting_after": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_HELP_CENTER_SECTIONS",
+      "name": "List help center sections",
+      "description": "Tool to fetch a list of all help center sections in descending order by updated_at. Use when you need to retrieve sections from the help ce…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "per_page": {
+            "type": "integer"
+          },
+          "starting_after": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_INTERNAL_ARTICLES",
+      "name": "List internal articles",
+      "description": "Fetches one page of internal articles from Intercom. Uses Intercom's cursor-based pagination via `starting_after`. ONE Intercom API call is…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "per_page": {
+            "type": "integer"
+          },
+          "starting_after": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_NEWS_ITEMS",
+      "name": "List all news items",
+      "description": "Tool to fetch a list of all news items from Intercom. Use when you need to retrieve news items posted in the workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_SEGMENTS",
+      "name": "List all segments",
+      "description": "Tool to retrieve all segments defined within a workspace for filtering and categorizing contacts. Use when you need to get a list of all av…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "include_count": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_SUBSCRIPTIONS_FOR_A_CONTACT",
+      "name": "List subscriptions for a contact",
+      "description": "You can fetch a list of subscription types that are attached to a contact. These can be subscriptions that a user has 'opted-in' to or has …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_SUBSCRIPTION_TYPES",
+      "name": "List subscription types",
+      "description": "Tool to list all subscription types available in the workspace. Use when you need to retrieve subscription configuration details including …",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_TAGS",
+      "name": "List all tags",
+      "description": "Tool to fetch all tags for the workspace. Use when you need to retrieve all available tags that can be applied to contacts, companies, and …",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_TAGS_ATTACHED_TO_A_CONTACT",
+      "name": "List tags attached to a contact",
+      "description": "You can fetch a list of all tags that are attached to a specific contact.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_TEAMS",
+      "name": "List all teams",
+      "description": "Tool to retrieve all teams within a workspace. Use when you need to get a list of all available teams, their members, or assignment configu…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_TICKET_STATES",
+      "name": "List all ticket states",
+      "description": "Tool to fetch all ticket states for the workspace. Use when you need to retrieve all configured ticket states, including both active and ar…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "INTERCOM_LIST_TICKET_TYPES",
+      "name": "List all ticket types",
+      "description": "Tool to retrieve all ticket types for the workspace. Use when you need to get all available ticket type configurations including attributes…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "INTERCOM_MERGE_A_LEAD_AND_A_USER",
+      "name": "Merge a lead and a user",
+      "description": "You can merge a contact with a `role` of `lead` into a contact with a `role` of `user`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "into": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_REGISTER_FIN_VOICE_CALL",
+      "name": "Register Fin Voice call",
+      "description": "Tool to register a Fin Voice call with Intercom. Use when you need to create a record of an external voice call in Intercom, enabling AI-po…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "five9",
+              "zoom_phone",
+              "aws_connect"
+            ]
+          },
+          "call_id": {
+            "type": "string"
+          },
+          "phone_number": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone_number",
+          "call_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_REMOVE_SUBSCRIPTION_FROM_A_CONTACT",
+      "name": "Remove subscription from a contact",
+      "description": "You can remove a specific subscription from a contact. This will return a subscription type model for the subscription type that was remove…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_REMOVE_TAG_FROM_A_CONTACT",
+      "name": "Remove tag from a contact",
+      "description": "You can remove tag from a specific contact. This will return a tag object for the tag that was removed from the contact.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_REOPEN_CONVERSATION",
+      "name": "Reopen conversation",
+      "description": "Reopens a closed conversation in Intercom. Only operates correctly on conversations in a closed state; verify state via INTERCOM_GET_CONVER…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "admin_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_REPLY_TICKET",
+      "name": "Reply to ticket",
+      "description": "Tool to reply to a ticket with a message from admin or contact, or with a note for admins. Use when you need to add a response or comment t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string"
+          },
+          "ticket_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "message_type": {
+            "type": "string"
+          },
+          "attachment_urls": {
+            "type": "array"
+          },
+          "intercom_user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_id",
+          "message_type",
+          "body"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_REPLY_TO_CONVERSATION",
+      "name": "Reply to conversation",
+      "description": "Sends a reply to an existing conversation in Intercom. Always send reply before closing a conversation — never parallelize with INTERCOM_CL…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "admin_id": {
+            "type": "string"
+          },
+          "message_body": {
+            "type": "string"
+          },
+          "message_type": {
+            "type": "string"
+          },
+          "attachment_urls": {
+            "type": "array"
+          },
+          "conversation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "message_body",
+          "admin_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_RETRIEVE_A_COLLECTION",
+      "name": "Retrieve a collection",
+      "description": "You can fetch the details of a single collection by making a GET request to `https://api.intercom.io/help_center/collections/<id>`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_RETRIEVE_A_COMPANY_BY_ID",
+      "name": "Retrieve a company by id",
+      "description": "You can fetch a single company.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_RETRIEVE_A_HELP_CENTER",
+      "name": "Retrieve a help center",
+      "description": "You can fetch the details of a single Help Center by making a GET request to `https://api.intercom.io/help_center/help_center/<id>`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_RETRIEVE_A_JOB_STATUS",
+      "name": "Retrieve job status",
+      "description": "Tool to retrieve the status of a data export job. Use when checking the progress of an export job by providing the job identifier.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "job_identifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_identifier"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_RETRIEVE_A_MACRO",
+      "name": "Retrieve a macro",
+      "description": "Tool to fetch a single macro (saved reply) by its ID. The macro will only be returned if it is visible to the authenticated user based on i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_RETRIEVE_AN_ADMIN",
+      "name": "Retrieve an admin",
+      "description": "You can retrieve the details of a single admin.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_RETRIEVE_AN_ARTICLE",
+      "name": "Retrieve an article",
+      "description": "You can fetch the details of a single article by making a GET request to `https://api.intercom.io/articles/<id>`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_RETRIEVE_A_SEGMENT",
+      "name": "Retrieve a segment",
+      "description": "Tool to retrieve details for a single segment by its ID. Use when you need to get information about a specific segment including its name, …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "segment_id": {
+            "type": "string"
+          },
+          "include_count": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "segment_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_RETRIEVE_COMPANIES",
+      "name": "Retrieve companies",
+      "description": "You can fetch a single company by passing in `company_id` or `name`. `https://api.intercom.io/companies?name={name}` `https://api.intercom.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "tag_id": {
+            "type": "string"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "company_id": {
+            "type": "string"
+          },
+          "segment_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_RETRIEVE_INTERNAL_ARTICLE",
+      "name": "Retrieve internal article",
+      "description": "Tool to retrieve an internal article by ID from Intercom. Use when you need to fetch details of a specific internal article including its t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "internal_article_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "internal_article_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_RETRIEVE_NOTE",
+      "name": "Retrieve note",
+      "description": "Tool to retrieve details of a single note by its identifier. Use when you need to fetch the complete information about a specific note.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "note_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "note_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_RETRIEVE_TEAM",
+      "name": "Retrieve a team",
+      "description": "Tool to retrieve detailed information about a specific team by ID. Use when you need to get team details including members and assignment c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_RETRIEVE_VISITOR_WITH_USER_ID",
+      "name": "Retrieve visitor with user ID",
+      "description": "Tool to retrieve a specific visitor's details using their user_id. Use when you need to fetch comprehensive visitor information including p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_SCROLL_OVER_ALL_COMPANIES",
+      "name": "Scroll over all companies",
+      "description": "The `list all companies` functionality does not work well for huge datasets, and can result in errors and performance problems when paging …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "scroll_param": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_SEARCH_CONTACTS",
+      "name": "Search contacts",
+      "description": "Tool to search for contacts using query filters with operators. Use when finding contacts by role, email, name, or attributes. Response ent…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "starting_after": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_SEARCH_CONVERSATIONS",
+      "name": "Search conversations",
+      "description": "Searches for conversations using query string with support for filtering and sorting",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "sort_field": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "string"
+          },
+          "starting_after": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_SEARCH_FOR_ARTICLES",
+      "name": "Search for articles",
+      "description": "You can search for articles by making a GET request to `https://api.intercom.io/articles/search`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "phrase": {
+            "type": "string"
+          },
+          "highlight": {
+            "type": "boolean"
+          },
+          "help_center_id": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_SEARCH_INTERNAL_ARTICLES",
+      "name": "Search internal articles",
+      "description": "Searches one page of internal articles in Intercom. Uses Intercom's cursor-based pagination via `starting_after`. ONE Intercom API call is …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "per_page": {
+            "type": "integer"
+          },
+          "folder_id": {
+            "type": "string"
+          },
+          "starting_after": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INTERCOM_SEARCH_TICKETS",
+      "name": "Search tickets",
+      "description": "Tool to search tickets in Intercom by filtering attribute values. Use when you need to find tickets matching specific criteria like state, …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object"
+          },
+          "pagination": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_SET_ADMIN_TO_AWAY",
+      "name": "Set admin to away",
+      "description": "Tool to set an admin to away status in Intercom. Use when you need to mark an admin as away, optionally with a specific reason and reassign…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "admin_id": {
+            "type": "integer"
+          },
+          "away_mode_enabled": {
+            "type": "boolean"
+          },
+          "away_mode_reassign": {
+            "type": "boolean"
+          },
+          "away_status_reason_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "admin_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_SET_AN_ADMIN_TO_AWAY",
+      "name": "Set an admin to away",
+      "description": "You can set an Admin as away for the Inbox.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "away_mode_enabled": {
+            "type": "boolean"
+          },
+          "away_mode_reassign": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_SHOW_CALL",
+      "name": "Show call",
+      "description": "Tool to retrieve a single call by ID from Intercom. Use when you need to get detailed information about a specific phone call.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "call_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_SHOW_CALL_TRANSCRIPT",
+      "name": "Show call transcript",
+      "description": "Tool to get call transcript by call ID. Use when you need to retrieve the transcript text from a recorded call.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "call_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_SHOW_CONTACT_BY_EXTERNAL_ID",
+      "name": "Show contact by external ID",
+      "description": "Tool to retrieve a contact by their external ID. Use when you need to fetch contact details using an identifier from your external system r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "external_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "external_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_UNARCHIVE_CONTACT",
+      "name": "Unarchive contact",
+      "description": "Tool to unarchive a previously archived contact in Intercom. Use when you need to restore an archived contact by their ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_UPDATE_A_COLLECTION",
+      "name": "Update a collection",
+      "description": "You can update the details of a single collection by making a PUT request to `https://api.intercom.io/collections/<id>`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "translated__content__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_translated_content"
+            ]
+          },
+          "translated__content__ar__name": {
+            "type": "string"
+          },
+          "translated__content__ar__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__bg__name": {
+            "type": "string"
+          },
+          "translated__content__bg__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__bs__name": {
+            "type": "string"
+          },
+          "translated__content__bs__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__ca__name": {
+            "type": "string"
+          },
+          "translated__content__ca__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__cs__name": {
+            "type": "string"
+          },
+          "translated__content__cs__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__da__name": {
+            "type": "string"
+          },
+          "translated__content__da__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__de__name": {
+            "type": "string"
+          },
+          "translated__content__de__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__el__name": {
+            "type": "string"
+          },
+          "translated__content__el__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__en__name": {
+            "type": "string"
+          },
+          "translated__content__en__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__es__name": {
+            "type": "string"
+          },
+          "translated__content__es__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__et__name": {
+            "type": "string"
+          },
+          "translated__content__et__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__fi__name": {
+            "type": "string"
+          },
+          "translated__content__fi__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__fr__name": {
+            "type": "string"
+          },
+          "translated__content__fr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__he__name": {
+            "type": "string"
+          },
+          "translated__content__he__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__hr__name": {
+            "type": "string"
+          },
+          "translated__content__hr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__hu__name": {
+            "type": "string"
+          },
+          "translated__content__hu__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__id__name": {
+            "type": "string"
+          },
+          "translated__content__id__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__it__name": {
+            "type": "string"
+          },
+          "translated__content__it__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__ja__name": {
+            "type": "string"
+          },
+          "translated__content__ja__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__ko__name": {
+            "type": "string"
+          },
+          "translated__content__ko__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__lt__name": {
+            "type": "string"
+          },
+          "translated__content__lt__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__lv__name": {
+            "type": "string"
+          },
+          "translated__content__lv__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__mn__name": {
+            "type": "string"
+          },
+          "translated__content__mn__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__nb__name": {
+            "type": "string"
+          },
+          "translated__content__nb__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__nl__name": {
+            "type": "string"
+          },
+          "translated__content__nl__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__pl__name": {
+            "type": "string"
+          },
+          "translated__content__pl__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__pt__name": {
+            "type": "string"
+          },
+          "translated__content__pt__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__ro__name": {
+            "type": "string"
+          },
+          "translated__content__ro__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__ru__name": {
+            "type": "string"
+          },
+          "translated__content__ru__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__sl__name": {
+            "type": "string"
+          },
+          "translated__content__sl__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__sr__name": {
+            "type": "string"
+          },
+          "translated__content__sr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__sv__name": {
+            "type": "string"
+          },
+          "translated__content__sv__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__tr__name": {
+            "type": "string"
+          },
+          "translated__content__tr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__vi__name": {
+            "type": "string"
+          },
+          "translated__content__vi__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__pt__BR__name": {
+            "type": "string"
+          },
+          "translated__content__pt__BR__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__zh__CN__name": {
+            "type": "string"
+          },
+          "translated__content__zh__CN__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__zh__TW__name": {
+            "type": "string"
+          },
+          "translated__content__zh__TW__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "group_content"
+            ]
+          },
+          "translated__content__ar__description": {
+            "type": "string"
+          },
+          "translated__content__bg__description": {
+            "type": "string"
+          },
+          "translated__content__bs__description": {
+            "type": "string"
+          },
+          "translated__content__ca__description": {
+            "type": "string"
+          },
+          "translated__content__cs__description": {
+            "type": "string"
+          },
+          "translated__content__da__description": {
+            "type": "string"
+          },
+          "translated__content__de__description": {
+            "type": "string"
+          },
+          "translated__content__el__description": {
+            "type": "string"
+          },
+          "translated__content__en__description": {
+            "type": "string"
+          },
+          "translated__content__es__description": {
+            "type": "string"
+          },
+          "translated__content__et__description": {
+            "type": "string"
+          },
+          "translated__content__fi__description": {
+            "type": "string"
+          },
+          "translated__content__fr__description": {
+            "type": "string"
+          },
+          "translated__content__he__description": {
+            "type": "string"
+          },
+          "translated__content__hr__description": {
+            "type": "string"
+          },
+          "translated__content__hu__description": {
+            "type": "string"
+          },
+          "translated__content__id__description": {
+            "type": "string"
+          },
+          "translated__content__it__description": {
+            "type": "string"
+          },
+          "translated__content__ja__description": {
+            "type": "string"
+          },
+          "translated__content__ko__description": {
+            "type": "string"
+          },
+          "translated__content__lt__description": {
+            "type": "string"
+          },
+          "translated__content__lv__description": {
+            "type": "string"
+          },
+          "translated__content__mn__description": {
+            "type": "string"
+          },
+          "translated__content__nb__description": {
+            "type": "string"
+          },
+          "translated__content__nl__description": {
+            "type": "string"
+          },
+          "translated__content__pl__description": {
+            "type": "string"
+          },
+          "translated__content__pt__description": {
+            "type": "string"
+          },
+          "translated__content__ro__description": {
+            "type": "string"
+          },
+          "translated__content__ru__description": {
+            "type": "string"
+          },
+          "translated__content__sl__description": {
+            "type": "string"
+          },
+          "translated__content__sr__description": {
+            "type": "string"
+          },
+          "translated__content__sv__description": {
+            "type": "string"
+          },
+          "translated__content__tr__description": {
+            "type": "string"
+          },
+          "translated__content__vi__description": {
+            "type": "string"
+          },
+          "translated__content__pt__BR__description": {
+            "type": "string"
+          },
+          "translated__content__zh__CN__description": {
+            "type": "string"
+          },
+          "translated__content__zh__TW__description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_UPDATE_A_COMPANY",
+      "name": "Update a company",
+      "description": "You can update a single company using the Intercom provisioned `id`. {% admonition type=\"attention\" name=\"Using `company_id`\" %} When updat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "website": {
+            "type": "string"
+          },
+          "industry": {
+            "type": "string"
+          },
+          "monthly_spend": {
+            "type": "integer"
+          },
+          "custom_attributes": {
+            "type": "object"
+          },
+          "remote_created_at": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_UPDATE_A_CONTACT",
+      "name": "Update a contact",
+      "description": "You can update an existing contact (ie. user or lead).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "integer"
+          },
+          "companies": {
+            "type": "array"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "last_seen_at": {
+            "type": "integer"
+          },
+          "signed_up_at": {
+            "type": "integer"
+          },
+          "custom_attributes": {
+            "type": "object"
+          },
+          "unsubscribed_from_emails": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_UPDATE_AN_ARTICLE",
+      "name": "Update an article",
+      "description": "You can update the details of a single article by making a PUT request to `https://api.intercom.io/articles/<id>`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "body": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "author_id": {
+            "type": "integer"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "parent_type": {
+            "type": "string"
+          },
+          "translated__content__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_translated_content"
+            ]
+          },
+          "translated__content__ar__url": {
+            "type": "string"
+          },
+          "translated__content__bg__url": {
+            "type": "string"
+          },
+          "translated__content__bs__url": {
+            "type": "string"
+          },
+          "translated__content__ca__url": {
+            "type": "string"
+          },
+          "translated__content__cs__url": {
+            "type": "string"
+          },
+          "translated__content__da__url": {
+            "type": "string"
+          },
+          "translated__content__de__url": {
+            "type": "string"
+          },
+          "translated__content__el__url": {
+            "type": "string"
+          },
+          "translated__content__en__url": {
+            "type": "string"
+          },
+          "translated__content__es__url": {
+            "type": "string"
+          },
+          "translated__content__et__url": {
+            "type": "string"
+          },
+          "translated__content__fi__url": {
+            "type": "string"
+          },
+          "translated__content__fr__url": {
+            "type": "string"
+          },
+          "translated__content__he__url": {
+            "type": "string"
+          },
+          "translated__content__hr__url": {
+            "type": "string"
+          },
+          "translated__content__hu__url": {
+            "type": "string"
+          },
+          "translated__content__id__url": {
+            "type": "string"
+          },
+          "translated__content__it__url": {
+            "type": "string"
+          },
+          "translated__content__ja__url": {
+            "type": "string"
+          },
+          "translated__content__ko__url": {
+            "type": "string"
+          },
+          "translated__content__lt__url": {
+            "type": "string"
+          },
+          "translated__content__lv__url": {
+            "type": "string"
+          },
+          "translated__content__mn__url": {
+            "type": "string"
+          },
+          "translated__content__nb__url": {
+            "type": "string"
+          },
+          "translated__content__nl__url": {
+            "type": "string"
+          },
+          "translated__content__pl__url": {
+            "type": "string"
+          },
+          "translated__content__pt__url": {
+            "type": "string"
+          },
+          "translated__content__ro__url": {
+            "type": "string"
+          },
+          "translated__content__ru__url": {
+            "type": "string"
+          },
+          "translated__content__sl__url": {
+            "type": "string"
+          },
+          "translated__content__sr__url": {
+            "type": "string"
+          },
+          "translated__content__sv__url": {
+            "type": "string"
+          },
+          "translated__content__tr__url": {
+            "type": "string"
+          },
+          "translated__content__vi__url": {
+            "type": "string"
+          },
+          "translated__content__ar__body": {
+            "type": "string"
+          },
+          "translated__content__ar__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__bg__body": {
+            "type": "string"
+          },
+          "translated__content__bg__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__bs__body": {
+            "type": "string"
+          },
+          "translated__content__bs__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__ca__body": {
+            "type": "string"
+          },
+          "translated__content__ca__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__cs__body": {
+            "type": "string"
+          },
+          "translated__content__cs__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__da__body": {
+            "type": "string"
+          },
+          "translated__content__da__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__de__body": {
+            "type": "string"
+          },
+          "translated__content__de__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__el__body": {
+            "type": "string"
+          },
+          "translated__content__el__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__en__body": {
+            "type": "string"
+          },
+          "translated__content__en__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__es__body": {
+            "type": "string"
+          },
+          "translated__content__es__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__et__body": {
+            "type": "string"
+          },
+          "translated__content__et__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__fi__body": {
+            "type": "string"
+          },
+          "translated__content__fi__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__fr__body": {
+            "type": "string"
+          },
+          "translated__content__fr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__he__body": {
+            "type": "string"
+          },
+          "translated__content__he__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__hr__body": {
+            "type": "string"
+          },
+          "translated__content__hr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__hu__body": {
+            "type": "string"
+          },
+          "translated__content__hu__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__id__body": {
+            "type": "string"
+          },
+          "translated__content__id__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__it__body": {
+            "type": "string"
+          },
+          "translated__content__it__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__ja__body": {
+            "type": "string"
+          },
+          "translated__content__ja__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__ko__body": {
+            "type": "string"
+          },
+          "translated__content__ko__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__lt__body": {
+            "type": "string"
+          },
+          "translated__content__lt__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__lv__body": {
+            "type": "string"
+          },
+          "translated__content__lv__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__mn__body": {
+            "type": "string"
+          },
+          "translated__content__mn__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__nb__body": {
+            "type": "string"
+          },
+          "translated__content__nb__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__nl__body": {
+            "type": "string"
+          },
+          "translated__content__nl__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__pl__body": {
+            "type": "string"
+          },
+          "translated__content__pl__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__pt__body": {
+            "type": "string"
+          },
+          "translated__content__pt__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__ro__body": {
+            "type": "string"
+          },
+          "translated__content__ro__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__ru__body": {
+            "type": "string"
+          },
+          "translated__content__ru__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__sl__body": {
+            "type": "string"
+          },
+          "translated__content__sl__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__sr__body": {
+            "type": "string"
+          },
+          "translated__content__sr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__sv__body": {
+            "type": "string"
+          },
+          "translated__content__sv__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__tr__body": {
+            "type": "string"
+          },
+          "translated__content__tr__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__vi__body": {
+            "type": "string"
+          },
+          "translated__content__vi__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__ar__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__ar__title": {
+            "type": "string"
+          },
+          "translated__content__bg__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__bg__title": {
+            "type": "string"
+          },
+          "translated__content__bs__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__bs__title": {
+            "type": "string"
+          },
+          "translated__content__ca__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__ca__title": {
+            "type": "string"
+          },
+          "translated__content__cs__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__cs__title": {
+            "type": "string"
+          },
+          "translated__content__da__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__da__title": {
+            "type": "string"
+          },
+          "translated__content__de__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__de__title": {
+            "type": "string"
+          },
+          "translated__content__el__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__el__title": {
+            "type": "string"
+          },
+          "translated__content__en__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__en__title": {
+            "type": "string"
+          },
+          "translated__content__es__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__es__title": {
+            "type": "string"
+          },
+          "translated__content__et__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__et__title": {
+            "type": "string"
+          },
+          "translated__content__fi__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__fi__title": {
+            "type": "string"
+          },
+          "translated__content__fr__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__fr__title": {
+            "type": "string"
+          },
+          "translated__content__he__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__he__title": {
+            "type": "string"
+          },
+          "translated__content__hr__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__hr__title": {
+            "type": "string"
+          },
+          "translated__content__hu__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__hu__title": {
+            "type": "string"
+          },
+          "translated__content__id__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__id__title": {
+            "type": "string"
+          },
+          "translated__content__it__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__it__title": {
+            "type": "string"
+          },
+          "translated__content__ja__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__ja__title": {
+            "type": "string"
+          },
+          "translated__content__ko__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__ko__title": {
+            "type": "string"
+          },
+          "translated__content__lt__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__lt__title": {
+            "type": "string"
+          },
+          "translated__content__lv__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__lv__title": {
+            "type": "string"
+          },
+          "translated__content__mn__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__mn__title": {
+            "type": "string"
+          },
+          "translated__content__nb__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__nb__title": {
+            "type": "string"
+          },
+          "translated__content__nl__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__nl__title": {
+            "type": "string"
+          },
+          "translated__content__pl__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__pl__title": {
+            "type": "string"
+          },
+          "translated__content__pt__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__pt__title": {
+            "type": "string"
+          },
+          "translated__content__ro__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__ro__title": {
+            "type": "string"
+          },
+          "translated__content__ru__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__ru__title": {
+            "type": "string"
+          },
+          "translated__content__sl__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__sl__title": {
+            "type": "string"
+          },
+          "translated__content__sr__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__sr__title": {
+            "type": "string"
+          },
+          "translated__content__sv__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__sv__title": {
+            "type": "string"
+          },
+          "translated__content__tr__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__tr__title": {
+            "type": "string"
+          },
+          "translated__content__vi__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__vi__title": {
+            "type": "string"
+          },
+          "translated__content__pt__BR__url": {
+            "type": "string"
+          },
+          "translated__content__zh__CN__url": {
+            "type": "string"
+          },
+          "translated__content__zh__TW__url": {
+            "type": "string"
+          },
+          "translated__content__pt__BR__body": {
+            "type": "string"
+          },
+          "translated__content__pt__BR__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__zh__CN__body": {
+            "type": "string"
+          },
+          "translated__content__zh__CN__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__zh__TW__body": {
+            "type": "string"
+          },
+          "translated__content__zh__TW__type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "article_content"
+            ]
+          },
+          "translated__content__pt__BR__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__pt__BR__title": {
+            "type": "string"
+          },
+          "translated__content__zh__CN__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__zh__CN__title": {
+            "type": "string"
+          },
+          "translated__content__zh__TW__state": {
+            "type": "string",
+            "enum": [
+              "published",
+              "draft"
+            ]
+          },
+          "translated__content__zh__TW__title": {
+            "type": "string"
+          },
+          "translated__content__ar__author__id": {
+            "type": "integer"
+          },
+          "translated__content__bg__author__id": {
+            "type": "integer"
+          },
+          "translated__content__bs__author__id": {
+            "type": "integer"
+          },
+          "translated__content__ca__author__id": {
+            "type": "integer"
+          },
+          "translated__content__cs__author__id": {
+            "type": "integer"
+          },
+          "translated__content__da__author__id": {
+            "type": "integer"
+          },
+          "translated__content__de__author__id": {
+            "type": "integer"
+          },
+          "translated__content__el__author__id": {
+            "type": "integer"
+          },
+          "translated__content__en__author__id": {
+            "type": "integer"
+          },
+          "translated__content__es__author__id": {
+            "type": "integer"
+          },
+          "translated__content__et__author__id": {
+            "type": "integer"
+          },
+          "translated__content__fi__author__id": {
+            "type": "integer"
+          },
+          "translated__content__fr__author__id": {
+            "type": "integer"
+          },
+          "translated__content__he__author__id": {
+            "type": "integer"
+          },
+          "translated__content__hr__author__id": {
+            "type": "integer"
+          },
+          "translated__content__hu__author__id": {
+            "type": "integer"
+          },
+          "translated__content__id__author__id": {
+            "type": "integer"
+          },
+          "translated__content__it__author__id": {
+            "type": "integer"
+          },
+          "translated__content__ja__author__id": {
+            "type": "integer"
+          },
+          "translated__content__ko__author__id": {
+            "type": "integer"
+          },
+          "translated__content__lt__author__id": {
+            "type": "integer"
+          },
+          "translated__content__lv__author__id": {
+            "type": "integer"
+          },
+          "translated__content__mn__author__id": {
+            "type": "integer"
+          },
+          "translated__content__nb__author__id": {
+            "type": "integer"
+          },
+          "translated__content__nl__author__id": {
+            "type": "integer"
+          },
+          "translated__content__pl__author__id": {
+            "type": "integer"
+          },
+          "translated__content__pt__author__id": {
+            "type": "integer"
+          },
+          "translated__content__ro__author__id": {
+            "type": "integer"
+          },
+          "translated__content__ru__author__id": {
+            "type": "integer"
+          },
+          "translated__content__sl__author__id": {
+            "type": "integer"
+          },
+          "translated__content__sr__author__id": {
+            "type": "integer"
+          },
+          "translated__content__sv__author__id": {
+            "type": "integer"
+          },
+          "translated__content__tr__author__id": {
+            "type": "integer"
+          },
+          "translated__content__vi__author__id": {
+            "type": "integer"
+          },
+          "translated__content__ar__created__at": {
+            "type": "integer"
+          },
+          "translated__content__ar__description": {
+            "type": "string"
+          },
+          "translated__content__ar__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__bg__created__at": {
+            "type": "integer"
+          },
+          "translated__content__bg__description": {
+            "type": "string"
+          },
+          "translated__content__bg__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__bs__created__at": {
+            "type": "integer"
+          },
+          "translated__content__bs__description": {
+            "type": "string"
+          },
+          "translated__content__bs__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__ca__created__at": {
+            "type": "integer"
+          },
+          "translated__content__ca__description": {
+            "type": "string"
+          },
+          "translated__content__ca__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__cs__created__at": {
+            "type": "integer"
+          },
+          "translated__content__cs__description": {
+            "type": "string"
+          },
+          "translated__content__cs__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__da__created__at": {
+            "type": "integer"
+          },
+          "translated__content__da__description": {
+            "type": "string"
+          },
+          "translated__content__da__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__de__created__at": {
+            "type": "integer"
+          },
+          "translated__content__de__description": {
+            "type": "string"
+          },
+          "translated__content__de__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__el__created__at": {
+            "type": "integer"
+          },
+          "translated__content__el__description": {
+            "type": "string"
+          },
+          "translated__content__el__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__en__created__at": {
+            "type": "integer"
+          },
+          "translated__content__en__description": {
+            "type": "string"
+          },
+          "translated__content__en__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__es__created__at": {
+            "type": "integer"
+          },
+          "translated__content__es__description": {
+            "type": "string"
+          },
+          "translated__content__es__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__et__created__at": {
+            "type": "integer"
+          },
+          "translated__content__et__description": {
+            "type": "string"
+          },
+          "translated__content__et__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__fi__created__at": {
+            "type": "integer"
+          },
+          "translated__content__fi__description": {
+            "type": "string"
+          },
+          "translated__content__fi__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__fr__created__at": {
+            "type": "integer"
+          },
+          "translated__content__fr__description": {
+            "type": "string"
+          },
+          "translated__content__fr__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__he__created__at": {
+            "type": "integer"
+          },
+          "translated__content__he__description": {
+            "type": "string"
+          },
+          "translated__content__he__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__hr__created__at": {
+            "type": "integer"
+          },
+          "translated__content__hr__description": {
+            "type": "string"
+          },
+          "translated__content__hr__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__hu__created__at": {
+            "type": "integer"
+          },
+          "translated__content__hu__description": {
+            "type": "string"
+          },
+          "translated__content__hu__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__id__created__at": {
+            "type": "integer"
+          },
+          "translated__content__id__description": {
+            "type": "string"
+          },
+          "translated__content__id__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__it__created__at": {
+            "type": "integer"
+          },
+          "translated__content__it__description": {
+            "type": "string"
+          },
+          "translated__content__it__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__ja__created__at": {
+            "type": "integer"
+          },
+          "translated__content__ja__description": {
+            "type": "string"
+          },
+          "translated__content__ja__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__ko__created__at": {
+            "type": "integer"
+          },
+          "translated__content__ko__description": {
+            "type": "string"
+          },
+          "translated__content__ko__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__lt__created__at": {
+            "type": "integer"
+          },
+          "translated__content__lt__description": {
+            "type": "string"
+          },
+          "translated__content__lt__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__lv__created__at": {
+            "type": "integer"
+          },
+          "translated__content__lv__description": {
+            "type": "string"
+          },
+          "translated__content__lv__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__mn__created__at": {
+            "type": "integer"
+          },
+          "translated__content__mn__description": {
+            "type": "string"
+          },
+          "translated__content__mn__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__nb__created__at": {
+            "type": "integer"
+          },
+          "translated__content__nb__description": {
+            "type": "string"
+          },
+          "translated__content__nb__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__nl__created__at": {
+            "type": "integer"
+          },
+          "translated__content__nl__description": {
+            "type": "string"
+          },
+          "translated__content__nl__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__pl__created__at": {
+            "type": "integer"
+          },
+          "translated__content__pl__description": {
+            "type": "string"
+          },
+          "translated__content__pl__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__pt__created__at": {
+            "type": "integer"
+          },
+          "translated__content__pt__description": {
+            "type": "string"
+          },
+          "translated__content__pt__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__ro__created__at": {
+            "type": "integer"
+          },
+          "translated__content__ro__description": {
+            "type": "string"
+          },
+          "translated__content__ro__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__ru__created__at": {
+            "type": "integer"
+          },
+          "translated__content__ru__description": {
+            "type": "string"
+          },
+          "translated__content__ru__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__sl__created__at": {
+            "type": "integer"
+          },
+          "translated__content__sl__description": {
+            "type": "string"
+          },
+          "translated__content__sl__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__sr__created__at": {
+            "type": "integer"
+          },
+          "translated__content__sr__description": {
+            "type": "string"
+          },
+          "translated__content__sr__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__sv__created__at": {
+            "type": "integer"
+          },
+          "translated__content__sv__description": {
+            "type": "string"
+          },
+          "translated__content__sv__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__tr__created__at": {
+            "type": "integer"
+          },
+          "translated__content__tr__description": {
+            "type": "string"
+          },
+          "translated__content__tr__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__vi__created__at": {
+            "type": "integer"
+          },
+          "translated__content__vi__description": {
+            "type": "string"
+          },
+          "translated__content__vi__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__pt__BR__author__id": {
+            "type": "integer"
+          },
+          "translated__content__zh__CN__author__id": {
+            "type": "integer"
+          },
+          "translated__content__zh__TW__author__id": {
+            "type": "integer"
+          },
+          "translated__content__pt__BR__created__at": {
+            "type": "integer"
+          },
+          "translated__content__pt__BR__description": {
+            "type": "string"
+          },
+          "translated__content__pt__BR__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__zh__CN__created__at": {
+            "type": "integer"
+          },
+          "translated__content__zh__CN__description": {
+            "type": "string"
+          },
+          "translated__content__zh__CN__updated__at": {
+            "type": "integer"
+          },
+          "translated__content__zh__TW__created__at": {
+            "type": "integer"
+          },
+          "translated__content__zh__TW__description": {
+            "type": "string"
+          },
+          "translated__content__zh__TW__updated__at": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_UPDATE_CONTACT",
+      "name": "Update contact",
+      "description": "Tool to update an existing contact in Intercom. Use when you need to modify contact information such as name, email, custom attributes, or …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "integer"
+          },
+          "contact_id": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "last_seen_at": {
+            "type": "integer"
+          },
+          "signed_up_at": {
+            "type": "integer"
+          },
+          "custom_attributes": {
+            "type": "object"
+          },
+          "unsubscribed_from_emails": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_UPDATE_CONTENT_IMPORT_SOURCE",
+      "name": "Update content import source",
+      "description": "Tool to update an existing content import source in Fin Content Library. Use when you need to modify the URL, sync behavior, or status of a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "sync_behavior": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "url",
+          "sync_behavior"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_UPDATE_DATA_ATTRIBUTE",
+      "name": "Update data attribute",
+      "description": "Tool to update an existing data attribute in Intercom. Use when you need to modify a data attribute's description, archive status, or messe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "type": "array"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "data_attribute_id": {
+            "type": "integer"
+          },
+          "messenger_writable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data_attribute_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_UPDATE_EXTERNAL_PAGE",
+      "name": "Update external page",
+      "description": "Tool to update an existing external page in Fin Content Library. Use when you need to modify the content, metadata, or availability setting…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "integer"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "fin_availability": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "page_id",
+          "title",
+          "html",
+          "url",
+          "source_id",
+          "external_id",
+          "locale"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_UPDATE_INTERNAL_ARTICLE",
+      "name": "Update internal article",
+      "description": "Tool to update an internal article with new title, body, author or owner information. Use when you need to modify an existing internal arti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "integer"
+          },
+          "author_id": {
+            "type": "integer"
+          },
+          "internal_article_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "internal_article_id",
+          "title",
+          "body",
+          "author_id",
+          "owner_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_UPDATE_TICKET",
+      "name": "Update ticket",
+      "description": "Tool to update an existing ticket in Intercom. Use when you need to modify ticket attributes, state, assignment, or other properties.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "boolean"
+          },
+          "admin_id": {
+            "type": "integer"
+          },
+          "is_shared": {
+            "type": "boolean"
+          },
+          "ticket_id": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string"
+          },
+          "assignee_id": {
+            "type": "string"
+          },
+          "snoozed_until": {
+            "type": "integer"
+          },
+          "ticket_state_id": {
+            "type": "string"
+          },
+          "ticket_attributes": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_UPDATE_TICKET_TYPE",
+      "name": "Update a ticket type",
+      "description": "Tool to update an existing ticket type in the workspace. Use when you need to modify a ticket type's name, description, category, icon, or …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "icon": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "is_internal": {
+            "type": "boolean"
+          },
+          "ticket_type_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_type_id"
+        ]
+      }
+    },
+    {
+      "slug": "INTERCOM_UPDATE_TICKET_TYPE_ATTRIBUTE",
+      "name": "Update ticket type attribute",
+      "description": "Tool to update an existing attribute for a ticket type. Use when you need to modify properties like description, visibility, or requirement…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "multiline": {
+            "type": "boolean"
+          },
+          "list_items": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "attribute_id": {
+            "type": "string"
+          },
+          "ticket_type_id": {
+            "type": "string"
+          },
+          "visible_on_create": {
+            "type": "boolean"
+          },
+          "required_to_create": {
+            "type": "boolean"
+          },
+          "visible_to_contacts": {
+            "type": "boolean"
+          },
+          "allow_multiple_values": {
+            "type": "boolean"
+          },
+          "required_to_create_for_contacts": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ticket_type_id",
+          "attribute_id"
+        ]
+      }
+    }
+  ]
+}

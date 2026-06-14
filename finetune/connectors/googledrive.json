@@ -1,0 +1,3463 @@
+{
+  "slug": "googledrive",
+  "name": "Google Drive",
+  "tool_count": 89,
+  "tools": [
+    {
+      "slug": "GOOGLEDRIVE_ADD_FILE_SHARING_PREFERENCE",
+      "name": "Add file sharing preference (Deprecated)",
+      "description": "DEPRECATED: Use GOOGLEDRIVE_CREATE_PERMISSION instead; use GOOGLEDRIVE_UPDATE_PERMISSION to modify existing permissions (avoids duplicate e…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "organizer",
+              "fileOrganizer",
+              "writer",
+              "commenter",
+              "reader"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "user",
+              "group",
+              "domain",
+              "anyone"
+            ]
+          },
+          "domain": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "string"
+          },
+          "email_address": {
+            "type": "string"
+          },
+          "transfer_ownership": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_id",
+          "role",
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_ADD_PARENT",
+      "name": "Insert File Parent (v2)",
+      "description": "Tool to add a parent folder for a file using Google Drive API v2. Use when you need to add a file to an additional folder.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "supportsTeamDrives": {
+            "type": "boolean"
+          },
+          "enforceSingleParent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fileId",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_ADD_PROPERTY",
+      "name": "Insert Property (v2 API)",
+      "description": "Tool to add a property to a file, or update it if it already exists (v2 API). Use when you need to attach custom key-value metadata to a Go…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "PUBLIC"
+            ]
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "property_key": {
+            "type": "string"
+          },
+          "property_value": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId",
+          "property_key",
+          "property_value"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_COPY_FILE",
+      "name": "Copy file (Deprecated)",
+      "description": "DEPRECATED: Use GOOGLEDRIVE_COPY_FILE_ADVANCED instead. Duplicates an existing file (not folders) in Google Drive by `file_id`; copy lands …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "new_title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_COPY_FILE_ADVANCED",
+      "name": "Copy file with advanced options",
+      "description": "Creates a copy of a file and applies any requested updates with patch semantics. Use when you need to duplicate a file with advanced option…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "parents": {
+            "type": "array"
+          },
+          "starred": {
+            "type": "boolean"
+          },
+          "trashed": {
+            "type": "boolean"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "properties": {
+            "type": "object"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "createdTime": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "ocrLanguage": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "modifiedTime": {
+            "type": "string"
+          },
+          "appProperties": {
+            "type": "object"
+          },
+          "includeLabels": {
+            "type": "string"
+          },
+          "folderColorRgb": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          },
+          "writersCanShare": {
+            "type": "boolean"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "supportsTeamDrives": {
+            "type": "boolean"
+          },
+          "enforceSingleParent": {
+            "type": "boolean"
+          },
+          "keepRevisionForever": {
+            "type": "boolean"
+          },
+          "ignoreDefaultVisibility": {
+            "type": "boolean"
+          },
+          "includePermissionsForView": {
+            "type": "string"
+          },
+          "copyRequiresWriterPermission": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_CREATE_COMMENT",
+      "name": "Create Comment",
+      "description": "Tool to create a comment on a file in Google Drive. Returns a nested `data` object; extract `data.id` for the resulting comment identifier.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "anchor": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "string"
+          },
+          "quoted_file_content_value": {
+            "type": "string"
+          },
+          "quoted_file_content_mime_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_CREATE_DRIVE",
+      "name": "Create Shared Drive",
+      "description": "Tool to create a new shared drive. Use when you need to programmatically create a new shared drive for collaboration or storage.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "themeId": {
+            "type": "string"
+          },
+          "colorRgb": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "backgroundImageFile": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_CREATE_FILE",
+      "name": "Create File or Folder",
+      "description": "Creates a new file or folder in Google Drive. Supports both metadata-only creation (for folders and empty documents) and file upload with c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "parents": {
+            "type": "array"
+          },
+          "starred": {
+            "type": "boolean"
+          },
+          "mimeType": {
+            "type": "string",
+            "enum": [
+              "application/vnd.google-apps.folder",
+              "application/vnd.google-apps.document",
+              "application/vnd.google-apps.spreadsheet",
+              "application/vnd.google-apps.presentation",
+              "application/vnd.google-apps.drawing",
+              "application/vnd.google-apps.form",
+              "application/vnd.google-apps.script",
+              "application/vnd.google-apps.shortcut",
+              "application/vnd.google-apps.site",
+              "application/vnd.google-apps.map",
+              "application/vnd.google-apps.jam",
+              "application/pdf",
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "application/vnd.oasis.opendocument.text",
+              "application/rtf",
+              "text/plain",
+              "text/html",
+              "text/markdown",
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "application/vnd.oasis.opendocument.spreadsheet",
+              "text/csv",
+              "text/tab-separated-values",
+              "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+              "application/vnd.oasis.opendocument.presentation",
+              "image/jpeg",
+              "image/png",
+              "image/gif",
+              "image/bmp",
+              "image/webp",
+              "image/svg+xml",
+              "image/tiff",
+              "video/mp4",
+              "video/x-msvideo",
+              "video/quicktime",
+              "video/x-ms-wmv",
+              "video/webm",
+              "audio/mpeg",
+              "audio/wav",
+              "audio/ogg",
+              "application/zip",
+              "application/vnd.rar",
+              "application/x-tar",
+              "application/gzip",
+              "application/x-7z-compressed",
+              "application/json",
+              "application/xml",
+              "application/x-yaml",
+              "application/epub+zip",
+              "application/octet-stream"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "file_to_upload": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_CREATE_FILE_FROM_TEXT",
+      "name": "Create a File from Text",
+      "description": "Creates a new file in Google Drive from provided text content (up to 10MB), supporting various formats including automatic conversion to Go…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_name": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "text_content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_name",
+          "text_content"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_CREATE_FOLDER",
+      "name": "Create a folder",
+      "description": "Creates a new folder in Google Drive, optionally within an EXISTING parent folder specified by its ID or name. The parent folder MUST alrea…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_CREATE_PERMISSION",
+      "name": "Create Permission",
+      "description": "Tool to create a permission for a file or shared drive. Use when you need to share a file or folder with users, groups, domains, or make it…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "organizer",
+              "fileOrganizer",
+              "writer",
+              "commenter",
+              "reader"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "user",
+              "group",
+              "domain",
+              "anyone"
+            ]
+          },
+          "domain": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "string"
+          },
+          "email_address": {
+            "type": "string"
+          },
+          "email_message": {
+            "type": "string"
+          },
+          "expiration_time": {
+            "type": "string"
+          },
+          "transfer_ownership": {
+            "type": "boolean"
+          },
+          "supports_all_drives": {
+            "type": "boolean"
+          },
+          "allow_file_discovery": {
+            "type": "boolean"
+          },
+          "move_to_new_owners_root": {
+            "type": "boolean"
+          },
+          "send_notification_email": {
+            "type": "boolean"
+          },
+          "use_domain_admin_access": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_id",
+          "type",
+          "role"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_CREATE_REPLY",
+      "name": "Create Reply",
+      "description": "Tool to create a reply to a comment in Google Drive. Use when you need to respond to an existing comment on a file.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "resolve",
+              "reopen"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "string"
+          },
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id",
+          "comment_id",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_CREATE_SHORTCUT_TO_FILE",
+      "name": "Create Shortcut to File/Folder",
+      "description": "Tool to create a shortcut to a file or folder in Google Drive. Use when you need to link to an existing Drive item from another location wi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "target_id": {
+            "type": "string"
+          },
+          "includeLabels": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "keepRevisionForever": {
+            "type": "boolean"
+          },
+          "ignoreDefaultVisibility": {
+            "type": "boolean"
+          },
+          "includePermissionsForView": {
+            "type": "string",
+            "enum": [
+              "published"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "target_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_CREATE_TEAM_DRIVE",
+      "name": "Create Team Drive (Deprecated)",
+      "description": "Tool to create a Team Drive. Deprecated: Use drives.create instead. Use when you need to create a Team Drive for collaboration.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "themeId": {
+            "type": "string"
+          },
+          "colorRgb": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "backgroundImageFile": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_DELETE_CHILD",
+      "name": "Delete Child (v2)",
+      "description": "Tool to remove a child from a folder using Google Drive API v2. Use when you need to remove a file from a specific folder.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "childId": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "folderId": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          },
+          "enforceSingleParent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "folderId",
+          "childId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_DELETE_COMMENT",
+      "name": "Delete Comment",
+      "description": "Permanently deletes a comment thread (and all its replies) from a Google Drive file — this action is irreversible. To remove only a single …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id",
+          "comment_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_DELETE_DRIVE",
+      "name": "Delete Shared Drive",
+      "description": "Tool to permanently delete a shared drive. Use when you need to remove a shared drive and its contents (if specified).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "driveId": {
+            "type": "string"
+          },
+          "allowItemDeletion": {
+            "type": "boolean"
+          },
+          "useDomainAdminAccess": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "driveId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_DELETE_FILE",
+      "name": "Delete file",
+      "description": "DEPRECATED: Use GOOGLEDRIVE_GOOGLE_DRIVE_DELETE_FOLDER_OR_FILE_ACTION instead. Tool to permanently delete a file owned by the user without …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "enforceSingleParent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_DELETE_PARENT",
+      "name": "Delete Parent (v2)",
+      "description": "Tool to remove a parent from a file using Google Drive API v2. Use when you need to remove a file from a specific folder.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          },
+          "enforceSingleParent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fileId",
+          "parentId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_DELETE_PERMISSION",
+      "name": "Delete Permission",
+      "description": "Deletes a permission from a file by permission ID. Deletion is irreversible — confirm the target user, group, or permission type before exe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "permission_id": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "useDomainAdminAccess": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_id",
+          "permission_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_DELETE_PROPERTY",
+      "name": "Delete Property (v2 API)",
+      "description": "Tool to delete a property from a file using Google Drive API v2. Use when you need to remove custom key-value metadata from a file.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "propertyKey": {
+            "type": "string"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId",
+          "propertyKey"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_DELETE_REPLY",
+      "name": "Delete Reply",
+      "description": "Tool to delete a specific reply by reply ID. Deletion is irreversible; obtain explicit user confirmation before calling. Removes only the t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "reply_id": {
+            "type": "string"
+          },
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id",
+          "comment_id",
+          "reply_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_DELETE_REVISION",
+      "name": "Delete Revision",
+      "description": "Tool to permanently delete a file revision. Use when you need to remove a specific version of a binary file (images, videos, etc.). Cannot …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "revision_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id",
+          "revision_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_DELETE_TEAM_DRIVE",
+      "name": "Delete Team Drive (Deprecated)",
+      "description": "Tool to permanently delete a Team Drive. Deprecated: Use drives.delete instead. Use when you need to remove a Team Drive using the legacy e…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "teamDriveId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "teamDriveId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_DOWNLOAD_FILE",
+      "name": "Download a file from Google Drive",
+      "description": "Downloads a file from Google Drive by its ID. For Google Workspace documents (Docs, Sheets, Slides), optionally exports to a specified `mim…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string",
+            "enum": [
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "application/vnd.oasis.opendocument.text",
+              "application/rtf",
+              "application/pdf",
+              "text/plain",
+              "application/zip",
+              "application/epub+zip",
+              "text/html",
+              "text/markdown",
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "application/vnd.oasis.opendocument.spreadsheet",
+              "text/csv",
+              "text/tab-separated-values",
+              "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+              "application/vnd.oasis.opendocument.presentation",
+              "image/jpeg",
+              "image/png",
+              "image/svg+xml",
+              "application/vnd.google-apps.script+json",
+              "application/vnd.google-apps.vid"
+            ]
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_DOWNLOAD_FILE2",
+      "name": "Download file content (Deprecated)",
+      "description": "DEPRECATED: Use GOOGLEDRIVE_DOWNLOAD_FILE_OPERATION instead. Tool to download file content as a long-running operation. Use when you need t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_DOWNLOAD_FILE_OPERATION",
+      "name": "Download file via operation",
+      "description": "Tool to download file content using long-running operations. Use when you need to download Google Vids files or export Google Workspace doc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "revision_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_EDIT_FILE",
+      "name": "Edit File",
+      "description": "Updates an existing Google Drive file with binary content by overwriting its entire content with new text (max 10MB). IMPORTANT: This actio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_EMPTY_TRASH",
+      "name": "Empty Trash",
+      "description": "Tool to permanently and irreversibly delete ALL trashed files in the user's Google Drive or a specified shared drive. Recovery is impossibl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "driveId": {
+            "type": "string"
+          },
+          "enforceSingleParent": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_EXPORT_GOOGLE_WORKSPACE_FILE",
+      "name": "Export Google Workspace file",
+      "description": "Exports a Google Workspace document to the requested MIME type and returns exported file content. Use when you need to export Google Docs, …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string",
+            "enum": [
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "application/vnd.oasis.opendocument.text",
+              "application/rtf",
+              "application/pdf",
+              "text/plain",
+              "application/zip",
+              "application/epub+zip",
+              "text/markdown",
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "application/vnd.oasis.opendocument.spreadsheet",
+              "text/csv",
+              "text/tab-separated-values",
+              "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+              "application/vnd.oasis.opendocument.presentation",
+              "image/jpeg",
+              "image/png",
+              "image/svg+xml",
+              "application/vnd.google-apps.script+json"
+            ]
+          }
+        },
+        "required": [
+          "fileId",
+          "mimeType"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_FIND_FILE",
+      "name": "Find file",
+      "description": "The comprehensive Google Drive search tool that handles all file and folder discovery needs. Use this for any file finding task - from simp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "spaces": {
+            "type": "string"
+          },
+          "corpora": {
+            "type": "string",
+            "enum": [
+              "user",
+              "drive",
+              "domain",
+              "allDrives"
+            ]
+          },
+          "driveId": {
+            "type": "string"
+          },
+          "orderBy": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "folder_id": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "include_labels": {
+            "type": "string"
+          },
+          "pagetoken_dropped": {
+            "type": "boolean"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "original_email_query": {
+            "type": "string"
+          },
+          "editors_field_removed": {
+            "type": "boolean"
+          },
+          "email_query_transformed": {
+            "type": "boolean"
+          },
+          "orderby_size_transformed": {
+            "type": "boolean"
+          },
+          "original_bare_text_query": {
+            "type": "string"
+          },
+          "includeItemsFromAllDrives": {
+            "type": "boolean"
+          },
+          "emailaddress_field_removed": {
+            "type": "boolean"
+          },
+          "original_invalid_pagetoken": {
+            "type": "string"
+          },
+          "bare_text_query_transformed": {
+            "type": "boolean"
+          },
+          "include_permissions_for_view": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_FIND_FOLDER",
+      "name": "Find folder",
+      "description": "Tool to find a folder in Google Drive by its name and optionally a parent folder. Use when you need to locate a specific folder to perform …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "starred": {
+            "type": "boolean"
+          },
+          "name_exact": {
+            "type": "string"
+          },
+          "name_contains": {
+            "type": "string"
+          },
+          "modified_after": {
+            "type": "string"
+          },
+          "parent_folder_id": {
+            "type": "string"
+          },
+          "name_not_contains": {
+            "type": "string"
+          },
+          "full_text_contains": {
+            "type": "string"
+          },
+          "full_text_not_contains": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GENERATE_IDS",
+      "name": "Generate File IDs",
+      "description": "Generates a set of file IDs which can be provided in create or copy requests. Use when you need to pre-allocate IDs for new files or copies.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "space": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_ABOUT",
+      "name": "Get about",
+      "description": "Tool to retrieve information about the user, the user's Drive, and system capabilities. Use when you need to check storage quotas, user det…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_APP",
+      "name": "Get App",
+      "description": "Tool to get information about a specific Drive app by ID. Use 'self' as the app ID to get information about the calling app.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "appId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "appId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_CHANGE",
+      "name": "Get Change (v2 - Deprecated)",
+      "description": "Tool to get a specific change by ID from Google Drive v2 API. Deprecated: Use changes.getStartPageToken and changes.list to retrieve recent…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "driveId": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "changeId": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "teamDriveId": {
+            "type": "string"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "supportsTeamDrives": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "changeId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_CHANGES_START_PAGE_TOKEN",
+      "name": "Get Changes Start Page Token",
+      "description": "Tool to get the starting pageToken for listing future changes in Google Drive. Returns only a token — pass it to GOOGLEDRIVE_LIST_CHANGES t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "driveId": {
+            "type": "string"
+          },
+          "teamDriveId": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "supportsTeamDrives": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_CHILD",
+      "name": "Get Child Reference (v2)",
+      "description": "Tool to get a specific child reference for a folder using Drive API v2. Use when you need to verify a specific file exists as a child of a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "childId": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "folderId": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folderId",
+          "childId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_COMMENT",
+      "name": "Get Comment",
+      "description": "Tool to get a comment by ID. Use when you need to retrieve a specific comment from a Google Drive file and have both the file ID and commen…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "commentId": {
+            "type": "string"
+          },
+          "includeDeleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fileId",
+          "commentId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_DRIVE",
+      "name": "Get Shared Drive",
+      "description": "Tool to get a shared drive by ID. Use when you need to retrieve information about a specific shared drive. To discover drive_ids, use GOOGL…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "drive_id": {
+            "type": "string"
+          },
+          "use_domain_admin_access": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "drive_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_FILE_METADATA",
+      "name": "Get File Metadata",
+      "description": "Tool to get a file's metadata by ID. Use to verify `mimeType`, `parents`, and `trashed` status before destructive operations (delete/move/e…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "includeLabels": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "includePermissionsForView": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_FILE_PROPERTY",
+      "name": "Get Property (v2)",
+      "description": "Tool to get a property by its key using Google Drive API v2. Use when you need to retrieve a specific custom property attached to a file.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "propertyKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId",
+          "propertyKey"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_FILE_V2",
+      "name": "Get File (v2 API) (Deprecated)",
+      "description": "DEPRECATED: Use GetFileMetadata instead. Tool to get a file's metadata or content by ID from Google Drive API v2. Use when you need file me…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "projection": {
+            "type": "string",
+            "enum": [
+              "BASIC",
+              "FULL"
+            ]
+          },
+          "revisionId": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "includeLabels": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          },
+          "acknowledgeAbuse": {
+            "type": "boolean"
+          },
+          "updateViewedDate": {
+            "type": "boolean"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "supportsTeamDrives": {
+            "type": "boolean"
+          },
+          "includePermissionsForView": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_PARENT",
+      "name": "Get Parent Reference (v2)",
+      "description": "Tool to get a specific parent reference for a file using Drive API v2. Use when you need to retrieve information about a specific parent fo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId",
+          "parentId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_PERMISSION",
+      "name": "Get Permission",
+      "description": "Gets a permission by ID. Use this tool to retrieve a specific permission for a file or shared drive. Newly created or updated permissions o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "string"
+          },
+          "permission_id": {
+            "type": "string"
+          },
+          "supports_all_drives": {
+            "type": "boolean"
+          },
+          "use_domain_admin_access": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_id",
+          "permission_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_PERMISSION_ID_FOR_EMAIL",
+      "name": "Get Permission ID for Email",
+      "description": "Tool to get the permission ID for an email address using the Drive API v2. Use when you need to convert an email address to its correspondi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_REPLY",
+      "name": "Get Reply",
+      "description": "Tool to get a specific reply to a comment on a file. Use when you need to retrieve the details of a particular reply.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "replyId": {
+            "type": "string"
+          },
+          "commentId": {
+            "type": "string"
+          },
+          "includeDeleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fileId",
+          "commentId",
+          "replyId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_REVISION",
+      "name": "Get Revision",
+      "description": "Tool to get a specific revision's metadata (name, modifiedTime, keepForever, etc.) by revision ID. Returns metadata only — not file content…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "revision_id": {
+            "type": "string"
+          },
+          "acknowledge_abuse": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_id",
+          "revision_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GET_TEAM_DRIVE",
+      "name": "Get Team Drive (Deprecated)",
+      "description": "Tool to get metadata about a Team Drive by ID. Deprecated: Use the drives.get endpoint instead.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "teamDriveId": {
+            "type": "string"
+          },
+          "useDomainAdminAccess": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "teamDriveId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_GOOGLE_DRIVE_DELETE_FOLDER_OR_FILE_ACTION",
+      "name": "Delete folder or file",
+      "description": "Tool to delete a file or folder in Google Drive. Use when you need to permanently remove a specific file or folder using its ID. Note: This…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_HIDE_DRIVE",
+      "name": "Hide Shared Drive",
+      "description": "Tool to hide a shared drive from the default view. Use when you want to remove a shared drive from the user's main Google Drive interface w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "drive_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "drive_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_INSERT_CHILD",
+      "name": "Insert Child Into Folder (v2)",
+      "description": "Tool to insert a file into a folder using Drive API v2. Use when you need to add an existing file to a folder.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "folderId": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "supportsTeamDrives": {
+            "type": "boolean"
+          },
+          "enforceSingleParent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "folderId",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_LIST_ACCESS_PROPOSALS",
+      "name": "List Access Proposals",
+      "description": "Tool to list pending access proposals on a file. Use when you need to retrieve access proposals for a specific file. Note: Only approvers c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "pageToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_LIST_APPROVALS",
+      "name": "List Approvals",
+      "description": "Tool to list approvals on a file for workflow-based access control. Use when you need to retrieve all approvals associated with a specific …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "pageToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_LIST_CHANGES",
+      "name": "List Changes",
+      "description": "Tool to list the changes for a user or shared drive. Use when a full incremental change feed is needed (for simple recent-file lookups, pre…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "spaces": {
+            "type": "string"
+          },
+          "driveId": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "includeLabels": {
+            "type": "string"
+          },
+          "includeRemoved": {
+            "type": "boolean"
+          },
+          "restrictToMyDrive": {
+            "type": "boolean"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "includeCorpusRemovals": {
+            "type": "boolean"
+          },
+          "includeItemsFromAllDrives": {
+            "type": "boolean"
+          },
+          "includePermissionsForView": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_LIST_CHILDREN_V2",
+      "name": "List Folder Children (v2)",
+      "description": "Tool to list a folder's children using Google Drive API v2. Use when you need to retrieve all files and folders within a specific folder.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "orderBy": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "folderId": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folderId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_LIST_COMMENTS",
+      "name": "List Comments",
+      "description": "Tool to list all comments for a file in Google Drive. Results are paginated; iterate using nextPageToken until absent to retrieve all comme…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "includeDeleted": {
+            "type": "boolean"
+          },
+          "startModifiedTime": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_LIST_FILE_LABELS",
+      "name": "List File Labels",
+      "description": "Tool to list the labels already applied to a file in Google Drive. An empty labels array is a valid response indicating no labels are appli…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_LIST_FILE_PROPERTIES",
+      "name": "List Properties (v2 API)",
+      "description": "Tool to list a file's properties in Google Drive API v2. Use when you need to retrieve custom properties (key-value pairs) attached to a fi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_LIST_FILES",
+      "name": "List Files and Folders (Deprecated)",
+      "description": "DEPRECATED: Use GOOGLEDRIVE_FIND_FILE instead. Tool to list a user's files and folders in Google Drive. Use this to search or browse for fi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "spaces": {
+            "type": "string"
+          },
+          "corpora": {
+            "type": "string"
+          },
+          "driveId": {
+            "type": "string"
+          },
+          "orderBy": {
+            "type": "string"
+          },
+          "folderId": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "includeLabels": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "includeItemsFromAllDrives": {
+            "type": "boolean"
+          },
+          "includePermissionsForView": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_LIST_PERMISSIONS",
+      "name": "List Permissions",
+      "description": "Tool to list a file's permissions. Use when you need to retrieve all permissions associated with a specific file or shared drive.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "useDomainAdminAccess": {
+            "type": "boolean"
+          },
+          "includePermissionsForView": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_LIST_REPLIES",
+      "name": "List Replies to Comment",
+      "description": "Tool to list replies to a comment in Google Drive. Use this when you need to retrieve all replies associated with a specific comment on a f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "comment_id": {
+            "type": "string"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "include_deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_id",
+          "comment_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_LIST_REVISIONS",
+      "name": "List File Revisions",
+      "description": "Tool to list a file's revision metadata (not content) in Google Drive. Drive may prune old revisions, so history may be incomplete for freq…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_LIST_SHARED_DRIVES",
+      "name": "List Shared Drives",
+      "description": "Tool to list the user's shared drives. Use when you need to get a list of all shared drives accessible to the authenticated user. Results m…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "useDomainAdminAccess": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_LIST_TEAM_DRIVES",
+      "name": "List Team Drives (Deprecated)",
+      "description": "Tool to list Team Drives (deprecated, use List Shared Drives instead). Use when you need to retrieve Team Drives using the legacy endpoint.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          },
+          "useDomainAdminAccess": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_MODIFY_FILE_LABELS",
+      "name": "Modify File Labels",
+      "description": "Modifies the set of labels applied to a file. Returns a list of the labels that were added or modified. Use when you need to programmatical…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "string"
+          },
+          "label_modifications": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "file_id",
+          "label_modifications"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_MOVE_FILE",
+      "name": "Move File",
+      "description": "Tool to move a file from one folder to another in Google Drive. To truly move (not just copy the parent), always provide both `add_parents`…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "add_parents": {
+            "type": "string"
+          },
+          "ocr_language": {
+            "type": "string"
+          },
+          "include_labels": {
+            "type": "string"
+          },
+          "remove_parents": {
+            "type": "string"
+          },
+          "supports_all_drives": {
+            "type": "boolean"
+          },
+          "keep_revision_forever": {
+            "type": "boolean"
+          },
+          "include_permissions_for_view": {
+            "type": "string"
+          },
+          "use_content_as_indexable_text": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_PARSE_FILE",
+      "name": "Export or download a file",
+      "description": "DEPRECATED: Exports Google Workspace files (max 10MB) to a specified format using `mime_type`, or downloads other file types; use `GOOGLEDR…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string",
+            "enum": [
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "application/vnd.oasis.opendocument.text",
+              "application/rtf",
+              "application/pdf",
+              "text/plain",
+              "application/zip",
+              "application/epub+zip",
+              "text/markdown",
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "application/vnd.oasis.opendocument.spreadsheet",
+              "text/csv",
+              "text/tab-separated-values",
+              "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+              "application/vnd.oasis.opendocument.presentation",
+              "image/jpeg",
+              "image/png",
+              "image/svg+xml",
+              "application/vnd.google-apps.script+json",
+              "video/mp4"
+            ]
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_PATCH_PERMISSION",
+      "name": "Patch Permission",
+      "description": "Tool to update a permission using patch semantics. Use when you need to modify specific fields of an existing permission without affecting …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "organizer",
+              "fileOrganizer",
+              "writer",
+              "reader"
+            ]
+          },
+          "file_id": {
+            "type": "string"
+          },
+          "with_link": {
+            "type": "boolean"
+          },
+          "permission_id": {
+            "type": "string"
+          },
+          "expiration_date": {
+            "type": "string"
+          },
+          "additional_roles": {
+            "type": "array"
+          },
+          "remove_expiration": {
+            "type": "boolean"
+          },
+          "transfer_ownership": {
+            "type": "boolean"
+          },
+          "supports_all_drives": {
+            "type": "boolean"
+          },
+          "use_domain_admin_access": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_id",
+          "permission_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_PATCH_PROPERTY",
+      "name": "Patch Property (v2 API)",
+      "description": "Tool to update a property on a file using PATCH semantics (v2 API). Use when you need to partially update custom key-value metadata attache…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "PUBLIC"
+            ]
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "propertyKey": {
+            "type": "string"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId",
+          "propertyKey"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_RESUMABLE_UPLOAD",
+      "name": "Resumable Upload",
+      "description": "Tool to start and complete a Google Drive resumable upload session. Use for files larger than ~5 MB to avoid timeouts or size-limit failure…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "chunkSize": {
+            "type": "integer"
+          },
+          "queryParams": {
+            "type": "object"
+          },
+          "file_to_upload": {
+            "type": "object"
+          },
+          "folder_to_upload_to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_to_upload"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_STOP_WATCH_CHANNEL",
+      "name": "Stop Watch Channel",
+      "description": "Tool to stop watching resources through a specified channel. Use this when you want to stop receiving notifications for a previously establ…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          },
+          "address": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "boolean"
+          },
+          "expiration": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "channelType": {
+            "type": "string",
+            "enum": [
+              "web_hook",
+              "webhook"
+            ]
+          },
+          "resourceUri": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "resourceId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_TRASH_FILE",
+      "name": "Trash File",
+      "description": "Tool to move a file or folder to trash (soft delete). Use when you need to delete a file but want to allow recovery via UNTRASH_FILE. This …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UNHIDE_DRIVE",
+      "name": "Unhide Shared Drive",
+      "description": "Tool to unhide a shared drive. Use when you need to restore a shared drive to the default view.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "driveId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "driveId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UNTRASH_FILE",
+      "name": "Untrash File",
+      "description": "Tool to restore a file from the trash. Use when you need to recover a deleted file. This action updates the file's metadata to set the 'tra…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UPDATE_COMMENT",
+      "name": "Update Comment",
+      "description": "Tool to update an existing comment on a Google Drive file. Use when you need to change the content of a comment. NOTE: The 'resolved' field…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "string"
+          },
+          "resolved": {
+            "type": "boolean"
+          },
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id",
+          "comment_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UPDATE_DRIVE",
+      "name": "Update Shared Drive",
+      "description": "Tool to update the metadata for a shared drive. Use when you need to modify properties like the name, theme, background image, or restricti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "driveId": {
+            "type": "string"
+          },
+          "themeId": {
+            "type": "string"
+          },
+          "colorRgb": {
+            "type": "string"
+          },
+          "restrictions": {
+            "type": "object"
+          },
+          "backgroundImageFile": {
+            "type": "object"
+          },
+          "useDomainAdminAccess": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "driveId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UPDATE_FILE_METADATA_PATCH",
+      "name": "Update File Metadata (PATCH v2)",
+      "description": "Tool to update file metadata using the Drive API v2 PATCH method. Use when you need to modify file properties like title, description, or l…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ocr": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "labels": {
+            "type": "object"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "addParents": {
+            "type": "string"
+          },
+          "properties": {
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "newRevision": {
+            "type": "boolean"
+          },
+          "ocrLanguage": {
+            "type": "string"
+          },
+          "modifiedDate": {
+            "type": "string"
+          },
+          "includeLabels": {
+            "type": "string"
+          },
+          "indexableText": {
+            "type": "object"
+          },
+          "removeParents": {
+            "type": "string"
+          },
+          "setModifiedDate": {
+            "type": "boolean"
+          },
+          "writersCanShare": {
+            "type": "boolean"
+          },
+          "updateViewedDate": {
+            "type": "boolean"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "timedTextLanguage": {
+            "type": "string"
+          },
+          "timedTextTrackName": {
+            "type": "string"
+          },
+          "includePermissionsForView": {
+            "type": "string"
+          },
+          "useContentAsIndexableText": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UPDATE_FILE_PROPERTY",
+      "name": "Update Property (v2 API)",
+      "description": "Tool to update a property on a file using Google Drive API v2. Use when you need to modify an existing custom property attached to a file.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "enum": [
+              "json",
+              "media",
+              "proto"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "xgafv": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ]
+          },
+          "fields": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "callback": {
+            "type": "string"
+          },
+          "quotaUser": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "PUBLIC"
+            ]
+          },
+          "oauth_token": {
+            "type": "string"
+          },
+          "prettyPrint": {
+            "type": "boolean"
+          },
+          "propertyKey": {
+            "type": "string"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "property_value": {
+            "type": "string"
+          },
+          "upload_protocol": {
+            "type": "string"
+          },
+          "property_visibility": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "PUBLIC"
+            ]
+          }
+        },
+        "required": [
+          "fileId",
+          "propertyKey"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UPDATE_FILE_PUT",
+      "name": "Update File (Metadata)",
+      "description": "Updates file metadata. Uses PATCH semantics (partial update) as per Google Drive API v3 — only explicitly provided fields are updated, so o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "starred": {
+            "type": "boolean"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "add_parents": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "ocr_language": {
+            "type": "string"
+          },
+          "remove_parents": {
+            "type": "string"
+          },
+          "writers_can_share": {
+            "type": "boolean"
+          },
+          "supports_all_drives": {
+            "type": "boolean"
+          },
+          "keep_revision_forever": {
+            "type": "boolean"
+          },
+          "use_domain_admin_access": {
+            "type": "boolean"
+          },
+          "viewers_can_copy_content": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UPDATE_FILE_REVISION_METADATA",
+      "name": "Update File Revision Metadata",
+      "description": "Updates ONLY the metadata properties of a specific file revision (keepForever, published, publishAuto, publishedOutsideDomain). IMPORTANT: …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "published": {
+            "type": "boolean"
+          },
+          "keepForever": {
+            "type": "boolean"
+          },
+          "publishAuto": {
+            "type": "boolean"
+          },
+          "revision_id": {
+            "type": "string"
+          },
+          "publishedOutsideDomain": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_id",
+          "revision_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UPDATE_PERMISSION",
+      "name": "Update Permission",
+      "description": "Tool to update a permission with patch semantics. Use when you need to modify an existing permission for a file or shared drive. Inherited …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "permission": {
+            "type": "object"
+          },
+          "permissionId": {
+            "type": "string"
+          },
+          "removeExpiration": {
+            "type": "boolean"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "transferOwnership": {
+            "type": "boolean"
+          },
+          "useDomainAdminAccess": {
+            "type": "boolean"
+          },
+          "enforceExpansiveAccess": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fileId",
+          "permissionId",
+          "permission"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UPDATE_REPLY",
+      "name": "Update Reply",
+      "description": "Tool to update a reply to a comment on a Google Drive file. Use when you need to modify the content of an existing reply.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "string"
+          },
+          "reply_id": {
+            "type": "string"
+          },
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id",
+          "comment_id",
+          "reply_id",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UPDATE_TEAM_DRIVE",
+      "name": "Update Team Drive (Deprecated)",
+      "description": "Tool to update a Team Drive's metadata. Deprecated: Use the drives.update endpoint instead. Use when you need to modify Team Drive properti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "themeId": {
+            "type": "string"
+          },
+          "colorRgb": {
+            "type": "string"
+          },
+          "teamDriveId": {
+            "type": "string"
+          },
+          "restrictions": {
+            "type": "object"
+          },
+          "backgroundImageFile": {
+            "type": "object"
+          },
+          "useDomainAdminAccess": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "teamDriveId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UPLOAD_FILE",
+      "name": "Upload File",
+      "description": "Uploads a file (max 5MB) to Google Drive, placing it in the specified folder or root if no valid folder ID is provided. Always creates a ne…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_to_upload": {
+            "type": "object"
+          },
+          "folder_to_upload_to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_to_upload"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UPLOAD_FROM_URL",
+      "name": "Upload File from URL to Drive",
+      "description": "Tool to fetch a file from a provided URL server-side and upload it into Google Drive. Use when you need to reliably persist externally host…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          },
+          "verify_ssl": {
+            "type": "boolean"
+          },
+          "source_headers": {
+            "type": "object"
+          },
+          "parent_folder_id": {
+            "type": "string"
+          },
+          "supports_all_drives": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "source_url",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_UPLOAD_UPDATE_FILE",
+      "name": "Upload/Update File Content",
+      "description": "Tool to update file content in Google Drive by uploading new binary content. Use when you need to replace the contents of an existing file …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "addParents": {
+            "type": "string"
+          },
+          "uploadType": {
+            "type": "string"
+          },
+          "ocrLanguage": {
+            "type": "string"
+          },
+          "removeParents": {
+            "type": "string"
+          },
+          "file_to_upload": {
+            "type": "object"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "keepRevisionForever": {
+            "type": "boolean"
+          },
+          "useContentAsIndexableText": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fileId",
+          "file_to_upload"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_WATCH_CHANGES",
+      "name": "Watch Drive Changes",
+      "description": "Tool to subscribe to changes for a user or shared drive in Google Drive. Use when you need to monitor a Google Drive for modifications and …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          },
+          "spaces": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "drive_id": {
+            "type": "string"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "expiration": {
+            "type": "integer"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "include_labels": {
+            "type": "string"
+          },
+          "include_removed": {
+            "type": "boolean"
+          },
+          "supports_all_drives": {
+            "type": "boolean"
+          },
+          "restrict_to_my_drive": {
+            "type": "boolean"
+          },
+          "include_corpus_removals": {
+            "type": "boolean"
+          },
+          "include_permissions_for_view": {
+            "type": "string"
+          },
+          "include_items_from_all_drives": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "address"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDRIVE_WATCH_FILE",
+      "name": "Watch File for Changes",
+      "description": "Tool to subscribe to push notifications for changes to a specific file. Use when you need to monitor a file for modifications and receive r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "web_hook",
+              "webhook"
+            ]
+          },
+          "token": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          },
+          "address": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "boolean"
+          },
+          "expiration": {
+            "type": "integer"
+          },
+          "includeLabels": {
+            "type": "string"
+          },
+          "acknowledgeAbuse": {
+            "type": "boolean"
+          },
+          "supportsAllDrives": {
+            "type": "boolean"
+          },
+          "supportsTeamDrives": {
+            "type": "boolean"
+          },
+          "includePermissionsForView": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId",
+          "id",
+          "type",
+          "address"
+        ]
+      }
+    }
+  ]
+}

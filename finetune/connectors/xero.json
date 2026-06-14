@@ -1,0 +1,1203 @@
+{
+  "slug": "xero",
+  "name": "Xero",
+  "tool_count": 41,
+  "tools": [
+    {
+      "slug": "XERO_CREATE_BANK_TRANSACTION",
+      "name": "Create Bank Transaction",
+      "description": "Create a bank transaction in Xero. Use SPEND for payments out or RECEIVE for money received.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Date": {
+            "type": "string"
+          },
+          "Type": {
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
+          },
+          "ContactID": {
+            "type": "string"
+          },
+          "LineItems": {
+            "type": "array"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "CurrencyCode": {
+            "type": "string"
+          },
+          "BankAccountID": {
+            "type": "string"
+          },
+          "BankAccountCode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Type",
+          "ContactID",
+          "LineItems"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_CREATE_CONTACT",
+      "name": "Create Contact",
+      "description": "Create a new contact in Xero. Contacts can be customers, suppliers, or both.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "Website": {
+            "type": "string"
+          },
+          "LastName": {
+            "type": "string"
+          },
+          "FirstName": {
+            "type": "string"
+          },
+          "TaxNumber": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "IsCustomer": {
+            "type": "boolean"
+          },
+          "IsSupplier": {
+            "type": "boolean"
+          },
+          "EmailAddress": {
+            "type": "string"
+          },
+          "phone_number": {
+            "type": "string"
+          },
+          "AccountNumber": {
+            "type": "string"
+          },
+          "mobile_number": {
+            "type": "string"
+          },
+          "DefaultCurrency": {
+            "type": "string"
+          },
+          "BankAccountDetails": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Name"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_CREATE_INVOICE",
+      "name": "Create Invoice",
+      "description": "Create a new invoice in Xero. Supports both sales invoices (ACCREC) and bills (ACCPAY).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Date": {
+            "type": "string"
+          },
+          "Type": {
+            "type": "string",
+            "enum": [
+              "ACCREC",
+              "ACCPAY"
+            ]
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "SUBMITTED",
+              "AUTHORISED"
+            ]
+          },
+          "DueDate": {
+            "type": "string"
+          },
+          "ContactID": {
+            "type": "string"
+          },
+          "LineItems": {
+            "type": "array"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "ContactName": {
+            "type": "string"
+          },
+          "CurrencyCode": {
+            "type": "string"
+          },
+          "InvoiceNumber": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Type",
+          "LineItems"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_CREATE_ITEM",
+      "name": "Create Item",
+      "description": "Create an inventory item in Xero. Items can be tracked for sales and/or purchases.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Code": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "IsSold": {
+            "type": "boolean"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "IsPurchased": {
+            "type": "boolean"
+          },
+          "SalesDetails.UnitPrice": {
+            "type": "number"
+          },
+          "SalesDetails.AccountCode": {
+            "type": "string"
+          },
+          "PurchaseDetails.UnitPrice": {
+            "type": "number"
+          },
+          "PurchaseDetails.AccountCode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Code",
+          "Name"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_CREATE_MANUAL_JOURNAL",
+      "name": "Create Manual Journal",
+      "description": "Create one or more manual journals (journal entries) in Xero with journal lines. Manual journals must balance (debits equal credits).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Url": {
+            "type": "string"
+          },
+          "Date": {
+            "type": "string"
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "POSTED"
+            ]
+          },
+          "Narration": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "JournalLines": {
+            "type": "array"
+          },
+          "LineAmountTypes": {
+            "type": "string",
+            "enum": [
+              "Exclusive",
+              "Inclusive",
+              "NoTax"
+            ]
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "summarize_errors": {
+            "type": "boolean"
+          },
+          "ShowOnCashBasisReports": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "Narration",
+          "Date",
+          "JournalLines"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_CREATE_PAYMENT",
+      "name": "Create Payment",
+      "description": "Create a payment in Xero to link an invoice with a bank account transaction.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Date": {
+            "type": "string"
+          },
+          "Amount": {
+            "type": "number"
+          },
+          "AccountID": {
+            "type": "string"
+          },
+          "InvoiceID": {
+            "type": "string"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "CurrencyRate": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "InvoiceID",
+          "AccountID",
+          "Amount"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_CREATE_PURCHASE_ORDER",
+      "name": "Create Purchase Order",
+      "description": "Create a purchase order in Xero to order goods/services from suppliers.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Date": {
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
+          },
+          "ContactID": {
+            "type": "string"
+          },
+          "LineItems": {
+            "type": "array"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "DeliveryDate": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ContactID",
+          "LineItems"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_GET_ACCOUNT",
+      "name": "Get Account",
+      "description": "Retrieve a specific account from Xero's chart of accounts by its unique ID. Returns detailed account information including code, name, type…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_GET_ASSET",
+      "name": "Get Asset",
+      "description": "Retrieve a specific asset by ID from Xero. Returns depreciation details and book value.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "asset_id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_id"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_GET_BALANCE_SHEET_REPORT",
+      "name": "Get Balance Sheet Report",
+      "description": "Retrieve Balance Sheet report from Xero. Shows assets, liabilities, and equity at a specific date. Liability and credit balances appear as …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "periods": {
+            "type": "integer"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "timeframe": {
+            "type": "string"
+          },
+          "paymentsOnly": {
+            "type": "boolean"
+          },
+          "standardLayout": {
+            "type": "boolean"
+          },
+          "trackingOptionID": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_GET_BUDGET",
+      "name": "Get Budget",
+      "description": "Retrieve a budget from Xero. Budgets track planned vs actual spending by account.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "DateTo": {
+            "type": "string"
+          },
+          "DateFrom": {
+            "type": "string"
+          },
+          "budget_id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "budget_id"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_GET_CONNECTIONS",
+      "name": "Get Connections",
+      "description": "Tool to list active Xero connections. Use to retrieve all current tenant connections for the authenticated user and resolve the correct ten…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "XERO_GET_CONTACTS",
+      "name": "Get Contacts",
+      "description": "Tool to retrieve a list of contacts. Use when you need up-to-date contact information with filtering, paging, or incremental updates.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "IDs": {
+            "type": "array"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "ContactID": {
+            "type": "string"
+          },
+          "searchTerm": {
+            "type": "string"
+          },
+          "summaryOnly": {
+            "type": "boolean"
+          },
+          "includeArchived": {
+            "type": "boolean"
+          },
+          "If-Modified-Since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_GET_INVOICE",
+      "name": "Get Invoice",
+      "description": "Retrieve a specific invoice by ID from Xero. Returns full invoice details including line items and status.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "unitdp": {
+            "type": "integer"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "invoice_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_id"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_GET_ITEM",
+      "name": "Get Item",
+      "description": "Retrieve a specific item by ID from Xero. Returns item code, name, pricing, and tax details.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_GET_MANUAL_JOURNAL",
+      "name": "Get Manual Journal",
+      "description": "Retrieve a specific manual journal by ID from Xero. Returns full details including journal lines.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "manual_journal_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "manual_journal_id"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_GET_ORGANISATION",
+      "name": "Get Organisation",
+      "description": "Retrieve organisation details from Xero. Returns company info, base currency, timezone, financial year settings, SalesTaxBasis, SalesTaxPer…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_GET_PROFIT_LOSS_REPORT",
+      "name": "Get Profit & Loss Report",
+      "description": "Retrieve Profit & Loss report from Xero. Shows income, expenses, and net profit for a specified period. Response rows are labeled (e.g., 'N…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "toDate": {
+            "type": "string"
+          },
+          "periods": {
+            "type": "integer"
+          },
+          "fromDate": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "timeframe": {
+            "type": "string"
+          },
+          "paymentsOnly": {
+            "type": "boolean"
+          },
+          "standardLayout": {
+            "type": "boolean"
+          },
+          "trackingOptionID": {
+            "type": "string"
+          },
+          "trackingOptionID2": {
+            "type": "string"
+          },
+          "trackingCategoryID": {
+            "type": "string"
+          },
+          "trackingCategoryID2": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_GET_PROJECT",
+      "name": "Get Project",
+      "description": "Retrieve a specific project by ID from Xero. Returns project details, deadlines, and status.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_GET_PURCHASE_ORDER",
+      "name": "Get Purchase Order",
+      "description": "Retrieve a specific purchase order by ID from Xero. Returns full details including line items and status.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "purchase_order_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "purchase_order_id"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_GET_QUOTES",
+      "name": "Get Quotes",
+      "description": "Tool to retrieve a list of quotes. Use when you need to list, filter, or page through sales quotes. Use after obtaining the tenant ID via c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "string"
+          },
+          "DateTo": {
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
+          },
+          "DateFrom": {
+            "type": "string"
+          },
+          "ContactID": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "QuoteNumber": {
+            "type": "string"
+          },
+          "ExpiryDateTo": {
+            "type": "string"
+          },
+          "ExpiryDateFrom": {
+            "type": "string"
+          },
+          "If-Modified-Since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_GET_TRIAL_BALANCE_REPORT",
+      "name": "Get Trial Balance Report",
+      "description": "Retrieve Trial Balance report from Xero. Shows all account balances (debits and credits) at a specific date. Use to verify that total debit…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "paymentsOnly": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_ACCOUNTS",
+      "name": "List Accounts",
+      "description": "Retrieve chart of accounts from Xero. Returns all accounting codes used for categorizing transactions. Use AccountID (not name or code) as …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_ASSETS",
+      "name": "List Assets",
+      "description": "Retrieve fixed assets from Xero. Assets track depreciation and book value of capital equipment.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "orderBy": {
+            "type": "string"
+          },
+          "filterBy": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "sortDirection": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_ATTACHMENTS",
+      "name": "List Attachments",
+      "description": "List all attachments for a specific entity in Xero (invoice, contact, etc.).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "entity_id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "entity_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_type",
+          "entity_id"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_LIST_BANK_TRANSACTIONS",
+      "name": "List Bank Transactions",
+      "description": "Retrieve bank transactions from Xero. Includes SPEND, RECEIVE, and transfer types; unfiltered results include DELETED transactions that ske…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          },
+          "unitdp": {
+            "type": "integer"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "If-Modified-Since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_CREDIT_NOTES",
+      "name": "List Credit Notes",
+      "description": "Retrieve list of credit notes from Xero. Credit notes are issued to reduce amounts owed by customers.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "If-Modified-Since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_FILES",
+      "name": "List Files",
+      "description": "Retrieve files from Xero Files. Lists documents stored in Xero's file management system.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "sort": {
+            "type": "string"
+          },
+          "folderId": {
+            "type": "string"
+          },
+          "pagesize": {
+            "type": "integer"
+          },
+          "tenant_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_FOLDERS",
+      "name": "List Folders",
+      "description": "Retrieve folders from Xero Files. Lists document folders in Xero's file management system.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_INVOICES",
+      "name": "List Invoices",
+      "description": "Retrieve a list of invoices from Xero. Results include both sales invoices (Type=ACCREC) and bills (Type=ACCPAY) by default; filter by Type…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          },
+          "Statuses": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "ContactIDs": {
+            "type": "string"
+          },
+          "InvoiceIDs": {
+            "type": "string"
+          },
+          "createdByMyApp": {
+            "type": "boolean"
+          },
+          "includeArchived": {
+            "type": "boolean"
+          },
+          "If-Modified-Since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_ITEMS",
+      "name": "List Items",
+      "description": "Retrieve items (inventory/products) from Xero. Items can be tracked for sales and/or purchases.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          },
+          "unitdp": {
+            "type": "integer"
+          },
+          "tenant_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_JOURNALS",
+      "name": "List Journals",
+      "description": "Retrieve journals from Xero. Journals show the accounting entries for all transactions. Omitting filters returns the full historical journa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "paymentsOnly": {
+            "type": "boolean"
+          },
+          "If-Modified-Since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_MANUAL_JOURNALS",
+      "name": "List Manual Journals",
+      "description": "Retrieve manual journals from Xero. Manual journals are used for period-end adjustments and corrections.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "If-Modified-Since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_PAYMENTS",
+      "name": "List Payments",
+      "description": "Retrieve list of payments from Xero. Payments link invoices to bank transactions; invoices may have multiple partial/split payment records.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "If-Modified-Since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_PROJECTS",
+      "name": "List Projects",
+      "description": "Retrieve projects from Xero. Projects track time and costs for client work.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "states": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "contactID": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "projectIds": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_PURCHASE_ORDERS",
+      "name": "List Purchase Orders",
+      "description": "Retrieve list of purchase orders from Xero. Purchase orders track goods/services ordered from suppliers.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "string"
+          },
+          "DateTo": {
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
+          },
+          "DateFrom": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "If-Modified-Since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_TAX_RATES",
+      "name": "List Tax Rates",
+      "description": "Retrieve tax rates from Xero. Shows available tax codes and rates for the organization. Use returned tax codes as valid `TaxType` values in…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          },
+          "TaxType": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_LIST_TRACKING_CATEGORIES",
+      "name": "List Tracking Categories",
+      "description": "Retrieve tracking categories from Xero. Tracking categories are used to segment data for reporting (e.g., departments, regions).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "includeArchived": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "XERO_POST_INVOICE_UPDATE",
+      "name": "Update Invoice",
+      "description": "Tool to update an existing invoice. Use when you need to modify the details of an invoice after it's been created.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "unitdp": {
+            "type": "integer"
+          },
+          "Invoices": {
+            "type": "array"
+          },
+          "InvoiceID": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "InvoiceNumber": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Invoices"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_UPDATE_CONTACT",
+      "name": "Update Contact",
+      "description": "Update an existing contact in Xero. Only provided fields will be updated.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "LastName": {
+            "type": "string"
+          },
+          "ContactID": {
+            "type": "string"
+          },
+          "FirstName": {
+            "type": "string"
+          },
+          "TaxNumber": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "EmailAddress": {
+            "type": "string"
+          },
+          "phone_number": {
+            "type": "string"
+          },
+          "AccountNumber": {
+            "type": "string"
+          },
+          "mobile_number": {
+            "type": "string"
+          },
+          "DefaultCurrency": {
+            "type": "string"
+          },
+          "BankAccountDetails": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ContactID"
+        ]
+      }
+    },
+    {
+      "slug": "XERO_UPLOAD_ATTACHMENT",
+      "name": "Upload Attachment",
+      "description": "Upload a file attachment to a Xero entity (invoice, contact, etc.). Supports PDF, images, and documents.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "entity_type": {
+            "type": "string"
+          },
+          "file_to_upload": {
+            "type": "object"
+          },
+          "include_online": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "entity_type",
+          "entity_id",
+          "file_to_upload",
+          "filename"
+        ]
+      }
+    }
+  ]
+}

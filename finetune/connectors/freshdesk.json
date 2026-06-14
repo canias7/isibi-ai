@@ -1,0 +1,4075 @@
+{
+  "slug": "freshdesk",
+  "name": "Freshdesk",
+  "tool_count": 178,
+  "tools": [
+    {
+      "slug": "FRESHDESK_ADD_NOTE_TO_TICKET",
+      "name": "Add Note to Ticket",
+      "description": "Tool to add a private or public note to an existing ticket in Freshdesk. Use when you need to add internal comments or public notes to a ti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "ticket_id": {
+            "type": "integer"
+          },
+          "notify_emails": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "ticket_id",
+          "body"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_ADD_TICKET_USER_ACCESS",
+      "name": "Add Ticket User Access",
+      "description": "Tool to add agent access to a specific ticket in Freshdesk. Use when you need to grant agent(s) permission to view or interact with a ticke…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_ids": {
+            "type": "array"
+          },
+          "ticket_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_id",
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_ADD_WATCHER",
+      "name": "Add Watcher to Ticket",
+      "description": "Tool to add the authenticated user as a watcher to a Freshdesk ticket. Use when you need to follow a ticket's progress and receive email no…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_BULK_UNWATCH_TICKETS",
+      "name": "Bulk Unwatch Tickets",
+      "description": "Tool to remove the authenticated user as a watcher from multiple Freshdesk tickets in bulk. Use when you need to stop following multiple ti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_BULK_UPDATE_TICKETS",
+      "name": "Bulk Update Tickets",
+      "description": "Tool to update multiple tickets simultaneously in bulk. The bulk update operation runs asynchronously in the background, and returns a job_…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "properties": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "ids",
+          "properties"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CANCEL_CONTACT_IMPORT",
+      "name": "Cancel Contact Import",
+      "description": "Tool to cancel an ongoing contact import operation in Freshdesk. Use when you need to halt a contact import process that is currently runni…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "import_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "import_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_ADMIN",
+      "name": "Create Admin Group",
+      "description": "Tool to create a new admin group in Freshdesk. Use when you need to create a new admin group with specific agents, escalation settings, and…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "agent_ids": {
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "escalate_to": {
+            "type": "integer"
+          },
+          "unassigned_for": {
+            "type": "string"
+          },
+          "business_hour_id": {
+            "type": "integer"
+          },
+          "auto_ticket_assign": {
+            "type": "integer"
+          },
+          "allow_agents_to_change_availability": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_ADMIN_GROUP",
+      "name": "Create Admin Group",
+      "description": "Tool to create a new admin-level support agent group in Freshdesk. Use when you need to create groups for organizing support agents and man…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "agent_ids": {
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "escalate_to": {
+            "type": "integer"
+          },
+          "unassigned_for": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_ADMIN_TICKET_FIELD",
+      "name": "Create Admin Ticket Field",
+      "description": "Tool to create a new custom ticket field in Freshdesk. Use when you need to add a new field definition for capturing additional ticket info…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "custom_text",
+              "custom_paragraph",
+              "custom_number",
+              "custom_dropdown",
+              "custom_checkbox",
+              "custom_date",
+              "custom_decimal",
+              "custom_phone_number",
+              "custom_url"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "array"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "customers_can_edit": {
+            "type": "boolean"
+          },
+          "label_for_customers": {
+            "type": "string"
+          },
+          "required_for_agents": {
+            "type": "boolean"
+          },
+          "required_for_closure": {
+            "type": "boolean"
+          },
+          "displayed_to_customers": {
+            "type": "boolean"
+          },
+          "required_for_customers": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label",
+          "label_for_customers",
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_ADMIN_TICKET_FIELD_SECTION",
+      "name": "Create Admin Ticket Field Section",
+      "description": "Tool to create a new section within a ticket field in Freshdesk. Use when you need to add conditional field sections that appear based on s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "choice_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "choice_ids"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_AGENTS",
+      "name": "Create Multiple Agents",
+      "description": "Tool to create multiple agents in Freshdesk in a single bulk operation. Use when you need to add multiple agents at once. This is an asynch…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "agents": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "agents"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_CANNED_RESPONSE",
+      "name": "Create Canned Response",
+      "description": "Tool to create a new canned response in Freshdesk. Use when you need to create a reusable message template that agents can quickly insert i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "integer"
+          },
+          "group_ids": {
+            "type": "array"
+          },
+          "visibility": {
+            "type": "integer"
+          },
+          "content_html": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "content_html",
+          "visibility"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_CANNED_RESPONSE_BULK",
+      "name": "Bulk Create Canned Responses",
+      "description": "Tool to create multiple canned responses in bulk via asynchronous operation. Use when you need to add multiple canned responses at once to …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "canned_responses": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "canned_responses"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_CANNED_RESPONSE_FOLDER",
+      "name": "Create Canned Response Folder",
+      "description": "Tool to create a new canned response folder in Freshdesk. Use when you need to organize canned response templates into folders.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_COMPANIES",
+      "name": "Create Company",
+      "description": "Tool to create a new company in Freshdesk. Use when you need to add a customer organization to your Freshdesk account. Companies can hold m…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "domains": {
+            "type": "array"
+          },
+          "industry": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "account_tier": {
+            "type": "string"
+          },
+          "health_score": {
+            "type": "string"
+          },
+          "renewal_date": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_CONTACT",
+      "name": "Create Contact",
+      "description": "Tool to create a new contact in Freshdesk. Use when you need to add a customer or user to your Freshdesk account. IMPORTANT: The 'employee_…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "mobile": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "job_title": {
+            "type": "string"
+          },
+          "time_zone": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "integer"
+          },
+          "twitter_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "other_emails": {
+            "type": "array"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "other_companies": {
+            "type": "array"
+          },
+          "view_all_tickets": {
+            "type": "boolean"
+          },
+          "unique_external_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "custom_fields"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_CONTACT_FIELDS",
+      "name": "Create Contact Field",
+      "description": "Tool to create a new custom contact field in Freshdesk. Use when you need to add a new field definition for storing custom contact informat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "array"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "agents_can_edit": {
+            "type": "boolean"
+          },
+          "customers_can_edit": {
+            "type": "boolean"
+          },
+          "editable_in_signup": {
+            "type": "boolean"
+          },
+          "label_for_customers": {
+            "type": "string"
+          },
+          "quick_add_for_agent": {
+            "type": "boolean"
+          },
+          "required_for_agents": {
+            "type": "boolean"
+          },
+          "displayed_for_agents": {
+            "type": "boolean"
+          },
+          "required_for_customers": {
+            "type": "boolean"
+          },
+          "displayed_for_customers": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label",
+          "type",
+          "label_for_customers"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_DISCUSSION_CATEGORY",
+      "name": "Create Discussion Category",
+      "description": "Tool to create a new discussion category in Freshdesk forums.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "description"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_DISCUSSION_FORUM_TOPIC",
+      "name": "Create Discussion Forum Topic",
+      "description": "Tool to create a new topic in a Freshdesk discussion forum. Use when you need to post a new discussion topic or thread in a specific forum.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "sticky": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "forum_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "forum_id",
+          "title",
+          "message"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_DISCUSSION_TOPIC_COMMENT",
+      "name": "Create Discussion Topic Comment",
+      "description": "Tool to create a new comment on a discussion forum topic. Use when you need to add a comment to an existing topic in Freshdesk discussions.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "topic_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "topic_id",
+          "body"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_EMAIL",
+      "name": "Create Email Mailbox",
+      "description": "Tool to create a new email mailbox in Freshdesk. Use when you need to add a support email address that automatically creates tickets from i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "integer"
+          },
+          "product_id": {
+            "type": "integer"
+          },
+          "mailbox_type": {
+            "type": "string",
+            "enum": [
+              "freshdesk_mailbox",
+              "custom_mailbox"
+            ]
+          },
+          "support_email": {
+            "type": "string"
+          },
+          "default_reply_email": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "support_email",
+          "mailbox_type",
+          "product_id",
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_FORUM",
+      "name": "Create Forum",
+      "description": "Tool to create a new forum within a category in Freshdesk discussions. Use when you need to add a new forum to organize discussions within …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "forum_type": {
+            "type": "integer"
+          },
+          "category_id": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "forum_visibility": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "category_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_SLA_POLICIES",
+      "name": "Create SLA Policy",
+      "description": "Tool to create a new SLA (Service Level Agreement) policy in Freshdesk. Use when you need to establish service level targets for ticket res…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "sla_target": {
+            "type": "object"
+          },
+          "description": {
+            "type": "string"
+          },
+          "applicable_to": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "name",
+          "sla_target",
+          "applicable_to"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_SOLUTION_ARTICLE",
+      "name": "Create Solution Article",
+      "description": "Tool to create a new solution article in a Freshdesk knowledge base folder. Use when you need to add documentation, FAQs, or help content t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published"
+            ]
+          },
+          "agent_id": {
+            "type": "integer"
+          },
+          "seo_data": {
+            "type": "object"
+          },
+          "folder_id": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder_id",
+          "title",
+          "description"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_SOLUTION_CATEGORY",
+      "name": "Create Solution Category",
+      "description": "Tool to create a new solution category in Freshdesk's knowledge base. Use when you need to organize solution articles and folders under a n…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "visible_in_portals": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_TICKET",
+      "name": "Create Ticket",
+      "description": "Creates a new ticket in Freshdesk. REQUIRED FIELDS: - subject and description are always required - At least ONE requester identifier is RE…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "due_by": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "email",
+              "portal",
+              "phone",
+              "chat",
+              "feedback_widget",
+              "outbound_email"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "pending",
+              "resolved",
+              "closed"
+            ]
+          },
+          "subject": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ]
+          },
+          "cc_emails": {
+            "type": "array"
+          },
+          "fr_due_by": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "integer"
+          },
+          "product_id": {
+            "type": "integer"
+          },
+          "twitter_id": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "facebook_id": {
+            "type": "string"
+          },
+          "requester_id": {
+            "type": "integer"
+          },
+          "responder_id": {
+            "type": "integer"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "email_config_id": {
+            "type": "integer"
+          },
+          "lookup_parameter": {
+            "type": "string"
+          },
+          "internal_agent_id": {
+            "type": "integer"
+          },
+          "internal_group_id": {
+            "type": "integer"
+          },
+          "unique_external_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "description"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_TICKET_FORMS",
+      "name": "Create Ticket Form",
+      "description": "Tool to create a new ticket form in Freshdesk. Use when you need to create a custom ticket form for organizing support requests.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "portal_ids": {
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_TICKET_OUTBOUND_EMAIL",
+      "name": "Create Ticket via Outbound Email",
+      "description": "Tool to create a ticket by sending an outbound email to external recipients. Use when you need to initiate a support conversation via email…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "email_config_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "email",
+          "subject",
+          "description",
+          "email_config_id",
+          "priority"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_TICKET_TIME_ENTRY",
+      "name": "Create Ticket Time Entry",
+      "description": "Tool to create a time entry for a specific ticket in Freshdesk. Use when you need to log time spent working on a ticket. Time entries track…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "agent_id": {
+            "type": "integer"
+          },
+          "billable": {
+            "type": "boolean"
+          },
+          "ticket_id": {
+            "type": "integer"
+          },
+          "start_time": {
+            "type": "string"
+          },
+          "time_spent": {
+            "type": "string"
+          },
+          "executed_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_id",
+          "time_spent"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CREATE_TRANSLATED_SOLUTION_CATEGORY",
+      "name": "Create Translated Solution Category",
+      "description": "Tool to create a translated version of an existing solution category. Use when you need to add multilingual support to your knowledge base …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "language_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "language_code",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_CURRENTLY_AUTHENTICATED_AGENT",
+      "name": "Currently Authenticated Agent",
+      "description": "Tool to retrieve profile information for the currently authenticated agent. Use when you need to get details about the agent whose API cred…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_ADMIN_GROUP",
+      "name": "Delete Admin Group",
+      "description": "Tool to delete an admin group from Freshdesk. Use when you need to disband an admin group from your Freshdesk account. Note: Deleting a gro…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_AGENT",
+      "name": "Delete Agent",
+      "description": "Tool to permanently delete an agent from Freshdesk. Use when you need to remove an agent from your Freshdesk account. Note: You cannot dele…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "agent_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_AUTOMATION_RULE",
+      "name": "Delete Automation Rule",
+      "description": "Permanently deletes an automation rule from Freshdesk by its type and rule ID. Use this action to remove workflow automation rules that are…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "rule_id": {
+            "type": "integer"
+          },
+          "automation_type_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "automation_type_id",
+          "rule_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_COMPANY",
+      "name": "Delete Company",
+      "description": "Tool to permanently disband a company from Freshdesk. Use when you need to delete a company from your Freshdesk account. Note: Deleting a c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "company_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_COMPANY_FIELD",
+      "name": "Delete Company Field",
+      "description": "Tool to permanently delete a custom company field from Freshdesk. Use when you need to remove a company field that is no longer needed. Not…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_CONTACT",
+      "name": "Delete Contact",
+      "description": "Tool to soft delete a contact from Freshdesk. Use when you need to move a contact from All Contacts to Deleted Contacts view. Future commun…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_CONTACT_FIELD",
+      "name": "Delete Contact Field",
+      "description": "Permanently delete a custom contact field from Freshdesk. Use this action when you need to remove a custom contact field that is no longer …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contact_field_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "contact_field_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_CONVERSATION",
+      "name": "Delete Conversation",
+      "description": "Tool to permanently delete a conversation from a ticket in Freshdesk. Use when you need to remove a specific conversation from a ticket. No…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "conversation_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_DISCUSSION_CATEGORY",
+      "name": "Delete Discussion Category",
+      "description": "Permanently deletes a forum discussion category from Freshdesk. Use this action to remove an entire discussion category. This is a destruct…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "category_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "category_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_DISCUSSION_COMMENT",
+      "name": "Delete Discussion Comment",
+      "description": "Tool to permanently delete a comment from a discussion in Freshdesk. Use when you need to remove a specific comment from a discussion threa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_DISCUSSION_FORUM",
+      "name": "Delete Discussion Forum",
+      "description": "Tool to permanently delete a discussion forum in Freshdesk. Use when you need to remove a specific forum. Note: Once deleted, the forum can…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_DISCUSSIONS_FORUMS_FOLLOW",
+      "name": "Unmonitor Forum",
+      "description": "Tool to unfollow/unmonitor a discussion forum in Freshdesk. Use when you need to stop monitoring a specific forum. The operation removes th…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "user_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_DISCUSSIONS_TOPICS_FOLLOW",
+      "name": "Unmonitor Topic",
+      "description": "Tool to unfollow/unmonitor a discussion topic in Freshdesk. Use when you need to stop monitoring a specific topic. The operation removes th…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "user_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_DISCUSSION_TOPIC",
+      "name": "Delete Discussion Topic",
+      "description": "Tool to permanently delete a discussion topic in Freshdesk. Use when you need to remove a specific topic from forums. Note: Once deleted, t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_EMAIL_MAILBOXES",
+      "name": "Delete Email Mailbox",
+      "description": "Tool to permanently delete an email mailbox from Freshdesk. Use when you need to remove an email mailbox configuration. Note: This action i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_GROUP",
+      "name": "Delete Group",
+      "description": "Tool to permanently disband a group from Freshdesk. Use when you need to delete a group from your Freshdesk account. Note: Deleting a group…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_MULTIPLE_TICKETS",
+      "name": "Delete Multiple Tickets",
+      "description": "Asynchronously deletes multiple tickets in bulk. Returns a job_id to track deletion progress. Deleted tickets are moved to Trash and can be…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_SECTION",
+      "name": "Delete Section",
+      "description": "Tool to permanently delete a section from a ticket field in Freshdesk. Use when you need to remove a section that is no longer needed. Note…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "section_id": {
+            "type": "integer"
+          },
+          "ticket_field_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_field_id",
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_SKILL",
+      "name": "Delete Skill",
+      "description": "Tool to permanently delete a skill from Freshdesk. Use when you need to remove a skill from your Freshdesk account. This operation is perma…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_SOLUTION_ARTICLE",
+      "name": "Delete Solution Article",
+      "description": "Tool to permanently delete a solution article and its translated versions in Freshdesk. Use when you need to remove a solution article that…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "article_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "article_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_SOLUTION_CATEGORY",
+      "name": "Delete Solution Category",
+      "description": "Permanently delete a solution category from Freshdesk's knowledge base. Use this tool when you need to remove a solution category that is n…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "category_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "category_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_SOLUTION_FOLDER",
+      "name": "Delete Solution Folder",
+      "description": "Tool to permanently delete a solution folder and its translated versions in Freshdesk. Use when you need to remove a solution folder that i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_TICKET",
+      "name": "Delete Ticket",
+      "description": "Tool to permanently delete a ticket from Freshdesk. Use when you need to remove a ticket from your Freshdesk account. Note: Once deleted, t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_TICKET_FIELD",
+      "name": "Delete Ticket Field",
+      "description": "Permanently delete a custom ticket field from Freshdesk. Use this tool when you need to remove a custom ticket field that is no longer need…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ticket_field_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_field_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_TICKET_FORM",
+      "name": "Delete Ticket Form",
+      "description": "Tool to permanently delete a ticket form from Freshdesk. Use when you need to remove a ticket form that is no longer needed. Note: This act…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ticket_form_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_form_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_TICKET_FORMS",
+      "name": "Delete Ticket Form Field",
+      "description": "Tool to permanently delete a specific field from a ticket form in Freshdesk. Use when you need to remove a custom field that is no longer n…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "integer"
+          },
+          "field_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "form_id",
+          "field_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_TICKET_SUMMARY",
+      "name": "Delete Ticket Summary",
+      "description": "Tool to delete the AI-generated summary of a ticket in Freshdesk. Use when you need to remove a ticket's summary. Note: Once deleted, the s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_TICKET_USER_ACCESS",
+      "name": "Delete Ticket User Access",
+      "description": "Tool to remove all agent access from a specific ticket in Freshdesk. Use when you need to revoke all agent permissions from a ticket. This …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_DELETE_TIME_ENTRY",
+      "name": "Delete Time Entry",
+      "description": "Tool to permanently delete a time entry from Freshdesk. Use when you need to remove a specific time entry. Note: Once deleted, the time ent…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "time_entry_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "time_entry_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_EXPORT_CONTACTS",
+      "name": "Export Contacts",
+      "description": "Tool to initiate an asynchronous export of contacts from Freshdesk to CSV file. Use when you need to export contact data for backup, sync w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_ACCOUNT",
+      "name": "Get Account",
+      "description": "Tool to view Freshdesk account information. Use when you need to retrieve comprehensive account details including organization information,…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_AGENT",
+      "name": "Get Agent",
+      "description": "Tool to retrieve detailed information about a specific agent by ID. Use when you need to view a particular agent's profile, contact informa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "agent_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_AGENT_AVAILABILITY",
+      "name": "Get Agent Availability",
+      "description": "Tool to retrieve availability information for a specific agent. Use when you need to check an agent's availability across different channel…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "agent_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_AGENTS",
+      "name": "Search Agents Autocomplete",
+      "description": "Tool to search for agents using autocomplete functionality in Freshdesk. Use when you need to quickly find agents by name or email keyword …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "term": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "term"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_BUSINESS_HOURS",
+      "name": "Get Business Hours",
+      "description": "Retrieves all business hours configurations from Freshdesk. Use this tool to get a complete list of all business hour configurations includ…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_CANNED_RESPONSE_FOLDERS",
+      "name": "Get Canned Response Folders",
+      "description": "Tool to retrieve all canned response folders from Freshdesk. Use when you need to list available folders for organizing canned responses. N…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_COMPANIES",
+      "name": "Get Companies",
+      "description": "Tool to retrieve all companies from a Freshdesk account with pagination support. Use when you need to list companies representing customer …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_COMPANY",
+      "name": "Get Company",
+      "description": "Tool to retrieve detailed information about a specific company by ID. Use when you need to view a particular company's details, domains, an…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "company_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_COMPANY_FIELDS",
+      "name": "Get Company Fields",
+      "description": "Tool to retrieve all company fields configured in Freshdesk. Use when you need to get the complete list of company field definitions includ…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_CONTACT",
+      "name": "Get Contact",
+      "description": "Tool to retrieve detailed information about a specific contact by ID. Use when you need to view a particular contact's profile, contact inf…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_CONTACT_FIELDS",
+      "name": "Get Contact Fields",
+      "description": "Tool to retrieve all contact fields configured in Freshdesk. Use when you need to get the complete list of contact field definitions includ…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_CONTACTS",
+      "name": "Get Contacts",
+      "description": "Tool to retrieve all contacts from a Freshdesk account. Use when you need to list contacts, optionally filtered by email, phone, mobile, co…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "mobile": {
+            "type": "string"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "company_id": {
+            "type": "integer"
+          },
+          "updated_since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_DISCUSSION_CATEGORY",
+      "name": "Get Discussion Category",
+      "description": "Tool to view details of a specific forum category in Freshdesk. Use when you need to retrieve information about a discussion category inclu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_DISCUSSION_TOPIC",
+      "name": "View Discussion Topic",
+      "description": "Tool to retrieve detailed information about a specific discussion topic by ID. Use when you need to view a topic's details, status, and met…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_EMAIL_MAILBOX",
+      "name": "Get Email Mailbox",
+      "description": "Tool to retrieve detailed information about a specific email mailbox by ID. Use when you need to view configuration details, status, and se…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_FOLDER_RESPONSES",
+      "name": "Get Folder Responses",
+      "description": "Tool to retrieve all canned responses within a specific folder in Freshdesk. Use when you need to list all response templates stored in a p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_IMPORTED_CONTACTS",
+      "name": "Get Imported Contacts",
+      "description": "Tool to retrieve details of all contact import operations in Freshdesk. Use when you need to view import history, check import status, or g…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_JOB",
+      "name": "Get Job",
+      "description": "Tool to view the status of a bulk job operation. Use when you need to check the status of bulk ticket updates or bulk ticket deletions.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_SCENARIO_AUTOMATIONS_JSON",
+      "name": "List All Scenario Automations",
+      "description": "Tool to list all scenario-based automations in Freshdesk. Use when you need to retrieve the complete list of scenario automations with thei…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_SEARCH",
+      "name": "Filter Tickets",
+      "description": "Tool to search and filter tickets in Freshdesk using flexible query syntax. Use when you need to find tickets based on status, priority, ta…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_TICKETS",
+      "name": "Get Tickets",
+      "description": "Retrieves a list of tickets from Freshdesk. Tickets are returned under `response_data` in the response object.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "pending",
+              "resolved",
+              "closed",
+              "waiting_on_customer",
+              "waiting_on_third_party"
+            ]
+          },
+          "sort_by": {
+            "type": "string"
+          },
+          "agent_id": {
+            "type": "integer"
+          },
+          "group_id": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ]
+          },
+          "sort_order": {
+            "type": "string"
+          },
+          "requester_id": {
+            "type": "integer"
+          },
+          "created_since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_TICKET_TIME_ENTRIES",
+      "name": "Get Ticket Time Entries",
+      "description": "Tool to retrieve all time entries for a specific ticket in Freshdesk. Use when you need to view time logs associated with a particular tick…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "ticket_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_TICKET_USER_ACCESS",
+      "name": "Get Ticket User Access",
+      "description": "Tool to retrieve agent access information for a specific ticket in Freshdesk. Use when you need to check which agents have permission to vi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_GET_TRANSLATED_SOLUTION_CATEGORY",
+      "name": "Get Translated Solution Category",
+      "description": "Tool to view a translated solution category in Freshdesk. Use when you need to retrieve a solution category in a specific language other th…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "language_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "language_code"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_HARD_DELETE_CONTACT",
+      "name": "Hard Delete Contact",
+      "description": "Tool to permanently delete a contact from Freshdesk. Use when you need to completely remove a contact's profile, tickets, calls, forum topi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "force": {
+            "type": "boolean"
+          },
+          "contact_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_IMPORT_CONTACT",
+      "name": "Import Contact",
+      "description": "Tool to import contacts in bulk from a CSV file to Freshdesk. Use when you need to create multiple contacts at once from a CSV file with fi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "object"
+          },
+          "rawContent": {},
+          "rawFilename": {
+            "type": "string"
+          },
+          "rawMimetype": {
+            "type": "string"
+          },
+          "name_column_index": {
+            "type": "integer"
+          },
+          "email_column_index": {
+            "type": "integer"
+          },
+          "job_title_column_index": {
+            "type": "integer"
+          },
+          "company_name_column_index": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name_column_index",
+          "email_column_index",
+          "company_name_column_index"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_ADMIN_GROUPS",
+      "name": "List Admin Groups",
+      "description": "Tool to list all admin groups in Freshdesk. Use when you need to retrieve all groups configured in the account with their members, escalati…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_ALL_AGENTS_IN_A_GROUP",
+      "name": "List All Agents in a Group",
+      "description": "Tool to retrieve all agents associated with a specific group in Freshdesk. Use when you need to get the list of agents assigned to a partic…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_ALL_SECTIONS_FOR_TICKET_FIELD",
+      "name": "List All Sections for a Ticket Field",
+      "description": "Tool to retrieve all dynamic sections for a specific ticket field in Freshdesk. Use when you need to view all sections associated with a dr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ticket_field_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_field_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_ALL_SKILLS",
+      "name": "List All Skills",
+      "description": "Tool to retrieve all skills configured in Freshdesk account. Use when you need to get the complete list of skills available for ticket rout…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_ALL_TICKET_CONVERSATIONS",
+      "name": "List All Ticket Conversations",
+      "description": "Tool to retrieve all conversations of a specific ticket in Freshdesk. Use when you need to view all messages, notes, and replies associated…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "ticket_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_AUTOMATION_RULES",
+      "name": "List Automation Rules",
+      "description": "Tool to list all automation rules for a specific automation type in Freshdesk. Use when you need to retrieve all automation rules for ticke…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "automation_type_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "automation_type_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_DISCUSSIONS",
+      "name": "List All Forum Categories",
+      "description": "Tool to retrieve all forum categories (discussions) from Freshdesk. Use when you need to list all discussion categories available in the ac…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_DISCUSSIONS_TOPICS",
+      "name": "List All Topics in a Forum",
+      "description": "Tool to retrieve all discussion topics within a specified forum in Freshdesk. Use when you need to list topics in a specific forum. Support…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "forum_id": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "forum_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_EMAIL",
+      "name": "List Email Mailboxes",
+      "description": "Tool to retrieve all email mailbox configurations from Freshdesk account. Use when you need to view support email addresses, mailbox settin…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "group_id": {
+            "type": "integer"
+          },
+          "order_by": {
+            "type": "string"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "order_type": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "integer"
+          },
+          "support_email": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_EMAIL_CONFIGS",
+      "name": "List All Email Configs",
+      "description": "Retrieve all email configurations from a Freshdesk account. Returns a list of email configs including support email addresses, associated p…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_FORUMS_IN_CATEGORY",
+      "name": "List Forums in Category",
+      "description": "Tool to retrieve all forums within a specified category in Freshdesk. Use when you need to list all forums that exist within a specific for…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "category_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "category_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_MONITORED_TOPICS",
+      "name": "List Monitored Topics",
+      "description": "Tool to retrieve all discussion topics that are monitored/followed by a specific user in Freshdesk. Use when you need to list topics a user…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "user_id": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_PARTICIPATED_TOPICS",
+      "name": "List Participated Topics",
+      "description": "Tool to retrieve discussion topics that a user has participated in by creating or commenting. Use when you need to list topics where a spec…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "user_id": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_PRODUCTS",
+      "name": "List All Products",
+      "description": "Tool to retrieve all products configured in Freshdesk account. Use when you need to get the complete list of products available for support…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_ROLES",
+      "name": "List All Roles",
+      "description": "Tool to retrieve all roles available in the Freshdesk system with their permissions and details. Use when you need to get the complete list…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_SATISFACTION_RATINGS",
+      "name": "List Satisfaction Ratings",
+      "description": "Tool to retrieve all customer satisfaction survey ratings from Freshdesk. Use when you need to view satisfaction ratings, optionally filter…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "created_since": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_SLA_POLICIES",
+      "name": "List All SLA Policies",
+      "description": "Tool to retrieve all SLA (Service Level Agreement) policies in Freshdesk. Use when you need to get the complete list of SLA policies with t…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_SOLUTION_ARTICLES",
+      "name": "List Solution Articles",
+      "description": "Tool to retrieve all solution articles within a specified folder in Freshdesk. Use when you need to list all articles that exist within a s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "folder_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_SOLUTION_CATEGORIES",
+      "name": "List Solution Categories",
+      "description": "Tool to retrieve all solution categories in Freshdesk. Use when you need to list all available solution categories in the knowledge base.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_SOLUTION_FOLDERS",
+      "name": "List Solution Folders",
+      "description": "Tool to retrieve all folders within a specified solution category in Freshdesk. Use when you need to list all folders that exist within a s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "category_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "category_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_SOLUTIONS_CATEGORY_FOLDERS_TRANSLATED",
+      "name": "List Translated Category Folders",
+      "description": "Tool to retrieve all translated solution folders in a category. Use when you need to list all folders in a specific language for a given so…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "category_id": {
+            "type": "integer"
+          },
+          "language_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "category_id",
+          "language_code"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_SOLUTION_SUBFOLDERS",
+      "name": "List Solution Subfolders",
+      "description": "Tool to list all subfolders within a specific solution folder in Freshdesk. Use when you need to retrieve the child folders of a parent fol…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "folder_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_SPECIFIC_SECTION_DETAILS",
+      "name": "List a Specific Section Details",
+      "description": "Tool to retrieve details of a specific section within a ticket field in Freshdesk. Use when you need to view information about a particular…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "section_id": {
+            "type": "integer"
+          },
+          "ticket_field_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_field_id",
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_SURVEYS",
+      "name": "List All Surveys",
+      "description": "Tool to retrieve all surveys from a Freshdesk account. Use when you need to view the list of surveys, optionally filtered by state (active …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "draft",
+              "paused"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_TICKET_FIELDS",
+      "name": "List All Ticket Fields",
+      "description": "Tool to list all ticket fields configured in Freshdesk. Use when you need to retrieve metadata about all ticket field definitions including…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_TICKET_FORMS",
+      "name": "List Ticket Forms",
+      "description": "Tool to retrieve all ticket forms from Freshdesk. Use when you need to view the list of available ticket forms, optionally with pagination …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "include": {
+            "type": "string"
+          },
+          "per_page": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_TICKET_SATISFACTION_RATINGS",
+      "name": "List Ticket Satisfaction Ratings",
+      "description": "Tool to list all satisfaction ratings of a ticket. Use when you need to retrieve customer feedback and survey responses for a specific tick…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "ticket_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_TICKETS_WATCHERS",
+      "name": "List Ticket Watchers",
+      "description": "Tool to list all watchers subscribed to a specific Freshdesk ticket. Use when you need to see who is following a ticket and receiving notif…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_TIME_ENTRIES",
+      "name": "List Time Entries",
+      "description": "Tool to retrieve all time entries from Freshdesk with optional filtering by company, agent, execution time range, and billable status. Use …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "agent_id": {
+            "type": "integer"
+          },
+          "billable": {
+            "type": "boolean"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "company_id": {
+            "type": "integer"
+          },
+          "executed_after": {
+            "type": "string"
+          },
+          "executed_before": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_TOPIC_COMMENTS2",
+      "name": "List Topic Comments (Paginated)",
+      "description": "Tool to list all comments on a specific discussion topic with pagination support. Use when you need to retrieve comments from a topic with …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_TRANSLATED_SOLUTION_ARTICLES",
+      "name": "List Translated Solution Articles",
+      "description": "Tool to view all translated solution articles in a folder for a specific language. Use when you need to retrieve all articles from a folder…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "language_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "language_code"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_LIST_TRANSLATED_SUBFOLDERS",
+      "name": "List Translated Subfolders",
+      "description": "Tool to list all translated subfolders within a parent folder in Freshdesk. Use when you need to retrieve subfolders in a specific language…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "folder_id": {
+            "type": "integer"
+          },
+          "language_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder_id",
+          "language_code"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_PATCH_ADMIN_GROUPS_AGENTS",
+      "name": "Update Group Agents",
+      "description": "Tool to add or remove agents in a Freshdesk group. Use when you need to modify the list of agents assigned to a specific group by providing…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "agents": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "agents"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_REMOVE_WATCHER",
+      "name": "Remove Watcher from Ticket",
+      "description": "Tool to remove the authenticated user as a watcher from a Freshdesk ticket. Use when you need to stop receiving email notifications for tic…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_REPLY_TO_FORWARD_TICKET",
+      "name": "Reply to Forward Ticket",
+      "description": "Tool to reply to or forward a ticket to external email addresses. Use when you need to send a ticket reply to specific email recipients out…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "cc_emails": {
+            "type": "array"
+          },
+          "ticket_id": {
+            "type": "integer"
+          },
+          "to_emails": {
+            "type": "array"
+          },
+          "bcc_emails": {
+            "type": "array"
+          },
+          "from_email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_id",
+          "body",
+          "to_emails"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_REPLY_TO_TICKET",
+      "name": "Reply to Ticket",
+      "description": "Tool to create a public reply to an existing support ticket in Freshdesk. Use when an agent needs to respond to a ticket. The reply is sent…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "cc_emails": {
+            "type": "array"
+          },
+          "ticket_id": {
+            "type": "integer"
+          },
+          "to_emails": {
+            "type": "array"
+          },
+          "bcc_emails": {
+            "type": "array"
+          },
+          "from_email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_id",
+          "body"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_SEARCH_AGENTS",
+      "name": "Search Agents",
+      "description": "Tool to search and filter agents in Freshdesk. Use when you need to find agents by email, phone, mobile, or state (fulltime/occasional).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "fulltime",
+              "occasional"
+            ]
+          },
+          "mobile": {
+            "type": "string"
+          },
+          "per_page": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_SEARCH_COMPANIES",
+      "name": "Search Companies",
+      "description": "Tool to search and filter companies in Freshdesk using query strings with custom fields. Use when you need to find companies based on searc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_SEARCH_COMPANY",
+      "name": "Search Companies Autocomplete",
+      "description": "Tool to search for companies using autocomplete functionality in Freshdesk. Use when you need to quickly find companies by name or partial …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_SEARCH_CONTACTS",
+      "name": "Search Contacts",
+      "description": "Tool to search and filter contacts in Freshdesk using query-based search. Use when you need to find contacts based on fields like email, ph…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_SEARCH_CONTACTS_AUTOCOMPLETE",
+      "name": "Search Contacts Autocomplete",
+      "description": "Tool to search for contacts using autocomplete functionality in Freshdesk. Use when you need to quickly find contacts by name, email, or ot…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "term": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "term"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_SEARCH_SOLUTION_ARTICLES",
+      "name": "Search Solution Articles",
+      "description": "Tool to search solution articles in Freshdesk knowledge base by keyword. Use when you need to find articles by searching titles and content.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "term": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "term"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_TOGGLE_TIMER",
+      "name": "Toggle Timer",
+      "description": "Tool to toggle the timer on a time entry to start or stop time tracking. Use when you need to start tracking time on a stopped timer or sto…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "time_entry_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "time_entry_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_ADMIN_GROUP",
+      "name": "Update Admin Group",
+      "description": "Tool to update an existing admin-level support agent group in Freshdesk. Use when you need to modify group details such as name, descriptio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "agent_ids": {
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "escalate_to": {
+            "type": "integer"
+          },
+          "unassigned_for": {
+            "type": "string"
+          },
+          "business_calendar_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_ADMIN_TICKET_FIELD",
+      "name": "Update Admin Ticket Field",
+      "description": "Tool to update an existing ticket field configuration in Freshdesk. Use when you need to modify field properties such as labels, visibility…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "customers_can_edit": {
+            "type": "boolean"
+          },
+          "label_for_customers": {
+            "type": "string"
+          },
+          "required_for_agents": {
+            "type": "boolean"
+          },
+          "required_for_closure": {
+            "type": "boolean"
+          },
+          "displayed_to_customers": {
+            "type": "boolean"
+          },
+          "required_for_customers": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_ADMIN_TICKET_FIELD_SECTION",
+      "name": "Update Admin Ticket Field Section",
+      "description": "Tool to update a section within a ticket field in Freshdesk. Use when you need to modify section properties like label, associated choices,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "choice_ids": {
+            "type": "array"
+          },
+          "section_id": {
+            "type": "integer"
+          },
+          "ticket_field_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "section_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_AGENT",
+      "name": "Update Agent",
+      "description": "Tool to update an existing agent's information in Freshdesk. Use when you need to modify agent details such as email, permissions, signatur…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "role_ids": {
+            "type": "array"
+          },
+          "group_ids": {
+            "type": "array"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "skill_ids": {
+            "type": "array"
+          },
+          "time_zone": {
+            "type": "string"
+          },
+          "agent_type": {
+            "type": "string",
+            "enum": [
+              "support",
+              "field",
+              "collaborator"
+            ]
+          },
+          "focus_mode": {
+            "type": "boolean"
+          },
+          "occasional": {
+            "type": "boolean"
+          },
+          "ticket_scope": {
+            "type": "string",
+            "enum": [
+              "global_access",
+              "group_access",
+              "restricted_access"
+            ]
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_AGENT_AVAILABILITY",
+      "name": "Update Agent Availability",
+      "description": "Tool to update agent availability settings in Freshdesk. Use when you need to modify an agent's load settings by changing assignment limits…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "integer"
+          },
+          "channel_availability": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "agent_id",
+          "channel_availability"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_AUTOMATIONS",
+      "name": "Update Automation Rule",
+      "description": "Tool to update an existing automation rule in Freshdesk. Use when you need to modify automation rule properties like name, description, act…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "actions": {
+            "type": "array"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "conditions": {
+            "type": "object"
+          },
+          "description": {
+            "type": "string"
+          },
+          "automation_type_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "automation_type_id",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_CANNED_RESPONSE",
+      "name": "Update Canned Response",
+      "description": "Tool to update an existing canned response in Freshdesk. Use when you need to modify the title, content, folder location, visibility, or gr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "integer"
+          },
+          "group_ids": {
+            "type": "array"
+          },
+          "visibility": {
+            "type": "integer"
+          },
+          "content_html": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_CANNED_RESPONSE_FOLDER",
+      "name": "Update Canned Response Folder",
+      "description": "Updates the name of an existing canned response folder in Freshdesk. Use this to rename folders that organize canned response templates.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "folder_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_COMPANIES",
+      "name": "Update Company",
+      "description": "Tool to update an existing company's information in Freshdesk. Use when you need to modify company details, domains, or custom fields.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "domains": {
+            "type": "array"
+          },
+          "industry": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "account_tier": {
+            "type": "string"
+          },
+          "health_score": {
+            "type": "string"
+          },
+          "renewal_date": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "company_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_CONTACT",
+      "name": "Update Contact",
+      "description": "Tool to update an existing contact's information in Freshdesk. Use when you need to modify contact details such as name, email, phone, job …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "mobile": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "job_title": {
+            "type": "string"
+          },
+          "time_zone": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "integer"
+          },
+          "twitter_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "other_emails": {
+            "type": "array"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "view_all_tickets": {
+            "type": "boolean"
+          },
+          "unique_external_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_CONTACT_FIELD",
+      "name": "Update Contact Field",
+      "description": "Tool to update a contact field's configuration in Freshdesk. Use when you need to modify field properties like labels, requirements, or vis…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "contact_field_id": {
+            "type": "integer"
+          },
+          "customers_can_edit": {
+            "type": "boolean"
+          },
+          "label_for_customers": {
+            "type": "string"
+          },
+          "required_for_agents": {
+            "type": "boolean"
+          },
+          "required_for_customers": {
+            "type": "boolean"
+          },
+          "displayed_for_customers": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "contact_field_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_CONTACT_MAKE_AGENT",
+      "name": "Make Agent",
+      "description": "Tool to convert a contact into an agent in Freshdesk. Use when you need to grant a contact access to the helpdesk as an agent with specific…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "role_ids": {
+            "type": "array"
+          },
+          "occasional": {
+            "type": "boolean"
+          },
+          "ticket_scope": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "ticket_scope",
+          "role_ids"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_CONVERSATIONS",
+      "name": "Update Conversation",
+      "description": "Tool to update the content of a conversation note in Freshdesk. Use when you need to modify existing public or private notes. Note: Only pu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "body": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "body"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_DISCUSSION_CATEGORY",
+      "name": "Update Discussion Category",
+      "description": "Tool to update an existing discussion category in Freshdesk forums. Use when you need to modify the name or description of a forum category.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_DISCUSSION_COMMENT",
+      "name": "Update Discussion Comment",
+      "description": "Tool to update an existing comment in a discussion forum. Use when you need to edit the content of a comment in Freshdesk discussions.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "body": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "body"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_DISCUSSION_FORUM",
+      "name": "Update Discussion Forum",
+      "description": "Tool to update an existing discussion forum in Freshdesk. Use when you need to modify forum details such as name, description, category, ty…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "forum_type": {
+            "type": "integer"
+          },
+          "company_ids": {
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "forum_visibility": {
+            "type": "integer"
+          },
+          "forum_category_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_DISCUSSION_TOPIC",
+      "name": "Update Discussion Topic",
+      "description": "Tool to update an existing discussion topic in Freshdesk. Use when you need to modify a topic's title, message, lock status, or other prope…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "sticky": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "forum_id": {
+            "type": "integer"
+          },
+          "stamp_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_EMAIL_SETTINGS",
+      "name": "Update Email Settings",
+      "description": "Tool to update mailbox settings for email handling in Freshdesk. Use when you need to configure email behavior such as personalized replies…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "multiple_to": {
+            "type": "boolean"
+          },
+          "email_subject_match": {
+            "type": "boolean"
+          },
+          "extended_quoted_text": {
+            "type": "boolean"
+          },
+          "skip_ticket_threading": {
+            "type": "boolean"
+          },
+          "personalized_email_replies": {
+            "type": "boolean"
+          },
+          "allow_wildcard_ticket_create": {
+            "type": "boolean"
+          },
+          "threading_without_user_check": {
+            "type": "boolean"
+          },
+          "auto_response_detector_toggle": {
+            "type": "boolean"
+          },
+          "create_requester_using_reply_to": {
+            "type": "boolean"
+          },
+          "threading_without_ticket_id_check": {
+            "type": "boolean"
+          },
+          "allow_agent_to_initiate_conversation": {
+            "type": "boolean"
+          },
+          "original_sender_as_requester_for_forward": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_NOTIFICATION_EMAIL_BCC",
+      "name": "Update Automatic BCC Emails",
+      "description": "Tool to update automatic BCC email addresses for all ticket communications in Freshdesk. Use when you need to configure which email address…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "emails": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "emails"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_SLA_POLICIES",
+      "name": "Update SLA Policy",
+      "description": "Tool to update an existing SLA (Service Level Agreement) policy in Freshdesk. Use when you need to modify service level targets, policy set…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "sla_target": {
+            "type": "object"
+          },
+          "description": {
+            "type": "string"
+          },
+          "applicable_to": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_SOLUTION_CATEGORY",
+      "name": "Update Solution Category",
+      "description": "Tool to update an existing solution category in Freshdesk. Use when you need to modify the name or description of a solution category.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "category_id": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "category_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_SOLUTION_FOLDER",
+      "name": "Update Solution Folder",
+      "description": "Tool to update an existing solution folder in Freshdesk knowledge base. Use when you need to modify folder properties such as name, descrip…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "integer"
+          },
+          "visibility": {
+            "type": "integer"
+          },
+          "company_ids": {
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "language_code": {
+            "type": "string"
+          },
+          "parent_folder_id": {
+            "type": "integer"
+          },
+          "company_segment_ids": {
+            "type": "array"
+          },
+          "contact_segment_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_SOLUTIONS",
+      "name": "Update Solution Article",
+      "description": "Tool to update an existing solution article in Freshdesk. Use when you need to modify the title, description, status, tags, or SEO metadata…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "agent_id": {
+            "type": "integer"
+          },
+          "seo_data": {
+            "type": "object"
+          },
+          "description": {
+            "type": "string"
+          },
+          "language_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_TICKET",
+      "name": "Update Ticket",
+      "description": "Tool to update an existing ticket in Freshdesk. Use when you need to modify ticket attributes like subject, priority, status, description, …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "type": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "due_by": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "email",
+              "portal",
+              "phone",
+              "forum",
+              "twitter",
+              "facebook",
+              "chat",
+              "mobihelp",
+              "feedback_widget",
+              "outbound_email"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "pending",
+              "resolved",
+              "closed",
+              "waiting_on_customer",
+              "waiting_on_third_party"
+            ]
+          },
+          "subject": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ]
+          },
+          "fr_due_by": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "integer"
+          },
+          "ticket_id": {
+            "type": "integer"
+          },
+          "company_id": {
+            "type": "integer"
+          },
+          "product_id": {
+            "type": "integer"
+          },
+          "twitter_id": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "facebook_id": {
+            "type": "string"
+          },
+          "requester_id": {
+            "type": "integer"
+          },
+          "responder_id": {
+            "type": "integer"
+          },
+          "custom_fields": {
+            "type": "object"
+          },
+          "email_config_id": {
+            "type": "integer"
+          },
+          "lookup_parameter": {
+            "type": "string"
+          },
+          "internal_agent_id": {
+            "type": "integer"
+          },
+          "internal_group_id": {
+            "type": "integer"
+          },
+          "unique_external_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_TICKET_BULK_WATCH",
+      "name": "Bulk Add Watcher to Tickets",
+      "description": "Tool to add the authenticated user as a watcher to multiple tickets in a single bulk operation. Use when you need to follow multiple ticket…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_TICKET_FORMS",
+      "name": "Update Ticket Form",
+      "description": "Tool to update an existing ticket form in Freshdesk. Use when you need to modify ticket form properties like title, description, default st…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "include": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "ticket_form_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_form_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_TICKET_SUMMARY",
+      "name": "Update Ticket Summary",
+      "description": "Tool to update the AI-generated summary of a ticket in Freshdesk. Use when you need to modify or set the summary content for a ticket. The …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "ticket_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_id",
+          "body"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_TICKET_USER_ACCESS",
+      "name": "Update Ticket User Access",
+      "description": "Tool to update agent access to a specific ticket in Freshdesk by adding or removing agents. Use when you need to grant or revoke agent perm…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "user_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_UPDATE_TIME_ENTRY",
+      "name": "Update Time Entry",
+      "description": "Tool to update an existing time entry in Freshdesk. Use when you need to modify time entry details such as duration, notes, billable status…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "note": {
+            "type": "string"
+          },
+          "agent_id": {
+            "type": "integer"
+          },
+          "billable": {
+            "type": "boolean"
+          },
+          "start_time": {
+            "type": "string"
+          },
+          "time_spent": {
+            "type": "string"
+          },
+          "executed_at": {
+            "type": "string"
+          },
+          "timer_running": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_A_CANNED_RESPONSE",
+      "name": "View a Canned Response",
+      "description": "Tool to view details of a specific canned response in Freshdesk. Use when you need to retrieve information about a canned response includin…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "canned_response_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "canned_response_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_AUTOMATIONS",
+      "name": "View Automation Rule",
+      "description": "Tool to view details of a specific automation rule in Freshdesk. Use when you need to retrieve comprehensive information about an automatio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "automation_type_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "automation_type_id",
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_BUSINESS_HOUR",
+      "name": "View a Business Hour",
+      "description": "Tool to retrieve a specific business hour configuration from Freshdesk. Use when you need to view detailed information about business hours…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "business_hours_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "business_hours_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_COMPANY_FIELD",
+      "name": "View a Company Field",
+      "description": "Tool to retrieve details of a specific company field by ID. Use when you need to view configuration and metadata for a single company field…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "company_field_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "company_field_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_CONTACT_FIELD",
+      "name": "View a Contact Field",
+      "description": "Tool to retrieve details of a specific contact field by ID. Use when you need to view configuration and metadata for a single contact field…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contact_field_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "contact_field_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_EMAIL",
+      "name": "View Email Mailbox Settings",
+      "description": "Tool to retrieve mailbox settings for the Freshdesk account. Use when you need to view email configuration settings such as threading optio…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_EMAIL_CONFIGS",
+      "name": "View Email Config",
+      "description": "Tool to view details of a specific email configuration in Freshdesk. Use when you need to retrieve information about an email config includ…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_GROUP",
+      "name": "View Group",
+      "description": "Tool to view details of a specific admin group in Freshdesk. Use when you need to retrieve information about a group including its members,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_NOTIFICATIONS",
+      "name": "View Automatic BCC Emails",
+      "description": "Tool to view automatic BCC email addresses configured in Freshdesk. Use when you need to retrieve the list of email addresses that are auto…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_PRODUCTS",
+      "name": "View Product",
+      "description": "Tool to retrieve detailed information about a specific product by ID. Use when you need to view a particular product's details including na…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_ROLES",
+      "name": "View a Role",
+      "description": "Tool to view detailed information about a specific role by ID. Use when you need to retrieve a particular role's name, description, default…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_SETTINGS",
+      "name": "View Helpdesk Settings",
+      "description": "Tool to retrieve helpdesk settings from Freshdesk. Use when you need to view language configuration including primary language, supported l…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_SKILL",
+      "name": "View a Skill",
+      "description": "Tool to retrieve a specific skill from Freshdesk by ID. Use when you need to view detailed information about a particular skill including i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_SOLUTION_CATEGORY",
+      "name": "View Solution Category",
+      "description": "Tool to view a specific solution category by ID in Freshdesk. Use when you need to retrieve detailed information about a single solution ca…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "category_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "category_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_SOLUTION_FOLDER",
+      "name": "View Solution Folder",
+      "description": "Tool to view a specific solution folder by ID in Freshdesk. Use when you need to retrieve detailed information about a solution folder incl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "integer"
+          },
+          "language_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_SOLUTIONS",
+      "name": "View Solution Article",
+      "description": "Tool to view a specific solution article by ID in Freshdesk. Use when you need to retrieve detailed information about a single article incl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "article_id": {
+            "type": "integer"
+          },
+          "language_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "article_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_TICKET",
+      "name": "View Ticket",
+      "description": "Views an existing ticket in Freshdesk. Ticket details are returned nested under `response_data` in the tool response.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "include": {
+            "type": "string"
+          },
+          "ticket_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_TICKET_FIELD",
+      "name": "View a Ticket Field",
+      "description": "Tool to retrieve a single ticket field configuration from Freshdesk. Use when you need to view detailed information about a specific ticket…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ticket_field_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ticket_field_id"
+        ]
+      }
+    },
+    {
+      "slug": "FRESHDESK_VIEW_TICKET_FORM_FIELD",
+      "name": "View a Ticket Form's Field",
+      "description": "Tool to retrieve a specific field from a ticket form in Freshdesk. Use when you need to view detailed configuration of a field including it…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string"
+          },
+          "field_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id",
+          "field_id"
+        ]
+      }
+    }
+  ]
+}

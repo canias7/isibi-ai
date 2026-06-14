@@ -1,0 +1,524 @@
+{
+  "slug": "linkedin",
+  "name": "LinkedIn",
+  "tool_count": 22,
+  "tools": [
+    {
+      "slug": "LINKEDIN_CREATE_ARTICLE_OR_URL_SHARE",
+      "name": "Create article or URL share",
+      "description": "Tool to create an article or URL share on LinkedIn using the UGC Posts API. Use when you need to share a link with optional commentary on L…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "author": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "object"
+          },
+          "lifecycleState": {
+            "type": "string",
+            "enum": [
+              "PUBLISHED",
+              "DRAFT"
+            ]
+          },
+          "specificContent": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "author",
+          "specificContent",
+          "visibility"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_CREATE_COMMENT_ON_POST",
+      "name": "Create comment on LinkedIn post",
+      "description": "Tool to create a first-level or nested comment on a LinkedIn share, UGC post, or parent comment via the Social Actions Comments API. Use wh…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string"
+          },
+          "content": {
+            "type": "array"
+          },
+          "message": {
+            "type": "object"
+          },
+          "target_urn": {
+            "type": "string"
+          },
+          "parentComment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_urn",
+          "actor",
+          "object",
+          "message"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_CREATE_LINKED_IN_POST",
+      "name": "Create a LinkedIn post",
+      "description": "Creates a new post on LinkedIn for the authenticated user or an organization they manage. Requires w_member_social scope for posting as a p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "author": {
+            "type": "string"
+          },
+          "images": {
+            "type": "array"
+          },
+          "container": {
+            "type": "string"
+          },
+          "commentary": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "CONNECTIONS",
+              "LOGGED_IN",
+              "CONTAINER"
+            ]
+          },
+          "distribution": {
+            "type": "object"
+          },
+          "lifecycleState": {
+            "type": "string"
+          },
+          "reshareContext": {
+            "type": "object"
+          },
+          "contentLandingPage": {
+            "type": "string"
+          },
+          "contentCallToActionLabel": {
+            "type": "string",
+            "enum": [
+              "APPLY",
+              "DOWNLOAD",
+              "VIEW_QUOTE",
+              "LEARN_MORE",
+              "SIGN_UP",
+              "SUBSCRIBE",
+              "REGISTER",
+              "JOIN",
+              "ATTEND",
+              "REQUEST_DEMO",
+              "SEE_MORE",
+              "BUY_NOW",
+              "SHOP_NOW"
+            ]
+          },
+          "isReshareDisabledByAuthor": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "author",
+          "commentary"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_DELETE_LINKED_IN_POST",
+      "name": "Delete LinkedIn Post",
+      "description": "Deletes a specific LinkedIn post (share) by its unique `share_id`, which must correspond to an existing share.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "share_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "share_id"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_DELETE_POST",
+      "name": "Delete Post",
+      "description": "Delete a LinkedIn post using the Posts API REST endpoint. Supports both ugcPost and share URN formats. The endpoint is idempotent - previou…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "post_urn": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "post_urn"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_DELETE_UGC_POST",
+      "name": "Delete UGC Post (Legacy)",
+      "description": "Delete a UGC post using the legacy UGC Post API endpoint. Use when you need to delete a post using the v2/ugcPosts endpoint. Deletion is id…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ugc_post_urn": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ugc_post_urn"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_GET_AD_TARGETING_FACETS",
+      "name": "Get ad targeting facets",
+      "description": "Tool to retrieve available ad targeting facets from LinkedIn Marketing API. Use when you need to discover what targeting options are availa…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "LINKEDIN_GET_AUDIENCE_COUNTS",
+      "name": "Get audience counts",
+      "description": "Retrieves audience size counts for specified targeting criteria. Use when estimating reach for LinkedIn ad campaigns or targeted content.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "enum": [
+              "targetingCriteriaV2"
+            ]
+          },
+          "targetingCriteria": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetingCriteria"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_GET_COMPANY_INFO",
+      "name": "Get company info",
+      "description": "Retrieves organizations where the authenticated user has specific roles (ACLs), to determine their management or content posting capabiliti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMINISTRATOR",
+              "DIRECT_SPONSORED_CONTENT_POSTER"
+            ]
+          },
+          "count": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REQUESTED"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "LINKEDIN_GET_IMAGE",
+      "name": "Get image details",
+      "description": "Tool to retrieve details of a LinkedIn image using its URN. Use when you need to check image status, get download URLs, or access image met…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "image_urn": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "image_urn"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_GET_IMAGES",
+      "name": "Get images",
+      "description": "Tool to retrieve image metadata including download URLs, status, and dimensions from LinkedIn's Images API. Use when you need to access ima…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_GET_MY_INFO",
+      "name": "Get my info",
+      "description": "Fetches the authenticated LinkedIn user's profile information including name, headline, profile picture, and other profile details.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "LINKEDIN_GET_NETWORK_SIZE",
+      "name": "Get network size",
+      "description": "Tool to retrieve the follower count for a LinkedIn organization. Use when you need to get the number of members following a specific compan…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "edgeType": {
+            "type": "string",
+            "enum": [
+              "COMPANY_FOLLOWED_BY_MEMBER"
+            ]
+          },
+          "organization_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_GET_ORG_PAGE_STATS",
+      "name": "Get organization page statistics",
+      "description": "Tool to retrieve page statistics for a LinkedIn organization page. Use when you need engagement metrics like page views and custom button c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "organization": {
+            "type": "string"
+          },
+          "timeRangeEnd": {
+            "type": "integer"
+          },
+          "timeRangeStart": {
+            "type": "integer"
+          },
+          "timeGranularityType": {
+            "type": "string",
+            "enum": [
+              "DAY",
+              "MONTH"
+            ]
+          }
+        },
+        "required": [
+          "organization"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_GET_PERSON",
+      "name": "Get person profile",
+      "description": "Retrieves a LinkedIn member's profile information by their person ID. Returns lite profile fields (name, profile picture) by default, or ba…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "person_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "person_id"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_GET_POST_CONTENT",
+      "name": "Get post content",
+      "description": "Tool to retrieve detailed post content including text, images, videos, and metadata from LinkedIn by post URN. Use when you need to fetch t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "post_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "post_id"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_GET_SHARE_STATS",
+      "name": "Get share statistics",
+      "description": "Retrieves share statistics for a LinkedIn organization, including impressions, clicks, likes, comments, and shares. Use to analyze content …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "time_intervals": {
+            "type": "string"
+          },
+          "organizational_entity": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organizational_entity"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_GET_VIDEOS",
+      "name": "Get videos",
+      "description": "Retrieves video metadata from LinkedIn Marketing API. Supports single video retrieval, batch retrieval (multiple videos), and finding video…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "video_ids": {
+            "type": "array"
+          },
+          "video_urn": {
+            "type": "string"
+          },
+          "associated_account": {
+            "type": "string"
+          },
+          "media_library_status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "ARCHIVED"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "LINKEDIN_INITIALIZE_IMAGE_UPLOAD",
+      "name": "Initialize image upload",
+      "description": "Tool to initialize an image upload to LinkedIn and return a presigned upload URL plus the resulting image URN. Use when you need to prepare…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "owner"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_LIST_REACTIONS",
+      "name": "List reactions on entity",
+      "description": "Retrieves reactions (likes, celebrations, etc.) on a LinkedIn entity such as a share, post, or comment. Use when you need to see who reacte…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "CHRONOLOGICAL",
+              "REVERSE_CHRONOLOGICAL",
+              "RELEVANCE"
+            ]
+          },
+          "count": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "entity": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_REGISTER_IMAGE_UPLOAD",
+      "name": "Register image upload",
+      "description": "Tool to initialize a native LinkedIn image upload for feed shares and return a presigned upload URL plus the resulting digital media asset …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "recipe": {
+            "type": "string"
+          },
+          "owner_urn": {
+            "type": "string"
+          },
+          "supported_upload_mechanism": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "owner_urn"
+        ]
+      }
+    },
+    {
+      "slug": "LINKEDIN_SEARCH_AD_TARGETING_ENTITIES",
+      "name": "Search ad targeting entities",
+      "description": "Search for ad targeting entities using typeahead search. Use when you need to find targeting entities like geographic locations, job titles…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "facet": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "queryVersion": {
+            "type": "string",
+            "enum": [
+              "QUERY_USES_URNS"
+            ]
+          }
+        },
+        "required": [
+          "query",
+          "facet"
+        ]
+      }
+    }
+  ]
+}

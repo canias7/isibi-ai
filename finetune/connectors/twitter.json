@@ -1,0 +1,2286 @@
+{
+  "slug": "twitter",
+  "name": "Twitter",
+  "tool_count": 79,
+  "tools": [
+    {
+      "slug": "TWITTER_ADD_LIST_MEMBER",
+      "name": "Add a list member",
+      "description": "Adds a user to a specified Twitter List; the list must be owned by the authenticated user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_ADD_POST_TO_BOOKMARKS",
+      "name": "Add post to bookmarks",
+      "description": "Adds a specified, existing, and accessible Tweet to a user's bookmarks, with success indicated by the 'bookmarked' field in the response.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tweet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tweet_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_APPEND_MEDIA_UPLOAD",
+      "name": "Append Media Upload",
+      "description": "Append data chunk to an ongoing media upload session on X/Twitter. Use this action during chunked media uploads to append each segment of m…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "media": {
+            "type": "string"
+          },
+          "segment_index": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "media",
+          "segment_index"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_BOOKMARKS_BY_USER",
+      "name": "Get bookmarks by user",
+      "description": "Retrieves Tweets bookmarked by the authenticated user, where the provided User ID must match the authenticated user's ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "poll_fields": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "place_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          },
+          "composio_execution_message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TWITTER_CREATE_ACTIVITY_SUBSCRIPTION",
+      "name": "Create activity subscription",
+      "description": "Tool to create a subscription for an X activity event. Use when you need to monitor specific user activities like profile updates, follows,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "object"
+          },
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "profile.update.bio",
+              "profile.update.profile_picture",
+              "profile.update.banner_picture",
+              "profile.update.screenname",
+              "profile.update.geo",
+              "profile.update.url",
+              "profile.update.verified_badge",
+              "profile.update.affiliate_badge",
+              "profile.update.handle",
+              "news.new",
+              "follow.follow",
+              "follow.unfollow",
+              "spaces.start",
+              "spaces.end",
+              "chat.received",
+              "chat.sent"
+            ]
+          },
+          "webhook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_type",
+          "filter"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_CREATE_COMPLIANCE_JOB",
+      "name": "Create compliance job",
+      "description": "Creates a new compliance job to check the status of Tweet or user IDs; upload IDs as a plain text file (one ID per line) to the `upload_url…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "tweets",
+              "users"
+            ]
+          },
+          "resumable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_CREATE_DM_CONVERSATION",
+      "name": "Create group DM conversation",
+      "description": "Creates a new group Direct Message (DM) conversation on Twitter. REQUIRED PARAMETERS: - conversation_type: Must be 'Group' - participant_id…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "object"
+          },
+          "participant_ids": {
+            "type": "array"
+          },
+          "conversation_type": {
+            "type": "string",
+            "enum": [
+              "Group"
+            ]
+          }
+        },
+        "required": [
+          "conversation_type",
+          "message",
+          "participant_ids"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_CREATE_LIST",
+      "name": "Create a list",
+      "description": "Creates a new, empty List on X (formerly Twitter), for which the provided name must be unique for the authenticated user; accounts are adde…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_CREATION_OF_A_POST",
+      "name": "Create a post",
+      "description": "Creates a Tweet on Twitter; `text` is required unless `card_uri`, `media_media_ids`, `poll_options`, or `quote_tweet_id` is provided. Examp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "card_uri": {
+            "type": "string"
+          },
+          "nullcast": {
+            "type": "boolean"
+          },
+          "geo_place_id": {
+            "type": "string"
+          },
+          "poll_options": {
+            "type": "array"
+          },
+          "quote_tweet_id": {
+            "type": "string"
+          },
+          "reply_settings": {
+            "type": "string",
+            "enum": [
+              "following",
+              "mentionedUsers",
+              "subscribers"
+            ]
+          },
+          "media_media_ids": {
+            "type": "array"
+          },
+          "poll_reply_settings": {
+            "type": "string"
+          },
+          "media_tagged_user_ids": {
+            "type": "array"
+          },
+          "poll_duration_minutes": {
+            "type": "integer"
+          },
+          "direct_message_deep_link": {
+            "type": "string"
+          },
+          "for_super_followers_only": {
+            "type": "boolean"
+          },
+          "reply_in_reply_to_tweet_id": {
+            "type": "string"
+          },
+          "reply_exclude_reply_user_ids": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TWITTER_DELETE_DM",
+      "name": "Delete direct message",
+      "description": "Permanently deletes a specific Twitter Direct Message (DM) event using its `event_id` if the authenticated user sent it; this action is irr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_DELETE_LIST",
+      "name": "Delete list",
+      "description": "Permanently deletes a specified Twitter List using its ID, which must be owned by the authenticated user; this action is irreversible and t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_FOLLOWERS_BY_USER_ID",
+      "name": "Get followers by user id",
+      "description": "Retrieves a list of users who follow a specified public Twitter user ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_FOLLOWING_BY_USER_ID",
+      "name": "Get following by user ID",
+      "description": "Retrieves users followed by a specific Twitter user, allowing pagination and customization of returned user and tweet data fields via expan…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_FOLLOW_LIST",
+      "name": "Follow a list",
+      "description": "Allows the authenticated user (`id`) to follow a specific Twitter List (`list_id`) they are permitted to access, subscribing them to the li…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_FOLLOW_USER",
+      "name": "Follow a user",
+      "description": "Allows an authenticated user (path `id`) to follow another user (`target_user_id`), which results in a pending request if the target user's…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "target_user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_user_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_FULL_ARCHIVE_SEARCH",
+      "name": "Search full archive of tweets",
+      "description": "Searches the full archive of public Tweets from March 2006 onwards; use 'start_time' and 'end_time' together for a defined time window.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "end_time": {
+            "type": "string"
+          },
+          "since_id": {
+            "type": "string"
+          },
+          "until_id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "next_token": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "string",
+            "enum": [
+              "recency",
+              "relevancy"
+            ]
+          },
+          "start_time": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "poll_fields": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "place_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_BLOCKED_USERS",
+      "name": "Get users blocked by user ID",
+      "description": "Retrieves the authenticated user's own block list. IMPORTANT: You can only retrieve YOUR OWN block list - the `id` parameter must be the au…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_COMPLIANCE_JOB",
+      "name": "Retrieve compliance job by id",
+      "description": "Retrieves status, download/upload URLs, and other details for an existing Twitter compliance job specified by its unique ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "compliance_job_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_COMPLIANCE_JOBS",
+      "name": "Retrieve compliance jobs",
+      "description": "Returns a list of recent compliance jobs, filtered by type (tweets or users) and optionally by status.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "tweets",
+              "users"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "complete",
+              "created",
+              "failed",
+              "in_progress"
+            ]
+          },
+          "compliance_job_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_DM_CONVERSATION_EVENTS",
+      "name": "Get DM events for a DM conversation",
+      "description": "Fetches Direct Message (DM) events for a one-on-one conversation with a specified participant ID, ordered chronologically newest to oldest;…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expansions": {
+            "type": "array"
+          },
+          "event_types": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "participant_id": {
+            "type": "string"
+          },
+          "dm_event_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "participant_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_DM_EVENT",
+      "name": "Get DM events by ID",
+      "description": "Fetches a specific Direct Message (DM) event by its unique ID, allowing optional expansion of related data like users or tweets; ensure the…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "dm_event_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "event_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_LIST",
+      "name": "Lookup list by ID",
+      "description": "Returns metadata for a specific Twitter List, identified by its ID; does not return list members but can expand the owner's User object via…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "list_fields": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_LIST_FOLLOWERS",
+      "name": "Get list followers",
+      "description": "Fetches a list of users who follow a specific Twitter List, identified by its ID; ensure the authenticated user has access if the list is p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_LIST_MEMBERS",
+      "name": "Fetch list members by id",
+      "description": "Fetches members of a specific Twitter List, identified by its unique ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_MEDIA_UPLOAD_STATUS",
+      "name": "Get Media Upload Status",
+      "description": "Get the processing status of uploaded media (videos/GIFs) on X/Twitter. Only call this when the FINALIZE command returned a processing_info…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "media_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "media_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_MUTED_USERS",
+      "name": "Get muted users",
+      "description": "Returns user objects muted by the X user identified by the `id` path parameter.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_OPENAPI_SPEC",
+      "name": "Fetch OpenAPI specification",
+      "description": "Fetches the OpenAPI specification (JSON) for Twitter's API v2, used to programmatically understand the API's structure for developing clien…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "TWITTER_GET_POST_ANALYTICS",
+      "name": "Get Post analytics",
+      "description": "Tool to retrieve analytics data for specified Posts within a defined time range. Use when you need engagement metrics, impressions, or othe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "end_time": {
+            "type": "string"
+          },
+          "start_time": {
+            "type": "string"
+          },
+          "granularity": {
+            "type": "string",
+            "enum": [
+              "hourly",
+              "daily",
+              "weekly",
+              "total"
+            ]
+          },
+          "analytics.fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids",
+          "start_time",
+          "end_time"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_POST_RETWEETERS_ACTION",
+      "name": "Get post retweeters",
+      "description": "Retrieves users who publicly retweeted a specified public Post ID, excluding Quote Tweets and retweets from private accounts.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_POST_RETWEETS",
+      "name": "Retrieve retweets of a post",
+      "description": "Retrieves Tweets that Retweeted a specified public or authenticated-user-accessible Tweet ID, optionally customizing the response with fiel…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "poll_fields": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "place_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_POST_USAGE",
+      "name": "Fetch tweet usage data",
+      "description": "Fetches Tweet usage statistics for a Project (e.g., consumption, caps, daily breakdowns for Project & Client Apps) to monitor API limits; d…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer"
+          },
+          "usage_fields": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TWITTER_GET_RECENT_DM_EVENTS",
+      "name": "Get recent direct message events",
+      "description": "Returns recent Direct Message events for the authenticated user, such as new messages or changes in conversation participants.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expansions": {
+            "type": "array"
+          },
+          "event_types": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "dm_event_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TWITTER_GET_SPACE_BY_ID",
+      "name": "Look up space by ID",
+      "description": "Retrieves details for a Twitter Space by its ID, allowing for customization and expansion of related data, provided the Space ID is valid a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "space_fields": {
+            "type": "array"
+          },
+          "topic_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_SPACE_POSTS",
+      "name": "Retrieve posts from a space",
+      "description": "Retrieves Tweets that were shared/posted during a Twitter Space broadcast. IMPORTANT: This endpoint returns Tweets that participants explic…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "poll_fields": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "place_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_SPACES_BY_CREATORS",
+      "name": "Get spaces by creator IDs",
+      "description": "Retrieves Twitter Spaces created by a list of specified User IDs, with options to customize returned data fields.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_ids": {
+            "type": "array"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "space_fields": {
+            "type": "array"
+          },
+          "topic_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_SPACES_BY_IDS",
+      "name": "Get space information by IDs",
+      "description": "Fetches detailed information for one or more Twitter Spaces (live, scheduled, or ended) by their unique IDs; at least one Space ID must be …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "space_fields": {
+            "type": "array"
+          },
+          "topic_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_SPACE_TICKET_BUYERS",
+      "name": "Fetch space ticket buyers list",
+      "description": "Retrieves a list of users who purchased tickets for a specific, valid, and ticketed Twitter Space.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_USER_BY_ID",
+      "name": "Look up user by ID",
+      "description": "Retrieves detailed public information for a Twitter user by their ID, optionally expanding related data (e.g., pinned tweets) and specifyin…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_USER_FOLLOWED_LISTS",
+      "name": "Get user's followed lists",
+      "description": "Returns metadata (not Tweets) for lists a specific Twitter user follows, optionally including expanded owner details.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "list_fields": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_USER_LIST_MEMBERSHIPS",
+      "name": "Get a user's list memberships",
+      "description": "Retrieves all Twitter Lists a specified user is a member of, including public Lists and private Lists the authenticated user is authorized …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "list_fields": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_USER_OWNED_LISTS",
+      "name": "Get a user's owned lists",
+      "description": "Call this action to retrieve Lists created (owned) by a specific Twitter user, not Lists they follow or are subscribed to.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "list_fields": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_USER_PINNED_LISTS",
+      "name": "Get a user's pinned lists",
+      "description": "Retrieves the Lists a specific, existing Twitter user has pinned to their profile to highlight them.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "list_fields": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_GET_USERS_BY_IDS",
+      "name": "Look up users by IDs",
+      "description": "Retrieves detailed information for specified X (formerly Twitter) user IDs, optionally customizing returned fields and expanding related en…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_HIDE_REPLIES",
+      "name": "Set reply visibility",
+      "description": "Hides or unhides an existing reply Tweet. This action allows the authenticated user to hide or unhide a reply to a conversation they own (s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "hidden": {
+            "type": "boolean"
+          },
+          "tweet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tweet_id",
+          "hidden"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_INITIALIZE_MEDIA_UPLOAD",
+      "name": "Initialize Media Upload",
+      "description": "Initialize a media upload session for X/Twitter. Use this to start a chunked media upload process, which returns a media_id for subsequent …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "shared": {
+            "type": "boolean"
+          },
+          "media_type": {
+            "type": "string",
+            "enum": [
+              "video/mp4",
+              "video/webm",
+              "video/mp2t",
+              "video/quicktime",
+              "text/srt",
+              "text/vtt",
+              "image/jpeg",
+              "image/gif",
+              "image/bmp",
+              "image/png",
+              "image/webp",
+              "image/pjpeg",
+              "image/tiff",
+              "model/gltf-binary",
+              "model/vnd.usdz+zip"
+            ]
+          },
+          "total_bytes": {
+            "type": "integer"
+          },
+          "media_category": {
+            "type": "string",
+            "enum": [
+              "amplify_video",
+              "tweet_gif",
+              "tweet_image",
+              "tweet_video",
+              "dm_gif",
+              "dm_image",
+              "dm_video",
+              "subtitles"
+            ]
+          },
+          "additional_owners": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "media_type",
+          "total_bytes"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_LIST_POST_LIKERS",
+      "name": "List post likers",
+      "description": "Retrieves users who have liked the Post (Tweet) identified by the provided ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_LIST_POSTS_TIMELINE_BY_LIST_ID",
+      "name": "List posts timeline by list ID",
+      "description": "Fetches the most recent Tweets posted by members of a specified Twitter List.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "poll_fields": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "place_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_MUTE_USER",
+      "name": "Mute user by ID",
+      "description": "Mutes a target user on behalf of an authenticated user, preventing the target's Tweets and Retweets from appearing in the authenticated use…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "target_user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_user_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_PIN_LIST",
+      "name": "Pin a list",
+      "description": "Pins a specified List to the authenticated user's profile, provided the List exists, the user has access rights, and the pin limit (typical…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_POST_DELETE_BY_POST_ID",
+      "name": "Delete tweet",
+      "description": "Irreversibly deletes a specific Tweet by its ID; the Tweet may persist in third-party caches after deletion.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_POST_LOOKUP_BY_POST_ID",
+      "name": "Look up post by id",
+      "description": "Fetches comprehensive details for a single Tweet by its unique ID, provided the Tweet exists and is accessible.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "poll_fields": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "place_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_POST_LOOKUP_BY_POST_IDS",
+      "name": "Get tweets by IDs",
+      "description": "Retrieves detailed information for one or more Posts (Tweets) identified by their unique IDs, allowing selection of specific fields and exp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "poll_fields": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "place_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_RECENT_SEARCH",
+      "name": "Search recent tweets",
+      "description": "Searches Tweets from the last 7 days matching a query (using X's search syntax), ideal for real-time analysis, trend monitoring, or retriev…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "end_time": {
+            "type": "string"
+          },
+          "since_id": {
+            "type": "string"
+          },
+          "until_id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "next_token": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "string",
+            "enum": [
+              "recency",
+              "relevancy"
+            ]
+          },
+          "start_time": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "poll_fields": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "place_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_REMOVE_LIST_MEMBER",
+      "name": "Remove a list member",
+      "description": "Removes a user from a Twitter List; the response `is_member` field will be `false` if removal was successful or the user was not a member, …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_REMOVE_POST_FROM_BOOKMARKS",
+      "name": "Remove a bookmarked post",
+      "description": "Removes a Tweet, specified by `tweet_id`, from the authenticated user's bookmarks; the Tweet must have been previously bookmarked by the us…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tweet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tweet_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_RETRIEVE_DM_CONVERSATION_EVENTS",
+      "name": "Retrieve DM conversation events",
+      "description": "Retrieves Direct Message (DM) events for a specific conversation ID on Twitter, useful for analyzing messages and participant activities.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "event_types": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "dm_event_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_RETRIEVE_POSTS_THAT_QUOTE_A_POST",
+      "name": "Retrieve posts that quote a post",
+      "description": "Retrieves Tweets that quote a specified Tweet, requiring a valid Tweet ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "exclude": {
+            "type": "array"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "poll_fields": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "place_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_RETURNS_POST_OBJECTS_LIKED_BY_THE_PROVIDED_USER_ID",
+      "name": "Retrieve liked tweets by user ID",
+      "description": "Retrieves Tweets liked by a specified Twitter user, provided their liked tweets are public or accessible.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "poll_fields": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "place_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_RETWEET_POST",
+      "name": "Retweet post",
+      "description": "Retweets a Tweet for the authenticated user. The user ID is automatically fetched from the authenticated session - you only need to provide…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tweet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tweet_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_SEARCH_FULL_ARCHIVE_COUNTS",
+      "name": "Get full archive search counts",
+      "description": "Returns a count of Tweets from the full archive that match a specified query, aggregated by day, hour, or minute; `start_time` must be befo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "end_time": {
+            "type": "string"
+          },
+          "since_id": {
+            "type": "string"
+          },
+          "until_id": {
+            "type": "string"
+          },
+          "next_token": {
+            "type": "string"
+          },
+          "start_time": {
+            "type": "string"
+          },
+          "granularity": {
+            "type": "string",
+            "enum": [
+              "day",
+              "hour",
+              "minute"
+            ]
+          },
+          "pagination_token": {
+            "type": "string"
+          },
+          "search_count_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_SEARCH_RECENT_COUNTS",
+      "name": "Fetch recent tweet counts",
+      "description": "Retrieves the count of Tweets matching a specified search query within the last 7 days, aggregated by 'minute', 'hour', or 'day'.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "end_time": {
+            "type": "string"
+          },
+          "since_id": {
+            "type": "string"
+          },
+          "until_id": {
+            "type": "string"
+          },
+          "next_token": {
+            "type": "string"
+          },
+          "start_time": {
+            "type": "string"
+          },
+          "granularity": {
+            "type": "string",
+            "enum": [
+              "day",
+              "hour",
+              "minute"
+            ]
+          },
+          "pagination_token": {
+            "type": "string"
+          },
+          "search_count_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_SEARCH_SPACES",
+      "name": "Search for spaces",
+      "description": "Searches for Twitter Spaces by a textual query, optionally filtering by state (live, scheduled, all) to discover audio conversations.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "all",
+              "live",
+              "scheduled"
+            ]
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "space_fields": {
+            "type": "array"
+          },
+          "topic_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_SEND_A_NEW_MESSAGE_TO_A_USER",
+      "name": "Send a new message to a user",
+      "description": "Sends a new Direct Message with text and/or media (media_id for attachments must be pre-uploaded) to a specified Twitter user; this creates…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array"
+          },
+          "participant_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "participant_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_SEND_DM_TO_CONVERSATION",
+      "name": "Send a new message to a DM conversation",
+      "description": "Sends a message, with optional text and/or media attachments (using pre-uploaded `media_id`s), to a specified Twitter Direct Message conver…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array"
+          },
+          "dm_conversation_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dm_conversation_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_STREAM_POST_LABELS",
+      "name": "Get tweets label stream",
+      "description": "Stream real-time Tweet label events (apply/remove). Requires Enterprise access and App-Only OAuth 2.0 auth. Returns PublicTweetNotice or Pu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "end_time": {
+            "type": "string"
+          },
+          "start_time": {
+            "type": "string"
+          },
+          "backfill_minutes": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TWITTER_UNFOLLOW_LIST",
+      "name": "Unfollow a list",
+      "description": "Enables a user (via `id`) to unfollow a specific Twitter List (via `list_id`), which removes its tweets from their timeline and stops relat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_UNFOLLOW_USER",
+      "name": "Unfollow user",
+      "description": "Allows the authenticated user to unfollow an existing Twitter user (`target_user_id`), which removes the follow relationship. The source us…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "source_user_id": {
+            "type": "string"
+          },
+          "target_user_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TWITTER_UNLIKE_POST",
+      "name": "Unlike post",
+      "description": "Allows an authenticated user (`id`) to remove their like from a specific post (`tweet_id`); the action is idempotent and completes successf…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tweet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tweet_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_UNMUTE_USER",
+      "name": "Unmute a user by user ID",
+      "description": "Unmutes a target user for the authenticated user, allowing them to see Tweets and notifications from the target user again. The source_user…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "target_user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_user_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_UNPIN_LIST",
+      "name": "Unpin a list",
+      "description": "Unpins a List (specified by list_id) from the authenticated user's profile. The user ID is automatically retrieved if not provided.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_UNRETWEET_POST",
+      "name": "Unretweet post",
+      "description": "Removes a user's retweet of a specified Post, if the user had previously retweeted it.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source_tweet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source_tweet_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_UPDATE_LIST",
+      "name": "Update list attributes",
+      "description": "Updates an existing Twitter List's name, description, or privacy status, requiring the List ID and at least one mutable property.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_UPLOAD_LARGE_MEDIA",
+      "name": "Upload Large Media",
+      "description": "DEPRECATED: Use TWITTER_UPLOAD_MEDIA instead. Use this to upload a single media file to X/Twitter. Automatically uses chunked upload for GI…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "media": {
+            "type": "object"
+          },
+          "media_category": {
+            "type": "string",
+            "enum": [
+              "tweet_image",
+              "tweet_gif",
+              "tweet_video",
+              "amplify_video"
+            ]
+          }
+        },
+        "required": [
+          "media"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_UPLOAD_MEDIA",
+      "name": "Upload Media",
+      "description": "Upload media (images only) to X/Twitter using the v2 API. Supports tweet_image, dm_image, and subtitles media categories only. One file per…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "media": {
+            "type": "object"
+          },
+          "media_type": {
+            "type": "string"
+          },
+          "media_category": {
+            "type": "string",
+            "enum": [
+              "tweet_image",
+              "dm_image",
+              "subtitles"
+            ]
+          }
+        },
+        "required": [
+          "media"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_USER_HOME_TIMELINE_BY_USER_ID",
+      "name": "Get user reverse chronological timeline",
+      "description": "Retrieves the home timeline (reverse chronological feed) for the authenticated Twitter user. Returns tweets from accounts the user follows …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "exclude": {
+            "type": "array"
+          },
+          "end_time": {
+            "type": "string"
+          },
+          "since_id": {
+            "type": "string"
+          },
+          "until_id": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "start_time": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "poll_fields": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "media_fields": {
+            "type": "array"
+          },
+          "place_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          },
+          "pagination_token": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "TWITTER_USER_LIKE_POST",
+      "name": "Like a tweet",
+      "description": "Allows the authenticated user to like a specific, accessible Tweet, provided neither user has blocked the other and the authenticated user …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tweet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tweet_id"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_USER_LOOKUP_BY_USERNAME",
+      "name": "Look up user by username",
+      "description": "Fetches public profile information for a valid and existing Twitter user by their username, optionally expanding related data like pinned T…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "username"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_USER_LOOKUP_BY_USERNAMES",
+      "name": "Look up users by username",
+      "description": "Retrieves detailed information for 1 to 100 Twitter users by their usernames (each 1-15 alphanumeric characters/underscores), allowing cust…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "usernames": {
+            "type": "array"
+          },
+          "expansions": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "usernames"
+        ]
+      }
+    },
+    {
+      "slug": "TWITTER_USER_LOOKUP_ME",
+      "name": "Get authenticated user",
+      "description": "Returns profile information for the currently authenticated X user, customizable via request fields.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expansions": {
+            "type": "array"
+          },
+          "user_fields": {
+            "type": "array"
+          },
+          "tweet_fields": {
+            "type": "array"
+          }
+        }
+      }
+    }
+  ]
+}

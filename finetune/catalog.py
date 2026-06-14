@@ -18,6 +18,9 @@ These are invoked from a graph node. A node's ``app`` is one of:
     tools like reminders & weather), 'decision' (branch).
 """
 
+import json
+from pathlib import Path
+
 # --- Composio per-app tool lists (verbatim from gofarther-mcp ALLOWED) -------
 ALLOWED: dict[str, list[str]] = {
     "gmail": ["GMAIL_FETCH_EMAILS", "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID", "GMAIL_SEND_EMAIL", "GMAIL_CREATE_EMAIL_DRAFT", "GMAIL_REPLY_TO_THREAD", "GMAIL_LIST_DRAFTS"],
@@ -83,6 +86,41 @@ ALIASES: dict[str, str] = {
     "googlecalendar": "gcal",
     "googledrive": "gdrive",
 }
+
+# --- Universe expansion ------------------------------------------------------
+# Merge every OTHER Composio connector (catalog_connectors.json, built by
+# build_universe_catalog.py) on top of the verbatim 54 above. The 54 stay exactly
+# as hand-curated/prod; everything else is added so the model's catalog can span
+# the whole Composio universe. Safe to ship without the file — then it's just the
+# 54. The 54 always win on any slug collision.
+def _merge_universe() -> int:
+    f = Path(__file__).parent / "catalog_connectors.json"
+    if not f.exists():
+        return 0
+    try:
+        data = json.loads(f.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return 0
+    taken = {ALIASES.get(s, s) for s in ALLOWED}
+    added = 0
+    for slug, info in (data.get("connectors") or {}).items():
+        if slug in ALLOWED:
+            continue  # never override the verbatim 54
+        tools = info.get("tools") or []
+        if not tools:
+            continue
+        fid = info.get("frontend_id", slug)
+        if fid != slug and fid in taken:
+            fid = slug  # avoid colliding with an existing frontend id
+        ALLOWED[slug] = tools
+        if fid != slug:
+            ALIASES[slug] = fid
+        taken.add(fid)
+        added += 1
+    return added
+
+
+UNIVERSE_ADDED = _merge_universe()
 
 # Always-available built-in tools (no connector). In a graph these are reached
 # through an 'ai' node whose detail names the action; listed here so generated
@@ -154,6 +192,6 @@ def tools_for(app_id: str) -> list[str]:
 
 
 if __name__ == "__main__":
-    print(f"connectors: {len(ALLOWED)}  builtins: {len(BUILTINS)}")
-    print(f"valid app ids: {len(valid_app_ids())}")
+    print(f"connectors: {len(ALLOWED)} (54 verbatim + {UNIVERSE_ADDED} universe)  builtins: {len(BUILTINS)}")
+    print(f"valid app ids: {len(valid_app_ids())}  known tools: {len(known_tools())}")
     print("sample:", connector_ids()[:8])

@@ -1,0 +1,857 @@
+{
+  "slug": "googledocs",
+  "name": "Google Docs",
+  "tool_count": 35,
+  "tools": [
+    {
+      "slug": "GOOGLEDOCS_COPY_DOCUMENT",
+      "name": "Copy Google Document",
+      "description": "Tool to create a copy of an existing Google Document. Use this to duplicate a document, for example, when using an existing document as a t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "include_shared_drives": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_CREATE_DOCUMENT",
+      "name": "Create a document",
+      "description": "Creates a new Google Docs document using the provided title as filename and inserts the initial text at the beginning if non-empty, returni…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_CREATE_DOCUMENT2",
+      "name": "Create blank document (Deprecated)",
+      "description": "DEPRECATED: Use GOOGLEDOCS_CREATE_DOCUMENT instead. Tool to create a blank Google Docs document with a specified title. Use when you need t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_CREATE_DOCUMENT_MARKDOWN",
+      "name": "Create Document Markdown",
+      "description": "Creates a new Google Docs document, optionally initializing it with a title and content provided as Markdown text.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "image_assets": {
+            "type": "array"
+          },
+          "markdown_text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_CREATE_FOOTER",
+      "name": "Create Footer",
+      "description": "Tool to create a new footer in a Google Document. Use when you need to add a footer, optionally specifying its type and the section it appl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "DEFAULT"
+            ]
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "section_break_location": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "document_id",
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_CREATE_FOOTNOTE",
+      "name": "Create Footnote",
+      "description": "Tool to create a new footnote in a Google Document. Use this when you need to add a footnote at a specific location or at the end of the do…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "object"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "endOfSegmentLocation": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "documentId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_CREATE_HEADER",
+      "name": "Create Header",
+      "description": "Tool to create a new header in a Google Document, optionally with text content. Use this tool when you need to add a header to a document. …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "HEADER_FOOTER_TYPE_UNSPECIFIED",
+              "DEFAULT"
+            ]
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "sectionBreakLocation": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "documentId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_CREATE_NAMED_RANGE",
+      "name": "Create Named Range",
+      "description": "Tool to create a new named range in a Google Document. Use this to assign a name to a specific part of the document for easier reference or…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "tabId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "rangeEndIndex": {
+            "type": "integer"
+          },
+          "rangeSegmentId": {
+            "type": "string"
+          },
+          "rangeStartIndex": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "documentId",
+          "name",
+          "rangeStartIndex",
+          "rangeEndIndex"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_CREATE_PARAGRAPH_BULLETS",
+      "name": "Create Paragraph Bullets",
+      "description": "Tool to add bullets to paragraphs within a specified range in a Google Document. Use when you need to format a list or a set of paragraphs …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tabId": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "createParagraphBullets": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "document_id",
+          "createParagraphBullets"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_DELETE_CONTENT_RANGE",
+      "name": "Delete Content Range in Document",
+      "description": "Tool to delete a range of content from a Google Document. Use when you need to remove a specific portion of text or other structural elemen…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "object"
+          },
+          "document_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "range"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_DELETE_FOOTER",
+      "name": "Delete Footer",
+      "description": "Tool to delete a footer from a Google Document. Use when you need to remove a footer from a specific section or the default footer.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tab_id": {
+            "type": "string"
+          },
+          "footer_id": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "footer_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_DELETE_HEADER",
+      "name": "Delete Header",
+      "description": "Deletes the header from the specified section or the default header if no section is specified. Use this tool to remove a header from a Goo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tab_id": {
+            "type": "string"
+          },
+          "header_id": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "header_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_DELETE_NAMED_RANGE",
+      "name": "Delete Named Range",
+      "description": "Tool to delete a named range from a Google Document. Use when you need to remove a previously defined named range by its ID or name.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string"
+          },
+          "deleteNamedRange": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "document_id",
+          "deleteNamedRange"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_DELETE_PARAGRAPH_BULLETS",
+      "name": "Delete Paragraph Bullets",
+      "description": "Tool to remove bullets from paragraphs within a specified range in a Google Document. Use when you need to clear bullet formatting from a s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "object"
+          },
+          "tab_id": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "range"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_DELETE_TABLE_COLUMN",
+      "name": "Delete Table Column",
+      "description": "Tool to delete a column from a table in a Google Document. Use this tool when you need to remove a specific column from an existing table w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "requests": {
+            "type": "array"
+          },
+          "document_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "requests"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_DELETE_TABLE_ROW",
+      "name": "Delete Table Row",
+      "description": "Tool to delete a row from a table in a Google Document. Use when you need to remove a specific row from an existing table.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string"
+          },
+          "tableCellLocation": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "documentId",
+          "tableCellLocation"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_EXPORT_DOCUMENT_AS_PDF",
+      "name": "Export Google Doc as PDF",
+      "description": "Tool to export a Google Docs file as PDF using the Google Drive API. Use when you need to generate a PDF version of a Google Docs document …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_GET_DOCUMENT_BY_ID",
+      "name": "Get document by id",
+      "description": "Retrieves an existing Google Document by its ID; will error if the document is not found.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "includeTabsContent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_GET_DOCUMENT_PLAINTEXT",
+      "name": "Get document plain text",
+      "description": "Retrieve a Google Doc by ID and return a best-effort plain-text rendering. Converts document structure into plain text including paragraphs…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tab_ids": {
+            "type": "array"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "include_tables": {
+            "type": "boolean"
+          },
+          "include_footers": {
+            "type": "boolean"
+          },
+          "include_headers": {
+            "type": "boolean"
+          },
+          "include_footnotes": {
+            "type": "boolean"
+          },
+          "table_row_delimiter": {
+            "type": "string"
+          },
+          "include_tabs_content": {
+            "type": "boolean"
+          },
+          "table_cell_delimiter": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_INSERT_INLINE_IMAGE",
+      "name": "Insert Inline Image",
+      "description": "Tool to insert an image from a given URI at a specified location in a Google Document as an inline image. Use when you need to add an image…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string"
+          },
+          "location": {
+            "type": "object"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "objectSize": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "documentId",
+          "uri",
+          "location"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_INSERT_PAGE_BREAK",
+      "name": "Insert Page Break",
+      "description": "Tool to insert a page break into a Google Document. Use when you need to start new content on a fresh page, such as at the end of a chapter…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string"
+          },
+          "insertPageBreak": {}
+        },
+        "required": [
+          "documentId",
+          "insertPageBreak"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_INSERT_TABLE_ACTION",
+      "name": "Insert Table in Google Doc",
+      "description": "Tool to insert a table into a Google Document. Use when you need to add a new table at a specific location or at the end of a segment (like…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "integer"
+          },
+          "index": {
+            "type": "integer"
+          },
+          "tabId": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "integer"
+          },
+          "segmentId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "insertAtEndOfSegment": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "documentId",
+          "rows",
+          "columns"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_INSERT_TABLE_COLUMN",
+      "name": "Insert Table Column",
+      "description": "Tool to insert a new column into a table in a Google Document. Use this tool when you need to add a column to an existing table at a specif…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "requests": {
+            "type": "array"
+          },
+          "document_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "requests"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_INSERT_TEXT_ACTION",
+      "name": "Insert Text into Document",
+      "description": "Tool to insert a string of text at a specified location within a Google Document. Use when you need to add new text content to an existing …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tab_id": {
+            "type": "string"
+          },
+          "segment_id": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "append_to_end": {
+            "type": "boolean"
+          },
+          "text_to_insert": {
+            "type": "string"
+          },
+          "insertion_index": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "document_id",
+          "text_to_insert"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_LIST_SPREADSHEET_CHARTS",
+      "name": "Get Charts from Spreadsheet",
+      "description": "Tool to retrieve a list of all charts from a specified Google Sheets spreadsheet. Use when you need to get chart IDs and their specificatio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "spreadsheet_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheet_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_REPLACE_ALL_TEXT",
+      "name": "Replace All Text in Document",
+      "description": "Tool to replace all occurrences of a specified text string with another text string throughout a Google Document. Use when you need to perf…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tab_ids": {
+            "type": "array"
+          },
+          "find_text": {
+            "type": "string"
+          },
+          "match_case": {
+            "type": "boolean"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "replace_text": {
+            "type": "string"
+          },
+          "search_by_regex": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "document_id",
+          "find_text",
+          "replace_text"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_REPLACE_IMAGE",
+      "name": "Replace Image in Document",
+      "description": "Tool to replace a specific image in a document with a new image from a URI. Use when you need to update an existing image within a Google D…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string"
+          },
+          "replace_image": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "document_id",
+          "replace_image"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_SEARCH_DOCUMENTS",
+      "name": "Search Documents",
+      "description": "Search for Google Documents using various filters including name, content, date ranges, and more.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "order_by": {
+            "type": "string"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "starred_only": {
+            "type": "boolean"
+          },
+          "created_after": {
+            "type": "string"
+          },
+          "modified_after": {
+            "type": "string"
+          },
+          "shared_with_me": {
+            "type": "boolean"
+          },
+          "include_trashed": {
+            "type": "boolean"
+          },
+          "response_detail": {
+            "type": "string",
+            "enum": [
+              "minimal",
+              "full"
+            ]
+          },
+          "include_shared_drives": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_UNMERGE_TABLE_CELLS",
+      "name": "Unmerge Table Cells",
+      "description": "Tool to unmerge previously merged cells in a table. Use this when you need to revert merged cells in a Google Document table back to their …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string"
+          },
+          "tableRange": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "documentId",
+          "tableRange"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_UPDATE_DOCUMENT_BATCH",
+      "name": "Update Document Batch (Deprecated)",
+      "description": "DEPRECATED: Use UpdateExistingDocument instead. Tool to apply one or more updates to a Google Document. Use when you need to perform batch …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "requests": {
+            "type": "array"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "write_control": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "document_id",
+          "requests"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_UPDATE_DOCUMENT_MARKDOWN",
+      "name": "Update Document Markdown",
+      "description": "Replaces the entire content of an existing Google Docs document with new Markdown text; requires edit permissions for the document.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tab_id": {
+            "type": "string"
+          },
+          "markdown": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "markdown"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_UPDATE_DOCUMENT_SECTION_MARKDOWN",
+      "name": "Update Document Section Markdown",
+      "description": "Tool to insert or replace a section of a Google Docs document with Markdown content. Use when you need to update only a section of a docume…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tab_id": {
+            "type": "string"
+          },
+          "end_index": {
+            "type": "integer"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "start_index": {
+            "type": "integer"
+          },
+          "markdown_text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "markdown_text"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_UPDATE_DOCUMENT_STYLE",
+      "name": "Update Document Style",
+      "description": "Tool to update the overall document style, such as page size, margins, and default text direction. Use when you need to modify the global s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "tab_id": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "document_style": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "document_id",
+          "document_style"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_UPDATE_EXISTING_DOCUMENT",
+      "name": "Update existing document",
+      "description": "Applies programmatic edits, such as text insertion, deletion, or formatting, to a specified Google Doc using the `batchUpdate` API method.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "edit_docs": {
+            "type": "array"
+          },
+          "document_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "edit_docs"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLEDOCS_UPDATE_TABLE_ROW_STYLE",
+      "name": "Update Table Row Style",
+      "description": "Tool to update the style of a table row in a Google Document. Use when you need to modify the appearance of specific rows within a table, s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string"
+          },
+          "updateTableRowStyle": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "documentId",
+          "updateTableRowStyle"
+        ]
+      }
+    }
+  ]
+}

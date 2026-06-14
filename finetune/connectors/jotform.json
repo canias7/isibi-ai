@@ -1,0 +1,347 @@
+{
+  "slug": "jotform",
+  "name": "Jotform",
+  "tool_count": 18,
+  "tools": [
+    {
+      "slug": "JOTFORM_CLONE_FORM",
+      "name": "Clone Form",
+      "description": "Tool to clone a single form in Jotform. Creates a complete copy of the form with all its questions and settings. Use when you need to dupli…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "JOTFORM_CREATE_LABEL",
+      "name": "Create Label",
+      "description": "Tool to create a new label for organizing forms in Jotform. Use when you need to categorize or group forms with a named label.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "JOTFORM_DELETE_LABEL",
+      "name": "Delete Label",
+      "description": "Tool to delete a label along with all its sublabels. Use when you need to remove a label from the account.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "JOTFORM_GET_LABEL",
+      "name": "Get Label",
+      "description": "Tool to retrieve details of a label by its ID, including name and color. Use when you need to fetch information about a specific label.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "JOTFORM_GET_LABEL_RESOURCES",
+      "name": "Get Label Resources",
+      "description": "Tool to get a list of assets (forms) in a label and their associated information. Use when you need to retrieve forms organized under a spe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "JOTFORM_GET_SYSTEM_PLAN",
+      "name": "Get System Plan",
+      "description": "Tool to retrieve details of a specific system plan. Use when you need to check limits and pricing of a plan.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "planName": {
+            "type": "string",
+            "enum": [
+              "FREE",
+              "BRONZE",
+              "SILVER",
+              "GOLD",
+              "PLATINUM"
+            ]
+          }
+        },
+        "required": [
+          "planName"
+        ]
+      }
+    },
+    {
+      "slug": "JOTFORM_GET_USER_DETAILS",
+      "name": "Get User Details",
+      "description": "Tool to retrieve details of the authenticated user, including account and usage info. Use after confirming valid API key.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JOTFORM_GET_USER_FOLDERS",
+      "name": "Get User Folders",
+      "description": "Tool to retrieve a list of labels (folders replacement) for the authenticated user. Uses the GET /user/labels endpoint per Jotform's migrat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string"
+          },
+          "add_resources": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JOTFORM_GET_USER_FORMS",
+      "name": "Get User Forms",
+      "description": "Tool to retrieve a list of forms created by the authenticated user. Use after setting up API key authentication.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "folder": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "search": {
+            "type": "string"
+          },
+          "orderby": {
+            "type": "string"
+          },
+          "sorting": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JOTFORM_GET_USER_HISTORY",
+      "name": "Get User History",
+      "description": "Tool to fetch user activity history records. Use when auditing or filtering user actions by type or date.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "enum": [
+              "lastWeek",
+              "lastMonth",
+              "last3Months",
+              "last6Months",
+              "lastYear",
+              "all"
+            ]
+          },
+          "action": {
+            "type": "string"
+          },
+          "sortBy": {
+            "type": "string",
+            "enum": [
+              "ASC",
+              "DESC"
+            ]
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JOTFORM_GET_USER_REPORTS",
+      "name": "Get User Reports",
+      "description": "Tool to retrieve list of report URLs for all forms in the account. Includes Excel, CSV, printable charts, and embeddable HTML tables.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JOTFORM_GET_USER_SETTINGS",
+      "name": "Get User Settings",
+      "description": "Tool to retrieve the settings of the authenticated user. Use after confirming a valid API key.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JOTFORM_GET_USER_SETTINGS_BY_KEY",
+      "name": "Get User Setting By Key",
+      "description": "Tool to retrieve a specific user setting by key. Use when you need a single setting value like email, timezone, language, or website.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "settingsKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "settingsKey"
+        ]
+      }
+    },
+    {
+      "slug": "JOTFORM_GET_USER_SUBMISSIONS",
+      "name": "Get User Submissions",
+      "description": "Tool to retrieve all submissions for all forms on the account. The answers dictionary contains submission data with question IDs as keys. U…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "orderby": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "JOTFORM_GET_USER_USAGE",
+      "name": "Get User Usage",
+      "description": "Tool to retrieve monthly usage statistics for the authenticated user. Use to check form submissions, payment forms, SSL submissions, and st…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "JOTFORM_REMOVE_LABEL_RESOURCES",
+      "name": "Remove Resources from Label",
+      "description": "Tool to remove specified resources (forms) from a label by their IDs and types. Use when you need to unassign forms from a specific label.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "resources"
+        ]
+      }
+    },
+    {
+      "slug": "JOTFORM_UPDATE_LABEL",
+      "name": "Update Label",
+      "description": "Tool to update an existing label with new name or color settings. Use when you need to modify label properties.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "JOTFORM_UPDATE_USER_SETTINGS",
+      "name": "Update User Settings",
+      "description": "Tool to update user's settings like time zone, language, email, and website. Use when you need to modify user account settings.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          },
+          "industry": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "time_zone": {
+            "type": "string"
+          },
+          "securityAnswer": {
+            "type": "string"
+          },
+          "securityQuestion": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

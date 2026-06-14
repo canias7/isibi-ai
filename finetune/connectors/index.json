@@ -1,0 +1,7312 @@
+{
+  "_meta": {
+    "source": "Composio v3 /toolkits",
+    "fetched": "2026-06-13T21:25:40+00:00",
+    "total_toolkits": 1043,
+    "supported_in_app": 54,
+    "total_tools_all": 42832
+  },
+  "toolkits": [
+    {
+      "slug": "zendesk",
+      "name": "Zendesk",
+      "tool_count": 452,
+      "category": "crm",
+      "supported": true
+    },
+    {
+      "slug": "stripe",
+      "name": "Stripe",
+      "tool_count": 415,
+      "category": "payment processing",
+      "supported": true
+    },
+    {
+      "slug": "pipedrive",
+      "name": "Pipedrive",
+      "tool_count": 398,
+      "category": "crm",
+      "supported": true
+    },
+    {
+      "slug": "shopify",
+      "name": "Shopify",
+      "tool_count": 361,
+      "category": "ecommerce",
+      "supported": true
+    },
+    {
+      "slug": "sendgrid",
+      "name": "SendGrid",
+      "tool_count": 359,
+      "category": "transactional email",
+      "supported": true
+    },
+    {
+      "slug": "trello",
+      "name": "Trello",
+      "tool_count": 322,
+      "category": "project management",
+      "supported": true
+    },
+    {
+      "slug": "box",
+      "name": "Box",
+      "tool_count": 284,
+      "category": "file management & storage",
+      "supported": true
+    },
+    {
+      "slug": "outlook",
+      "name": "Outlook",
+      "tool_count": 282,
+      "category": "email",
+      "supported": true
+    },
+    {
+      "slug": "mailchimp",
+      "name": "Mailchimp",
+      "tool_count": 272,
+      "category": "email newsletters",
+      "supported": true
+    },
+    {
+      "slug": "hubspot",
+      "name": "HubSpot",
+      "tool_count": 232,
+      "category": "crm",
+      "supported": true
+    },
+    {
+      "slug": "klaviyo",
+      "name": "Klaviyo",
+      "tool_count": 225,
+      "category": "marketing automation",
+      "supported": true
+    },
+    {
+      "slug": "salesforce",
+      "name": "Salesforce",
+      "tool_count": 179,
+      "category": "crm",
+      "supported": true
+    },
+    {
+      "slug": "freshdesk",
+      "name": "Freshdesk",
+      "tool_count": 178,
+      "category": "crm",
+      "supported": true
+    },
+    {
+      "slug": "dropbox",
+      "name": "Dropbox",
+      "tool_count": 174,
+      "category": "file management & storage",
+      "supported": true
+    },
+    {
+      "slug": "clickup",
+      "name": "ClickUp",
+      "tool_count": 162,
+      "category": "productivity",
+      "supported": true
+    },
+    {
+      "slug": "microsoft_teams",
+      "name": "Microsoft Teams",
+      "tool_count": 153,
+      "category": "team chat",
+      "supported": true
+    },
+    {
+      "slug": "asana",
+      "name": "Asana",
+      "tool_count": 153,
+      "category": "project management",
+      "supported": true
+    },
+    {
+      "slug": "slack",
+      "name": "Slack",
+      "tool_count": 145,
+      "category": "team chat",
+      "supported": true
+    },
+    {
+      "slug": "intercom",
+      "name": "Intercom",
+      "tool_count": 133,
+      "category": "customer support",
+      "supported": true
+    },
+    {
+      "slug": "monday",
+      "name": "Monday",
+      "tool_count": 121,
+      "category": "project management",
+      "supported": true
+    },
+    {
+      "slug": "quickbooks",
+      "name": "QuickBooks",
+      "tool_count": 105,
+      "category": "accounting",
+      "supported": true
+    },
+    {
+      "slug": "square",
+      "name": "Square",
+      "tool_count": 96,
+      "category": "payment processing",
+      "supported": true
+    },
+    {
+      "slug": "jira",
+      "name": "Jira",
+      "tool_count": 94,
+      "category": "project management",
+      "supported": true
+    },
+    {
+      "slug": "zoom",
+      "name": "Zoom",
+      "tool_count": 89,
+      "category": "video conferencing",
+      "supported": true
+    },
+    {
+      "slug": "spotify",
+      "name": "Spotify",
+      "tool_count": 84,
+      "category": "news & lifestyle",
+      "supported": true
+    },
+    {
+      "slug": "one_drive",
+      "name": "OneDrive",
+      "tool_count": 81,
+      "category": "file management & storage",
+      "supported": true
+    },
+    {
+      "slug": "twitter",
+      "name": "Twitter",
+      "tool_count": 78,
+      "category": "social media accounts",
+      "supported": true
+    },
+    {
+      "slug": "googledrive",
+      "name": "Google Drive",
+      "tool_count": 76,
+      "category": "file management & storage",
+      "supported": true
+    },
+    {
+      "slug": "todoist",
+      "name": "Todoist",
+      "tool_count": 76,
+      "category": "task management",
+      "supported": true
+    },
+    {
+      "slug": "miro",
+      "name": "Miro",
+      "tool_count": 73,
+      "category": "team collaboration",
+      "supported": true
+    },
+    {
+      "slug": "onenote",
+      "name": "Microsoft OneNote",
+      "tool_count": 62,
+      "category": "productivity",
+      "supported": true
+    },
+    {
+      "slug": "gmail",
+      "name": "Gmail",
+      "tool_count": 61,
+      "category": "collaboration & communication",
+      "supported": true
+    },
+    {
+      "slug": "excel",
+      "name": "Excel",
+      "tool_count": 54,
+      "category": "spreadsheets",
+      "supported": true
+    },
+    {
+      "slug": "figma",
+      "name": "Figma",
+      "tool_count": 52,
+      "category": "images & design",
+      "supported": true
+    },
+    {
+      "slug": "calendly",
+      "name": "Calendly",
+      "tool_count": 51,
+      "category": "scheduling & booking",
+      "supported": true
+    },
+    {
+      "slug": "youtube",
+      "name": "YouTube",
+      "tool_count": 47,
+      "category": "video & audio",
+      "supported": true
+    },
+    {
+      "slug": "canva",
+      "name": "Canva",
+      "tool_count": 46,
+      "category": "images & design",
+      "supported": true
+    },
+    {
+      "slug": "notion",
+      "name": "Notion",
+      "tool_count": 45,
+      "category": "notes",
+      "supported": true
+    },
+    {
+      "slug": "googlesheets",
+      "name": "Google Sheets",
+      "tool_count": 45,
+      "category": "productivity & project management",
+      "supported": true
+    },
+    {
+      "slug": "googlecalendar",
+      "name": "Google Calendar",
+      "tool_count": 44,
+      "category": "scheduling & booking",
+      "supported": true
+    },
+    {
+      "slug": "xero",
+      "name": "Xero",
+      "tool_count": 41,
+      "category": "accounting",
+      "supported": true
+    },
+    {
+      "slug": "typeform",
+      "name": "Typeform",
+      "tool_count": 35,
+      "category": "forms & surveys",
+      "supported": true
+    },
+    {
+      "slug": "googledocs",
+      "name": "Google Docs",
+      "tool_count": 33,
+      "category": "documents",
+      "supported": true
+    },
+    {
+      "slug": "instagram",
+      "name": "Instagram",
+      "tool_count": 29,
+      "category": "social media accounts",
+      "supported": true
+    },
+    {
+      "slug": "discord",
+      "name": "Discord",
+      "tool_count": 27,
+      "category": "team chat",
+      "supported": true
+    },
+    {
+      "slug": "webex",
+      "name": "Webex",
+      "tool_count": 26,
+      "category": "video conferencing",
+      "supported": true
+    },
+    {
+      "slug": "airtable",
+      "name": "Airtable",
+      "tool_count": 23,
+      "category": "productivity",
+      "supported": true
+    },
+    {
+      "slug": "reddit",
+      "name": "Reddit",
+      "tool_count": 22,
+      "category": "social media accounts",
+      "supported": true
+    },
+    {
+      "slug": "linkedin",
+      "name": "LinkedIn",
+      "tool_count": 22,
+      "category": "social media accounts",
+      "supported": true
+    },
+    {
+      "slug": "jotform",
+      "name": "Jotform",
+      "tool_count": 18,
+      "category": "forms & surveys",
+      "supported": true
+    },
+    {
+      "slug": "telegram",
+      "name": "Telegram",
+      "tool_count": 18,
+      "category": "team chat",
+      "supported": true
+    },
+    {
+      "slug": "googletasks",
+      "name": "Google Tasks",
+      "tool_count": 16,
+      "category": "task management",
+      "supported": true
+    },
+    {
+      "slug": "googlemeet",
+      "name": "Google Meet",
+      "tool_count": 15,
+      "category": "video conferencing",
+      "supported": true
+    },
+    {
+      "slug": "zoho",
+      "name": "Zoho",
+      "tool_count": 14,
+      "category": "crm",
+      "supported": true
+    },
+    {
+      "slug": "github",
+      "name": "GitHub",
+      "tool_count": 846,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "datarobot",
+      "name": "DataRobot",
+      "tool_count": 836,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "canvas",
+      "name": "Canvas",
+      "tool_count": 573,
+      "category": "online courses",
+      "supported": false
+    },
+    {
+      "slug": "posthog",
+      "name": "PostHog",
+      "tool_count": 502,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "googlesuper",
+      "name": "Google Super",
+      "tool_count": 417,
+      "category": "document & file management",
+      "supported": false
+    },
+    {
+      "slug": "databricks",
+      "name": "Databricks",
+      "tool_count": 409,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "coupa",
+      "name": "Coupa",
+      "tool_count": 384,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "pagerduty",
+      "name": "PagerDuty",
+      "tool_count": 363,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "docusign",
+      "name": "DocuSign",
+      "tool_count": 335,
+      "category": "signatures",
+      "supported": false
+    },
+    {
+      "slug": "blackboard",
+      "name": "Blackboard",
+      "tool_count": 314,
+      "category": "education",
+      "supported": false
+    },
+    {
+      "slug": "dataforseo",
+      "name": "Dataforseo",
+      "tool_count": 312,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "active_campaign",
+      "name": "ActiveCampaign",
+      "tool_count": 298,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "benchmark_email",
+      "name": "Benchmark Email",
+      "tool_count": 298,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "chatbotkit",
+      "name": "Chatbotkit",
+      "tool_count": 284,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "zoho_books",
+      "name": "Zoho Books",
+      "tool_count": 265,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "safetyculture",
+      "name": "SafetyCulture",
+      "tool_count": 255,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "launch_darkly",
+      "name": "LaunchDarkly",
+      "tool_count": 248,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "crowdin",
+      "name": "Crowdin",
+      "tool_count": 230,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "moco",
+      "name": "Moco",
+      "tool_count": 218,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "sentry",
+      "name": "Sentry",
+      "tool_count": 205,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "dialpad",
+      "name": "Dialpad",
+      "tool_count": 192,
+      "category": "communication",
+      "supported": false
+    },
+    {
+      "slug": "gusto",
+      "name": "Gusto",
+      "tool_count": 192,
+      "category": "human resources",
+      "supported": false
+    },
+    {
+      "slug": "metabase",
+      "name": "Metabase",
+      "tool_count": 189,
+      "category": "business intelligence",
+      "supported": false
+    },
+    {
+      "slug": "centralstationcrm",
+      "name": "CentralStationCRM",
+      "tool_count": 186,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "gleap",
+      "name": "Gleap",
+      "tool_count": 179,
+      "category": "customer support",
+      "supported": false
+    },
+    {
+      "slug": "maxio",
+      "name": "Maxio",
+      "tool_count": 177,
+      "category": "commerce",
+      "supported": false
+    },
+    {
+      "slug": "servicenow",
+      "name": "ServiceNow",
+      "tool_count": 172,
+      "category": "analytics & data",
+      "supported": false
+    },
+    {
+      "slug": "dnsfilter",
+      "name": "Dnsfilter",
+      "tool_count": 170,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "turbot_pipes",
+      "name": "Turbot Pipes",
+      "tool_count": 169,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "cal",
+      "name": "Cal",
+      "tool_count": 168,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "clicksend",
+      "name": "ClickSend",
+      "tool_count": 166,
+      "category": "phone & sms",
+      "supported": false
+    },
+    {
+      "slug": "discordbot",
+      "name": "Discord Bot",
+      "tool_count": 165,
+      "category": "team chat",
+      "supported": false
+    },
+    {
+      "slug": "active_trail",
+      "name": "ActiveTrail",
+      "tool_count": 159,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "new_relic",
+      "name": "New Relic",
+      "tool_count": 158,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "elevenlabs",
+      "name": "ElevenLabs",
+      "tool_count": 155,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "borneo",
+      "name": "Borneo",
+      "tool_count": 153,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "cloudcart",
+      "name": "Cloudcart",
+      "tool_count": 150,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "gigasheet",
+      "name": "Gigasheet",
+      "tool_count": 150,
+      "category": "spreadsheets",
+      "supported": false
+    },
+    {
+      "slug": "repairshopr",
+      "name": "RepairShopr",
+      "tool_count": 147,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "wrike",
+      "name": "Wrike",
+      "tool_count": 144,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "griptape",
+      "name": "Griptape",
+      "tool_count": 143,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "bookingmood",
+      "name": "Bookingmood",
+      "tool_count": 142,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "simla_com",
+      "name": "Simla.com",
+      "tool_count": 141,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "basecamp",
+      "name": "Basecamp",
+      "tool_count": 139,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "snapchat",
+      "name": "Snapchat",
+      "tool_count": 139,
+      "category": "marketing",
+      "supported": false
+    },
+    {
+      "slug": "wix",
+      "name": "Wix",
+      "tool_count": 138,
+      "category": "website builders",
+      "supported": false
+    },
+    {
+      "slug": "zoho_invoice",
+      "name": "Zoho Invoice",
+      "tool_count": 137,
+      "category": "proposal & invoice management",
+      "supported": false
+    },
+    {
+      "slug": "shortcut",
+      "name": "Shortcut",
+      "tool_count": 136,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "nasa",
+      "name": "Nasa",
+      "tool_count": 136,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "hugging_face",
+      "name": "Hugging Face",
+      "tool_count": 135,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "vercel",
+      "name": "Vercel",
+      "tool_count": 131,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "rentman",
+      "name": "Rentman",
+      "tool_count": 130,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "help_scout",
+      "name": "Help Scout",
+      "tool_count": 129,
+      "category": "customer support",
+      "supported": false
+    },
+    {
+      "slug": "tave",
+      "name": "Tave",
+      "tool_count": 129,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "api_ninjas",
+      "name": "API Ninjas",
+      "tool_count": 128,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "algolia",
+      "name": "Algolia",
+      "tool_count": 127,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "bunnycdn",
+      "name": "BunnyCDN",
+      "tool_count": 126,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "openai",
+      "name": "OpenAI",
+      "tool_count": 126,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "postman",
+      "name": "Postman",
+      "tool_count": 126,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "ashby",
+      "name": "Ashby",
+      "tool_count": 125,
+      "category": "hr talent & recruitment",
+      "supported": false
+    },
+    {
+      "slug": "elevenreader",
+      "name": "Elevenreader",
+      "tool_count": 124,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "fireberry",
+      "name": "Fireberry",
+      "tool_count": 123,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "hub_planner",
+      "name": "Hub Planner",
+      "tool_count": 122,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "stack_exchange",
+      "name": "Stack Exchange",
+      "tool_count": 121,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "better_stack",
+      "name": "Better Stack",
+      "tool_count": 117,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "celigo",
+      "name": "Celigo",
+      "tool_count": 117,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "faraday",
+      "name": "Faraday",
+      "tool_count": 117,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "supabase",
+      "name": "Supabase",
+      "tool_count": 116,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "iterable",
+      "name": "Iterable",
+      "tool_count": 116,
+      "category": "marketing",
+      "supported": false
+    },
+    {
+      "slug": "microsoft_power_bi",
+      "name": "Microsoft Power Bi",
+      "tool_count": 116,
+      "category": "business intelligence",
+      "supported": false
+    },
+    {
+      "slug": "instantly",
+      "name": "Instantly",
+      "tool_count": 115,
+      "category": "drip emails",
+      "supported": false
+    },
+    {
+      "slug": "sevdesk",
+      "name": "Sevdesk",
+      "tool_count": 115,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "apify",
+      "name": "Apify",
+      "tool_count": 112,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "paystack",
+      "name": "Paystack",
+      "tool_count": 112,
+      "category": "payment processing",
+      "supported": false
+    },
+    {
+      "slug": "coda",
+      "name": "Coda",
+      "tool_count": 109,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "capsule_crm",
+      "name": "Capsule CRM",
+      "tool_count": 109,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "cloudinary",
+      "name": "Cloudinary",
+      "tool_count": 108,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "zulip",
+      "name": "Zulip",
+      "tool_count": 108,
+      "category": "team chat",
+      "supported": false
+    },
+    {
+      "slug": "neon",
+      "name": "Neon",
+      "tool_count": 107,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "contentful",
+      "name": "Contentful",
+      "tool_count": 106,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "baselinker",
+      "name": "Baselinker",
+      "tool_count": 106,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "bitbucket",
+      "name": "Bitbucket",
+      "tool_count": 105,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "affinda",
+      "name": "Affinda",
+      "tool_count": 105,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "hookdeck",
+      "name": "Hookdeck",
+      "tool_count": 105,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "ngrok",
+      "name": "Ngrok",
+      "tool_count": 102,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "digicert",
+      "name": "Digicert",
+      "tool_count": 101,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "outline",
+      "name": "Outline",
+      "tool_count": 101,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "alpaca",
+      "name": "Alpaca",
+      "tool_count": 100,
+      "category": "commerce",
+      "supported": false
+    },
+    {
+      "slug": "attio",
+      "name": "Attio",
+      "tool_count": 99,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "agencyzoom",
+      "name": "AgencyZoom",
+      "tool_count": 99,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "productboard",
+      "name": "Productboard",
+      "tool_count": 99,
+      "category": "product management",
+      "supported": false
+    },
+    {
+      "slug": "follow_up_boss",
+      "name": "Follow Up Boss",
+      "tool_count": 99,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "here",
+      "name": "Here",
+      "tool_count": 98,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "share_point",
+      "name": "SharePoint",
+      "tool_count": 97,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "route4me",
+      "name": "Route4me",
+      "tool_count": 97,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "twelve_data",
+      "name": "Twelve Data",
+      "tool_count": 97,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "eventbrite",
+      "name": "Eventbrite",
+      "tool_count": 95,
+      "category": "event management",
+      "supported": false
+    },
+    {
+      "slug": "render",
+      "name": "Render",
+      "tool_count": 95,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "shippo",
+      "name": "Shippo",
+      "tool_count": 95,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "highlevel",
+      "name": "Highlevel",
+      "tool_count": 94,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "constant_contact",
+      "name": "Constant Contact",
+      "tool_count": 93,
+      "category": "marketing",
+      "supported": false
+    },
+    {
+      "slug": "blazemeter",
+      "name": "Blazemeter",
+      "tool_count": 92,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "swarmsyncai",
+      "name": "Swarmsyncai",
+      "tool_count": 91,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "gosquared",
+      "name": "Gosquared",
+      "tool_count": 90,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "penpot",
+      "name": "Penpot",
+      "tool_count": 90,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "polygon",
+      "name": "Polygon",
+      "tool_count": 90,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "esputnik",
+      "name": "Esputnik",
+      "tool_count": 89,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "mixmax",
+      "name": "Mixmax",
+      "tool_count": 88,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "ramp",
+      "name": "Ramp",
+      "tool_count": 88,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "mailerlite",
+      "name": "MailerLite",
+      "tool_count": 86,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "incident_io",
+      "name": "incident.io",
+      "tool_count": 86,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "slackbot",
+      "name": "Slackbot",
+      "tool_count": 85,
+      "category": "team chat",
+      "supported": false
+    },
+    {
+      "slug": "netsuite",
+      "name": "Netsuite",
+      "tool_count": 85,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "brex",
+      "name": "Brex",
+      "tool_count": 84,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "workday",
+      "name": "Workday",
+      "tool_count": 84,
+      "category": "human resources",
+      "supported": false
+    },
+    {
+      "slug": "reddit_ads",
+      "name": "Reddit Ads",
+      "tool_count": 83,
+      "category": "marketing",
+      "supported": false
+    },
+    {
+      "slug": "tomtom",
+      "name": "Tomtom",
+      "tool_count": 82,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "census_bureau",
+      "name": "Census Bureau",
+      "tool_count": 81,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "agenty",
+      "name": "Agenty",
+      "tool_count": 79,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "synthflow_ai",
+      "name": "Synthflow AI",
+      "tool_count": 79,
+      "category": "ai agents",
+      "supported": false
+    },
+    {
+      "slug": "etermin",
+      "name": "Etermin",
+      "tool_count": 78,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "nutshell",
+      "name": "Nutshell",
+      "tool_count": 78,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "documenso",
+      "name": "Documenso",
+      "tool_count": 77,
+      "category": "signatures",
+      "supported": false
+    },
+    {
+      "slug": "kadoa",
+      "name": "Kadoa",
+      "tool_count": 77,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "freeagent",
+      "name": "Freeagent",
+      "tool_count": 76,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "quaderno",
+      "name": "Quaderno",
+      "tool_count": 76,
+      "category": "taxes",
+      "supported": false
+    },
+    {
+      "slug": "paypal",
+      "name": "Paypal",
+      "tool_count": 74,
+      "category": "payment processing",
+      "supported": false
+    },
+    {
+      "slug": "clockify",
+      "name": "Clockify",
+      "tool_count": 73,
+      "category": "time tracking software",
+      "supported": false
+    },
+    {
+      "slug": "heygen",
+      "name": "HeyGen",
+      "tool_count": 71,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "habitica",
+      "name": "Habitica",
+      "tool_count": 70,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "rocketlane",
+      "name": "Rocketlane",
+      "tool_count": 69,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "encodian",
+      "name": "Encodian",
+      "tool_count": 69,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "paradym",
+      "name": "Paradym",
+      "tool_count": 69,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "persona",
+      "name": "Persona",
+      "tool_count": 69,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "nextdns",
+      "name": "Nextdns",
+      "tool_count": 68,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "retellai",
+      "name": "Retell AI",
+      "tool_count": 67,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "altoviz",
+      "name": "Altoviz",
+      "tool_count": 67,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "google_analytics",
+      "name": "Google Analytics",
+      "tool_count": 67,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "api_sports",
+      "name": "API-Sports",
+      "tool_count": 67,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "hashnode",
+      "name": "Hashnode",
+      "tool_count": 67,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "shipengine",
+      "name": "Shipengine",
+      "tool_count": 66,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "circleci",
+      "name": "CircleCI",
+      "tool_count": 65,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "insighto_ai",
+      "name": "Insighto.ai",
+      "tool_count": 65,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "lever",
+      "name": "Lever",
+      "tool_count": 64,
+      "category": "hr talent & recruitment",
+      "supported": false
+    },
+    {
+      "slug": "anchor_browser",
+      "name": "Anchor Browser",
+      "tool_count": 64,
+      "category": "ai agents",
+      "supported": false
+    },
+    {
+      "slug": "proabono",
+      "name": "Proabono",
+      "tool_count": 64,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "sap_successfactors",
+      "name": "SAP SuccessFactors",
+      "tool_count": 64,
+      "category": "human resources",
+      "supported": false
+    },
+    {
+      "slug": "confluence",
+      "name": "Confluence",
+      "tool_count": 63,
+      "category": "team collaboration",
+      "supported": false
+    },
+    {
+      "slug": "googlebigquery",
+      "name": "Google BigQuery",
+      "tool_count": 63,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "recallai",
+      "name": "Recall.ai",
+      "tool_count": 63,
+      "category": "ai meeting assistants",
+      "supported": false
+    },
+    {
+      "slug": "dadata_ru",
+      "name": "DaData.ru",
+      "tool_count": 63,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "salesflare",
+      "name": "Salesflare",
+      "tool_count": 63,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "doppler",
+      "name": "Doppler",
+      "tool_count": 62,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "google_classroom",
+      "name": "Google Classroom",
+      "tool_count": 62,
+      "category": "education",
+      "supported": false
+    },
+    {
+      "slug": "resend",
+      "name": "Resend",
+      "tool_count": 62,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "raisely",
+      "name": "Raisely",
+      "tool_count": 61,
+      "category": "fundraising",
+      "supported": false
+    },
+    {
+      "slug": "bugsnag",
+      "name": "Bugsnag",
+      "tool_count": 60,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "deployhq",
+      "name": "DeployHQ",
+      "tool_count": 60,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "egnyte",
+      "name": "Egnyte",
+      "tool_count": 60,
+      "category": "file management & storage",
+      "supported": false
+    },
+    {
+      "slug": "fingertip",
+      "name": "Fingertip",
+      "tool_count": 60,
+      "category": "website builders",
+      "supported": false
+    },
+    {
+      "slug": "polygon_io",
+      "name": "Polygon.io",
+      "tool_count": 60,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "postgrid",
+      "name": "Postgrid",
+      "tool_count": 60,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "zoho_inventory",
+      "name": "Zoho Inventory",
+      "tool_count": 58,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "gitlab",
+      "name": "GitLab",
+      "tool_count": 58,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "givebutter",
+      "name": "Givebutter",
+      "tool_count": 58,
+      "category": "fundraising",
+      "supported": false
+    },
+    {
+      "slug": "loyverse",
+      "name": "Loyverse",
+      "tool_count": 58,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "gong",
+      "name": "Gong",
+      "tool_count": 57,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "harvest",
+      "name": "Harvest",
+      "tool_count": 57,
+      "category": "time tracking software",
+      "supported": false
+    },
+    {
+      "slug": "bigmailer",
+      "name": "Bigmailer",
+      "tool_count": 57,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "clientary",
+      "name": "Clientary",
+      "tool_count": 57,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "spoki",
+      "name": "Spoki",
+      "tool_count": 57,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "studio_by_ai21_labs",
+      "name": "Studio By Ai21 Labs",
+      "tool_count": 57,
+      "category": "ai models",
+      "supported": false
+    },
+    {
+      "slug": "dropbox_sign",
+      "name": "Dropbox Sign",
+      "tool_count": 56,
+      "category": "signatures",
+      "supported": false
+    },
+    {
+      "slug": "alpha_vantage",
+      "name": "Alpha Vantage",
+      "tool_count": 56,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "college_football_data",
+      "name": "College Football Data",
+      "tool_count": 56,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "mailcoach",
+      "name": "Mailcoach",
+      "tool_count": 56,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "toggl",
+      "name": "Toggl",
+      "tool_count": 56,
+      "category": "time tracking software",
+      "supported": false
+    },
+    {
+      "slug": "amplitude",
+      "name": "Amplitude",
+      "tool_count": 54,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "zoho_bigin",
+      "name": "Zoho Bigin",
+      "tool_count": 54,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "control_d",
+      "name": "Control D",
+      "tool_count": 54,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "lemlist",
+      "name": "Lemlist",
+      "tool_count": 54,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "mistral_ai",
+      "name": "Mistral AI",
+      "tool_count": 54,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "flutterwave",
+      "name": "Flutterwave",
+      "tool_count": 53,
+      "category": "payment processing",
+      "supported": false
+    },
+    {
+      "slug": "kommo",
+      "name": "Kommo",
+      "tool_count": 53,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "botpress",
+      "name": "Botpress",
+      "tool_count": 53,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "imgix",
+      "name": "Imgix",
+      "tool_count": 53,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "phantombuster",
+      "name": "PhantomBuster",
+      "tool_count": 53,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "webflow",
+      "name": "Webflow",
+      "tool_count": 51,
+      "category": "website builders",
+      "supported": false
+    },
+    {
+      "slug": "dovetail",
+      "name": "Dovetail",
+      "tool_count": 51,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "simplekpi",
+      "name": "Simplekpi",
+      "tool_count": 51,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "soundcloud",
+      "name": "SoundCloud",
+      "tool_count": 51,
+      "category": "video & audio",
+      "supported": false
+    },
+    {
+      "slug": "metaads",
+      "name": "Meta Ads",
+      "tool_count": 50,
+      "category": "ads & conversion",
+      "supported": false
+    },
+    {
+      "slug": "klipfolio",
+      "name": "Klipfolio",
+      "tool_count": 50,
+      "category": "business intelligence",
+      "supported": false
+    },
+    {
+      "slug": "breathehr",
+      "name": "Breathe HR",
+      "tool_count": 50,
+      "category": "human resources",
+      "supported": false
+    },
+    {
+      "slug": "erpnext",
+      "name": "Erpnext",
+      "tool_count": 50,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "booqable",
+      "name": "Booqable",
+      "tool_count": 49,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "mailtrap",
+      "name": "Mailtrap",
+      "tool_count": 49,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "serpapi",
+      "name": "SerpApi",
+      "tool_count": 48,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "apollo",
+      "name": "Apollo",
+      "tool_count": 48,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "breezy_hr",
+      "name": "Breezy Hr",
+      "tool_count": 48,
+      "category": "hr talent & recruitment",
+      "supported": false
+    },
+    {
+      "slug": "digital_ocean",
+      "name": "DigitalOcean",
+      "tool_count": 48,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "handwrytten",
+      "name": "Handwrytten",
+      "tool_count": 48,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "nozbe_teams",
+      "name": "Nozbe Teams",
+      "tool_count": 48,
+      "category": "task management",
+      "supported": false
+    },
+    {
+      "slug": "pinecone",
+      "name": "Pinecone",
+      "tool_count": 48,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "mem0",
+      "name": "Mem0",
+      "tool_count": 47,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "kibana",
+      "name": "Kibana",
+      "tool_count": 47,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "postmark",
+      "name": "Postmark",
+      "tool_count": 46,
+      "category": "transactional email",
+      "supported": false
+    },
+    {
+      "slug": "d2lbrightspace",
+      "name": "D2L Brightspace",
+      "tool_count": 45,
+      "category": "education",
+      "supported": false
+    },
+    {
+      "slug": "bigml",
+      "name": "Bigml",
+      "tool_count": 45,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "fly",
+      "name": "Fly",
+      "tool_count": 45,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "formbricks",
+      "name": "Formbricks",
+      "tool_count": 45,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "brilliant_directories",
+      "name": "Brilliant Directories",
+      "tool_count": 44,
+      "category": "website builders",
+      "supported": false
+    },
+    {
+      "slug": "gift_up",
+      "name": "Gift Up!",
+      "tool_count": 44,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "polymarket_us",
+      "name": "Polymarket US",
+      "tool_count": 44,
+      "category": "commerce",
+      "supported": false
+    },
+    {
+      "slug": "polymarket",
+      "name": "Polymarket US",
+      "tool_count": 44,
+      "category": "commerce",
+      "supported": false
+    },
+    {
+      "slug": "swaggerhub",
+      "name": "Swaggerhub",
+      "tool_count": 44,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "v0",
+      "name": "V0",
+      "tool_count": 44,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "mixpanel",
+      "name": "Mixpanel",
+      "tool_count": 43,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "omnisend",
+      "name": "Omnisend",
+      "tool_count": 43,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "botbaba",
+      "name": "Botbaba",
+      "tool_count": 42,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "datadog",
+      "name": "Datadog",
+      "tool_count": 42,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "honeyhive",
+      "name": "Honeyhive",
+      "tool_count": 42,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "hyperbrowser",
+      "name": "Hyperbrowser",
+      "tool_count": 42,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "kit",
+      "name": "Kit",
+      "tool_count": 42,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "razorpay",
+      "name": "Razorpay",
+      "tool_count": 42,
+      "category": "payment processing",
+      "supported": false
+    },
+    {
+      "slug": "bamboohr",
+      "name": "BambooHR",
+      "tool_count": 41,
+      "category": "human resources",
+      "supported": false
+    },
+    {
+      "slug": "timely",
+      "name": "Timely",
+      "tool_count": 41,
+      "category": "time tracking software",
+      "supported": false
+    },
+    {
+      "slug": "lexoffice",
+      "name": "Lexoffice",
+      "tool_count": 41,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "short_io",
+      "name": "Short Io",
+      "tool_count": 41,
+      "category": "url shortener",
+      "supported": false
+    },
+    {
+      "slug": "stormboard",
+      "name": "Stormboard",
+      "tool_count": 41,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "supportbee",
+      "name": "Supportbee",
+      "tool_count": 41,
+      "category": "customer support",
+      "supported": false
+    },
+    {
+      "slug": "zep",
+      "name": "Zep",
+      "tool_count": 41,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "ahrefs",
+      "name": "Ahrefs",
+      "tool_count": 40,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "finage",
+      "name": "Finage",
+      "tool_count": 40,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "customgpt",
+      "name": "Customgpt",
+      "tool_count": 40,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "missive",
+      "name": "Missive",
+      "tool_count": 40,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "scale_ai",
+      "name": "Scale ai",
+      "tool_count": 40,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "tapfiliate",
+      "name": "Tapfiliate",
+      "tool_count": 40,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "facebook",
+      "name": "Facebook",
+      "tool_count": 39,
+      "category": "social media accounts",
+      "supported": false
+    },
+    {
+      "slug": "clickmeeting",
+      "name": "Clickmeeting",
+      "tool_count": 39,
+      "category": "webinars",
+      "supported": false
+    },
+    {
+      "slug": "fidel_api",
+      "name": "Fidel API",
+      "tool_count": 39,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "productlane",
+      "name": "Productlane",
+      "tool_count": 39,
+      "category": "customer support",
+      "supported": false
+    },
+    {
+      "slug": "roam",
+      "name": "Roam",
+      "tool_count": 39,
+      "category": "communication",
+      "supported": false
+    },
+    {
+      "slug": "bidsketch",
+      "name": "Bidsketch",
+      "tool_count": 38,
+      "category": "proposal & invoice management",
+      "supported": false
+    },
+    {
+      "slug": "calendarhero",
+      "name": "CalendarHero",
+      "tool_count": 38,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "docsbot_ai",
+      "name": "DocsBot AI",
+      "tool_count": 38,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "doppler_marketing_automation",
+      "name": "Doppler Marketing Automation",
+      "tool_count": 38,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "enginemailer",
+      "name": "Enginemailer",
+      "tool_count": 38,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "everhour",
+      "name": "Everhour",
+      "tool_count": 38,
+      "category": "time tracking software",
+      "supported": false
+    },
+    {
+      "slug": "vapi",
+      "name": "Vapi",
+      "tool_count": 38,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "semrush",
+      "name": "Semrush",
+      "tool_count": 37,
+      "category": "marketing",
+      "supported": false
+    },
+    {
+      "slug": "beaconchain",
+      "name": "beaconcha.in",
+      "tool_count": 37,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "helpwise",
+      "name": "Helpwise",
+      "tool_count": 37,
+      "category": "customer support",
+      "supported": false
+    },
+    {
+      "slug": "radar",
+      "name": "Radar",
+      "tool_count": 37,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "sendbird",
+      "name": "Sendbird",
+      "tool_count": 37,
+      "category": "communication",
+      "supported": false
+    },
+    {
+      "slug": "svix",
+      "name": "Svix",
+      "tool_count": 37,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "workable",
+      "name": "Workable",
+      "tool_count": 37,
+      "category": "human resources",
+      "supported": false
+    },
+    {
+      "slug": "alchemy",
+      "name": "Alchemy",
+      "tool_count": 36,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "accredible_certificates",
+      "name": "Accredible certificates",
+      "tool_count": 36,
+      "category": "education",
+      "supported": false
+    },
+    {
+      "slug": "google_chat",
+      "name": "Google Chat",
+      "tool_count": 36,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "mezmo",
+      "name": "Mezmo",
+      "tool_count": 36,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "monday_mcp",
+      "name": "Monday MCP",
+      "tool_count": 36,
+      "category": "productivity & project management",
+      "supported": false
+    },
+    {
+      "slug": "mx_technologies",
+      "name": "MX Technologies",
+      "tool_count": 36,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "rev",
+      "name": "Rev AI",
+      "tool_count": 36,
+      "category": "transcription",
+      "supported": false
+    },
+    {
+      "slug": "diffbot",
+      "name": "Diffbot",
+      "tool_count": 35,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "kaggle",
+      "name": "Kaggle",
+      "tool_count": 35,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "kieai",
+      "name": "Kieai",
+      "tool_count": 35,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "pdf_co",
+      "name": "PDF.co",
+      "tool_count": 34,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "uploadcare",
+      "name": "Uploadcare",
+      "tool_count": 34,
+      "category": "file management & storage",
+      "supported": false
+    },
+    {
+      "slug": "bolna",
+      "name": "Bolna",
+      "tool_count": 33,
+      "category": "ai agents",
+      "supported": false
+    },
+    {
+      "slug": "bannerbear",
+      "name": "Bannerbear",
+      "tool_count": 33,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "finerworks",
+      "name": "Finerworks",
+      "tool_count": 33,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "reply_io",
+      "name": "Reply.io",
+      "tool_count": 33,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "strava",
+      "name": "Strava",
+      "tool_count": 33,
+      "category": "fitness",
+      "supported": false
+    },
+    {
+      "slug": "unisender",
+      "name": "Unisender",
+      "tool_count": 33,
+      "category": "marketing",
+      "supported": false
+    },
+    {
+      "slug": "linear",
+      "name": "Linear",
+      "tool_count": 32,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "gorgias",
+      "name": "Gorgias",
+      "tool_count": 32,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "companyenrich",
+      "name": "Companyenrich",
+      "tool_count": 32,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "ignisign",
+      "name": "Ignisign",
+      "tool_count": 32,
+      "category": "signatures",
+      "supported": false
+    },
+    {
+      "slug": "lemon_squeezy",
+      "name": "Lemon Squeezy",
+      "tool_count": 32,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "mapbox",
+      "name": "Mapbox",
+      "tool_count": 32,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "parallel",
+      "name": "Parallel",
+      "tool_count": 32,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "redcircle_api",
+      "name": "RedCircle API",
+      "tool_count": 32,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "referralrock",
+      "name": "ReferralRock",
+      "tool_count": 32,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "smtp2go",
+      "name": "Smtp2go",
+      "tool_count": 32,
+      "category": "transactional email",
+      "supported": false
+    },
+    {
+      "slug": "stannp",
+      "name": "Stannp",
+      "tool_count": 32,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "unione",
+      "name": "Unione",
+      "tool_count": 32,
+      "category": "transactional email",
+      "supported": false
+    },
+    {
+      "slug": "botstar",
+      "name": "Botstar",
+      "tool_count": 31,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "hex",
+      "name": "Hex",
+      "tool_count": 31,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "moosend",
+      "name": "Moosend",
+      "tool_count": 31,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "ragie",
+      "name": "Ragie",
+      "tool_count": 31,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "replicate",
+      "name": "Replicate",
+      "tool_count": 31,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "textit",
+      "name": "Textit",
+      "tool_count": 31,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "wit_ai",
+      "name": "Wit.ai",
+      "tool_count": 31,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "chatwork",
+      "name": "Chatwork",
+      "tool_count": 30,
+      "category": "team chat",
+      "supported": false
+    },
+    {
+      "slug": "maintainx",
+      "name": "Maintainx",
+      "tool_count": 30,
+      "category": "task management",
+      "supported": false
+    },
+    {
+      "slug": "interzoid",
+      "name": "Interzoid",
+      "tool_count": 30,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "ai_ml_api",
+      "name": "AI/ML API",
+      "tool_count": 30,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "amara",
+      "name": "Amara",
+      "tool_count": 30,
+      "category": "video & audio",
+      "supported": false
+    },
+    {
+      "slug": "backendless",
+      "name": "Backendless",
+      "tool_count": 30,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "chaser",
+      "name": "Chaser",
+      "tool_count": 30,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "grist",
+      "name": "Grist",
+      "tool_count": 30,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "lodgify",
+      "name": "Lodgify",
+      "tool_count": 30,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "mercury_mcp",
+      "name": "Mercury MCP",
+      "tool_count": 30,
+      "category": "model context protocol",
+      "supported": false
+    },
+    {
+      "slug": "statuscake",
+      "name": "Statuscake",
+      "tool_count": 30,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "telnyx",
+      "name": "Telnyx",
+      "tool_count": 30,
+      "category": "phone & sms",
+      "supported": false
+    },
+    {
+      "slug": "templated",
+      "name": "Templated",
+      "tool_count": 30,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "firecrawl",
+      "name": "Firecrawl",
+      "tool_count": 29,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "apaleo",
+      "name": "Apaleo",
+      "tool_count": 29,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "callingly",
+      "name": "Callingly",
+      "tool_count": 29,
+      "category": "phone & sms",
+      "supported": false
+    },
+    {
+      "slug": "cardly",
+      "name": "Cardly",
+      "tool_count": 29,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "doppler_secretops",
+      "name": "Doppler SecretOps",
+      "tool_count": 29,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "flowiseai",
+      "name": "Flowiseai",
+      "tool_count": 29,
+      "category": "ai agents",
+      "supported": false
+    },
+    {
+      "slug": "google_cloud_vision",
+      "name": "Google Cloud Vision",
+      "tool_count": 29,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "kaleido",
+      "name": "Kaleido",
+      "tool_count": 29,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "nusii_proposals",
+      "name": "Nusii proposals",
+      "tool_count": 29,
+      "category": "proposal & invoice management",
+      "supported": false
+    },
+    {
+      "slug": "pushover",
+      "name": "Pushover",
+      "tool_count": 29,
+      "category": "notifications",
+      "supported": false
+    },
+    {
+      "slug": "thanks_io",
+      "name": "Thanks.io",
+      "tool_count": 29,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "coinbase",
+      "name": "Coinbase",
+      "tool_count": 28,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "epic_games",
+      "name": "Epic Games",
+      "tool_count": 28,
+      "category": "gaming",
+      "supported": false
+    },
+    {
+      "slug": "servicem8",
+      "name": "Servicem8",
+      "tool_count": 28,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "chmeetings",
+      "name": "Chmeetings",
+      "tool_count": 28,
+      "category": "event management",
+      "supported": false
+    },
+    {
+      "slug": "classmarker",
+      "name": "Classmarker",
+      "tool_count": 28,
+      "category": "education",
+      "supported": false
+    },
+    {
+      "slug": "devto",
+      "name": "DEV Community",
+      "tool_count": 28,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "grafbase",
+      "name": "Grafbase",
+      "tool_count": 28,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "ipdata_co",
+      "name": "Ipdata.co",
+      "tool_count": 28,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "linkedin_ads",
+      "name": "Linkedin Ads",
+      "tool_count": 28,
+      "category": "marketing",
+      "supported": false
+    },
+    {
+      "slug": "nocodb",
+      "name": "NocoDB",
+      "tool_count": 28,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "ynab",
+      "name": "YNAB",
+      "tool_count": 27,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "ambee",
+      "name": "Ambee",
+      "tool_count": 27,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "crowterminal",
+      "name": "CrowTerminal",
+      "tool_count": 27,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "e2b",
+      "name": "E2b",
+      "tool_count": 27,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "ipinfo_io",
+      "name": "Ipinfo.io",
+      "tool_count": 27,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "motion",
+      "name": "Motion",
+      "tool_count": 27,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "rawg_video_games_database",
+      "name": "RAWG Video Games Database",
+      "tool_count": 27,
+      "category": "gaming",
+      "supported": false
+    },
+    {
+      "slug": "scheduleonce",
+      "name": "Scheduleonce",
+      "tool_count": 27,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "scrapegraph_ai",
+      "name": "Scrapegraph Ai",
+      "tool_count": 27,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "splitwise",
+      "name": "Splitwise",
+      "tool_count": 27,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "listennotes",
+      "name": "Listen Notes",
+      "tool_count": 26,
+      "category": "video & audio",
+      "supported": false
+    },
+    {
+      "slug": "toneden",
+      "name": "Toneden",
+      "tool_count": 26,
+      "category": "social media marketing",
+      "supported": false
+    },
+    {
+      "slug": "bugherd",
+      "name": "Bugherd",
+      "tool_count": 26,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "callpage",
+      "name": "Callpage",
+      "tool_count": 26,
+      "category": "phone & sms",
+      "supported": false
+    },
+    {
+      "slug": "endorsal",
+      "name": "Endorsal",
+      "tool_count": 26,
+      "category": "reviews",
+      "supported": false
+    },
+    {
+      "slug": "hunter",
+      "name": "Hunter",
+      "tool_count": 26,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "imagekit_io",
+      "name": "ImageKit",
+      "tool_count": 26,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "parseur",
+      "name": "Parseur",
+      "tool_count": 26,
+      "category": "ai document extraction",
+      "supported": false
+    },
+    {
+      "slug": "revolt",
+      "name": "Revolt",
+      "tool_count": 26,
+      "category": "communication",
+      "supported": false
+    },
+    {
+      "slug": "teltel",
+      "name": "Teltel",
+      "tool_count": 26,
+      "category": "phone & sms",
+      "supported": false
+    },
+    {
+      "slug": "ably",
+      "name": "Ably",
+      "tool_count": 25,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "smugmug",
+      "name": "SmugMug",
+      "tool_count": 25,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "canny",
+      "name": "Canny",
+      "tool_count": 25,
+      "category": "product management",
+      "supported": false
+    },
+    {
+      "slug": "cloudflare_api_key",
+      "name": "Cloudflare Api Key",
+      "tool_count": 25,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "conveyor",
+      "name": "Conveyor",
+      "tool_count": 25,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "countdown_api",
+      "name": "Countdown API",
+      "tool_count": 25,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "dialmycalls",
+      "name": "Dialmycalls",
+      "tool_count": 25,
+      "category": "communication",
+      "supported": false
+    },
+    {
+      "slug": "dungeon_fighter_online",
+      "name": "Dungeon Fighter Online",
+      "tool_count": 25,
+      "category": "gaming",
+      "supported": false
+    },
+    {
+      "slug": "geoapify",
+      "name": "Geoapify",
+      "tool_count": 25,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "laposta",
+      "name": "Laposta",
+      "tool_count": 25,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "make",
+      "name": "Make",
+      "tool_count": 25,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "peopledatalabs",
+      "name": "People Data Labs",
+      "tool_count": 24,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "open_sea",
+      "name": "OpenSea",
+      "tool_count": 24,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "data247",
+      "name": "Data247",
+      "tool_count": 24,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "docker_hub",
+      "name": "Docker Hub",
+      "tool_count": 24,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "finmei",
+      "name": "Finmei",
+      "tool_count": 24,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "godial",
+      "name": "Godial",
+      "tool_count": 24,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "googlecontacts",
+      "name": "Googlecontacts",
+      "tool_count": 24,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "hostinger",
+      "name": "Hostinger",
+      "tool_count": 24,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "kanbanize",
+      "name": "Kanbanize",
+      "tool_count": 24,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "nango",
+      "name": "Nango",
+      "tool_count": 24,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "neutrino",
+      "name": "Neutrino",
+      "tool_count": 24,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "onedesk",
+      "name": "Onedesk",
+      "tool_count": 24,
+      "category": "customer support",
+      "supported": false
+    },
+    {
+      "slug": "parsio_io",
+      "name": "Parsio.io",
+      "tool_count": 24,
+      "category": "ai document extraction",
+      "supported": false
+    },
+    {
+      "slug": "postalytics",
+      "name": "Postalytics",
+      "tool_count": 24,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "rkvst",
+      "name": "Rkvst",
+      "tool_count": 24,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "zeplin",
+      "name": "Zeplin",
+      "tool_count": 24,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "zoho_desk",
+      "name": "Zoho Desk",
+      "tool_count": 23,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "ascora",
+      "name": "Ascora",
+      "tool_count": 23,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "better_proposals",
+      "name": "Better Proposals",
+      "tool_count": 23,
+      "category": "proposal & invoice management",
+      "supported": false
+    },
+    {
+      "slug": "corrently",
+      "name": "Corrently",
+      "tool_count": 23,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "customerio",
+      "name": "Customer.io",
+      "tool_count": 23,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "fibery",
+      "name": "Fibery",
+      "tool_count": 23,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "folk",
+      "name": "Folk",
+      "tool_count": 23,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "giphy",
+      "name": "Giphy",
+      "tool_count": 23,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "jigsawstack",
+      "name": "Jigsawstack",
+      "tool_count": 23,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "mailersend",
+      "name": "MailerSend",
+      "tool_count": 23,
+      "category": "transactional email",
+      "supported": false
+    },
+    {
+      "slug": "parma",
+      "name": "Parma",
+      "tool_count": 23,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "recruitee",
+      "name": "Recruitee",
+      "tool_count": 23,
+      "category": "hr talent & recruitment",
+      "supported": false
+    },
+    {
+      "slug": "salesforce_service_cloud",
+      "name": "Salesforce Service Cloud",
+      "tool_count": 23,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "shotstack",
+      "name": "Shotstack",
+      "tool_count": 23,
+      "category": "video & audio",
+      "supported": false
+    },
+    {
+      "slug": "sms_alert",
+      "name": "SMS Alert",
+      "tool_count": 23,
+      "category": "phone & sms",
+      "supported": false
+    },
+    {
+      "slug": "writer",
+      "name": "Writer",
+      "tool_count": 23,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "survey_monkey",
+      "name": "SurveyMonkey",
+      "tool_count": 22,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "mural",
+      "name": "Mural",
+      "tool_count": 22,
+      "category": "team collaboration",
+      "supported": false
+    },
+    {
+      "slug": "codemagic",
+      "name": "Codemagic",
+      "tool_count": 22,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "docuseal",
+      "name": "DocuSeal",
+      "tool_count": 22,
+      "category": "signatures",
+      "supported": false
+    },
+    {
+      "slug": "emelia",
+      "name": "Emelia",
+      "tool_count": 22,
+      "category": "drip emails",
+      "supported": false
+    },
+    {
+      "slug": "engage",
+      "name": "Engage",
+      "tool_count": 22,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "eventee",
+      "name": "Eventee",
+      "tool_count": 22,
+      "category": "event management",
+      "supported": false
+    },
+    {
+      "slug": "fillout_forms",
+      "name": "Fillout Forms",
+      "tool_count": 22,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "getprospect",
+      "name": "Getprospect",
+      "tool_count": 22,
+      "category": "marketing",
+      "supported": false
+    },
+    {
+      "slug": "icypeas",
+      "name": "Icypeas",
+      "tool_count": 22,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "plain",
+      "name": "Plain",
+      "tool_count": 22,
+      "category": "customer support",
+      "supported": false
+    },
+    {
+      "slug": "prisma",
+      "name": "Prisma",
+      "tool_count": 22,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "stack_ai",
+      "name": "Stack Ai",
+      "tool_count": 22,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "composio_search",
+      "name": "Composio Search",
+      "tool_count": 21,
+      "category": "ai agents",
+      "supported": false
+    },
+    {
+      "slug": "brevo",
+      "name": "Brevo",
+      "tool_count": 21,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "fireflies",
+      "name": "Fireflies",
+      "tool_count": 21,
+      "category": "ai meeting assistants",
+      "supported": false
+    },
+    {
+      "slug": "semanticscholar",
+      "name": "Semantic Scholar",
+      "tool_count": 21,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "yandex",
+      "name": "Yandex",
+      "tool_count": 21,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "beaconstac",
+      "name": "Beaconstac",
+      "tool_count": 21,
+      "category": "marketing",
+      "supported": false
+    },
+    {
+      "slug": "clearout",
+      "name": "Clearout",
+      "tool_count": 21,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "cody",
+      "name": "Cody",
+      "tool_count": 21,
+      "category": "ai assistants",
+      "supported": false
+    },
+    {
+      "slug": "findymail",
+      "name": "Findymail",
+      "tool_count": 21,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "formdesk",
+      "name": "Formdesk",
+      "tool_count": 21,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "gagelist",
+      "name": "Gagelist",
+      "tool_count": 21,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "intelliprint",
+      "name": "Intelliprint",
+      "tool_count": 21,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "jobnimbus",
+      "name": "JobNimbus",
+      "tool_count": 21,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "moneybird",
+      "name": "Moneybird",
+      "tool_count": 21,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "neo4j",
+      "name": "Neo4J",
+      "tool_count": 21,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "openweather_api",
+      "name": "OpenWeather API",
+      "tool_count": 21,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "reply",
+      "name": "Reply",
+      "tool_count": 21,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "softr",
+      "name": "Softr",
+      "tool_count": 21,
+      "category": "app builder",
+      "supported": false
+    },
+    {
+      "slug": "spondyr",
+      "name": "Spondyr",
+      "tool_count": 21,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "taxjar",
+      "name": "Taxjar",
+      "tool_count": 21,
+      "category": "taxes",
+      "supported": false
+    },
+    {
+      "slug": "affinity",
+      "name": "Affinity",
+      "tool_count": 20,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "typefully",
+      "name": "Typefully",
+      "tool_count": 20,
+      "category": "social media marketing",
+      "supported": false
+    },
+    {
+      "slug": "cloudflare",
+      "name": "Cloudflare",
+      "tool_count": 20,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "bart",
+      "name": "Bart",
+      "tool_count": 20,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "emailoctopus",
+      "name": "EmailOctopus",
+      "tool_count": 20,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "forcemanager",
+      "name": "Forcemanager",
+      "tool_count": 20,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "gist",
+      "name": "Gist",
+      "tool_count": 20,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "gtmetrix",
+      "name": "GTmetrix",
+      "tool_count": 20,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "happy_scribe",
+      "name": "Happy Scribe",
+      "tool_count": 20,
+      "category": "transcription",
+      "supported": false
+    },
+    {
+      "slug": "keyword",
+      "name": "Keyword",
+      "tool_count": 20,
+      "category": "marketing",
+      "supported": false
+    },
+    {
+      "slug": "langbase",
+      "name": "Langbase",
+      "tool_count": 20,
+      "category": "ai agents",
+      "supported": false
+    },
+    {
+      "slug": "mailsoftly",
+      "name": "Mailsoftly",
+      "tool_count": 20,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "northflank",
+      "name": "Northflank",
+      "tool_count": 20,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "zerobounce",
+      "name": "Zerobounce",
+      "tool_count": 20,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "google_maps",
+      "name": "Google Maps",
+      "tool_count": 19,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "browserbase_tool",
+      "name": "Browserbase",
+      "tool_count": 19,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "api_bible",
+      "name": "API.Bible",
+      "tool_count": 19,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "basin",
+      "name": "Basin",
+      "tool_count": 19,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "convex",
+      "name": "Convex",
+      "tool_count": 19,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "datascope",
+      "name": "Datascope",
+      "tool_count": 19,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "detrack",
+      "name": "Detrack",
+      "tool_count": 19,
+      "category": "internet of things",
+      "supported": false
+    },
+    {
+      "slug": "enigma",
+      "name": "Enigma",
+      "tool_count": 19,
+      "category": "business intelligence",
+      "supported": false
+    },
+    {
+      "slug": "feathery",
+      "name": "Feathery",
+      "tool_count": 19,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "gitea",
+      "name": "Gitea",
+      "tool_count": 19,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "heyreach",
+      "name": "Heyreach",
+      "tool_count": 19,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "hotspotsystem",
+      "name": "Hotspotsystem",
+      "tool_count": 19,
+      "category": "internet of things",
+      "supported": false
+    },
+    {
+      "slug": "simplero",
+      "name": "Simplero",
+      "tool_count": 19,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "whop",
+      "name": "Whop",
+      "tool_count": 19,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "composio",
+      "name": "Composio",
+      "tool_count": 18,
+      "category": "ai agents",
+      "supported": false
+    },
+    {
+      "slug": "exa",
+      "name": "Exa",
+      "tool_count": 18,
+      "category": "analytics & data",
+      "supported": false
+    },
+    {
+      "slug": "agiled",
+      "name": "Agiled",
+      "tool_count": 18,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "breeze",
+      "name": "Breeze",
+      "tool_count": 18,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "cats",
+      "name": "Cats",
+      "tool_count": 18,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "codacy",
+      "name": "Codacy",
+      "tool_count": 18,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "dart",
+      "name": "Dart",
+      "tool_count": 18,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "dripcel",
+      "name": "Dripcel",
+      "tool_count": 18,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "expofp",
+      "name": "Expofp",
+      "tool_count": 18,
+      "category": "event management",
+      "supported": false
+    },
+    {
+      "slug": "pdfmonkey",
+      "name": "PDFMonkey",
+      "tool_count": 18,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "serphouse",
+      "name": "Serphouse",
+      "tool_count": 18,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "specific",
+      "name": "Specific",
+      "tool_count": 18,
+      "category": "ai sales tools",
+      "supported": false
+    },
+    {
+      "slug": "tally",
+      "name": "Tally",
+      "tool_count": 18,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "userflow",
+      "name": "Userflow",
+      "tool_count": 18,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "whatsapp",
+      "name": "WhatsApp",
+      "tool_count": 17,
+      "category": "phone & sms",
+      "supported": false
+    },
+    {
+      "slug": "docmosis",
+      "name": "Docmosis",
+      "tool_count": 17,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "wakatime",
+      "name": "WakaTime",
+      "tool_count": 17,
+      "category": "time tracking software",
+      "supported": false
+    },
+    {
+      "slug": "addressfinder",
+      "name": "Addressfinder",
+      "tool_count": 17,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "big_data_cloud",
+      "name": "BigDataCloud",
+      "tool_count": 17,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "convertapi",
+      "name": "Convertapi",
+      "tool_count": 17,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "dub",
+      "name": "Dub",
+      "tool_count": 17,
+      "category": "url shortener",
+      "supported": false
+    },
+    {
+      "slug": "esignatures_io",
+      "name": "eSignatures.io",
+      "tool_count": 17,
+      "category": "signatures",
+      "supported": false
+    },
+    {
+      "slug": "linkly",
+      "name": "Linkly",
+      "tool_count": 17,
+      "category": "url shortener",
+      "supported": false
+    },
+    {
+      "slug": "oksign",
+      "name": "Oksign",
+      "tool_count": 17,
+      "category": "signatures",
+      "supported": false
+    },
+    {
+      "slug": "optimoroute",
+      "name": "OptimoRoute",
+      "tool_count": 17,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "rocketadmin",
+      "name": "Rocketadmin",
+      "tool_count": 17,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "rollbar",
+      "name": "Rollbar",
+      "tool_count": 17,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "segment",
+      "name": "Segment",
+      "tool_count": 17,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "sendfox",
+      "name": "Sendfox",
+      "tool_count": 17,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "serveravatar",
+      "name": "Serveravatar",
+      "tool_count": 17,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "superchat",
+      "name": "Superchat",
+      "tool_count": 17,
+      "category": "team chat",
+      "supported": false
+    },
+    {
+      "slug": "whautomate",
+      "name": "Whautomate",
+      "tool_count": 17,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "whoisfreaks",
+      "name": "Whoisfreaks",
+      "tool_count": 17,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "dynamics365",
+      "name": "Dynamics 365",
+      "tool_count": 16,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "zoominfo",
+      "name": "Zoominfo",
+      "tool_count": 16,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "btcpay_server",
+      "name": "BTCPay Server",
+      "tool_count": 16,
+      "category": "payment processing",
+      "supported": false
+    },
+    {
+      "slug": "cloudlayer",
+      "name": "Cloudlayer",
+      "tool_count": 16,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "codereadr",
+      "name": "Codereadr",
+      "tool_count": 16,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "connecteam",
+      "name": "Connecteam",
+      "tool_count": 16,
+      "category": "human resources",
+      "supported": false
+    },
+    {
+      "slug": "highergov",
+      "name": "Highergov",
+      "tool_count": 16,
+      "category": "business intelligence",
+      "supported": false
+    },
+    {
+      "slug": "listclean",
+      "name": "Listclean",
+      "tool_count": 16,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "needle",
+      "name": "Needle",
+      "tool_count": 16,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "sanity",
+      "name": "Sanity",
+      "tool_count": 16,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "scrape_do",
+      "name": "Scrape Do",
+      "tool_count": 16,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "skyfire",
+      "name": "Skyfire",
+      "tool_count": 16,
+      "category": "ai agents",
+      "supported": false
+    },
+    {
+      "slug": "slite",
+      "name": "Slite",
+      "tool_count": 16,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "virustotal",
+      "name": "Virustotal",
+      "tool_count": 16,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "bubble",
+      "name": "Bubble",
+      "tool_count": 15,
+      "category": "app builder",
+      "supported": false
+    },
+    {
+      "slug": "zoho_mail",
+      "name": "Zoho Mail",
+      "tool_count": 15,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "dock_certs",
+      "name": "Dock Certs",
+      "tool_count": 15,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "felt",
+      "name": "Felt",
+      "tool_count": 15,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "mailbluster",
+      "name": "MailBluster",
+      "tool_count": 15,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "onesignal_rest_api",
+      "name": "OneSignal REST API",
+      "tool_count": 15,
+      "category": "notifications",
+      "supported": false
+    },
+    {
+      "slug": "pipeline_crm",
+      "name": "Pipeline CRM",
+      "tool_count": 15,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "planly",
+      "name": "Planly",
+      "tool_count": 15,
+      "category": "social media marketing",
+      "supported": false
+    },
+    {
+      "slug": "pushbullet",
+      "name": "Pushbullet",
+      "tool_count": 15,
+      "category": "notifications",
+      "supported": false
+    },
+    {
+      "slug": "retently",
+      "name": "Retently",
+      "tool_count": 15,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "ticketmaster",
+      "name": "Ticketmaster",
+      "tool_count": 15,
+      "category": "event management",
+      "supported": false
+    },
+    {
+      "slug": "truvera",
+      "name": "Truvera",
+      "tool_count": 15,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "uptimerobot",
+      "name": "Uptimerobot",
+      "tool_count": 15,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "snowflake",
+      "name": "Snowflake",
+      "tool_count": 14,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "hackernews",
+      "name": "Hacker News",
+      "tool_count": 14,
+      "category": "news & lifestyle",
+      "supported": false
+    },
+    {
+      "slug": "zenrows",
+      "name": "ZenRows",
+      "tool_count": 14,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "crustdata",
+      "name": "Crustdata",
+      "tool_count": 14,
+      "category": "sales & crm",
+      "supported": false
+    },
+    {
+      "slug": "pandadoc",
+      "name": "PandaDoc",
+      "tool_count": 14,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "baserow",
+      "name": "Baserow",
+      "tool_count": 14,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "piggy",
+      "name": "Piggy",
+      "tool_count": 14,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "boldsign",
+      "name": "Boldsign",
+      "tool_count": 14,
+      "category": "signatures",
+      "supported": false
+    },
+    {
+      "slug": "appcircle",
+      "name": "Appcircle",
+      "tool_count": 14,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "appveyor",
+      "name": "Appveyor",
+      "tool_count": 14,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "boxhero",
+      "name": "Boxhero",
+      "tool_count": 14,
+      "category": "product management",
+      "supported": false
+    },
+    {
+      "slug": "campayn",
+      "name": "Campayn",
+      "tool_count": 14,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "claid_ai",
+      "name": "Claid.ai",
+      "tool_count": 14,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "coinranking",
+      "name": "Coinranking",
+      "tool_count": 14,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "firmao",
+      "name": "Firmao",
+      "tool_count": 14,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "google_admin",
+      "name": "Google Admin",
+      "tool_count": 14,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "helpdesk",
+      "name": "Helpdesk",
+      "tool_count": 14,
+      "category": "customer support",
+      "supported": false
+    },
+    {
+      "slug": "heyzine",
+      "name": "Heyzine",
+      "tool_count": 14,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "magnetic",
+      "name": "Magnetic",
+      "tool_count": 14,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "manus",
+      "name": "Manus",
+      "tool_count": 14,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "modelry",
+      "name": "Modelry",
+      "tool_count": 14,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "persistiq",
+      "name": "Persistiq",
+      "tool_count": 14,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "ritekit",
+      "name": "Ritekit",
+      "tool_count": 14,
+      "category": "social media marketing",
+      "supported": false
+    },
+    {
+      "slug": "seqera",
+      "name": "Seqera",
+      "tool_count": 14,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "taggun",
+      "name": "Taggun",
+      "tool_count": 14,
+      "category": "ai document extraction",
+      "supported": false
+    },
+    {
+      "slug": "teamcamp",
+      "name": "Teamcamp",
+      "tool_count": 14,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "wix_mcp",
+      "name": "Wix MCP",
+      "tool_count": 14,
+      "category": "e-commerce",
+      "supported": false
+    },
+    {
+      "slug": "worksnaps",
+      "name": "Worksnaps",
+      "tool_count": 14,
+      "category": "time tracking software",
+      "supported": false
+    },
+    {
+      "slug": "googlephotos",
+      "name": "Google Photos",
+      "tool_count": 13,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "metatextai",
+      "name": "Metatextai",
+      "tool_count": 13,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "tisane",
+      "name": "Tisane",
+      "tool_count": 13,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "apipie_ai",
+      "name": "APIpie AI",
+      "tool_count": 13,
+      "category": "ai models",
+      "supported": false
+    },
+    {
+      "slug": "delighted",
+      "name": "Delighted",
+      "tool_count": 13,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "docnify",
+      "name": "Docnify",
+      "tool_count": 13,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "elorus",
+      "name": "Elorus",
+      "tool_count": 13,
+      "category": "proposal & invoice management",
+      "supported": false
+    },
+    {
+      "slug": "fluxguard",
+      "name": "Fluxguard",
+      "tool_count": 13,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "goody",
+      "name": "Goody",
+      "tool_count": 13,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "graphhopper",
+      "name": "Graphhopper",
+      "tool_count": 13,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "heyy",
+      "name": "Heyy",
+      "tool_count": 13,
+      "category": "communication",
+      "supported": false
+    },
+    {
+      "slug": "lagrowthmachine",
+      "name": "La Growth Machine",
+      "tool_count": 13,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "landbot",
+      "name": "Landbot",
+      "tool_count": 13,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "lob",
+      "name": "Lob",
+      "tool_count": 13,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "memberspot",
+      "name": "Memberspot",
+      "tool_count": 13,
+      "category": "online courses",
+      "supported": false
+    },
+    {
+      "slug": "mx_toolbox",
+      "name": "MXToolbox",
+      "tool_count": 13,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "openrouter",
+      "name": "Openrouter",
+      "tool_count": 13,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "parsera",
+      "name": "Parsera",
+      "tool_count": 13,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "payhere",
+      "name": "Payhere",
+      "tool_count": 13,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "pingdom",
+      "name": "Pingdom",
+      "tool_count": 13,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "plausible_analytics",
+      "name": "Plausible Analytics",
+      "tool_count": 13,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "runpod",
+      "name": "RunPod",
+      "tool_count": 13,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "ticktick",
+      "name": "Ticktick",
+      "tool_count": 13,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "timelinesai",
+      "name": "TimelinesAI",
+      "tool_count": 13,
+      "category": "communication",
+      "supported": false
+    },
+    {
+      "slug": "moz",
+      "name": "Moz",
+      "tool_count": 12,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "rocket_reach",
+      "name": "RocketReach",
+      "tool_count": 12,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "exist",
+      "name": "Exist",
+      "tool_count": 12,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "zenserp",
+      "name": "Zenserp",
+      "tool_count": 12,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "beamer",
+      "name": "Beamer",
+      "tool_count": 12,
+      "category": "notifications",
+      "supported": false
+    },
+    {
+      "slug": "botsonic",
+      "name": "Botsonic",
+      "tool_count": 12,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "craftmypdf",
+      "name": "Craftmypdf",
+      "tool_count": 12,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "daffy",
+      "name": "Daffy",
+      "tool_count": 12,
+      "category": "fundraising",
+      "supported": false
+    },
+    {
+      "slug": "emaillistverify",
+      "name": "Emaillistverify",
+      "tool_count": 12,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "evenium",
+      "name": "Evenium",
+      "tool_count": 12,
+      "category": "event management",
+      "supported": false
+    },
+    {
+      "slug": "fal_ai",
+      "name": "Fal.ai",
+      "tool_count": 12,
+      "category": "ai models",
+      "supported": false
+    },
+    {
+      "slug": "nethunt_crm",
+      "name": "NetHunt CRM",
+      "tool_count": 12,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "neverbounce",
+      "name": "NeverBounce",
+      "tool_count": 12,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "npm",
+      "name": "Npm",
+      "tool_count": 12,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "ntfy",
+      "name": "Ntfy",
+      "tool_count": 12,
+      "category": "notifications",
+      "supported": false
+    },
+    {
+      "slug": "odoo",
+      "name": "Odoo",
+      "tool_count": 12,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "onesignal_user_auth",
+      "name": "OneSignal User Auth",
+      "tool_count": 12,
+      "category": "notifications",
+      "supported": false
+    },
+    {
+      "slug": "piloterr",
+      "name": "Piloterr",
+      "tool_count": 12,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "plisio",
+      "name": "Plisio",
+      "tool_count": 12,
+      "category": "payment processing",
+      "supported": false
+    },
+    {
+      "slug": "postgrid_verify",
+      "name": "PostGrid Verify",
+      "tool_count": 12,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "procfu",
+      "name": "Procfu",
+      "tool_count": 12,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "pylon_mcp",
+      "name": "Pylon MCP",
+      "tool_count": 12,
+      "category": "model context protocol",
+      "supported": false
+    },
+    {
+      "slug": "rudderstack_transformation",
+      "name": "RudderStack Transformation",
+      "tool_count": 12,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "scrapfly",
+      "name": "Scrapfly",
+      "tool_count": 12,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "securitytrails",
+      "name": "Securitytrails",
+      "tool_count": 12,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "shipday",
+      "name": "Shipday",
+      "tool_count": 12,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "shortpixel",
+      "name": "Shortpixel",
+      "tool_count": 12,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "signwell",
+      "name": "Signwell",
+      "tool_count": 12,
+      "category": "signatures",
+      "supported": false
+    },
+    {
+      "slug": "spotlightr",
+      "name": "Spotlightr",
+      "tool_count": 12,
+      "category": "video & audio",
+      "supported": false
+    },
+    {
+      "slug": "appdrag",
+      "name": "AppDrag",
+      "tool_count": 11,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "mopinion",
+      "name": "Mopinion",
+      "tool_count": 11,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "browseai",
+      "name": "Browseai",
+      "tool_count": 11,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "apiverve",
+      "name": "Apiverve",
+      "tool_count": 11,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "appointo",
+      "name": "Appointo",
+      "tool_count": 11,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "cabinpanda",
+      "name": "Cabinpanda",
+      "tool_count": 11,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "carbone",
+      "name": "Carbone",
+      "tool_count": 11,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "conversion_tools",
+      "name": "Conversion Tools",
+      "tool_count": 11,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "desktime",
+      "name": "DeskTime",
+      "tool_count": 11,
+      "category": "time tracking software",
+      "supported": false
+    },
+    {
+      "slug": "docsumo",
+      "name": "Docsumo",
+      "tool_count": 11,
+      "category": "ai document extraction",
+      "supported": false
+    },
+    {
+      "slug": "dotsimple",
+      "name": "Dotsimple",
+      "tool_count": 11,
+      "category": "social media marketing",
+      "supported": false
+    },
+    {
+      "slug": "eodhd_apis",
+      "name": "EODHD APIs",
+      "tool_count": 11,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "grafana",
+      "name": "Grafana",
+      "tool_count": 11,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "identitycheck",
+      "name": "Identitycheck",
+      "tool_count": 11,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "llmwhisperer",
+      "name": "LLMWhisperer",
+      "tool_count": 11,
+      "category": "ai document extraction",
+      "supported": false
+    },
+    {
+      "slug": "loops_so",
+      "name": "Loops.so",
+      "tool_count": 11,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "mem",
+      "name": "Mem",
+      "tool_count": 11,
+      "category": "notes",
+      "supported": false
+    },
+    {
+      "slug": "nano_nets",
+      "name": "Nanonets",
+      "tool_count": 11,
+      "category": "ai document extraction",
+      "supported": false
+    },
+    {
+      "slug": "passcreator",
+      "name": "Passcreator",
+      "tool_count": 11,
+      "category": "event management",
+      "supported": false
+    },
+    {
+      "slug": "placid",
+      "name": "Placid",
+      "tool_count": 11,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "poof",
+      "name": "Poof",
+      "tool_count": 11,
+      "category": "payment processing",
+      "supported": false
+    },
+    {
+      "slug": "promptmate_io",
+      "name": "Promptmate.io",
+      "tool_count": 11,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "rev_ai",
+      "name": "Rev AI",
+      "tool_count": 11,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "supadata",
+      "name": "Supadata",
+      "tool_count": 11,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "vectorshift",
+      "name": "Vectorshift",
+      "tool_count": 11,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "wachete",
+      "name": "Wachete",
+      "tool_count": 11,
+      "category": "notifications",
+      "supported": false
+    },
+    {
+      "slug": "wolfram_alpha_api",
+      "name": "Wolfram Alpha Api",
+      "tool_count": 11,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "amcards",
+      "name": "Amcards",
+      "tool_count": 10,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "freshbooks",
+      "name": "FreshBooks",
+      "tool_count": 10,
+      "category": "accounting",
+      "supported": false
+    },
+    {
+      "slug": "alttext_ai",
+      "name": "AltText.ai",
+      "tool_count": 10,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "api2pdf",
+      "name": "API2PDF",
+      "tool_count": 10,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "benzinga",
+      "name": "Benzinga",
+      "tool_count": 10,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "bitquery",
+      "name": "Bitquery",
+      "tool_count": 10,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "blocknative",
+      "name": "Blocknative",
+      "tool_count": 10,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "bouncer",
+      "name": "Bouncer",
+      "tool_count": 10,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "brightdata",
+      "name": "Bright Data",
+      "tool_count": 10,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "builtwith",
+      "name": "BuiltWith",
+      "tool_count": 10,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "docraptor",
+      "name": "DocRaptor",
+      "tool_count": 10,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "eversign",
+      "name": "Eversign",
+      "tool_count": 10,
+      "category": "signatures",
+      "supported": false
+    },
+    {
+      "slug": "extracta_ai",
+      "name": "Extracta.ai",
+      "tool_count": 10,
+      "category": "ai document extraction",
+      "supported": false
+    },
+    {
+      "slug": "googleforms",
+      "name": "Googleforms",
+      "tool_count": 10,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "iqair_airvisual",
+      "name": "Iqair Airvisual",
+      "tool_count": 10,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "knack",
+      "name": "Knack",
+      "tool_count": 10,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "leiga",
+      "name": "Leiga",
+      "tool_count": 10,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "marketstack",
+      "name": "Marketstack",
+      "tool_count": 10,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "pilvio",
+      "name": "Pilvio",
+      "tool_count": 10,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "prerender",
+      "name": "Prerender",
+      "tool_count": 10,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "realphonevalidation",
+      "name": "Realphonevalidation",
+      "tool_count": 10,
+      "category": "phone & sms",
+      "supported": false
+    },
+    {
+      "slug": "refiner",
+      "name": "Refiner",
+      "tool_count": 10,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "seat_geek",
+      "name": "Seat Geek",
+      "tool_count": 10,
+      "category": "event management",
+      "supported": false
+    },
+    {
+      "slug": "storyblok",
+      "name": "Storyblok",
+      "tool_count": 10,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "supersaas",
+      "name": "Supersaas",
+      "tool_count": 10,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "tidy",
+      "name": "Tidy",
+      "tool_count": 10,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "tiktok",
+      "name": "Tiktok",
+      "tool_count": 10,
+      "category": "social media accounts",
+      "supported": false
+    },
+    {
+      "slug": "tomba",
+      "name": "Tomba",
+      "tool_count": 10,
+      "category": "sales & crm",
+      "supported": false
+    },
+    {
+      "slug": "webscraper_io",
+      "name": "Webscraper io",
+      "tool_count": 10,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "perplexityai",
+      "name": "Perplexity AI",
+      "tool_count": 9,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "googleads",
+      "name": "Google Ads",
+      "tool_count": 9,
+      "category": "ads & conversion",
+      "supported": false
+    },
+    {
+      "slug": "fomo",
+      "name": "Fomo",
+      "tool_count": 9,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "bitwarden",
+      "name": "Bitwarden",
+      "tool_count": 9,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "agility_cms",
+      "name": "Agility CMS",
+      "tool_count": 9,
+      "category": "website builders",
+      "supported": false
+    },
+    {
+      "slug": "aryn",
+      "name": "Aryn",
+      "tool_count": 9,
+      "category": "ai document extraction",
+      "supported": false
+    },
+    {
+      "slug": "castingwords",
+      "name": "Castingwords",
+      "tool_count": 9,
+      "category": "transcription",
+      "supported": false
+    },
+    {
+      "slug": "certifier",
+      "name": "Certifier",
+      "tool_count": 9,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "cloudconvert",
+      "name": "CloudConvert",
+      "tool_count": 9,
+      "category": "file management & storage",
+      "supported": false
+    },
+    {
+      "slug": "coinmarketcap",
+      "name": "CoinMarketCap",
+      "tool_count": 9,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "docsautomator",
+      "name": "Docsautomator",
+      "tool_count": 9,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "docugenerate",
+      "name": "Docugenerate",
+      "tool_count": 9,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "eagle_doc",
+      "name": "Eagle doc",
+      "tool_count": 9,
+      "category": "ai document extraction",
+      "supported": false
+    },
+    {
+      "slug": "eventzilla",
+      "name": "Eventzilla",
+      "tool_count": 9,
+      "category": "event management",
+      "supported": false
+    },
+    {
+      "slug": "freshservice",
+      "name": "Freshservice",
+      "tool_count": 9,
+      "category": "customer support",
+      "supported": false
+    },
+    {
+      "slug": "fullenrich",
+      "name": "Fullenrich",
+      "tool_count": 9,
+      "category": "contact management",
+      "supported": false
+    },
+    {
+      "slug": "gatherup",
+      "name": "Gatherup",
+      "tool_count": 9,
+      "category": "reviews",
+      "supported": false
+    },
+    {
+      "slug": "gender_api",
+      "name": "Gender API",
+      "tool_count": 9,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "gladia",
+      "name": "Gladia",
+      "tool_count": 9,
+      "category": "transcription",
+      "supported": false
+    },
+    {
+      "slug": "google_search_console",
+      "name": "Google Search Console",
+      "tool_count": 9,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "influxdb_cloud",
+      "name": "InfluxDB Cloud",
+      "tool_count": 9,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "leadboxer",
+      "name": "LeadBoxer",
+      "tool_count": 9,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "leadiq",
+      "name": "LeadIQ",
+      "tool_count": 9,
+      "category": "sales & crm",
+      "supported": false
+    },
+    {
+      "slug": "leexi",
+      "name": "Leexi",
+      "tool_count": 9,
+      "category": "ai meeting assistants",
+      "supported": false
+    },
+    {
+      "slug": "niftyimages",
+      "name": "Niftyimages",
+      "tool_count": 9,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "nocrm_io",
+      "name": "NoCRM.io",
+      "tool_count": 9,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "payhip",
+      "name": "Payhip",
+      "tool_count": 9,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "perigon",
+      "name": "Perigon",
+      "tool_count": 9,
+      "category": "news & lifestyle",
+      "supported": false
+    },
+    {
+      "slug": "pexels",
+      "name": "Pexels",
+      "tool_count": 9,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "postiz_mcp",
+      "name": "Postiz",
+      "tool_count": 9,
+      "category": "social media marketing",
+      "supported": false
+    },
+    {
+      "slug": "scrapingant",
+      "name": "Scrapingant",
+      "tool_count": 9,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "sendspark",
+      "name": "Sendspark",
+      "tool_count": 9,
+      "category": "video & audio",
+      "supported": false
+    },
+    {
+      "slug": "signaturely",
+      "name": "Signaturely",
+      "tool_count": 9,
+      "category": "signatures",
+      "supported": false
+    },
+    {
+      "slug": "sslmate_cert_spotter_api",
+      "name": "SSLMate Cert Spotter API",
+      "tool_count": 9,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "verifiedemail",
+      "name": "Verifiedemail",
+      "tool_count": 9,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "acculynx",
+      "name": "Acculynx",
+      "tool_count": 8,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "lmnt",
+      "name": "LMNT",
+      "tool_count": 8,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "simplesat",
+      "name": "Simplesat",
+      "tool_count": 8,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "datagma",
+      "name": "Datagma",
+      "tool_count": 8,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "_21risk",
+      "name": "21risk",
+      "tool_count": 8,
+      "category": "business intelligence",
+      "supported": false
+    },
+    {
+      "slug": "adyntel",
+      "name": "Adyntel",
+      "tool_count": 8,
+      "category": "ads & conversion",
+      "supported": false
+    },
+    {
+      "slug": "apify_mcp",
+      "name": "Apify MCP",
+      "tool_count": 8,
+      "category": "model context protocol",
+      "supported": false
+    },
+    {
+      "slug": "apilio",
+      "name": "Apilio",
+      "tool_count": 8,
+      "category": "internet of things",
+      "supported": false
+    },
+    {
+      "slug": "bestbuy",
+      "name": "Bestbuy",
+      "tool_count": 8,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "deepgram",
+      "name": "Deepgram",
+      "tool_count": 8,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "dpd2",
+      "name": "Dpd2",
+      "tool_count": 8,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "dromo",
+      "name": "Dromo",
+      "tool_count": 8,
+      "category": "spreadsheets",
+      "supported": false
+    },
+    {
+      "slug": "fraudlabs_pro",
+      "name": "FraudLabs Pro",
+      "tool_count": 8,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "gan_ai",
+      "name": "Gan.AI",
+      "tool_count": 8,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "headout",
+      "name": "Headout",
+      "tool_count": 8,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "ip2location",
+      "name": "Ip2Location",
+      "tool_count": 8,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "klazify",
+      "name": "Klazify",
+      "tool_count": 8,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "memberstack",
+      "name": "Memberstack",
+      "tool_count": 8,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "msg91",
+      "name": "Msg91",
+      "tool_count": 8,
+      "category": "communication",
+      "supported": false
+    },
+    {
+      "slug": "ollama",
+      "name": "Ollama",
+      "tool_count": 8,
+      "category": "ai models",
+      "supported": false
+    },
+    {
+      "slug": "openperplex",
+      "name": "Openperplex",
+      "tool_count": 8,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "passslot",
+      "name": "Passslot",
+      "tool_count": 8,
+      "category": "event management",
+      "supported": false
+    },
+    {
+      "slug": "pointagram",
+      "name": "Pointagram",
+      "tool_count": 8,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "rize",
+      "name": "Rize",
+      "tool_count": 8,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "sender",
+      "name": "Sender",
+      "tool_count": 8,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "sourcegraph",
+      "name": "Sourcegraph",
+      "tool_count": 8,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "suitedash",
+      "name": "Suitedash",
+      "tool_count": 8,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "the_odds_api",
+      "name": "The Odds API",
+      "tool_count": 8,
+      "category": "gaming",
+      "supported": false
+    },
+    {
+      "slug": "tinyfish_mcp",
+      "name": "TinyFish MCP",
+      "tool_count": 8,
+      "category": "model context protocol",
+      "supported": false
+    },
+    {
+      "slug": "woodpecker_co",
+      "name": "Woodpecker Co",
+      "tool_count": 8,
+      "category": "drip emails",
+      "supported": false
+    },
+    {
+      "slug": "xata",
+      "name": "Xata",
+      "tool_count": 8,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "y_gy",
+      "name": "Y gy",
+      "tool_count": 8,
+      "category": "url shortener",
+      "supported": false
+    },
+    {
+      "slug": "brandfetch",
+      "name": "Brandfetch",
+      "tool_count": 7,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "gumroad",
+      "name": "Gumroad",
+      "tool_count": 7,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "all_images_ai",
+      "name": "All Images AI",
+      "tool_count": 7,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "browserless",
+      "name": "Browserless",
+      "tool_count": 7,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "callerapi",
+      "name": "Callerapi",
+      "tool_count": 7,
+      "category": "phone & sms",
+      "supported": false
+    },
+    {
+      "slug": "convolo_ai",
+      "name": "Convolo AI",
+      "tool_count": 7,
+      "category": "ai sales tools",
+      "supported": false
+    },
+    {
+      "slug": "databox",
+      "name": "Databox",
+      "tool_count": 7,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "dropcontact",
+      "name": "Dropcontact",
+      "tool_count": 7,
+      "category": "contact management",
+      "supported": false
+    },
+    {
+      "slug": "dynapictures",
+      "name": "Dynapictures",
+      "tool_count": 7,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "fathom",
+      "name": "Fathom",
+      "tool_count": 7,
+      "category": "ai meeting assistants",
+      "supported": false
+    },
+    {
+      "slug": "files_com",
+      "name": "Files.com",
+      "tool_count": 7,
+      "category": "file management & storage",
+      "supported": false
+    },
+    {
+      "slug": "gemini",
+      "name": "Gemini",
+      "tool_count": 7,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "geocodio",
+      "name": "Geocodio",
+      "tool_count": 7,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "googleslides",
+      "name": "Google Slides",
+      "tool_count": 7,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "groqcloud",
+      "name": "GroqCloud",
+      "tool_count": 7,
+      "category": "ai models",
+      "supported": false
+    },
+    {
+      "slug": "heartbeat",
+      "name": "Heartbeat",
+      "tool_count": 7,
+      "category": "team collaboration",
+      "supported": false
+    },
+    {
+      "slug": "honeybadger",
+      "name": "Honeybadger",
+      "tool_count": 7,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "ibm_x_force_exchange",
+      "name": "IBM X-Force Exchange",
+      "tool_count": 7,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "kontent_ai",
+      "name": "Kontent.ai",
+      "tool_count": 7,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "lusha",
+      "name": "Lusha",
+      "tool_count": 7,
+      "category": "sales & crm",
+      "supported": false
+    },
+    {
+      "slug": "nasdaq",
+      "name": "Nasdaq",
+      "tool_count": 7,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "opencage",
+      "name": "Opencage",
+      "tool_count": 7,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "planyo_online_booking",
+      "name": "Planyo Online Booking",
+      "tool_count": 7,
+      "category": "scheduling & booking",
+      "supported": false
+    },
+    {
+      "slug": "ragic",
+      "name": "Ragic",
+      "tool_count": 7,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "remote_retrieval",
+      "name": "Remote Retrieval",
+      "tool_count": 7,
+      "category": "it operations",
+      "supported": false
+    },
+    {
+      "slug": "renderform",
+      "name": "Renderform",
+      "tool_count": 7,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "respond_io",
+      "name": "Respond.io",
+      "tool_count": 7,
+      "category": "customer support",
+      "supported": false
+    },
+    {
+      "slug": "roboflow",
+      "name": "Roboflow",
+      "tool_count": 7,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "textcortex",
+      "name": "Textcortex",
+      "tool_count": 7,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "tldv",
+      "name": "Tldv",
+      "tool_count": 7,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "tripadvisor",
+      "name": "Tripadvisor",
+      "tool_count": 7,
+      "category": "reviews",
+      "supported": false
+    },
+    {
+      "slug": "uniswap_api",
+      "name": "Uniswap Api",
+      "tool_count": 7,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "webscraping_ai",
+      "name": "WebScraping.AI",
+      "tool_count": 7,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "world_news_api",
+      "name": "World news api",
+      "tool_count": 7,
+      "category": "news & lifestyle",
+      "supported": false
+    },
+    {
+      "slug": "zixflow",
+      "name": "Zixflow",
+      "tool_count": 7,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "zyte_api",
+      "name": "Zyte Api",
+      "tool_count": 7,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "text_to_pdf",
+      "name": "Text to PDF",
+      "tool_count": 6,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "junglescout",
+      "name": "Jungle Scout",
+      "tool_count": 6,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "mocean",
+      "name": "Mocean",
+      "tool_count": 6,
+      "category": "phone & sms",
+      "supported": false
+    },
+    {
+      "slug": "close",
+      "name": "Close",
+      "tool_count": 6,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "dailybot",
+      "name": "Dailybot",
+      "tool_count": 6,
+      "category": "team collaboration",
+      "supported": false
+    },
+    {
+      "slug": "demio",
+      "name": "Demio",
+      "tool_count": 6,
+      "category": "webinars",
+      "supported": false
+    },
+    {
+      "slug": "textrazor",
+      "name": "TextRazor",
+      "tool_count": 6,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "_1password",
+      "name": "1password",
+      "tool_count": 6,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "abuselpdb",
+      "name": "AbuseIPDB",
+      "tool_count": 6,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "asin_data_api",
+      "name": "ASIN Data API",
+      "tool_count": 6,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "bolt_iot",
+      "name": "Bolt Iot",
+      "tool_count": 6,
+      "category": "internet of things",
+      "supported": false
+    },
+    {
+      "slug": "clickhouse",
+      "name": "ClickHouse",
+      "tool_count": 6,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "commcare",
+      "name": "CommCare",
+      "tool_count": 6,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "curated",
+      "name": "Curated",
+      "tool_count": 6,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "deadline_funnel",
+      "name": "Deadline Funnel",
+      "tool_count": 6,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "documint",
+      "name": "Documint",
+      "tool_count": 6,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "keen_io",
+      "name": "Keen.io",
+      "tool_count": 6,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "leadfeeder",
+      "name": "Leadfeeder",
+      "tool_count": 6,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "mailercloud",
+      "name": "Mailercloud",
+      "tool_count": 6,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "matterport",
+      "name": "Matterport",
+      "tool_count": 6,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "push_by_techulus",
+      "name": "Push by Techulus",
+      "tool_count": 6,
+      "category": "notifications",
+      "supported": false
+    },
+    {
+      "slug": "retailed",
+      "name": "Retailed",
+      "tool_count": 6,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "rootly",
+      "name": "Rootly",
+      "tool_count": 6,
+      "category": "it operations",
+      "supported": false
+    },
+    {
+      "slug": "salesmate",
+      "name": "Salesmate",
+      "tool_count": 6,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "saucelabs",
+      "name": "Saucelabs",
+      "tool_count": 6,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "sendbird_ai_chabot",
+      "name": "Sendbird AI Chatbot",
+      "tool_count": 6,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "sendlane",
+      "name": "Sendlane",
+      "tool_count": 6,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "shorten_rest",
+      "name": "Shorten.REST",
+      "tool_count": 6,
+      "category": "url shortener",
+      "supported": false
+    },
+    {
+      "slug": "smartproxy",
+      "name": "Smartproxy",
+      "tool_count": 6,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "snowflake_basic",
+      "name": "Snowflake Basic",
+      "tool_count": 6,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "solcast",
+      "name": "Solcast",
+      "tool_count": 6,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "starton",
+      "name": "Starton",
+      "tool_count": 6,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "stormglass_io",
+      "name": "Stormglass Io",
+      "tool_count": 6,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "supportivekoala",
+      "name": "Supportivekoala",
+      "tool_count": 6,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "yelp",
+      "name": "Yelp",
+      "tool_count": 6,
+      "category": "reviews",
+      "supported": false
+    },
+    {
+      "slug": "codeinterpreter",
+      "name": "Code Interpreter",
+      "tool_count": 5,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "tavily",
+      "name": "Tavily",
+      "tool_count": 5,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "browser_tool",
+      "name": "Browser Tool",
+      "tool_count": 5,
+      "category": "ai agents",
+      "supported": false
+    },
+    {
+      "slug": "tinypng",
+      "name": "TinyPNG",
+      "tool_count": 5,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "linkhut",
+      "name": "Linkhut",
+      "tool_count": 5,
+      "category": "bookmark managers",
+      "supported": false
+    },
+    {
+      "slug": "blackbaud",
+      "name": "Blackbaud",
+      "tool_count": 5,
+      "category": "fundraising",
+      "supported": false
+    },
+    {
+      "slug": "process_street",
+      "name": "Process Street",
+      "tool_count": 5,
+      "category": "task management",
+      "supported": false
+    },
+    {
+      "slug": "screenshotone",
+      "name": "ScreenshotOne",
+      "tool_count": 5,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "formsite",
+      "name": "Formsite",
+      "tool_count": 5,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "foursquare",
+      "name": "Foursquare",
+      "tool_count": 5,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "_2chat",
+      "name": "2chat",
+      "tool_count": 5,
+      "category": "communication",
+      "supported": false
+    },
+    {
+      "slug": "agent_mail",
+      "name": "Agent Mail",
+      "tool_count": 5,
+      "category": "ai agents",
+      "supported": false
+    },
+    {
+      "slug": "anonyflow",
+      "name": "Anonyflow",
+      "tool_count": 5,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "apiflash",
+      "name": "Apiflash",
+      "tool_count": 5,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "bettercontact",
+      "name": "Bettercontact",
+      "tool_count": 5,
+      "category": "contact management",
+      "supported": false
+    },
+    {
+      "slug": "buildkite",
+      "name": "Buildkite",
+      "tool_count": 5,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "byteforms",
+      "name": "Byteforms",
+      "tool_count": 5,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "campaign_cleaner",
+      "name": "Campaign Cleaner",
+      "tool_count": 5,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "cincopa",
+      "name": "Cincopa",
+      "tool_count": 5,
+      "category": "video & audio",
+      "supported": false
+    },
+    {
+      "slug": "cloudpress",
+      "name": "Cloudpress",
+      "tool_count": 5,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "currencyscoop",
+      "name": "CurrencyScoop",
+      "tool_count": 5,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "currents_api",
+      "name": "Currents API",
+      "tool_count": 5,
+      "category": "news & lifestyle",
+      "supported": false
+    },
+    {
+      "slug": "cursor",
+      "name": "Cursor",
+      "tool_count": 5,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "customjs",
+      "name": "Customjs",
+      "tool_count": 5,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "deepimage",
+      "name": "DeepImage",
+      "tool_count": 5,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "dreamstudio",
+      "name": "Dreamstudio",
+      "tool_count": 5,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "ecologi",
+      "name": "Ecologi",
+      "tool_count": 5,
+      "category": "news & lifestyle",
+      "supported": false
+    },
+    {
+      "slug": "emailable",
+      "name": "Emailable",
+      "tool_count": 5,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "fixer_io",
+      "name": "Fixer.io",
+      "tool_count": 5,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "gamma",
+      "name": "Gamma",
+      "tool_count": 5,
+      "category": "ai content generation",
+      "supported": false
+    },
+    {
+      "slug": "genderapi_io",
+      "name": "GenderAPI.io",
+      "tool_count": 5,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "globalping",
+      "name": "Globalping",
+      "tool_count": 5,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "goodbits",
+      "name": "Goodbits",
+      "tool_count": 5,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "hyperise",
+      "name": "Hyperise",
+      "tool_count": 5,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "ip2location_io",
+      "name": "IP2Location.io",
+      "tool_count": 5,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "minerstat",
+      "name": "Minerstat",
+      "tool_count": 5,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "moonclerk",
+      "name": "Moonclerk",
+      "tool_count": 5,
+      "category": "payment processing",
+      "supported": false
+    },
+    {
+      "slug": "paperform",
+      "name": "Paperform",
+      "tool_count": 5,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "prismic",
+      "name": "Prismic",
+      "tool_count": 5,
+      "category": "website builders",
+      "supported": false
+    },
+    {
+      "slug": "proxiedmail",
+      "name": "Proxiedmail",
+      "tool_count": 5,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "remarkety",
+      "name": "Remarkety",
+      "tool_count": 5,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "satismeter",
+      "name": "Satismeter",
+      "tool_count": 5,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "scrapingbee",
+      "name": "Scrapingbee",
+      "tool_count": 5,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "search_api",
+      "name": "Search api",
+      "tool_count": 5,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "sendloop",
+      "name": "Sendloop",
+      "tool_count": 5,
+      "category": "email newsletters",
+      "supported": false
+    },
+    {
+      "slug": "signpath",
+      "name": "Signpath",
+      "tool_count": 5,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "tavily_mcp",
+      "name": "Tavily MCP",
+      "tool_count": 5,
+      "category": "model context protocol",
+      "supported": false
+    },
+    {
+      "slug": "token_metrics",
+      "name": "Token Metrics",
+      "tool_count": 5,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "triggercmd",
+      "name": "Triggercmd",
+      "tool_count": 5,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "tripadvisor_content_api",
+      "name": "TripAdvisor Content API",
+      "tool_count": 5,
+      "category": "reviews",
+      "supported": false
+    },
+    {
+      "slug": "twocaptcha",
+      "name": "Twocaptcha",
+      "tool_count": 5,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "updown_io",
+      "name": "Updown.io",
+      "tool_count": 5,
+      "category": "server monitoring",
+      "supported": false
+    },
+    {
+      "slug": "veo",
+      "name": "Veo",
+      "tool_count": 5,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "wati",
+      "name": "Wati",
+      "tool_count": 5,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "wisepops",
+      "name": "Wisepops",
+      "tool_count": 5,
+      "category": "marketing",
+      "supported": false
+    },
+    {
+      "slug": "wiza",
+      "name": "Wiza",
+      "tool_count": 5,
+      "category": "sales & crm",
+      "supported": false
+    },
+    {
+      "slug": "linkup",
+      "name": "Linkup",
+      "tool_count": 4,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "formcarry",
+      "name": "Formcarry",
+      "tool_count": 4,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "more_trees",
+      "name": "More Trees",
+      "tool_count": 4,
+      "category": "news & lifestyle",
+      "supported": false
+    },
+    {
+      "slug": "humanloop",
+      "name": "Humanloop",
+      "tool_count": 4,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "placekey",
+      "name": "Placekey",
+      "tool_count": 4,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "beeminder",
+      "name": "Beeminder",
+      "tool_count": 4,
+      "category": "task management",
+      "supported": false
+    },
+    {
+      "slug": "abyssale",
+      "name": "Abyssale",
+      "tool_count": 4,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "api_labz",
+      "name": "API Labz",
+      "tool_count": 4,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "async_interview",
+      "name": "Async Interview",
+      "tool_count": 4,
+      "category": "human resources",
+      "supported": false
+    },
+    {
+      "slug": "autom",
+      "name": "Autom",
+      "tool_count": 4,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "bigpicture_io",
+      "name": "BigPicture.io",
+      "tool_count": 4,
+      "category": "business intelligence",
+      "supported": false
+    },
+    {
+      "slug": "bugbug",
+      "name": "Bugbug",
+      "tool_count": 4,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "cloudflare_browser_rendering",
+      "name": "Cloudflare Browser Rendering",
+      "tool_count": 4,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "coassemble",
+      "name": "Coassemble",
+      "tool_count": 4,
+      "category": "online courses",
+      "supported": false
+    },
+    {
+      "slug": "deepseek",
+      "name": "DeepSeek",
+      "tool_count": 4,
+      "category": "ai models",
+      "supported": false
+    },
+    {
+      "slug": "devin_mcp",
+      "name": "Devin MCP",
+      "tool_count": 4,
+      "category": "model context protocol",
+      "supported": false
+    },
+    {
+      "slug": "docparser",
+      "name": "Docparser",
+      "tool_count": 4,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "docupilot",
+      "name": "Docupilot",
+      "tool_count": 4,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "elasticsearch",
+      "name": "Elasticsearch",
+      "tool_count": 4,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "granola_mcp",
+      "name": "Granola MCP",
+      "tool_count": 4,
+      "category": "productivity & project management",
+      "supported": false
+    },
+    {
+      "slug": "hypeauditor",
+      "name": "Hypeauditor",
+      "tool_count": 4,
+      "category": "social media marketing",
+      "supported": false
+    },
+    {
+      "slug": "instacart",
+      "name": "Instacart",
+      "tool_count": 4,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "l2s",
+      "name": "L2s",
+      "tool_count": 4,
+      "category": "url shortener",
+      "supported": false
+    },
+    {
+      "slug": "lessonspace",
+      "name": "Lessonspace",
+      "tool_count": 4,
+      "category": "education",
+      "supported": false
+    },
+    {
+      "slug": "loomio",
+      "name": "Loomio",
+      "tool_count": 4,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "membervault",
+      "name": "Membervault",
+      "tool_count": 4,
+      "category": "online courses",
+      "supported": false
+    },
+    {
+      "slug": "news_api",
+      "name": "NewsAPI",
+      "tool_count": 4,
+      "category": "news & lifestyle",
+      "supported": false
+    },
+    {
+      "slug": "ninox",
+      "name": "Ninox",
+      "tool_count": 4,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "ocr_web_service",
+      "name": "OCR Web Service",
+      "tool_count": 4,
+      "category": "ai document extraction",
+      "supported": false
+    },
+    {
+      "slug": "opengraph_io",
+      "name": "OpenGraph.io",
+      "tool_count": 4,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "pdf4me",
+      "name": "Pdf4me",
+      "tool_count": 4,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "simple_analytics",
+      "name": "Simple Analytics",
+      "tool_count": 4,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "sitespeakai",
+      "name": "Sitespeakai",
+      "tool_count": 4,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "streamtime",
+      "name": "Streamtime",
+      "tool_count": 4,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "zylvie",
+      "name": "Zylvie",
+      "tool_count": 4,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "hackerrank_work",
+      "name": "HackerRank Work",
+      "tool_count": 3,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "workiom",
+      "name": "Workiom",
+      "tool_count": 3,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "coinmarketcal",
+      "name": "CoinMarketCal",
+      "tool_count": 3,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "abstract",
+      "name": "Abstract",
+      "tool_count": 3,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "adrapid",
+      "name": "Adrapid",
+      "tool_count": 3,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "agentql",
+      "name": "Agentql",
+      "tool_count": 3,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "algodocs",
+      "name": "Algodocs",
+      "tool_count": 3,
+      "category": "ai document extraction",
+      "supported": false
+    },
+    {
+      "slug": "anthropic_administrator",
+      "name": "Anthropic Administrator",
+      "tool_count": 3,
+      "category": "ai models",
+      "supported": false
+    },
+    {
+      "slug": "ayrshare",
+      "name": "Ayrshare",
+      "tool_count": 3,
+      "category": "social media marketing",
+      "supported": false
+    },
+    {
+      "slug": "bonsai",
+      "name": "Bonsai",
+      "tool_count": 3,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "cdr_platform",
+      "name": "Cdr Platform",
+      "tool_count": 3,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "chatfai",
+      "name": "Chatfai",
+      "tool_count": 3,
+      "category": "ai chatbots",
+      "supported": false
+    },
+    {
+      "slug": "cults",
+      "name": "Cults",
+      "tool_count": 3,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "deepwiki_mcp",
+      "name": "DeepWiki MCP",
+      "tool_count": 3,
+      "category": "model context protocol",
+      "supported": false
+    },
+    {
+      "slug": "docupost",
+      "name": "Docupost",
+      "tool_count": 3,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "fixer",
+      "name": "Fixer",
+      "tool_count": 3,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "helloleads",
+      "name": "Helloleads",
+      "tool_count": 3,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "html_to_image",
+      "name": "HTML to Image",
+      "tool_count": 3,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "humanitix",
+      "name": "Humanitix",
+      "tool_count": 3,
+      "category": "event management",
+      "supported": false
+    },
+    {
+      "slug": "kraken_io",
+      "name": "Kraken.io",
+      "tool_count": 3,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "leverly",
+      "name": "Leverly",
+      "tool_count": 3,
+      "category": "sales & crm",
+      "supported": false
+    },
+    {
+      "slug": "mails_so",
+      "name": "Mails.so",
+      "tool_count": 3,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "mapulus",
+      "name": "Mapulus",
+      "tool_count": 3,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "melo",
+      "name": "Melo",
+      "tool_count": 3,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "ocrspace",
+      "name": "OCR.space",
+      "tool_count": 3,
+      "category": "ai document extraction",
+      "supported": false
+    },
+    {
+      "slug": "owl_protocol",
+      "name": "Owl Protocol",
+      "tool_count": 3,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "printautopilot",
+      "name": "Printautopilot",
+      "tool_count": 3,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "project_bubble",
+      "name": "Project Bubble",
+      "tool_count": 3,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "proofly",
+      "name": "Proofly",
+      "tool_count": 3,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "remove_bg",
+      "name": "Remove.bg",
+      "tool_count": 3,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "rosette_text_analytics",
+      "name": "Rosette Text Analytics",
+      "tool_count": 3,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "segmetrics",
+      "name": "Segmetrics",
+      "tool_count": 3,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "serply",
+      "name": "Serply",
+      "tool_count": 3,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "short_menu",
+      "name": "Short Menu",
+      "tool_count": 3,
+      "category": "url shortener",
+      "supported": false
+    },
+    {
+      "slug": "sidetracker",
+      "name": "Sidetracker",
+      "tool_count": 3,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "similarweb_digitalrank_api",
+      "name": "SimilarWeb Digital Rank API",
+      "tool_count": 3,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "storeganise",
+      "name": "Storeganise",
+      "tool_count": 3,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "turso",
+      "name": "Turso",
+      "tool_count": 3,
+      "category": "databases",
+      "supported": false
+    },
+    {
+      "slug": "typless",
+      "name": "Typless",
+      "tool_count": 3,
+      "category": "ai document extraction",
+      "supported": false
+    },
+    {
+      "slug": "u301",
+      "name": "U301",
+      "tool_count": 3,
+      "category": "url shortener",
+      "supported": false
+    },
+    {
+      "slug": "winston_ai",
+      "name": "Winston AI",
+      "tool_count": 3,
+      "category": "ai safety compliance detection",
+      "supported": false
+    },
+    {
+      "slug": "weathermap",
+      "name": "OpenWeatherMap",
+      "tool_count": 2,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "onepage",
+      "name": "Onepage",
+      "tool_count": 2,
+      "category": "productivity",
+      "supported": false
+    },
+    {
+      "slug": "entelligence",
+      "name": "Entelligence",
+      "tool_count": 2,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "rafflys",
+      "name": "Rafflys",
+      "tool_count": 2,
+      "category": "social media marketing",
+      "supported": false
+    },
+    {
+      "slug": "tinyurl",
+      "name": "Tinyurl",
+      "tool_count": 2,
+      "category": "url shortener",
+      "supported": false
+    },
+    {
+      "slug": "waboxapp",
+      "name": "Waboxapp",
+      "tool_count": 2,
+      "category": "phone & sms",
+      "supported": false
+    },
+    {
+      "slug": "addresszen",
+      "name": "Addresszen",
+      "tool_count": 2,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "astica_ai",
+      "name": "Astica AI",
+      "tool_count": 2,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "autobound",
+      "name": "Autobound",
+      "tool_count": 2,
+      "category": "ai sales tools",
+      "supported": false
+    },
+    {
+      "slug": "contentful_graphql",
+      "name": "Contentful Graphql",
+      "tool_count": 2,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "context7_mcp",
+      "name": "Context7 MCP",
+      "tool_count": 2,
+      "category": "developer tools & devops",
+      "supported": false
+    },
+    {
+      "slug": "cutt_ly",
+      "name": "Cutt.ly",
+      "tool_count": 2,
+      "category": "url shortener",
+      "supported": false
+    },
+    {
+      "slug": "espocrm",
+      "name": "Espocrm",
+      "tool_count": 2,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "geokeo",
+      "name": "Geokeo",
+      "tool_count": 2,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "getform",
+      "name": "Getform",
+      "tool_count": 2,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "google_address_validation",
+      "name": "Google Address Validation",
+      "tool_count": 2,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "imagior",
+      "name": "Imagior",
+      "tool_count": 2,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "imgbb",
+      "name": "ImgBB",
+      "tool_count": 2,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "ip2whois",
+      "name": "Ip2Whois",
+      "tool_count": 2,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "jumpcloud",
+      "name": "JumpCloud",
+      "tool_count": 2,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "kickbox",
+      "name": "Kickbox",
+      "tool_count": 2,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "labs64_netlicensing",
+      "name": "Labs64 NetLicensing",
+      "tool_count": 2,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "logo_dev",
+      "name": "Logo.dev",
+      "tool_count": 2,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "mailcheck",
+      "name": "Mailcheck",
+      "tool_count": 2,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "pdfless",
+      "name": "Pdfless",
+      "tool_count": 2,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "platerecognizer",
+      "name": "Plate Recognizer",
+      "tool_count": 2,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "re_amaze",
+      "name": "Re:amaze",
+      "tool_count": 2,
+      "category": "customer support",
+      "supported": false
+    },
+    {
+      "slug": "storerocket",
+      "name": "Storerocket",
+      "tool_count": 2,
+      "category": "ecommerce",
+      "supported": false
+    },
+    {
+      "slug": "test_app",
+      "name": "Test app",
+      "tool_count": 2,
+      "category": "tag1",
+      "supported": false
+    },
+    {
+      "slug": "userlist",
+      "name": "Userlist",
+      "tool_count": 2,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "veriphone",
+      "name": "Veriphone",
+      "tool_count": 2,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "vestaboard",
+      "name": "Vestaboard",
+      "tool_count": 2,
+      "category": "notifications",
+      "supported": false
+    },
+    {
+      "slug": "waiverfile",
+      "name": "Waiverfile",
+      "tool_count": 2,
+      "category": "forms & surveys",
+      "supported": false
+    },
+    {
+      "slug": "webvizio",
+      "name": "Webvizio",
+      "tool_count": 2,
+      "category": "project management",
+      "supported": false
+    },
+    {
+      "slug": "microsoft_clarity",
+      "name": "Microsoft Clarity",
+      "tool_count": 1,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "yousearch",
+      "name": "You.com",
+      "tool_count": 1,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "timecamp",
+      "name": "TimeCamp",
+      "tool_count": 1,
+      "category": "time tracking software",
+      "supported": false
+    },
+    {
+      "slug": "echtpost",
+      "name": "Echtpost",
+      "tool_count": 1,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "aeroleads",
+      "name": "Aeroleads",
+      "tool_count": 1,
+      "category": "contact management",
+      "supported": false
+    },
+    {
+      "slug": "aivoov",
+      "name": "Aivoov",
+      "tool_count": 1,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "ambient_weather",
+      "name": "Ambient Weather",
+      "tool_count": 1,
+      "category": "internet of things",
+      "supported": false
+    },
+    {
+      "slug": "bench",
+      "name": "Bench",
+      "tool_count": 1,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "boloforms",
+      "name": "Boloforms",
+      "tool_count": 1,
+      "category": "signatures",
+      "supported": false
+    },
+    {
+      "slug": "dictionary_api",
+      "name": "Dictionary Api",
+      "tool_count": 1,
+      "category": "education",
+      "supported": false
+    },
+    {
+      "slug": "draftable",
+      "name": "Draftable",
+      "tool_count": 1,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "faceup",
+      "name": "Faceup",
+      "tool_count": 1,
+      "category": "customer support",
+      "supported": false
+    },
+    {
+      "slug": "flexisign",
+      "name": "Flexisign",
+      "tool_count": 1,
+      "category": "signatures",
+      "supported": false
+    },
+    {
+      "slug": "genderize",
+      "name": "Genderize",
+      "tool_count": 1,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "hystruct",
+      "name": "Hystruct",
+      "tool_count": 1,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "imejis_io",
+      "name": "Imejis.io",
+      "tool_count": 1,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "ip2proxy",
+      "name": "Ip2Proxy",
+      "tool_count": 1,
+      "category": "security & identity tools",
+      "supported": false
+    },
+    {
+      "slug": "ko_fi",
+      "name": "Ko-fi",
+      "tool_count": 1,
+      "category": "fundraising",
+      "supported": false
+    },
+    {
+      "slug": "leadoku",
+      "name": "Leadoku",
+      "tool_count": 1,
+      "category": "sales & crm",
+      "supported": false
+    },
+    {
+      "slug": "linguapop",
+      "name": "Linguapop",
+      "tool_count": 1,
+      "category": "education",
+      "supported": false
+    },
+    {
+      "slug": "livesession",
+      "name": "Livesession",
+      "tool_count": 1,
+      "category": "analytics",
+      "supported": false
+    },
+    {
+      "slug": "mailboxlayer",
+      "name": "Mailboxlayer",
+      "tool_count": 1,
+      "category": "email",
+      "supported": false
+    },
+    {
+      "slug": "metaphor",
+      "name": "Metaphor",
+      "tool_count": 1,
+      "category": "artificial intelligence",
+      "supported": false
+    },
+    {
+      "slug": "mobbin_mcp",
+      "name": "Mobbin MCP",
+      "tool_count": 1,
+      "category": "images & design",
+      "supported": false
+    },
+    {
+      "slug": "neuronwriter",
+      "name": "Neuronwriter",
+      "tool_count": 1,
+      "category": "marketing automation",
+      "supported": false
+    },
+    {
+      "slug": "page_x",
+      "name": "Page X",
+      "tool_count": 1,
+      "category": "crm",
+      "supported": false
+    },
+    {
+      "slug": "parsehub",
+      "name": "Parsehub",
+      "tool_count": 1,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "pdf_api_io",
+      "name": "PDF-API.io",
+      "tool_count": 1,
+      "category": "documents",
+      "supported": false
+    },
+    {
+      "slug": "plasmic",
+      "name": "Plasmic",
+      "tool_count": 1,
+      "category": "website builders",
+      "supported": false
+    },
+    {
+      "slug": "screenshot_fyi",
+      "name": "Screenshot.fyi",
+      "tool_count": 1,
+      "category": "developer tools",
+      "supported": false
+    },
+    {
+      "slug": "sensibo",
+      "name": "Sensibo",
+      "tool_count": 1,
+      "category": "internet of things",
+      "supported": false
+    },
+    {
+      "slug": "serpdog",
+      "name": "Serpdog",
+      "tool_count": 1,
+      "category": "ai web scraping",
+      "supported": false
+    },
+    {
+      "slug": "sympla",
+      "name": "Sympla",
+      "tool_count": 1,
+      "category": "event management",
+      "supported": false
+    },
+    {
+      "slug": "talenthr",
+      "name": "Talenthr",
+      "tool_count": 1,
+      "category": "human resources",
+      "supported": false
+    },
+    {
+      "slug": "timelink",
+      "name": "Timelink",
+      "tool_count": 1,
+      "category": "time tracking software",
+      "supported": false
+    },
+    {
+      "slug": "tpscheck",
+      "name": "Tpscheck",
+      "tool_count": 1,
+      "category": "marketing automation",
+      "supported": false
+    }
+  ]
+}

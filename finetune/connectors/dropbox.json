@@ -1,0 +1,3534 @@
+{
+  "slug": "dropbox",
+  "name": "Dropbox",
+  "tool_count": 177,
+  "tools": [
+    {
+      "slug": "DROPBOX_ACTIVATE_TEAM_FOLDER",
+      "name": "Activate team folder",
+      "description": "Tool to activate an archived team folder. Use when you need to restore access to a previously archived team folder.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_ADD_FILE_MEMBER",
+      "name": "Add file member",
+      "description": "Tool to add specified members to a Dropbox file with configurable access levels. Use when sharing a file with specific users by email or Dr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "quiet": {
+            "type": "boolean"
+          },
+          "members": {
+            "type": "array"
+          },
+          "access_level": {
+            "type": "object"
+          },
+          "custom_message": {
+            "type": "string"
+          },
+          "add_message_as_comment": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file",
+          "members"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_ADD_FILE_PROPERTIES",
+      "name": "Add file properties",
+      "description": "Tool to add custom properties to a Dropbox file using a filled property template. Use when you need to tag files with structured metadata l…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "property_groups": {
+            "type": "array"
+          },
+          "Dropbox-API-Select-User": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "property_groups"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_ADD_FILE_TAGS",
+      "name": "Add tag to file or folder",
+      "description": "Tool to add a tag to a file or folder in Dropbox. Use when you need to tag items for organization. Tags are automatically converted to lowe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "tag_text": {
+            "type": "string"
+          },
+          "Dropbox-API-Select-User": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "tag_text"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_ADD_FOLDER_MEMBER_ACTION",
+      "name": "Add folder member",
+      "description": "Tool to add members to a shared folder with specified access levels. Use when an owner or editor needs to invite new members to a shared fo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "quiet": {
+            "type": "boolean"
+          },
+          "members": {
+            "type": "array"
+          },
+          "custom_message": {
+            "type": "string"
+          },
+          "shared_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shared_folder_id",
+          "members"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_ADD_MEMBER_SPACE_LIMITS_EXCLUDED_USERS",
+      "name": "Add users to space limits exclusion list",
+      "description": "Tool to add users to the team's space limits exclusion list in Dropbox. Users on this list are exempt from space limit restrictions. Use wh…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "users"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_ADD_SHARING_ALLOWLIST",
+      "name": "Add sharing allowlist",
+      "description": "Tool to add domains or email addresses to the team sharing allowlist. Use when team admins need to approve specific domains or emails for s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "emails": {
+            "type": "array"
+          },
+          "domains": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_ADD_TEAM_GROUP_MEMBERS",
+      "name": "Add members to team group",
+      "description": "Tool to add members to a team group with specified access levels. Use when you need to add users to an existing team group. Requires team a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "object"
+          },
+          "members": {
+            "type": "array"
+          },
+          "return_members": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "group",
+          "members"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_ADD_TEAM_MEMBERS",
+      "name": "Add team members",
+      "description": "Tool to add new members to a Dropbox team. Use when you need to invite users to join the team with specified roles and settings. Maximum of…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "force_async": {
+            "type": "boolean"
+          },
+          "new_members": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "new_members"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_ADD_TEAM_MEMBERS_SECONDARY_EMAILS",
+      "name": "Add secondary emails to team members",
+      "description": "Tool to add secondary email addresses to Dropbox team members. Use when you need to associate additional email addresses with team member a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "new_secondary_emails": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "new_secondary_emails"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_ADD_TEAM_PROPERTIES_TEMPLATE",
+      "name": "Add property template for team",
+      "description": "Tool to add a property template for a team in Dropbox. Use when you need to create a standardized set of custom properties that can be appl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_ALPHA_UPLOAD_FILE",
+      "name": "Alpha Upload File",
+      "description": "Tool to upload a new file to Dropbox using the alpha upload endpoint. Use when uploading files up to 150 MiB. Note that the behavior of thi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "add",
+              "overwrite"
+            ]
+          },
+          "mute": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "content": {
+            "type": "object"
+          },
+          "autorename": {
+            "type": "boolean"
+          },
+          "client_modified": {
+            "type": "string"
+          },
+          "property_groups": {
+            "type": "array"
+          },
+          "dropbox_api_select_user": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_APPEND_UPLOAD_SESSION",
+      "name": "Append data to upload session",
+      "description": "Tool to append more data to an existing upload session. Use when uploading large files in chunks. When the 'close' parameter is set to true…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "close": {
+            "type": "boolean"
+          },
+          "cursor": {
+            "type": "object"
+          },
+          "content": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "cursor",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_APPEND_UPLOAD_SESSION_BATCH",
+      "name": "Append to multiple upload sessions",
+      "description": "Tool to append data to multiple upload sessions in a single request. Use when you need to upload data to multiple ongoing upload sessions e…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string"
+          },
+          "entries": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries",
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_ARCHIVE_TEAM_FOLDER",
+      "name": "Archive team folder",
+      "description": "Tool to archive an active team folder in Dropbox. Sets the team folder's status to archived and removes all folder and file members. Use wh…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_folder_id": {
+            "type": "string"
+          },
+          "force_async_off": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CHECK_COPY_BATCH",
+      "name": "Check copy batch job status",
+      "description": "Tool to check the status of an asynchronous copy batch job in Dropbox. Use when you have an async_job_id from a previous copy_batch operati…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "async_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "async_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CHECK_DELETE_BATCH",
+      "name": "Check delete batch status",
+      "description": "Tool to check the status of an asynchronous delete batch job in Dropbox. Use when you need to poll the status of a batch delete operation i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "async_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "async_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CHECK_FOLDER_BATCH",
+      "name": "Check folder batch status",
+      "description": "Tool to check the status of an asynchronous folder batch creation job. Use when you need to poll the status of a create_folder_batch operat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "async_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "async_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CHECK_JOB_STATUS",
+      "name": "Check sharing job status",
+      "description": "Tool to check the status of an asynchronous sharing job in Dropbox. Use when you have an async_job_id from a previous sharing operation (li…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "async_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "async_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CHECK_MOVE_BATCH",
+      "name": "Check move batch job status",
+      "description": "Tool to check the status of an asynchronous move batch job. Use when you need to poll the status of a batch move operation started with mov…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "async_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "async_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CHECK_MOVE_FORMER_MEMBER_FILES_JOB_STATUS",
+      "name": "Check move former member files job status",
+      "description": "Tool to check the status of an asynchronous move former member files job. Use when you have an async_job_id from a previous team/members/mo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "async_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "async_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CHECK_REMOVE_MEMBER",
+      "name": "Check remove member job status",
+      "description": "Tool to check the status of an asynchronous remove folder member job in Dropbox. Use when you have an async_job_id from a previous remove_f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "async_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "async_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CHECK_SAVE_URL_STATUS",
+      "name": "Check save URL job status",
+      "description": "Tool to check the status of a save_url job in Dropbox. Use when you have an async_job_id from a save_url operation and need to poll its com…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "async_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "async_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CHECK_SHARE_JOB_STATUS",
+      "name": "Check share job status",
+      "description": "Tool to check the status of an asynchronous folder sharing job in Dropbox. Use when you need to poll the status of a folder share operation…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "async_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "async_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CHECK_TEAM_FOLDER_ARCHIVE",
+      "name": "Check team folder archive status",
+      "description": "Tool to check the status of an asynchronous team folder archive job in Dropbox. Use when you have an async_job_id from a previous team_fold…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "async_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "async_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CHECK_UPLOAD_BATCH",
+      "name": "Check upload batch status",
+      "description": "Tool to check the status of an asynchronous upload batch job in Dropbox. Use when you need to poll the status of a batch upload operation i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "async_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "async_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CHECK_USER",
+      "name": "Check user",
+      "description": "Tool to test Dropbox API connection and validate access token by echoing back a supplied string. Use when you need to verify that the Dropb…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_COPY_BATCH",
+      "name": "Copy multiple files or folders",
+      "description": "Tool to copy multiple files or folders to different locations at once in Dropbox. Use when you need to duplicate multiple items efficiently…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array"
+          },
+          "autorename": {
+            "type": "boolean"
+          },
+          "dropbox_api_select_user": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "entries"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_COPY_FILE_OR_FOLDER",
+      "name": "Copy file or folder",
+      "description": "Tool to copy a file or folder to a different location in Dropbox. Use when you need to duplicate content without removing the original. If …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "to_path": {
+            "type": "string"
+          },
+          "from_path": {
+            "type": "string"
+          },
+          "autorename": {
+            "type": "boolean"
+          },
+          "allow_shared_folder": {
+            "type": "boolean"
+          },
+          "dropbox_api_select_user": {
+            "type": "string"
+          },
+          "allow_ownership_transfer": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "from_path",
+          "to_path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_COUNT_FILE_REQUESTS",
+      "name": "Count file requests",
+      "description": "Tool to get the total number of file requests owned by the authenticated user. Use when you need to count how many file requests (both open…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DROPBOX_CREATE_FILE_REQUEST",
+      "name": "Create file request",
+      "description": "Tool to create a new file request in Dropbox. Use when you need to request files from others by generating a unique link for uploads to a s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          },
+          "deadline": {
+            "type": "object"
+          },
+          "destination": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "destination"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CREATE_FOLDER",
+      "name": "Create folder",
+      "description": "Tool to create a new folder at a specified path in Dropbox. Use when you need to organize files by creating a new directory.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "autorename": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CREATE_FOLDER_BATCH",
+      "name": "Create multiple folders",
+      "description": "Tool to create multiple folders at once in Dropbox. Use when you need to create several folders efficiently in a single request. For large …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "paths": {
+            "type": "array"
+          },
+          "autorename": {
+            "type": "boolean"
+          },
+          "force_async": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "paths"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CREATE_PAPER_DOCUMENT",
+      "name": "Create paper document",
+      "description": "Creates a new Dropbox Paper document at the specified path using HTML or Markdown content.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "import_format": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CREATE_PAPER_FOLDER",
+      "name": "Create Paper folder",
+      "description": "Tool to create a new Paper folder with the provided info. Use when you need to organize Paper documents by creating a new folder. Note: Thi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "is_team_folder": {
+            "type": "boolean"
+          },
+          "parent_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CREATE_SHARED_LINK",
+      "name": "Create shared link",
+      "description": "Tool to create a stable, long-lived shared link for a Dropbox file or folder. Use when the user needs a permanent URL suitable for embeddin…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "settings": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CREATE_SHARED_LINK_SIMPLE",
+      "name": "Create simple shared link (Deprecated)",
+      "description": "DEPRECATED: Use CreateSharedLinkV2 instead. Tool to create a basic shared link for a Dropbox file or folder. If a shared link already exist…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "short_url": {
+            "type": "boolean"
+          },
+          "pending_upload": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CREATE_TEAM_FOLDER",
+      "name": "Create team folder",
+      "description": "Tool to create a new, active team folder with no members in Dropbox. Use when you need to set up a new team folder for collaboration. The f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "sync_setting": {
+            "type": "string",
+            "enum": [
+              "default",
+              "not_synced"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_CREATE_TEAM_GROUP",
+      "name": "Create team group",
+      "description": "Tool to create a new, empty team group in Dropbox with a specified name. Use when you need to create a new group for organizing team member…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_name": {
+            "type": "string"
+          },
+          "group_external_id": {
+            "type": "string"
+          },
+          "group_management_type": {
+            "type": "string",
+            "enum": [
+              "user_managed",
+              "company_managed",
+              "system_managed",
+              "other"
+            ]
+          }
+        },
+        "required": [
+          "group_name"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_DELETE_ALL_CLOSED_FILE_REQUESTS",
+      "name": "Delete all closed file requests",
+      "description": "Tool to delete all closed file requests owned by the current user. Use when you need to clean up closed file requests in bulk.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DROPBOX_DELETE_BATCH",
+      "name": "Delete multiple files/folders",
+      "description": "Tool to delete multiple files or folders at once in Dropbox. Use when you need to delete several items simultaneously. This route is asynch…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_DELETE_FILE",
+      "name": "Delete file or folder",
+      "description": "Tool to delete a file or folder at the specified path in Dropbox. Use when you need to permanently remove a file or folder and all its cont…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "parent_rev": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_DELETE_FILE_OR_FOLDER",
+      "name": "Delete file or folder (Deprecated)",
+      "description": "DEPRECATED: Use DeleteFile instead. Permanently and irreversibly deletes the file or folder at the specified path in Dropbox. Folder deleti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_DELETE_FILE_REQUESTS",
+      "name": "Delete file requests",
+      "description": "Tool to delete a batch of closed file requests in Dropbox. Use when you need to remove multiple file requests that are no longer needed. On…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_DELETE_MANUAL_CONTACTS_BATCH",
+      "name": "Delete manual contacts batch",
+      "description": "Tool to delete specific manually added contacts from Dropbox by their email addresses. Use when you need to remove contacts that were manua…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "email_addresses": {
+            "type": "array"
+          },
+          "dropbox_api_select_user": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email_addresses"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_DELETE_TEAM_FOLDER_PERMANENTLY",
+      "name": "Permanently delete archived team folder",
+      "description": "Tool to permanently delete an archived team folder in Dropbox. Use when you need to permanently remove an archived team folder and all its …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_DELETE_TEAM_GROUP",
+      "name": "Delete team group",
+      "description": "Tool to delete a Dropbox team group. Use when you need to remove a team group. Note that this requires team admin permissions and the group…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "selector_type": {
+            "type": "string",
+            "enum": [
+              "group_id",
+              "group_external_id"
+            ]
+          },
+          "group_external_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "selector_type"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_DELETE_TEAM_MEMBER_PROFILE_PHOTO",
+      "name": "Delete team member profile photo",
+      "description": "Tool to delete a team member's profile photo. Use when you need to remove the profile picture of a team member. Requires team admin permiss…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "user"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_DELETE_TEAM_MEMBERS_SECONDARY_EMAILS",
+      "name": "Delete team members secondary emails",
+      "description": "Tool to delete secondary email addresses from Dropbox team members. Use when you need to remove secondary emails from one or more team memb…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "emails_to_delete": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "emails_to_delete"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_DOWNLOAD_ZIP",
+      "name": "Download Folder as Zip",
+      "description": "Tool to download a folder from Dropbox as a zip file. Use when you need to download an entire folder structure with multiple files. The fol…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_EXPORT_FILE",
+      "name": "Export File",
+      "description": "Tool to export non-downloadable Dropbox files (especially Dropbox Paper) to Markdown/HTML/plain text and return usable content. Use when yo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "return_text",
+              "store_and_link"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "export_format": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_FILES_SEARCH",
+      "name": "Search files and folders",
+      "description": "Tool to search for files and folders in Dropbox by name or content. Use when you need to find items matching a search query within a specif…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "filename",
+              "filename_and_content",
+              "deleted_filename"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "max_results": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_FINISH_UPLOAD_SESSION",
+      "name": "Finish upload session",
+      "description": "Tool to finish an upload session and save the uploaded data to the given file path. Use when completing a multi-part upload after using upl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "commit": {
+            "type": "object"
+          },
+          "cursor": {
+            "type": "object"
+          },
+          "content": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "cursor",
+          "commit"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_FINISH_UPLOAD_SESSION_BATCH",
+      "name": "Finish batch upload sessions",
+      "description": "Tool to commit many files at once into a user's Dropbox after uploading file contents via upload_session/start and upload_session/append. U…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_ABOUT_ME",
+      "name": "Get about me",
+      "description": "Tool to get information about the current user's Dropbox account. Use when you need to retrieve account details like email, name, or accoun…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_ACCOUNT",
+      "name": "Get account",
+      "description": "Tool to get information about a user's Dropbox account using their account ID. Use when you need to retrieve account details for a specific…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_ACCOUNT_BATCH",
+      "name": "Get account batch",
+      "description": "Tool to get information about multiple user accounts in a single request. At most 300 accounts may be queried per request. Use when you nee…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "account_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "account_ids"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_AVAILABLE_TEAM_MEMBER_ROLES",
+      "name": "Get available team member roles",
+      "description": "Tool to retrieve all available team member roles for the connected Dropbox team. Use when you need to discover what roles can be assigned t…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_COPY_REFERENCE",
+      "name": "Get copy reference",
+      "description": "Tool to get a copy reference to a file or folder. Use when you need to generate a reference string that can be used to copy the file or fol…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_FILE_LOCK_BATCH",
+      "name": "Get file lock batch",
+      "description": "Tool to return lock metadata for multiple files in a single batch request. Use when you need to check the lock status of up to 1000 files a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_FILE_METADATA_BATCH",
+      "name": "Get shared file metadata batch",
+      "description": "Tool to retrieve metadata for multiple shared files in a single batch request. Use when you need to get information about shared file permi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array"
+          },
+          "actions": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "files"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_FILE_PREVIEW",
+      "name": "Get file preview",
+      "description": "Tool to get a preview for a file. PDF previews are generated for document formats (.ai, .doc, .docx, .eps, .ppt, .pptx, etc.), and HTML pre…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_FILE_REQUEST",
+      "name": "Get file request details",
+      "description": "Tool to retrieve details of an existing file request by ID. Use when you need to check the status, URL, deadline, or other details of a spe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_FILE_TAGS",
+      "name": "Get file or folder tags",
+      "description": "Tool to get list of tags assigned to files or folders in Dropbox. Use when you need to retrieve tags for one or more items. This endpoint d…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "paths": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "paths"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_FOLDER_CURSOR",
+      "name": "Get folder state cursor",
+      "description": "Tool to get a cursor representing the current state of a folder without listing its contents. Use when you only need to track future change…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "shared_link": {
+            "type": "object"
+          },
+          "include_deleted": {
+            "type": "boolean"
+          },
+          "include_media_info": {
+            "type": "boolean"
+          },
+          "include_mounted_folders": {
+            "type": "boolean"
+          },
+          "include_property_groups": {
+            "type": "object"
+          },
+          "include_has_explicit_shared_members": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_JWKS",
+      "name": "Get JWKS",
+      "description": "Tool to retrieve JSON Web Key Set containing public verification keys for Dropbox signed ID tokens. Use when you need to verify JWT signatu…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_METADATA",
+      "name": "Get file or folder metadata",
+      "description": "Tool to fetch metadata for a file or folder by path. Use when you need to verify existence, get canonical identifiers (id, path_display), d…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "include_deleted": {
+            "type": "boolean"
+          },
+          "include_media_info": {
+            "type": "boolean"
+          },
+          "include_has_explicit_shared_members": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_METADATA_ALPHA",
+      "name": "Get file or folder metadata (alpha)",
+      "description": "Tool to fetch metadata for a file or folder using the alpha endpoint. Use when you need metadata with advanced property filtering or custom…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "include_deleted": {
+            "type": "boolean"
+          },
+          "include_media_info": {
+            "type": "boolean"
+          },
+          "include_property_groups": {
+            "type": "object"
+          },
+          "include_has_explicit_shared_members": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_OPENID_CONFIG",
+      "name": "Get OpenID config",
+      "description": "Tool to retrieve Dropbox's OpenID Connect discovery document describing supported OAuth 2.0 and OIDC parameters. Use when you need to disco…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_SHARED_FILE_METADATA",
+      "name": "Get shared file metadata",
+      "description": "Tool to retrieve metadata for a shared file in Dropbox. Use when you need to get information about a shared file's permissions, access leve…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "actions": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "file"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_SHARED_FOLDER_METADATA",
+      "name": "Get shared folder metadata",
+      "description": "Tool to retrieve metadata for a specific shared folder by its ID. Use when you need detailed information about a shared folder including ac…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": "array"
+          },
+          "shared_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shared_folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_SHARED_LINK_FILE",
+      "name": "Download file from shared link",
+      "description": "Tool to download a file from a Dropbox shared link. Use when you have a shared link URL and need to retrieve the actual file content. This …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "link_password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_SHARED_LINK_METADATA",
+      "name": "Get shared link metadata",
+      "description": "Tool to resolve a Dropbox shared link URL into structured metadata. Use when the user provides a shared link and you need to determine what…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "link_password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_SPACE_USAGE",
+      "name": "Get space usage",
+      "description": "Tool to get space usage information for the current user's Dropbox account. Use when you need to check storage usage, available space, or q…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_TEAM_FEATURE_VALUES",
+      "name": "Get team feature values",
+      "description": "Tool to get values for one or more team features. Use when you need to check team capabilities like upload rate limits, shared team root av…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "features": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "features"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_TEAM_FOLDER_INFO",
+      "name": "Get team folder info",
+      "description": "Tool to retrieve metadata for team folders. Returns information about folder status, sync settings, and properties for the specified team f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_folder_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "team_folder_ids"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_TEAM_GROUPS_INFO",
+      "name": "Get team groups info",
+      "description": "Tool to retrieve information about one or more team groups by their IDs or external IDs. Use when you need to get details about specific gr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_ids": {
+            "type": "array"
+          },
+          "selector_type": {
+            "type": "string",
+            "enum": [
+              "group_ids",
+              "group_external_ids"
+            ]
+          },
+          "group_external_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "selector_type"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_TEAM_GROUPS_JOB_STATUS",
+      "name": "Get team groups job status",
+      "description": "Tool to check the status of an asynchronous team groups job in Dropbox. Use when you have an async_job_id from a previous team groups opera…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "async_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "async_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_TEAM_INFO",
+      "name": "Get team info",
+      "description": "Tool to retrieve information about a Dropbox team. Use when you need to get team details such as team name, ID, licensed user counts, or te…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_TEAM_LOG_EVENTS",
+      "name": "Get team audit log events",
+      "description": "Tool to retrieve team audit log events from Dropbox. Use when you need to access team activity logs, audit trails, or monitor team events. …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "object"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_TEAM_LOG_EVENTS_CONTINUE",
+      "name": "Get team log events (continue)",
+      "description": "Tool to paginate through team audit log events using a cursor from team_log/get_events. Use when you have a cursor from a previous call and…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_TEAM_MEMBER_CUSTOM_QUOTA",
+      "name": "Get team member custom quota",
+      "description": "Tool to retrieve custom storage quotas for team members. Use when you need to check which team members have custom quota allocations and th…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_TEAM_MEMBERS_ADD_JOB_STATUS",
+      "name": "Get team members add job status v2",
+      "description": "Tool to poll the status of an asynchronous team member addition job. Use when you have an async_job_id from team/members/add_v2 and need to…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "async_job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "async_job_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_TEAM_MEMBERS_INFO",
+      "name": "Get team members info",
+      "description": "Tool to retrieve information about multiple team members in a single request. Use when you need to get details like email, name, status, ro…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "members"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_TEAM_PROPERTIES_TEMPLATE",
+      "name": "Get property template for team",
+      "description": "Tool to get the schema for a specified property template for a team. Use when you need to retrieve the structure and field definitions of a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "template_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_TEMPORARY_LINK",
+      "name": "Get temporary link",
+      "description": "Tool to get a one-click temporary (expiring) download link. Use when you need to share a Dropbox file directly without proxying content thr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_TEMPORARY_UPLOAD_LINK",
+      "name": "Get temporary upload link",
+      "description": "Tool to get a one-time use temporary upload link to upload a file to Dropbox. Use when you need to perform a delayed upload where the file …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "duration": {
+            "type": "integer"
+          },
+          "commit_info": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "commit_info"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_THUMBNAIL",
+      "name": "Get thumbnail",
+      "description": "Tool to get a thumbnail for an image file. Use when you need to generate a thumbnail preview of an image. Supports jpg, jpeg, png, tiff, ti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "strict",
+              "bestfit",
+              "fitone_bestfit"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "w32h32",
+              "w64h64",
+              "w128h128",
+              "w256h256",
+              "w480h320",
+              "w640h480",
+              "w960h640",
+              "w1024h768",
+              "w2048h1536"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "jpeg",
+              "png"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_THUMBNAIL_BATCH",
+      "name": "Get thumbnail batch",
+      "description": "Tool to get thumbnails for multiple image files in a single batch request. Use when you need to generate thumbnail previews for up to 25 im…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_THUMBNAIL_V2",
+      "name": "Get thumbnail v2",
+      "description": "Tool to get a thumbnail for an image file. Use when you need to generate a thumbnail preview of an image. Supports jpg, jpeg, png, tiff, ti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "strict",
+              "bestfit",
+              "fitone_bestfit"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "w32h32",
+              "w64h64",
+              "w128h128",
+              "w256h256",
+              "w480h320",
+              "w640h480",
+              "w960h640",
+              "w1024h768",
+              "w2048h1536"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "jpeg",
+              "png"
+            ]
+          },
+          "link_path": {
+            "type": "string"
+          },
+          "resource_type": {
+            "type": "string",
+            "enum": [
+              "path",
+              "link"
+            ]
+          }
+        },
+        "required": [
+          "resource_type"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_GET_USER_FEATURES",
+      "name": "Get user features",
+      "description": "Tool to get a list of feature values configured for the current Dropbox account. Use when you need to check which features are enabled, suc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "features": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "features"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_EXCLUDED_USERS_CONTINUE",
+      "name": "List member space limits excluded users (continue)",
+      "description": "Tool to paginate through team members excluded from space limits using a cursor from a previous list call. Use when you have a cursor from …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_FILE_MEMBERS",
+      "name": "List file members",
+      "description": "Tool to obtain the members who have been invited to a file, both inherited and uninherited members. Use when you need to retrieve detailed …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "actions": {
+            "type": "array"
+          },
+          "include_inherited": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_FILE_MEMBERS_BATCH",
+      "name": "List file members batch",
+      "description": "Tool to get members of multiple files at once. Use when you need to retrieve sharing information for multiple files in a single request. Re…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "files"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_FILE_REQUESTS",
+      "name": "List file requests",
+      "description": "Tool to list all file requests owned by the current user. Use when you need to see existing file requests, their status, and details.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_FILE_REQUESTS_CONTINUE",
+      "name": "List file requests (continue)",
+      "description": "Tool to paginate through file requests using a cursor from a previous list call. Use when you have a cursor from /2/file_requests/list or /…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_FILE_REVISIONS",
+      "name": "List file revisions",
+      "description": "Tool to retrieve the revision history for a file. Use when you need to see past versions of a file, restore a previous version, or track ch…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "object"
+          },
+          "path": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_FILES_IN_FOLDER",
+      "name": "List files in folder",
+      "description": "Tool to list files and folders in a specified Dropbox directory. Use when you need to see the contents of a folder, including subfolders if…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "include_deleted": {
+            "type": "boolean"
+          },
+          "include_media_info": {
+            "type": "boolean"
+          },
+          "include_non_downloadable_files": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_FOLDER_CONTINUE",
+      "name": "List folder continue",
+      "description": "Tool to continue paginating through folder contents using a cursor from list_folder. Use when has_more is true to retrieve remaining entrie…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_FOLDER_MEMBERS",
+      "name": "List folder members",
+      "description": "Tool to list members of a shared folder, including users, groups, and invitees. Use when you need to retrieve information about who has acc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "actions": {
+            "type": "array"
+          },
+          "shared_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shared_folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_FOLDER_MEMBERS_CONTINUE",
+      "name": "List folder members continue",
+      "description": "Tool to continue paginating through shared folder members using a cursor from list_folder_members. Use when cursor is present in list_folde…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_FOLDERS",
+      "name": "List folder contents (Deprecated)",
+      "description": "DEPRECATED: Use ListFilesInFolder instead. Retrieves a list of folders, files, and deleted entries from a specified Dropbox path.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "include_deleted": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_FOLDERS_CONTINUE",
+      "name": "List shared folders continue",
+      "description": "Tool to continue paginating through shared folders using a cursor from list_folders. Use when the cursor is present in list_folders respons…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_MEMBER_LINKED_APPS",
+      "name": "List member linked apps",
+      "description": "Tool to list all applications linked to a specific team member's account. Use when you need to audit or review which third-party applicatio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_member_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_member_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_MEMBER_SPACE_LIMITS_EXCLUDED_USERS",
+      "name": "List excluded users from space limits",
+      "description": "Tool to list team members excluded from space limits. Use when you need to view which users are exempt from storage quotas. This is a team-…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_MOUNTABLE_FOLDERS",
+      "name": "List mountable folders",
+      "description": "Tool to list all shared folders the current user can mount or unmount. Use when discovering mountable shared folders (unmounted folders can…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "actions": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_MOUNTABLE_FOLDERS_CONTINUE",
+      "name": "List mountable folders continue",
+      "description": "Tool to paginate through mountable shared folders using a cursor. Use when you have a cursor from a previous call to list_mountable_folders…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_PAPER_DOCS",
+      "name": "List Paper docs",
+      "description": "Tool to return the list of all Paper docs according to filter and sort specifications. Use when you need to retrieve Paper document IDs for…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "accessed",
+              "modified",
+              "created"
+            ]
+          },
+          "filter_by": {
+            "type": "string",
+            "enum": [
+              "docs_accessed",
+              "docs_created"
+            ]
+          },
+          "sort_order": {
+            "type": "string",
+            "enum": [
+              "ascending",
+              "descending"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_PAPER_DOCS_CONTINUE",
+      "name": "List Paper documents (continue)",
+      "description": "Tool to continue paginating through Paper documents using a cursor from paper/docs/list. Use when has_more is true to retrieve remaining Pa…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_RECEIVED_FILES",
+      "name": "List received files",
+      "description": "Tool to list all files shared with the current user. Returns files directly shared with the user but does not include files received via sh…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "actions": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_SHARED_FOLDERS",
+      "name": "List shared folders",
+      "description": "Tool to list all shared folders the authenticated user has access to. Use when discovering shared or team-mounted folders that may not appe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_SHARED_LINKS",
+      "name": "List shared links",
+      "description": "Tool to list existing shared links for the current user, optionally filtered by path. Use when you need to discover or reuse existing share…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "direct_only": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_SHARING_ALLOWLIST",
+      "name": "List team sharing allowlist",
+      "description": "Tool to list Approve List entries for a team from newest to oldest. Use when you need to retrieve allowed domains and emails for team shari…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_DEVICES",
+      "name": "List team devices",
+      "description": "Tool to list all device sessions of a team including web sessions, desktop clients, and mobile clients. Use when you need to audit team dev…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "include_web_sessions": {
+            "type": "boolean"
+          },
+          "include_mobile_clients": {
+            "type": "boolean"
+          },
+          "include_desktop_clients": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_FOLDERS",
+      "name": "List team folders",
+      "description": "Tool to list all team folders for a Dropbox Business team. Use when you need to discover team-wide folders or manage team folder access.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_FOLDERS_CONTINUE",
+      "name": "List team folders continue",
+      "description": "Tool to continue paginating through team folders using a cursor from team_folder/list. Use when the cursor is present in list_team_folders …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_GROUP_MEMBERS",
+      "name": "List team group members",
+      "description": "Tool to list members of a Dropbox team group. Use when you need to retrieve the list of team members who belong to a specific group. Return…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "selector_type": {
+            "type": "string",
+            "enum": [
+              "group_id",
+              "group_external_id"
+            ]
+          },
+          "group_external_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "selector_type"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_GROUPS",
+      "name": "List team groups",
+      "description": "Tool to list all groups on a Dropbox team. Use when you need to see all team groups with their metadata including group ID, name, and membe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_GROUPS_CONTINUE",
+      "name": "List team groups continue",
+      "description": "Tool to continue listing team groups using a cursor from team/groups/list. Use when you have a cursor from a previous team groups list call…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_GROUPS_MEMBERS_CONTINUE",
+      "name": "List team group members continue",
+      "description": "Tool to continue listing team group members using a cursor from team/groups/members/list. Use when you have a cursor from a previous group …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_LINKED_APPS",
+      "name": "List members linked apps",
+      "description": "Tool to list all applications linked to team members' accounts. Use when you need to audit or review which third-party applications have be…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_MEMBER_DEVICES",
+      "name": "List team member devices",
+      "description": "Tool to list all device sessions of a team's member, including web sessions, desktop clients, and mobile clients. Use when you need to retr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_member_id": {
+            "type": "string"
+          },
+          "include_web_sessions": {
+            "type": "boolean"
+          },
+          "include_mobile_clients": {
+            "type": "boolean"
+          },
+          "include_desktop_clients": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_member_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_MEMBERS",
+      "name": "List team members",
+      "description": "Tool to list members of a Dropbox team. Use when you need to retrieve information about team members, including their status, roles, and co…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "include_removed": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_MEMBERS_CONTINUE",
+      "name": "List team members continue (v2)",
+      "description": "Tool to continue listing team members using a cursor from team/members/list or team/members/list/continue_v2. Use when you have a cursor fr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_NAMESPACES",
+      "name": "List team namespaces",
+      "description": "Tool to list all team-accessible namespaces in a Dropbox Business team. Use when you need to discover team folders, shared folders, member …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_NAMESPACES_CONTINUE",
+      "name": "List team namespaces continue",
+      "description": "Tool to continue paginating through team-accessible namespaces using a cursor from team/namespaces/list. Use when you have a cursor and nee…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEAM_SHARING_ALLOWLIST_CONTINUE",
+      "name": "List team sharing allowlist continue",
+      "description": "Tool to continue paginating through team sharing allowlist entries using a cursor. Use when you have a cursor from a previous sharing_allow…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_TEMPLATES_FOR_TEAM",
+      "name": "List property templates for team",
+      "description": "Tool to list all property templates for a team. Use when you need to retrieve available custom file property templates at the team level. R…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DROPBOX_LIST_USER_TEMPLATES",
+      "name": "List user templates",
+      "description": "Tool to get the template identifiers for a user. Use when you need to retrieve available custom file property templates that can be applied…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DROPBOX_MODIFY_SHARED_LINK_SETTINGS",
+      "name": "Modify shared link settings",
+      "description": "Tool to modify settings of an existing Dropbox shared link. Use when the user needs to change visibility, access permissions, expiration, o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "settings": {
+            "type": "object"
+          },
+          "remove_expiration": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "url",
+          "settings"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_MOUNT_FOLDER",
+      "name": "Mount shared folder",
+      "description": "Tool to mount a shared folder for the current user after they have been added as a member. Once mounted, the shared folder will appear in t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "shared_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shared_folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_MOVE_BATCH",
+      "name": "Move multiple files or folders in batch",
+      "description": "Tool to move multiple files or folders to different locations at once in Dropbox. Use when you need to relocate several items in a single o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array"
+          },
+          "autorename": {
+            "type": "boolean"
+          },
+          "allow_ownership_transfer": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "entries"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_MOVE_FILE_OR_FOLDER",
+      "name": "Move file or folder",
+      "description": "Move file or folder",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "to_path": {
+            "type": "string"
+          },
+          "from_path": {
+            "type": "string"
+          },
+          "autorename": {
+            "type": "boolean"
+          },
+          "allow_shared_folder": {
+            "type": "boolean"
+          },
+          "allow_ownership_transfer": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "from_path",
+          "to_path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_OVERWRITE_FILE_PROPERTIES",
+      "name": "Overwrite file properties",
+      "description": "Tool to overwrite property groups associated with a file or folder. Use when you need to force apply or replace custom property values for …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "property_groups": {
+            "type": "array"
+          },
+          "Dropbox-API-Select-User": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "property_groups"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_READ_FILE",
+      "name": "Read a file",
+      "description": "Downloads a file from the specified Dropbox path, requiring `files.content.read` scope. Response field `file_content_bytes` is base64-encod…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_REMOVE_FILE_MEMBER",
+      "name": "Remove file member",
+      "description": "Tool to remove a specified member from a file's sharing permissions. Use when you need to revoke a member's access to a shared file. Note: …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "member": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "file",
+          "member"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_REMOVE_FILE_PROPERTIES",
+      "name": "Remove File Properties",
+      "description": "Tool to permanently remove specified property groups from a file or folder. Use when you need to delete custom properties associated with a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "property_template_ids": {
+            "type": "array"
+          },
+          "Dropbox-API-Select-User": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "property_template_ids"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_REMOVE_FILE_PROPERTIES_TEMPLATE_FOR_TEAM",
+      "name": "Remove file properties template for team",
+      "description": "Tool to remove a property template from a team. Use when you need to delete a file properties template that was previously added to the tea…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "template_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_REMOVE_FILE_TAG",
+      "name": "Remove tag from file or folder",
+      "description": "Tool to remove a tag from a file or folder in Dropbox. Use when you need to delete or untag an existing tag from an item. The tag will be r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "tag_text": {
+            "type": "string"
+          },
+          "Dropbox-API-Select-User": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "tag_text"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_REMOVE_FOLDER_MEMBER",
+      "name": "Remove folder member",
+      "description": "Tool to remove a member from a shared folder. Use when an owner or editor needs to revoke access for a user or group. The member can be ide…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "member": {
+            "type": "object"
+          },
+          "leave_a_copy": {
+            "type": "boolean"
+          },
+          "shared_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shared_folder_id",
+          "member"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_REMOVE_GROUP_MEMBERS",
+      "name": "Remove group members",
+      "description": "Tool to remove members from a Dropbox team group. Use when you need to remove one or more users from a team group. Requires team admin perm…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "object"
+          },
+          "users": {
+            "type": "array"
+          },
+          "return_members": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "group",
+          "users"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_REMOVE_SHARING_ALLOWLIST",
+      "name": "Remove sharing allowlist",
+      "description": "Tool to remove domains or email addresses from the team sharing allowlist. Use when team admins need to revoke approval for specific domain…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "emails": {
+            "type": "array"
+          },
+          "domains": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_REMOVE_TEAM_MEMBER_CUSTOM_QUOTA",
+      "name": "Remove team member custom quota",
+      "description": "Tool to remove custom storage quota for team members, reverting them to the team's default quota. Use when you need to reset storage limits…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "users"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_REMOVE_TEAM_MEMBER_SPACE_LIMITS_EXCLUDED_USERS",
+      "name": "Remove member space limits excluded users",
+      "description": "Tool to remove users from the member space limits excluded users list. Use when you need to re-enable space limits for specific team member…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "users"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_RENAME_TEAM_FOLDER",
+      "name": "Rename team folder",
+      "description": "Tool to rename an existing team folder in Dropbox. Use when you need to update the name of a team folder.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "team_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_folder_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_RESEND_SECONDARY_EMAIL_VERIFICATION",
+      "name": "Resend secondary email verification",
+      "description": "Tool to resend secondary email verification emails to team members. Use when team members need verification emails resent for their seconda…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "emails_to_resend": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "emails_to_resend"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_RESTORE_FILE",
+      "name": "Restore file to specific revision",
+      "description": "Tool to restore a specific revision of a file to the given path in Dropbox. Use when you need to revert a file to a previous version using …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "rev": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "rev"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_REVOKE_SHARED_LINK",
+      "name": "Revoke shared link",
+      "description": "Tool to revoke a Dropbox shared link. Use when you need to remove access to a file or folder by disabling its shared link. Note that revoki…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_SAVE_COPY_REFERENCE",
+      "name": "Save copy reference",
+      "description": "Tool to save a copy reference to the user's Dropbox. Use when you have a copy reference (obtained from copy_reference/get) and need to save…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "copy_reference": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "copy_reference",
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_SAVE_URL",
+      "name": "Save file from URL",
+      "description": "Tool to save a file to Dropbox directly from a public URL via server-side fetch. Use when you have a temporary or public link and want Drop…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "wait": {
+            "type": "boolean"
+          },
+          "timeout_seconds": {
+            "type": "integer"
+          },
+          "Dropbox-API-Select-User": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "url"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_SEARCH_CONTINUE",
+      "name": "Continue Dropbox Search",
+      "description": "Tool to fetch the next page of search results from a previous Dropbox search. Use when you have a cursor from a search operation and need t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_SEARCH_FILE_OR_FOLDER",
+      "name": "Search File or Folder",
+      "description": "Tool to search for files and folders in Dropbox by name or content, optionally scoped to a path, with pagination support. Results paginate …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "options": {
+            "type": "object"
+          },
+          "match_field_options": {
+            "type": "object"
+          },
+          "Dropbox-API-Select-User": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_SEARCH_FILE_PROPERTIES",
+      "name": "Search File Properties",
+      "description": "Tool to search across property templates for particular property field values. Use when you need to find files or folders that have specifi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "queries": {
+            "type": "array"
+          },
+          "template_filter": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DROPBOX_SEND_TEAM_MEMBER_WELCOME_EMAIL",
+      "name": "Send team member welcome email",
+      "description": "Tool to send a welcome email to a pending team member. Use when a team admin needs to resend or send a welcome email to a user who has been…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          ".tag": {
+            "type": "string",
+            "enum": [
+              "team_member_id",
+              "external_id",
+              "email"
+            ]
+          },
+          "email": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "team_member_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          ".tag"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_SET_PROFILE_PHOTO",
+      "name": "Set profile photo",
+      "description": "Tool to set the profile photo for the current user's Dropbox account. Use when you need to update or change the user's profile picture. Req…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "photo": {
+            "type": "object"
+          },
+          "Dropbox-API-Select-User": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "photo"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_SET_TEAM_MEMBER_CUSTOM_QUOTA",
+      "name": "Set team member custom quota",
+      "description": "Tool to set custom storage quotas for team members in Dropbox. Use when you need to assign specific storage limits to individual team membe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "users_and_quotas": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "users_and_quotas"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_SHARE_FOLDER",
+      "name": "Share folder",
+      "description": "Tool to share a folder with collaborators in Dropbox. Most sharing will be completed synchronously, but large folders will be completed asy…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "actions": {
+            "type": "array"
+          },
+          "force_async": {
+            "type": "boolean"
+          },
+          "link_settings": {
+            "type": "object"
+          },
+          "member_policy": {
+            "type": "object"
+          },
+          "acl_update_policy": {
+            "type": "object"
+          },
+          "shared_link_policy": {
+            "type": "object"
+          },
+          "viewer_info_policy": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_START_UPLOAD_SESSION",
+      "name": "Start upload session",
+      "description": "Tool to start a new upload session with the given data. Use when uploading large files in multiple requests. This call starts the session a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "close": {
+            "type": "boolean"
+          },
+          "content": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_START_UPLOAD_SESSION_BATCH",
+      "name": "Start batch of upload sessions",
+      "description": "Tool to start a batch of upload sessions. Use when you need to upload multiple large files and want to initialize multiple upload sessions …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "num_sessions": {
+            "type": "integer"
+          },
+          "session_type": {
+            "type": "string",
+            "enum": [
+              "sequential",
+              "concurrent"
+            ]
+          }
+        },
+        "required": [
+          "num_sessions"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UNLOCK_FILE_BATCH",
+      "name": "Unlock multiple files",
+      "description": "Tool to unlock multiple files at specified paths in a single batch operation. Locked files can only be unlocked by the lock holder or a tea…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UNMOUNT_FOLDER",
+      "name": "Unmount shared folder",
+      "description": "Tool to unmount a shared folder for the current user. Once unmounted, the shared folder will be removed from the user's Dropbox. Use when a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "shared_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shared_folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UNSHARE_FILE",
+      "name": "Unshare file",
+      "description": "Tool to remove all members from a Dropbox file. Use when you need to revoke access for all collaborators on a file. Note: This does not rem…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UNSHARE_FOLDER",
+      "name": "Unshare folder",
+      "description": "Tool to allow a shared folder owner to unshare the folder. Use when you need to stop sharing a folder with all members. Unshare will not wo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "leave_a_copy": {
+            "type": "boolean"
+          },
+          "shared_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shared_folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPDATE_FILE_MEMBER",
+      "name": "Update file member",
+      "description": "Tool to change a member's access level on a shared file. Use when you need to update permissions for an existing file member (e.g., change …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "member": {
+            "type": "object"
+          },
+          "access_level": {
+            "type": "string",
+            "enum": [
+              "viewer",
+              "editor"
+            ]
+          }
+        },
+        "required": [
+          "file",
+          "member",
+          "access_level"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPDATE_FILE_PROPERTIES",
+      "name": "Update file properties",
+      "description": "Tool to update custom properties on a file or folder in Dropbox. Use when you need to modify metadata fields associated with a property tem…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "update_property_groups": {
+            "type": "array"
+          },
+          "Dropbox-API-Select-User": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "update_property_groups"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPDATE_FILE_REQUEST",
+      "name": "Update file request",
+      "description": "Tool to update an existing file request in Dropbox. Use when you need to modify the title, destination, deadline, open/closed status, or de…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "open": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          },
+          "deadline": {
+            "type": "object"
+          },
+          "description": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPDATE_FOLDER_MEMBER",
+      "name": "Update folder member",
+      "description": "Tool to update another member's permissions in a shared folder. Use when an owner or editor needs to change access levels for existing memb…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "member": {
+            "type": "object"
+          },
+          "access_level": {
+            "type": "object"
+          },
+          "shared_folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shared_folder_id",
+          "member",
+          "access_level"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPDATE_FOLDER_POLICY",
+      "name": "Update folder policy",
+      "description": "Tool to update the sharing policies for a shared folder. Use when you need to change who can be members, who can update the ACL, viewer inf…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": "array"
+          },
+          "link_settings": {
+            "type": "object"
+          },
+          "member_policy": {
+            "type": "object"
+          },
+          "shared_folder_id": {
+            "type": "string"
+          },
+          "acl_update_policy": {
+            "type": "object"
+          },
+          "shared_link_policy": {
+            "type": "object"
+          },
+          "viewer_info_policy": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "shared_folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPDATE_GROUP_MEMBER_ACCESS_TYPE",
+      "name": "Set group member access type",
+      "description": "Tool to change a member's access type in a team group. Use when you need to promote a member to owner or demote an owner to regular member.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object"
+          },
+          "group": {
+            "type": "object"
+          },
+          "access_type": {
+            "type": "object"
+          },
+          "return_members": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "group",
+          "user",
+          "access_type"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPDATE_PAPER_DOCUMENT",
+      "name": "Update Paper Document",
+      "description": "Tool to update an existing Dropbox Paper document with new content in Markdown, HTML, or plain text format. Use when you need to modify, ap…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "import_format": {
+            "type": "string",
+            "enum": [
+              "plain_text",
+              "markdown",
+              "html"
+            ]
+          },
+          "paper_revision": {
+            "type": "integer"
+          },
+          "doc_update_policy": {
+            "type": "string",
+            "enum": [
+              "append",
+              "prepend",
+              "overwrite",
+              "update"
+            ]
+          }
+        },
+        "required": [
+          "path",
+          "content",
+          "import_format",
+          "doc_update_policy"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPDATE_PROPERTY_TEMPLATE_FOR_TEAM",
+      "name": "Update property template for team",
+      "description": "Tool to update a property template for a team in Dropbox. Use when you need to modify an existing template's name, description, or add new …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "add_fields": {
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "template_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "template_id"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPDATE_TEAM_FOLDER_SYNC_SETTINGS",
+      "name": "Update team folder sync settings",
+      "description": "Tool to update the sync settings on a team folder or its contents in Dropbox. Use when you need to control whether a team folder or specifi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sync_setting": {
+            "type": "string"
+          },
+          "team_folder_id": {
+            "type": "string"
+          },
+          "content_sync_settings": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "team_folder_id",
+          "sync_setting"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPDATE_TEAM_GROUP",
+      "name": "Update team group",
+      "description": "Tool to update a team group's name, external ID, and/or management type. Use when you need to modify group properties such as renaming a gr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "object"
+          },
+          "new_group_name": {
+            "type": "string"
+          },
+          "return_members": {
+            "type": "boolean"
+          },
+          "new_group_external_id": {
+            "type": "string"
+          },
+          "new_group_management_type": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "group"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPDATE_TEAM_MEMBER_ADMIN_PERMISSIONS",
+      "name": "Set team member admin permissions",
+      "description": "Tool to update a team member's admin permissions. Use when you need to grant or revoke admin privileges for team members. Requires team adm…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object"
+          },
+          "new_role": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "user",
+          "new_role"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPDATE_TEAM_MEMBER_PROFILE",
+      "name": "Set team member profile",
+      "description": "Tool to update a team member's profile information. Use when you need to change a team member's email, name, external ID, or directory rest…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object"
+          },
+          "new_email": {
+            "type": "string"
+          },
+          "new_surname": {
+            "type": "string"
+          },
+          "new_given_name": {
+            "type": "string"
+          },
+          "new_external_id": {
+            "type": "string"
+          },
+          "new_persistent_id": {
+            "type": "string"
+          },
+          "new_is_directory_restricted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "user"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPDATE_TEAM_MEMBER_PROFILE_PHOTO",
+      "name": "Set team member profile photo",
+      "description": "Tool to update a team member's profile photo. Use when you need to set or change the profile picture of a team member. Requires team admin …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object"
+          },
+          "photo": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "user",
+          "photo"
+        ]
+      }
+    },
+    {
+      "slug": "DROPBOX_UPLOAD_FILE",
+      "name": "Upload File",
+      "description": "Uploads a file (up to ~150 MB) to a specified path in the user's Dropbox, with options for handling existing files. Files larger than 150 M…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "mute": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "content": {
+            "type": "object"
+          },
+          "autorename": {
+            "type": "boolean"
+          },
+          "strict_conflict": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ]
+      }
+    }
+  ]
+}

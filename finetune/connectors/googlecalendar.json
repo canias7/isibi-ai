@@ -1,0 +1,1642 @@
+{
+  "slug": "googlecalendar",
+  "name": "Google Calendar",
+  "tool_count": 48,
+  "tools": [
+    {
+      "slug": "GOOGLECALENDAR_ACL_DELETE",
+      "name": "Delete ACL Rule",
+      "description": "Deletes an access control rule from a Google Calendar. Use when you need to remove sharing permissions for a user, group, or domain.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "rule_id": {
+            "type": "string"
+          },
+          "calendar_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "calendar_id",
+          "rule_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_ACL_GET",
+      "name": "Get ACL Rule",
+      "description": "Retrieves a specific access control rule for a calendar. Use when you need to check permissions for a specific user, group, or domain.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "rule_id": {
+            "type": "string"
+          },
+          "calendar_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "calendar_id",
+          "rule_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_ACL_INSERT",
+      "name": "Create ACL Rule",
+      "description": "Creates an access control rule for a calendar. Use when you need to grant sharing permissions to a user, group, or domain.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "none",
+              "freeBusyReader",
+              "reader",
+              "writer",
+              "owner"
+            ]
+          },
+          "scope": {
+            "type": "object"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "send_notifications": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "calendar_id",
+          "role",
+          "scope"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_ACL_LIST",
+      "name": "List ACL Rules",
+      "description": "Retrieves the list of access control rules (ACLs) for a specified calendar, providing the necessary 'rule_id' values required for updating …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "pageToken": {
+            "type": "string"
+          },
+          "syncToken": {
+            "type": "string"
+          },
+          "calendarId": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "showDeleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "calendarId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_ACL_PATCH",
+      "name": "Patch ACL Rule",
+      "description": "Updates an existing access control rule for a calendar using patch semantics (partial update). This allows modifying specific fields withou…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "object"
+          },
+          "rule_id": {
+            "type": "string"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "send_notifications": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "calendar_id",
+          "rule_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_ACL_UPDATE",
+      "name": "Update ACL Rule",
+      "description": "Updates an access control rule for the specified calendar.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "rule_id": {
+            "type": "string"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "send_notifications": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "calendar_id",
+          "rule_id",
+          "role"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_ACL_WATCH",
+      "name": "Watch ACL Changes",
+      "description": "Tool to watch for changes to ACL resources. Use when you need to set up real-time notifications for access control list modifications on a …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          },
+          "address": {
+            "type": "string"
+          },
+          "calendarId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "calendarId",
+          "id",
+          "address"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_BATCH_EVENTS",
+      "name": "Batch Events",
+      "description": "Execute up to 1000 event mutations (create/patch/delete) in one Google Calendar HTTP batch request with per-item status/results. Use this t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fail_fast": {
+            "type": "boolean"
+          },
+          "operations": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "operations"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_CALENDAR_LIST_DELETE",
+      "name": "Remove Calendar from List",
+      "description": "Tool to remove a calendar from the user's calendar list. Use when you need to unsubscribe from or hide a calendar from the user's list.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "calendar_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "calendar_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_CALENDAR_LIST_GET",
+      "name": "Get Single Calendar by ID",
+      "description": "Retrieves metadata for a SINGLE specific calendar from the user's calendar list by its calendar ID. This action requires a calendarId param…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "calendarId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "calendarId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_CALENDAR_LIST_INSERT",
+      "name": "Insert Calendar into List",
+      "description": "Inserts an existing calendar into the user's calendar list, making it visible in the UI. Calendars (e.g., newly created ones) won't appear …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "colorId": {
+            "type": "string"
+          },
+          "selected": {
+            "type": "boolean"
+          },
+          "backgroundColor": {
+            "type": "string"
+          },
+          "foregroundColor": {
+            "type": "string"
+          },
+          "summaryOverride": {
+            "type": "string"
+          },
+          "color_rgb_format": {
+            "type": "boolean"
+          },
+          "defaultReminders": {
+            "type": "array"
+          },
+          "notificationSettings": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_CALENDAR_LIST_PATCH",
+      "name": "Patch Calendar List Entry",
+      "description": "Updates an existing calendar on the user's calendar list using patch semantics. This method allows partial updates, modifying only the spec…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "hidden": {
+            "type": "boolean"
+          },
+          "colorId": {
+            "type": "string"
+          },
+          "selected": {
+            "type": "boolean"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "colorRgbFormat": {
+            "type": "boolean"
+          },
+          "backgroundColor": {
+            "type": "string"
+          },
+          "foregroundColor": {
+            "type": "string"
+          },
+          "summaryOverride": {
+            "type": "string"
+          },
+          "defaultReminders": {
+            "type": "array"
+          },
+          "notificationSettings": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "calendar_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_CALENDAR_LIST_UPDATE",
+      "name": "Update Calendar List Entry",
+      "description": "Updates a calendar list entry's display/subscription settings (color, visibility, reminders, selection) for the authenticated user — does n…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "hidden": {
+            "type": "boolean"
+          },
+          "colorId": {
+            "type": "string"
+          },
+          "selected": {
+            "type": "boolean"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "colorRgbFormat": {
+            "type": "boolean"
+          },
+          "backgroundColor": {
+            "type": "string"
+          },
+          "foregroundColor": {
+            "type": "string"
+          },
+          "summaryOverride": {
+            "type": "string"
+          },
+          "defaultReminders": {
+            "type": "array"
+          },
+          "notificationSettings": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "calendar_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_CALENDAR_LIST_WATCH",
+      "name": "Watch Calendar List",
+      "description": "Watch for changes to CalendarList resources using push notifications. Use this to receive real-time updates when calendar list entries are …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          },
+          "address": {
+            "type": "string"
+          },
+          "expiration": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "address"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_CALENDARS_DELETE",
+      "name": "Delete Calendar",
+      "description": "Deletes a secondary calendar that you own or have delete permissions on. Deletion is permanent and irreversible — verify the correct calend…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "calendar_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "calendar_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_CALENDARS_UPDATE",
+      "name": "Update Calendar",
+      "description": "Full PUT-style update that overwrites all calendar metadata fields; unspecified optional fields are cleared. Use GOOGLECALENDAR_PATCH_CALEN…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "calendarId": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "calendarId",
+          "summary"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_CHANNELS_STOP",
+      "name": "Stop Channel",
+      "description": "Tool to stop watching resources through a notification channel. Use when you need to discontinue push notifications for a specific channel …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "resourceId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_CLEAR_CALENDAR",
+      "name": "Clear Calendar",
+      "description": "Clears a primary calendar by deleting all events from it. The calendar itself is preserved; only its events are removed. Primary calendars …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "calendar_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "calendar_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_COLORS_GET",
+      "name": "Get Color Definitions",
+      "description": "Returns the color definitions for calendars and events. Use when you need to retrieve the available color palette for styling calendars or …",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_CREATE_EVENT",
+      "name": "Create Event",
+      "description": "Create a Google Calendar event using start_datetime plus duration fields. The organizer is added as an attendee unless exclude_organizer is…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "attendees": {
+            "type": "array"
+          },
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "birthday",
+              "default",
+              "focusTime",
+              "outOfOffice",
+              "workingLocation"
+            ]
+          },
+          "recurrence": {
+            "type": "array"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "default",
+              "public",
+              "private",
+              "confidential"
+            ]
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "end_datetime": {
+            "type": "string"
+          },
+          "send_updates": {
+            "type": "string",
+            "enum": [
+              "all",
+              "externalOnly",
+              "none"
+            ]
+          },
+          "transparency": {
+            "type": "string",
+            "enum": [
+              "opaque",
+              "transparent"
+            ]
+          },
+          "start_datetime": {
+            "type": "string"
+          },
+          "guestsCanModify": {
+            "type": "boolean"
+          },
+          "exclude_organizer": {
+            "type": "boolean"
+          },
+          "birthdayProperties": {
+            "type": "object"
+          },
+          "create_meeting_room": {
+            "type": "boolean"
+          },
+          "event_duration_hour": {
+            "type": "integer"
+          },
+          "extended_properties": {
+            "type": "object"
+          },
+          "focusTimeProperties": {
+            "type": "object"
+          },
+          "guestsCanInviteOthers": {
+            "type": "boolean"
+          },
+          "outOfOfficeProperties": {
+            "type": "object"
+          },
+          "event_duration_minutes": {
+            "type": "integer"
+          },
+          "guestsCanSeeOtherGuests": {
+            "type": "boolean"
+          },
+          "workingLocationProperties": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "start_datetime"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_DELETE_EVENT",
+      "name": "Delete event",
+      "description": "Deletes a specified event by `event_id` from a Google Calendar (`calendar_id`); idempotent — a 404 for an already-deleted event is a no-op.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "send_updates": {
+            "type": "string",
+            "enum": [
+              "all",
+              "externalOnly",
+              "none"
+            ]
+          },
+          "send_notifications": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "event_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_DUPLICATE_CALENDAR",
+      "name": "Create a calendar",
+      "description": "Creates a new, empty Google Calendar with the specified title (summary). Newly created calendars default to UTC timezone; use GOOGLECALENDA…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_EVENTS_GET",
+      "name": "Get Event",
+      "description": "Retrieves a SINGLE event by its unique event_id (REQUIRED). This action does NOT list or search events - it fetches ONE specific event when…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "time_zone": {
+            "type": "string"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "max_attendees": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "event_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_EVENTS_IMPORT",
+      "name": "Import Event",
+      "description": "Tool to import an event as a private copy to a calendar. Use when you need to add an existing event to a calendar using its iCalUID. Only e…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "end": {
+            "type": "object"
+          },
+          "start": {
+            "type": "object"
+          },
+          "source": {
+            "type": "object"
+          },
+          "status": {
+            "type": "string"
+          },
+          "colorId": {
+            "type": "string"
+          },
+          "iCalUID": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer"
+          },
+          "attendees": {
+            "type": "array"
+          },
+          "reminders": {
+            "type": "object"
+          },
+          "recurrence": {
+            "type": "array"
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "transparency": {
+            "type": "string"
+          },
+          "guestsCanModify": {
+            "type": "boolean"
+          },
+          "extendedProperties": {
+            "type": "object"
+          },
+          "supportsAttachments": {
+            "type": "boolean"
+          },
+          "conferenceDataVersion": {
+            "type": "integer"
+          },
+          "guestsCanInviteOthers": {
+            "type": "boolean"
+          },
+          "guestsCanSeeOtherGuests": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "iCalUID",
+          "start",
+          "end"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_EVENTS_INSTANCES",
+      "name": "Get Event Instances",
+      "description": "Returns instances of the specified recurring event. Use timeMin/timeMax to constrain the window; omitting bounds can return large result se…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string"
+          },
+          "timeMax": {
+            "type": "string"
+          },
+          "timeMin": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "calendarId": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "showDeleted": {
+            "type": "boolean"
+          },
+          "maxAttendees": {
+            "type": "integer"
+          },
+          "originalStart": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "calendarId",
+          "eventId"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_EVENTS_LIST",
+      "name": "List Events",
+      "description": "Returns events on the specified calendar. TIMEZONE WARNING: When using timeMin/timeMax with UTC timestamps (ending in 'Z'), the time window…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "iCalUID": {
+            "type": "string"
+          },
+          "orderBy": {
+            "type": "string"
+          },
+          "timeMax": {
+            "type": "string"
+          },
+          "timeMin": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "syncToken": {
+            "type": "string"
+          },
+          "calendarId": {
+            "type": "string"
+          },
+          "eventTypes": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          },
+          "updatedMin": {
+            "type": "string"
+          },
+          "showDeleted": {
+            "type": "boolean"
+          },
+          "maxAttendees": {
+            "type": "integer"
+          },
+          "singleEvents": {
+            "type": "boolean"
+          },
+          "alwaysIncludeEmail": {
+            "type": "boolean"
+          },
+          "showHiddenInvitations": {
+            "type": "boolean"
+          },
+          "sharedExtendedProperty": {
+            "type": "string"
+          },
+          "privateExtendedProperty": {
+            "type": "string"
+          },
+          "composio_replaced_calendar_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_EVENTS_LIST_ALL_CALENDARS",
+      "name": "List Events from All Calendars",
+      "description": "Return a unified event list across all calendars in the user's calendar list for a given time range. Use when you need a single view of all…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "time_max": {
+            "type": "string"
+          },
+          "time_min": {
+            "type": "string"
+          },
+          "event_types": {
+            "type": "array"
+          },
+          "calendar_ids": {
+            "type": "array"
+          },
+          "show_deleted": {
+            "type": "boolean"
+          },
+          "single_events": {
+            "type": "boolean"
+          },
+          "response_detail": {
+            "type": "string",
+            "enum": [
+              "minimal",
+              "full"
+            ]
+          },
+          "max_results_per_calendar": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "time_min",
+          "time_max"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_EVENTS_MOVE",
+      "name": "Move Event",
+      "description": "Moves an event to another calendar, i.e., changes an event's organizer.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          },
+          "send_updates": {
+            "type": "string",
+            "enum": [
+              "all",
+              "externalOnly",
+              "none"
+            ]
+          }
+        },
+        "required": [
+          "calendar_id",
+          "event_id",
+          "destination"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_EVENTS_WATCH",
+      "name": "Watch Events",
+      "description": "Watch for changes to Events resources. Watch channels expire; persist the channel `id` per `calendarId` to re-establish watches after expir…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          },
+          "address": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "boolean"
+          },
+          "calendarId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "calendarId",
+          "id",
+          "address"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_FIND_EVENT",
+      "name": "Find event",
+      "description": "Finds events in a specified Google Calendar using text query, time ranges (event start/end, last modification), and event types. Ensure `ti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "order_by": {
+            "type": "string"
+          },
+          "time_max": {
+            "type": "string"
+          },
+          "time_min": {
+            "type": "string"
+          },
+          "page_token": {
+            "type": "string"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "event_types": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "updated_min": {
+            "type": "string"
+          },
+          "show_deleted": {
+            "type": "boolean"
+          },
+          "single_events": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_FIND_FREE_SLOTS",
+      "name": "Find free slots",
+      "description": "Finds both free and busy time slots in Google Calendars for specified calendars within a defined time range. If `time_min` is not provided,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array"
+          },
+          "time_max": {
+            "type": "string"
+          },
+          "time_min": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "group_expansion_max": {
+            "type": "integer"
+          },
+          "calendar_expansion_max": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_FREE_BUSY_QUERY",
+      "name": "Query Free/Busy Information (Deprecated)",
+      "description": "DEPRECATED: Use GOOGLECALENDAR_FIND_FREE_SLOTS instead (though this tool provides wider secondary/shared calendar coverage). Returns opaque…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array"
+          },
+          "timeMax": {
+            "type": "string"
+          },
+          "timeMin": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "groupExpansionMax": {
+            "type": "integer"
+          },
+          "calendarExpansionMax": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "timeMin",
+          "timeMax",
+          "items"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_GET_CALENDAR",
+      "name": "Get Google Calendar",
+      "description": "Retrieves a specific Google Calendar, identified by `calendar_id`, to which the authenticated user has access. Response includes `timeZone`…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "calendar_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_GET_CALENDAR_PROFILE",
+      "name": "Get Calendar Profile (Deprecated)",
+      "description": "DEPRECATED: Use CalendarListGet instead. Tool to retrieve the authenticated user's primary calendar profile. Use when you need to get infor…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_GET_CURRENT_DATE_TIME",
+      "name": "Get current date and time",
+      "description": "Gets the current date and time, allowing for a specific timezone offset. Call this tool first before computing relative dates (e.g., 'tomor…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "timezone": {}
+        }
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_LIST_BUILDINGS",
+      "name": "List Buildings",
+      "description": "Lists all buildings for a Google Workspace customer account with full details including addresses, coordinates, and floor names. Use this a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "customer": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_LIST_CALENDAR_RESOURCES",
+      "name": "List Calendar Resources",
+      "description": "Retrieves calendar resources (such as conference rooms) from a Google Workspace domain using the Admin SDK Directory API. Use this action w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "orderBy": {
+            "type": "string"
+          },
+          "customer": {
+            "type": "string"
+          },
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_LIST_CALENDARS",
+      "name": "List Google Calendars",
+      "description": "Retrieves calendars from the user's Google Calendar list, with options for pagination and filtering. Loop through all pages using nextPageT…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page_token": {
+            "type": "string"
+          },
+          "sync_token": {
+            "type": "string"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "show_hidden": {
+            "type": "boolean"
+          },
+          "show_deleted": {
+            "type": "boolean"
+          },
+          "min_access_role": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_LIST_SETTINGS",
+      "name": "List Calendar Settings (Deprecated)",
+      "description": "DEPRECATED: Use GOOGLECALENDAR_SETTINGS_LIST instead. Tool to return all user settings for the authenticated user. Use when you need to ret…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "pageToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_PATCH_CALENDAR",
+      "name": "Patch Calendar",
+      "description": "Partially updates (PATCHes) an existing Google Calendar, modifying only the fields provided. At least one of summary, description, location…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "calendar_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_PATCH_EVENT",
+      "name": "Patch Event",
+      "description": "Update specified fields of an existing event in a Google Calendar using patch semantics (array fields like `attendees` are fully replaced i…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "object"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "tentative",
+              "cancelled"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          },
+          "color_id": {
+            "type": "string"
+          },
+          "end_time": {
+            "type": "string"
+          },
+          "event_id": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "attendees": {
+            "type": "array"
+          },
+          "reminders": {
+            "type": "object"
+          },
+          "recurrence": {
+            "type": "array"
+          },
+          "start_time": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "default",
+              "public",
+              "private",
+              "confidential"
+            ]
+          },
+          "attachments": {
+            "type": "array"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "send_updates": {
+            "type": "string",
+            "enum": [
+              "all",
+              "externalOnly",
+              "none"
+            ]
+          },
+          "transparency": {
+            "type": "string",
+            "enum": [
+              "opaque",
+              "transparent"
+            ]
+          },
+          "max_attendees": {
+            "type": "integer"
+          },
+          "rsvp_response": {
+            "type": "string",
+            "enum": [
+              "needsAction",
+              "declined",
+              "tentative",
+              "accepted"
+            ]
+          },
+          "conference_data": {
+            "type": "object"
+          },
+          "attendees_omitted": {
+            "type": "boolean"
+          },
+          "guests_can_modify": {
+            "type": "boolean"
+          },
+          "anyone_can_add_self": {
+            "type": "boolean"
+          },
+          "extended_properties": {
+            "type": "object"
+          },
+          "supports_attachments": {
+            "type": "boolean"
+          },
+          "focus_time_properties": {
+            "type": "object"
+          },
+          "conference_data_version": {
+            "type": "integer"
+          },
+          "guests_can_invite_others": {
+            "type": "boolean"
+          },
+          "out_of_office_properties": {
+            "type": "object"
+          },
+          "guests_can_see_other_guests": {
+            "type": "boolean"
+          },
+          "working_location_properties": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "calendar_id",
+          "event_id"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_QUICK_ADD",
+      "name": "Quick Add Event",
+      "description": "Parses natural language text to quickly create a basic Google Calendar event with its title, date, and time, suitable for simple scheduling…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "send_updates": {
+            "type": "string",
+            "enum": [
+              "all",
+              "externalOnly",
+              "none"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_REMOVE_ATTENDEE",
+      "name": "Remove attendee from event",
+      "description": "Removes an attendee from a specified event in a Google Calendar; the calendar and event must exist. Concurrent calls on the same event can …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "attendee_email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "attendee_email"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_SETTINGS_GET",
+      "name": "Get Calendar Setting",
+      "description": "Tool to return a single user setting for the authenticated user. Use when you need to retrieve a specific calendar setting value.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "setting": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "setting"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_SETTINGS_LIST",
+      "name": "List Settings",
+      "description": "Returns all user settings for the authenticated user. Results include multiple settings keyed by id (e.g., `timeZone`); locate a specific s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "pageToken": {
+            "type": "string"
+          },
+          "syncToken": {
+            "type": "string"
+          },
+          "maxResults": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_SETTINGS_WATCH",
+      "name": "Watch Settings",
+      "description": "Watch for changes to Settings resources.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          },
+          "address": {
+            "type": "string"
+          },
+          "expiration": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "address"
+        ]
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_SYNC_EVENTS",
+      "name": "Sync Events (Deprecated)",
+      "description": "DEPRECATED: Use GOOGLECALENDAR_EVENTS_LIST instead. EventsList already handles syncToken with automatic param stripping. Synchronizes Googl…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "pageToken": {
+            "type": "string"
+          },
+          "sync_token": {
+            "type": "string"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "event_types": {
+            "type": "array"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "single_events": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "GOOGLECALENDAR_UPDATE_EVENT",
+      "name": "Update Google event",
+      "description": "Updates an existing event in Google Calendar. REQUIRES event_id - you MUST first search for the event using GOOGLECALENDAR_FIND_EVENT or GO…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "event_id": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "attendees": {
+            "type": "array"
+          },
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "birthday",
+              "default",
+              "focusTime",
+              "outOfOffice",
+              "workingLocation"
+            ]
+          },
+          "recurrence": {
+            "type": "array"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "default",
+              "public",
+              "private",
+              "confidential"
+            ]
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "end_datetime": {
+            "type": "string"
+          },
+          "send_updates": {
+            "type": "string",
+            "enum": [
+              "all",
+              "externalOnly",
+              "none"
+            ]
+          },
+          "transparency": {
+            "type": "string",
+            "enum": [
+              "opaque",
+              "transparent"
+            ]
+          },
+          "start_datetime": {
+            "type": "string"
+          },
+          "guestsCanModify": {
+            "type": "boolean"
+          },
+          "birthdayProperties": {
+            "type": "object"
+          },
+          "create_meeting_room": {
+            "type": "boolean"
+          },
+          "event_duration_hour": {
+            "type": "integer"
+          },
+          "extended_properties": {
+            "type": "object"
+          },
+          "focusTimeProperties": {
+            "type": "object"
+          },
+          "guestsCanInviteOthers": {
+            "type": "boolean"
+          },
+          "outOfOfficeProperties": {
+            "type": "object"
+          },
+          "event_duration_minutes": {
+            "type": "integer"
+          },
+          "guestsCanSeeOtherGuests": {
+            "type": "boolean"
+          },
+          "workingLocationProperties": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "start_datetime",
+          "event_id"
+        ]
+      }
+    }
+  ]
+}

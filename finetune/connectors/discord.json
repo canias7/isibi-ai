@@ -1,0 +1,518 @@
+{
+  "slug": "discord",
+  "name": "Discord",
+  "tool_count": 28,
+  "tools": [
+    {
+      "slug": "DISCORD_CONSUME_ENTITLEMENT",
+      "name": "Consume Entitlement",
+      "description": "Marks a one-time purchase consumable entitlement as consumed for a given application. Only applicable to entitlements backed by one-time pu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "entitlement_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "entitlement_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_DELETE_TEST_ENTITLEMENT",
+      "name": "Delete Test Entitlement",
+      "description": "Deletes a currently active test entitlement for a given application. Use this to clean up test entitlements that are no longer needed.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "entitlement_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "entitlement_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_DELETE_USER_APPLICATION_ROLE_CONNECTION",
+      "name": "Delete User Application Role Connection",
+      "description": "Deletes the current user's application role connection for the specified application. Removes the platform metadata and linked role connect…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_EDIT_APPLICATION_COMMAND_PERMISSIONS",
+      "name": "Edit Application Command Permissions",
+      "description": "Edits the permissions for a specific application command in a guild. Requires OAuth2 Bearer token (bot tokens will error). The authorizing …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "command_id": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array"
+          },
+          "application_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "guild_id",
+          "command_id",
+          "permissions"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_GET_APPLICATION_COMMAND_PERMISSIONS",
+      "name": "Get Application Command Permissions",
+      "description": "Retrieves the permissions for a specific application command in a guild. Requires OAuth2 Bearer token (bot tokens will error). The authoriz…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "command_id": {
+            "type": "string"
+          },
+          "application_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "guild_id",
+          "command_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_GET_BATCH_APPLICATION_COMMAND_PERMISSIONS",
+      "name": "Get Batch Application Command Permissions",
+      "description": "Retrieves permissions for all commands of an application in a guild. Returns a list of permission objects for each command. Requires OAuth2…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "application_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "guild_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_GET_CURRENT_USER_APPLICATION_ENTITLEMENTS",
+      "name": "Get Current User Application Entitlements",
+      "description": "Tool to retrieve entitlements for the current user for a given application. Use when you need to check what premium offerings or subscripti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "sku_ids": {
+            "type": "array"
+          },
+          "exclude_ended": {
+            "type": "boolean"
+          },
+          "application_id": {
+            "type": "string"
+          },
+          "exclude_deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "application_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_GET_GATEWAY",
+      "name": "Get Gateway",
+      "description": "Tool to retrieve a valid WebSocket (wss) URL for establishing a Gateway connection to Discord. Use when you need to connect to the Discord …",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DISCORD_GET_GUILD_TEMPLATE",
+      "name": "Get Guild Template",
+      "description": "Tool to retrieve information about a Discord guild template using its unique template code. Use when you need to get details about a guild …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_GET_GUILD_WIDGET",
+      "name": "Get Guild Widget",
+      "description": "Tool to retrieve the guild widget in JSON format. Use when you need to get public information about a Discord guild's widget that can be di…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_GET_GUILD_WIDGET_PNG",
+      "name": "Get Guild Widget PNG",
+      "description": "Tool to retrieve a PNG image widget for a Discord guild. Use when you need a visual representation of the guild widget that can be displaye…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "style": {
+            "type": "string",
+            "enum": [
+              "shield",
+              "banner1",
+              "banner2",
+              "banner3",
+              "banner4"
+            ]
+          },
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_GET_INVITE",
+      "name": "Get Invite (Deprecated)",
+      "description": "DEPRECATED: Use DISCORD_INVITE_RESOLVE instead. Tool to retrieve information about a specific invite code. Use when you need to get details…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "invite_code": {
+            "type": "string"
+          },
+          "with_counts": {
+            "type": "boolean"
+          },
+          "with_expiration": {
+            "type": "boolean"
+          },
+          "guild_scheduled_event_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "invite_code"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_GET_MY_GUILD_MEMBER",
+      "name": "Get my guild member",
+      "description": "Retrieves the guild member object for the currently authenticated user within a specified guild, including roles, nickname, join date, and …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_GET_MY_OAUTH2_AUTHORIZATION",
+      "name": "Get my OAuth2 authorization",
+      "description": "Retrieves current OAuth2 authorization details for the application, including app info, scopes, token expiration, and user data (contingent…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DISCORD_GET_MY_USER",
+      "name": "Get My User",
+      "description": "Fetches comprehensive profile information for the currently authenticated Discord user, including email if the 'email' scope is granted.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DISCORD_GET_OPENID_CONNECT_USERINFO",
+      "name": "Get OpenID Connect userinfo",
+      "description": "Retrieve OpenID Connect compliant user information for the authenticated user. Returns standardized OIDC user claims (sub, email, nickname,…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DISCORD_GET_PUBLIC_KEYS",
+      "name": "Get Public Keys",
+      "description": "Tool to retrieve Discord OAuth2 public keys. Use when you need to verify OAuth2 tokens or access public keys for cryptographic operations.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DISCORD_GET_SKU_SUBSCRIPTION",
+      "name": "Get SKU Subscription",
+      "description": "Retrieves a specific subscription by ID for a given SKU. Use to check details of a single user subscription.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sku_id": {
+            "type": "string"
+          },
+          "subscription_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sku_id",
+          "subscription_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_GET_USER",
+      "name": "Get User",
+      "description": "Retrieve information about a Discord user. With OAuth Bearer token authentication, this returns the authenticated user's information (use '…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_GET_USER_APPLICATION_ROLE_CONNECTION",
+      "name": "Get User Application Role Connection",
+      "description": "Retrieves the application role connection for the currently authenticated user for a specified application. Requires the role_connections.w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_INVITE_RESOLVE",
+      "name": "Resolve Invite",
+      "description": "Tool to resolve and retrieve information about a Discord invite code. Use when you need to get details about a guild, channel, or event ass…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "with_counts": {
+            "type": "boolean"
+          },
+          "with_expiration": {
+            "type": "boolean"
+          },
+          "guild_scheduled_event_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_LEAVE_GUILD",
+      "name": "Leave Guild",
+      "description": "Leaves a Discord guild (server) on behalf of the currently authenticated user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_LIST_MY_CONNECTIONS",
+      "name": "List My Connections",
+      "description": "Retrieves a list of the authenticated user's connected third-party accounts on Discord.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DISCORD_LIST_MY_GUILDS",
+      "name": "List My Guilds",
+      "description": "Lists the current user's guilds, returning partial data for each; primarily used for displaying server lists or verifying memberships.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "with_counts": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DISCORD_LIST_SKU_SUBSCRIPTIONS",
+      "name": "List SKU Subscriptions",
+      "description": "Lists all subscriptions for a given SKU. When using a Bot token, the user_id query parameter is required. Returns paginated subscription ob…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "sku_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sku_id"
+        ]
+      }
+    },
+    {
+      "slug": "DISCORD_LIST_STICKER_PACKS",
+      "name": "List Sticker Packs",
+      "description": "Tool to retrieve all available Discord Nitro sticker packs. Use when you need to list or browse official Discord sticker packs.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "DISCORD_MODIFY_CURRENT_USER",
+      "name": "Modify Current User",
+      "description": "Modifies the currently authenticated Discord user's profile. Can update username (limited to 2 changes per hour) and avatar.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "avatar": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "remove_avatar": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "slug": "DISCORD_UPDATE_USER_APPLICATION_ROLE_CONNECTION",
+      "name": "Update User Application Role Connection",
+      "description": "Updates the application role connection for the currently authenticated user for a specified application. Requires the role_connections.wri…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "type": "object"
+          },
+          "platform_name": {
+            "type": "string"
+          },
+          "application_id": {
+            "type": "string"
+          },
+          "platform_username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ]
+      }
+    }
+  ]
+}

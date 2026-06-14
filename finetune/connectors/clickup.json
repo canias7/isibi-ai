@@ -1,0 +1,4887 @@
+{
+  "slug": "clickup",
+  "name": "ClickUp",
+  "tool_count": 164,
+  "tools": [
+    {
+      "slug": "CLICKUP_ADD_DEPENDENCY",
+      "name": "Add dependency",
+      "description": "Adds a 'waiting on' or 'blocking' dependency to a task, requiring either `depends_on` (task becomes waiting on) or `dependency_of` (task be…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "depends_on": {
+            "type": "string"
+          },
+          "dependency_of": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_ADD_GUEST_TO_FOLDER",
+      "name": "Add guest to folder",
+      "description": "Adds a guest to a folder with specified permissions; requires a ClickUp Enterprise Plan.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "guest_id": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "string"
+          },
+          "include_shared": {
+            "type": "boolean"
+          },
+          "permission_level": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder_id",
+          "guest_id",
+          "permission_level"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_ADD_GUEST_TO_LIST",
+      "name": "Add guest to list",
+      "description": "Shares a ClickUp List with an existing guest user, granting them specified permissions; requires the Workspace to be on the ClickUp Enterpr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string"
+          },
+          "guest_id": {
+            "type": "string"
+          },
+          "include_shared": {
+            "type": "boolean"
+          },
+          "permission_level": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_id",
+          "guest_id",
+          "permission_level"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_ADD_GUEST_TO_TASK",
+      "name": "Add guest to task",
+      "description": "Assigns a guest to a task with specified permissions; requires ClickUp Enterprise Plan, and `team_id` if `custom_task_ids` is true.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "guest_id": {
+            "type": "string"
+          },
+          "include_shared": {
+            "type": "boolean"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          },
+          "permission_level": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "guest_id",
+          "permission_level"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_ADD_TAGS_TO_TIME_ENTRIES",
+      "name": "Add tags from time entries",
+      "description": "Associates a list of specified tags with one or more time entries within a given Team (Workspace).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "integer"
+          },
+          "time_entry_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "team_id",
+          "tags",
+          "time_entry_ids"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_ADD_TAG_TO_TASK",
+      "name": "Add tag to task",
+      "description": "Adds an existing tag to a specified task; team_id is required if custom_task_ids is true.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "integer"
+          },
+          "tag_name": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "tag_name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_ADD_TASK_LINK",
+      "name": "Add task link",
+      "description": "Links two existing and accessible ClickUp tasks, identified by `task_id` (source) and `links_to` (target).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "integer"
+          },
+          "links_to": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "links_to"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_ADD_TASK_TO_LIST",
+      "name": "Add task to list",
+      "description": "Adds an existing task to an additional ClickUp List; the \"Tasks in Multiple Lists\" ClickApp must be enabled in the Workspace for this.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "integer"
+          },
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_id",
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_ATTACHMENTS_UPLOAD_FILE_TO_TASK_AS_ATTACHMENT",
+      "name": "Create task attachment",
+      "description": "DEPRECATED: Use `create_task_attachment` to upload a file to a task; requires `multipart/form-data`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "attachment": {
+            "type": "object"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "attachment"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_AUTHORIZATION_GET_WORK_SPACE_LIST",
+      "name": "Get authorized teams workspaces",
+      "description": "DEPRECATED: Use `get_authorized_teams_workspaces` instead to retrieve Workspaces (Teams) accessible to the authenticated user.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "CLICKUP_CLICK_UP_UPDATE_DOC_PAGE",
+      "name": "Update Doc Page",
+      "description": "Tool to update/edit a ClickUp Doc page's title and/or content via the v3 Docs API. Use when you need to modify a Doc page's name or content…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "doc_id": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "doc_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_A_TIME_ENTRY",
+      "name": "Create a time entry",
+      "description": "Creates a new time entry for a specified team.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "end": {
+            "type": "integer"
+          },
+          "tid": {
+            "type": "string"
+          },
+          "stop": {
+            "type": "integer"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "team_Id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "integer"
+          },
+          "billable": {
+            "type": "boolean"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_Id",
+          "start",
+          "duration"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_CHAT_CHANNEL",
+      "name": "Create chat channel",
+      "description": "Tool to create a chat channel in a ClickUp workspace. Use when you need to set up a new communication channel for team collaboration with c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "user_ids": {
+            "type": "array"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "PRIVATE"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_CHAT_MESSAGE",
+      "name": "Create chat message",
+      "description": "Tool to send a message in a ClickUp chat channel. Use when you need to post messages to team chat channels. Supports both regular messages …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "message",
+              "post"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "followers": {
+            "type": "array"
+          },
+          "post_data": {
+            "type": "object"
+          },
+          "reactions": {
+            "type": "array"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/md",
+              "text/plain"
+            ]
+          },
+          "group_assignee": {
+            "type": "string"
+          },
+          "triaged_action": {
+            "type": "integer"
+          },
+          "triaged_object_id": {
+            "type": "string"
+          },
+          "triaged_object_type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "channel_id",
+          "type",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_CHAT_REACTION",
+      "name": "Create chat reaction",
+      "description": "Tool to add a reaction to a ClickUp chat message. Use when you need to react to a message with an emoji.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "reaction": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "message_id",
+          "reaction"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_CHAT_VIEW_COMMENT",
+      "name": "Create chat view comment",
+      "description": "Posts a new comment to a specified ClickUp Chat view; the 'view_id' must correspond to an existing and accessible Chat view.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "view_id": {
+            "type": "string"
+          },
+          "notify_all": {
+            "type": "boolean"
+          },
+          "comment_text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "view_id",
+          "comment_text",
+          "notify_all"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_CHECKLIST",
+      "name": "Create checklist",
+      "description": "Creates a new checklist with a specified name within an existing task, which can be identified by its standard ID or a custom task ID (if `…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_CHECKLIST_ITEM",
+      "name": "Create checklist item",
+      "description": "Creates a new checklist item within a specified, existing checklist, optionally setting the item's name and assigning it to a user.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "integer"
+          },
+          "checklist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checklist_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_DIRECT_MESSAGE_CHANNEL",
+      "name": "Create direct message channel",
+      "description": "Tool to create a direct message channel in ClickUp. Use when you need to start a direct message conversation with up to 15 users. A Self DM…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_ids": {
+            "type": "array"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_DOC",
+      "name": "Create Doc",
+      "description": "Tool to create a new ClickUp Doc in a Workspace (v3 Docs API) and return the new doc_id for follow-up page/content operations. Use when you…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "parent_type": {
+            "type": "string",
+            "enum": [
+              "space",
+              "folder",
+              "list"
+            ]
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_DOC_PAGE",
+      "name": "Create Doc Page",
+      "description": "Tool to create a page in a ClickUp Doc (v3 Docs API). Use when you need to add a new page to an existing document, either as a root page or…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "doc_id": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "sub_title": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/md",
+              "text/plain"
+            ]
+          },
+          "parent_page_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "doc_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_FOLDER",
+      "name": "Create folder",
+      "description": "Creates a new ClickUp Folder within the specified Space, which must exist and be accessible.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_FOLDERLESS_LIST",
+      "name": "Create folderless list",
+      "description": "Creates a new folderless list (a list not part of any Folder) directly within a specified ClickUp Space.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "integer"
+          },
+          "due_date": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "due_date_time": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "space_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_FOLDER_VIEW",
+      "name": "Create folder view",
+      "description": "Creates a new, highly customizable view within a specific ClickUp folder using its `folder_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "string"
+          },
+          "divide__dir": {
+            "type": "null"
+          },
+          "filters__op": {
+            "type": "string"
+          },
+          "divide__field": {
+            "type": "null"
+          },
+          "grouping__dir": {
+            "type": "integer"
+          },
+          "columns__fields": {
+            "type": "array"
+          },
+          "filters__fields": {
+            "type": "array"
+          },
+          "filters__search": {
+            "type": "string"
+          },
+          "grouping__field": {
+            "type": "string"
+          },
+          "sorting__fields": {
+            "type": "array"
+          },
+          "grouping__ignore": {
+            "type": "boolean"
+          },
+          "divide__collapsed": {
+            "type": "array"
+          },
+          "grouping__collapsed": {
+            "type": "array"
+          },
+          "filters__show__closed": {
+            "type": "boolean"
+          },
+          "settings__me__comments": {
+            "type": "boolean"
+          },
+          "settings__me__subtasks": {
+            "type": "boolean"
+          },
+          "settings__show__images": {
+            "type": "boolean"
+          },
+          "settings__me__checklists": {
+            "type": "boolean"
+          },
+          "settings__show__subtasks": {
+            "type": "integer"
+          },
+          "team__sidebar__assignees": {
+            "type": "array"
+          },
+          "settings__show__assignees": {
+            "type": "boolean"
+          },
+          "settings__show__task__locations": {
+            "type": "boolean"
+          },
+          "settings__show__closed__subtasks": {
+            "type": "boolean"
+          },
+          "team__sidebar__unassigned__tasks": {
+            "type": "boolean"
+          },
+          "team__sidebar__assigned__comments": {
+            "type": "boolean"
+          },
+          "settings__collapse__empty__columns": {
+            "type": "string"
+          },
+          "settings__show__subtask__parent__names": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "folder_id",
+          "name",
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_GOAL",
+      "name": "Create goal",
+      "description": "Creates a new goal in a ClickUp Team (Workspace).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "owners": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "multiple_owners": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "description",
+          "name",
+          "due_date",
+          "multiple_owners",
+          "owners",
+          "color"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_KEY_RESULT",
+      "name": "Create key result",
+      "description": "Creates a new Key Result (Target) for a specified Goal in ClickUp to define and track measurable objectives towards achieving that Goal.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "owners": {
+            "type": "array"
+          },
+          "goal_id": {
+            "type": "string"
+          },
+          "list_ids": {
+            "type": "array"
+          },
+          "task_ids": {
+            "type": "array"
+          },
+          "steps_end": {
+            "type": "integer"
+          },
+          "steps_start": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "goal_id",
+          "name",
+          "owners",
+          "type",
+          "steps_start",
+          "steps_end",
+          "unit",
+          "task_ids",
+          "list_ids"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_LIST",
+      "name": "Create list",
+      "description": "Creates a new list in ClickUp within an existing folder. This action requires a folder_id - lists cannot be created directly in a Space usi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "integer"
+          },
+          "due_date": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "folder_id": {
+            "type": "string"
+          },
+          "due_date_time": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "folder_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_LIST_COMMENT",
+      "name": "Create list comment",
+      "description": "Adds a new comment with specific text to an existing and accessible ClickUp List, assigns it to a user, and sets notification preferences f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "integer"
+          },
+          "notify_all": {
+            "type": "boolean"
+          },
+          "comment_text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_id",
+          "comment_text"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_LIST_FROM_TEMPLATE",
+      "name": "Create list from template in folder",
+      "description": "Creates a new list from a template in a specified ClickUp folder. Use this when you need to instantiate a list based on an existing templat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "integer"
+          },
+          "template_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder_id",
+          "template_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_LIST_VIEW",
+      "name": "Create list view",
+      "description": "Creates a new, customizable view (e.g., list, board, calendar) within a specified ClickUp List, requiring an existing list_id accessible by…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "divide__dir": {
+            "type": "integer"
+          },
+          "filters__op": {
+            "type": "string"
+          },
+          "divide__field": {
+            "type": "string"
+          },
+          "grouping__dir": {
+            "type": "integer"
+          },
+          "columns__fields": {
+            "type": "array"
+          },
+          "filters__fields": {
+            "type": "array"
+          },
+          "filters__search": {
+            "type": "string"
+          },
+          "grouping__field": {
+            "type": "string"
+          },
+          "sorting__fields": {
+            "type": "array"
+          },
+          "grouping__ignore": {
+            "type": "boolean"
+          },
+          "divide__collapsed": {
+            "type": "array"
+          },
+          "grouping__collapsed": {
+            "type": "array"
+          },
+          "filters__show__closed": {
+            "type": "boolean"
+          },
+          "settings__me__comments": {
+            "type": "boolean"
+          },
+          "settings__me__subtasks": {
+            "type": "boolean"
+          },
+          "settings__show__images": {
+            "type": "boolean"
+          },
+          "settings__me__checklists": {
+            "type": "boolean"
+          },
+          "settings__show__subtasks": {
+            "type": "integer"
+          },
+          "team__sidebar__assignees": {
+            "type": "array"
+          },
+          "settings__show__assignees": {
+            "type": "boolean"
+          },
+          "settings__show__task__locations": {
+            "type": "boolean"
+          },
+          "settings__show__closed__subtasks": {
+            "type": "boolean"
+          },
+          "team__sidebar__unassigned__tasks": {
+            "type": "boolean"
+          },
+          "team__sidebar__assigned__comments": {
+            "type": "boolean"
+          },
+          "settings__collapse__empty__columns": {
+            "type": "string"
+          },
+          "settings__show__subtask__parent__names": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "list_id",
+          "name",
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_LOCATION_CHAT_CHANNEL",
+      "name": "Create Location Chat Channel",
+      "description": "Tool to create a Channel on a Space, Folder, or List in ClickUp. Use when you need to create a location-based chat channel.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string"
+          },
+          "location": {
+            "type": "object"
+          },
+          "user_ids": {
+            "type": "array"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "PRIVATE"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "location"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_REPLY_MESSAGE",
+      "name": "Create reply message",
+      "description": "Tool to create a reply to a chat message in ClickUp. Use when replying to an existing chat message. Requires workspace_id, message_id, type…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "message",
+              "post"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "followers": {
+            "type": "array"
+          },
+          "post_data": {
+            "type": "object"
+          },
+          "reactions": {
+            "type": "array"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/md",
+              "text/plain"
+            ]
+          },
+          "group_assignee": {
+            "type": "string"
+          },
+          "triaged_action": {
+            "type": "integer"
+          },
+          "triaged_object_id": {
+            "type": "string"
+          },
+          "triaged_object_type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "message_id",
+          "type",
+          "content"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_SPACE",
+      "name": "Create space",
+      "description": "Creates a new ClickUp Space within a specified Workspace, allowing feature configuration which defaults to Workspace settings if unspecifie…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "multiple_assignees": {
+            "type": "boolean"
+          },
+          "features__tags__enabled": {
+            "type": "boolean"
+          },
+          "features__checklists__enabled": {
+            "type": "boolean"
+          },
+          "features__due__dates__enabled": {
+            "type": "boolean"
+          },
+          "features__portfolios__enabled": {
+            "type": "boolean"
+          },
+          "features__custom__fields__enabled": {
+            "type": "boolean"
+          },
+          "features__due__dates__start__date": {
+            "type": "boolean"
+          },
+          "features__time__tracking__enabled": {
+            "type": "boolean"
+          },
+          "features__time__estimates__enabled": {
+            "type": "boolean"
+          },
+          "features__dependency__warning__enabled": {
+            "type": "boolean"
+          },
+          "features__remap__dependencies__enabled": {
+            "type": "boolean"
+          },
+          "features__due__dates__remap__due__dates": {
+            "type": "boolean"
+          },
+          "features__due__dates__remap__closed__due__date": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "name",
+          "multiple_assignees"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_SPACE_TAG",
+      "name": "Create space tag",
+      "description": "Creates a new tag (name, foreground color, background color) in an existing ClickUp Space.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "space_id": {
+            "type": "string"
+          },
+          "tag__name": {
+            "type": "string"
+          },
+          "tag__tag_bg": {
+            "type": "string"
+          },
+          "tag__tag_fg": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_id",
+          "tag__name",
+          "tag__tag_fg",
+          "tag__tag_bg"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_SPACE_VIEW",
+      "name": "Create space view",
+      "description": "Creates a customizable view (e.g., List, Board, Gantt) within a specified ClickUp Space, allowing configuration of grouping, sorting, filte…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "divide__dir": {
+            "type": "null"
+          },
+          "filters__op": {
+            "type": "string"
+          },
+          "divide__field": {
+            "type": "null"
+          },
+          "grouping__dir": {
+            "type": "integer"
+          },
+          "columns__fields": {
+            "type": "array"
+          },
+          "filters__fields": {
+            "type": "array"
+          },
+          "filters__search": {
+            "type": "string"
+          },
+          "grouping__field": {
+            "type": "string"
+          },
+          "sorting__fields": {
+            "type": "array"
+          },
+          "grouping__ignore": {
+            "type": "boolean"
+          },
+          "divide__collapsed": {
+            "type": "array"
+          },
+          "grouping__collapsed": {
+            "type": "array"
+          },
+          "filters__show__closed": {
+            "type": "boolean"
+          },
+          "settings__me__comments": {
+            "type": "boolean"
+          },
+          "settings__me__subtasks": {
+            "type": "boolean"
+          },
+          "settings__show__images": {
+            "type": "boolean"
+          },
+          "settings__me__checklists": {
+            "type": "boolean"
+          },
+          "settings__show__subtasks": {
+            "type": "integer"
+          },
+          "team__sidebar__assignees": {
+            "type": "array"
+          },
+          "settings__show__assignees": {
+            "type": "boolean"
+          },
+          "settings__show__task__locations": {
+            "type": "boolean"
+          },
+          "settings__show__closed__subtasks": {
+            "type": "boolean"
+          },
+          "team__sidebar__unassigned__tasks": {
+            "type": "boolean"
+          },
+          "team__sidebar__assigned__comments": {
+            "type": "boolean"
+          },
+          "settings__collapse__empty__columns": {
+            "type": "string"
+          },
+          "settings__show__subtask__parent__names": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "space_id",
+          "name",
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_TASK",
+      "name": "Create a task",
+      "description": "Creates a new ClickUp task in a specific list, optionally as a subtask if a `parent` task ID (which cannot be a subtask itself and must be …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "integer"
+          },
+          "links_to": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "assignees": {
+            "type": "array"
+          },
+          "notify_all": {
+            "type": "boolean"
+          },
+          "start_date": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "type": "array"
+          },
+          "due_date_time": {
+            "type": "boolean"
+          },
+          "time_estimate": {
+            "type": "integer"
+          },
+          "custom_item_id": {
+            "type": "integer"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          },
+          "start_date_time": {
+            "type": "boolean"
+          },
+          "check_required_custom_fields": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "list_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_TASK_ATTACHMENT",
+      "name": "Create task attachment",
+      "description": "Uploads a file as an attachment to a specified ClickUp task using multipart/form-data.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "attachment": {
+            "type": "object"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "attachment"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_TASK_COMMENT",
+      "name": "Create task comment",
+      "description": "Adds a comment to a ClickUp task; `team_id` is required if `custom_task_ids` is true.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "integer"
+          },
+          "notify_all": {
+            "type": "boolean"
+          },
+          "comment_text": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "comment_text",
+          "assignee",
+          "notify_all"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_TASK_FROM_TEMPLATE",
+      "name": "Create task from template",
+      "description": "Creates a new task in a specified ClickUp list from a task template, using the provided name for the new task.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "template_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_id",
+          "template_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_TEAM",
+      "name": "Create team",
+      "description": "Creates a new team (user group) with specified members in a Workspace; member IDs must be for existing users, and be aware that adding view…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "members": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "name",
+          "members"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_THREADED_COMMENT",
+      "name": "Create threaded comment",
+      "description": "Tool to create a threaded reply to a comment in ClickUp. Use when you need to respond to an existing comment with context.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "assignee": {
+            "type": "integer"
+          },
+          "comment_id": {
+            "type": "string"
+          },
+          "notify_all": {
+            "type": "boolean"
+          },
+          "comment_text": {
+            "type": "string"
+          },
+          "group_assignee": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment_id",
+          "comment_text",
+          "notify_all"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_WEBHOOK",
+      "name": "Create webhook",
+      "description": "Creates a ClickUp webhook for a Team (Workspace) to notify a public URL on specified events (at least one, or '*' for all), optionally scop…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "endpoint",
+          "events"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_CREATE_WORKSPACE_EVERYTHING_LEVEL_VIEW",
+      "name": "Create workspace Everything level view",
+      "description": "Creates a new, customizable view (e.g., List, Board) at the 'Everything' level for a specified Team (Workspace ID), encompassing all tasks …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "divide__dir": {
+            "type": "null"
+          },
+          "filters__op": {
+            "type": "string"
+          },
+          "divide__field": {
+            "type": "null"
+          },
+          "grouping__dir": {
+            "type": "integer"
+          },
+          "columns__fields": {
+            "type": "array"
+          },
+          "filters__fields": {
+            "type": "array"
+          },
+          "filters__search": {
+            "type": "string"
+          },
+          "grouping__field": {
+            "type": "string"
+          },
+          "sorting__fields": {
+            "type": "array"
+          },
+          "grouping__ignore": {
+            "type": "boolean"
+          },
+          "divide__collapsed": {
+            "type": "array"
+          },
+          "grouping__collapsed": {
+            "type": "array"
+          },
+          "filters__show__closed": {
+            "type": "boolean"
+          },
+          "settings__me__comments": {
+            "type": "boolean"
+          },
+          "settings__me__subtasks": {
+            "type": "boolean"
+          },
+          "settings__show__images": {
+            "type": "boolean"
+          },
+          "settings__me__checklists": {
+            "type": "boolean"
+          },
+          "settings__show__subtasks": {
+            "type": "integer"
+          },
+          "team__sidebar__assignees": {
+            "type": "array"
+          },
+          "settings__show__assignees": {
+            "type": "boolean"
+          },
+          "settings__show__task__locations": {
+            "type": "boolean"
+          },
+          "settings__show__closed__subtasks": {
+            "type": "boolean"
+          },
+          "team__sidebar__unassigned__tasks": {
+            "type": "boolean"
+          },
+          "team__sidebar__assigned__comments": {
+            "type": "boolean"
+          },
+          "settings__collapse__empty__columns": {
+            "type": "string"
+          },
+          "settings__show__subtask__parent__names": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "name",
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_CHAT_CHANNEL",
+      "name": "Delete chat channel",
+      "description": "Tool to delete a chat channel in ClickUp. Use when you need to permanently remove a chat channel from a workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_CHAT_MESSAGE",
+      "name": "Delete chat message",
+      "description": "Tool to delete a chat message in ClickUp. Use when you need to permanently remove a specific message from a workspace chat.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_CHAT_REACTION",
+      "name": "Delete chat reaction",
+      "description": "Tool to delete a reaction from a chat message in ClickUp. Use when you need to remove an emoji reaction that was previously added to a chat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "reaction": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "message_id",
+          "reaction"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_CHECKLIST",
+      "name": "Delete checklist",
+      "description": "Permanently deletes an existing checklist identified by its `checklist_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "checklist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checklist_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_CHECKLIST_ITEM",
+      "name": "Delete checklist item",
+      "description": "Permanently deletes an existing item, identified by `checklist_item_id`, from an existing checklist, identified by `checklist_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "checklist_id": {
+            "type": "string"
+          },
+          "checklist_item_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checklist_id",
+          "checklist_item_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_COMMENT",
+      "name": "Delete comment",
+      "description": "Deletes an existing comment from a task using its `comment_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_DEPENDENCY",
+      "name": "Delete dependency",
+      "description": "Removes a dependency relationship for a task. Provide exactly one of: `depends_on` to remove a 'waiting on' dependency (task_id is blocked …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "depends_on": {
+            "type": "string"
+          },
+          "dependency_of": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_FOLDER",
+      "name": "Delete folder",
+      "description": "Permanently and irreversibly deletes a specified folder and all its contents (Lists, Tasks) if the folder_id exists.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_GOAL",
+      "name": "Delete goal",
+      "description": "Permanently removes an existing Goal, identified by its `goal_id`, from the Workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "goal_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "goal_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_KEY_RESULT",
+      "name": "Delete key result",
+      "description": "Deletes an existing Key Result, also referred to as a Target within a Goal, identified by its `key_result_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key_result_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key_result_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_LIST",
+      "name": "Delete list",
+      "description": "Permanently deletes an existing List and all its contents; this action is destructive and irreversible via the API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_SPACE",
+      "name": "Delete space",
+      "description": "Permanently deletes a specified Space in ClickUp; this action is irreversible as the Space cannot be recovered via the API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "space_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_SPACE_TAG",
+      "name": "Delete space tag",
+      "description": "Deletes a Tag from a Space, identified by `tag_name` in path; precise matching of Tag details in the request body (`tag_name_1`, `tag_tag_f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "space_id": {
+            "type": "string"
+          },
+          "tag_name": {
+            "type": "string"
+          },
+          "tag__name": {
+            "type": "string"
+          },
+          "tag__tag__bg": {
+            "type": "string"
+          },
+          "tag__tag__fg": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_id",
+          "tag_name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_TASK",
+      "name": "Delete task",
+      "description": "Permanently deletes a task, using its standard ID or a custom task ID (requires `custom_task_ids=true` and `team_id`).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_TASK_LINK",
+      "name": "Delete task link",
+      "description": "Deletes an existing link, effectively a dependency or relationship, between two ClickUp tasks; set `custom_task_ids=true` and provide `team…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "links_to": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "links_to"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_TEAM",
+      "name": "Delete team",
+      "description": "Permanently deletes an existing Team (user group) from the Workspace using its `group_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_TIME_ENTRY",
+      "name": "Delete a time entry",
+      "description": "Deletes an existing time entry, specified by `timer_id`, from a Workspace identified by `team_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "timer_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "timer_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_TIME_TRACKED",
+      "name": "Delete time tracked",
+      "description": "Deletes a time-tracked interval from a task; use this legacy endpoint for older time tracking systems.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "interval_id": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "interval_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_VIEW",
+      "name": "Delete view",
+      "description": "Permanently and irreversibly deletes an existing View in ClickUp, identified by its `view_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "view_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "view_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_DELETE_WEBHOOK",
+      "name": "Delete webhook",
+      "description": "Permanently removes an existing webhook, specified by its ID, thereby ceasing all its event monitoring and notifications.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "webhook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_ACCESSIBLE_CUSTOM_FIELDS",
+      "name": "Get accessible custom fields",
+      "description": "Retrieves all accessible Custom Field definitions for a specified ClickUp List using its `list_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_ACCESS_TOKEN",
+      "name": "Get access token",
+      "description": "Exchanges a ClickUp OAuth 2.0 authorization code (obtained after user consent) for an access token.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id",
+          "client_secret",
+          "code"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_ALL_TAGS_FROM_TIME_ENTRIES",
+      "name": "Get all tags from time entries",
+      "description": "Retrieves all unique tags applied to time entries within a specified ClickUp Team (Workspace).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_AUTHORIZED_TEAMS_WORKSPACES",
+      "name": "Get authorized teams workspaces",
+      "description": "Retrieves a list of Workspaces (Teams) the authenticated user can access.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_AUTHORIZED_USER",
+      "name": "Get authorized user",
+      "description": "Retrieves the details of the currently authenticated ClickUp user.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_BULK_TASKS_TIME_IN_STATUS",
+      "name": "Get bulk tasks time in status",
+      "description": "Retrieves the time spent in each status for multiple tasks; requires the 'Total time in Status' ClickApp to be enabled in the Workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "task_ids": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_ids"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_CHAT_CHANNEL",
+      "name": "Get chat channel",
+      "description": "Retrieves details for a specific chat channel in a ClickUp Workspace. Use when you need information about a particular chat channel.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "description_format": {
+            "type": "string",
+            "enum": [
+              "text/md",
+              "text/plain"
+            ]
+          }
+        },
+        "required": [
+          "workspace_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_CHAT_CHANNEL_FOLLOWERS",
+      "name": "Get chat channel followers",
+      "description": "Tool to retrieve followers of a ClickUp chat channel. Use when you need to list users following a specific channel in a workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_CHAT_CHANNEL_MEMBERS",
+      "name": "Get chat channel members",
+      "description": "Tool to get members of a chat channel. Use when you need to retrieve the list of members in a specific ClickUp chat channel.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_CHAT_CHANNELS",
+      "name": "Get chat channels",
+      "description": "Tool to retrieve chat channels in a ClickUp workspace. Use when you need to list available chat channels, DMs, or group chats in a workspac…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "is_follower": {
+            "type": "boolean"
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "channel_types": {
+            "type": "string"
+          },
+          "include_closed": {
+            "type": "boolean"
+          },
+          "description_format": {
+            "type": "string",
+            "enum": [
+              "text/md",
+              "text/plain"
+            ]
+          },
+          "with_message_since": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_CHAT_MESSAGE_REACTIONS",
+      "name": "Get chat message reactions",
+      "description": "Tool to retrieve reactions on a ClickUp chat message. Use when you need to see who reacted to a message and with what emoji.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_CHAT_MESSAGE_REPLIES",
+      "name": "Get chat message replies",
+      "description": "Retrieves replies to a chat message in ClickUp. Use when you need to fetch responses to a specific message in a workspace chat.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/md",
+              "text/plain"
+            ]
+          }
+        },
+        "required": [
+          "workspace_id",
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_CHAT_MESSAGES",
+      "name": "Get chat messages",
+      "description": "Tool to retrieve messages from a ClickUp chat channel. Use when you need to fetch chat messages for a specific channel within a workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/md",
+              "text/plain"
+            ]
+          }
+        },
+        "required": [
+          "workspace_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_CHAT_MESSAGE_TAGGED_USERS",
+      "name": "Get chat message tagged users",
+      "description": "Tool to retrieve users tagged in a ClickUp chat message. Use when you need to get a list of users mentioned in a specific chat message.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_CHAT_VIEW_COMMENTS",
+      "name": "Get chat view comments",
+      "description": "Retrieves comments from a specified Chat view in ClickUp, supporting pagination via `start` and `start_id` to fetch comments older than the…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "integer"
+          },
+          "view_id": {
+            "type": "string"
+          },
+          "start_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "view_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_CUSTOM_ROLES",
+      "name": "Get custom roles",
+      "description": "Retrieves all Custom Roles, which allow granular permission configurations, for a specified Workspace (Team).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "include_members": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_CUSTOM_TASK_TYPES",
+      "name": "Get custom task types",
+      "description": "Retrieves all custom task types available within a specified Workspace (team_id).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_DOC_CONTENT",
+      "name": "Get Doc Content",
+      "description": "Tool to fetch the full content of a ClickUp Doc including metadata and all page contents in markdown format. Use when you need to read or s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string"
+          },
+          "page_ids": {
+            "type": "array"
+          },
+          "workspace_id": {
+            "type": "string"
+          },
+          "include_page_listing_only": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "doc_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_DOC_PAGE_CONTENT",
+      "name": "Get Doc Page Content",
+      "description": "Tool to fetch a single ClickUp Doc page's content and metadata by workspace_id + doc_id + page_id (v3 Docs API). Use when you need to read …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "doc_id",
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_DOC_PAGE_LISTING",
+      "name": "Get Doc Page Listing",
+      "description": "Tool to fetch the page listing structure of a ClickUp Doc by workspace_id and doc_id. Use when you need to discover the hierarchical struct…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          },
+          "max_page_depth": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "doc_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_DOC_PAGES_PUBLIC",
+      "name": "Get Doc Pages",
+      "description": "Tool to fetch pages belonging to a ClickUp Doc. Use when you need to list all pages in a doc with their content and structure.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          },
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/md",
+              "text/plain"
+            ]
+          },
+          "max_page_depth": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "doc_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_FILTERED_TEAM_TASKS",
+      "name": "Get filtered team tasks",
+      "description": "Retrieves a paginated list of tasks (up to 100 per page) from a specified workspace based on various filter criteria, respecting user acces…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "reverse": {
+            "type": "boolean"
+          },
+          "team_Id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "list_ids": {
+            "type": "array"
+          },
+          "order_by": {
+            "type": "string",
+            "enum": [
+              "id",
+              "created",
+              "updated",
+              "due_date"
+            ]
+          },
+          "statuses": {
+            "type": "array"
+          },
+          "subtasks": {
+            "type": "boolean"
+          },
+          "assignees": {
+            "type": "array"
+          },
+          "space_ids": {
+            "type": "array"
+          },
+          "due_date_gt": {
+            "type": "integer"
+          },
+          "due_date_lt": {
+            "type": "integer"
+          },
+          "project_ids": {
+            "type": "array"
+          },
+          "custom_items": {
+            "type": "array"
+          },
+          "date_done_gt": {
+            "type": "integer"
+          },
+          "date_done_lt": {
+            "type": "integer"
+          },
+          "custom_fields": {
+            "type": "array"
+          },
+          "include_closed": {
+            "type": "boolean"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          },
+          "date_created_gt": {
+            "type": "integer"
+          },
+          "date_created_lt": {
+            "type": "integer"
+          },
+          "date_updated_gt": {
+            "type": "integer"
+          },
+          "date_updated_lt": {
+            "type": "integer"
+          },
+          "include_markdown_description": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_Id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_FOLDER",
+      "name": "Get folder",
+      "description": "Retrieves detailed information about a specific folder in ClickUp.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_FOLDER_AVAILABLE_FIELDS",
+      "name": "Get Folder Available Fields",
+      "description": "Tool to view custom fields available in a ClickUp folder. Use to discover what custom fields can be used when working with tasks in this fo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_FOLDERLESS_LISTS",
+      "name": "Get folderless lists",
+      "description": "Retrieves all Lists within a specified Space that are not located in any Folder.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "archived": {
+            "type": "boolean"
+          },
+          "space_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_FOLDERS",
+      "name": "Get folders",
+      "description": "Retrieves Folders within a specified ClickUp Space, ensuring `space_id` is valid, with an option to filter by archived status.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "archived": {
+            "type": "boolean"
+          },
+          "space_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_FOLDER_VIEWS",
+      "name": "Get folder views",
+      "description": "Retrieves all configured views (like List, Board, Calendar) for a specified, existing Folder in ClickUp.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_GOAL",
+      "name": "Get goal",
+      "description": "Retrieves detailed information for an existing ClickUp Goal, specified by its unique `goal_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "goal_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "goal_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_GOALS",
+      "name": "Get goals",
+      "description": "Retrieves goals for a specified ClickUp Workspace (Team); the `team_id` must be valid and accessible.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "include_completed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_GUEST",
+      "name": "Get guest",
+      "description": "Call this to retrieve detailed information for a specific guest within a Team (Workspace), ensuring the `guest_id` is valid for the given `…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "guest_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "guest_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_LIST",
+      "name": "Get list",
+      "description": "Retrieves detailed information for an existing List in ClickUp, identified by its unique `list_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_LIST_COMMENTS",
+      "name": "Get list comments",
+      "description": "Retrieves comments for a specific ClickUp List, supporting pagination using `start` (timestamp) and `start_id` (comment ID) to fetch earlie…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "integer"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "start_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_LIST_MEMBERS",
+      "name": "Get list members",
+      "description": "Retrieves all members of a specific, existing ClickUp List by its ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_LISTS",
+      "name": "Get lists",
+      "description": "Retrieves all lists within a specified, existing ClickUp folder, optionally filtering by archived status.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "archived": {
+            "type": "boolean"
+          },
+          "folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_LIST_VIEWS",
+      "name": "Get list views",
+      "description": "Retrieves all task and page views for a specified and accessible ClickUp List.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_RUNNING_TIME_ENTRY",
+      "name": "Get running time entry",
+      "description": "Retrieves the currently active time entry for a user in a Workspace; a negative 'duration' in its data indicates it's running, and the resp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "integer"
+          },
+          "assignee": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_SHARED_HIERARCHY",
+      "name": "Shared hierarchy",
+      "description": "Retrieves the hierarchy of tasks, Lists, and Folders shared with the authenticated user within an existing ClickUp Team (Workspace), identi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_SPACE",
+      "name": "Get space",
+      "description": "Retrieves detailed information for an existing Space in a ClickUp Workspace, identified by its unique space_id.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "space_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_SPACE_AVAILABLE_FIELDS",
+      "name": "Get space available fields",
+      "description": "Retrieves all custom fields available in a ClickUp Space, identified by space_id. Returns Space-level custom fields only.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "space_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "space_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_SPACES",
+      "name": "Get spaces",
+      "description": "Retrieves Spaces for a Team ID; member information for private Spaces is returned only if the authenticated user is a member.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_SPACE_TAGS",
+      "name": "Get space tags",
+      "description": "Retrieves all tags for tasks within a specified ClickUp Space, requiring a valid `space_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "space_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_SPACE_VIEWS",
+      "name": "Get space views",
+      "description": "Retrieves all task and page views for a specified Space ID in ClickUp.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "space_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_SUBTYPES",
+      "name": "Get post subtype IDs",
+      "description": "Tool to retrieve post subtype IDs (Announcement, Discussion, Idea, Update) for a ClickUp Workspace. Use when you need subtype IDs to send m…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "comment_type": {
+            "type": "string",
+            "enum": [
+              "post",
+              "ai",
+              "syncup",
+              "ai_via_brain"
+            ]
+          },
+          "workspace_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "comment_type"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_TASK",
+      "name": "Get task",
+      "description": "Retrieves comprehensive details for a ClickUp task by its ID, supporting standard or custom task IDs (requires `team_id` for custom IDs).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "integer"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          },
+          "include_subtasks": {
+            "type": "boolean"
+          },
+          "include_markdown_description": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_TASK_COMMENTS",
+      "name": "Get task comments",
+      "description": "Retrieves up to 25 comments for a specified task, supporting pagination using `start` and `start_id` to fetch older comments.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "integer"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "start_id": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_TASK_MEMBERS",
+      "name": "Get task members",
+      "description": "Retrieves users with explicit access (directly assigned or shared) to a specific existing task, excluding users with inherited permissions.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_TASKS",
+      "name": "Get tasks",
+      "description": "Retrieves tasks from a specified ClickUp list; only tasks whose home is the given list_id are returned. Closed and archived tasks are exclu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "reverse": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "order_by": {
+            "type": "string"
+          },
+          "statuses": {
+            "type": "array"
+          },
+          "subtasks": {
+            "type": "boolean"
+          },
+          "assignees": {
+            "type": "array"
+          },
+          "due_date_gt": {
+            "type": "integer"
+          },
+          "due_date_lt": {
+            "type": "integer"
+          },
+          "custom_items": {
+            "type": "array"
+          },
+          "date_done_gt": {
+            "type": "integer"
+          },
+          "date_done_lt": {
+            "type": "integer"
+          },
+          "custom_fields": {
+            "type": "array"
+          },
+          "include_closed": {
+            "type": "boolean"
+          },
+          "date_created_gt": {
+            "type": "integer"
+          },
+          "date_created_lt": {
+            "type": "integer"
+          },
+          "date_updated_gt": {
+            "type": "integer"
+          },
+          "date_updated_lt": {
+            "type": "integer"
+          },
+          "include_markdown_description": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_TASK_TEMPLATES",
+      "name": "Get task templates",
+      "description": "Retrieves task templates for a specified Workspace (Team ID), supporting pagination.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "page"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_TASK_TIME_IN_STATUS",
+      "name": "Get task s time in status",
+      "description": "Retrieves the duration a task has spent in each status, provided the 'Total time in Status' ClickApp is enabled for the Workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "integer"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_TEAM_AVAILABLE_FIELDS",
+      "name": "Get team available fields",
+      "description": "Retrieves all custom fields available in a ClickUp Workspace (Team), identified by team_id. Returns Workspace-level custom fields only.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_TEAMS",
+      "name": "Get teams",
+      "description": "Retrieves user groups (Teams) from a ClickUp Workspace, typically requiring `team_id` (Workspace ID), with an option to filter by `group_id…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "integer"
+          },
+          "group_ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_THREADED_COMMENTS",
+      "name": "Get threaded comments",
+      "description": "Retrieves threaded replies to a parent comment. Use when you need to fetch conversation threads under a specific comment.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "comment_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_TIME_ENTRIES_IN_DATE_RANGE",
+      "name": "Get time entries within a date range",
+      "description": "Retrieves time entries for a specified Team (Workspace ID) within a date range (defaults to the last 30 days for the authenticated user if …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "team_Id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "end_date": {
+            "type": "integer"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "string"
+          },
+          "start_date": {
+            "type": "integer"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          },
+          "include_task_tags": {
+            "type": "boolean"
+          },
+          "include_location_names": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_Id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_TIME_ENTRY",
+      "name": "Get singular time entry",
+      "description": "Fetches a specific time entry by its ID for a given team; a negative duration in the response indicates an active timer.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "integer"
+          },
+          "timer_id": {
+            "type": "string"
+          },
+          "include__task": {
+            "type": "boolean"
+          },
+          "include_location_names": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "timer_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_TIME_ENTRY_HISTORY",
+      "name": "Get time entry history",
+      "description": "Retrieves the modification history for an existing time entry within a specific ClickUp Team (Workspace).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "timer_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "timer_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_TRACKED_TIME",
+      "name": "Get tracked time",
+      "description": "Retrieves tracked time for a task using a legacy endpoint; prefer newer Time Tracking API endpoints for managing time entries.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_USER",
+      "name": "Get user",
+      "description": "Retrieves detailed information for a specific user within a ClickUp Workspace (Team), available only for Workspaces on the ClickUp Enterpri…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_VIEW",
+      "name": "Get view",
+      "description": "Fetches details for a specific ClickUp view, identified by its `view_id`, which must exist.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "view_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "view_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_VIEW_TASKS",
+      "name": "Get view tasks",
+      "description": "Retrieves all tasks visible in a specified ClickUp view, respecting its applied filters, sorting, and grouping.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "view_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "view_id",
+          "page"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_WEBHOOKS",
+      "name": "Get webhooks",
+      "description": "Fetches webhooks for a Team (Workspace), returning only those created by the authenticated user via API, for a `team_id` they can access.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_WORKSPACE_EVERYTHING_LEVEL_VIEWS",
+      "name": "Get workspace everything level views",
+      "description": "Retrieves all task and page views at the 'Everything Level' (a comprehensive overview of all tasks across all Spaces) for a specified Click…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "integer"
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_WORKSPACE_PLAN",
+      "name": "Get workspace plan",
+      "description": "Retrieves the details of the current subscription plan for a specified ClickUp Workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_GET_WORKSPACE_SEATS",
+      "name": "Get workspace seats",
+      "description": "Retrieves seat utilization (used, total, available for members/guests) for a ClickUp Workspace (Team) ID, which must be for an existing Wor…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_INVITE_GUEST_TO_WORKSPACE",
+      "name": "Invite guest to workspace",
+      "description": "Invites a guest by email to a ClickUp Workspace (Team) on an Enterprise Plan, setting initial permissions and optionally a custom role; fur…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "can_edit_tags": {
+            "type": "boolean"
+          },
+          "custom_role_id": {
+            "type": "integer"
+          },
+          "can_create_views": {
+            "type": "boolean"
+          },
+          "can_see_time_spent": {
+            "type": "boolean"
+          },
+          "can_see_time_estimated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "email",
+          "can_edit_tags",
+          "can_see_time_spent",
+          "can_see_time_estimated",
+          "can_create_views"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_INVITE_USER_TO_WORKSPACE",
+      "name": "Invite user to workspace",
+      "description": "Invites a user via email to a ClickUp Workspace (Team), optionally granting admin rights or a custom role; requires an Enterprise Plan for …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "admin": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "custom_role_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "team_id",
+          "email",
+          "admin"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_MOVE_TASK_TO_HOME_LIST",
+      "name": "Move task to new home list",
+      "description": "Tool to move a task to a new home List using ClickUp Public API v3. Use when you need to change a task's home list (not just add to additio…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          },
+          "status_mappings": {
+            "type": "array"
+          },
+          "move_custom_fields": {
+            "type": "boolean"
+          },
+          "custom_fields_to_move": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "task_id",
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_REMOVE_CUSTOM_FIELD_VALUE",
+      "name": "Remove custom field value",
+      "description": "Removes an existing value from a Custom Field on a specific task; this does not delete the Custom Field definition or its predefined option…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "integer"
+          },
+          "field_id": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "field_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_REMOVE_GUEST_FROM_FOLDER",
+      "name": "Remove guest from folder",
+      "description": "Revokes a guest's access to a specific ClickUp Folder, optionally unsharing items explicitly shared with them within it; requires an Enterp…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "guest_id": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "string"
+          },
+          "include_shared": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "folder_id",
+          "guest_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_REMOVE_GUEST_FROM_LIST",
+      "name": "Remove guest from list",
+      "description": "Revokes a guest's access to a specific List, provided the guest currently has access to this List and the Workspace is on the ClickUp Enter…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string"
+          },
+          "guest_id": {
+            "type": "string"
+          },
+          "include_shared": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "list_id",
+          "guest_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_REMOVE_GUEST_FROM_TASK",
+      "name": "Remove guest from task",
+      "description": "Revokes a guest's access to a specific task; only available for Workspaces on the ClickUp Enterprise Plan.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "guest_id": {
+            "type": "string"
+          },
+          "include_shared": {
+            "type": "boolean"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "guest_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_REMOVE_GUEST_FROM_WORKSPACE",
+      "name": "Remove guest from workspace",
+      "description": "Permanently removes a guest from a specified Workspace, revoking all their access; this destructive operation requires the Workspace to be …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "guest_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "guest_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_REMOVE_TAG_FROM_TASK",
+      "name": "Remove tag from task",
+      "description": "Removes a tag from a specified task by disassociating it (does not delete the tag from Workspace), succeeding even if the tag is not on the…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "tag_name": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "tag_name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_REMOVE_TAGS_FROM_TIME_ENTRIES",
+      "name": "Remove tags from time entries",
+      "description": "Removes tags from specified time entries in a team, without deleting the tags from the workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "time_entry_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "team_id",
+          "tags",
+          "time_entry_ids"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_REMOVE_TASK_FROM_LIST",
+      "name": "Remove task from list",
+      "description": "Removes a task from an extra list (not its home list); the 'Tasks in Multiple Lists' ClickApp must be enabled.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list_id",
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_REMOVE_USER_FROM_WORKSPACE",
+      "name": "Remove user from workspace",
+      "description": "Deactivates a user from a specified ClickUp Workspace, revoking their access (user can be reactivated later); requires the Workspace to be …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_SEARCH_DOCS",
+      "name": "Search Docs",
+      "description": "Tool to search and list Docs metadata in a ClickUp workspace. Use after confirming the workspace ID to quickly locate relevant meeting note…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_SET_CUSTOM_FIELD_VALUE",
+      "name": "Set custom field value",
+      "description": "Sets or updates a Custom Field's value for a task; the new value (with type-dependent structure, e.g., `{\"value\": \"text\"}` or `{\"value\": 12…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "value": {},
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "field_id": {
+            "type": "string"
+          },
+          "value_options": {
+            "type": "object"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "field_id",
+          "value"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_START_TIME_ENTRY",
+      "name": "Start a time entry",
+      "description": "Starts a new time entry (timer) in the specified Team (Workspace), optionally associating it with a task, adding a description, setting bil…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tid": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "team_Id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "billable": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_Id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_STOP_TIME_ENTRY",
+      "name": "Stop a time entry",
+      "description": "Stops the authenticated user's currently active time entry in the specified Team (Workspace), which requires an existing time entry to be r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_TRACK_TIME",
+      "name": "Track time",
+      "description": "Records a time entry for a task using ClickUp's legacy time tracking system; newer endpoints are generally recommended.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "end": {
+            "type": "integer"
+          },
+          "time": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "start",
+          "end",
+          "time"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_CHAT_CHANNEL",
+      "name": "Update chat channel",
+      "description": "Tool to update a ClickUp chat channel's properties including name, topic, description, visibility, and location. Use when you need to modif…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "location": {
+            "type": "object"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "PRIVATE"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "integer"
+          },
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/md",
+              "text/plain"
+            ]
+          }
+        },
+        "required": [
+          "workspace_id",
+          "channel_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_CHAT_MESSAGE",
+      "name": "Update chat message",
+      "description": "Tool to update a ClickUp chat message's content, assignee, or resolved status via the v3 API. Use when you need to edit an existing chat me…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "resolved": {
+            "type": "boolean"
+          },
+          "post_data": {
+            "type": "object"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          },
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/md",
+              "text/plain"
+            ]
+          },
+          "group_assignee": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "message_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_CHECKLIST",
+      "name": "Edit checklist",
+      "description": "Updates an existing checklist's name or position, identified by its `checklist_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "checklist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checklist_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_CHECKLIST_ITEM",
+      "name": "Edit checklist item",
+      "description": "Updates an existing checklist item, allowing modification of its name, assignee, resolution status, or parent item for nesting.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "resolved": {
+            "type": "boolean"
+          },
+          "checklist_id": {
+            "type": "string"
+          },
+          "checklist_item_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checklist_id",
+          "checklist_item_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_COMMENT",
+      "name": "Update comment",
+      "description": "Updates an existing task comment's text, assignee (who must be a valid workspace member), or resolution status, requiring a valid existing …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "assignee": {
+            "type": "integer"
+          },
+          "resolved": {
+            "type": "boolean"
+          },
+          "comment_id": {
+            "type": "string"
+          },
+          "comment_text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment_id",
+          "comment_text",
+          "assignee",
+          "resolved"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_FOLDER",
+      "name": "Update folder",
+      "description": "Updates the name of an existing folder in ClickUp.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_GOAL",
+      "name": "Update goal",
+      "description": "Updates attributes of an existing ClickUp goal, identified by its `goal_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "goal_id": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "integer"
+          },
+          "add_owners": {
+            "type": "array"
+          },
+          "rem_owners": {
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "goal_id",
+          "description",
+          "name",
+          "due_date",
+          "rem_owners",
+          "add_owners",
+          "color"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_GUEST_ON_WORKSPACE",
+      "name": "Edit guest on workspace",
+      "description": "Modifies the details and permissions of an existing guest user within a specific Workspace.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string"
+          },
+          "guest_id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "can_edit_tags": {
+            "type": "boolean"
+          },
+          "custom_role_id": {
+            "type": "integer"
+          },
+          "can_create_views": {
+            "type": "boolean"
+          },
+          "can_see_time_spent": {
+            "type": "boolean"
+          },
+          "can_see_time_estimated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "guest_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_KEY_RESULT",
+      "name": "Edit key result",
+      "description": "Updates an existing key result's progress or note in ClickUp, where the key result measures progress towards a goal.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "key_result_id": {
+            "type": "string"
+          },
+          "steps_current": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key_result_id",
+          "steps_current",
+          "note"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_LIST",
+      "name": "Update list",
+      "description": "Updates attributes of an existing ClickUp list, such as its name, content, due date, priority, assignee, or color status, identified by its…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "list_id": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "unset_status": {
+            "type": "boolean"
+          },
+          "due_date_time": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "list_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_SPACE",
+      "name": "Update space",
+      "description": "Updates an existing ClickUp Space, allowing modification of its name, color, privacy, and feature settings (ClickApps).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "admin_can_manage": {
+            "type": "boolean"
+          },
+          "multiple_assignees": {
+            "type": "boolean"
+          },
+          "features__tags__enabled": {
+            "type": "boolean"
+          },
+          "features__due_dates__enabled": {
+            "type": "boolean"
+          },
+          "features__checklists__enabled": {
+            "type": "boolean"
+          },
+          "features__portfolios__enabled": {
+            "type": "boolean"
+          },
+          "features__due_dates__start_date": {
+            "type": "boolean"
+          },
+          "features__custom_fields__enabled": {
+            "type": "boolean"
+          },
+          "features__time_tracking__enabled": {
+            "type": "boolean"
+          },
+          "features__time_estimates__enabled": {
+            "type": "boolean"
+          },
+          "features__due_dates__remap_due_dates": {
+            "type": "boolean"
+          },
+          "features__dependency_warning__enabled": {
+            "type": "boolean"
+          },
+          "features__remap_dependencies__enabled": {
+            "type": "boolean"
+          },
+          "features__due_dates__remap_closed_due_date": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "space_id",
+          "name",
+          "color",
+          "private",
+          "multiple_assignees"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_SPACE_TAG",
+      "name": "Edit space tag",
+      "description": "Updates an existing tag's name and colors in a ClickUp Space; requires current tag name for identification, and new values for tag name, fo…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "space_id": {
+            "type": "string"
+          },
+          "tag_name": {
+            "type": "string"
+          },
+          "tag__name": {
+            "type": "string"
+          },
+          "tag__bg__color": {
+            "type": "string"
+          },
+          "tag__fg__color": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_id",
+          "tag_name"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_TASK",
+      "name": "Update task",
+      "description": "Updates attributes of an existing task; `team_id` is required if `custom_task_ids` is true, use a single space (\" \") for `description` to c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "due_date": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "start_date": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "due_date_time": {
+            "type": "boolean"
+          },
+          "time_estimate": {
+            "type": "integer"
+          },
+          "assignees__add": {
+            "type": "array"
+          },
+          "assignees__rem": {
+            "type": "array"
+          },
+          "custom_item_id": {
+            "type": "integer"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          },
+          "start_date_time": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_TEAM",
+      "name": "Update team",
+      "description": "Updates an existing ClickUp User Group (Team) using its `group_id`; note that adding a view-only guest as a paid member may incur charges.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "handle": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "members__add": {
+            "type": "array"
+          },
+          "members__rem": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_TIME_ENTRY",
+      "name": "Update a time entry",
+      "description": "Updates an existing ClickUp time entry. Requires team_id (workspace ID) and timer_id (time entry ID). Optional fields: description, tags, t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "end": {
+            "type": "integer"
+          },
+          "tid": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "billable": {
+            "type": "boolean"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "timer_id": {
+            "type": "string"
+          },
+          "tag_action": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "team_id",
+          "timer_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_TIME_ENTRY_TAG",
+      "name": "Change tag names from time entries",
+      "description": "Updates the name, background color, and/or foreground color for an existing time entry tag, identified by its current `name` and `team_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "tag_bg": {
+            "type": "string"
+          },
+          "tag_fg": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "new_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "name",
+          "new_name",
+          "tag_bg",
+          "tag_fg"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_TIME_TRACKED",
+      "name": "Edit time tracked",
+      "description": "Edits a legacy time-tracked interval for a task (identified by `task_id` and `interval_id`) to update its start/end times and duration; `te…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "end": {
+            "type": "integer"
+          },
+          "time": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "integer"
+          },
+          "interval_id": {
+            "type": "string"
+          },
+          "custom_task_ids": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "interval_id",
+          "start",
+          "end",
+          "time"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_USER_ON_WORKSPACE",
+      "name": "Edit user on workspace",
+      "description": "Updates a user's username, admin status, or custom role in a Workspace; requires the Workspace to be on an Enterprise Plan.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "admin": {
+            "type": "boolean"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "custom_role_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "team_id",
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_VIEW",
+      "name": "Update view",
+      "description": "Updates an existing ClickUp view's settings such as name, type, grouping, or filters; ensure `parent_id` and `parent_type` define a valid h…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "view_id": {
+            "type": "string"
+          },
+          "parent__id": {
+            "type": "string"
+          },
+          "divide__dir": {
+            "type": "null"
+          },
+          "filters__op": {
+            "type": "string"
+          },
+          "parent__type": {
+            "type": "integer"
+          },
+          "divide__field": {
+            "type": "null"
+          },
+          "grouping__dir": {
+            "type": "integer"
+          },
+          "columns__fields": {
+            "type": "array"
+          },
+          "filters__fields": {
+            "type": "array"
+          },
+          "filters__search": {
+            "type": "string"
+          },
+          "grouping__field": {
+            "type": "string"
+          },
+          "sorting__fields": {
+            "type": "array"
+          },
+          "grouping__ignore": {
+            "type": "boolean"
+          },
+          "divide__collapsed": {
+            "type": "boolean"
+          },
+          "grouping__collapsed": {
+            "type": "array"
+          },
+          "filters__show__closed": {
+            "type": "boolean"
+          },
+          "settings__me__comments": {
+            "type": "boolean"
+          },
+          "settings__me__subtasks": {
+            "type": "boolean"
+          },
+          "settings__show__images": {
+            "type": "boolean"
+          },
+          "settings__me__checklists": {
+            "type": "boolean"
+          },
+          "settings__show__subtasks": {
+            "type": "integer"
+          },
+          "team__sidebar__assignees": {
+            "type": "array"
+          },
+          "settings__show__assignees": {
+            "type": "boolean"
+          },
+          "settings__show__task__locations": {
+            "type": "boolean"
+          },
+          "settings__show__closed__subtasks": {
+            "type": "boolean"
+          },
+          "team__sidebar__unassigned__tasks": {
+            "type": "boolean"
+          },
+          "team__sidebar__assigned__comments": {
+            "type": "boolean"
+          },
+          "settings__collapse__empty__columns": {
+            "type": "string"
+          },
+          "settings__show__subtask__parent__names": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "view_id",
+          "name",
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_WEBHOOK",
+      "name": "Update webhook",
+      "description": "Updates the endpoint URL, monitored events, and status of an existing webhook, identified by its `webhook_id`.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "webhook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id",
+          "endpoint",
+          "events",
+          "status"
+        ]
+      }
+    },
+    {
+      "slug": "CLICKUP_UPDATE_WORKSPACE_ACL",
+      "name": "Update workspace ACL",
+      "description": "Updates privacy and access control list (ACL) permissions for a workspace object or location. Use this to make objects private/public or ma…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "object_id": {
+            "type": "string"
+          },
+          "object_type": {
+            "type": "string",
+            "enum": [
+              "attachment",
+              "attachmentAccess",
+              "approval",
+              "banWorkspace",
+              "checklist",
+              "checklistItem",
+              "checklistTemplateAccess",
+              "comment",
+              "commentsLastReadAt",
+              "customField",
+              "customFieldAccess",
+              "customItem",
+              "customPermissionLevel",
+              "dashboard",
+              "dashboardAccess",
+              "doc",
+              "docAccess",
+              "folder",
+              "folderDescendantsSet",
+              "folderTemplateAccess",
+              "form",
+              "formulaValue",
+              "foundationalJob",
+              "goal",
+              "goalAccess",
+              "goalFolder",
+              "goalFolderAccess",
+              "hierarchy",
+              "list",
+              "listDescendantsSet",
+              "listDescendantsPoints",
+              "listDescendantsTimeEstimates",
+              "listTemplateAccess",
+              "notepad",
+              "page",
+              "pageAccess",
+              "post",
+              "reminder",
+              "reminderAccess",
+              "rolledUpFieldValue",
+              "scheduledComment",
+              "space",
+              "spaceDescendantsSet",
+              "spaceTemplateAccess",
+              "task",
+              "taskAccess",
+              "taskHistory",
+              "taskProperty",
+              "taskTemplateAccess",
+              "template",
+              "user",
+              "userAccess",
+              "userGroup",
+              "userHierarchy",
+              "userPresence",
+              "view",
+              "viewAccess",
+              "viewTemplateAccess",
+              "whiteboard",
+              "whiteboardAccess",
+              "widget",
+              "workspace",
+              "workspaceDescendantsSet",
+              "workscheduleWorkweekSchedule",
+              "workscheduleScheduleExceptions"
+            ]
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "object_type",
+          "object_id"
+        ]
+      }
+    }
+  ]
+}

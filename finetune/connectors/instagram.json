@@ -1,0 +1,995 @@
+{
+  "slug": "instagram",
+  "name": "Instagram",
+  "tool_count": 36,
+  "tools": [
+    {
+      "slug": "INSTAGRAM_CREATE_CAROUSEL_CONTAINER",
+      "name": "Create Carousel Container",
+      "description": "Create a draft carousel post with multiple images/videos before publishing. Instagram requires carousels to have between 2 and 10 media ite…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "caption": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "child_image_urls": {
+            "type": "array"
+          },
+          "child_video_urls": {
+            "type": "array"
+          },
+          "child_image_files": {
+            "type": "array"
+          },
+          "child_video_files": {
+            "type": "array"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_user_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_CREATE_MEDIA_CONTAINER",
+      "name": "Create Media Container (Deprecated)",
+      "description": "DEPRECATED: Use INSTAGRAM_POST_IG_USER_MEDIA instead. Creates a draft media container for photos/videos/reels before publishing. Business/C…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "caption": {
+            "type": "string"
+          },
+          "cover_url": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": "string"
+          },
+          "video_url": {
+            "type": "string"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "media_type": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "photo",
+              "video",
+              "reel",
+              "carousel_item"
+            ]
+          },
+          "is_carousel_item": {
+            "type": "boolean"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INSTAGRAM_CREATE_POST",
+      "name": "Create Post (Deprecated)",
+      "description": "DEPRECATED: Use INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH instead. Publish a draft media container to Instagram (final publishing step). Posts b…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ig_user_id": {
+            "type": "string"
+          },
+          "creation_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_user_id",
+          "creation_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_DELETE_COMMENT",
+      "name": "Delete Comment",
+      "description": "Tool to delete a comment on Instagram media. Use when you need to remove a comment that was created by your Instagram Business or Creator A…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ig_comment_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_comment_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_DELETE_MESSENGER_PROFILE",
+      "name": "Delete Messenger Profile",
+      "description": "Tool to delete messenger profile settings for an Instagram account. Use when you need to remove ice breakers, persistent menu, greeting mes…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_user_id",
+          "fields"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_CONVERSATION",
+      "name": "Get Conversation",
+      "description": "Get details about a specific Instagram DM conversation (participants, etc). Requires a Business or Creator account with Instagram messaging…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "conversation_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_IG_COMMENT_REPLIES",
+      "name": "Get IG Comment Replies",
+      "description": "Get replies to a specific Instagram comment. Returns a list of comment replies with details like text, username, timestamp, and like count.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "ig_comment_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_comment_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_IG_MEDIA",
+      "name": "Get Instagram Media",
+      "description": "Get a published Instagram Media object (photo, video, story, reel, or carousel). Use when you need to retrieve detailed information about a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "ig_media_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_media_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_IG_MEDIA_CHILDREN",
+      "name": "Get IG Media Children",
+      "description": "Tool to get media objects (images/videos) that are children of an Instagram carousel/album post. Use when you need to retrieve individual m…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "ig_media_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_media_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_IG_MEDIA_COMMENTS",
+      "name": "Get IG Media Comments",
+      "description": "Tool to retrieve comments on an Instagram media object. Use when you need to fetch comments from a specific Instagram post, photo, video, o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "ig_media_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_media_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_IG_MEDIA_INSIGHTS",
+      "name": "Get IG Media Insights",
+      "description": "Tool to get insights and metrics for Instagram media objects (photos, videos, reels, carousel albums). Use when you need to retrieve perfor…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "array"
+          },
+          "period": {
+            "type": "string"
+          },
+          "ig_media_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_media_id",
+          "metric"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_IG_USER_CONTENT_PUBLISHING_LIMIT",
+      "name": "Get IG User Content Publishing Limit",
+      "description": "Get an Instagram Business Account's current content publishing usage. Use this to monitor quota usage before publishing; exceeding the dail…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_IG_USER_LIVE_MEDIA",
+      "name": "Get IG User Live Media",
+      "description": "Get live media objects during an active Instagram broadcast. Returns the live video media ID and metadata when a live broadcast is in progr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_IG_USER_MEDIA",
+      "name": "Get IG User Media",
+      "description": "Get Instagram user's media collection (posts, photos, videos, reels, carousels). Use when you need to retrieve all media published by an In…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "since": {
+            "type": "integer"
+          },
+          "until": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          },
+          "auto_resolve_fb_page_id": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ig_user_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_IG_USER_STORIES",
+      "name": "Get IG User Stories",
+      "description": "Get active story media objects for an Instagram Business or Creator account. Stories are retrieved via the /stories endpoint. Returns stori…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_IG_USER_TAGS",
+      "name": "Get IG User Tags",
+      "description": "Get Instagram media where the user has been tagged by other users. Use when you need to retrieve all media in which an Instagram Business o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_user_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_MESSENGER_PROFILE",
+      "name": "Get Messenger Profile",
+      "description": "Get the messenger profile settings for an Instagram account. Returns ice breakers and other messaging configuration. Use when you need to r…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_user_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_PAGE_CONVERSATIONS",
+      "name": "Get Page Conversations",
+      "description": "Get Instagram conversations for a Page connected to an Instagram Business account. Use platform=instagram parameter to filter for Instagram…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_POST_COMMENTS",
+      "name": "Get Post Comments (Deprecated)",
+      "description": "DEPRECATED: Use INSTAGRAM_GET_IG_MEDIA_COMMENTS instead. Get comments on an Instagram post. Requires Instagram Business or Creator account.…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "ig_post_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_post_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_POST_INSIGHTS",
+      "name": "Get Post Insights (Deprecated)",
+      "description": "DEPRECATED: Use INSTAGRAM_GET_IG_MEDIA_INSIGHTS instead. Get Instagram post insights/analytics (impressions, reach, engagement, etc.). Requ…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "array"
+          },
+          "ig_post_id": {
+            "type": "string"
+          },
+          "metric_preset": {
+            "type": "string",
+            "enum": [
+              "auto_safe",
+              "image_basic",
+              "video_basic",
+              "reel_basic",
+              "carousel_basic"
+            ]
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_post_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_POST_STATUS",
+      "name": "Get Post Status (Deprecated)",
+      "description": "DEPRECATED: Use GetIgMedia instead. Check the processing status of a draft post container. Poll until status_code='FINISHED' before calling…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "creation_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "creation_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_USER_INFO",
+      "name": "Get User Info",
+      "description": "Get Instagram Business Account info including profile details and statistics. IMPORTANT: Only works for Business/Creator accounts you manag…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ig_user_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_USER_INSIGHTS",
+      "name": "Get User Insights",
+      "description": "Get Instagram account-level insights and analytics (profile views, reach, follower count, etc.). Requires a Business or Creator account; pe…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "since": {
+            "type": "integer"
+          },
+          "until": {
+            "type": "integer"
+          },
+          "metric": {
+            "type": "array"
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "day",
+              "week",
+              "days_28",
+              "lifetime"
+            ]
+          },
+          "breakdown": {
+            "type": "string"
+          },
+          "timeframe": {
+            "type": "string",
+            "enum": [
+              "this_month",
+              "this_week"
+            ]
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "metric_type": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INSTAGRAM_GET_USER_MEDIA",
+      "name": "Get User Media (Deprecated)",
+      "description": "DEPRECATED: Use INSTAGRAM_GET_IG_USER_MEDIA instead. Get Instagram user's media (posts, photos, videos). Only works for connected Business …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INSTAGRAM_LIST_ALL_CONVERSATIONS",
+      "name": "List All Conversations",
+      "description": "List all Instagram DM conversations for the authenticated user. Requires a Business/Creator account with messaging permissions; personal ac…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "INSTAGRAM_LIST_ALL_MESSAGES",
+      "name": "List All Messages",
+      "description": "List all messages from a specific Instagram DM conversation. Requires a Business or Creator account with messaging permissions; personal ac…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "conversation_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_MARK_SEEN",
+      "name": "Mark Seen",
+      "description": "Mark Instagram DM messages as read/seen for a specific user. Sends a 'mark_seen' sender action to indicate messages from the specified reci…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ig_user_id": {
+            "type": "string"
+          },
+          "recipient_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipient_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_POST_IG_COMMENT_REPLIES",
+      "name": "Post IG Comment Replies",
+      "description": "Tool to create a reply to an Instagram comment. Use when you need to reply to a specific comment on an Instagram post owned by a Business o…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "ig_comment_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_comment_id",
+          "message"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_POST_IG_MEDIA_COMMENTS",
+      "name": "Post IG Media Comments",
+      "description": "Tool to create a comment on an Instagram media object. Use when you need to post a comment on a specific Instagram post, photo, video, or c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "ig_media_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_media_id",
+          "message"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_POST_IG_USER_MEDIA",
+      "name": "Post IG User Media",
+      "description": "Tool to create a media container for Instagram posts. Use this to create a container for images, videos, Reels, or carousels. This is the f…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "caption": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array"
+          },
+          "cover_url": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": "string"
+          },
+          "user_tags": {
+            "type": "array"
+          },
+          "video_url": {
+            "type": "string"
+          },
+          "audio_name": {
+            "type": "string"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "image_file": {
+            "type": "object"
+          },
+          "media_type": {
+            "type": "string",
+            "enum": [
+              "REELS",
+              "CAROUSEL",
+              "STORIES"
+            ]
+          },
+          "video_file": {
+            "type": "object"
+          },
+          "location_id": {
+            "type": "string"
+          },
+          "thumb_offset": {
+            "type": "integer"
+          },
+          "collaborators": {
+            "type": "array"
+          },
+          "share_to_feed": {
+            "type": "boolean"
+          },
+          "is_carousel_item": {
+            "type": "boolean"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_user_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH",
+      "name": "Publish IG User Media",
+      "description": "Tool to publish a media container to an Instagram Business account. This action automatically waits for the container to finish processing …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ig_user_id": {
+            "type": "string"
+          },
+          "creation_id": {
+            "type": "string"
+          },
+          "max_wait_seconds": {
+            "type": "integer"
+          },
+          "graph_api_version": {
+            "type": "string"
+          },
+          "poll_interval_seconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "ig_user_id",
+          "creation_id"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_POST_IG_USER_MENTIONS",
+      "name": "Reply to IG User Mentions",
+      "description": "Tool to reply to a mention of your Instagram Business or Creator account. Use when you need to respond to comments or media captions where …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "media_id": {
+            "type": "string"
+          },
+          "comment_id": {
+            "type": "string"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_user_id",
+          "media_id",
+          "message"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_REPLY_TO_COMMENT",
+      "name": "Reply To Comment (Deprecated)",
+      "description": "DEPRECATED: Use INSTAGRAM_POST_IG_COMMENT_REPLIES instead. Reply to a comment on Instagram media. Only usable on comments belonging to medi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "ig_comment_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_comment_id",
+          "message"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_SEND_IMAGE",
+      "name": "Send Image",
+      "description": "Send an image via Instagram DM to a specific user. Each send modifies inbox state; avoid bulk or automated sends without explicit user appr…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "image_url": {
+            "type": "string"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "recipient_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipient_id",
+          "image_url"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_SEND_TEXT_MESSAGE",
+      "name": "Send Text Message",
+      "description": "Send a text message to an Instagram user via DM in an existing conversation. Cannot initiate new DM threads — a prior conversation must exi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "ig_user_id": {
+            "type": "string"
+          },
+          "recipient_id": {
+            "type": "string"
+          },
+          "graph_api_version": {
+            "type": "string"
+          },
+          "reply_to_message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipient_id",
+          "text"
+        ]
+      }
+    },
+    {
+      "slug": "INSTAGRAM_UPDATE_MESSENGER_PROFILE",
+      "name": "Update Messenger Profile",
+      "description": "Tool to update the messenger profile settings for an Instagram account. Use when you need to configure ice breakers and messaging options. …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ig_user_id": {
+            "type": "string"
+          },
+          "ice_breakers": {
+            "type": "array"
+          },
+          "graph_api_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ig_user_id",
+          "ice_breakers"
+        ]
+      }
+    }
+  ]
+}

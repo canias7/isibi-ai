@@ -1,0 +1,1785 @@
+{
+  "slug": "spotify",
+  "name": "Spotify",
+  "tool_count": 88,
+  "tools": [
+    {
+      "slug": "SPOTIFY_ADD_ITEMS_TO_PLAYLIST",
+      "name": "Add items to playlist",
+      "description": "Add one or more items to a user's playlist.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "uris": {},
+          "position": {
+            "type": "integer"
+          },
+          "playlist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "playlist_id",
+          "uris"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_ADD_ITEM_TO_PLAYBACK_QUEUE",
+      "name": "Add item to playback queue",
+      "description": "Add an item to the end of the user's current playback queue. This API only works for users who have Spotify Premium. The order of execution…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string"
+          },
+          "device_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uri"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_CHANGE_PLAYLIST_DETAILS",
+      "name": "Change playlist details",
+      "description": "Change a playlist's name and public/private state. The user must own the playlist. This action allows updating the playlist name, descripti…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "public": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "playlist_id": {
+            "type": "string"
+          },
+          "collaborative": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "playlist_id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_CHECK_IF_USER_FOLLOWS_ARTISTS_OR_USERS",
+      "name": "Check if user follows artists or users",
+      "description": "Check to see if the current user is following one or more artists or other Spotify users.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "artist",
+              "user"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_CHECK_IF_USERS_FOLLOW_PLAYLIST",
+      "name": "Check if users follow playlist",
+      "description": "Check if the current authenticated user is following a specified playlist. This endpoint checks whether the authenticated user follows the …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "playlist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "playlist_id",
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_CHECK_USER_S_SAVED_ALBUMS",
+      "name": "Check user s saved albums",
+      "description": "Check if one or more albums is already saved in the current Spotify user's 'Your Music' library.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_CHECK_USER_S_SAVED_AUDIOBOOKS",
+      "name": "Check user s saved audiobooks",
+      "description": "Check if one or more audiobooks are already saved in the current Spotify user's library. Returns an array of boolean values indicating whet…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_CHECK_USER_S_SAVED_EPISODES",
+      "name": "Check User's Saved Episodes",
+      "description": "Check if one or more podcast episodes are saved in the current Spotify user's 'Your Episodes' library. Returns an array of boolean values c…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_CHECK_USER_S_SAVED_SHOWS",
+      "name": "Check user's saved shows",
+      "description": "Check if one or more shows is already saved in the current Spotify user's library. This endpoint checks whether the specified shows are sav…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_CHECK_USER_S_SAVED_TRACKS",
+      "name": "Check User's Saved Tracks",
+      "description": "Check if one or more tracks is already saved in the current Spotify user's 'Your Music' library. Returns an array of boolean values indicat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_CREATE_PLAYLIST",
+      "name": "Create playlist",
+      "description": "Create a playlist for a Spotify user. (The playlist will be empty until you [add tracks](/documentation/web-api/reference/add-tracks-to-pla…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "public": {
+            "type": "boolean"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "collaborative": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "user_id",
+          "name"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_FOLLOW_ARTISTS_OR_USERS",
+      "name": "Follow artists or users",
+      "description": "Follow one or more artists or Spotify users on behalf of the current authenticated user. This action adds the specified artists or users to…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "artist",
+              "user"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_FOLLOW_PLAYLIST",
+      "name": "Follow playlist",
+      "description": "Add the current user as a follower of a playlist. This action adds the current user as a follower of a specified playlist. The 'public' par…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "public": {
+            "type": "boolean"
+          },
+          "playlist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "playlist_id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_A_CHAPTER",
+      "name": "Get a chapter",
+      "description": "Get Spotify catalog information for a single audiobook chapter including name, description, duration, release date, narrators, and playback…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_ALBUM",
+      "name": "Get Album Details",
+      "description": "Get Spotify catalog information for a single album. Returns comprehensive album data including metadata, track listing, artist information,…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_ALBUM_TRACKS",
+      "name": "Get album tracks",
+      "description": "Get Spotify catalog information about an album's tracks. Optional parameters can be used to limit the number of tracks returned.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "market": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_AN_AUDIOBOOK",
+      "name": "Get an audiobook",
+      "description": "Get Spotify catalog information for a single audiobook. Audiobooks are only available within the US, UK, Canada, Ireland, New Zealand and A…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_ARTIST",
+      "name": "Get artist",
+      "description": "Get detailed Spotify catalog information for a single artist. Returns comprehensive artist data including the artist's name, genres, follow…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_ARTIST_S_ALBUMS",
+      "name": "Get artist s albums",
+      "description": "Get Spotify catalog information about an artist's albums.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "market": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "include_groups": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_ARTIST_S_RELATED_ARTISTS",
+      "name": "Get artist s related artists",
+      "description": "Get Spotify catalog information about artists similar to a given artist. Similarity is based on analysis of the Spotify community's listeni…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_ARTIST_S_TOP_TRACKS",
+      "name": "Get Artist's Top Tracks",
+      "description": "Get Spotify catalog information about an artist's top tracks by country/market. Returns up to 10 of the artist's most popular tracks in the…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_AUDIOBOOK_CHAPTERS",
+      "name": "Get audiobook chapters",
+      "description": "Get Spotify catalog information about an audiobook's chapters. Audiobooks are only available within the US, UK, Canada, Ireland, New Zealan…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "market": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_AVAILABLE_DEVICES",
+      "name": "Get Available Devices",
+      "description": "Get information about the user's available Spotify Connect devices. Returns a list of devices that can be used for playback, including thei…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_AVAILABLE_GENRE_SEEDS",
+      "name": "Get available genre seeds",
+      "description": "Get available genre seeds for Spotify recommendations. Returns a list of genre strings that can be used as seed_genres parameter when reque…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_AVAILABLE_MARKETS",
+      "name": "Get available markets",
+      "description": "Get the list of markets where Spotify is available. Returns an array of ISO 3166-1 alpha-2 country codes.",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_CATEGORY_S_PLAYLISTS",
+      "name": "Get Category's Playlists",
+      "description": "Get Spotify playlists tagged with a specific category (e.g., 'workout', 'party', 'dinner'). Returns a paginated list of playlists for the s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "category_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "category_id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_CURRENTLY_PLAYING_TRACK",
+      "name": "Get currently playing track",
+      "description": "Get the object currently being played on the user's Spotify account.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "market": {
+            "type": "string"
+          },
+          "additional_types": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_CURRENT_USER_S_PLAYLISTS",
+      "name": "Get current user s playlists",
+      "description": "Get a list of the playlists owned or followed by the current Spotify user. Returns a paginated list of playlists (both public and private) …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_CURRENT_USER_S_PROFILE",
+      "name": "Get current user s profile",
+      "description": "Get detailed profile information about the current authenticated user. This endpoint returns comprehensive user profile data including disp…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_EPISODE",
+      "name": "Get episode",
+      "description": "Get Spotify catalog information for a single podcast episode identified by its unique Spotify ID. This endpoint retrieves detailed informat…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_FEATURED_PLAYLISTS",
+      "name": "Get featured playlists",
+      "description": "Get a list of Spotify's editorially curated featured playlists. These are the playlists shown on a Spotify player's 'Browse' tab and are up…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_FOLLOWED_ARTISTS",
+      "name": "Get followed artists",
+      "description": "Get all artists followed by the current user. Returns a cursor-paginated list of artist objects with full details including name, genres, p…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "artist"
+            ]
+          },
+          "after": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_NEW_RELEASES",
+      "name": "Get new releases",
+      "description": "Get a list of new album releases featured in Spotify (shown, for example, on a Spotify player's \"Browse\" tab).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_PLAYBACK_STATE",
+      "name": "Get playback state",
+      "description": "Get information about the user's current playback state, including track or episode, progress, and active device. Returns detailed playback…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "market": {
+            "type": "string"
+          },
+          "additional_types": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_PLAYLIST",
+      "name": "Get playlist",
+      "description": "Get a playlist owned by a Spotify user. This endpoint retrieves detailed information about a specific Spotify playlist, including its metad…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          },
+          "playlist_id": {
+            "type": "string"
+          },
+          "additional_types": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "playlist_id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_PLAYLIST_COVER_IMAGE",
+      "name": "Get playlist cover image",
+      "description": "Get the current image(s) associated with a specific playlist. Returns an array of image objects containing the URL, height, and width of ea…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "playlist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "playlist_id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_PLAYLIST_ITEMS",
+      "name": "Get playlist items",
+      "description": "Get full details of the items of a playlist owned by a Spotify user. This endpoint retrieves the tracks and/or episodes in a playlist. It s…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "fields": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "playlist_id": {
+            "type": "string"
+          },
+          "additional_types": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "playlist_id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_RECENTLY_PLAYED_TRACKS",
+      "name": "Get recently played tracks",
+      "description": "Get tracks from the current user's recently played tracks. _**Note**: Currently doesn't support podcast episodes._",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "before": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_RECOMMENDATIONS",
+      "name": "Get recommendations",
+      "description": "Get track recommendations based on seed artists, genres, and/or tracks. At least one seed is required (up to 5 total). Optionally tune reco…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "market": {
+            "type": "string"
+          },
+          "max_key": {
+            "type": "integer"
+          },
+          "min_key": {
+            "type": "integer"
+          },
+          "max_mode": {
+            "type": "integer"
+          },
+          "min_mode": {
+            "type": "integer"
+          },
+          "max_tempo": {
+            "type": "number"
+          },
+          "min_tempo": {
+            "type": "number"
+          },
+          "max_energy": {
+            "type": "number"
+          },
+          "min_energy": {
+            "type": "number"
+          },
+          "target_key": {
+            "type": "integer"
+          },
+          "max_valence": {
+            "type": "number"
+          },
+          "min_valence": {
+            "type": "number"
+          },
+          "seed_genres": {
+            "type": "string"
+          },
+          "seed_tracks": {
+            "type": "string"
+          },
+          "target_mode": {
+            "type": "integer"
+          },
+          "max_liveness": {
+            "type": "number"
+          },
+          "max_loudness": {
+            "type": "number"
+          },
+          "min_liveness": {
+            "type": "number"
+          },
+          "min_loudness": {
+            "type": "number"
+          },
+          "seed_artists": {
+            "type": "string"
+          },
+          "target_tempo": {
+            "type": "number"
+          },
+          "target_energy": {
+            "type": "number"
+          },
+          "max_popularity": {
+            "type": "integer"
+          },
+          "min_popularity": {
+            "type": "integer"
+          },
+          "target_valence": {
+            "type": "number"
+          },
+          "max_duration_ms": {
+            "type": "integer"
+          },
+          "max_speechiness": {
+            "type": "number"
+          },
+          "min_duration_ms": {
+            "type": "integer"
+          },
+          "min_speechiness": {
+            "type": "number"
+          },
+          "target_liveness": {
+            "type": "number"
+          },
+          "target_loudness": {
+            "type": "number"
+          },
+          "max_acousticness": {
+            "type": "number"
+          },
+          "max_danceability": {
+            "type": "number"
+          },
+          "min_acousticness": {
+            "type": "number"
+          },
+          "min_danceability": {
+            "type": "number"
+          },
+          "target_popularity": {
+            "type": "integer"
+          },
+          "max_time_signature": {
+            "type": "integer"
+          },
+          "min_time_signature": {
+            "type": "integer"
+          },
+          "target_duration_ms": {
+            "type": "integer"
+          },
+          "target_speechiness": {
+            "type": "number"
+          },
+          "target_acousticness": {
+            "type": "number"
+          },
+          "target_danceability": {
+            "type": "number"
+          },
+          "max_instrumentalness": {
+            "type": "number"
+          },
+          "min_instrumentalness": {
+            "type": "number"
+          },
+          "target_time_signature": {
+            "type": "integer"
+          },
+          "target_instrumentalness": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_SEVERAL_ALBUMS",
+      "name": "Get several albums",
+      "description": "Get Spotify catalog information for multiple albums identified by their Spotify IDs. Returns detailed album data including name, artists, t…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_SEVERAL_ARTISTS",
+      "name": "Get several artists",
+      "description": "Get Spotify catalog information for several artists based on their Spotify IDs.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_SEVERAL_AUDIOBOOKS",
+      "name": "Get several audiobooks",
+      "description": "Retrieve Spotify catalog information for multiple audiobooks in a single request. This action fetches detailed metadata for up to 50 audiob…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_SEVERAL_BROWSE_CATEGORIES",
+      "name": "Get several browse categories",
+      "description": "Get a list of categories used to tag items in Spotify (on, for example, the Spotify player's \"Browse\" tab).",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_SEVERAL_CHAPTERS",
+      "name": "Get several chapters",
+      "description": "Get Spotify catalog information for several audiobook chapters identified by their Spotify IDs. This endpoint allows you to fetch detailed …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_SEVERAL_EPISODES",
+      "name": "Get several episodes",
+      "description": "Get Spotify catalog information for several episodes based on their Spotify IDs.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_SEVERAL_SHOWS",
+      "name": "Get several shows",
+      "description": "Get Spotify catalog information for several shows (podcasts) based on their Spotify IDs. This endpoint allows you to retrieve detailed info…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_SEVERAL_TRACKS",
+      "name": "Get several tracks",
+      "description": "Get Spotify catalog information for multiple tracks based on their Spotify IDs.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_SEVERAL_TRACKS_AUDIO_FEATURES",
+      "name": "Get several tracks audio features",
+      "description": "Get audio features for multiple tracks based on their Spotify IDs. Returns audio feature information for multiple tracks including danceabi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_SHOW",
+      "name": "Get show",
+      "description": "Get Spotify catalog information for a single show (podcast) identified by its unique Spotify ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_SHOW_EPISODES",
+      "name": "Get show episodes",
+      "description": "Get Spotify catalog information about a show's episodes. Optional parameters can be used to limit the number of episodes returned. This end…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "market": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_SINGLE_BROWSE_CATEGORY",
+      "name": "Get single browse category",
+      "description": "Get a single category used to tag items in Spotify (on, for example, the Spotify player's \"Browse\" tab). Returns detailed information about…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string"
+          },
+          "category_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "category_id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_THE_USER_S_QUEUE",
+      "name": "Get the user's queue",
+      "description": "Get the list of tracks and episodes in the user's playback queue. Returns the currently playing track/episode and the queue of upcoming ite…",
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_TRACK",
+      "name": "Get track",
+      "description": "Get Spotify catalog information for a single track identified by its unique Spotify ID.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_TRACK_S_AUDIO_ANALYSIS",
+      "name": "Get Track's Audio Analysis",
+      "description": "Get a comprehensive audio analysis for a Spotify track. Returns detailed structural and musical characteristics including: - Meta informati…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_TRACK_S_AUDIO_FEATURES",
+      "name": "Get track's audio features",
+      "description": "Get audio feature information for a single track identified by its unique Spotify ID. Note: This endpoint was deprecated by Spotify on Nove…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_USER_S_PLAYLISTS",
+      "name": "Get user's playlists",
+      "description": "Get a paginated list of playlists owned or followed by a Spotify user. This endpoint retrieves all public playlists for any user. To access…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_USER_S_PROFILE",
+      "name": "Get user's profile",
+      "description": "Get public profile information about a Spotify user. This endpoint retrieves publicly available information for any Spotify user, including…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_USER_S_SAVED_ALBUMS",
+      "name": "Get user s saved albums",
+      "description": "Get a list of albums saved in the current Spotify user's library ('Your Music'). Returns a paginated list of albums that the user has saved…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "market": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_USER_S_SAVED_AUDIOBOOKS",
+      "name": "Get user s saved audiobooks",
+      "description": "Get a list of the audiobooks saved in the current Spotify user's 'Your Music' library.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_USER_S_SAVED_EPISODES",
+      "name": "Get user's saved episodes",
+      "description": "Get a list of episodes saved in the current Spotify user's library. This endpoint retrieves a paginated list of podcast episodes that the a…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "market": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_USER_S_SAVED_SHOWS",
+      "name": "Get User's Saved Shows",
+      "description": "Get a list of shows saved in the current Spotify user's library. Optional parameters can be used to limit the number of shows returned.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_USER_S_SAVED_TRACKS",
+      "name": "Get User's Saved Tracks",
+      "description": "Get a list of the songs saved in the current Spotify user's 'Your Music' library. Returns paginated results with track details including al…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "market": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_USER_S_TOP_ARTISTS",
+      "name": "Get User's Top Artists",
+      "description": "Get the current user's top artists based on calculated affinity. This endpoint retrieves the current user's top artists based on their list…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "time_range": {
+            "type": "string",
+            "enum": [
+              "long_term",
+              "medium_term",
+              "short_term"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_GET_USER_S_TOP_TRACKS",
+      "name": "Get User's Top Tracks",
+      "description": "Get the current user's top tracks based on calculated affinity. Returns the user's most-played tracks over different time periods based on …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "time_range": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_PAUSE_PLAYBACK",
+      "name": "Pause playback",
+      "description": "Pause playback on the user's account. Pauses playback on the currently active device or on a specified device. Returns immediately with suc…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "device_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_REMOVE_PLAYLIST_ITEMS",
+      "name": "Remove playlist items",
+      "description": "Remove one or more items from a user's playlist. This endpoint removes tracks or episodes from a playlist. You can remove items by URI (rem…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tracks": {
+            "type": "array"
+          },
+          "playlist_id": {
+            "type": "string"
+          },
+          "snapshot_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "playlist_id",
+          "tracks"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_REMOVE_USERS_SAVED_ALBUMS",
+      "name": "Remove users saved albums",
+      "description": "Remove one or more albums from the current user's 'Your Music' library. This action removes albums from the user's saved albums collection …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {}
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_REMOVE_USER_S_SAVED_AUDIOBOOKS",
+      "name": "Remove User's Saved Audiobooks",
+      "description": "Remove one or more audiobooks from the current user's Spotify library. This endpoint removes saved audiobooks from the user's library. Audi…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {}
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_REMOVE_USER_S_SAVED_EPISODES",
+      "name": "Remove user's saved episodes",
+      "description": "Remove one or more episodes from the current user's library. This endpoint removes episodes that have been saved to the user's \"Your Episod…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {}
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_REMOVE_USER_S_SAVED_SHOWS",
+      "name": "Remove user s saved shows",
+      "description": "Delete one or more shows from current Spotify user's library.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_REMOVE_USER_S_SAVED_TRACKS",
+      "name": "Remove user s saved tracks",
+      "description": "Remove one or more tracks from the current user's 'Your Music' library.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "body_ids": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_SAVE_ALBUMS_FOR_CURRENT_USER",
+      "name": "Save albums for current user",
+      "description": "Save one or more albums to the current user's 'Your Music' library. This action adds albums to the user's saved albums collection, which ca…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {}
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_SAVE_AUDIOBOOKS_FOR_CURRENT_USER",
+      "name": "Save audiobooks for current user",
+      "description": "Save one or more audiobooks to the current user's library. This action adds audiobooks to the user's saved audiobooks collection, which can…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_SAVE_EPISODES_FOR_CURRENT_USER",
+      "name": "Save episodes for current user",
+      "description": "Save one or more podcast episodes to the current user's library. This endpoint saves episodes to the user's \"Your Episodes\" library, making…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_SAVE_SHOWS_FOR_CURRENT_USER",
+      "name": "Save shows for current user",
+      "description": "Save one or more shows to current Spotify user's library. Requires the user-library-modify scope. Maximum of 50 show IDs per request.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_SAVE_TRACKS_FOR_CURRENT_USER",
+      "name": "Save tracks for current user",
+      "description": "Save one or more tracks to the current user's 'Your Music' library. This action adds tracks to the user's saved tracks collection. You can …",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array"
+          },
+          "timestamped_ids": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_SEARCH_FOR_ITEM",
+      "name": "Search for item",
+      "description": "Get Spotify catalog information about albums, artists, playlists, tracks, shows, episodes or audiobooks that match a keyword string. Audiob…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "type": {
+            "type": "array"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "market": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "include_external": {
+            "type": "string",
+            "enum": [
+              "audio"
+            ]
+          }
+        },
+        "required": [
+          "q",
+          "type"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_SEEK_TO_POSITION",
+      "name": "Seek to position",
+      "description": "Seek to a specific position in the user's currently playing track. This action allows you to skip to any point in the currently playing tra…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "device_id": {
+            "type": "string"
+          },
+          "position_ms": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "position_ms"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_SET_PLAYBACK_VOLUME",
+      "name": "Set playback volume",
+      "description": "Set the volume for the user's current playback device. This API only works for users who have Spotify Premium. The order of execution is no…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "device_id": {
+            "type": "string"
+          },
+          "volume_percent": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "volume_percent"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_SET_REPEAT_MODE",
+      "name": "Set repeat mode",
+      "description": "Set the repeat mode for the user's playback. Controls whether playback should repeat the current track, the current context (playlist, albu…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "track",
+              "context",
+              "off"
+            ]
+          },
+          "device_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_SKIP_TO_NEXT",
+      "name": "Skip to next",
+      "description": "Skips to next track in the user's queue. This API only works for users who have Spotify Premium. The order of execution is not guaranteed w…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "device_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_SKIP_TO_PREVIOUS",
+      "name": "Skip to previous",
+      "description": "Skips to the previous track in the user's queue. Requirements: - Spotify Premium subscription - Active playback (user must be currently pla…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "device_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_START_RESUME_PLAYBACK",
+      "name": "Start resume playback",
+      "description": "Start a new context or resume current playback on the user's active device. Starts playback of a specific context (album, artist, or playli…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "uris": {
+            "type": "array"
+          },
+          "offset": {
+            "type": "object"
+          },
+          "device_id": {
+            "type": "string"
+          },
+          "context_uri": {
+            "type": "string"
+          },
+          "position_ms": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "slug": "SPOTIFY_TOGGLE_PLAYBACK_SHUFFLE",
+      "name": "Toggle playback shuffle",
+      "description": "Toggle shuffle on or off for user's playback. This API only works for users who have Spotify Premium. The order of execution is not guarant…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "boolean"
+          },
+          "device_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_TRANSFER_PLAYBACK",
+      "name": "Transfer playback",
+      "description": "Transfer playback to a new device and optionally begin playback. Requirements: - Spotify Premium subscription is required - Target device m…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "play": {
+            "type": "boolean"
+          },
+          "device_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "device_ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_UNFOLLOW_ARTISTS_OR_USERS",
+      "name": "Unfollow artists or users",
+      "description": "Remove the current user as a follower of one or more artists or other Spotify users. This action removes the specified artists or users fro…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "artist",
+              "user"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "ids"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_UNFOLLOW_PLAYLIST",
+      "name": "Unfollow playlist",
+      "description": "Remove the current user as a follower of a playlist. This action removes the current user from following a playlist. The user no longer rec…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "playlist_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "playlist_id"
+        ]
+      }
+    },
+    {
+      "slug": "SPOTIFY_UPDATE_PLAYLIST_ITEMS",
+      "name": "Update playlist items",
+      "description": "Either replace all tracks in a playlist OR reorder existing tracks within it. **REPLACE mode**: Use `uris` parameter to completely overwrit…",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "uris": {},
+          "playlist_id": {
+            "type": "string"
+          },
+          "range_start": {
+            "type": "integer"
+          },
+          "snapshot_id": {
+            "type": "string"
+          },
+          "range_length": {
+            "type": "integer"
+          },
+          "insert_before": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "playlist_id"
+        ]
+      }
+    }
+  ]
+}
