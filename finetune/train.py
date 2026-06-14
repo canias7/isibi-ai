@@ -16,10 +16,13 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from datasets import load_dataset
-from trl import SFTConfig, SFTTrainer
+# Unsloth must be imported BEFORE trl/transformers so its patches apply (the
+# trl-0.24 SFTTrainer fix); otherwise the '<EOS_TOKEN>' sentinel can leak through.
 from unsloth import FastLanguageModel
 from unsloth.chat_templates import train_on_responses_only
+
+from datasets import load_dataset
+from trl import SFTConfig, SFTTrainer
 
 HERE = Path(__file__).parent
 
@@ -59,13 +62,13 @@ def main() -> None:
     ds = ds.map(to_text(tokenizer))
 
     trainer = SFTTrainer(
-        model=model, tokenizer=tokenizer, train_dataset=ds,
+        model=model, processing_class=tokenizer, train_dataset=ds,
         args=SFTConfig(
             per_device_train_batch_size=BATCH, gradient_accumulation_steps=GRAD_ACCUM,
             warmup_steps=5, num_train_epochs=EPOCHS, learning_rate=LR,
             logging_steps=5, optim="adamw_8bit", weight_decay=0.01,
             lr_scheduler_type="linear", seed=3407, output_dir=str(HERE / "outputs"),
-            max_seq_length=MAX_SEQ, dataset_text_field="text", report_to="none",
+            max_length=MAX_SEQ, dataset_text_field="text", report_to="none",
         ),
     )
     # Only compute loss on the assistant's JSON, not the prompt — sharper learning.
