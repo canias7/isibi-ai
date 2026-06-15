@@ -1,5 +1,6 @@
 """Generate workflow-authoring training data by DISTILLING a strong teacher
-(Sonnet by default) into JSONL the student (Qwen-7B) learns from.
+(Sonnet by default; set TEACHER_MODEL=claude-opus-4-8 for a stronger teacher)
+into JSONL the student (Qwen-7B) learns from.
 
 Pipeline per round:
   1. sample a realistic subset of "connected" apps,
@@ -16,6 +17,9 @@ Teacher selection (env):
 
 Examples:
   TEACHER=anthropic ANTHROPIC_API_KEY=sk-... python gen_data.py --n 400
+  # GROW the set (keeps the existing rows, dedups) with the stronger teacher:
+  TEACHER=anthropic ANTHROPIC_API_KEY=sk-... TEACHER_MODEL=claude-opus-4-8 \
+    python gen_data.py --n 400 --append
   TEACHER=openai TEACHER_BASE_URL=https://api.groq.com/openai/v1 \
     TEACHER_API_KEY=gsk_... TEACHER_MODEL=llama-3.3-70b-versatile python gen_data.py --n 400
   python gen_data.py --selftest      # offline; no teacher, proves wiring
@@ -26,10 +30,11 @@ import argparse
 import json
 import os
 import random
+import re
 from pathlib import Path
 from typing import Any
 
-from catalog import BUILTINS, frontend_id, tools_for, ALLOWED
+from catalog import BUILTINS, frontend_id, tools_for, tool_prefixes, ALLOWED
 from schema import SCHEMA_DOC, EXAMPLE, validate_workflow
 
 HERE = Path(__file__).parent
@@ -276,7 +281,32 @@ def row(connected: list[str], request: str, wf: dict[str, Any]) -> dict[str, Any
     }
 
 
-def generate(n: int, seed: int = 0) -> None:
+# Connector tool-id tokens (GMAIL_SEND_EMAIL, …) cited in the prose are exactly
+# what the student later hallucinates ("phantom tools"). Keep GF_ built-in tokens
+# (the 'ai' nodes name them on purpose); reject any other tool-shaped token so the
+# student never learns to write — and therefore invent — connector tool ids. The
+# runner discovers connector tools at run time, so plain prose loses nothing.
+_TOOL_TOKEN_RE = re.compile(r"\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b")
+_CONNECTOR_PREFIXES = tuple(p for p in tool_prefixes() if p != "GF")
+
+
+def _cites_connector_tool(wf: dict[str, Any]) -> str | None:
+    """First connector tool-id token found in instruction / node detail+label, else None."""
+    texts = [str(wf.get("instruction", ""))]
+    for n in (wf.get("nodes") or []):
+        if isinstance(n, dict):
+            texts.append(str(n.get("detail", "")))
+            texts.append(str(n.get("label", "")))
+    for t in texts:
+        for tok in _TOOL_TOKEN_RE.findall(t):
+            if tok.startswith("GF_"):
+                continue
+            if any(tok.startswith(pre + "_") for pre in _CONNECTOR_PREFIXES):
+                return tok
+    return None
+
+
+def generate(n: int, seed: int = 0, append: bool = False) -> None:
     rng = random.Random(seed)
     teacher = make_teacher()
     DATA.mkdir(exist_ok=True)
@@ -307,6 +337,10 @@ def generate(n: int, seed: int = 0) -> None:
             if not ok:
                 print(f"  rejected: {errs[0]}")
                 continue
+            cited = _cites_connector_tool(wf)
+            if cited:
+                print(f"  rejected: cites connector tool '{cited}' in prose")
+                continue
             kept.append(row(connected, req, wf))
             # Only truncate all.jsonl once we actually have an example — a run that
             # keeps 0 (quota exhausted / teacher down) must NOT clobber existing data.
@@ -319,17 +353,46 @@ def generate(n: int, seed: int = 0) -> None:
     if not kept:
         print("no examples kept (teacher unreachable / quota?) — left existing data untouched")
         return
-    rng.shuffle(kept)
-    n_val = max(1, len(kept) // 10)
-    _write(DATA / "val.jsonl", kept[:n_val])
-    _write(DATA / "train.jsonl", kept[n_val:])
-    print(f"\nwrote {len(kept) - n_val} train + {n_val} val rows to {DATA}/")
+
+    # Merge with what's on disk so a regen GROWS the set instead of clobbering it.
+    # --append keeps every existing row (dedup by exact content). Without it we
+    # still back up the current files to *.bak first, so a regen is never a
+    # silent, unrecoverable wipe of prior data.
+    existing: list[dict[str, Any]] = []
+    if append:
+        existing = _read(DATA / "train.jsonl") + _read(DATA / "val.jsonl")
+        seen_rows = {json.dumps(r, sort_keys=True, ensure_ascii=False) for r in existing}
+        fresh = [r for r in kept
+                 if json.dumps(r, sort_keys=True, ensure_ascii=False) not in seen_rows]
+        print(f"append: {len(existing)} existing + {len(fresh)} new "
+              f"({len(kept) - len(fresh)} duplicates dropped)")
+    else:
+        for name in ("train.jsonl", "val.jsonl"):
+            p = DATA / name
+            if p.exists():
+                (DATA / (name + ".bak")).write_bytes(p.read_bytes())
+                print(f"backed up {name} -> {name}.bak")
+        fresh = kept
+
+    combined = existing + fresh
+    rng.shuffle(combined)
+    n_val = max(1, len(combined) // 10)
+    _write(DATA / "val.jsonl", combined[:n_val])
+    _write(DATA / "train.jsonl", combined[n_val:])
+    print(f"\nwrote {len(combined) - n_val} train + {n_val} val rows to {DATA}/ "
+          f"(total {len(combined)})")
 
 
 def _write(path: Path, rows: list[dict[str, Any]]) -> None:
     with path.open("w", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+
+def _read(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    return [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 
 def selftest() -> None:
@@ -354,6 +417,8 @@ if __name__ == "__main__":
                     help="free Groq Llama-3.3-70B teacher (just set GROQ_API_KEY)")
     ap.add_argument("--gemini", action="store_true",
                     help="free Google Gemini 2.0 Flash teacher (just set GEMINI_API_KEY)")
+    ap.add_argument("--append", action="store_true",
+                    help="ADD to existing data/train.jsonl+val.jsonl instead of overwriting (dedups)")
     args = ap.parse_args()
     if args.groq:
         os.environ["TEACHER"] = "openai"  # OpenAITeacher already defaults base_url+model to Groq
@@ -364,4 +429,4 @@ if __name__ == "__main__":
     if args.selftest:
         selftest()
     else:
-        generate(args.n, args.seed)
+        generate(args.n, args.seed, append=args.append)
