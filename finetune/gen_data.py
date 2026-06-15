@@ -30,10 +30,11 @@ import argparse
 import json
 import os
 import random
+import re
 from pathlib import Path
 from typing import Any
 
-from catalog import BUILTINS, frontend_id, tools_for, ALLOWED
+from catalog import BUILTINS, frontend_id, tools_for, tool_prefixes, ALLOWED
 from schema import SCHEMA_DOC, EXAMPLE, validate_workflow
 
 HERE = Path(__file__).parent
@@ -280,6 +281,31 @@ def row(connected: list[str], request: str, wf: dict[str, Any]) -> dict[str, Any
     }
 
 
+# Connector tool-id tokens (GMAIL_SEND_EMAIL, …) cited in the prose are exactly
+# what the student later hallucinates ("phantom tools"). Keep GF_ built-in tokens
+# (the 'ai' nodes name them on purpose); reject any other tool-shaped token so the
+# student never learns to write — and therefore invent — connector tool ids. The
+# runner discovers connector tools at run time, so plain prose loses nothing.
+_TOOL_TOKEN_RE = re.compile(r"\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b")
+_CONNECTOR_PREFIXES = tuple(p for p in tool_prefixes() if p != "GF")
+
+
+def _cites_connector_tool(wf: dict[str, Any]) -> str | None:
+    """First connector tool-id token found in instruction / node detail+label, else None."""
+    texts = [str(wf.get("instruction", ""))]
+    for n in (wf.get("nodes") or []):
+        if isinstance(n, dict):
+            texts.append(str(n.get("detail", "")))
+            texts.append(str(n.get("label", "")))
+    for t in texts:
+        for tok in _TOOL_TOKEN_RE.findall(t):
+            if tok.startswith("GF_"):
+                continue
+            if any(tok.startswith(pre + "_") for pre in _CONNECTOR_PREFIXES):
+                return tok
+    return None
+
+
 def generate(n: int, seed: int = 0, append: bool = False) -> None:
     rng = random.Random(seed)
     teacher = make_teacher()
@@ -310,6 +336,10 @@ def generate(n: int, seed: int = 0, append: bool = False) -> None:
             ok, errs = validate_workflow(wf, connected=set(connected))
             if not ok:
                 print(f"  rejected: {errs[0]}")
+                continue
+            cited = _cites_connector_tool(wf)
+            if cited:
+                print(f"  rejected: cites connector tool '{cited}' in prose")
                 continue
             kept.append(row(connected, req, wf))
             # Only truncate all.jsonl once we actually have an example — a run that

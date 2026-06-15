@@ -84,7 +84,11 @@ Rules:
   edges to separate action nodes (no yes/no branch) — use this for "do A and B"
   requests instead of forcing everything into a single chain.
 - Built-in abilities (reminders, weather, maps, image, memory, bank) are 'ai'
-  nodes whose detail names the action (e.g. GF_MAPS, GF_SET_REMINDER)."""
+  nodes whose detail names the action (e.g. GF_MAPS, GF_SET_REMINDER).
+- For connector (non-'ai') steps, describe the action in PLAIN language in
+  'detail' and 'instruction' (e.g. "send an email", "create a calendar event")
+  — do NOT write tool-id tokens like GMAIL_SEND_EMAIL. Only 'ai' built-in nodes
+  name their GF_ token (above); the runner finds connector tools itself."""
 
 _FREQ = {"daily", "weekly", "hourly"}
 _KIND = {"trigger", "action", "decision"}
