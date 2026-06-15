@@ -1,5 +1,6 @@
 """Generate workflow-authoring training data by DISTILLING a strong teacher
-(Sonnet by default) into JSONL the student (Qwen-7B) learns from.
+(Sonnet by default; set TEACHER_MODEL=claude-opus-4-8 for a stronger teacher)
+into JSONL the student (Qwen-7B) learns from.
 
 Pipeline per round:
   1. sample a realistic subset of "connected" apps,
@@ -16,6 +17,9 @@ Teacher selection (env):
 
 Examples:
   TEACHER=anthropic ANTHROPIC_API_KEY=sk-... python gen_data.py --n 400
+  # GROW the set (keeps the existing rows, dedups) with the stronger teacher:
+  TEACHER=anthropic ANTHROPIC_API_KEY=sk-... TEACHER_MODEL=claude-opus-4-8 \
+    python gen_data.py --n 400 --append
   TEACHER=openai TEACHER_BASE_URL=https://api.groq.com/openai/v1 \
     TEACHER_API_KEY=gsk_... TEACHER_MODEL=llama-3.3-70b-versatile python gen_data.py --n 400
   python gen_data.py --selftest      # offline; no teacher, proves wiring
@@ -276,7 +280,7 @@ def row(connected: list[str], request: str, wf: dict[str, Any]) -> dict[str, Any
     }
 
 
-def generate(n: int, seed: int = 0) -> None:
+def generate(n: int, seed: int = 0, append: bool = False) -> None:
     rng = random.Random(seed)
     teacher = make_teacher()
     DATA.mkdir(exist_ok=True)
@@ -319,17 +323,46 @@ def generate(n: int, seed: int = 0) -> None:
     if not kept:
         print("no examples kept (teacher unreachable / quota?) — left existing data untouched")
         return
-    rng.shuffle(kept)
-    n_val = max(1, len(kept) // 10)
-    _write(DATA / "val.jsonl", kept[:n_val])
-    _write(DATA / "train.jsonl", kept[n_val:])
-    print(f"\nwrote {len(kept) - n_val} train + {n_val} val rows to {DATA}/")
+
+    # Merge with what's on disk so a regen GROWS the set instead of clobbering it.
+    # --append keeps every existing row (dedup by exact content). Without it we
+    # still back up the current files to *.bak first, so a regen is never a
+    # silent, unrecoverable wipe of prior data.
+    existing: list[dict[str, Any]] = []
+    if append:
+        existing = _read(DATA / "train.jsonl") + _read(DATA / "val.jsonl")
+        seen_rows = {json.dumps(r, sort_keys=True, ensure_ascii=False) for r in existing}
+        fresh = [r for r in kept
+                 if json.dumps(r, sort_keys=True, ensure_ascii=False) not in seen_rows]
+        print(f"append: {len(existing)} existing + {len(fresh)} new "
+              f"({len(kept) - len(fresh)} duplicates dropped)")
+    else:
+        for name in ("train.jsonl", "val.jsonl"):
+            p = DATA / name
+            if p.exists():
+                (DATA / (name + ".bak")).write_bytes(p.read_bytes())
+                print(f"backed up {name} -> {name}.bak")
+        fresh = kept
+
+    combined = existing + fresh
+    rng.shuffle(combined)
+    n_val = max(1, len(combined) // 10)
+    _write(DATA / "val.jsonl", combined[:n_val])
+    _write(DATA / "train.jsonl", combined[n_val:])
+    print(f"\nwrote {len(combined) - n_val} train + {n_val} val rows to {DATA}/ "
+          f"(total {len(combined)})")
 
 
 def _write(path: Path, rows: list[dict[str, Any]]) -> None:
     with path.open("w", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+
+def _read(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    return [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 
 def selftest() -> None:
@@ -354,6 +387,8 @@ if __name__ == "__main__":
                     help="free Groq Llama-3.3-70B teacher (just set GROQ_API_KEY)")
     ap.add_argument("--gemini", action="store_true",
                     help="free Google Gemini 2.0 Flash teacher (just set GEMINI_API_KEY)")
+    ap.add_argument("--append", action="store_true",
+                    help="ADD to existing data/train.jsonl+val.jsonl instead of overwriting (dedups)")
     args = ap.parse_args()
     if args.groq:
         os.environ["TEACHER"] = "openai"  # OpenAITeacher already defaults base_url+model to Groq
@@ -364,4 +399,4 @@ if __name__ == "__main__":
     if args.selftest:
         selftest()
     else:
-        generate(args.n, args.seed)
+        generate(args.n, args.seed, append=args.append)
