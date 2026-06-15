@@ -44,6 +44,14 @@ HERE = Path(__file__).parent
 BUILDER_DATA = HERE / "data" / "train.jsonl"   # phase-1 instructions seed phase-2
 OUT_DIR = HERE / "runner_data"
 
+# Cap the tool menu per training trace so the rendered example fits the training
+# seq window. The v1 runner dropped 361/540 traces whose full per-app tool lists
+# blew past it. We always keep the tools the trace actually uses + the built-ins,
+# then top up with random distractors to this many (so the model still learns to
+# PICK from a realistic menu, not just the answer). Keep the prod runner's
+# tool-scoping cap (BACKEND_WIRING.md) in line with this number.
+TOOL_CAP = int(os.environ.get("GF_TOOL_CAP", "16"))
+
 
 def connected_from_system(system: str) -> list[str]:
     """Recover the connected frontend ids from a builder row's system prompt."""
@@ -60,29 +68,51 @@ def available_tools(connected: list[str]) -> list[str]:
     return names
 
 
-def tool_menu(connected: list[str]) -> str:
+def tool_menu(connected: list[str], keep: set[str] | None = None) -> str:
     # Show each tool's arg signature (e.g. GF_WEATHER(location, units?)) so the
     # teacher uses real arg names — just the bare name where we lack a schema.
+    # `keep` (a tool-name set, see select_tools) trims the menu to a bounded slice.
     lines = []
     for fid in connected:
         slug = next((s for s in ALLOWED if frontend_id(s) == fid), fid)
-        ts = tools_for(slug)
+        ts = [t for t in tools_for(slug) if keep is None or t in keep]
         if ts:
             lines.append(f"- {fid}: {', '.join(arg_signature(t) for t in ts)}")
-    lines.append("- built-ins: " + ", ".join(arg_signature(t) for t in BUILTINS))
+    bi = [t for t in BUILTINS if keep is None or t in keep]
+    if bi:
+        lines.append("- built-ins: " + ", ".join(arg_signature(t) for t in bi))
     return "\n".join(lines)
 
 
-def tool_specs(connected: list[str]) -> list[dict[str, Any]]:
+def tool_specs(connected: list[str], keep: set[str] | None = None) -> list[dict[str, Any]]:
     """OpenAI tool defs for the chat template, with REAL arg schemas where we have
     them (builtins now, connectors once fetch_connector_schemas.py runs); a generic
-    object otherwise. Grounds the args the student trains on."""
+    object otherwise. Grounds the args the student trains on. `keep` trims to a
+    bounded slice (see select_tools)."""
     return [
         {"type": "function", "function": {
             "name": name, "description": BUILTINS.get(name, ""),
             "parameters": parameters_for(name)}}
-        for name in available_tools(connected)
+        for name in available_tools(connected) if keep is None or name in keep
     ]
+
+
+def _used_tools(steps: list[dict[str, Any]]) -> list[str]:
+    return [s["tool"] for s in steps if isinstance(s, dict) and "tool" in s]
+
+
+def select_tools(connected: list[str], used: list[str], rng, cap: int = TOOL_CAP) -> set[str]:
+    """Bounded tool slice for one training trace: the tools it uses + the built-ins,
+    then random distractors up to `cap`. Never drops a used tool or a built-in (so
+    the trace stays consistent), just bounds the distractors that bloat the seq."""
+    keep = list(dict.fromkeys([*used, *BUILTINS.keys()]))
+    pool = [t for t in available_tools(connected) if t not in keep]
+    rng.shuffle(pool)
+    for t in pool:
+        if len(keep) >= cap:
+            break
+        keep.append(t)
+    return set(keep)
 
 
 RUNNER_SYS = (
@@ -136,10 +166,12 @@ def valid_trace(steps: list[dict[str, Any]], connected: list[str]) -> bool:
     return True
 
 
-def to_chat(connected: list[str], instruction: str, steps: list[dict[str, Any]]) -> dict[str, Any]:
-    """Serialize a trace into OpenAI-style tool-calling messages + the tool list."""
+def to_chat(connected: list[str], instruction: str, steps: list[dict[str, Any]],
+            keep: set[str] | None = None) -> dict[str, Any]:
+    """Serialize a trace into OpenAI-style tool-calling messages + the tool list.
+    `keep` bounds the menu (system prompt + tools) so the example fits the seq."""
     messages: list[dict[str, Any]] = [
-        {"role": "system", "content": RUNNER_SYS.format(tools=tool_menu(connected))},
+        {"role": "system", "content": RUNNER_SYS.format(tools=tool_menu(connected, keep))},
         {"role": "user", "content": instruction},
     ]
     for i, st in enumerate(steps):
@@ -151,7 +183,7 @@ def to_chat(connected: list[str], instruction: str, steps: list[dict[str, Any]])
             {"id": tcid, "type": "function", "function": {
                 "name": st.get("tool", ""), "arguments": json.dumps(st.get("args", {}), ensure_ascii=False)}}]})
         messages.append({"role": "tool", "tool_call_id": tcid, "content": str(st.get("result", ""))})
-    return {"messages": messages, "tools": tool_specs(connected)}
+    return {"messages": messages, "tools": tool_specs(connected, keep)}
 
 
 def load_scenarios() -> list[tuple[str, list[str]]]:
@@ -196,7 +228,8 @@ def generate(n: int, seed: int = 0) -> None:
         if not steps or not valid_trace(steps, connected):
             print("  rejected: bad/empty trace")
             continue
-        kept.append(to_chat(connected, instr, steps))
+        keep = select_tools(connected, _used_tools(steps), rng)
+        kept.append(to_chat(connected, instr, steps, keep))
         with all_path.open("w" if len(kept) == 1 else "a", encoding="utf-8") as f:
             f.write(json.dumps(kept[-1], ensure_ascii=False) + "\n")
         print(f"[{len(kept)}/{n}] {instr[:64]}")
@@ -242,6 +275,17 @@ def selftest() -> None:
     # real schema flows into the tool specs the student trains on
     wspec = next(t for t in tool_specs(connected) if t["function"]["name"] == "GF_WEATHER")
     assert wspec_required(wspec) == ["location"], wspec
+    # tool-cap (v2): a multi-app menu is bounded, but the used tools + built-ins
+    # are always kept — so big workflows fit the seq window instead of dropping.
+    import random as _rng
+    big = ["gmail", "slack", "notion", "googlecalendar"]
+    keep = select_tools(big, ["GMAIL_FETCH_EMAILS"], _rng.Random(0), cap=12)
+    assert "GMAIL_FETCH_EMAILS" in keep and set(BUILTINS) <= keep, "lost used/builtins"
+    assert len(keep) <= max(12, 1 + len(BUILTINS)), f"menu not bounded: {len(keep)}"
+    capped = to_chat(big, "x",
+        [{"tool": "GMAIL_FETCH_EMAILS", "args": {"query": "is:unread"}, "result": "ok"}, {"final": "done"}], keep)
+    assert len(capped["tools"]) <= len(keep) and all(
+        t["function"]["name"] in keep for t in capped["tools"]), "capped specs leaked a tool"
     print("runner selftest passed")
 
 
