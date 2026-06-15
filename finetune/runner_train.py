@@ -11,6 +11,7 @@ grad-accum 8 / seq 4096. Lower MAX_SEQ if you OOM.
 """
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -19,7 +20,7 @@ from pathlib import Path
 from unsloth import FastLanguageModel
 from unsloth.chat_templates import train_on_responses_only
 
-from datasets import load_dataset
+from datasets import Dataset
 from trl import SFTConfig, SFTTrainer
 
 HERE = Path(__file__).parent
@@ -33,14 +34,6 @@ GRAD_ACCUM = int(os.environ.get("GF_GRAD_ACCUM", "8"))
 EPOCHS = int(os.environ.get("GF_EPOCHS", "3"))
 
 
-def to_text(tokenizer):
-    def _fmt(ex):
-        # Qwen2.5's chat template renders tool_calls + tool-result turns natively.
-        return {"text": tokenizer.apply_chat_template(
-            ex["messages"], tools=ex.get("tools"), tokenize=False)}
-    return _fmt
-
-
 def main() -> None:
     model, tok = FastLanguageModel.from_pretrained(
         model_name=BASE, max_seq_length=MAX_SEQ, load_in_4bit=True, dtype=None,
@@ -51,8 +44,13 @@ def main() -> None:
                         "gate_proj", "up_proj", "down_proj"],
         use_gradient_checkpointing="unsloth", random_state=3407,
     )
-    ds = load_dataset("json", data_files=str(HERE / "runner_data" / "train.jsonl"), split="train")
-    ds = ds.map(to_text(tok))
+    # Build the dataset in Python, not load_dataset("json"): per-tool JSON schemas
+    # vary across rows (an enum that's a string in one tool, a number in another),
+    # which pyarrow's schema inference rejects. The chat template renders the
+    # varying tools fine; keep only the flat rendered "text" column.
+    rows = [json.loads(l) for l in (HERE / "runner_data" / "train.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+    ds = Dataset.from_dict({"text": [
+        tok.apply_chat_template(r["messages"], tools=r.get("tools"), tokenize=False) for r in rows]})
 
     trainer = SFTTrainer(
         model=model, processing_class=tok, train_dataset=ds,
