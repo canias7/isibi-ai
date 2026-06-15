@@ -4,15 +4,20 @@ Your 16GB card serves a 14B fine but **training** it is tight. Rent a 24GB+ GPU
 for the one-time training run, then **serve the result locally** (serving is the
 easy part). Cost: roughly **$1–3 per run** (a 4090 at ~$0.40/hr × 1–3 hrs).
 
-> ⚠️ **Disk, not just VRAM, is the gotcha — and it's the *Container Disk*.**
+> ⚠️ **Disk, not just VRAM, is the gotcha — set the Container Disk big at deploy.**
 > The GGUF export at the end merges the LoRA into the full-precision 14B and
-> quantizes it — that needs **~60–65GB of scratch** on top of the base image.
-> RunPod has **two** disks: **Container Disk** (mounts at `/`) and **Volume
-> Disk** (mounts at `/workspace`). A plain `git clone` lands the repo under `/`,
-> so the export writes to the **Container Disk** — bumping only the Volume does
-> nothing. Set **Container Disk ≥150GB (use 200GB to be safe)** *before* deploy.
-> Otherwise training finishes and then dies with `No space left on device (os
-> error 28)` at the export. (See Notes for recovery without retraining.)
+> quantizes it — that needs **~60–65GB of scratch** on top of the base image
+> (~30GB) and the model cache (~30GB), so a run wants **~120GB** of real room.
+> Set the **Container Disk to 200GB** *before* deploying (it mounts at `/`, can't
+> grow mid-run) and clone the repo under `/` (e.g. `/root`). Too small and the
+> export dies with `no disk space left (os error 28)` **after** a successful
+> train.
+>
+> **Do NOT lean on `/workspace`.** That's a RunPod **network volume** with a
+> per-volume **quota**; `df -h /workspace` shows the whole shared cluster
+> (petabytes), *not* your slice, so it looks infinite and then dies mid-download
+> with `Disk quota exceeded (os error 122)`. Simplest is to attach **no** network
+> volume and just use a 200GB Container Disk. (See Notes for recovery.)
 
 The training scripts take config via env, so the same code does 7B or 14B. The
 **runner and chat share the same shape** — same script form, same env:
@@ -27,16 +32,16 @@ The training scripts take config via env, so the same code does 7B or 14B. The
 ## Steps
 
 **1. Rent a GPU** — RunPod / Vast.ai / Lambda, **24GB+ VRAM** (RTX 4090 or A5000
-is cheapest sufficient; A100 if you want speed). Pick a PyTorch/CUDA template.
-On RunPod, bump the **Container Disk** slider (NOT the Volume — see the warning
-above; the repo clones to `/`) from the default ~80GB to **200GB** *before*
-deploying; you can't grow it mid-run. Sanity-check on the box with `df -h .` —
-the mount holding the repo should show ~150G+ free.
+is cheapest sufficient; A100 if you want speed). Pick a PyTorch/CUDA template and,
+on the deploy screen, set **Container Disk = 200GB** and attach **no** network
+volume (see the warning above). Sanity-check on the box with `df -h /` — `/`
+should show ~170G+ free *before* you start.
 
-**2. Get the repo + data onto it.** The training data is **committed on the
-feature branch**, so a plain clone brings it — no teacher key needed on the box:
+**2. Get the repo + data onto it.** Clone under `/` (the big container disk), NOT
+`/workspace`. The training data is **committed on the feature branch**, so a plain
+clone brings it — no teacher key needed on the box:
 ```bash
-git clone <repo> && cd isibi-ai/finetune
+cd /root && git clone <repo> && cd isibi-ai/finetune
 git checkout claude/zealous-sagan-TA5qG     # the branch carrying data/, runner_data/, chat_data/
 # sanity: each should print a few hundred lines
 wc -l data/train.jsonl runner_data/train.jsonl chat_data/train.jsonl
@@ -74,25 +79,20 @@ edge functions just keep calling `gf-workflows` / `gf-runner` / `gf-chat`.
   reasoning). Train these at 14B; keep the builder 7B if you like.
 
 ## Notes
-- **Disk size is non-negotiable for 14B — and it must be the Container Disk.**
+- **Disk size is non-negotiable for 14B — and it's the Container Disk, at deploy.**
   Training itself fits ~80GB, but the final `save_pretrained_gguf` merges the
   adapter into the full fp16 14B (~30GB), converts to an f16 GGUF (~30GB), then
-  quantizes to q4 (~9GB) — peak ~60–65GB free, on the disk holding the repo.
-  Since `git clone` lands under `/` (the **Container Disk**), bumping only the
-  `/workspace` **Volume** does nothing. Too small and you get `RuntimeError:
-  Failed to save/merge model: ... no disk space left!` **after a successful
-  train** (the `*_lora/` adapter is saved; only the export dies). Two recoveries
-  that skip retraining:
-    - Re-export from the saved adapter onto a mount that *does* have room:
-      ```bash
-      python - <<'PY'
-      from unsloth import FastLanguageModel
-      m, t = FastLanguageModel.from_pretrained("runner_lora", max_seq_length=3072, load_in_4bit=True, dtype=None)
-      m.save_pretrained_gguf("/workspace/runner_gguf", t, quantization_method="q4_k_m")
-      PY
-      ```
-    - Or `runpodctl send runner_lora` to pull the ~300MB adapter off-pod, then
-      redeploy with a 200GB Container Disk (or convert to GGUF on a roomy box).
+  quantizes to q4 (~9GB) — peak ~60–65GB free on top of the ~30GB model cache, so
+  the run wants **~120GB** on the disk holding the repo. Too small and you get
+  `Failed to save/merge model: ... no disk space left!` (os error 28) **after a
+  successful train** (the `*_lora/` adapter is saved; only the export dies). The
+  fix is a 200GB Container Disk — `/workspace` is a quota'd network volume and
+  fills mid-download with `Disk quota exceeded (os error 122)` even though `df`
+  says petabytes. If you're stuck holding a trained adapter on a too-small pod,
+  `runpodctl send runner_lora` to pull the ~300MB adapter off-pod, then redeploy
+  with a 200GB Container Disk and re-export (`FastLanguageModel.from_pretrained
+  ("runner_lora", ...)` → `save_pretrained_gguf`) or just retrain (~17 min, the
+  data is committed so it's reproducible).
 - **Long traces get dropped, not errored.** Runner/chat traces with big tool
   lists can exceed `GF_MAX_SEQ` and are silently skipped — watch the "X of Y
   samples" line. If too many drop, lower the tool count per trace (regen) rather
