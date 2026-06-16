@@ -560,6 +560,20 @@ function normWindow(w: any, tz: string): any | null {
   return { start, end, days, tz };
 }
 
+// Clamp schedule fields the grammar can't range-enforce (GBNF locks the type but
+// not 0-23 / 0-59 / 0-6), so an occasional out-of-range hour can't fail validation
+// or reach the runner. Applied in the lazy gate AND the shared finalize.
+function clampSchedule(trigger: any): void {
+  if (!trigger || trigger.type !== "schedule" || !trigger.schedule || typeof trigger.schedule !== "object") return;
+  const s = trigger.schedule;
+  if (!["daily", "weekly", "hourly"].includes(s.freq)) s.freq = "daily";
+  s.hour = Math.min(23, Math.max(0, Math.floor(Number(s.hour)) || 0));
+  s.minute = Math.min(59, Math.max(0, Math.floor(Number(s.minute)) || 0));
+  if (s.weekday !== undefined && s.weekday !== null) {
+    s.weekday = Math.min(6, Math.max(0, Math.floor(Number(s.weekday)) || 0));
+  }
+}
+
 Deno.serve(async (req: Request) => {
   const cors = corsFor(req);
   const J = (obj: unknown, status = 200) =>
@@ -610,6 +624,7 @@ Deno.serve(async (req: Request) => {
     let msgs: any[] = [{ role: "system", content: sys }, { role: "user", content: lastUserMsg }];
     let text = await mlGrammar(msgs);
     let wf = text ? extractJson(text) : null;
+    if (wf) clampSchedule(wf.trigger);   // fix out-of-range hour/minute/weekday before the gate
     let errs = wf ? validateStructural(wf, ALL) : ["the model returned no usable JSON"];
     if (errs.length) {
       // ONE self-correct retry: same prompt + the validation error.
@@ -621,6 +636,7 @@ Deno.serve(async (req: Request) => {
       ];
       text = await mlGrammar(msgs);
       wf = text ? extractJson(text) : null;
+      if (wf) clampSchedule(wf.trigger);
       errs = wf ? validateStructural(wf, ALL) : ["the model returned no usable JSON"];
     }
     if (errs.length || !wf) {
@@ -801,6 +817,7 @@ Request: "When an email from my boss arrives, Slack me a one-line summary." (Gma
   const trigger = (plan.trigger && typeof plan.trigger === "object") ? plan.trigger : { type: "schedule" };
   if (trigger.type === "schedule") {
     trigger.schedule = { freq: "daily", hour: 8, minute: 0, weekday: 1, ...(trigger.schedule || {}), tz };
+    clampSchedule(trigger);
   } else if (trigger.type === "event") {
     // An event trigger must watch a real, connected app or it would never fire
     // (silently). Fall back to the first connected app, else to a daily schedule.
