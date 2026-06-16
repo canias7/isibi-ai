@@ -104,31 +104,41 @@ blocker is purely the Qwen2.5-adapter incompatibility — **not grammar, not sch
 > The **runner → managed MoE** plan is **UNAFFECTED** — it uses an off-the-shelf
 > hosted MoE (no custom adapter, no upload), so none of this Qwen2.5/LoRA limit applies.
 
-### ✅ DECISION — host the merged Qwen2.5 builder on a scale-to-zero GPU (Baseten)
+### ✅ DECISION — per-token serverless via Together fine-tune on Qwen3-8B (LAUNCHED 2026-06)
 
-The real goal is *cloud hosting* (off the home PC), not specifically per-token. The
-adapter-upload walls only apply to serving a **separate LoRA**; **merge the adapter
-into full Qwen2.5-7B weights and it's just a normal model you host anywhere** — no
-upload/base restrictions.
+Chose **per-token** over per-second GPU: per-token providers batch across customers
+→ ~10–30× cheaper for a single app's bursty builder traffic, **and no cold-start
+latency**. The price is a one-time retrain (Together can't serve our uploaded
+Qwen2.5 adapter — upload is disabled on the account — so the only per-token route is
+letting Together *train* it, which means a Qwen3 base).
 
-**Plan:** merge the **coverage adapter** (the full-1,043-app retrain finishing now —
-*not* the old 97% one) → deploy the merged model on **Baseten** (scale-to-zero GPU).
+**Status: managed fine-tune LIVE on Together** (no home GPU; local Qwen2.5 coverage
+job runs in parallel, untouched):
+- Job `ft-af9de20c-8298` — Qwen3-8B + LoRA (r=32/α=32, 3 epochs, response-masking on)
+- Served id (when done): `aniascapital_5a6d/Qwen3-8B-gf-workflows-q3-88c2a72c`
+- Background poller (`_ft_poll.py`) reports completion + final token count + price.
 
-- **No retrain** — hosts the exact model you already trained.
-- **Scale-to-zero** — pay per-second only while building; **$0 idle.**
-- **Grammar works** — Baseten runs vLLM (json_schema / structured decoding).
-- **OpenAI-compatible URL** → drops straight into `WORKFLOW_MODEL_BASE_URL` in
-  build-workflow, replacing the cloudflared tunnel. Zero backend changes.
-- **Alternatives:** Modal (Python-native, fast cold-start snapshotting) is equally
-  good; HF Endpoints / Fireworks-dedicated also host the merged model (per-hour).
-- ⚠️ **Cold starts**: first build after idle waits ~30–60 s (7B load). Steady traffic
-  stays warm; for sporadic early traffic, accept it or keep 1 replica warm later.
+**No-think collision: handled.** Data uploaded in conversational format (3,701/411);
+Together response-masks automatically; the Qwen3 empty `<think></think>` prefix is
+template-injected the same at train + inference; **served with `enable_thinking=False`
++ strict grammar → pure JSON from token 0.**
 
-Validate the merge→deploy pipeline with the old adapter anytime; swap in the
-**coverage model** once its retrain finishes. *Then* point build-workflow at the
-Baseten URL + the finalize/scoped-grammar wiring (BACKEND_WIRING §1).
+**Still to verify when the poller fires** (`qwen3_lora_check.py`, served id, cold-start
+422→retry, max_tokens 1024): (1) grammar holds on the served fine-tune; (2) it's
+truly **serverless per-token** (not dedicated); (3) the **$/1M price**. If all 3 →
+point build-workflow's `WORKFLOW_MODEL_BASE_URL` at the served id + finalize/scoped-
+grammar wiring (BACKEND_WIRING §1).
 
-### Qwen3-8B serverless-builder retrain — runbook (alternative: only for per-token / no cold-start)
+**Expected cost:** ~$1–10/mo at realistic builder volume (vs ~$10–600 for a
+scale-to-zero GPU), no cold-start.
+
+#### Alternative (no retrain): merge Qwen2.5 → Baseten/Modal scale-to-zero GPU
+If the Together fine-tune disappoints, host the **merged** Qwen2.5 coverage model
+(adapter baked into full weights → a normal model, no upload restriction) on
+**Baseten/Modal** (scale-to-zero, vLLM grammar, OpenAI URL). Trade-off: no retrain +
+your exact model, but pricier per-build for bursty traffic + ~30–60 s cold-starts.
+
+### Qwen3-8B serverless-builder retrain — runbook (the LAUNCHED path; details)
 
 Goal: a managed **serverless** builder on Together — the only route, since Qwen2.5
 isn't supported. **Cost ≈ $0** to train (reuse the existing 4,112-example dataset +
