@@ -104,7 +104,31 @@ blocker is purely the Qwen2.5-adapter incompatibility — **not grammar, not sch
 > The **runner → managed MoE** plan is **UNAFFECTED** — it uses an off-the-shelf
 > hosted MoE (no custom adapter, no upload), so none of this Qwen2.5/LoRA limit applies.
 
-### Qwen3-8B serverless-builder retrain — runbook (chosen path)
+### ✅ DECISION — host the merged Qwen2.5 builder on a scale-to-zero GPU (Baseten)
+
+The real goal is *cloud hosting* (off the home PC), not specifically per-token. The
+adapter-upload walls only apply to serving a **separate LoRA**; **merge the adapter
+into full Qwen2.5-7B weights and it's just a normal model you host anywhere** — no
+upload/base restrictions.
+
+**Plan:** merge the **coverage adapter** (the full-1,043-app retrain finishing now —
+*not* the old 97% one) → deploy the merged model on **Baseten** (scale-to-zero GPU).
+
+- **No retrain** — hosts the exact model you already trained.
+- **Scale-to-zero** — pay per-second only while building; **$0 idle.**
+- **Grammar works** — Baseten runs vLLM (json_schema / structured decoding).
+- **OpenAI-compatible URL** → drops straight into `WORKFLOW_MODEL_BASE_URL` in
+  build-workflow, replacing the cloudflared tunnel. Zero backend changes.
+- **Alternatives:** Modal (Python-native, fast cold-start snapshotting) is equally
+  good; HF Endpoints / Fireworks-dedicated also host the merged model (per-hour).
+- ⚠️ **Cold starts**: first build after idle waits ~30–60 s (7B load). Steady traffic
+  stays warm; for sporadic early traffic, accept it or keep 1 replica warm later.
+
+Validate the merge→deploy pipeline with the old adapter anytime; swap in the
+**coverage model** once its retrain finishes. *Then* point build-workflow at the
+Baseten URL + the finalize/scoped-grammar wiring (BACKEND_WIRING §1).
+
+### Qwen3-8B serverless-builder retrain — runbook (alternative: only for per-token / no cold-start)
 
 Goal: a managed **serverless** builder on Together — the only route, since Qwen2.5
 isn't supported. **Cost ≈ $0** to train (reuse the existing 4,112-example dataset +
