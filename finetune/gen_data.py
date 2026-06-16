@@ -31,6 +31,7 @@ import json
 import os
 import random
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -244,11 +245,12 @@ def make_teacher() -> Teacher:
 # --------------------------------------------------------------------------- #
 # Generation
 # --------------------------------------------------------------------------- #
-def sample_connected(rng: random.Random) -> list[str]:
-    """A believable connected set CENTERED on a uniformly-chosen primary app, so
-    coverage spreads across the long tail of connectors instead of clustering on
-    email/chat. The primary is returned first (brainstorm focuses requests on it)."""
-    primary = frontend_id(rng.choice(ACTIONY))
+def sample_connected(rng: random.Random, primaries: list[str] | None = None) -> list[str]:
+    """A believable connected set CENTERED on a chosen primary app, so coverage
+    spreads across the long tail of connectors instead of clustering on email/chat.
+    The primary is returned first (brainstorm focuses requests on it). `primaries`
+    (a possibly-weighted slug list) lets coverage mode bias toward under-covered apps."""
+    primary = frontend_id(rng.choice(primaries or ACTIONY))
     pool = [frontend_id(s) for s in ALLOWED if frontend_id(s) != primary]
     extras = sorted(set(rng.sample(pool, rng.randint(1, 3))))
     return [primary] + extras
@@ -306,17 +308,92 @@ def _cites_connector_tool(wf: dict[str, Any]) -> str | None:
     return None
 
 
-def generate(n: int, seed: int = 0, append: bool = False) -> None:
+# --------------------------------------------------------------------------- #
+# Coverage-aware sampling: spend teacher calls (= credits) on connectors the data
+# barely covers — especially newly-added apps with ZERO examples — instead of
+# re-teaching apps the model already knows. Makes a retrain after a catalog
+# expansion pay almost only for the new apps.
+# --------------------------------------------------------------------------- #
+_SPECIAL_APPS = {"schedule", "event", "ai", "decision"}
+
+
+def _used_apps(wf: dict[str, Any]) -> set[str]:
+    """Connector ids a workflow actually uses (node.app + event.app, no specials)."""
+    used: set[str] = set()
+    trig = wf.get("trigger")
+    if isinstance(trig, dict) and isinstance(trig.get("event"), dict):
+        app = trig["event"].get("app")
+        if isinstance(app, str):
+            used.add(app)
+    for nd in (wf.get("nodes") or []):
+        if isinstance(nd, dict) and isinstance(nd.get("app"), str):
+            used.add(nd["app"])
+    return used - _SPECIAL_APPS
+
+
+def app_coverage(rows: list[dict[str, Any]]) -> Counter:
+    """How many existing examples actually USE each connector id."""
+    c: Counter = Counter()
+    for r in rows:
+        a = r.get("assistant")
+        try:
+            wf = json.loads(a) if isinstance(a, str) else a
+        except json.JSONDecodeError:
+            continue
+        if isinstance(wf, dict):
+            c.update(_used_apps(wf))
+    return c
+
+
+def _focus_pool(target: int) -> list[str]:
+    """ACTIONY slugs weighted by how far below `target` examples each app is, so the
+    primary is drawn mostly from under-covered apps (zero-example apps weigh most)."""
+    cov = app_coverage(_read(DATA / "train.jsonl") + _read(DATA / "val.jsonl"))
+    pool: list[str] = []
+    for slug in ACTIONY:
+        deficit = target - cov.get(frontend_id(slug), 0)
+        if deficit > 0:
+            pool += [slug] * deficit
+    return pool
+
+
+def coverage_report(target: int = 3) -> None:
+    """Offline: per-connector example coverage + the gap to `target` (no teacher)."""
+    cov = app_coverage(_read(DATA / "train.jsonl") + _read(DATA / "val.jsonl"))
+    ids = [frontend_id(s) for s in ALLOWED]
+    zero = [f for f in ids if cov.get(f, 0) == 0]
+    under = [f for f in ids if 0 < cov.get(f, 0) < target]
+    covered = [f for f in ids if cov.get(f, 0) >= target]
+    builds = sum(max(0, target - cov.get(f, 0)) for f in ids)
+    print(f"connectors in catalog: {len(ids)}   total app-uses in data: {sum(cov.values())}")
+    print(f"target {target}/app  →  zero: {len(zero)}   under: {len(under)}   covered: {len(covered)}")
+    print(f"teacher builds to bring every app to {target}: ~{builds}  "
+          f"(vs ~{target * len(ids)} for a blind full regen)")
+    print("\nleast-covered connectors:")
+    for f in sorted(ids, key=lambda x: cov.get(x, 0))[:25]:
+        print(f"  {cov.get(f, 0):3}  {f}")
+
+
+def generate(n: int, seed: int = 0, append: bool = False, cover_target: int = 0) -> None:
     rng = random.Random(seed)
     teacher = make_teacher()
     DATA.mkdir(exist_ok=True)
+    primaries = ACTIONY
+    if cover_target > 0:
+        pool = _focus_pool(cover_target)
+        if pool:
+            primaries = pool
+            print(f"coverage mode: focusing on {len(set(pool))} connectors under "
+                  f"{cover_target} examples ({len(pool)} weighted slots); covered apps skipped")
+        else:
+            print(f"coverage mode: every connector already has ≥{cover_target} examples — uniform sampling")
     all_path = DATA / "all.jsonl"      # incremental safety copy (survives interrupts)
     kept: list[dict[str, Any]] = []
     seen: set[str] = set()
     attempts = 0
     while len(kept) < n and attempts < n * 4:
         attempts += 1
-        connected = sample_connected(rng)
+        connected = sample_connected(rng, primaries)
         try:
             requests = brainstorm(teacher, connected, k=min(8, n - len(kept) + 2))
         except Exception as e:  # noqa: BLE001 - keep the run going on a flaky call
@@ -419,6 +496,12 @@ if __name__ == "__main__":
                     help="free Google Gemini 2.0 Flash teacher (just set GEMINI_API_KEY)")
     ap.add_argument("--append", action="store_true",
                     help="ADD to existing data/train.jsonl+val.jsonl instead of overwriting (dedups)")
+    ap.add_argument("--cover-target", type=int, default=0, metavar="N",
+                    help="coverage mode: bias generation toward connectors with FEWER than N "
+                         "existing examples (new/under-covered apps get the teacher calls; "
+                         "well-covered apps are skipped). 0 = off (uniform sampling).")
+    ap.add_argument("--coverage", action="store_true",
+                    help="offline: report per-connector example coverage and exit (no teacher).")
     args = ap.parse_args()
     if args.groq:
         os.environ["TEACHER"] = "openai"  # OpenAITeacher already defaults base_url+model to Groq
@@ -426,7 +509,9 @@ if __name__ == "__main__":
         os.environ["TEACHER"] = "openai"
         os.environ.setdefault("TEACHER_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
         os.environ.setdefault("TEACHER_MODEL", "gemini-2.0-flash")
-    if args.selftest:
+    if args.coverage:
+        coverage_report(args.cover_target or 3)
+    elif args.selftest:
         selftest()
     else:
-        generate(args.n, args.seed, append=args.append)
+        generate(args.n, args.seed, append=args.append, cover_target=args.cover_target)

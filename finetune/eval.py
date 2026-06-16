@@ -43,6 +43,11 @@ def main() -> None:
     ap.add_argument("--file", default=str(HERE / "data" / "val.jsonl"))
     ap.add_argument("--raw", action="store_true",
                     help="eval the BARE model (no grammar) — for comparison. Default uses the grammar = the real served path.")
+    ap.add_argument("--restrict-apps", action="store_true",
+                    help="hard-restrict the grammar's app enum to each row's CONNECTED apps "
+                         "(grammar.py workflow_json_schema(connected=...)). The model then physically "
+                         "cannot emit an unconnected app, so 'apps all connected' -> ~100% by construction. "
+                         "Use to separate real routing errors from the default-grammar 'name any app' policy.")
     args = ap.parse_args()
 
     client = OpenAI(base_url=args.base_url, api_key=args.api_key)
@@ -51,19 +56,31 @@ def main() -> None:
     # build-workflow sends). --raw measures the bare model for comparison.
     rf = None if args.raw else {"type": "json_schema",
         "json_schema": {"name": "workflow", "schema": workflow_json_schema(), "strict": True}}
-    print(f"mode: {'RAW (no grammar)' if args.raw else 'grammar-constrained (served path)'}\n")
+    mode = ("RAW (no grammar)" if args.raw
+            else "grammar-constrained, app enum restricted to each row's connected apps" if args.restrict_apps
+            else "grammar-constrained (served path)")
+    print(f"mode: {mode}\n")
 
+    META = {"schedule", "event", "ai", "decision"}
     n = len(rows)
     json_ok = schema_ok = apps_ok = 0
     for i, r in enumerate(rows, 1):
+        connected = connected_from_system(r["system"])
+        if args.raw:
+            rf_row = None
+        elif args.restrict_apps:
+            # lock `app` to ONLY this row's connected connectors (specials are re-added inside)
+            rf_row = {"type": "json_schema", "json_schema": {"name": "workflow",
+                "schema": workflow_json_schema(sorted(connected - META)), "strict": True}}
+        else:
+            rf_row = rf
         resp = client.chat.completions.create(
             model=args.model, max_tokens=2048,
             messages=[{"role": "system", "content": r["system"]},
                       {"role": "user", "content": r["user"]}],
-            **({"response_format": rf} if rf else {}),
+            **({"response_format": rf_row} if rf_row else {}),
         )
         text = resp.choices[0].message.content or ""
-        connected = connected_from_system(r["system"])
         ok, errs, wf = parse_and_validate(text, connected=connected)
         if wf is not None:
             json_ok += 1

@@ -60,10 +60,48 @@ def load_index() -> dict[str, dict[str, Any]]:
     return {t["slug"]: t for t in data.get("toolkits", [])}
 
 
+def check_coverage() -> None:
+    """Report how much of the toolkit universe the built catalog covers. No API key."""
+    if not CATALOG_OUT.exists():
+        print(f"no {CATALOG_OUT.name} yet — run the build first")
+        sys.exit(1)
+    have = set((json.loads(CATALOG_OUT.read_text(encoding="utf-8")).get("connectors") or {}).keys())
+    idx = load_index()
+    if not idx:
+        print(f"no {INDEX_FILE} — can't compute coverage (run build_connector_catalog.py to write the index)")
+        sys.exit(1)
+    with_tools = {s for s, m in idx.items() if int(m.get("tool_count") or 0) > 0}
+    covered = have & with_tools
+    missing = sorted(with_tools - have)
+    pct = 100 * len(covered) // max(len(with_tools), 1)
+    print(f"catalog connectors:           {len(have)}")
+    print(f"toolkit universe (index):     {len(idx)}")
+    print(f"  └ addressable (has tools):  {len(with_tools)}")
+    print(f"coverage:                     {len(covered)}/{len(with_tools)} addressable ({pct}%)")
+    if missing:
+        print(f"\n⚠ missing {len(missing)} toolkits that have tools — re-run the build (without --important-only):")
+        for s in missing[:20]:
+            print(f"   - {s}  ({idx[s].get('name', '?')})")
+        if len(missing) > 20:
+            print(f"   … +{len(missing) - 20} more")
+        sys.exit(1)
+    print(f"\n✓ full coverage — every toolkit with tools is in the catalog ({len(covered)}/{len(with_tools)})")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cap", type=int, default=20, help="max tools kept per connector")
+    ap.add_argument("--important-only", action="store_true",
+                    help="skip the second pass; keep only toolkits that have a Composio "
+                         "'important' tool (~823). Default does BOTH passes = the full ~1043.")
+    ap.add_argument("--check", action="store_true",
+                    help="don't fetch — just report catalog coverage vs the toolkit index "
+                         "(addressable = toolkits that have tools). Exits 1 if any are missing.")
     args = ap.parse_args()
+
+    if args.check:
+        check_coverage()
+        return
 
     key = os.environ.get("COMPOSIO_API_KEY")
     if not key:
@@ -84,6 +122,30 @@ def main() -> None:
 
     index = load_index()
     existing_ids = {ALIASES.get(s, s) for s in ALLOWED}   # frontend ids already taken
+
+    # Second pass: the global important=true fetch SKIPS any toolkit whose tools
+    # Composio never flagged "important" (~221 of 1043 — incl. SharePoint, NetSuite,
+    # Dropbox Sign…). Pull those directly (per-toolkit, unfiltered) so the catalog
+    # spans the FULL universe, not just the important-flagged toolkits. One call per
+    # missing toolkit that the index says actually has tools.
+    if not args.important_only and index:
+        missing = [s for s, m in index.items()
+                   if s not in by_kit and int(m.get("tool_count") or 0) > 0]
+        print(f"second pass: fetching tools for {len(missing)} toolkits with no 'important' tool…")
+        added_kits = 0
+        for j, slug in enumerate(missing, 1):
+            try:
+                kit_tools = fetch_all("v3.1/tools", {"toolkit_slug": slug, "limit": "500"}, key)
+            except Exception as e:                      # one dud toolkit must not kill the run
+                print(f"  [{j}/{len(missing)}] {slug}: fetch failed ({e}); skipping")
+                continue
+            kit_tools = [t for t in kit_tools if t.get("slug")]
+            if kit_tools:
+                by_kit[slug] = kit_tools
+                added_kits += 1
+            if j % 25 == 0:
+                print(f"  …{j}/{len(missing)}")
+        print(f"  second pass captured {added_kits} more toolkits")
 
     connectors: dict[str, Any] = {}
     schemas: dict[str, Any] = {}
@@ -108,7 +170,8 @@ def main() -> None:
 
     CATALOG_OUT.write_text(json.dumps({
         "_meta": {
-            "source": "Composio v3.1/tools?important=true",
+            "source": ("Composio v3.1/tools?important=true" if args.important_only
+                       else "Composio v3.1/tools (important=true + per-toolkit second pass = full universe)"),
             "fetched": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "connectors": len(connectors),
             "tools": sum(len(c["tools"]) for c in connectors.values()),
