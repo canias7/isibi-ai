@@ -60,13 +60,48 @@ def load_index() -> dict[str, dict[str, Any]]:
     return {t["slug"]: t for t in data.get("toolkits", [])}
 
 
+def check_coverage() -> None:
+    """Report how much of the toolkit universe the built catalog covers. No API key."""
+    if not CATALOG_OUT.exists():
+        print(f"no {CATALOG_OUT.name} yet — run the build first")
+        sys.exit(1)
+    have = set((json.loads(CATALOG_OUT.read_text(encoding="utf-8")).get("connectors") or {}).keys())
+    idx = load_index()
+    if not idx:
+        print(f"no {INDEX_FILE} — can't compute coverage (run build_connector_catalog.py to write the index)")
+        sys.exit(1)
+    with_tools = {s for s, m in idx.items() if int(m.get("tool_count") or 0) > 0}
+    covered = have & with_tools
+    missing = sorted(with_tools - have)
+    pct = 100 * len(covered) // max(len(with_tools), 1)
+    print(f"catalog connectors:           {len(have)}")
+    print(f"toolkit universe (index):     {len(idx)}")
+    print(f"  └ addressable (has tools):  {len(with_tools)}")
+    print(f"coverage:                     {len(covered)}/{len(with_tools)} addressable ({pct}%)")
+    if missing:
+        print(f"\n⚠ missing {len(missing)} toolkits that have tools — re-run the build (without --important-only):")
+        for s in missing[:20]:
+            print(f"   - {s}  ({idx[s].get('name', '?')})")
+        if len(missing) > 20:
+            print(f"   … +{len(missing) - 20} more")
+        sys.exit(1)
+    print(f"\n✓ full coverage — every toolkit with tools is in the catalog ({len(covered)}/{len(with_tools)})")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cap", type=int, default=20, help="max tools kept per connector")
     ap.add_argument("--important-only", action="store_true",
                     help="skip the second pass; keep only toolkits that have a Composio "
                          "'important' tool (~823). Default does BOTH passes = the full ~1043.")
+    ap.add_argument("--check", action="store_true",
+                    help="don't fetch — just report catalog coverage vs the toolkit index "
+                         "(addressable = toolkits that have tools). Exits 1 if any are missing.")
     args = ap.parse_args()
+
+    if args.check:
+        check_coverage()
+        return
 
     key = os.environ.get("COMPOSIO_API_KEY")
     if not key:
