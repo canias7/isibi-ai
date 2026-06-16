@@ -63,6 +63,9 @@ def load_index() -> dict[str, dict[str, Any]]:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cap", type=int, default=20, help="max tools kept per connector")
+    ap.add_argument("--important-only", action="store_true",
+                    help="skip the second pass; keep only toolkits that have a Composio "
+                         "'important' tool (~823). Default does BOTH passes = the full ~1043.")
     args = ap.parse_args()
 
     key = os.environ.get("COMPOSIO_API_KEY")
@@ -84,6 +87,30 @@ def main() -> None:
 
     index = load_index()
     existing_ids = {ALIASES.get(s, s) for s in ALLOWED}   # frontend ids already taken
+
+    # Second pass: the global important=true fetch SKIPS any toolkit whose tools
+    # Composio never flagged "important" (~221 of 1043 — incl. SharePoint, NetSuite,
+    # Dropbox Sign…). Pull those directly (per-toolkit, unfiltered) so the catalog
+    # spans the FULL universe, not just the important-flagged toolkits. One call per
+    # missing toolkit that the index says actually has tools.
+    if not args.important_only and index:
+        missing = [s for s, m in index.items()
+                   if s not in by_kit and int(m.get("tool_count") or 0) > 0]
+        print(f"second pass: fetching tools for {len(missing)} toolkits with no 'important' tool…")
+        added_kits = 0
+        for j, slug in enumerate(missing, 1):
+            try:
+                kit_tools = fetch_all("v3.1/tools", {"toolkit_slug": slug, "limit": "500"}, key)
+            except Exception as e:                      # one dud toolkit must not kill the run
+                print(f"  [{j}/{len(missing)}] {slug}: fetch failed ({e}); skipping")
+                continue
+            kit_tools = [t for t in kit_tools if t.get("slug")]
+            if kit_tools:
+                by_kit[slug] = kit_tools
+                added_kits += 1
+            if j % 25 == 0:
+                print(f"  …{j}/{len(missing)}")
+        print(f"  second pass captured {added_kits} more toolkits")
 
     connectors: dict[str, Any] = {}
     schemas: dict[str, Any] = {}
@@ -108,7 +135,8 @@ def main() -> None:
 
     CATALOG_OUT.write_text(json.dumps({
         "_meta": {
-            "source": "Composio v3.1/tools?important=true",
+            "source": ("Composio v3.1/tools?important=true" if args.important_only
+                       else "Composio v3.1/tools (important=true + per-toolkit second pass = full universe)"),
             "fetched": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "connectors": len(connectors),
             "tools": sum(len(c["tools"]) for c in connectors.values()),
