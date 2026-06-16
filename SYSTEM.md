@@ -60,6 +60,38 @@ web/code) → `tts` (**Linda**) → playback. Fully self-hostable end-to-end.
 
 ---
 
+## Builder serving — managed serverless LoRA on Together (investigation, 2026-06)
+
+Production-hardening option: host the trained builder **adapter** managed (always-up,
+scales) instead of the free-but-home-PC-dependent local Ollama. Optional — the builder
+runs free locally today.
+
+**Provider verdict:**
+- **Fireworks ❌** — custom LoRA adapters are *dedicated-deploy only*; no serverless.
+- **Together ✅** — "Serverless Multi-LoRA": upload the adapter, serve serverless
+  per-token. Base `Qwen/Qwen2.5-7B-Instruct(-Turbo)`. Upload the **LoRA adapter**
+  (`lora_model/`, ~323 MB, r=32) — **not** the GGUF.
+
+**Empirical findings** (base Qwen2.5-7B on Together, 7 runs — `json_schema`/grammar
+**works**, 6/7 clean). The two production rules, learned the hard way:
+1. **Retry-once on `failed to compile grammar` (422)** — a one-time cold-start while
+   Together compiles a *novel* schema; the identical call succeeds right after. The
+   deployed builder MUST retry-once on this when pointed at Together.
+2. **No `additionalProperties:false` on NESTED objects** — it consistently breaks
+   Together's grammar compiler. Top-level only. (The deployed `WF_SCHEMA` is already
+   top-level-only ✅.)
+
+**Make-or-break (pending → Step 4):** does grammar hold with the **uploaded LoRA
+attached**? Together's docs don't confirm grammar + serverless-LoRA *simultaneously*.
+If yes → serverless viable. If no → **dedicated deployment** fallback (base+adapter on
+a GPU; grammar works, but per-hour not scale-to-zero).
+
+Adapter base note: trained on `unsloth/qwen2.5-7b-instruct-unsloth-bnb-4bit` (4-bit);
+Together attaches it to fp16 `Qwen2.5-7B-Instruct` — same arch, expected to load
+(standard QLoRA: train 4-bit / serve fp16).
+
+---
+
 ## Go-live punch-list (all local-Claude / your-machine work)
 
 1. **Stand up two servers** + expose via the tunnel:
