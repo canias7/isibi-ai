@@ -97,28 +97,52 @@ path. Worst case = today's behavior.
 
 ## 3. `chat → gf-chat` (router, not a swap)
 
-Chat is the **trickiest**: besides deferred MCP + tool-search, it uses Anthropic
-**server tools — web search, web fetch, code execution** (`chat/index.ts` ~L1034–1039)
-that a local model **fundamentally cannot do**. So don't replace Claude — **route**.
+The trickiest: `chat` uses Anthropic **server tools** (web search/fetch, code exec —
+`chat/index.ts` ~L1034–1039) a local model can't do, AND it delegates connector-tool
+execution to the **MCP server** (Anthropic runs the tools). So don't replace Claude —
+**route**, and lean on two verified facts that make the *first cut* easy.
 
-1. **Classify the turn** (cheap heuristic, or the util Haiku already used for titles):
-   - needs current-info / web / code / file analysis / deep multi-app discovery → **Claude**
-   - plain conversation, or a simple built-in (memory, weather, maps, reminder), or one
-     known connector action → **gf-chat**
-   - **unsure → Claude** (mis-routing a web turn to gf-chat = confident wrong answer)
-2. **gf-chat path:** like the runner — eager built-ins + scoped connector tools as
-   OpenAI-format `tools` (reuse the existing built-in handlers behind the MCP server),
-   run the loop yourself, **stream** the reply (Ollama streams). No web/code here.
-3. **Claude path:** existing function, untouched — handles web/code/complex + is the fallback.
+### Two contracts to honor (both verified in the code)
+- **Stream = plain UTF-8 text, not SSE.** `src/api.ts::streamChat` just does
+  `onToken(decode(bytes))` and reads the `x-gf-model` response header — no JSON event
+  framing. So the gf-chat path only has to **relay Ollama's streamed tokens as text**
+  and set `x-gf-model: gf-chat`.
+- **Tools today run server-side** via Anthropic's `mcp_toolset` — *Anthropic* executes
+  connector + built-in tools. A local model can't use that, so a gf-chat *tool* turn
+  must **execute tools in-function** (gf-chat returns tool_calls → you call the tool →
+  feed the result back → loop). That's the hard part — so defer it to Phase B.
 
-**Why this *is* the "universal chat" goal:** a 14B can't match Claude's knowledge — so
-gf-chat serves the bulk of everyday turns (chit-chat, "remind me", "what's the weather",
-"save this") locally and free; **Claude + web search fill every knowledge gap.** Cost
-savings with no capability loss — the user never hits a dumb wall.
+### Phase A — gf-chat for no-tool conversation only (ship this first; ~30 lines, low risk)
+1. **Classify upfront** (before any model call): → **Claude** if the turn needs current
+   info / web / code / files, references the user's connected apps, or asks to *do*
+   something (send/create/check/schedule/pay…). → **gf-chat** only for pure conversation
+   (chit-chat, explanations, rewrites, opinions). **Unsure → Claude.** A keyword/verb
+   heuristic is fine to start; the existing `util` Haiku is a sharper fallback classifier.
+2. **gf-chat path:** no tools at all — system prompt (+ memory) + messages → Ollama
+   `stream:true` → **relay tokens as plain text**, set `x-gf-model: gf-chat`. No tool
+   loop, so it's tiny.
+3. **Fallback = upfront only:** if gf-chat errors/unreachable *before* it emits a token,
+   restart the turn on the existing Claude path. **Never fall back mid-stream** (you'd
+   double-speak). Once it's streamed a token, let it finish.
 
-**Caveats:** router accuracy is everything (bias to Claude when unsure; tune from logs).
-Built-in execution needs re-wiring to the OpenAI tool-call shape (handlers reusable).
-gf-chat is v1 (~400 examples) — start narrow (no-tool chat + memory/weather), widen with trust.
+This alone moves the bulk of everyday voice/text turns onto your model for free, with
+**zero risk to tool turns** (they all still go to Claude).
+
+### Phase B — gf-chat for simple tool turns (later)
+Add the self-run loop: `scope_tools()` (already built) → gf-chat with those tools → on a
+tool_call, **execute it yourself** (call the same `gofarther-mcp` handler / Composio the
+MCP server uses) → feed the result back → loop, streaming the final text. Keep
+web/code/complex on Claude. Gate to ≤2 apps / ≤3 steps until trusted.
+
+### Guardrails
+- **Log the route per turn** (gf-chat vs Claude + why) → tune the classifier from real misroutes.
+- **Never lose a capability** — anything uncertain → Claude.
+- gf-chat won't emit the `[[gf…]]` card markers (not trained to) — fine for Phase A (cards
+  come from tool results = Claude / Phase B).
+
+**Why this *is* the "universal chat" goal:** a 14B can't match Claude's knowledge, so
+gf-chat takes the easy everyday turns (free, local) and Claude + web search fill every
+gap — cost savings, no capability loss, the user never hits a dumb wall.
 
 ---
 
