@@ -104,6 +104,38 @@ blocker is purely the Qwen2.5-adapter incompatibility — **not grammar, not sch
 > The **runner → managed MoE** plan is **UNAFFECTED** — it uses an off-the-shelf
 > hosted MoE (no custom adapter, no upload), so none of this Qwen2.5/LoRA limit applies.
 
+### Qwen3-8B serverless-builder retrain — runbook (chosen path)
+
+Goal: a managed **serverless** builder on Together — the only route, since Qwen2.5
+isn't supported. **Cost ≈ $0** to train (reuse the existing 4,112-example dataset +
+your own GPU); per-token serving after. **Gated on** the current Qwen2.5 retrain
+finishing (GPU busy). Run in order:
+
+1. **Finish + eval the current Qwen2.5 coverage retrain** — it's for Ollama; keep it.
+2. **Train Qwen3-8B on the SAME data** (no new data-gen):
+   `GF_BASE=unsloth/Qwen3-8B GF_MAX_SEQ=1536 GF_BATCH=1 GF_GRAD_ACCUM=8 python finetune/train.py`
+   (r=32; the q8_0 GGUF export is only needed if you ALSO want it on Ollama — Together
+   needs the `lora_model/` **adapter**, not the GGUF.)
+3. ⚠️ **Qwen3 gotcha — DISABLE THINKING.** Qwen3 emits `<think>…</think>` chain-of-thought
+   by default; the builder must output **pure JSON**. Train AND serve with
+   `enable_thinking=False` in the chat template, or the `<think>` blocks pollute output
+   and **collide with grammar-constrained decoding**. (This is the non-obvious one — a
+   small `train.py` template tweak + the same at serve time.)
+4. **Eval** on the new base: `python finetune/eval.py --model <qwen3-8b>` — confirm
+   schema-valid holds (+ `--restrict-apps`).
+5. **Upload adapter → HF (private) → Together**:
+   `together models upload --model-source <HF_REPO> --base-model Qwen/Qwen3-8B(-Lora) --model-type adapter`
+   → get the served adapter id.
+6. **Grammar+adapter check** (the test that failed for Qwen2.5 — should PASS now, Qwen3-8B
+   IS a supported serverless-LoRA base). Apply the two serving rules: **retry-once on
+   "failed to compile grammar" (422 cold-start)** + **no `additionalProperties:false` on
+   nested objects**.
+7. **Point build-workflow at it** (`ML_BASE_URL`/`ML_MODEL`/`ML_KEY` → Together) **plus**
+   the finalize + scoped-grammar wiring (BACKEND_WIRING §1) → 100%/100% serverless builder.
+8. **Then decide** (deferrable until it's validated): switch fully (retire the Ollama
+   builder) OR keep Qwen2.5-local + Qwen3-Together both. **Don't maintain both long-term**
+   — each catalog change would mean retraining two adapters. Pick one once it works.
+
 ---
 
 ## Go-live punch-list (all local-Claude / your-machine work)
