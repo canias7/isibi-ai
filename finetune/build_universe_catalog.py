@@ -31,6 +31,15 @@ from build_connector_catalog import fetch_all          # paginated Composio GET
 from fetch_connector_schemas import compact            # schema -> compact form
 from catalog import ALIASES, ALLOWED                   # the verbatim 54 (kept as-is)
 
+# Windows consoles default to cp1252, which can't encode the box-drawing / ✓ chars
+# in our progress output (UnicodeEncodeError). Force UTF-8 so no PYTHONUTF8=1 is
+# needed; no-op on Linux/macOS.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+    except (AttributeError, ValueError):
+        pass
+
 HERE = Path(__file__).parent
 CATALOG_OUT = HERE / "catalog_connectors.json"
 SCHEMA_FILE = HERE / "tool_schemas.json"

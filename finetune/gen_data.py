@@ -31,12 +31,21 @@ import json
 import os
 import random
 import re
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 from catalog import BUILTINS, frontend_id, tools_for, tool_prefixes, ALLOWED
 from schema import SCHEMA_DOC, EXAMPLE, validate_workflow
+
+# Windows consoles default to cp1252, which can't encode the arrows/box chars in
+# the coverage report (UnicodeEncodeError). Force UTF-8; no-op on Linux/macOS.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+    except (AttributeError, ValueError):
+        pass
 
 HERE = Path(__file__).parent
 DATA = HERE / "data"
