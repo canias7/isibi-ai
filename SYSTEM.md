@@ -104,7 +104,45 @@ blocker is purely the Qwen2.5-adapter incompatibility — **not grammar, not sch
 > The **runner → managed MoE** plan is **UNAFFECTED** — it uses an off-the-shelf
 > hosted MoE (no custom adapter, no upload), so none of this Qwen2.5/LoRA limit applies.
 
-### Qwen3-8B serverless-builder retrain — runbook (chosen path)
+### ❌ REVERSED — Together fine-tune is NOT per-token (account API, 2026-06)
+
+**Definitive, from the account API (not docs): Together serves your fine-tune ONLY as a
+dedicated H100 @ ~$6.49/hr (~$4,700/mo kept warm) — NOT per-token.** Per-token serverless
+is locked to Together's *own catalog* models on this account; the serverless-LoRA program
+is simply **off here** (same root cause as the blocked upload). **So the Qwen3 retrain
+buys nothing — cancel `ft-af9de20c-8298`; don't pay it.** → **See the FINAL DECISION
+below.** (Notes below kept for history.)
+
+**Status: managed fine-tune LIVE on Together** (no home GPU; local Qwen2.5 coverage
+job runs in parallel, untouched):
+- Job `ft-af9de20c-8298` — Qwen3-8B + LoRA (r=32/α=32, 3 epochs, response-masking on)
+- Served id (when done): `aniascapital_5a6d/Qwen3-8B-gf-workflows-q3-88c2a72c`
+- Background poller (`_ft_poll.py`) reports completion + final token count + price.
+
+**No-think collision: handled.** Data uploaded in conversational format (3,701/411);
+Together response-masks automatically; the Qwen3 empty `<think></think>` prefix is
+template-injected the same at train + inference; **served with `enable_thinking=False`
++ strict grammar → pure JSON from token 0.**
+
+**Still to verify when the poller fires** (`qwen3_lora_check.py`, served id, cold-start
+422→retry, max_tokens 1024): (1) grammar holds on the served fine-tune; (2) it's
+truly **serverless per-token** (not dedicated); (3) the **$/1M price**. If all 3 →
+point build-workflow's `WORKFLOW_MODEL_BASE_URL` at the served id + finalize/scoped-
+grammar wiring (BACKEND_WIRING §1).
+
+**Expected cost:** ~$1–10/mo at realistic builder volume (vs ~$10–600 for a
+scale-to-zero GPU), no cold-start.
+
+#### ✅ FINAL DECISION — host the existing Qwen2.5 builder on Modal/Baseten (scale-to-zero)
+Together is ruled out (account API: dedicated-only, not per-token), so **host the model
+you already have — no retrain.** Cost ~$5–30/mo at launch volume; cold start ~5–10 s
+(vLLM grammar works; OpenAI URL → `WORKFLOW_MODEL_BASE_URL`). Use the **coverage** model
+once its retrain finishes. Host the **merged** Qwen2.5 coverage model
+(adapter baked into full weights → a normal model, no upload restriction) on
+**Baseten/Modal** (scale-to-zero, vLLM grammar, OpenAI URL). Trade-off: no retrain +
+your exact model, but pricier per-build for bursty traffic + ~30–60 s cold-starts.
+
+### Qwen3-8B serverless-builder retrain — runbook (the LAUNCHED path; details)
 
 Goal: a managed **serverless** builder on Together — the only route, since Qwen2.5
 isn't supported. **Cost ≈ $0** to train (reuse the existing 4,112-example dataset +
