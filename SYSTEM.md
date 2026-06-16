@@ -66,8 +66,10 @@ web/code) → `tts` (**Linda**) → playback. Fully self-hostable end-to-end.
    - **Linda** (TTS) → set `TTS_URL`, `TTS_VOICE=Linda`
    - **Whisper** (STT, faster-whisper large-v3 / CPU) → set `STT_URL`
 2. **Wire the local models** (BACKEND_WIRING.md): `chat→gf-chat`,
-   `run-workflows`+`test-workflow→gf-runner`, **port `finalize.py`** into
-   build-workflow.
+   `run-workflows`+`test-workflow→gf-runner`, and for the builder **sync the tool
+   catalog then port `finalize.py`** into build-workflow → ~100% schema-valid for
+   free (the residual ~3% is catalog drift + cosmetic phantoms — BACKEND_WIRING §1
+   "Field finding"; do the catalog sync *before* spending data credits).
 3. **Smoke-test** `gf-runner` + `gf-chat` (never run yet) on the box.
 4. **Set prod keys**: `ANTHROPIC_API_KEY`, `COMPOSIO_API_KEY` (OpenAI no longer needed once STT is up).
 5. *(optional polish)* runner **v2** retrain (tool-cap ready → keeps ~all 540

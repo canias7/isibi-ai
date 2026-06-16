@@ -21,6 +21,43 @@ The grammar guarantees structure/enums (100% valid JSON). The model gets the res
 workflow passes `validate_workflow`. Runs after the model (+ any self-correct
 retry), before save. Order: **clamp → strip → repair → assert.**
 
+### Field finding (2026-06): the residual ~3% is THREE causes, not one — and most is free
+
+A temp-0.2 re-eval of the retrained builder (1,207 ex, r=32, q8_0) hit **97%**
+schema-valid; the residual **4/134** were all flagged as "phantom" tool tokens.
+Checked against the live catalog (`finetune/{schema,catalog}.py`, 5,847 tools) they
+split three ways:
+
+| Token (from the eval) | Truth | Real fix |
+|---|---|---|
+| `OUTLOOK_LIST_CALENDARS` | **a REAL tool** (Outlook is a known prefix) | **catalog drift** — the eval/builder catalog is stale |
+| `AIRTABLE_LIST_BASE_SCHEMA` | near-miss of real `AIRTABLE_GET_BASE_SCHEMA` / `AIRTABLE_LIST_BASES` | finalize strip (or data) |
+| `GF_DOWNLOAD_IMAGE` | near-miss of the real built-in `GF_IMAGE` | finalize strip (or data) |
+| `GF_DOCS` | genuine invention (no GF docs tool) | finalize strip |
+
+**Implication:** at least one "failure" is a *real tool wrongly flagged by a stale
+catalog* — so the true rate is **≥ 97%** and the eval understates it. The path to
+~100% is **free** (no retrain, no Sonnet credits), in this order:
+
+1. **Sync the catalog first.** Point the deployed `build-workflow` *and* the eval at
+   the current tool list (repo `main` has `OUTLOOK_LIST_CALENDARS` et al.). Real
+   tools stop being flagged. **Do this before spending any data credits — otherwise
+   you're chasing false failures.** (The PC's `build-workflow-engines` branch is
+   based on old main, hence the drift.)
+2. **Then finalize** (below). Strips the genuinely-invented / near-miss tokens from
+   prose → valid by construction. It is **lossless**: nothing parses tool names from
+   prose, and `run-workflows` discovers the real tool at runtime — so a near-miss
+   like `GF_DOWNLOAD_IMAGE` left in the text is harmless (the runner finds `GF_IMAGE`
+   itself).
+3. *(optional, lowest priority)* targeted Sonnet data on the Airtable/GF tools so the
+   model names them exactly. Finalize + runtime discovery already neutralize these,
+   so **defer until credits are back** — it's polish, not the blocker.
+
+> Proven locally: a workflow citing all four tokens goes **invalid → valid** after
+> `finalize()` (`finetune/finalize.py`). `strip_phantoms` removes exactly what
+> `phantom_tools()` flags — which is the same function `validate_workflow` uses — so
+> by construction every phantom the validator catches, finalize strips.
+
 | `validate_workflow` rule | Guaranteed by |
 |---|---|
 | structure / `kind`,`freq`,`branch`,`app` enums / types | grammar (upstream) |
