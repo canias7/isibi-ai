@@ -81,14 +81,28 @@ runs free locally today.
    Together's grammar compiler. Top-level only. (The deployed `WF_SCHEMA` is already
    top-level-only ✅.)
 
-**Make-or-break (pending → Step 4):** does grammar hold with the **uploaded LoRA
-attached**? Together's docs don't confirm grammar + serverless-LoRA *simultaneously*.
-If yes → serverless viable. If no → **dedicated deployment** fallback (base+adapter on
-a GPU; grammar works, but per-hour not scale-to-zero).
+**CONCLUSIVE (2026-06): Together CANNOT serverless-host a Qwen2.5 LoRA.** Their
+serverless-LoRA program only supports specific curated bases — **Qwen3-8B /
+Qwen3-30B / Qwen3.5-35B, Llama-3.3-70B, Llama-4-Scout, Mixtral-8x7B, Gemma-3** —
+**no Qwen2.5 base exists**, and all three Qwen2.5-7B ids reject the adapter
+("Base model does not support LoRA adapters"). A Qwen2.5 adapter also can't attach
+to a Qwen3 base (different arch). Separately, *uploaded custom* adapters deploy
+**dedicated, not serverless** anyway. What DID validate: the HF push works, and
+**base-model grammar on Together is solid** (Step 2 — see the two rules above). The
+blocker is purely the Qwen2.5-adapter incompatibility — **not grammar, not schema**.
 
-Adapter base note: trained on `unsloth/qwen2.5-7b-instruct-unsloth-bnb-4bit` (4-bit);
-Together attaches it to fp16 `Qwen2.5-7B-Instruct` — same arch, expected to load
-(standard QLoRA: train 4-bit / serve fp16).
+**Paths to a managed builder, if ever wanted:**
+- **True serverless** → retrain a LoRA on **Qwen3-8B** (serverless-LoRA-supported,
+  newer base) using the existing 4,112-example dataset. The only scale-to-zero route.
+- **Dedicated** → merge the Qwen2.5 adapter into full weights, run a Together
+  *dedicated* endpoint (per-hour GPU, ~$700+/mo) — economically pointless vs the
+  free local builder.
+- **Decision: stay self-hosted (Ollama) for the builder** — free + works; managed
+  isn't worth a Qwen3 retrain while local is fine. The running Qwen2.5 coverage
+  retrain is correct for its Ollama target (unaffected).
+
+> The **runner → managed MoE** plan is **UNAFFECTED** — it uses an off-the-shelf
+> hosted MoE (no custom adapter, no upload), so none of this Qwen2.5/LoRA limit applies.
 
 ---
 
