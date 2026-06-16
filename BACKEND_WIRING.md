@@ -99,6 +99,58 @@ tested logic in `finetune/finalize.py::repair_workflow`. Port it verbatim.
 ever fails — that's a new rule needing a repair. With clamp + strip + repair it
 can't fail today.
 
+### Wiring it into `build-workflow` (exact edits — local Claude; deployed fn)
+
+Two edits to the default/"lazy" ML path of `index.ts` (~L605–630). `finalize.ts`
+is already in the repo. Reconcile against prod-current — prod is ahead of git, so
+don't blind-deploy this repo.
+
+**Edit 1 — finalize → 100% schema-valid.** Run finalize on each parse, *before*
+`validateStructural` (so it repairs, then validate confirms):
+
+```ts
+import { finalize } from "./finalize.ts";            // top of file
+// in the lazy path, and again in the self-correct retry block:
+const parsed = text ? extractJson(text) : null;
+let wf = parsed ? finalize(parsed) : null;           // finalize BEFORE validate
+let errs = wf ? validateStructural(wf, ALL) : ["the model returned no usable JSON"];
+```
+
+With finalize first, `validateStructural` can only fail on a brand-new rule — log
+it if it ever does. *finalize is **structural** (clamp/strip/repair); it does NOT
+do the connected-apps check — that's Edit 2. (The "…check runs in finalize" comment
+at L607 predates this split.)*
+
+**Edit 2 — scope the grammar to connected apps → ~100% apps-connected (and unlocks
+the universe).** Today `WF_SCHEMA` (L475) hard-codes a **~54-app** enum, so the model
+(a) can name an **unconnected** app, and (b) **can't emit any of the other ~750+
+apps even when the user connected one** — i.e. the 823→1043 expansion never reaches
+the builder. Build the schema **per-request** from the user's connected ids (mirrors
+`eval.py --restrict-apps` / `grammar.py` `connected=`):
+
+```ts
+const SPECIALS = ["schedule", "event", "ai", "decision"];
+function wfSchema(connected: string[]) {
+  const s = structuredClone(WF_SCHEMA);                          // the static template
+  const conn = connected.length ? connected : SPECIALS;
+  s.properties.trigger.properties.event.properties.app.enum = conn;             // real connectors only
+  s.properties.nodes.items.properties.app.enum = [...connected, ...SPECIALS];
+  return s;
+}
+// make mlGrammar take the schema, then:
+let text = await mlGrammar(msgs, wfSchema(apps));                // apps = connectedApps(uid)
+```
+
+This is the apps-connected fix **and** what makes the universe expansion actually
+reach the builder (without it the builder stays capped at the hardcoded 54).
+Tradeoff: a request needing an *unconnected* app gets forced onto a connected one —
+fine for the lazy path (no `cannot_build` there; the system prompt already steers to
+connected/`ai`). The opus path keeps `cannot_build` for the "Connect X" UX.
+
+**Verify before deploy:** `eval.py` → schema-valid ~100% (finalize); `eval.py
+--restrict-apps` → apps-connected ~100% (scoped grammar). Then deploy from the
+prod-owning machine.
+
 ---
 
 ## 2. `run-workflows → gf-runner`
