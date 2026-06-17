@@ -14,7 +14,7 @@ for dirpath, _, names in os.walk(root):
 random.seed(0)
 random.shuffle(files)
 
-CAP = 5_000_000          # ~5 MB cap, so training stays feasible on a laptop
+CAP = int(os.environ.get("CAP", 5_000_000))   # ~5 MB default; raise it on a GPU, e.g. CAP=30000000
 chunks, total = [], 0
 for fp in files:
     try:

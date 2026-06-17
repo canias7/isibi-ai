@@ -3,5 +3,6 @@ coder/code.txt
 coder/coder.pt
 coder/merges.json
 coder/coder_bpe.pt
+coder/coder_gpu.pt
 __pycache__/
 *.pyc

@@ -2,7 +2,7 @@
 # Same idea as your toy bpe.py, but it works on unique "pieces" weighted by how
 # often they occur (the real Sennrich trick), so it scales to millions of chars.
 
-import re, json, time, collections
+import os, re, json, time, collections
 
 text = open("code.txt", encoding="utf-8").read()
 
@@ -31,7 +31,7 @@ def merge_word(syms, a, b, ab):
             out.append(syms[j]); j += 1
     return out
 
-NUM_MERGES = 400
+NUM_MERGES = int(os.environ.get("MERGES", 400))   # bigger vocab for the GPU run, e.g. MERGES=2000
 merges = []
 t0 = time.time()
 for i in range(NUM_MERGES):
