@@ -213,7 +213,8 @@ for it in range(start_step, start_step + max_iters):
 final_step = start_step + max_iters
 l = estimate_loss()
 print(f"FINAL  {final_step} | train {l['train']:.3f} | val {l['val']:.3f}")
-torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "step": final_step}, CKPT)
+torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "step": final_step,
+            "config": {"n_embd": n_embd, "n_head": n_head, "n_layer": n_layer, "block_size": block_size}}, CKPT)
 print(f"saved checkpoint at step {final_step}")
 
 # ── test: give it descriptions, see the formulas it writes ──

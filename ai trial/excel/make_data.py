@@ -265,9 +265,9 @@ def g_istext():    c=cell(); return f"check if {c} is text", f"=ISTEXT({c})"
 @reg
 def g_iserror():   c=cell(); return f"check if {c} is an error", f"=ISERROR({c})"
 
-with open("excel.txt", "w", encoding="utf-8") as f:
-    for _ in range(N):
-        desc, formula = random.choice(G)()
-        f.write(f"Q: {desc}\nA: {formula}\n\n")
-
-print(f"wrote {N} examples to excel.txt  ({len(G)} formula types)")
+if __name__ == "__main__":
+    with open("excel.txt", "w", encoding="utf-8") as f:
+        for _ in range(N):
+            desc, formula = random.choice(G)()
+            f.write(f"Q: {desc}\nA: {formula}\n\n")
+    print(f"wrote {N} examples to excel.txt  ({len(G)} formula types)")
