@@ -11,10 +11,7 @@ stoi = {ch: i for i, ch in enumerate(chars)}    # char -> id
 itos = {i: ch for i, ch in enumerate(chars)}    # id   -> char
 
 ids = [stoi[c] for c in text]                   # the whole text, as a list of ids
-
-print("Text length :", len(text))
-print("Vocab size  :", len(chars))
-print("First 20 ids:", ids[:20])
+print("Start:", len(ids), "tokens,", len(chars), "vocab")
 
 # ── Piece 2 — count how often each adjacent pair appears ──
 def count_pairs(ids):
@@ -22,18 +19,6 @@ def count_pairs(ids):
     for pair in zip(ids, ids[1:]):              # (id0,id1), (id1,id2), (id2,id3)...
         counts[pair] = counts.get(pair, 0) + 1
     return counts
-
-pair_counts = count_pairs(ids)
-
-top5 = sorted(pair_counts.items(), key=lambda kv: kv[1], reverse=True)[:5]
-print("\nTop 5 most common pairs:")
-for (a, b), n in top5:
-    print(f"  {itos[a]!r} + {itos[b]!r}  ->  {n} times")
-
-# ── Piece 3 — find the SINGLE most common pair ──
-top_pair = max(pair_counts, key=pair_counts.get)
-a, b = top_pair
-print(f"\nMost common pair: {itos[a]!r} + {itos[b]!r}  ({pair_counts[top_pair]} times)")
 
 # ── Piece 4 — merge a pair: replace every occurrence with a new id ──
 def merge(ids, pair, new_id):
@@ -48,10 +33,23 @@ def merge(ids, pair, new_id):
             i += 1
     return out
 
-new_id = len(chars)                 # next free id (0..39 are taken, so 40)
-ids2 = merge(ids, top_pair, new_id)
+# ── Piece 5 — the training loop: do N merges and RECORD them ──
+num_merges = 20
 
-print(f"\nMerged {itos[a]!r}+{itos[b]!r} into new token id {new_id}")
-print("Length before:", len(ids))
-print("Length after :", len(ids2))
-print("Tokens saved :", len(ids) - len(ids2))
+merges = {}                 # (id_a, id_b) -> new_id    (learned rules, in order)
+vocab = dict(itos)          # id -> the string it spells (starts as single chars)
+
+work = list(ids)            # a working copy we keep shrinking
+for k in range(num_merges):
+    counts = count_pairs(work)
+    if not counts:
+        break
+    pair = max(counts, key=counts.get)                # Piece 3: most common pair
+    new_id = len(chars) + k                            # next free id: 40, 41, 42...
+    work = merge(work, pair, new_id)                   # Piece 4: merge it everywhere
+    merges[pair] = new_id                              # remember the rule (order matters)
+    vocab[new_id] = vocab[pair[0]] + vocab[pair[1]]    # the string this token spells
+    print(f"merge {k+1:2d}: {vocab[new_id]!r:12} (id {new_id})  was {counts[pair]}x")
+
+print(f"\nStarted with {len(ids)} tokens -> now {len(work)} tokens")
+print(f"Vocab grew from {len(chars)} -> {len(vocab)}")
