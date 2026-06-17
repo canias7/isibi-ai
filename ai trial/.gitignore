@@ -2,5 +2,6 @@ shakespeare.txt
 coder/code.txt
 coder/coder.pt
 coder/merges.json
+coder/coder_bpe.pt
 __pycache__/
 *.pyc
