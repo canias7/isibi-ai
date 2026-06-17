@@ -1,6 +1,6 @@
 # gpt.py — building a tiny GPT from scratch, step by step.
-# Steps 1-6: tokenizer, data, batching, embeddings, self-attention.
-# Step 7: MULTI-head attention — several heads looking back in parallel.
+# Steps 1-7: tokenizer, data, batching, embeddings, multi-head attention.
+# Step 8: feed-forward — each token "thinks" on what attention gathered.
 
 import torch
 import torch.nn as nn
@@ -26,7 +26,7 @@ train_data, val_data = data[:n], data[n:]
 block_size = 8
 batch_size = 32
 n_embd = 32
-n_head = 4         # NEW: how many attention heads run in parallel
+n_head = 4
 
 def get_batch(split):
     d = train_data if split == "train" else val_data
@@ -54,15 +54,27 @@ class Head(nn.Module):
         v = self.value(x)
         return wei @ v
 
-# ── Step 7 — several heads in parallel, then glue their outputs together ──
+# ── Multi-head attention ──
 class MultiHead(nn.Module):
     def __init__(self, num_heads, head_size):
         super().__init__()
         self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
 
     def forward(self, x):
-        # each head returns (B,T,head_size); concat along the feature dim -> (B,T,num_heads*head_size)
         return torch.cat([h(x) for h in self.heads], dim=-1)
+
+# ── Step 8 — feed-forward: a little per-token MLP ("thinking") ──
+class FeedForward(nn.Module):
+    def __init__(self, n_embd):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(n_embd, 4 * n_embd),   # expand to a wider space
+            nn.ReLU(),                       # non-linearity (the "bend")
+            nn.Linear(4 * n_embd, n_embd),   # project back down
+        )
+
+    def forward(self, x):
+        return self.net(x)                   # applied to each token independently
 
 # ── The GPT model ──
 class GPT(nn.Module):
@@ -70,7 +82,8 @@ class GPT(nn.Module):
         super().__init__()
         self.token_embedding    = nn.Embedding(vocab_size, n_embd)
         self.position_embedding = nn.Embedding(block_size, n_embd)
-        self.sa_heads           = MultiHead(n_head, n_embd // n_head)  # 4 heads of size 8 -> 32
+        self.sa_heads           = MultiHead(n_head, n_embd // n_head)
+        self.ffwd               = FeedForward(n_embd)        # NEW
         self.lm_head            = nn.Linear(n_embd, vocab_size)
 
     def forward(self, idx, targets=None):
@@ -78,7 +91,8 @@ class GPT(nn.Module):
         tok = self.token_embedding(idx)
         pos = self.position_embedding(torch.arange(T))
         x = tok + pos
-        x = self.sa_heads(x)                                 # multi-head attention
+        x = self.sa_heads(x)        # attention = tokens COMMUNICATE (gather context)
+        x = self.ffwd(x)            # feed-forward = each token COMPUTES (thinks)
         logits = self.lm_head(x)
         if targets is None:
             return logits, None
