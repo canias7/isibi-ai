@@ -223,8 +223,13 @@ print("\n----- test: description -> formula -----")
 for q in ["Q: sum of column A\nA: ",
           "Q: average of B1 to B20\nA: ",
           "Q: if C2 over 100 say high otherwise low\nA: ",
-          "Q: count cells in column D equal to paid\nA: "]:
+          "Q: count cells in column D equal to paid\nA: ",
+          "Q: predict the next B value from A\nA: ",
+          "Q: total C for each B\nA: ",
+          "Q: compound annual growth rate from B2 to B7 over 5 years\nA: ",
+          "Q: 3-period moving average ending at B10\nA: ",
+          "Q: B5 as a percent of the B total\nA: "]:
     ctx = torch.tensor([encode(q)], dtype=torch.long, device=device)
-    out = decode(model.generate(ctx, 30)[0].tolist())
+    out = decode(model.generate(ctx, 40)[0].tolist())
     print(out.split("\n\n")[0])
     print("---")
