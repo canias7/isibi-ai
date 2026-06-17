@@ -14,6 +14,7 @@ import os, re, json, time, math, torch
 import torch.nn as nn
 from torch.nn import functional as F
 from contextlib import nullcontext
+from torch.utils.checkpoint import checkpoint
 
 torch.manual_seed(1337)
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -29,6 +30,7 @@ n_head     = int(os.environ.get("NHEAD", 6))
 n_layer    = int(os.environ.get("NLAYER", 6))
 block_size = int(os.environ.get("BLOCK", 256))
 batch_size = int(os.environ.get("BATCH", 64))
+grad_ckpt  = os.environ.get("GRADCKPT", "0") == "1"   # trade compute for big memory savings
 dropout    = float(os.environ.get("DROPOUT", 0.2))
 lr         = 3e-4
 max_iters  = int(os.environ.get("ITERS", 5000))
@@ -140,8 +142,10 @@ class GPT(nn.Module):
         self.lm_head = nn.Linear(n_embd, vocab_size)
     def forward(self, idx, targets=None):
         B, T = idx.shape
-        x = self.token_embedding(idx) + self.position_embedding(torch.arange(T, device=idx.device))
-        x = self.ln_f(self.blocks(self.drop(x)))
+        x = self.drop(self.token_embedding(idx) + self.position_embedding(torch.arange(T, device=idx.device)))
+        for block in self.blocks:
+            x = checkpoint(block, x, use_reentrant=False) if (grad_ckpt and self.training) else block(x)
+        x = self.ln_f(x)
         logits = self.lm_head(x)
         if targets is None:
             return logits, None
@@ -218,6 +222,7 @@ print(f"FINAL  {final_step} | train {l['train']:.3f} | val {l['val']:.3f}")
 torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "step": final_step}, CKPT)
 print(f"saved checkpoint at step {final_step}")
 
+model.eval()
 print("\n----- generated Python (seeded 'def ') -----")
 ctx = torch.tensor([encode("def ")], dtype=torch.long, device=device)
 print(decode(model.generate(ctx, 300)[0].tolist()))
