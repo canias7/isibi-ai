@@ -13,10 +13,15 @@
 import os, re, json, time, math, torch
 import torch.nn as nn
 from torch.nn import functional as F
+from contextlib import nullcontext
 
 torch.manual_seed(1337)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print("device:", device)
+
+def amp():
+    # mixed precision (bf16) on GPU = faster + less memory; plain math on CPU
+    return torch.autocast(device_type="cuda", dtype=torch.bfloat16) if device == "cuda" else nullcontext()
 
 # ── model size (env-tunable; NEMBD must be divisible by NHEAD) ──
 n_embd     = int(os.environ.get("NEMBD", 384))
@@ -158,7 +163,8 @@ def estimate_loss():
         L = torch.zeros(20)
         for k in range(20):
             x, y = get_batch(split)
-            _, l = model(x, y)
+            with amp():
+                _, l = model(x, y)
             L[k] = l.item()
         out[split] = L.mean().item()
     model.train()
@@ -200,7 +206,8 @@ for it in range(start_step, start_step + max_iters):
         l = estimate_loss()
         print(f"step {it:6d} | train {l['train']:.3f} | val {l['val']:.3f} | lr {cur_lr:.1e} | {time.time()-t0:.0f}s")
     x, y = get_batch("train")
-    _, loss = model(x, y)
+    with amp():
+        _, loss = model(x, y)
     opt.zero_grad(set_to_none=True)
     loss.backward()
     opt.step()
