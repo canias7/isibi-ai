@@ -16,9 +16,7 @@ random.seed(98765)          # different from training (seed 0) -> fresh examples
 
 tests = []
 for _ in range(N):
-    fn = random.choice(make_data.G)
-    desc, formula = fn()
-    tests.append((fn.__name__, desc, formula))
+    tests.append(make_data.gen())     # (name, varied desc, formula) — same phrasings as training
 
 correct = 0
 by_fn = collections.defaultdict(lambda: [0, 0])   # name -> [right, total]

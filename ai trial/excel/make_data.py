@@ -18,9 +18,15 @@ def word(): return random.choice(WORDS)
 def rng():
     c = col()
     if random.random() < 0.4:
-        return f"{c}:{c}", p(f"column {c}", f"the {c} column", f"all of {c}")
+        return f"{c}:{c}", p(f"column {c}", f"the {c} column", f"all of {c}",
+                             f"everything in {c}", f"the whole {c} column",
+                             f"column {c} values", f"values in {c}", f"the {c} values",
+                             f"all values in column {c}", f"the data in column {c}")
     a = random.randint(1, 80); b = a + random.randint(1, 60)
-    return f"{c}{a}:{c}{b}", p(f"{c}{a} to {c}{b}", f"the range {c}{a}:{c}{b}", f"cells {c}{a} through {c}{b}")
+    return f"{c}{a}:{c}{b}", p(f"{c}{a} to {c}{b}", f"the range {c}{a}:{c}{b}",
+                               f"cells {c}{a} through {c}{b}", f"{c}{a}:{c}{b}",
+                               f"from {c}{a} to {c}{b}", f"rows {a} to {b} of {c}",
+                               f"{c}{a} through {c}{b}", f"the cells {c}{a}:{c}{b}")
 def xy():
     # two parallel numeric ranges + the next x cell (for regression / forecasting)
     yc, xc = random.sample(COLS, 2)
@@ -322,9 +328,32 @@ def g_istext():    c=cell(); return f"check if {c} is text", f"=ISTEXT({c})"
 @reg
 def g_iserror():   c=cell(); return f"check if {c} is an error", f"=ISERROR({c})"
 
+# ── phrasing engine: wrap each base request the many ways real people type it ──
+# (empties keep a good share clean; the rest add natural lead-ins / trailers)
+LEADS = ["", "", "", "", "", "", "",
+         "how do i ", "how do you ", "how to ",
+         "formula to ", "formula for ", "i need a formula to ", "what's the formula to ",
+         "i need ", "i want ", "i need to ", "i want to ",
+         "give me ", "show me ", "get me ",
+         "can you ", "could you ", "please ", "help me ",
+         "what's ", "what is ", "calculate "]
+TAILS = ["", "", "", "", "", "", "", " please", " for me", "?", " in excel", " thanks", " pls"]
+
+def vary(desc):
+    desc = random.choice(LEADS) + desc + random.choice(TAILS)
+    if random.random() < 0.12:          # occasional sentence-case, like real typing
+        desc = desc[0].upper() + desc[1:]
+    return desc
+
+def gen():
+    """Pick a random formula type and return (name, varied description, formula)."""
+    fn = random.choice(G)
+    desc, formula = fn()
+    return fn.__name__, vary(desc), formula
+
 if __name__ == "__main__":
     with open("excel.txt", "w", encoding="utf-8") as f:
         for _ in range(N):
-            desc, formula = random.choice(G)()
+            _, desc, formula = gen()
             f.write(f"Q: {desc}\nA: {formula}\n\n")
     print(f"wrote {N} examples to excel.txt  ({len(G)} formula types)")
