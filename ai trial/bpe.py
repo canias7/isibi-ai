@@ -49,7 +49,23 @@ for k in range(num_merges):
     work = merge(work, pair, new_id)                   # Piece 4: merge it everywhere
     merges[pair] = new_id                              # remember the rule (order matters)
     vocab[new_id] = vocab[pair[0]] + vocab[pair[1]]    # the string this token spells
-    print(f"merge {k+1:2d}: {vocab[new_id]!r:12} (id {new_id})  was {counts[pair]}x")
 
-print(f"\nStarted with {len(ids)} tokens -> now {len(work)} tokens")
-print(f"Vocab grew from {len(chars)} -> {len(vocab)}")
+print(f"Trained: {len(ids)} -> {len(work)} tokens,  vocab {len(chars)} -> {len(vocab)}")
+
+# ── Piece 6 — encode (text -> ids) and decode (ids -> text) ──
+def encode(s):
+    tokens = [stoi[c] for c in s]          # start as characters
+    for pair, new_id in merges.items():    # apply learned merges, IN ORDER
+        tokens = merge(tokens, pair, new_id)
+    return tokens
+
+def decode(tokens):
+    return "".join(vocab[t] for t in tokens)
+
+sample = "and the night"
+enc = encode(sample)
+print("\nSample :", repr(sample), f"({len(sample)} chars)")
+print("Encoded:", enc, f"({len(enc)} tokens)")
+print("Pieces :", [vocab[t] for t in enc])
+print("Decoded:", repr(decode(enc)))
+print("Round-trip OK:", decode(enc) == sample)
