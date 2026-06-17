@@ -34,12 +34,11 @@ def get_batch(split):
     yb = torch.stack([d[i + 1 : i + block_size + 1] for i in ix])
     return xb, yb
 
-# ── Step 4a — the Bigram model: each token directly predicts the next ──
+# ── Step 4 — the Bigram model: each token directly predicts the next ──
 class BigramModel(nn.Module):
     def __init__(self, vocab_size):
         super().__init__()
-        # a (vocab_size x vocab_size) lookup table.
-        # the row for token t = the scores ("logits") for what comes next.
+        # row for token t = the scores ("logits") for what comes next
         self.token_table = nn.Embedding(vocab_size, vocab_size)
 
     def forward(self, idx, targets=None):
@@ -50,10 +49,24 @@ class BigramModel(nn.Module):
         loss = F.cross_entropy(logits.view(B * T, C), targets.view(B * T))
         return logits, loss
 
+    def generate(self, idx, max_new_tokens):
+        # idx is (B, T) — the current context. Grow it one token at a time.
+        for _ in range(max_new_tokens):
+            logits, _ = self(idx)               # (B, T, vocab)
+            logits = logits[:, -1, :]           # keep only the LAST step -> (B, vocab)
+            probs = F.softmax(logits, dim=-1)   # scores -> probabilities
+            next_id = torch.multinomial(probs, num_samples=1)   # sample 1 -> (B, 1)
+            idx = torch.cat((idx, next_id), dim=1)              # append it
+        return idx
+
 model = BigramModel(vocab_size)
 
 xb, yb = get_batch("train")
-logits, loss = model(xb, yb)
-print("logits shape:", tuple(logits.shape))            # (B, T, vocab_size)
-print("loss        :", round(loss.item(), 4))
-print("expected ~  :", round(math.log(vocab_size), 4), "(if it were guessing randomly)")
+_, loss = model(xb, yb)
+print("loss before training:", round(loss.item(), 4))
+
+# ── Step 4b — generate text from the (untrained) model ──
+context = torch.zeros((1, 1), dtype=torch.long)   # start from a single newline (id 0)
+out = model.generate(context, max_new_tokens=200)[0].tolist()
+print("\n--- generated (untrained) ---")
+print(decode(out))
