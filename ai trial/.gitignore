@@ -4,5 +4,7 @@ coder/coder.pt
 coder/merges.json
 coder/coder_bpe.pt
 coder/coder_gpu.pt
+coder/tokenizer.json
+coder/coder.ckpt
 __pycache__/
 *.pyc
