@@ -131,16 +131,33 @@ class GPT(nn.Module):
 model = GPT()
 context = torch.zeros((1, 1), dtype=torch.long)
 
+@torch.no_grad()
+def estimate_loss():
+    model.eval()
+    out = {}
+    for split in ["train", "val"]:
+        losses = torch.zeros(50)
+        for k in range(50):
+            xb, yb = get_batch(split)
+            _, loss = model(xb, yb)
+            losses[k] = loss.item()
+        out[split] = losses.mean().item()
+    model.train()
+    return out
+
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
-print("--- training ---")
-for step in range(5000):
+print("--- training (watch TRAIN vs VAL) ---")
+for step in range(8000):
+    if step % 1000 == 0:
+        l = estimate_loss()
+        print(f"step {step:4d}:  train {l['train']:.4f}   val {l['val']:.4f}")
     xb, yb = get_batch("train")
     _, loss = model(xb, yb)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-    if step % 1000 == 0:
-        print(f"step {step:4d}: loss {loss.item():.4f}")
 
+l = estimate_loss()
+print(f"FINAL    :  train {l['train']:.4f}   val {l['val']:.4f}")
 print("\n--- after training ---")
 print(decode(model.generate(context, max_new_tokens=200)[0].tolist()))
