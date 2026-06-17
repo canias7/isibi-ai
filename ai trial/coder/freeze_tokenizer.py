@@ -41,6 +41,8 @@ for i in range(MERGES):
     (a, b), _ = pairs.most_common(1)[0]
     merges.append([a, b])
     words = {p: merge_word(s, a, b, a + b) for p, s in words.items()}
+    if i % 100 == 0:
+        print(f"  merge {i}/{MERGES}  ({time.time()-t0:.0f}s)")
 
 chars = sorted(set(text))
 json.dump({"chars": chars, "merges": merges}, open("tokenizer.json", "w"))
