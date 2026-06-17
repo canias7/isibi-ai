@@ -1,6 +1,6 @@
 # gpt.py — building a tiny GPT from scratch, step by step.
-# Steps 1-7: tokenizer, data, batching, embeddings, multi-head attention.
-# Step 8: feed-forward — each token "thinks" on what attention gathered.
+# Steps 1-8: tokenizer, data, embeddings, multi-head attention, feed-forward.
+# Step 9: the Transformer BLOCK — residuals + layernorm, stacked deep.
 
 import torch
 import torch.nn as nn
@@ -27,6 +27,7 @@ block_size = 8
 batch_size = 32
 n_embd = 32
 n_head = 4
+n_layer = 3        # NEW: how many transformer blocks to stack
 
 def get_batch(split):
     d = train_data if split == "train" else val_data
@@ -54,27 +55,44 @@ class Head(nn.Module):
         v = self.value(x)
         return wei @ v
 
-# ── Multi-head attention ──
+# ── Multi-head attention (+ a projection to combine the heads) ──
 class MultiHead(nn.Module):
     def __init__(self, num_heads, head_size):
         super().__init__()
         self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
+        self.proj = nn.Linear(n_embd, n_embd)        # combine heads back together
 
     def forward(self, x):
-        return torch.cat([h(x) for h in self.heads], dim=-1)
+        out = torch.cat([h(x) for h in self.heads], dim=-1)
+        return self.proj(out)
 
-# ── Step 8 — feed-forward: a little per-token MLP ("thinking") ──
+# ── Feed-forward ──
 class FeedForward(nn.Module):
     def __init__(self, n_embd):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(n_embd, 4 * n_embd),   # expand to a wider space
-            nn.ReLU(),                       # non-linearity (the "bend")
-            nn.Linear(4 * n_embd, n_embd),   # project back down
+            nn.Linear(n_embd, 4 * n_embd),
+            nn.ReLU(),
+            nn.Linear(4 * n_embd, n_embd),
         )
 
     def forward(self, x):
-        return self.net(x)                   # applied to each token independently
+        return self.net(x)
+
+# ── Step 9 — one Transformer Block: attention + feed-forward, with the tricks ──
+class Block(nn.Module):
+    def __init__(self, n_embd, n_head):
+        super().__init__()
+        head_size = n_embd // n_head
+        self.sa   = MultiHead(n_head, head_size)
+        self.ffwd = FeedForward(n_embd)
+        self.ln1  = nn.LayerNorm(n_embd)     # normalize before attention
+        self.ln2  = nn.LayerNorm(n_embd)     # normalize before feed-forward
+
+    def forward(self, x):
+        x = x + self.sa(self.ln1(x))         # residual connection around attention
+        x = x + self.ffwd(self.ln2(x))       # residual connection around feed-forward
+        return x
 
 # ── The GPT model ──
 class GPT(nn.Module):
@@ -82,17 +100,17 @@ class GPT(nn.Module):
         super().__init__()
         self.token_embedding    = nn.Embedding(vocab_size, n_embd)
         self.position_embedding = nn.Embedding(block_size, n_embd)
-        self.sa_heads           = MultiHead(n_head, n_embd // n_head)
-        self.ffwd               = FeedForward(n_embd)        # NEW
-        self.lm_head            = nn.Linear(n_embd, vocab_size)
+        self.blocks = nn.Sequential(*[Block(n_embd, n_head) for _ in range(n_layer)])
+        self.ln_f   = nn.LayerNorm(n_embd)   # final layer norm
+        self.lm_head = nn.Linear(n_embd, vocab_size)
 
     def forward(self, idx, targets=None):
         B, T = idx.shape
         tok = self.token_embedding(idx)
         pos = self.position_embedding(torch.arange(T))
         x = tok + pos
-        x = self.sa_heads(x)        # attention = tokens COMMUNICATE (gather context)
-        x = self.ffwd(x)            # feed-forward = each token COMPUTES (thinks)
+        x = self.blocks(x)                   # the stack of transformer blocks
+        x = self.ln_f(x)
         logits = self.lm_head(x)
         if targets is None:
             return logits, None
@@ -113,15 +131,15 @@ class GPT(nn.Module):
 model = GPT()
 context = torch.zeros((1, 1), dtype=torch.long)
 
-optimizer = torch.optim.AdamW(model.parameters(), lr=1e-2)
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 print("--- training ---")
-for step in range(3000):
+for step in range(5000):
     xb, yb = get_batch("train")
     _, loss = model(xb, yb)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-    if step % 500 == 0:
+    if step % 1000 == 0:
         print(f"step {step:4d}: loss {loss.item():.4f}")
 
 print("\n--- after training ---")
