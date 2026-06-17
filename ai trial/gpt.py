@@ -1,6 +1,6 @@
 # gpt.py — building a tiny GPT from scratch, step by step.
-# Steps 1-5: tokenizer, data, batching, embeddings.
-# Step 6: self-attention — each token looks BACK at previous tokens.
+# Steps 1-6: tokenizer, data, batching, embeddings, self-attention.
+# Step 7: MULTI-head attention — several heads looking back in parallel.
 
 import torch
 import torch.nn as nn
@@ -26,6 +26,7 @@ train_data, val_data = data[:n], data[n:]
 block_size = 8
 batch_size = 32
 n_embd = 32
+n_head = 4         # NEW: how many attention heads run in parallel
 
 def get_batch(split):
     d = train_data if split == "train" else val_data
@@ -34,26 +35,34 @@ def get_batch(split):
     yb = torch.stack([d[i + 1 : i + block_size + 1] for i in ix])
     return xb, yb
 
-# ── Step 6 — ONE head of self-attention ──
+# ── One head of self-attention ──
 class Head(nn.Module):
     def __init__(self, head_size):
         super().__init__()
-        self.key   = nn.Linear(n_embd, head_size, bias=False)   # what each token OFFERS
-        self.query = nn.Linear(n_embd, head_size, bias=False)   # what each token WANTS
-        self.value = nn.Linear(n_embd, head_size, bias=False)   # what each token GIVES
-        # lower-triangular mask: token t may only look at tokens 0..t (the past)
+        self.key   = nn.Linear(n_embd, head_size, bias=False)
+        self.query = nn.Linear(n_embd, head_size, bias=False)
+        self.value = nn.Linear(n_embd, head_size, bias=False)
         self.register_buffer("tril", torch.tril(torch.ones(block_size, block_size)))
 
     def forward(self, x):
         B, T, C = x.shape
-        k = self.key(x)                                       # (B, T, head_size)
-        q = self.query(x)                                     # (B, T, head_size)
-        wei = q @ k.transpose(-2, -1) * k.shape[-1] ** -0.5   # (B,T,T) relevance scores
-        wei = wei.masked_fill(self.tril[:T, :T] == 0, float("-inf"))  # block the FUTURE
-        wei = F.softmax(wei, dim=-1)                          # (B,T,T) weights that sum to 1
-        v = self.value(x)                                     # (B, T, head_size)
-        out = wei @ v                                         # (B,T,head_size) weighted blend of past
-        return out
+        k = self.key(x)
+        q = self.query(x)
+        wei = q @ k.transpose(-2, -1) * k.shape[-1] ** -0.5
+        wei = wei.masked_fill(self.tril[:T, :T] == 0, float("-inf"))
+        wei = F.softmax(wei, dim=-1)
+        v = self.value(x)
+        return wei @ v
+
+# ── Step 7 — several heads in parallel, then glue their outputs together ──
+class MultiHead(nn.Module):
+    def __init__(self, num_heads, head_size):
+        super().__init__()
+        self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
+
+    def forward(self, x):
+        # each head returns (B,T,head_size); concat along the feature dim -> (B,T,num_heads*head_size)
+        return torch.cat([h(x) for h in self.heads], dim=-1)
 
 # ── The GPT model ──
 class GPT(nn.Module):
@@ -61,16 +70,16 @@ class GPT(nn.Module):
         super().__init__()
         self.token_embedding    = nn.Embedding(vocab_size, n_embd)
         self.position_embedding = nn.Embedding(block_size, n_embd)
-        self.sa_head            = Head(n_embd)               # NEW: self-attention
+        self.sa_heads           = MultiHead(n_head, n_embd // n_head)  # 4 heads of size 8 -> 32
         self.lm_head            = nn.Linear(n_embd, vocab_size)
 
     def forward(self, idx, targets=None):
         B, T = idx.shape
-        tok = self.token_embedding(idx)                      # (B,T,n_embd)
-        pos = self.position_embedding(torch.arange(T))       # (T,n_embd)
-        x = tok + pos                                        # (B,T,n_embd)
-        x = self.sa_head(x)                                  # (B,T,n_embd)  <- tokens talk!
-        logits = self.lm_head(x)                             # (B,T,vocab)
+        tok = self.token_embedding(idx)
+        pos = self.position_embedding(torch.arange(T))
+        x = tok + pos
+        x = self.sa_heads(x)                                 # multi-head attention
+        logits = self.lm_head(x)
         if targets is None:
             return logits, None
         B, T, C = logits.shape
