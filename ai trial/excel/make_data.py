@@ -21,6 +21,11 @@ def rng():
         return f"{c}:{c}", p(f"column {c}", f"the {c} column", f"all of {c}")
     a = random.randint(1, 80); b = a + random.randint(1, 60)
     return f"{c}{a}:{c}{b}", p(f"{c}{a} to {c}{b}", f"the range {c}{a}:{c}{b}", f"cells {c}{a} through {c}{b}")
+def xy():
+    # two parallel numeric ranges + the next x cell (for regression / forecasting)
+    yc, xc = random.sample(COLS, 2)
+    a = random.randint(2, 30); b = a + random.randint(8, 50)
+    return f"{yc}{a}:{yc}{b}", f"{xc}{a}:{xc}{b}", f"{xc}{b+1}", yc, xc
 
 G = []  # registry of generators
 def reg(fn): G.append(fn); return fn
@@ -230,6 +235,58 @@ def g_large():     r,d=rng(); k=random.randint(2,5); return f"the {k}th largest 
 def g_small():     r,d=rng(); k=random.randint(2,5); return f"the {k}th smallest in {d}", f"=SMALL({r},{k})"
 @reg
 def g_correl():    a=col(); b=col(); return f"correlation between {a} and {b}", f"=CORREL({a}:{a},{b}:{b})"
+
+# ── analysis / trends / forecasting (covers "analyze data") ──
+@reg
+def g_trend():      y,x,nx,yc,xc=xy(); return p(f"predict the next {yc} value from {xc}", f"extend the trend of {yc} against {xc}"), f"=TREND({y},{x},{nx})"
+@reg
+def g_forecast():   y,x,nx,yc,xc=xy(); return p(f"forecast {yc} when {xc} reaches {nx}", f"linear forecast of the next {yc}"), f"=FORECAST.LINEAR({nx},{y},{x})"
+@reg
+def g_slope():      y,x,nx,yc,xc=xy(); return p(f"slope of {yc} versus {xc}", f"how much {yc} changes per unit of {xc}"), f"=SLOPE({y},{x})"
+@reg
+def g_intercept():  y,x,nx,yc,xc=xy(); return f"intercept of {yc} against {xc}", f"=INTERCEPT({y},{x})"
+@reg
+def g_rsq():        y,x,nx,yc,xc=xy(); return p(f"r squared of {yc} against {xc}", f"how well {xc} explains {yc}"), f"=RSQ({y},{x})"
+@reg
+def g_growth():     y,x,nx,yc,xc=xy(); return f"exponential forecast of {yc} from {xc}", f"=GROWTH({y},{x},{nx})"
+@reg
+def g_covar():      a=col(); b=col(); return f"covariance of {a} and {b}", f"=COVARIANCE.P({a}:{a},{b}:{b})"
+@reg
+def g_pearson():    a=col(); b=col(); return f"pearson correlation of {a} and {b}", f"=PEARSON({a}:{a},{b}:{b})"
+@reg
+def g_rankeq():     c=cell(); r,d=rng(); return f"rank of {c} within {d}", f"=RANK.EQ({c},{r})"
+@reg
+def g_percentrank():c=cell(); r,d=rng(); return f"percentile rank of {c} in {d}", f"=PERCENTRANK({r},{c})"
+@reg
+def g_geomean():    r,d=rng(); return "geometric mean of "+d, f"=GEOMEAN({r})"
+@reg
+def g_harmean():    r,d=rng(); return "harmonic mean of "+d, f"=HARMEAN({r})"
+@reg
+def g_trimmean():   r,d=rng(); pc=random.choice([0.1,0.2]); return f"trimmed mean of {d} dropping {int(pc*100)} percent", f"=TRIMMEAN({r},{pc})"
+@reg
+def g_skew():       r,d=rng(); return "skewness of "+d, f"=SKEW({r})"
+@reg
+def g_kurt():       r,d=rng(); return "kurtosis of "+d, f"=KURT({r})"
+@reg
+def g_stdevp():     r,d=rng(); return "population standard deviation of "+d, f"=STDEV.P({r})"
+@reg
+def g_varp():       r,d=rng(); return "population variance of "+d, f"=VAR.P({r})"
+@reg
+def g_pct_of_total():c=cell(); return f"{c} as a percent of the {c[0]} total", f"={c}/SUM({c[0]}:{c[0]})"
+@reg
+def g_running_total():c=cell(); return f"running total up to {c}", f"=SUM(${c[0]}$1:{c})"
+@reg
+def g_pct_change(): cl=col(); a=random.randint(1,80); b=a+1; return p(f"percent change from {cl}{a} to {cl}{b}", f"growth rate from {cl}{a} to {cl}{b}"), f"=({cl}{b}-{cl}{a})/{cl}{a}"
+@reg
+def g_cagr():       cl=col(); a=random.randint(1,5); n=random.randint(2,10); b=a+n; return f"compound annual growth rate from {cl}{a} to {cl}{b} over {n} years", f"=({cl}{b}/{cl}{a})^(1/{n})-1"
+@reg
+def g_moving_avg(): c=cell(); k=random.choice([3,5,7]); cl=c[0]; row=int(c[1:]); s=max(1,row-k+1); return f"{k}-period moving average ending at {c}", f"=AVERAGE({cl}{s}:{cl}{row})"
+@reg
+def g_frequency():  d=col(); b=col(); return f"frequency of {d} into the bins in {b}", f"=FREQUENCY({d}:{d},{b}:{b})"
+@reg
+def g_pivot_sum():  cc=col(); sc=col(); return p(f"total {sc} for each {cc}", f"pivot {sc} by {cc}"), f"=SUMIF({cc}:{cc},UNIQUE({cc}:{cc}),{sc}:{sc})"
+@reg
+def g_pivot_count():cc=col(); return f"count of rows for each value in {cc}", f"=COUNTIF({cc}:{cc},UNIQUE({cc}:{cc}))"
 
 # ── financial ──
 @reg
