@@ -1,7 +1,7 @@
 # gpt.py — building a tiny GPT from scratch, step by step.
-# Steps 1-3: tokenizer + data + batching.   Step 4: model + training + generation.
+# Steps 1-4: tokenizer, data, batching, bigram + training.
+# Step 5: real embeddings (token meaning + position) and an LM head.
 
-import math
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -26,6 +26,7 @@ train_data, val_data = data[:n], data[n:]
 # ── Batching ──
 block_size = 8
 batch_size = 32
+n_embd = 32        # NEW: size of each token's "meaning vector"
 
 def get_batch(split):
     d = train_data if split == "train" else val_data
@@ -34,14 +35,20 @@ def get_batch(split):
     yb = torch.stack([d[i + 1 : i + block_size + 1] for i in ix])
     return xb, yb
 
-# ── Step 4 — the Bigram model ──
-class BigramModel(nn.Module):
-    def __init__(self, vocab_size):
+# ── Step 5 — the GPT model: embeddings (token + position) -> LM head ──
+class GPT(nn.Module):
+    def __init__(self):
         super().__init__()
-        self.token_table = nn.Embedding(vocab_size, vocab_size)
+        self.token_embedding    = nn.Embedding(vocab_size, n_embd)   # WHAT each token is
+        self.position_embedding = nn.Embedding(block_size, n_embd)   # WHERE it sits
+        self.lm_head            = nn.Linear(n_embd, vocab_size)      # vector -> next-token logits
 
     def forward(self, idx, targets=None):
-        logits = self.token_table(idx)                 # (B, T, vocab_size)
+        B, T = idx.shape
+        tok = self.token_embedding(idx)                 # (B, T, n_embd)
+        pos = self.position_embedding(torch.arange(T))  # (T, n_embd)
+        x = tok + pos                                   # (B, T, n_embd)  meaning + position
+        logits = self.lm_head(x)                        # (B, T, vocab_size)
         if targets is None:
             return logits, None
         B, T, C = logits.shape
@@ -50,33 +57,28 @@ class BigramModel(nn.Module):
 
     def generate(self, idx, max_new_tokens):
         for _ in range(max_new_tokens):
-            logits, _ = self(idx)
-            logits = logits[:, -1, :]                  # last step -> (B, vocab)
+            idx_cond = idx[:, -block_size:]   # crop to last block_size (positions are limited!)
+            logits, _ = self(idx_cond)
+            logits = logits[:, -1, :]
             probs = F.softmax(logits, dim=-1)
             next_id = torch.multinomial(probs, num_samples=1)
             idx = torch.cat((idx, next_id), dim=1)
         return idx
 
-model = BigramModel(vocab_size)
-context = torch.zeros((1, 1), dtype=torch.long)   # start from a newline (id 0)
+model = GPT()
+context = torch.zeros((1, 1), dtype=torch.long)
 
-# look BEFORE training
-print("--- before training ---")
-print(decode(model.generate(context, max_new_tokens=100)[0].tolist()))
-
-# ── Step 4c — the training loop ──
+# ── train ──
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-2)
-
-print("\n--- training ---")
+print("--- training ---")
 for step in range(3000):
     xb, yb = get_batch("train")
     _, loss = model(xb, yb)
-    optimizer.zero_grad()      # 1. clear old gradients
-    loss.backward()            # 2. backprop: how does each weight affect the loss?
-    optimizer.step()           # 3. nudge every weight to reduce the loss
-    if step % 300 == 0:
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    if step % 500 == 0:
         print(f"step {step:4d}: loss {loss.item():.4f}")
 
-# look AFTER training
 print("\n--- after training ---")
 print(decode(model.generate(context, max_new_tokens=200)[0].tolist()))
