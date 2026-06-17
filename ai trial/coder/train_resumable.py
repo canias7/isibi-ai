@@ -10,7 +10,7 @@
 # Because the tokenizer (vocab) is frozen, the checkpoint always fits — so adding
 # data no longer forces a restart.
 
-import os, re, json, time, torch
+import os, re, json, time, math, torch
 import torch.nn as nn
 from torch.nn import functional as F
 
@@ -179,11 +179,26 @@ else:
     print("fresh start (no checkpoint yet)")
 print(f"params: {sum(p.numel() for p in model.parameters())/1e6:.2f}M")
 
+# ── learning-rate schedule: linear warmup, then cosine decay ──
+warmup = int(os.environ.get("WARMUP", 200))
+lr_decay_iters = int(os.environ.get("LR_DECAY", start_step + max_iters))
+min_lr = lr * 0.1
+def get_lr(it):
+    if it < warmup:                       # warm up from ~0 to lr
+        return lr * (it + 1) / warmup
+    if it >= lr_decay_iters:              # floor after decay finishes
+        return min_lr
+    ratio = (it - warmup) / max(1, lr_decay_iters - warmup)
+    return min_lr + 0.5 * (1 + math.cos(math.pi * ratio)) * (lr - min_lr)
+
 t0 = time.time()
 for it in range(start_step, start_step + max_iters):
+    cur_lr = get_lr(it)                   # set this step's learning rate
+    for g in opt.param_groups:
+        g["lr"] = cur_lr
     if it % eval_every == 0:
         l = estimate_loss()
-        print(f"step {it:6d} | train {l['train']:.3f} | val {l['val']:.3f} | {time.time()-t0:.0f}s")
+        print(f"step {it:6d} | train {l['train']:.3f} | val {l['val']:.3f} | lr {cur_lr:.1e} | {time.time()-t0:.0f}s")
     x, y = get_batch("train")
     _, loss = model(x, y)
     opt.zero_grad(set_to_none=True)
