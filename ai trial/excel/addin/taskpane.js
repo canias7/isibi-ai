@@ -269,6 +269,13 @@ async function applyModel(spec) {
     if (m.type === "budget")        return await buildBudget();
     if (m.type === "invoice")       return await buildInvoice();
     if (m.type === "expense")       return await buildExpense();
+    if (m.type === "dcf")           return await buildDCF();
+    if (m.type === "threestatement")return await buildThreeStatement();
+    if (m.type === "sensitivity")   return await buildSensitivity();
+    if (m.type === "scenario")      return await buildScenario();
+    if (m.type === "inventory")     return await buildInventory();
+    if (m.type === "dashboard")     return await buildDashboard();
+    if (m.type === "montecarlo")    return await buildMonteCarlo();
     // model types without a dedicated builder yet — show the spec rather than erroring
     setOut(`<div class="formula">${escapeHtml(spec)}</div><div class="muted">${escapeHtml(m.type || "")} model — builder coming soon</div>`);
   } catch (e) {
@@ -499,6 +506,173 @@ async function buildExpense() {
     start.getResizedRange(grid.length - 1, 2).formulas = grid;
     await ctx.sync();
     setOut('<div class="muted">built an expense report</div>');
+  });
+}
+
+// DCF: discount rate + 5 years of free cash flow, each discounted to present value, summed to NPV
+async function buildDCF() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex"); await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex, V = colLetter(c0 + 1);
+    const grid = [["DCF Valuation", "", ""]];
+    const rate = V + (r0 + grid.length + 1); grid.push(["Discount Rate", "", ""]);
+    grid.push(["", "", ""]);
+    grid.push(["Year", "Free Cash Flow", "Present Value"]);
+    const FCF = colLetter(c0 + 1), PV = colLetter(c0 + 2);
+    const pvFirst = r0 + grid.length + 1;
+    for (let y = 1; y <= 5; y++) {
+      const sr = r0 + grid.length + 1;
+      grid.push([y, "", `=${FCF}${sr}/(1+${rate})^${y}`]);
+    }
+    const pvLast = r0 + grid.length;
+    grid.push(["NPV", "", `=SUM(${PV}${pvFirst}:${PV}${pvLast})`]);
+    start.getResizedRange(grid.length - 1, 2).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a DCF — fill the discount rate and yearly free cash flows</div>');
+  });
+}
+
+// linked 3-statement: income statement -> cash flow -> balance sheet (each links to the prior)
+async function buildThreeStatement() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex"); await ctx.sync();
+    const r0 = start.rowIndex, V = colLetter(start.columnIndex + 1);
+    const grid = []; const rowOf = {};
+    const add = (label, val) => { rowOf[label] = r0 + grid.length + 1; grid.push([label, val === undefined ? "" : val]); };
+    grid.push(["3-Statement Model", ""]);
+    grid.push(["Income Statement", ""]);
+    add("Revenue"); add("COGS");
+    add("Gross Profit", `=${V}${rowOf["Revenue"]}-${V}${rowOf["COGS"]}`);
+    add("Operating Expenses");
+    add("Net Income", `=${V}${rowOf["Gross Profit"]}-${V}${rowOf["Operating Expenses"]}`);
+    grid.push(["", ""]);
+    grid.push(["Cash Flow", ""]);
+    add("Net Income (link)", `=${V}${rowOf["Net Income"]}`);
+    add("Depreciation"); add("Change in Working Capital");
+    add("Net Cash Flow", `=${V}${rowOf["Net Income (link)"]}+${V}${rowOf["Depreciation"]}-${V}${rowOf["Change in Working Capital"]}`);
+    grid.push(["", ""]);
+    grid.push(["Balance Sheet", ""]);
+    add("Cash (link)", `=${V}${rowOf["Net Cash Flow"]}`);
+    add("Other Assets");
+    add("Total Assets", `=${V}${rowOf["Cash (link)"]}+${V}${rowOf["Other Assets"]}`);
+    add("Liabilities");
+    add("Equity", `=${V}${rowOf["Total Assets"]}-${V}${rowOf["Liabilities"]}`);
+    start.getResizedRange(grid.length - 1, 1).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a linked 3-statement model — fill Revenue, COGS, OpEx, Depreciation, Other Assets, Liabilities</div>');
+  });
+}
+
+// two-variable sensitivity grid: price (down) x volume (across) -> revenue, live on the input cells
+async function buildSensitivity() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex"); await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex;
+    const prices = [10, 20, 30, 40], vols = [100, 200, 300, 400];
+    const headerRow = r0 + 1;
+    const grid = [["Price \\ Volume", ...vols]];
+    prices.forEach((p) => {
+      const rowNum = r0 + grid.length + 1;
+      const priceCell = colLetter(c0) + rowNum;
+      const cells = vols.map((vv, j) => `=${priceCell}*${colLetter(c0 + 1 + j)}${headerRow}`);
+      grid.push([p, ...cells]);
+    });
+    start.getResizedRange(grid.length - 1, vols.length).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a price × volume sensitivity grid (revenue) — edit the headers to re-flex it</div>');
+  });
+}
+
+// worst / base / best scenario columns with profit + margin formulas per case
+async function buildScenario() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex"); await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex;
+    const W = colLetter(c0 + 1), B = colLetter(c0 + 2), Be = colLetter(c0 + 3);
+    const grid = [["Scenario", "Worst", "Base", "Best"], ["Revenue", "", "", ""], ["Cost", "", "", ""]];
+    const rev = r0 + 2, cost = r0 + 3, profitRow = r0 + grid.length + 1;
+    grid.push(["Profit", `=${W}${rev}-${W}${cost}`, `=${B}${rev}-${B}${cost}`, `=${Be}${rev}-${Be}${cost}`]);
+    grid.push(["Margin", `=${W}${profitRow}/${W}${rev}`, `=${B}${profitRow}/${B}${rev}`, `=${Be}${profitRow}/${Be}${rev}`]);
+    start.getResizedRange(grid.length - 1, 3).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a worst / base / best scenario — fill revenue and cost per case</div>');
+  });
+}
+
+// inventory tracker: stock vs reorder point with an auto REORDER/OK status
+async function buildInventory() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex"); await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex;
+    const ST = colLetter(c0 + 2), RP = colLetter(c0 + 3);
+    const grid = [["SKU", "Item", "In Stock", "Reorder Point", "Status"]];
+    for (let i = 0; i < 6; i++) {
+      const sr = r0 + grid.length + 1;
+      grid.push(["", "", "", "", `=IF(${ST}${sr}<=${RP}${sr},"REORDER","OK")`]);
+    }
+    start.getResizedRange(grid.length - 1, 4).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built an inventory tracker — fill SKU, item, stock, reorder point</div>');
+  });
+}
+
+// KPI dashboard: reads the sheet's numeric columns and stamps Total/Average KPIs (template if no data)
+async function buildDashboard() {
+  await Excel.run(async (ctx) => {
+    const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+    const used = sheet.getUsedRangeOrNullObject();
+    used.load("values,columnIndex,isNullObject");
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex");
+    await ctx.sync();
+    const grid = [["KPI Dashboard", "Value"]];
+    if (!used.isNullObject && used.values.length > 1) {
+      const hm = buildHeaderMap(used);
+      const row1 = used.values[1] || [];
+      const numeric = Object.keys(hm).filter((h) => typeof row1[letterToIdx(hm[h]) - used.columnIndex] === "number").slice(0, 4);
+      numeric.forEach((h) => {
+        const c = hm[h];
+        grid.push([`Total ${h}`, `=SUM(${c}:${c})`]);
+        grid.push([`Average ${h}`, `=AVERAGE(${c}:${c})`]);
+      });
+      const firstCol = hm[Object.keys(hm)[0]];
+      if (firstCol) grid.push(["Row Count", `=COUNTA(${firstCol}:${firstCol})-1`]);
+    }
+    if (grid.length === 1) ["Total Revenue", "Total Cost", "Profit", "Margin %"].forEach((k) => grid.push([k, ""]));
+    start.getResizedRange(grid.length - 1, 1).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a KPI dashboard from your data</div>');
+  });
+}
+
+// Monte Carlo: NORM.INV(RAND(), mean, sd) trials with a P10/P50/P90 summary
+async function buildMonteCarlo() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex"); await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex, V = colLetter(c0 + 1);
+    const grid = [["Monte Carlo Simulation", ""]];
+    const mean = V + (r0 + grid.length + 1); grid.push(["Mean", ""]);
+    const sd = V + (r0 + grid.length + 1); grid.push(["Std Dev", ""]);
+    grid.push(["", ""]);
+    grid.push(["Trial", "Result"]);
+    const RES = colLetter(c0 + 1);
+    const first = r0 + grid.length + 1;
+    for (let i = 1; i <= 20; i++) grid.push([i, `=NORM.INV(RAND(),${mean},${sd})`]);
+    const last = r0 + grid.length;
+    grid.push(["", ""]);
+    grid.push(["Average", `=AVERAGE(${RES}${first}:${RES}${last})`]);
+    grid.push(["P10", `=PERCENTILE(${RES}${first}:${RES}${last},0.1)`]);
+    grid.push(["P50", `=PERCENTILE(${RES}${first}:${RES}${last},0.5)`]);
+    grid.push(["P90", `=PERCENTILE(${RES}${first}:${RES}${last},0.9)`]);
+    start.getResizedRange(grid.length - 1, 1).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a Monte Carlo sim (20 trials) — fill Mean and Std Dev</div>');
   });
 }
 
