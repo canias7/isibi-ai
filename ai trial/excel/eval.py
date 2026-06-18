@@ -63,6 +63,7 @@ score("ABS-REF",   make_data.gen_absref)
 score("SOLVE",     make_data.gen_solve)
 score("FROM-EX",   make_data.gen_fromex)
 score("RULES",     make_data.gen_rules)
+score("UNIT-TEST", make_data.gen_unittest)
 
 # ── generative / spec tasks (eyeball — not exact-match) ──
 def show(label, gen, n=5):
@@ -86,3 +87,7 @@ show("DOC",         make_data.gen_doc)
 show("HOW-TO",      make_data.gen_howto)
 show("CHART-REC",   make_data.gen_chartrec)
 show("SCRIPT",      make_data.gen_script)
+show("KEYBOARD",    make_data.gen_keyboard)
+show("VBA",         make_data.gen_vba)
+show("GENDATA",     make_data.gen_gendata)
+show("DATADICT",    make_data.gen_datadict)

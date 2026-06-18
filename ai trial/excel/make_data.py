@@ -912,6 +912,28 @@ _BULK = [
 for _n, _s, _p in _BULK:
     _bulk(_n, _s, _p)
 
+# ── more analysis / wrangling formulas ──
+@reg
+def g_outlier():      c=cell(); cl=c[0]; return f"flag if {c} is an outlier in column {cl}", f"=ABS({c}-AVERAGE({cl}:{cl}))>2*STDEV({cl}:{cl})"
+@reg
+def g_zscore_col():   c=cell(); cl=c[0]; return f"z-score of {c} within column {cl}", f"=({c}-AVERAGE({cl}:{cl}))/STDEV({cl}:{cl})"
+@reg
+def g_normalize():    c=cell(); cl=c[0]; return f"normalize {c} to 0-1 within column {cl}", f"=({c}-MIN({cl}:{cl}))/(MAX({cl}:{cl})-MIN({cl}:{cl}))"
+@reg
+def g_above_median(): c=cell(); cl=c[0]; return f"is {c} above or below the {cl} median", f'=IF({c}>MEDIAN({cl}:{cl}),"above","below")'
+@reg
+def g_merge_cols():   a=cell(); b=cell(); return f"merge {a} and {b} into one cell", f'={a}&" "&{b}'
+@reg
+def g_pareto_cum():   c=cell(); cl=c[0]; return f"cumulative percent up to {c} in column {cl}", f"=SUM(${cl}$1:{c})/SUM({cl}:{cl})"
+@reg
+def g_moving_sum():   c=cell(); k=random.choice([3,5,7]); cl=c[0]; row=int(c[1:]); s=max(1,row-k+1); return f"{k}-period moving sum ending at {c}", f"=SUM({cl}{s}:{cl}{row})"
+@reg
+def g_pct_rank_col(): c=cell(); cl=c[0]; return f"percentile rank of {c} within column {cl}", f"=PERCENTRANK({cl}:{cl},{c})"
+@reg
+def g_running_count():c=cell(); cl=c[0]; return f"running count up to {c}", f"=COUNT(${cl}$1:{c})"
+@reg
+def g_count_above_avg():cl=col(); return f"count how many values in {cl} are above average", f'=COUNTIF({cl}:{cl},">"&AVERAGE({cl}:{cl}))'
+
 # ── phrasing engine: wrap each base request the many ways real people type it ──
 # (empties keep a good share clean; the rest add natural lead-ins / trailers)
 LEADS = ["", "", "", "", "", "", "",
@@ -1112,29 +1134,29 @@ def gen_format():
 # ── data cleaning: intent -> a CLEAN spec the add-in runs via Office.js ──
 def gen_clean():
     h = hdr1(); r = random.random()
-    if r < 0.18:
-        return random.choice(["remove duplicate rows", "delete duplicates", "drop duplicate rows"]), \
-               "CLEAN op=dedupe"
-    if r < 0.34:
+    if r < 0.14:
+        return random.choice(["remove duplicate rows", "delete duplicates"]), "CLEAN op=dedupe"
+    if r < 0.26:
         _, nm = random.choice(DELIMS)
-        return random.choice([f"split {h} into separate columns by the {nm}", f"split the {h} column on the {nm}"]), \
-               f"CLEAN op=split col={h} by={nm.replace(' ', '')}"
-    if r < 0.50:
+        return f"split the {h} column on the {nm}", f"CLEAN op=split col={h} by={nm.replace(' ', '')}"
+    if r < 0.40:
         v = random.choice(["0", "n/a", word()])
-        return random.choice([f"fill blank cells in {h} with {v}", f"replace empties in {h} with {v}"]), \
-               f"CLEAN op=fillblanks col={h} value={v}"
+        return f"fill blank cells in {h} with {v}", f"CLEAN op=fillblanks col={h} value={v}"
+    if r < 0.52:
+        return random.choice([f"trim extra spaces in {h}", f"remove extra spaces from {h}"]), f"CLEAN op=trim col={h}"
     if r < 0.62:
-        return random.choice([f"trim extra spaces in {h}", f"remove extra spaces from {h}"]), \
-               f"CLEAN op=trim col={h}"
+        return f"convert {h} to numbers", f"CLEAN op=tonumber col={h}"
     if r < 0.74:
-        return random.choice([f"convert {h} to numbers", f"turn the text in {h} into numbers"]), \
-               f"CLEAN op=tonumber col={h}"
-    if r < 0.86:
         op, wrd = random.choice([("upper", "uppercase"), ("lower", "lowercase"), ("proper", "capitalize")])
-        return random.choice([f"make {h} {wrd}", f"{wrd} the {h} column"]), f"CLEAN op={op} col={h}"
-    a, b = random.sample(WORDS, 2)
-    return random.choice([f"replace {a} with {b} in {h}", f"change all {a} to {b} in {h}"]), \
-           f"CLEAN op=replace col={h} find={a} with={b}"
+        return f"make {h} {wrd}", f"CLEAN op={op} col={h}"
+    if r < 0.82:
+        a, b = random.sample(WORDS, 2)
+        return f"replace {a} with {b} in {h}", f"CLEAN op=replace col={h} find={a} with={b}"
+    if r < 0.88:
+        return "remove blank rows", "CLEAN op=delblankrows"
+    if r < 0.94:
+        return f"standardize the dates in {h}", f"CLEAN op=stddate col={h}"
+    return f"fill down the values in {h}", f"CLEAN op=filldown col={h}"
 
 # ── bilingual: Spanish descriptions -> the same formulas (común, día a día) ──
 SPANISH = []
@@ -1266,54 +1288,64 @@ def gen_lang():
     return random.choice(SPANISH + PORTUGUESE + FRENCH)()
 
 # ── finance pack: intent -> a MODEL spec; the add-in stamps the block of cells ──
+_MODEL_SIMPLE = {
+    "ratios": ["build a ratio analysis", "calculate the key financial ratios", "build the standard financial ratios"],
+    "amortization": ["build a loan amortization table", "build an amortization schedule", "loan payoff schedule"],
+    "breakeven": ["build a break-even analysis", "build a break-even model"],
+    "cashflow": ["build a 3-month cash flow", "build a monthly cash flow projection"],
+    "threestatement": ["build a 3-statement model", "build linked income statement balance sheet and cash flow"],
+    "dcf": ["build a DCF valuation", "build a discounted cash flow model", "build an NPV valuation"],
+    "depreciation": ["build a depreciation schedule", "build an asset depreciation table"],
+    "sensitivity": ["build a sensitivity table", "build a two-variable what-if table"],
+    "scenario": ["build a best base worst scenario analysis", "build a scenario model"],
+    "budget": ["build a budget tracker", "build a monthly budget template"],
+    "invoice": ["build an invoice template", "make an invoice"],
+    "expense": ["build an expense report", "build an expense tracker"],
+    "inventory": ["build an inventory tracker", "build a stock tracking sheet"],
+    "dashboard": ["build a KPI dashboard", "build a metrics scorecard"],
+    "montecarlo": ["build a monte carlo simulation", "build a monte carlo risk model"],
+}
 def gen_model():
     r = random.random()
-    if r < 0.22:
-        q = random.choice(["build a ratio analysis", "calculate the key financial ratios",
-                           "show liquidity and profitability ratios", "make a financial ratios block",
-                           "build the standard financial ratios"])
-        return q, "MODEL type=ratios"
-    if r < 0.40:
+    if r < 0.10:
         a = hdr1(); b = hdr1()
-        q = random.choice([f"variance report of actual {a} versus budget {b}",
-                           f"build a budget variance for {a} vs {b}",
-                           f"actual {a} vs budget {b} with variance"])
-        return q, f"MODEL type=variance actual={a} budget={b}"
-    if r < 0.55:
+        return random.choice([f"variance report of actual {a} versus budget {b}",
+                              f"build a budget variance for {a} vs {b}"]), f"MODEL type=variance actual={a} budget={b}"
+    if r < 0.18:
         a = hdr1()
-        q = random.choice([f"build an aging report for {a}", f"AR aging of {a}", f"age {a} into buckets"])
-        return q, f"MODEL type=aging amount={a} date=date"
-    if r < 0.72:
-        q = random.choice(["build a loan amortization table", "amortization schedule",
-                           "build an amortization model", "loan payoff schedule"])
-        return q, "MODEL type=amortization"
-    if r < 0.87:
-        q = random.choice(["build a break-even analysis", "break-even model", "break even calculation"])
-        return q, "MODEL type=breakeven"
-    q = random.choice(["build a 3-month cash flow", "monthly cash flow projection", "cash flow model"])
-    return q, "MODEL type=cashflow"
+        return random.choice([f"build an aging report for {a}", f"AR aging of {a}"]), f"MODEL type=aging amount={a} date=date"
+    t = random.choice(list(_MODEL_SIMPLE))
+    return random.choice(_MODEL_SIMPLE[t]), f"MODEL type={t}"
 
 # ── more sheet actions: data validation, sort, filter ──
 def gen_action():
     r = random.random()
-    if r < 0.35:
+    if r < 0.14:
         c=col(); vals=random.sample(WORDS, random.randint(3,4))
-        q=random.choice([f"add a dropdown of {', '.join(vals)} in {c}",
-                         f"restrict {c} to {', '.join(vals)}",
-                         f"data validation list of {', '.join(vals)} in column {c}"])
-        return q, f"VALIDATE col={c} type=list items={'|'.join(vals)}"
-    if r < 0.55:
+        return random.choice([f"add a dropdown of {', '.join(vals)} in {c}", f"restrict {c} to {', '.join(vals)}"]), f"VALIDATE col={c} type=list items={'|'.join(vals)}"
+    if r < 0.22:
         c=col(); a=num(); b=a+num()
-        q=random.choice([f"only allow numbers between {a} and {b} in {c}",
-                         f"restrict {c} to numbers from {a} to {b}"])
-        return q, f"VALIDATE col={c} type=number min={a} max={b}"
-    if r < 0.80:
+        return f"only allow numbers between {a} and {b} in {c}", f"VALIDATE col={c} type=number min={a} max={b}"
+    if r < 0.34:
         h=hdr1(); o=random.choice(["desc","asc"]); wo="descending" if o=="desc" else "ascending"
-        q=random.choice([f"sort by {h} {wo}", f"sort the data by {h} {wo}", f"order by {h} {wo}"])
-        return q, f"SORT by={h} order={o}"
-    c=col(); w=word()
-    q=random.choice([f"filter to show only {w} in {c}", f"show only {w} rows in {c}", f"filter {c} to {w}"])
-    return q, f"FILTERVIEW col={c} value={w}"
+        return random.choice([f"sort by {h} {wo}", f"order by {h} {wo}"]), f"SORT by={h} order={o}"
+    if r < 0.44:
+        c=col(); w=word(); return random.choice([f"filter to show only {w} in {c}", f"filter {c} to {w}"]), f"FILTERVIEW col={c} value={w}"
+    if r < 0.55:
+        c=col(); fmt=random.choice(["currency","percent","date","comma"]); return f"format column {c} as {fmt}", f"NUMFMT col={c} as={fmt}"
+    if r < 0.63:
+        return random.choice(["freeze the top row", "freeze row 1"]), "FREEZE rows=1"
+    if r < 0.69:
+        return "freeze the first column", "FREEZE cols=1"
+    if r < 0.75:
+        return random.choice(["autofit all columns", "autofit the columns"]), "AUTOFIT"
+    if r < 0.81:
+        c=col(); return f"hide column {c}", f"HIDECOL col={c}"
+    if r < 0.88:
+        c=col(); return random.choice([f"delete column {c}", f"remove column {c}"]), f"DELETECOL col={c}"
+    if r < 0.94:
+        c=col(); h=hdr1(); return f"name column {c} as {h}", f"NAMERANGE name={h} range={c}:{c}"
+    c=col(); return random.choice([f"lock column {c}", f"protect column {c}"]), f"PROTECT col={c}"
 
 # ── multi-step automation: chain several actions into one sequence (the "automate" tier) ──
 def gen_steps():
@@ -1361,10 +1393,25 @@ DAX = [
     ('=SUMIF(A:A,"x",B:B)', 'CALCULATE(SUM(t[B]), t[A]="x")'),
     ('=COUNTIF(A:A,"x")', 'CALCULATE(COUNTROWS(t), t[A]="x")'),
 ]
+JS = [
+    ("=SUM(A:A)", "data.reduce((s,r)=>s+r.A,0)"), ("=AVERAGE(A:A)", "data.reduce((s,r)=>s+r.A,0)/data.length"),
+    ("=COUNT(A:A)", "data.length"), ("=MAX(A:A)", "Math.max(...data.map(r=>r.A))"),
+    ("=MIN(A:A)", "Math.min(...data.map(r=>r.A))"), ('=IF(A1>10,"hi","lo")', "a>10?'hi':'lo'"),
+    ("=ROUND(A1,2)", "Math.round(a*100)/100"), ("=LEN(A1)", "a.length"), ("=UPPER(A1)", "a.toUpperCase()"),
+]
+R = [
+    ("=SUM(A:A)", "sum(df$A)"), ("=AVERAGE(A:A)", "mean(df$A)"), ("=COUNT(A:A)", "length(df$A)"),
+    ("=MAX(A:A)", "max(df$A)"), ("=MIN(A:A)", "min(df$A)"), ("=MEDIAN(A:A)", "median(df$A)"),
+    ("=STDEV(A:A)", "sd(df$A)"), ('=SUMIF(A:A,"x",B:B)', "sum(df$B[df$A=='x'])"),
+]
+M = [
+    ("=SUM(A:A)", "List.Sum(Source[A])"), ("=AVERAGE(A:A)", "List.Average(Source[A])"),
+    ("=COUNT(A:A)", "List.Count(Source[A])"), ("=MAX(A:A)", "List.Max(Source[A])"), ("=MIN(A:A)", "List.Min(Source[A])"),
+]
 def gen_transpile():
-    tgt = random.choice(["python", "python", "sql", "dax"])     # python weighted
-    src, out = random.choice({"python": TRANSPILE, "sql": SQL, "dax": DAX}[tgt])
-    lang = {"python": "python", "sql": "sql", "dax": "dax"}[tgt]
+    tgt = random.choice(["python", "python", "sql", "dax", "js", "r", "m"])
+    src, out = random.choice({"python": TRANSPILE, "sql": SQL, "dax": DAX, "js": JS, "r": R, "m": M}[tgt])
+    lang = {"python": "python", "sql": "sql", "dax": "dax", "js": "javascript", "r": "r", "m": "power query"}[tgt]
     return random.choice([f"in {lang}: {src}", f"convert to {lang}: {src}", f"{src} in {lang}"]), out
 
 # ── optimize: make a formula better / simpler ──
@@ -1481,6 +1528,12 @@ HOWTO = [
     ("insert a pivot table", "Insert -> PivotTable"),
     ("merge cells", "Home -> Merge & Center"),
     ("freeze the first column", "View -> Freeze Panes -> Freeze First Column"),
+    ("find all the errors", "Home -> Find & Select -> Go To Special -> Formulas -> Errors"),
+    ("check for circular references", "Formulas -> Error Checking -> Circular References"),
+    ("trace a formula's precedents", "Formulas -> Trace Precedents"),
+    ("see what a cell feeds into", "Formulas -> Trace Dependents"),
+    ("protect a sheet", "Review -> Protect Sheet"),
+    ("compare two workbooks", "Inquire add-in -> Compare Files"),
 ]
 def gen_howto():
     q, a = random.choice(HOWTO)
@@ -1509,14 +1562,54 @@ def gen_script():
     q, a = random.choice(SCRIPT)
     return random.choice([f"office script to {q}", f"a macro to {q}", f"script that will {q}"]), a
 
+# ── keyboard shortcuts ──
+KEYS = [
+    ("sum a column quickly", "Alt + ="), ("fill down", "Ctrl + D"), ("insert today's date", "Ctrl + ;"),
+    ("toggle absolute references", "F4"), ("create a chart", "Alt + F1"), ("apply a filter", "Ctrl + Shift + L"),
+    ("go to a cell", "Ctrl + G"), ("format as currency", "Ctrl + Shift + $"),
+    ("format as percent", "Ctrl + Shift + %"), ("select the whole column", "Ctrl + Space"),
+]
+def gen_keyboard():
+    q, a = random.choice(KEYS)
+    return random.choice([f"shortcut to {q}", f"keyboard shortcut to {q}", f"hotkey to {q}"]), a
+
+# ── VBA macros ──
+VBA = [
+    ("bold the header row", "Rows(1).Font.Bold = True"), ("autofit columns", "Columns.AutoFit"),
+    ("clear the sheet", "ActiveSheet.UsedRange.Clear"), ("show a message box", 'MsgBox "done"'),
+    ("turn off screen updating", "Application.ScreenUpdating = False"),
+]
+def gen_vba():
+    q, a = random.choice(VBA)
+    return random.choice([f"vba to {q}", f"a vba macro to {q}", f"vba code to {q}"]), a
+
+# ── generate sample data -> GENDATA spec ──
+def gen_gendata():
+    n = random.choice([10, 20, 50, 100])
+    cs = random.sample(["region", "product", "amount", "date", "customer", "status", "price", "quantity"], random.randint(2, 4))
+    return random.choice([f"generate {n} rows of sample {cs[0]} data", f"make {n} rows of fake data with {', '.join(cs)}",
+                          f"create {n} sample rows of {', '.join(cs)}"]), f"GENDATA rows={n} cols={','.join(cs)}"
+
+# ── spreadsheet unit test (assertion) ──
+def gen_unittest():
+    c = cell(); n = num()
+    return random.choice([f"assert {c} equals {n}", f"test that {c} is {n}", f"check {c} equals {n}"]), f"=({c}={n})"
+
+# ── data dictionary ──
+def gen_datadict():
+    cs = random.sample(["revenue", "cost", "region", "date", "customer", "quantity", "status", "price"], 3)
+    return random.choice([f"data dictionary for {', '.join(cs)}", f"document the columns {', '.join(cs)}"]), \
+           "; ".join(f"{c}: the {c} for each row" for c in cs)
+
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
     (40, "formula"), (6, gen_spanish), (5, gen_explain), (5, gen_fix), (5, gen_edit),
-    (3, gen_chart), (3, gen_format), (3, gen_clean), (2, gen_model), (2, gen_action),
+    (3, gen_chart), (3, gen_format), (3, gen_clean), (2.5, gen_model), (2.5, gen_action),
     (2, gen_steps), (2, gen_transpile), (1.5, gen_reverse), (1.5, gen_optimize),
     (1.5, gen_audit), (1.5, gen_nlsql), (2, gen_debug), (2, gen_absref), (1.5, gen_doc),
     (1.5, gen_solve), (2, gen_fromex), (1.5, gen_rules), (1.5, gen_howto),
-    (1.5, gen_chartrec), (1.5, gen_script),
+    (1.5, gen_chartrec), (1.5, gen_script), (1.5, gen_keyboard), (1.5, gen_vba),
+    (1.5, gen_gendata), (1.5, gen_unittest), (1.5, gen_datadict),
 ]
 _MODE_FNS = [f for _, f in MODES]
 _MODE_WTS = [w for w, _ in MODES]

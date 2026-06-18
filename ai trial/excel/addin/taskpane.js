@@ -241,7 +241,8 @@ async function applyModel(spec) {
     if (m.type === "amortization")  return await buildAmortization();
     if (m.type === "breakeven")     return await buildBreakeven();
     if (m.type === "cashflow")      return await buildCashflow();
-    setOut('<span class="err">Unknown model type: ' + escapeHtml(m.type || "") + "</span>");
+    // model types without a dedicated builder yet — show the spec rather than erroring
+    setOut(`<div class="formula">${escapeHtml(spec)}</div><div class="muted">${escapeHtml(m.type || "")} model — builder coming soon</div>`);
   } catch (e) {
     setOut('<span class="err">Model build failed: ' + escapeHtml(e.message) + "</span>");
   }
