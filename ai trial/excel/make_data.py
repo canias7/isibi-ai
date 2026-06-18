@@ -2693,6 +2693,114 @@ DOMAIN = [_d_dso,_d_dpo,_d_inv_turn,_d_quick,_d_gross_marg,_d_recon,_d_sln,_d_dd
 def gen_domain():
     return random.choice(DOMAIN)()
 
+# ── industry KPIs: signature metric of each field -> the right calc (the vocabulary layer) ──
+KPI = [
+    # logistics / supply chain / warehouse / shipping / receiving
+    ("on-time delivery rate from on-time A1 and total deliveries B1", "=A1/B1"),
+    ("order fill rate from filled A1 and ordered B1", "=A1/B1"),
+    ("freight cost per unit from total freight A1 and units B1", "=A1/B1"),
+    ("average lead time from order date A1 to receipt date B1", "=B1-A1"),
+    ("days of inventory on hand from inventory A1 and daily usage B1", "=A1/B1"),
+    ("pick accuracy from correct picks A1 and total picks B1", "=A1/B1"),
+    ("damage rate from damaged units A1 and received B1", "=A1/B1"),
+    ("backorder rate from backordered A1 and total orders B1", "=A1/B1"),
+    ("inventory accuracy from counted A1 and system count B1", "=A1/B1"),
+    # manufacturing / production / quality
+    ("defect rate from defects A1 and units produced B1", "=A1/B1"),
+    ("first pass yield from good units A1 and total units B1", "=A1/B1"),
+    ("scrap rate from scrap A1 and total material B1", "=A1/B1"),
+    ("capacity utilization from actual output A1 and max capacity B1", "=A1/B1"),
+    ("overall equipment effectiveness from availability A1, performance B1, quality C1", "=A1*B1*C1"),
+    ("units per labor hour from units A1 and labor hours B1", "=A1/B1"),
+    ("downtime percent from downtime hours A1 and total hours B1", "=A1/B1"),
+    ("production cycle time from start A1 and end B1", "=B1-A1"),
+    ("inspection pass rate from passed A1 and inspected B1", "=A1/B1"),
+    # sales / sales ops
+    ("win rate from deals won A1 and total deals B1", "=A1/B1"),
+    ("quota attainment from actual A1 and quota B1", "=A1/B1"),
+    ("average deal size from revenue A1 and deals B1", "=A1/B1"),
+    ("sales cycle length from first contact A1 to close B1", "=B1-A1"),
+    ("pipeline coverage from pipeline A1 and quota B1", "=A1/B1"),
+    ("lead conversion rate from converted A1 and leads B1", "=A1/B1"),
+    ("revenue per rep from revenue A1 and reps B1", "=A1/B1"),
+    # marketing / digital / ads / email / social / seo
+    ("click-through rate from clicks A1 and impressions B1", "=A1/B1"),
+    ("cost per click from spend A1 and clicks B1", "=A1/B1"),
+    ("cost per thousand impressions from spend A1 and impressions B1", "=A1/B1*1000"),
+    ("cost per lead from spend A1 and leads B1", "=A1/B1"),
+    ("email open rate from opens A1 and delivered B1", "=A1/B1"),
+    ("email click rate from clicks A1 and delivered B1", "=A1/B1"),
+    ("bounce rate from bounces A1 and sessions B1", "=A1/B1"),
+    ("engagement rate from engagements A1 and followers B1", "=A1/B1"),
+    ("website conversion rate from conversions A1 and visitors B1", "=A1/B1"),
+    # HR / recruiting / workforce
+    ("employee turnover rate from departures A1 and average headcount B1", "=A1/B1"),
+    ("time to hire from posting date A1 to offer date B1", "=B1-A1"),
+    ("offer acceptance rate from accepted A1 and offers B1", "=A1/B1"),
+    ("absenteeism rate from absent days A1 and workdays B1", "=A1/B1"),
+    ("cost per hire from recruiting cost A1 and hires B1", "=A1/B1"),
+    ("training completion rate from completed A1 and enrolled B1", "=A1/B1"),
+    ("revenue per employee from revenue A1 and employees B1", "=A1/B1"),
+    ("headcount growth from start A1 and end B1", "=(B1-A1)/A1"),
+    # healthcare
+    ("bed occupancy rate from occupied A1 and total beds B1", "=A1/B1"),
+    ("claim denial rate from denied A1 and submitted B1", "=A1/B1"),
+    ("days in AR from receivables A1 and daily charges B1", "=A1/B1"),
+    ("patient no-show rate from no-shows A1 and appointments B1", "=A1/B1"),
+    ("cost per patient from total cost A1 and patients B1", "=A1/B1"),
+    # restaurant / hotel / retail / hospitality
+    ("food cost percentage from food cost A1 and food sales B1", "=A1/B1"),
+    ("labor cost percentage from labor A1 and sales B1", "=A1/B1"),
+    ("prime cost from food cost A1 and labor cost B1", "=A1+B1"),
+    ("table turnover from covers A1 and seats B1", "=A1/B1"),
+    ("average check from sales A1 and covers B1", "=A1/B1"),
+    ("hotel occupancy from rooms sold A1 and rooms available B1", "=A1/B1"),
+    ("average daily rate from room revenue A1 and rooms sold B1", "=A1/B1"),
+    ("revenue per available room from room revenue A1 and rooms available B1", "=A1/B1"),
+    ("sales per square foot from sales A1 and floor area B1", "=A1/B1"),
+    ("shrinkage rate from shrinkage A1 and sales B1", "=A1/B1"),
+    # project / program / construction
+    ("percent complete from completed tasks A1 and total tasks B1", "=A1/B1"),
+    ("cost performance index from earned value A1 and actual cost B1", "=A1/B1"),
+    ("schedule performance index from earned value A1 and planned value B1", "=A1/B1"),
+    ("days until deadline from due date A1", "=A1-TODAY()"),
+    ("budget burn from spent A1 and budget B1", "=A1/B1"),
+    ("cost variance from earned value A1 and actual cost B1", "=A1-B1"),
+    # procurement / purchasing / vendor
+    ("cost savings from list price A1 and negotiated price B1", "=(A1-B1)/A1"),
+    ("supplier on-time rate from on-time A1 and total deliveries B1", "=A1/B1"),
+    ("purchase price variance from actual A1 and standard B1", "=(A1-B1)/B1"),
+    ("spend under management from managed spend A1 and total spend B1", "=A1/B1"),
+    # IT / devops / support / help desk / security
+    ("uptime percentage from uptime hours A1 and total hours B1", "=A1/B1"),
+    ("SLA compliance from met A1 and total tickets B1", "=A1/B1"),
+    ("ticket resolution rate from resolved A1 and total tickets B1", "=A1/B1"),
+    ("first contact resolution from resolved on first contact A1 and total B1", "=A1/B1"),
+    ("mean time to resolve from total resolution hours A1 and incidents B1", "=A1/B1"),
+    # nonprofit / fundraising / grants
+    ("cost per dollar raised from fundraising cost A1 and amount raised B1", "=A1/B1"),
+    ("donor retention from retained A1 and prior donors B1", "=A1/B1"),
+    ("program expense ratio from program expense A1 and total expense B1", "=A1/B1"),
+    ("average gift size from total donations A1 and donors B1", "=A1/B1"),
+    # education / admissions / financial aid
+    ("acceptance rate from accepted A1 and applicants B1", "=A1/B1"),
+    ("admissions yield from enrolled A1 and accepted B1", "=A1/B1"),
+    ("student retention from returning A1 and prior enrollment B1", "=A1/B1"),
+    ("attendance rate from days present A1 and school days B1", "=A1/B1"),
+    ("student to teacher ratio from students A1 and teachers B1", "=A1/B1"),
+    # real estate / property / leasing
+    ("occupancy rate from occupied units A1 and total units B1", "=A1/B1"),
+    ("vacancy rate from vacant units A1 and total units B1", "=A1/B1"),
+    ("gross rent multiplier from price A1 and annual rent B1", "=A1/B1"),
+    # finance / treasury / risk / investment
+    ("debt service coverage from operating income A1 and debt payments B1", "=A1/B1"),
+    ("interest coverage from EBIT A1 and interest expense B1", "=A1/B1"),
+    ("simple payback from investment A1 and annual savings B1", "=A1/B1"),
+]
+def gen_kpi():
+    q, a = random.choice(KPI)
+    return random.choice([q, f"formula for {q}", f"how do I calculate {q}", f"{q} as a formula"]), a
+
 # ══════════════════════════════════════════════════════════════════════
 #  ACCOUNTING COWORKER: advice, interpretation, judgment (not just formulas)
 # ══════════════════════════════════════════════════════════════════════
@@ -2852,6 +2960,8 @@ MODES = [
     (4, gen_hard), (4, gen_domain),
     # ── accounting coworker: advice / concepts / consulting (talk, not just compute) ──
     (4, gen_advise), (5, gen_concept), (5, gen_consult),
+    # ── industry KPI vocabulary (120+ business functions -> the right metric) ──
+    (6, gen_kpi),
 ]
 _MODE_FNS = [f for _, f in MODES]
 _MODE_WTS = [w for w, _ in MODES]
