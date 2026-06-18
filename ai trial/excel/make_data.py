@@ -2919,8 +2919,45 @@ def _adv_inv_turnover():
          f"Inventory turnover of {v}x is healthy — you're selling through stock at a good clip." if v <= 14 else
          f"Inventory turnover of {v}x is very high — efficient, but make sure you're not stocking out and losing sales.")
     return random.choice([f"is inventory turnover of {v} good", f"my inventory turns {v} times a year, is that good"]), a
+def _adv_operating_margin():
+    v = random.choice(["3%","8%","15%","25%"]); n = int(v[:-1])
+    a = (f"A {v} operating margin is thin — core operations barely profit; small cost swings could wipe it out." if n < 7 else
+         f"A {v} operating margin is solid — the core business is healthily profitable before financing and tax." if n <= 20 else
+         f"A {v} operating margin is strong — very efficient operations, typical of software or premium niches.")
+    return random.choice([f"is a {v} operating margin good", f"my operating margin is {v}, how is that"]), a
+def _adv_cac_payback():
+    v = random.choice([4,9,14,24]);
+    a = (f"A {v}-month CAC payback is great — you recoup acquisition cost fast and can reinvest sooner." if v <= 12 else
+         f"A {v}-month CAC payback is borderline — under 12 months is the usual healthy target; tighten spend or pricing." if v <= 18 else
+         f"A {v}-month CAC payback is too long — cash is tied up far past the norm. Fix conversion, price, or channel mix.")
+    return random.choice([f"is a {v} month CAC payback good", f"my cac payback is {v} months, is that ok"]), a
+def _adv_burn_multiple():
+    v = random.choice(["0.8","1.5","2.5","4.0"]); f = float(v)
+    a = (f"A burn multiple of {v} is efficient — you're not spending much to add each dollar of new ARR." if f < 1 else
+         f"A burn multiple of {v} is okay — under 1.5 is great, 1.5 to 2 is acceptable while scaling." if f <= 2 else
+         f"A burn multiple of {v} is high — you're burning a lot for each dollar of new ARR. Tighten before raising more.")
+    return random.choice([f"is a burn multiple of {v} good", f"my burn multiple is {v}, should I worry"]), a
+def _adv_roe():
+    v = random.choice(["4%","12%","20%","35%"]); n = int(v[:-1])
+    a = (f"An ROE of {v} is low — owners' capital isn't working hard; compare to safer alternatives." if n < 10 else
+         f"An ROE of {v} is healthy — a solid return on shareholders' equity for most industries." if n <= 25 else
+         f"An ROE of {v} is excellent — but check it isn't just heavy leverage flattering the number.")
+    return random.choice([f"is a {v} return on equity good", f"my roe is {v}, how does that look"]), a
+def _adv_concentration():
+    v = random.choice(["10%","25%","45%","70%"]); n = int(v[:-1])
+    a = (f"Your top customer at {v} of revenue is a healthy, diversified base — low concentration risk." if n < 20 else
+         f"Your top customer at {v} is worth watching — losing them would sting. Keep growing the rest of the base." if n < 40 else
+         f"Your top customer at {v} is real concentration risk — one departure could be existential. Diversify urgently.")
+    return random.choice([f"my biggest customer is {v} of revenue, is that risky", f"is {v} customer concentration a problem"]), a
+def _adv_collection_rate():
+    v = random.choice(["75%","88%","96%","99%"]); n = int(v[:-1])
+    a = (f"A {v} collection rate is poor — you're writing off too much. Tighten credit checks and follow-ups." if n < 85 else
+         f"A {v} collection rate is okay but improvable — aim for the high 90s to protect cash." if n < 97 else
+         f"A {v} collection rate is excellent — you're collecting nearly everything you bill.")
+    return random.choice([f"is a {v} collection rate good", f"my collection rate is {v}, how is that"]), a
 ADVISE = [_adv_current_ratio,_adv_net_margin,_adv_dso,_adv_churn,_adv_runway,_adv_debt_equity,
-          _adv_quick_ratio,_adv_ltv_cac,_adv_gross_margin,_adv_inv_turnover]
+          _adv_quick_ratio,_adv_ltv_cac,_adv_gross_margin,_adv_inv_turnover,
+          _adv_operating_margin,_adv_cac_payback,_adv_burn_multiple,_adv_roe,_adv_concentration,_adv_collection_rate]
 def gen_advise():
     return random.choice(ADVISE)()
 
