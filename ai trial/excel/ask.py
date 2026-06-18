@@ -123,8 +123,8 @@ def _generate(desc, max_new, temp):
             nxt = torch.multinomial(F.softmax(logits / temp, dim=-1), 1)   # sampled
         idx = torch.cat((idx, nxt), dim=1)
     ans = decode(idx[0].tolist()).split("A: ", 1)[-1].split("\n", 1)[0].strip()
-    if "=>" in ans:                       # chain-of-thought: keep only the final formula
-        ans = ans.split("=>")[-1].strip()
+    if " => " in ans:                     # chain-of-thought: keep only the final formula
+        ans = ans.split(" => ")[-1].strip()   # spaced " => " so JS arrow fns (r=>r.A) survive
     return ans
 
 def ask(desc, max_new=64, tries=5):

@@ -12,7 +12,7 @@ import ask                  # loads the model + the ask() function
 N = int(os.environ.get("EVAL_N", 2000))
 
 def _seed(label): random.seed(sum(ord(c) for c in label) + 7)   # stable per-label seed
-def _final(a):    return a.split("=>")[-1].strip() if "=>" in a else a   # CoT: final formula only
+def _final(a):    return a.split(" => ")[-1].strip() if " => " in a else a   # CoT: final formula only (spaced so JS r=>r.A survives)
 
 # ── core task: description -> formula (with per-type breakdown) ──
 random.seed(98765)
