@@ -228,7 +228,10 @@ for q in ["Q: sum of column A\nA: ",
           "Q: total C for each B\nA: ",
           "Q: compound annual growth rate from B2 to B7 over 5 years\nA: ",
           "Q: 3-period moving average ending at B10\nA: ",
-          "Q: B5 as a percent of the B total\nA: "]:
+          "Q: B5 as a percent of the B total\nA: ",
+          "Q: sum the revenue column\nA: ",
+          "Q: count cells in A greater than 100\nA: ",
+          "Q: total sales where region is west\nA: "]:
     ctx = torch.tensor([encode(q)], dtype=torch.long, device=device)
     out = decode(model.generate(ctx, 40)[0].tolist())
     print(out.split("\n\n")[0])

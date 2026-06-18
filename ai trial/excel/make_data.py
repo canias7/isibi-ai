@@ -2,7 +2,7 @@
 # 100+ formula types across every category. Unlimited, clean, generated data.
 # Format: "Q: <plain-english request>\nA: <excel formula>\n\n"
 
-import os, random
+import os, re, random
 
 random.seed(0)
 N = int(os.environ.get("N", 200000))
@@ -13,7 +13,8 @@ WORDS = ["paid", "done", "open", "yes", "no", "active", "north", "south", "east"
 def col():  return random.choice(COLS)
 def cell(): return f"{col()}{random.randint(1, 100)}"
 def p(*o):  return random.choice(o)
-def num():  return random.choice([5, 10, 25, 50, 100, 200, 500, 1000])
+def num():  return random.choice([1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 75, 100,
+                                  150, 200, 250, 500, 750, 1000, 5000, 10000])
 def word(): return random.choice(WORDS)
 def rng():
     c = col()
@@ -328,6 +329,79 @@ def g_istext():    c=cell(); return f"check if {c} is text", f"=ISTEXT({c})"
 @reg
 def g_iserror():   c=cell(); return f"check if {c} is an error", f"=ISERROR({c})"
 
+# ── numeric criteria (count / sum / average by a number threshold) ──
+def opn():  return random.choice([">", "<", ">=", "<="])
+def opw(o): return {">":"greater than", "<":"less than", ">=":"at least", "<=":"at most"}[o]
+@reg
+def g_countif_num():  c=col(); o=opn(); n=num(); return f"count cells in {c} {opw(o)} {n}", f'=COUNTIF({c}:{c},"{o}{n}")'
+@reg
+def g_sumif_num():    c=col(); o=opn(); n=num(); return f"sum cells in {c} {opw(o)} {n}", f'=SUMIF({c}:{c},"{o}{n}")'
+@reg
+def g_averageif_num():c=col(); o=opn(); n=num(); return f"average cells in {c} {opw(o)} {n}", f'=AVERAGEIF({c}:{c},"{o}{n}")'
+@reg
+def g_countif_eq():   c=col(); n=num(); return f"count cells in {c} equal to {n}", f"=COUNTIF({c}:{c},{n})"
+@reg
+def g_countbetween(): c=col(); a=num(); b=a+num(); return f"count cells in {c} between {a} and {b}", f'=COUNTIFS({c}:{c},">={a}",{c}:{c},"<={b}")'
+@reg
+def g_sumbetween():   c=col(); a=num(); b=a+num(); return f"sum cells in {c} between {a} and {b}", f'=SUMIFS({c}:{c},{c}:{c},">={a}",{c}:{c},"<={b}")'
+
+# ── comparison variants (< , = , >=) ──
+@reg
+def g_if_lt():  c=cell(); t=num(); return f"if {c} is under {t} say low otherwise ok", f'=IF({c}<{t},"low","ok")'
+@reg
+def g_if_eq():  c=cell(); w=word(); return f"if {c} equals {w} say yes otherwise no", f'=IF({c}="{w}","yes","no")'
+@reg
+def g_if_gte(): c=cell(); t=num(); return f"if {c} is at least {t} say pass otherwise fail", f'=IF({c}>={t},"pass","fail")'
+
+# ── text formatting variants ──
+@reg
+def g_text_pct():   c=cell(); return f"format {c} as a percentage", f'=TEXT({c},"0.00%")'
+@reg
+def g_text_comma(): c=cell(); return f"format {c} with thousands separators", f'=TEXT({c},"#,##0")'
+@reg
+def g_text_date():  c=cell(); return f"format {c} as a date", f'=TEXT({c},"mm/dd/yyyy")'
+@reg
+def g_text_dec():   c=cell(); k=random.randint(1,3); z="0"*k; return f"format {c} to {k} decimal places", f'=TEXT({c},"0.{z}")'
+
+# ── named columns: real headers, not letters. The sheet bridge maps name -> range ──
+HEADERS = ["revenue","sales","cost","price","quantity","profit","margin","units",
+           "tax","discount","amount","score","salary","hours","rate","balance",
+           "budget","expenses","income","commission","region","category","status",
+           "department","product","customer","name"]
+def hdr(): return random.choice(HEADERS)
+@reg
+def g_sum_named():      h=hdr(); return f"sum the {h} column", f"=SUM({h})"
+@reg
+def g_avg_named():      h=hdr(); return f"average of the {h} column", f"=AVERAGE({h})"
+@reg
+def g_count_named():    h=hdr(); return f"count the {h} values", f"=COUNT({h})"
+@reg
+def g_max_named():      h=hdr(); return f"the highest {h}", f"=MAX({h})"
+@reg
+def g_min_named():      h=hdr(); return f"the lowest {h}", f"=MIN({h})"
+@reg
+def g_median_named():   h=hdr(); return f"the median {h}", f"=MEDIAN({h})"
+@reg
+def g_stdev_named():    h=hdr(); return f"standard deviation of {h}", f"=STDEV({h})"
+@reg
+def g_pctoftotal_named():h=hdr(); return f"each {h} as a percent of total {h}", f"={h}/SUM({h})"
+@reg
+def g_sumif_named():    h=hdr(); g=hdr(); w=word(); return f"total {h} where {g} is {w}", f'=SUMIF({g},"{w}",{h})'
+@reg
+def g_countif_named():  h=hdr(); w=word(); return f"count how many {h} are {w}", f'=COUNTIF({h},"{w}")'
+@reg
+def g_averageif_named():h=hdr(); g=hdr(); w=word(); return f"average {h} where {g} is {w}", f'=AVERAGEIF({g},"{w}",{h})'
+@reg
+def g_sumifnum_named(): h=hdr(); o=opn(); n=num(); return f"total {h} {opw(o)} {n}", f'=SUMIF({h},"{o}{n}")'
+@reg
+def g_filter_named():   h=hdr(); g=hdr(); w=word(); return f"show {h} where {g} is {w}", f'=FILTER({h},{g}="{w}")'
+@reg
+def g_sort_named():     h=hdr(); return f"sort the {h} column", f"=SORT({h})"
+@reg
+def g_unique_named():   h=hdr(); return f"list the unique {h} values", f"=UNIQUE({h})"
+@reg
+def g_xlookup_named():  k=hdr(); r=hdr(); c=cell(); return f"look up {c} in {k} and return the {r}", f"=XLOOKUP({c},{k},{r})"
+
 # ── phrasing engine: wrap each base request the many ways real people type it ──
 # (empties keep a good share clean; the rest add natural lead-ins / trailers)
 LEADS = ["", "", "", "", "", "", "",
@@ -339,6 +413,17 @@ LEADS = ["", "", "", "", "", "", "",
          "what's ", "what is ", "calculate "]
 TAILS = ["", "", "", "", "", "", "", " please", " for me", "?", " in excel", " thanks", " pls"]
 
+# cell references: vary how a single cell is named in the DESCRIPTION only
+# (the formula always keeps the bare ref). Ranges are left untouched so we
+# never split "A3:A27" — RANGE_RE detects a cell-marker-cell pattern and bails.
+CELL_RE  = re.compile(r"\b[A-N]\d+\b")
+RANGE_RE = re.compile(r"[A-N]\d+\s*(?::|to|through)\s*[A-N]\d+")
+CELL_FORMS = ["{c}", "{c}", "{c}", "cell {c}", "the value in {c}", "the {c} cell", "{c}'s value"]
+def cellphrase(desc):
+    if RANGE_RE.search(desc):
+        return desc
+    return CELL_RE.sub(lambda m: random.choice(CELL_FORMS).format(c=m.group(0)), desc)
+
 def vary(desc):
     desc = random.choice(LEADS) + desc + random.choice(TAILS)
     if random.random() < 0.12:          # occasional sentence-case, like real typing
@@ -349,7 +434,7 @@ def gen():
     """Pick a random formula type and return (name, varied description, formula)."""
     fn = random.choice(G)
     desc, formula = fn()
-    return fn.__name__, vary(desc), formula
+    return fn.__name__, vary(cellphrase(desc)), formula
 
 if __name__ == "__main__":
     with open("excel.txt", "w", encoding="utf-8") as f:
