@@ -80,6 +80,7 @@ score("DATA-Q",    make_data.gen_dataground)
 score("HARD",      make_data.gen_hard)
 score("DOMAIN",    make_data.gen_domain)
 score("KPI",       make_data.gen_kpi)
+score("FOLLOWUP",  make_data.gen_followup)
 
 # ── generative / spec tasks (eyeball — not exact-match) ──
 def show(label, gen, n=5):

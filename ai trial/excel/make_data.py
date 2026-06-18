@@ -3023,6 +3023,32 @@ NLENTRY = [_ne_expense, _ne_invoice, _ne_time, _ne_sale, _ne_task, _ne_mileage, 
 def gen_nlentry():
     return random.choice(NLENTRY)()
 
+# ── multi-turn follow-ups: carry the prior result and refine it (coworker back-and-forth) ──
+# The prior formula is shown in the prompt, so the answer is fully determined (no conflicts).
+def _fu_same():
+    a=col(); b=col(); fn=random.choice(["SUM","AVERAGE","MAX","MIN","COUNT"])
+    return f"I have ={fn}({a}:{a}). now do the same for {b}", f"={fn}({b}:{b})"
+def _fu_add():
+    a=col(); b=col(); return f"I have =SUM({a}:{a}). now also add {b}", f"=SUM({a}:{a})+SUM({b}:{b})"
+def _fu_subtract():
+    a=col(); b=col(); return f"I have =SUM({a}:{a}). now subtract {b}", f"=SUM({a}:{a})-SUM({b}:{b})"
+def _fu_round():
+    a=col(); k=random.randint(0,3); return f"I have =AVERAGE({a}:{a}). round it to {k} decimals", f"=ROUND(AVERAGE({a}:{a}),{k})"
+def _fu_percent():
+    a=cell(); b=cell(); return f"I have ={a}/{b}. show it as a percent", f'=TEXT({a}/{b},"0%")'
+def _fu_iferror():
+    a=cell(); b=cell(); return f"I have ={a}/{b}. show 0 if it errors", f"=IFERROR({a}/{b},0)"
+def _fu_chart_change():
+    m=hdr1(); dim=hdr1(); t=random.choice(["line","bar","column","pie","area"])
+    return f"I have a chart of {m} by {dim}. make it a {t} chart instead", f"CHART type={t} values={m} category={dim}"
+def _fu_add_condition():
+    a=col(); b=col(); w=word(); return f"I have =COUNTA({a}:{a}). now only count the {w} ones in {b}", f'=COUNTIF({b}:{b},"{w}")'
+def _fu_divide_count():
+    a=col(); return f"I have =SUM({a}:{a}). now make it an average", f"=AVERAGE({a}:{a})"
+FOLLOWUP = [_fu_same,_fu_add,_fu_subtract,_fu_round,_fu_percent,_fu_iferror,_fu_chart_change,_fu_add_condition,_fu_divide_count]
+def gen_followup():
+    return random.choice(FOLLOWUP)()
+
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
     (40, "formula"), (6, gen_spanish), (8, gen_lang), (5, gen_explain), (5, gen_fix), (5, gen_edit),
@@ -3047,6 +3073,8 @@ MODES = [
     (4, gen_schema),
     # ── natural-language data entry: parse a note into a structured row ──
     (4, gen_nlentry),
+    # ── multi-turn follow-ups: refine the prior result (coworker conversation) ──
+    (3, gen_followup),
 ]
 _MODE_FNS = [f for _, f in MODES]
 _MODE_WTS = [w for w, _ in MODES]
