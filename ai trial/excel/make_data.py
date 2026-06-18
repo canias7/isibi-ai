@@ -3310,6 +3310,40 @@ FOLLOWUP = [_fu_same,_fu_add,_fu_subtract,_fu_round,_fu_percent,_fu_iferror,_fu_
 def gen_followup():
     return random.choice(FOLLOWUP)()
 
+# ── conversational: greetings, identity, capabilities, thanks — reply like a coworker ──
+# So "hey" gets a normal reply instead of a formula. Plain-text answers (shown, not run).
+_CC_GREET = ["hey", "hi", "hello", "yo", "hey there", "good morning", "good afternoon",
+             "whats up", "sup", "howdy", "hey can you help me"]
+_CC_GREET_R = ["Hey! What are you working on in your spreadsheet?",
+               "Hi there — need a formula, a model, or a hand with your data?",
+               "Hey! What can I help you build or calculate today?",
+               "Hello! What's the spreadsheet task?"]
+_CC_THANKS = ["thanks", "thank you", "thanks so much", "appreciate it", "ty", "thanks a lot"]
+_CC_THANKS_R = ["You're welcome! Anything else?", "Happy to help — what's next?", "Anytime! Need anything else in the sheet?"]
+_CC_WHO = ["who are you", "what are you", "what is this", "whats your name", "who am I talking to"]
+_CC_WHO_R = ["I'm your Excel and accounting assistant — I write formulas, build models, analyze data, and explain the numbers.",
+             "I'm a spreadsheet coworker: formulas, financial models, data cleanup, charts, and plain-English advice."]
+_CC_CAN = ["what can you do", "help", "what do you do", "how can you help", "what are you good at", "can you help me"]
+_CC_CAN_R = ["I can write formulas, build financial models, clean and analyze data, recommend charts, and explain your metrics. What do you need?",
+             "Formulas, models (DCF, budgets, amortization), data analysis, conditional formatting, and business advice — what's the task?",
+             "Tell me what you want the spreadsheet to do and I'll write the formula or build it. I can also explain the numbers."]
+_CC_HOW = ["how are you", "how's it going", "hows it going", "you good"]
+_CC_HOW_R = ["Doing great and ready to crunch numbers — what's up?", "All good! What are we building today?"]
+_CC_BYE = ["bye", "see ya", "goodbye", "that's all", "thats all", "im done"]
+_CC_BYE_R = ["See you! Come back anytime you need a formula or a sanity check.", "Take care — ping me whenever you need the spreadsheet."]
+_CC_ACK = ["ok", "cool", "got it", "nice", "perfect", "great", "okay"]
+_CC_ACK_R = ["Glad that helps — anything else?", "Cool! What's next?", "Anytime. Need anything more?"]
+_CC_STUCK = ["im stuck", "i dont know what to do", "im confused", "this is hard", "i need help with excel"]
+_CC_STUCK_R = ["No worries — tell me in plain words what you want the spreadsheet to do, and I'll take it from there.",
+               "Let's figure it out — what are you trying to calculate or build?"]
+_CC_NICE = ["you're great", "youre awesome", "good job", "nice work", "you're helpful"]
+_CC_NICE_R = ["Thanks! Happy to help — what's next?", "Appreciate it! What else can I crunch for you?"]
+_CHITCHAT = [(_CC_GREET, _CC_GREET_R), (_CC_THANKS, _CC_THANKS_R), (_CC_WHO, _CC_WHO_R), (_CC_CAN, _CC_CAN_R),
+             (_CC_HOW, _CC_HOW_R), (_CC_BYE, _CC_BYE_R), (_CC_ACK, _CC_ACK_R), (_CC_STUCK, _CC_STUCK_R), (_CC_NICE, _CC_NICE_R)]
+def gen_chitchat():
+    ins, reps = random.choice(_CHITCHAT)
+    return random.choice(ins), random.choice(reps)
+
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
     (40, "formula"), (6, gen_spanish), (8, gen_lang), (5, gen_explain), (5, gen_fix), (5, gen_edit),
@@ -3336,6 +3370,8 @@ MODES = [
     (4, gen_nlentry),
     # ── multi-turn follow-ups: refine the prior result (coworker conversation) ──
     (3, gen_followup),
+    # ── conversational: greet / identity / capabilities / thanks (be a coworker) ──
+    (4, gen_chitchat),
 ]
 _MODE_FNS = [f for _, f in MODES]
 _MODE_WTS = [w for w, _ in MODES]
