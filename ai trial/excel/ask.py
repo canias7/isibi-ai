@@ -103,18 +103,38 @@ model = GPT().to(device)
 model.load_state_dict(ckpt["model"])
 model.eval()
 
+SPEC_PREFIXES = ("CHART", "PIVOT", "FORMAT", "CLEAN", "MODEL", "VALIDATE", "SORT", "FILTERVIEW")
+
+def _well_formed(s):
+    # plain text (explain) has nothing to validate; formulas/specs must be balanced
+    if not (s.startswith("=") or s.startswith(SPEC_PREFIXES)):
+        return True
+    return len(s) > 1 and s.count("(") == s.count(")") and s.count('"') % 2 == 0
+
 @torch.no_grad()
-def ask(desc, max_new=64):
+def _generate(desc, max_new, temp):
     idx = torch.tensor([encode(f"Q: {desc}\nA: ")], dtype=torch.long, device=device)
     for _ in range(max_new):
-        logits = model(idx[:, -block_size:])
-        nxt = torch.argmax(logits[:, -1, :], dim=-1, keepdim=True)   # greedy = most likely
+        logits = model(idx[:, -block_size:])[:, -1, :]
+        if temp <= 0:
+            nxt = torch.argmax(logits, dim=-1, keepdim=True)               # greedy
+        else:
+            nxt = torch.multinomial(F.softmax(logits / temp, dim=-1), 1)   # sampled
         idx = torch.cat((idx, nxt), dim=1)
-    out = decode(idx[0].tolist())
-    ans = out.split("A: ", 1)[-1].split("\n", 1)[0].strip()
+    ans = decode(idx[0].tolist()).split("A: ", 1)[-1].split("\n", 1)[0].strip()
     if "=>" in ans:                       # chain-of-thought: keep only the final formula
         ans = ans.split("=>")[-1].strip()
     return ans
+
+def ask(desc, max_new=64, tries=5):
+    cand = _generate(desc, max_new, 0.0)          # greedy = best guess
+    if _well_formed(cand):
+        return cand
+    for _ in range(tries):                         # self-check: resample until well-formed
+        alt = _generate(desc, max_new, 0.7)
+        if _well_formed(alt):
+            return alt
+    return cand                                    # fall back to the greedy attempt
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

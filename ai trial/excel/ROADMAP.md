@@ -134,7 +134,8 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 - 🔭 **Multi-word headers** ("net sales", "unit price") — data + bridge support
 - 🔭 More **phrasing variety** (ongoing, eval-driven)
 - 🔭 **Per-task eval** for format/clean (structured match)
-- 🔭 **Output validation** — check balanced parens / known function before returning
+- ✅ **Output validation** — BUILT (ask.py checks balanced parens/quotes + leading `=`;
+  known-function check is a future add)
 - 🔭 **Quantize** (q8) for faster, smaller serving
 - 🔭 Decoding: keep greedy (exact formulas); revisit only if needed
 - 🔭 ⭐ **Bilingual input** — Spanish + English descriptions → same formula
@@ -154,7 +155,7 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
   *can't* emit a syntactically broken formula
 - 🔭 ⭐ **Semantic eval** — run generated formulas in a real formula engine and check
   the *computed result*, not just string exact-match
-- 🔭 **Self-check & retry** — generate → validate → regenerate if malformed
+- ✅ **Self-check & retry** — BUILT (greedy → validate → resample up to 5× until well-formed)
 - 🔭 **Multilingual** beyond ES (PT, FR) — same formulas, more phrasings
 - 🔭 **Formula-aware tokenizer** — special tokens for function names (smaller/faster)
 - 🔭 **Personalization** — learn your naming conventions, preferred functions
