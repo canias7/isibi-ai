@@ -10,7 +10,8 @@
 
 const API = "http://127.0.0.1:8000/formula";
 const CHART_ENUM = { bar: "barClustered", column: "columnClustered",
-                     line: "line", pie: "pie", scatter: "xyScatter" };
+                     line: "line", pie: "pie", scatter: "xyScatter",
+                     area: "area", doughnut: "doughnut" };
 
 Office.onReady(() => {
   document.getElementById("go").onclick = run;
@@ -158,6 +159,9 @@ async function applyFormat(spec) {
         const cf = range.conditionalFormats.add(Excel.ConditionalFormatType.presetCriteria);
         cf.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.duplicateValues };
         cf.preset.format.fill.color = fill;
+      } else if (rule === "databar") {
+        const cf = range.conditionalFormats.add(Excel.ConditionalFormatType.dataBar);
+        cf.dataBar.positiveFormat.fillColor = COLOR[(m.color || "blue").toLowerCase()] || "#0070C0";
       } else if (rule === "colorscale") {
         const cf = range.conditionalFormats.add(Excel.ConditionalFormatType.colorScale);
         cf.colorScale.criteria = {

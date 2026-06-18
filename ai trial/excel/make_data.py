@@ -863,6 +863,9 @@ def _bulk(name, sig, phrase):
         if sig == "range": r,d=rng(); return phrase.format(x=d), f"={name}({r})"
         if sig == "cell2": a=cell(); b=cell(); return phrase.format(a=a,b=b), f"={name}({a},{b})"
         if sig == "celln": c=cell(); n=random.randint(2,9); return phrase.format(x=c,n=n), f"={name}({c},{n})"
+        if sig == "rangek": r,d=rng(); k=random.choice(["0.25","0.5","0.75","0.9"]); return phrase.format(x=d,k=k), f"={name}({r},{k})"
+        if sig == "rangeq": r,d=rng(); q=random.randint(1,3); return phrase.format(x=d,q=q), f"={name}({r},{q})"
+        if sig == "range2": r,d=rng(); r2,d2=rng(); return phrase.format(x=d,y=d2), f"={name}({r},{r2})"
         return phrase, f"={name}()"
     g.__name__ = "g_x_" + name.lower().replace(".", "")
     G.append(g)
@@ -908,6 +911,20 @@ _BULK = [
     ("ERF","cell","the error function of {x}"), ("ERFC","cell","the complementary error function of {x}"),
     ("DELTA","cell2","1 if {a} equals {b} otherwise 0"), ("GESTEP","cell2","1 if {a} is at least {b} otherwise 0"),
     ("BITAND","cell2","the bitwise AND of {a} and {b}"), ("BITOR","cell2","the bitwise OR of {a} and {b}"), ("BITXOR","cell2","the bitwise XOR of {a} and {b}"),
+    # math / matrix
+    ("GAMMA","cell","the gamma function of {x}"), ("CEILING.MATH","cell","round {x} up to the nearest integer"),
+    ("FLOOR.MATH","cell","round {x} down to the nearest integer"),
+    ("MDETERM","range","the determinant of the matrix {x}"), ("MINVERSE","range","the inverse of the matrix {x}"),
+    ("MUNIT","cell","an identity matrix of size {x}"),
+    # info / text
+    ("N","cell","convert {x} to a number"), ("T","cell","return {x} only if it is text"),
+    ("ENCODEURL","cell","URL-encode the text in {x}"), ("ARRAYTOTEXT","range","{x} as a single text string"),
+    ("VALUETOTEXT","cell","{x} converted to text"),
+    # statistics (exclusive / two-range)
+    ("PERCENTILE.EXC","rangek","the exclusive {k} percentile of {x}"),
+    ("QUARTILE.EXC","rangeq","exclusive quartile {q} of {x}"),
+    ("COVARIANCE.S","range2","the sample covariance of {x} and {y}"),
+    ("STEYX","range2","the standard error of the regression of {x} on {y}"),
 ]
 for _n, _s, _p in _BULK:
     _bulk(_n, _s, _p)
@@ -1225,7 +1242,7 @@ def gen_edit():
     return random.choice(EDIT_TEMPLATES).format(o=o, i=i), new
 
 # ── chart / pivot specs: intent -> a spec the add-in builds via Office.js ──
-CHART_TYPES = ["bar", "column", "line", "pie", "scatter"]
+CHART_TYPES = ["bar", "column", "line", "pie", "scatter", "area", "doughnut"]
 def gen_chart():
     if random.random() < 0.7:
         t=random.choice(CHART_TYPES); m=hdr1(); dim=hdr1()
@@ -1258,12 +1275,15 @@ def gen_format():
         k = random.choice([3, 5, 10])
         return random.choice([f"highlight the top {k} {h}", f"color the top {k} values in {h} {color}"]), \
                f"FORMAT range={h} rule=top{k} color={color}"
-    if r < 0.90:
+    if r < 0.85:
         w = word()
         return random.choice([f"highlight {h} containing {w}", f"color {h} cells that contain {w} {color}"]), \
                f"FORMAT range={h} rule=contains:{w} color={color}"
-    return random.choice([f"add a color scale to {h}", f"apply a heat map to the {h} column"]), \
-           f"FORMAT range={h} rule=colorscale"
+    if r < 0.93:
+        return random.choice([f"add a color scale to {h}", f"apply a heat map to the {h} column"]), \
+               f"FORMAT range={h} rule=colorscale"
+    return random.choice([f"add data bars to {h}", f"show {h} as in-cell bars"]), \
+           f"FORMAT range={h} rule=databar color={color}"
 
 # ── data cleaning: intent -> a CLEAN spec the add-in runs via Office.js ──
 def gen_clean():
