@@ -66,7 +66,7 @@ async function run() {
   if (result.startsWith("CLEAN")) return applyClean(result);
   if (!result.startsWith("=")) { setOut(escapeHtml(result)); return; }  // explain / fix text
 
-  // 5. a formula: bridge header names -> ranges, write into the active cell
+  // 5. a formula: bridge header names -> ranges, write it, and READ BACK the answer
   try {
     await Excel.run(async (ctx) => {
       const sheet = ctx.workbook.worksheets.getActiveWorksheet();
@@ -77,12 +77,17 @@ async function run() {
       const headerMap = used.isNullObject ? {} : buildHeaderMap(used);
       const finalFormula = applyBridge(result, headerMap);
 
-      ctx.workbook.getActiveCell().formulas = [[finalFormula]];
+      const cell = ctx.workbook.getActiveCell();
+      cell.formulas = [[finalFormula]];
+      cell.load("values");                 // ask-your-data: read the computed result
       await ctx.sync();
 
+      const val = cell.values[0][0];
+      const answer = (val !== "" && val != null && !String(val).startsWith("#"))
+        ? `<div class="answer">= ${escapeHtml(String(val))}</div>` : "";
       const note = finalFormula !== result
         ? `<div class="muted" style="margin-top:6px">from ${escapeHtml(result)}</div>` : "";
-      setOut(`<div class="formula">${escapeHtml(finalFormula)}</div>${note}`);
+      setOut(`<div class="formula">${escapeHtml(finalFormula)}</div>${answer}${note}`);
     });
   } catch (e) {
     setOut('<span class="err">Couldn\'t write to the cell: ' + escapeHtml(e.message) + "</span>");

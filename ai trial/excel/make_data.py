@@ -370,7 +370,12 @@ def g_text_dec():   c=cell(); k=random.randint(1,3); z="0"*k; return f"format {c
 HEADERS = ["revenue","sales","cost","price","quantity","profit","margin","units",
            "tax","discount","amount","score","salary","hours","rate","balance",
            "budget","expenses","income","commission","region","category","status",
-           "department","product","customer","name"]
+           "department","product","customer","name",
+           # multi-word headers (real sheets) — the add-in bridge maps these to columns
+           "net sales","gross profit","unit price","total cost","net income",
+           "operating expenses","cost of goods","units sold","sale price","list price",
+           "due date","order date","customer name","first name","last name",
+           "phone number","line total","gross margin","selling price"]
 def hdr(): return random.choice(HEADERS)
 @reg
 def g_sum_named():      h=hdr(); return f"sum the {h} column", f"=SUM({h})"
@@ -658,7 +663,9 @@ def vary(desc):
 # ── messy input: real users abbreviate and mistype. We only ever touch plain
 # filler/intent words — never cell refs (have digits), headers, criteria values,
 # sheet names (capitalized) or numbers — so the target formula stays correct. ──
-HEADERS_SET, WORDS_SET = set(HEADERS), set(WORDS)
+# protect every word in any header (incl. multi-word) and every value from typos
+HEADER_WORDS = set(w for h in HEADERS for w in h.split())
+WORDS_SET = set(WORDS)
 SHORT = {"columns": "cols", "column": "col", "average": "avg", "maximum": "max",
          "minimum": "min", "standard deviation": "stdev", "number of": "num of"}
 def _typo_word(w):
@@ -677,7 +684,7 @@ def messy(desc):
         ws = desc.split(" ")
         elig = [i for i, w in enumerate(ws)
                 if w.isalpha() and w.islower() and len(w) >= 4
-                and w not in HEADERS_SET and w not in WORDS_SET]
+                and w not in HEADER_WORDS and w not in WORDS_SET]
         if elig:
             i = random.choice(elig); ws[i] = _typo_word(ws[i]); desc = " ".join(ws)
     return desc
@@ -849,9 +856,69 @@ def gen_clean():
     return random.choice([f"replace {a} with {b} in {h}", f"change all {a} to {b} in {h}"]), \
            f"CLEAN op=replace col={h} find={a} with={b}"
 
+# ── bilingual: Spanish descriptions -> the same formulas (común, día a día) ──
+SPANISH = []
+def es(fn): SPANISH.append(fn); return fn
+@es
+def es_sum():     c=col(); return random.choice([f"suma la columna {c}", f"suma de {c}", f"sumar {c}"]), f"=SUM({c}:{c})"
+@es
+def es_avg():     c=col(); return random.choice([f"promedio de la columna {c}", f"media de {c}"]), f"=AVERAGE({c}:{c})"
+@es
+def es_count():   c=col(); return random.choice([f"cuenta los números en {c}", f"contar {c}"]), f"=COUNT({c}:{c})"
+@es
+def es_counta():  c=col(); return f"cuenta las celdas no vacías en {c}", f"=COUNTA({c}:{c})"
+@es
+def es_max():     c=col(); return random.choice([f"el máximo de {c}", f"el valor más alto en {c}"]), f"=MAX({c}:{c})"
+@es
+def es_min():     c=col(); return random.choice([f"el mínimo de {c}", f"el valor más bajo en {c}"]), f"=MIN({c}:{c})"
+@es
+def es_median():  c=col(); return f"la mediana de {c}", f"=MEDIAN({c}:{c})"
+@es
+def es_stdev():   c=col(); return f"desviación estándar de {c}", f"=STDEV({c}:{c})"
+@es
+def es_product(): c=col(); return f"multiplica todos los valores de {c}", f"=PRODUCT({c}:{c})"
+@es
+def es_sumif():   cc=col(); sc=col(); w=word(); return f"suma {sc} donde {cc} es {w}", f'=SUMIF({cc}:{cc},"{w}",{sc}:{sc})'
+@es
+def es_countif(): c=col(); w=word(); return f"cuenta cuántos {w} hay en {c}", f'=COUNTIF({c}:{c},"{w}")'
+@es
+def es_averageif():cc=col(); ac=col(); w=word(); return f"promedio de {ac} donde {cc} es {w}", f'=AVERAGEIF({cc}:{cc},"{w}",{ac}:{ac})'
+@es
+def es_sumifs():  sc=col(); c1=col(); c2=col(); w1=word(); w2=word(); return f"suma {sc} donde {c1} es {w1} y {c2} es {w2}", f'=SUMIFS({sc}:{sc},{c1}:{c1},"{w1}",{c2}:{c2},"{w2}")'
+@es
+def es_countifs():c1=col(); c2=col(); w1=word(); w2=word(); return f"cuenta filas donde {c1} es {w1} y {c2} es {w2}", f'=COUNTIFS({c1}:{c1},"{w1}",{c2}:{c2},"{w2}")'
+@es
+def es_if():      c=cell(); t=num(); return f"si {c} es mayor que {t} di alto si no bajo", f'=IF({c}>{t},"alto","bajo")'
+@es
+def es_iferror(): a=cell(); b=cell(); return f"divide {a} entre {b}, muestra 0 si hay error", f"=IFERROR({a}/{b},0)"
+@es
+def es_round():   c=cell(); k=random.randint(0,3); return f"redondea {c} a {k} decimales", f"=ROUND({c},{k})"
+@es
+def es_today():   return random.choice(["la fecha de hoy", "fecha de hoy"]), "=TODAY()"
+@es
+def es_vlookup(): c=cell(); t=col(); t2=chr(ord(t)+1); k=random.randint(2,4); return f"busca {c} en {t}:{t2} y devuelve la columna {k}", f"=VLOOKUP({c},{t}:{t2},{k},FALSE)"
+@es
+def es_concat():  a=cell(); b=cell(); return f"une {a} y {b} con un espacio", f'={a}&" "&{b}'
+@es
+def es_len():     c=cell(); return f"longitud de {c}", f"=LEN({c})"
+@es
+def es_upper():   c=cell(); return f"convierte {c} a mayúsculas", f"=UPPER({c})"
+@es
+def es_lower():   c=cell(); return f"convierte {c} a minúsculas", f"=LOWER({c})"
+@es
+def es_sum_named():h=hdr(); return f"suma la columna de {h}", f"=SUM({h})"
+@es
+def es_avg_named():h=hdr(); return f"promedio de {h}", f"=AVERAGE({h})"
+@es
+def es_pct_change():cl=col(); a=random.randint(1,80); b=a+1; return f"cambio porcentual de {cl}{a} a {cl}{b}", f"=({cl}{b}-{cl}{a})/{cl}{a}"
+
+def gen_spanish():
+    return random.choice(SPANISH)()
+
 def sample():
     r = random.random()
-    if r < 0.70: _, q, a = gen(); return q, a   # description -> formula (core task)
+    if r < 0.62: _, q, a = gen(); return q, a   # English description -> formula (core)
+    if r < 0.70: return gen_spanish()           # Spanish description -> formula
     if r < 0.77: return gen_explain()           # explain a formula -> plain english
     if r < 0.84: return gen_fix()               # fix a broken formula -> correct formula
     if r < 0.91: return gen_edit()              # edit an existing formula -> new formula

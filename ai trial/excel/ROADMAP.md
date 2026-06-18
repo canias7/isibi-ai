@@ -46,10 +46,10 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
    mapping working. The whole pipeline (model → `serve.py` → task pane → bridge →
    cell) has never run once. This is the moment it stops being an experiment.
 3. **Then add more — locked-in priority picks (in order):**
-   1. 🎯 **Multi-word headers** ("Net Sales") — prerequisite for real sheets (bridge + data)
-   2. 🎯 **Ask-your-data** — compute the formula and show the *answer* (add-in; near-free)
-   3. 🎯 **Bilingual ES/EN input** — Spanish descriptions → same formula (data pass)
-   4. 🎯 **Finance pack** — ratio block / variance report (Phase C template)
+   1. ✅ **Multi-word headers** — BUILT (19 multi-word headers; bridge already maps them)
+   2. ✅ **Ask-your-data** — BUILT (add-in reads back the computed answer, shows "= N")
+   3. ✅ **Bilingual ES/EN input** — BUILT (26 Spanish generators, ~7% of training data)
+   4. 🎯 **Finance pack** — ratio block / variance report (Phase C template) ← next to build
    - then: rest of the action class (validation, sort/filter), Phase B automation
 
 ---
