@@ -1,99 +1,79 @@
-# eval.py — measure the Excel model's accuracy on FRESH, held-out pairs.
-# Generates new (description, formula) pairs (different random seed) the model
-# never trained on, runs the model, and reports exact-match accuracy:
-# overall, per-function (weakest first), and some example misses.
-#
+# eval.py — full report card for the Excel model across ALL capabilities.
+# Generates fresh held-out pairs (different seed) the model never trained on, then
+# reports exact-match % per capability + samples for the generative ones.
 #   python3 eval.py
-#   EVAL_N=5000 python3 eval.py
-# (For checkpoints without saved config, pass NEMBD/NHEAD/NLAYER like ask.py.)
+#   EVAL_N=3000 python3 eval.py
+# (Checkpoints without saved config: pass NEMBD/NHEAD/NLAYER/BLOCK like ask.py.)
 
 import os, random, collections
 import make_data            # generators (import is safe — write is __main__-guarded)
 import ask                  # loads the model + the ask() function
 
 N = int(os.environ.get("EVAL_N", 2000))
-random.seed(98765)          # different from training (seed 0) -> fresh examples
 
-tests = []
-for _ in range(N):
-    tests.append(make_data.gen())     # (name, varied desc, formula) — same phrasings as training
+def _seed(label): random.seed(sum(ord(c) for c in label) + 7)   # stable per-label seed
+def _final(a):    return a.split("=>")[-1].strip() if "=>" in a else a   # CoT: final formula only
 
-correct = 0
-by_fn = collections.defaultdict(lambda: [0, 0])   # name -> [right, total]
-misses = []
+# ── core task: description -> formula (with per-type breakdown) ──
+random.seed(98765)
+tests = [make_data.gen() for _ in range(N)]
+correct, by_fn, misses = 0, collections.defaultdict(lambda: [0, 0]), []
 for name, desc, expected in tests:
-    if "=>" in expected:                  # CoT answers: grade only the final formula
-        expected = expected.split("=>")[-1].strip()
+    expected = _final(expected)
     got = ask.ask(desc)
     ok = got == expected
-    correct += ok
-    by_fn[name][0] += ok
-    by_fn[name][1] += 1
-    if not ok and len(misses) < 12:
+    correct += ok; by_fn[name][0] += ok; by_fn[name][1] += 1
+    if not ok and len(misses) < 10:
         misses.append((desc, expected, got))
 
-print(f"\nOVERALL: {correct}/{N} = {100*correct/N:.1f}% exact match\n")
-print("weakest function types:")
+print(f"\n========== FORMULA (core): {correct}/{N} = {100*correct/N:.1f}% exact ==========")
+print("weakest formula types:")
 for name, (r, t) in sorted(by_fn.items(), key=lambda kv: kv[1][0] / kv[1][1])[:12]:
-    print(f"  {name[2:]:14} {100*r/t:5.1f}%  ({r}/{t})")
-print("\nsample misses:")
-for desc, exp, got in misses:
-    print(f"  Q: {desc}")
-    print(f"     want {exp}")
-    print(f"     got  {got}")
+    print(f"  {name[2:]:16} {100*r/t:5.1f}%  ({r}/{t})")
+print("sample misses:")
+for d, e, g in misses:
+    print(f"  Q: {d}\n     want {e}\n     got  {g}")
 
-# ── fix-it task: exact-match on the corrected formula ──
-random.seed(54321)
-FN = min(N, 1000)
-fix_ok, fix_misses = 0, []
-for _ in range(FN):
-    q, a = make_data.gen_fix()
-    got = ask.ask(q)
-    if got == a:
-        fix_ok += 1
-    elif len(fix_misses) < 5:
-        fix_misses.append((q, a, got))
-print(f"\nFIX-IT: {fix_ok}/{FN} = {100*fix_ok/FN:.1f}% exact match")
-for q, a, g in fix_misses:
-    print(f"  Q: {q}\n     want {a}\n     got  {g}")
+# ── exact-match tasks ──
+def score(label, gen, n=None):
+    n = n or min(N, 800)
+    _seed(label)
+    ok, miss = 0, []
+    for _ in range(n):
+        q, a = gen()
+        a = _final(a)
+        got = ask.ask(q)
+        if got == a:
+            ok += 1
+        elif len(miss) < 4:
+            miss.append((q, a, got))
+    print(f"\n{label}: {ok}/{n} = {100*ok/n:.1f}% exact")
+    for q, a, g in miss:
+        print(f"  Q: {q}\n     want {a}\n     got  {g}")
 
-# ── explain task: plain-English, shown for eyeballing (not exact-match) ──
-print("\nEXPLAIN samples:")
-random.seed(11111)
-for _ in range(6):
-    q, a = make_data.gen_explain()
-    print(f"  Q: {q}\n     -> {ask.ask(q)}")
+print("\n========== per-capability exact-match ==========")
+score("SPANISH",   make_data.gen_spanish)
+score("FIX-IT",    make_data.gen_fix)
+score("EDIT",      make_data.gen_edit)
+score("OPTIMIZE",  make_data.gen_optimize)
+score("TRANSPILE", make_data.gen_transpile)
+score("REVERSE",   make_data.gen_reverse)
+score("NL-SQL",    make_data.gen_nlsql)
 
-# ── edit task: exact-match on the modified formula ──
-random.seed(24680)
-EN = min(N, 1000)
-edit_ok, edit_misses = 0, []
-for _ in range(EN):
-    q, a = make_data.gen_edit()
-    got = ask.ask(q)
-    if got == a:
-        edit_ok += 1
-    elif len(edit_misses) < 5:
-        edit_misses.append((q, a, got))
-print(f"\nEDIT: {edit_ok}/{EN} = {100*edit_ok/EN:.1f}% exact match")
-for q, a, g in edit_misses:
-    print(f"  Q: {q}\n     want {a}\n     got  {g}")
+# ── generative / spec tasks (eyeball — not exact-match) ──
+def show(label, gen, n=5):
+    _seed(label)
+    print(f"\n{label} samples:")
+    for _ in range(n):
+        q, a = gen()
+        print(f"  Q: {q}\n     -> {ask.ask(q)}")
 
-# ── chart / pivot specs: shown for eyeballing ──
-print("\nCHART/PIVOT samples:")
-random.seed(222)
-for _ in range(5):
-    q, a = make_data.gen_chart()
-    print(f"  Q: {q}\n     -> {ask.ask(q)}")
-
-# ── action specs: conditional formatting + data cleaning (eyeball) ──
-print("\nFORMAT samples:")
-random.seed(333)
-for _ in range(5):
-    q, a = make_data.gen_format()
-    print(f"  Q: {q}\n     -> {ask.ask(q)}")
-print("\nCLEAN samples:")
-random.seed(444)
-for _ in range(5):
-    q, a = make_data.gen_clean()
-    print(f"  Q: {q}\n     -> {ask.ask(q)}")
+print("\n========== generative / spec samples ==========")
+show("EXPLAIN",     make_data.gen_explain)
+show("AUDIT",       make_data.gen_audit)
+show("CHART/PIVOT", make_data.gen_chart)
+show("FORMAT",      make_data.gen_format)
+show("CLEAN",       make_data.gen_clean)
+show("MODEL",       make_data.gen_model)
+show("ACTION",      make_data.gen_action)
+show("STEPS",       make_data.gen_steps)
