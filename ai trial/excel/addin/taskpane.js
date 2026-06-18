@@ -77,6 +77,7 @@ async function run() {
   if (result.startsWith("NAMERANGE")) return applyNameRange(parseSpec(result));
   if (result.startsWith("PROTECT")) return applyProtect(parseSpec(result));
   if (result.startsWith("GENDATA")) return applyGendata(parseSpec(result));
+  if (/^(UNHIDE|INSERTROW|INSERTCOL|WIDTH|BORDER|FILLCOLOR|FONTCOLOR|BOLD|ALIGN|WRAP|CLEAR|MERGE|TABLE|GRIDLINES|TABCOLOR)\b/.test(result)) return applySheet(result);
   if (!result.startsWith("=")) { setOut(escapeHtml(result)); return; }  // explain / fix text
 
   // 5. a formula: bridge header names -> ranges, write it, and READ BACK the answer
@@ -664,9 +665,39 @@ async function applyGendata(m) {
   }); } catch (e) { setOut('<span class="err">Generate failed: ' + escapeHtml(e.message) + "</span>"); }
 }
 
+// catch-all for the simpler sheet actions (one Excel.run, dispatch on the verb)
+const COLOR = { red: "#FF0000", green: "#00B050", yellow: "#FFFF00", orange: "#FFA500", blue: "#0070C0" };
+async function applySheet(spec) {
+  const verb = spec.split(/\s/)[0];
+  const m = parseSpec(spec);
+  try {
+    await Excel.run(async (ctx) => {
+      const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+      const colRange = async () => { const c = await resolveCol(ctx, m.col); return sheet.getRange(`${c}:${c}`); };
+      if (verb === "UNHIDE") (await colRange()).columnHidden = false;
+      else if (verb === "INSERTROW") sheet.getRange(`${m.at}:${m.at}`).insert(Excel.InsertShiftDirection.down);
+      else if (verb === "INSERTCOL") { const c = await resolveCol(ctx, m.at); sheet.getRange(`${c}:${c}`).insert(Excel.InsertShiftDirection.right); }
+      else if (verb === "WIDTH") (await colRange()).format.columnWidth = parseInt(m.px) || 100;
+      else if (verb === "BORDER") { const r = await colRange(); ["EdgeTop","EdgeBottom","EdgeLeft","EdgeRight","InsideHorizontal","InsideVertical"].forEach((e) => { r.format.borders.getItem(e).style = Excel.BorderLineStyle.continuous; }); }
+      else if (verb === "FILLCOLOR") (await colRange()).format.fill.color = COLOR[m.color] || "#FFFF00";
+      else if (verb === "FONTCOLOR") (await colRange()).format.font.color = COLOR[m.color] || "#FF0000";
+      else if (verb === "BOLD") (await colRange()).format.font.bold = true;
+      else if (verb === "ALIGN") (await colRange()).format.horizontalAlignment = (m.to || "center").charAt(0).toUpperCase() + (m.to || "center").slice(1);
+      else if (verb === "WRAP") (await colRange()).format.wrapText = true;
+      else if (verb === "CLEAR") (await colRange()).clear(m.what === "formats" ? Excel.ClearApplyTo.formats : Excel.ClearApplyTo.contents);
+      else if (verb === "MERGE") sheet.getRange(m.range).merge();
+      else if (verb === "TABLE") sheet.tables.add(m.range, true);
+      else if (verb === "GRIDLINES") sheet.showGridlines = m.show === "true";
+      else if (verb === "TABCOLOR") sheet.tabColor = COLOR[m.color] || "#0070C0";
+      await ctx.sync();
+      setOut(`<div class="muted">${escapeHtml(verb.toLowerCase())} done</div>`);
+    });
+  } catch (e) { setOut('<span class="err">' + escapeHtml(verb) + " failed: " + escapeHtml(e.message) + "</span>"); }
+}
+
 function parseSpec(spec) {
   const out = {};
-  spec.replace(/^(CHART|PIVOT|FORMAT|CLEAN|MODEL|VALIDATE|SORT|FILTERVIEW|NUMFMT|FREEZE|AUTOFIT|HIDECOL|DELETECOL|NAMERANGE|PROTECT|GENDATA)\s*/, "").split(/\s+/).forEach((tok) => {
+  spec.replace(/^(CHART|PIVOT|FORMAT|CLEAN|MODEL|VALIDATE|SORT|FILTERVIEW|NUMFMT|FREEZE|AUTOFIT|HIDECOL|DELETECOL|NAMERANGE|PROTECT|GENDATA|UNHIDE|INSERTROW|INSERTCOL|WIDTH|BORDER|FILLCOLOR|FONTCOLOR|BOLD|ALIGN|WRAP|CLEAR|MERGE|TABLE|GRIDLINES|TABCOLOR)\s*/, "").split(/\s+/).forEach((tok) => {
     const i = tok.indexOf("=");
     if (i > 0) out[tok.slice(0, i)] = tok.slice(i + 1);
   });

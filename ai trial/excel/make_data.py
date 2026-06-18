@@ -1318,34 +1318,39 @@ def gen_model():
     return random.choice(_MODEL_SIMPLE[t]), f"MODEL type={t}"
 
 # ── more sheet actions: data validation, sort, filter ──
+def _a_validate_list():c=col(); v=random.sample(WORDS, random.randint(3,4)); return random.choice([f"add a dropdown of {', '.join(v)} in {c}", f"restrict {c} to {', '.join(v)}"]), f"VALIDATE col={c} type=list items={'|'.join(v)}"
+def _a_validate_num(): c=col(); a=num(); b=a+num(); return f"only allow numbers between {a} and {b} in {c}", f"VALIDATE col={c} type=number min={a} max={b}"
+def _a_sort():        h=hdr1(); o=random.choice(["desc","asc"]); wo="descending" if o=="desc" else "ascending"; return random.choice([f"sort by {h} {wo}", f"order by {h} {wo}"]), f"SORT by={h} order={o}"
+def _a_filter():      c=col(); w=word(); return random.choice([f"filter to show only {w} in {c}", f"filter {c} to {w}"]), f"FILTERVIEW col={c} value={w}"
+def _a_numfmt():      c=col(); f=random.choice(["currency","percent","date","comma"]); return f"format column {c} as {f}", f"NUMFMT col={c} as={f}"
+def _a_freeze_row():  return random.choice(["freeze the top row","freeze row 1"]), "FREEZE rows=1"
+def _a_freeze_col():  return "freeze the first column", "FREEZE cols=1"
+def _a_autofit():     return random.choice(["autofit all columns","autofit the columns"]), "AUTOFIT"
+def _a_hide():        c=col(); return f"hide column {c}", f"HIDECOL col={c}"
+def _a_unhide():      c=col(); return f"unhide column {c}", f"UNHIDE col={c}"
+def _a_delete():      c=col(); return random.choice([f"delete column {c}", f"remove column {c}"]), f"DELETECOL col={c}"
+def _a_insertrow():   n=random.randint(2,50); return f"insert a row at row {n}", f"INSERTROW at={n}"
+def _a_insertcol():   c=col(); return f"insert a column at {c}", f"INSERTCOL at={c}"
+def _a_namerange():   c=col(); h=hdr1(); return f"name column {c} as {h}", f"NAMERANGE name={h} range={c}:{c}"
+def _a_protect():     return random.choice(["lock the sheet","protect the sheet"]), "PROTECT"
+def _a_width():       c=col(); n=random.choice([60,80,100,120,150]); return f"set column {c} width to {n}", f"WIDTH col={c} px={n}"
+def _a_border():      c=col(); return random.choice([f"add borders to column {c}", f"outline column {c}"]), f"BORDER col={c}"
+def _a_fillcolor():   c=col(); k=random.choice(COLORS); return f"fill column {c} with {k}", f"FILLCOLOR col={c} color={k}"
+def _a_fontcolor():   c=col(); k=random.choice(COLORS); return f"make the font in {c} {k}", f"FONTCOLOR col={c} color={k}"
+def _a_bold():        c=col(); return random.choice([f"bold column {c}", f"make {c} bold"]), f"BOLD col={c}"
+def _a_align():       c=col(); al=random.choice(["center","left","right"]); return f"align column {c} to the {al}", f"ALIGN col={c} to={al}"
+def _a_wrap():        c=col(); return f"wrap text in column {c}", f"WRAP col={c}"
+def _a_clear():       c=col(); w=random.choice(["contents","formats"]); return f"clear the {w} of column {c}", f"CLEAR col={c} what={w}"
+def _a_merge():       c=col(); a=random.randint(1,5); b=a+random.randint(1,4); return f"merge cells {c}{a} to {c}{b}", f"MERGE range={c}{a}:{c}{b}"
+def _a_table():       c=col(); c2=chr(ord(c)+3); return f"convert {c}:{c2} to a table", f"TABLE range={c}:{c2}"
+def _a_gridlines():   s=random.choice(["off","on"]); return f"turn gridlines {s}", f"GRIDLINES show={'false' if s=='off' else 'true'}"
+def _a_tabcolor():    k=random.choice(COLORS); return f"color the sheet tab {k}", f"TABCOLOR color={k}"
+_ACTIONS = [_a_validate_list, _a_validate_num, _a_sort, _a_filter, _a_numfmt, _a_freeze_row, _a_freeze_col,
+            _a_autofit, _a_hide, _a_unhide, _a_delete, _a_insertrow, _a_insertcol, _a_namerange, _a_protect,
+            _a_width, _a_border, _a_fillcolor, _a_fontcolor, _a_bold, _a_align, _a_wrap, _a_clear, _a_merge,
+            _a_table, _a_gridlines, _a_tabcolor]
 def gen_action():
-    r = random.random()
-    if r < 0.14:
-        c=col(); vals=random.sample(WORDS, random.randint(3,4))
-        return random.choice([f"add a dropdown of {', '.join(vals)} in {c}", f"restrict {c} to {', '.join(vals)}"]), f"VALIDATE col={c} type=list items={'|'.join(vals)}"
-    if r < 0.22:
-        c=col(); a=num(); b=a+num()
-        return f"only allow numbers between {a} and {b} in {c}", f"VALIDATE col={c} type=number min={a} max={b}"
-    if r < 0.34:
-        h=hdr1(); o=random.choice(["desc","asc"]); wo="descending" if o=="desc" else "ascending"
-        return random.choice([f"sort by {h} {wo}", f"order by {h} {wo}"]), f"SORT by={h} order={o}"
-    if r < 0.44:
-        c=col(); w=word(); return random.choice([f"filter to show only {w} in {c}", f"filter {c} to {w}"]), f"FILTERVIEW col={c} value={w}"
-    if r < 0.55:
-        c=col(); fmt=random.choice(["currency","percent","date","comma"]); return f"format column {c} as {fmt}", f"NUMFMT col={c} as={fmt}"
-    if r < 0.63:
-        return random.choice(["freeze the top row", "freeze row 1"]), "FREEZE rows=1"
-    if r < 0.69:
-        return "freeze the first column", "FREEZE cols=1"
-    if r < 0.75:
-        return random.choice(["autofit all columns", "autofit the columns"]), "AUTOFIT"
-    if r < 0.81:
-        c=col(); return f"hide column {c}", f"HIDECOL col={c}"
-    if r < 0.88:
-        c=col(); return random.choice([f"delete column {c}", f"remove column {c}"]), f"DELETECOL col={c}"
-    if r < 0.94:
-        c=col(); h=hdr1(); return f"name column {c} as {h}", f"NAMERANGE name={h} range={c}:{c}"
-    c=col(); return random.choice([f"lock column {c}", f"protect column {c}"]), f"PROTECT col={c}"
+    return random.choice(_ACTIONS)()
 
 # ── multi-step automation: chain several actions into one sequence (the "automate" tier) ──
 def gen_steps():
