@@ -2700,7 +2700,29 @@ def _d_arpu():       return ("ARPU from revenue A1 and active users B1", "=A1/B1
 def _d_cap_rate():   return ("cap rate from NOI A1 and property price B1", "=A1/B1")
 def _d_cash_cash(): return ("cash-on-cash return from annual cash flow A1 and cash invested B1", "=A1/B1")
 def _d_price_sqft(): return ("price per square foot from price A1 and area B1", "=A1/B1")
-DOMAIN = [_d_dso,_d_dpo,_d_inv_turn,_d_quick,_d_gross_marg,_d_recon,_d_sln,_d_ddb,_d_yoy,_d_mom,_d_cagr,
+# more accounting / finance calcs
+def _d_net_margin():  return ("net profit margin from net income A1 and revenue B1", "=A1/B1")
+def _d_margin_safety():return ("margin of safety from sales A1 and break-even sales B1", "=(A1-B1)/A1")
+def _d_op_leverage(): return ("operating leverage from contribution margin A1 and operating income B1", "=A1/B1")
+def _d_simple_int():  return ("simple interest from principal A1, rate B1, years C1", "=A1*B1*C1")
+def _d_compound():    return ("compound amount from principal A1, rate B1, years C1", "=A1*(1+B1)^C1")
+def _d_ear():         return ("effective annual rate from nominal rate A1 and periods B1", "=(1+A1/B1)^B1-1")
+def _d_markdown():    return ("markdown percent from original price A1 and sale price B1", "=(A1-B1)/A1")
+def _d_gross_up():    return ("gross-up from net amount A1 and tax rate B1", "=A1/(1-B1)")
+def _d_holiday_pay(): return ("holiday pay at time-and-a-half from hours A1 and rate B1", "=A1*B1*1.5")
+def _d_contrib_unit():return ("contribution per unit from price A1 and variable cost B1", "=A1-B1")
+def _d_unit_dep():    return ("per-unit depreciation from cost A1, salvage B1, total units C1", "=(A1-B1)/C1")
+def _d_price_elast(): return ("price elasticity from percent quantity change A1 and percent price change B1", "=A1/B1")
+def _d_breakeven_rev():return ("break-even revenue from fixed costs A1 and contribution margin ratio B1", "=A1/B1")
+def _d_debt_assets(): return ("debt to assets from total debt A1 and total assets B1", "=A1/B1")
+def _d_tie():         return ("times interest earned from EBIT A1 and interest expense B1", "=A1/B1")
+def _d_take_home():   return ("take-home pay from gross A1 and total deduction rate B1", "=A1*(1-B1)")
+def _d_roi_simple():  return ("ROI from gain A1 and cost B1", "=A1/B1")
+def _d_avg_inventory():return ("average inventory from beginning A1 and ending B1", "=(A1+B1)/2")
+DOMAIN = [_d_net_margin,_d_margin_safety,_d_op_leverage,_d_simple_int,_d_compound,_d_ear,_d_markdown,
+          _d_gross_up,_d_holiday_pay,_d_contrib_unit,_d_unit_dep,_d_price_elast,_d_breakeven_rev,
+          _d_debt_assets,_d_tie,_d_take_home,_d_roi_simple,_d_avg_inventory,
+          _d_dso,_d_dpo,_d_inv_turn,_d_quick,_d_gross_marg,_d_recon,_d_sln,_d_ddb,_d_yoy,_d_mom,_d_cagr,
           _d_var_budget,_d_run_rate,_d_pct_total,_d_ytd,_d_contrib,_d_breakeven,_d_retention,_d_roas,_d_ebitda_marg,
           _d_sales_tax,_d_after_tax,_d_pretax,_d_eff_rate,_d_gross_tax,
           _d_gross_pay,_d_overtime,_d_annualize,_d_net_pay,_d_fica,
@@ -2850,6 +2872,34 @@ KPI = [
     ("basket size from items sold A1 and transactions B1", "=A1/B1"),
     # education
     ("graduation rate from graduates A1 and starting cohort B1", "=A1/B1"),
+    # more finance / profitability
+    ("net profit margin from net income A1 and revenue B1", "=A1/B1"),
+    ("debt to assets from total debt A1 and total assets B1", "=A1/B1"),
+    ("times interest earned from EBIT A1 and interest B1", "=A1/B1"),
+    ("receivables turnover from net sales A1 and average AR B1", "=A1/B1"),
+    ("payables turnover from COGS A1 and average AP B1", "=A1/B1"),
+    ("cash flow margin from operating cash flow A1 and revenue B1", "=A1/B1"),
+    ("equity ratio from total equity A1 and total assets B1", "=A1/B1"),
+    # customer / support
+    ("customer satisfaction from satisfied A1 and surveyed B1", "=A1/B1"),
+    ("escalation rate from escalated A1 and total tickets B1", "=A1/B1"),
+    ("ticket reopen rate from reopened A1 and resolved B1", "=A1/B1"),
+    ("net revenue retention from end MRR A1 and start MRR B1", "=A1/B1"),
+    # marketing / growth
+    ("list growth rate from net new subscribers A1 and list size B1", "=A1/B1"),
+    ("unsubscribe rate from unsubscribes A1 and delivered B1", "=A1/B1"),
+    ("cost per acquisition from spend A1 and acquisitions B1", "=A1/B1"),
+    ("return on marketing investment from revenue A1 and marketing cost B1", "=A1/B1"),
+    # ops / manufacturing
+    ("throughput from units produced A1 and hours B1", "=A1/B1"),
+    ("order accuracy from correct orders A1 and total orders B1", "=A1/B1"),
+    ("schedule adherence from on-time tasks A1 and total tasks B1", "=A1/B1"),
+    ("energy cost per unit from energy cost A1 and units B1", "=A1/B1"),
+    # workforce
+    ("sales per employee from revenue A1 and employees B1", "=A1/B1"),
+    ("overtime rate from overtime hours A1 and total hours B1", "=A1/B1"),
+    ("span of control from reports A1 and managers B1", "=A1/B1"),
+    ("revenue per labor hour from revenue A1 and labor hours B1", "=A1/B1"),
 ]
 def gen_kpi():
     q, a = random.choice(KPI)
@@ -3022,6 +3072,35 @@ CONCEPTS = {
     "zero-based budgeting": "Building each budget from zero and justifying every expense, rather than adjusting last year's numbers.",
     "variance analysis": "Comparing actual results to budget or forecast and explaining the gaps, so you know what drove performance.",
     "unearned revenue": "Cash received before delivering the product or service — a liability until you earn it (same idea as deferred revenue).",
+    "tax deduction": "An expense you can subtract from taxable income, lowering the income you're taxed on. Worth your marginal tax rate.",
+    "tax credit": "A direct dollar-for-dollar reduction of the tax you owe — more valuable than a deduction of the same size.",
+    "taxable income": "Income left after allowed deductions, which the tax rate is actually applied to — usually well below gross income.",
+    "withholding tax": "Tax an employer holds back from each paycheck and remits to the government on the employee's behalf.",
+    "estimated taxes": "Quarterly prepayments self-employed people and businesses make since no employer withholds for them.",
+    "capital gains": "Profit from selling an asset for more than you paid. Long-term gains (held over a year) are usually taxed lower.",
+    "tax bracket": "A range of income taxed at a given rate. Only the income inside each bracket is taxed at that rate, not all of it.",
+    "1099 vs W-2": "A W-2 is an employee (taxes withheld, benefits); a 1099 is a contractor (no withholding, responsible for their own taxes).",
+    "pass-through entity": "A business (LLC, S-corp, partnership) whose profits flow to owners' personal returns instead of being taxed at the entity level.",
+    "depreciation recapture": "When you sell a depreciated asset for more than its book value, the gain up to prior depreciation is taxed as income.",
+    "time value of money": "A dollar today is worth more than a dollar later because it can be invested — the basis of discounting and NPV.",
+    "compound interest": "Interest earned on both the principal and previously accumulated interest, so growth accelerates over time.",
+    "IRR": "Internal rate of return — the discount rate at which an investment's NPV is zero; the project's implied annual return.",
+    "payback period": "How long it takes for an investment's cash inflows to recover its initial cost.",
+    "dividend yield": "Annual dividends per share divided by share price — the cash return a stock pays relative to its price.",
+    "P/E ratio": "Price-to-earnings — share price divided by earnings per share, a quick gauge of how expensive a stock is.",
+    "market capitalization": "A company's total equity value: share price times shares outstanding.",
+    "diversification": "Spreading money across different assets so one bad outcome doesn't sink the whole portfolio.",
+    "revenue recognition": "The rule for when revenue is recorded — when it's earned (goods/services delivered), not necessarily when cash arrives.",
+    "lease accounting": "How leases hit the books; under current rules most leases appear as both an asset (right-of-use) and a liability.",
+    "accrued interest": "Interest that has built up but not yet been paid, recorded as a liability (or asset) to match the period.",
+    "par value": "The nominal face value of a share or bond, often tiny and mostly a legal/accounting figure rather than market value.",
+    "book value vs market value": "Book value is what the accounts say an asset or company is worth; market value is what buyers will actually pay.",
+    "operating leverage": "How much fixed costs amplify profit changes — high fixed costs mean profit swings hard with sales.",
+    "margin of safety": "How far sales can fall before you hit break-even — the cushion between current sales and the break-even point.",
+    "cost of goods manufactured": "The total production cost of goods finished in a period: materials plus labor plus overhead, adjusted for work in process.",
+    "days payable outstanding": "The average number of days you take to pay suppliers — higher (within terms) keeps cash longer.",
+    "treasury stock": "A company's own shares it has bought back; they reduce equity and aren't counted as outstanding.",
+    "double declining balance": "An accelerated depreciation method that expenses more in the early years at twice the straight-line rate.",
 }
 def gen_concept():
     t = random.choice(list(CONCEPTS))
@@ -3073,6 +3152,20 @@ CONSULT = [
     ("how do I improve inventory turnover", "Cut slow movers, order smaller and more often, forecast demand better, and free the cash trapped in stock that isn't selling."),
     ("when should I incorporate", "Once you have real revenue, liability exposure, or partners — for the legal protection and tax options. Talk to an accountant on timing."),
     ("how do I know which expenses to cut", "Rank every cost by how directly it drives revenue. Cut the bottom that don't, renegotiate the middle, protect the top."),
+    ("how do I improve operating margin", "Grow revenue without growing fixed costs, automate manual work, renegotiate big contracts, and cut overhead that doesn't drive sales."),
+    ("should I buy or build software", "Buy if it's not your core advantage and a good tool exists — it's faster and cheaper to maintain. Build only what differentiates you."),
+    ("how do I handle a cash shortfall", "Prioritize payroll and critical suppliers, delay non-essential spend, accelerate collections, and tap a line of credit before it's urgent."),
+    ("what's the difference between markup and margin", "Markup is profit over cost; margin is profit over price. A 50% markup is only a 33% margin — don't confuse them when pricing."),
+    ("should I take an early payment discount", "Take it if the annualized saving beats your cost of capital. A 2/10 net 30 discount is roughly a 36% annual return — usually yes."),
+    ("how do I plan for a seasonal business", "Build cash in peak months to cover the troughs, forecast by season not average, and line up a credit facility before the slow period."),
+    ("what should I do with excess cash", "Keep a reserve, pay down expensive debt, then invest in growth or safe interest-bearing accounts — don't let it sit idle."),
+    ("how do I benchmark against competitors", "Compare margins, growth, and key ratios to industry averages and public peers; gaps point to where you're strong or lagging."),
+    ("my revenue is flat, what should I look at", "Break it down: is it fewer customers, smaller orders, churn, or pricing? Each points to a different fix — find which one moved."),
+    ("should I expand to a new location", "Only once the current one is consistently profitable and you have the cash and management bandwidth — expansion magnifies weaknesses."),
+    ("how do I manage rapid growth", "Watch cash above all (growth burns it), hire ahead of pain points, systematize processes, and don't let margins slip while scaling."),
+    ("how do I reduce my tax bill legally", "Maximize deductions and credits, time income and expenses, use retirement and depreciation rules, and get a good accountant — plan, don't scramble."),
+    ("what's a good profit margin for my business", "It varies by industry — grocery runs low single digits, software 70%+ gross. Compare to peers in your sector, not a universal number."),
+    ("how do I improve employee productivity", "Remove blockers and busywork, set clear priorities, measure outcomes not hours, and invest in tools and training that compound."),
 ]
 def gen_consult():
     return random.choice(CONSULT)
@@ -3139,6 +3232,21 @@ SCHEMA = {
     "vendor scorecard": "Vendor, Quality, Delivery, Price, Overall Score",
     "incident log": "Date, Type, Severity, Description, Status, Resolution",
     "compliance checklist": "Requirement, Owner, Due Date, Status, Evidence",
+    "job application tracker": "Candidate, Role, Applied Date, Stage, Rating, Status",
+    "performance review tracker": "Employee, Review Date, Reviewer, Rating, Goals, Status",
+    "expense approval log": "Date, Employee, Amount, Category, Approver, Status",
+    "capex request log": "Request, Department, Amount, Justification, Approver, Status",
+    "change request log": "Request ID, Description, Priority, Requested By, Status, Date",
+    "test case log": "Test ID, Feature, Steps, Expected, Result, Status",
+    "license tracker": "Software, Seats, Cost, Renewal Date, Owner, Status",
+    "asset checkout log": "Asset, Person, Checked Out, Due Back, Returned, Status",
+    "visitor log": "Date, Name, Company, Host, Time In, Time Out",
+    "safety incident log": "Date, Location, Type, Severity, Description, Action",
+    "training matrix": "Employee, Course, Required, Completed, Expiry, Status",
+    "fundraising pipeline": "Prospect, Stage, Ask Amount, Probability, Owner, Close Date",
+    "investor update metrics": "Metric, This Month, Last Month, Change, Target",
+    "membership roster": "Member, Join Date, Tier, Dues Paid, Renewal Date, Status",
+    "board meeting agenda": "Item, Presenter, Time, Type, Decision Needed",
 }
 def gen_schema():
     t = random.choice(list(SCHEMA))
