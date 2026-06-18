@@ -171,7 +171,18 @@ def estimate_loss():
     return out
 
 model = GPT().to(device)
-opt = torch.optim.AdamW(model.parameters(), lr=lr)
+# OPT8BIT=1 -> 8-bit Adam (bitsandbytes): cuts optimizer memory ~4x so 400M-1B
+# can train on a 16GB card. Falls back to AdamW if bitsandbytes isn't installed.
+opt = None
+if os.environ.get("OPT8BIT", "0") == "1":
+    try:
+        import bitsandbytes as bnb
+        opt = bnb.optim.Adam8bit(model.parameters(), lr=lr)
+        print("optimizer: 8-bit Adam (bitsandbytes) — low memory, pairs with GRADCKPT=1 for big models")
+    except Exception as e:
+        print(f"OPT8BIT=1 but bitsandbytes unavailable ({e}); run 'pip install bitsandbytes'. Falling back to AdamW.")
+if opt is None:
+    opt = torch.optim.AdamW(model.parameters(), lr=lr)
 
 start_step = 0
 if os.path.exists(CKPT):
