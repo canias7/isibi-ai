@@ -64,6 +64,10 @@ async function run() {
   }
   if (result.startsWith("FORMAT")) return applyFormat(result);
   if (result.startsWith("CLEAN")) return applyClean(result);
+  if (result.startsWith("MODEL")) return applyModel(result);
+  if (result.startsWith("VALIDATE")) return applyValidate(parseSpec(result));
+  if (result.startsWith("SORT")) return applySort(parseSpec(result));
+  if (result.startsWith("FILTERVIEW")) return applyFilter(parseSpec(result));
   if (!result.startsWith("=")) { setOut(escapeHtml(result)); return; }  // explain / fix text
 
   // 5. a formula: bridge header names -> ranges, write it, and READ BACK the answer
@@ -226,9 +230,155 @@ async function applyClean(spec) {
 }
 function coerce(v) { return v == null ? "" : (/^-?\d+(\.\d+)?$/.test(String(v)) ? Number(v) : v); }
 
+// "MODEL type=ratios" / "MODEL type=variance actual=revenue budget=budget" -> stamp a block
+async function applyModel(spec) {
+  const m = parseSpec(spec);
+  try {
+    if (m.type === "ratios")   return await buildRatios();
+    if (m.type === "variance") return await buildVariance(m);
+    if (m.type === "aging")    return await buildAging(m);
+    setOut('<span class="err">Unknown model type: ' + escapeHtml(m.type || "") + "</span>");
+  } catch (e) {
+    setOut('<span class="err">Model build failed: ' + escapeHtml(e.message) + "</span>");
+  }
+}
+
+// self-contained ratio model: labeled input cells + ratio formulas that reference them
+async function buildRatios() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex");
+    await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex;
+    const valCol = colLetter(c0 + 1);
+    const grid = [["Financial Ratios", ""], ["Inputs", ""]];
+    const rowOf = {};
+    ["Current Assets","Current Liabilities","Inventory","Revenue","Gross Profit",
+     "Net Income","Equity","Total Assets","Total Debt"].forEach((name) => {
+      rowOf[name] = r0 + grid.length + 1; grid.push([name, ""]);   // 1-based row of its value cell
+    });
+    const v = (n) => valCol + rowOf[n];
+    grid.push(["Ratios", ""]);
+    [["Current Ratio", `=${v("Current Assets")}/${v("Current Liabilities")}`],
+     ["Quick Ratio", `=(${v("Current Assets")}-${v("Inventory")})/${v("Current Liabilities")}`],
+     ["Gross Margin", `=${v("Gross Profit")}/${v("Revenue")}`],
+     ["Net Margin", `=${v("Net Income")}/${v("Revenue")}`],
+     ["Return on Equity", `=${v("Net Income")}/${v("Equity")}`],
+     ["Return on Assets", `=${v("Net Income")}/${v("Total Assets")}`],
+     ["Debt to Equity", `=${v("Total Debt")}/${v("Equity")}`]].forEach((row) => grid.push(row));
+    start.getResizedRange(grid.length - 1, 1).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a ratio model — fill the input cells, ratios compute</div>');
+  });
+}
+
+async function buildVariance(m) {
+  await Excel.run(async (ctx) => {
+    const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+    const used = sheet.getUsedRangeOrNullObject();
+    used.load("values,columnIndex,isNullObject");
+    await ctx.sync();
+    const hm = used.isNullObject ? {} : buildHeaderMap(used);
+    const a = hm[(m.actual || "").toLowerCase()] || (m.actual || "").toUpperCase();
+    const b = hm[(m.budget || "").toLowerCase()] || (m.budget || "").toUpperCase();
+    const grid = [
+      ["Metric", "Value"],
+      ["Actual", `=SUM(${a}:${a})`],
+      ["Budget", `=SUM(${b}:${b})`],
+      ["Variance", `=SUM(${a}:${a})-SUM(${b}:${b})`],
+      ["Variance %", `=(SUM(${a}:${a})-SUM(${b}:${b}))/SUM(${b}:${b})`],
+    ];
+    ctx.workbook.getActiveCell().getResizedRange(grid.length - 1, 1).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a variance summary</div>');
+  });
+}
+
+async function buildAging(m) {
+  await Excel.run(async (ctx) => {
+    const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+    const used = sheet.getUsedRangeOrNullObject();
+    used.load("values,columnIndex,isNullObject");
+    await ctx.sync();
+    const hm = used.isNullObject ? {} : buildHeaderMap(used);
+    const amt = hm[(m.amount || "").toLowerCase()] || (m.amount || "").toUpperCase();
+    const dt = hm[(m.date || "").toLowerCase()] || (m.date || "").toUpperCase();
+    const grid = [
+      ["Aging Bucket", "Amount"],
+      ["0-30",  `=SUMIFS(${amt}:${amt},${dt}:${dt},">="&(TODAY()-30))`],
+      ["31-60", `=SUMIFS(${amt}:${amt},${dt}:${dt},"<"&(TODAY()-30),${dt}:${dt},">="&(TODAY()-60))`],
+      ["61-90", `=SUMIFS(${amt}:${amt},${dt}:${dt},"<"&(TODAY()-60),${dt}:${dt},">="&(TODAY()-90))`],
+      ["90+",   `=SUMIFS(${amt}:${amt},${dt}:${dt},"<"&(TODAY()-90))`],
+    ];
+    ctx.workbook.getActiveCell().getResizedRange(grid.length - 1, 1).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built an aging report</div>');
+  });
+}
+
+// "VALIDATE col=E type=list items=north|south|east" -> data-validation dropdown / number rule
+async function applyValidate(m) {
+  try {
+    await Excel.run(async (ctx) => {
+      const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+      const used = sheet.getUsedRangeOrNullObject();
+      used.load("values,columnIndex,isNullObject");
+      await ctx.sync();
+      const hm = used.isNullObject ? {} : buildHeaderMap(used);
+      const col = hm[(m.col || "").toLowerCase()] || (m.col || "").toUpperCase();
+      const range = sheet.getRange(`${col}:${col}`);
+      if (m.type === "list") {
+        range.dataValidation.rule = { list: { inCellDropDown: true, source: (m.items || "").replace(/\|/g, ",") } };
+      } else {
+        range.dataValidation.rule = { wholeNumber: { formula1: m.min, formula2: m.max, operator: Excel.DataValidationOperator.between } };
+      }
+      await ctx.sync();
+      setOut('<div class="muted">added validation to ' + escapeHtml(col) + "</div>");
+    });
+  } catch (e) { setOut('<span class="err">Validation failed: ' + escapeHtml(e.message) + "</span>"); }
+}
+
+// "SORT by=sales order=desc" -> sort the used range by that column
+async function applySort(m) {
+  try {
+    await Excel.run(async (ctx) => {
+      const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+      const used = sheet.getUsedRangeOrNullObject();
+      used.load("values,columnIndex,isNullObject");
+      await ctx.sync();
+      if (used.isNullObject) return setOut('<span class="err">No data to sort.</span>');
+      const hm = buildHeaderMap(used);
+      const col = hm[(m.by || "").toLowerCase()] || (m.by || "").toUpperCase();
+      const keyIndex = letterToIdx(col) - used.columnIndex;
+      used.sort.apply([{ key: keyIndex, ascending: m.order !== "desc" }], false, true);
+      await ctx.sync();
+      setOut('<div class="muted">sorted by ' + escapeHtml(m.by) + " " + escapeHtml(m.order || "asc") + "</div>");
+    });
+  } catch (e) { setOut('<span class="err">Sort failed: ' + escapeHtml(e.message) + "</span>"); }
+}
+
+// "FILTERVIEW col=status value=paid" -> autofilter to show only matching rows
+async function applyFilter(m) {
+  try {
+    await Excel.run(async (ctx) => {
+      const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+      const used = sheet.getUsedRangeOrNullObject();
+      used.load("values,columnIndex,isNullObject");
+      await ctx.sync();
+      if (used.isNullObject) return setOut('<span class="err">No data to filter.</span>');
+      const hm = buildHeaderMap(used);
+      const col = hm[(m.col || "").toLowerCase()] || (m.col || "").toUpperCase();
+      const keyIndex = letterToIdx(col) - used.columnIndex;
+      sheet.autoFilter.apply(used, keyIndex, { filterOn: Excel.FilterOn.values, values: [m.value] });
+      await ctx.sync();
+      setOut('<div class="muted">filtered ' + escapeHtml(m.col) + " to " + escapeHtml(m.value) + "</div>");
+    });
+  } catch (e) { setOut('<span class="err">Filter failed: ' + escapeHtml(e.message) + "</span>"); }
+}
+
 function parseSpec(spec) {
   const out = {};
-  spec.replace(/^(CHART|PIVOT|FORMAT|CLEAN)\s*/, "").split(/\s+/).forEach((tok) => {
+  spec.replace(/^(CHART|PIVOT|FORMAT|CLEAN|MODEL|VALIDATE|SORT|FILTERVIEW)\s*/, "").split(/\s+/).forEach((tok) => {
     const i = tok.indexOf("=");
     if (i > 0) out[tok.slice(0, i)] = tok.slice(i + 1);
   });

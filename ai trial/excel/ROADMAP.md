@@ -49,14 +49,15 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
    1. ✅ **Multi-word headers** — BUILT (19 multi-word headers; bridge already maps them)
    2. ✅ **Ask-your-data** — BUILT (add-in reads back the computed answer, shows "= N")
    3. ✅ **Bilingual ES/EN input** — BUILT (26 Spanish generators, ~7% of training data)
-   4. 🎯 **Finance pack** — ratio block / variance report (Phase C template) ← next to build
-   - then: rest of the action class (validation, sort/filter), Phase B automation
+   4. ✅ **Finance pack** — BUILT (MODEL specs: ratios block, variance, aging; add-in stamps them)
+   - ✅ rest of the action class also built (validation, sort, filter)
+   - then: Phase B automation (multi-step); deeper Phase C templates (amortization/cashflow/DCF)
 
 ---
 
 ## Backlog — more "action" capabilities (cheap model, add-in handler each)
-- 🔭 **Data validation** — dropdown lists, number/date/range restrictions
-- 🔭 **Sort / filter the data** — operate on the range (not a spill formula)
+- ✅ **Data validation** — BUILT (dropdown lists + number-range rules)
+- ✅ **Sort / filter the data** — BUILT (SORT + FILTERVIEW specs operate on the range)
 - 🔭 **Number formatting** as an action — currency / percent / date on a range
 - 🔭 **Insert / delete** rows & columns; **freeze panes**; **autofit**; **hide** columns
 - 🔭 **Find & replace** across the whole sheet

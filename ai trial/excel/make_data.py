@@ -377,6 +377,8 @@ HEADERS = ["revenue","sales","cost","price","quantity","profit","margin","units"
            "due date","order date","customer name","first name","last name",
            "phone number","line total","gross margin","selling price"]
 def hdr(): return random.choice(HEADERS)
+SINGLE_HEADERS = [h for h in HEADERS if " " not in h]
+def hdr1(): return random.choice(SINGLE_HEADERS)   # single-word only — safe inside specs
 @reg
 def g_sum_named():      h=hdr(); return f"sum the {h} column", f"=SUM({h})"
 @reg
@@ -792,20 +794,20 @@ def gen_edit():
 CHART_TYPES = ["bar", "column", "line", "pie", "scatter"]
 def gen_chart():
     if random.random() < 0.7:
-        t=random.choice(CHART_TYPES); m=hdr(); dim=hdr()
+        t=random.choice(CHART_TYPES); m=hdr1(); dim=hdr1()
         q=random.choice([f"{t} chart of {m} by {dim}",
                          f"make a {t} chart of {m} for each {dim}",
                          f"plot {m} against {dim} as a {t} chart"])
         return q, f"CHART type={t} values={m} category={dim}"
-    m=hdr(); dim=hdr(); agg=random.choice(["sum","count","average"])
+    m=hdr1(); dim=hdr1(); agg=random.choice(["sum","count","average"])
     q=random.choice([f"pivot {m} by {dim}", f"summarize {agg} of {m} by {dim}",
                      f"pivot table of {m} grouped by {dim}"])
-    return q, f"PIVOT rows={dim} values={agg} of {m}"
+    return q, f"PIVOT rows={dim} values={m} agg={agg}"
 
 # ── conditional formatting: intent -> a FORMAT spec the add-in applies ──
 COLORS = ["red", "green", "yellow", "orange", "blue"]
 def gen_format():
-    h = hdr(); color = random.choice(COLORS); r = random.random()
+    h = hdr1(); color = random.choice(COLORS); r = random.random()
     if r < 0.35:
         o = opn(); n = num()
         q = random.choice([f"highlight {h} {opw(o)} {n} in {color}",
@@ -831,7 +833,7 @@ def gen_format():
 
 # ── data cleaning: intent -> a CLEAN spec the add-in runs via Office.js ──
 def gen_clean():
-    h = hdr(); r = random.random()
+    h = hdr1(); r = random.random()
     if r < 0.18:
         return random.choice(["remove duplicate rows", "delete duplicates", "drop duplicate rows"]), \
                "CLEAN op=dedupe"
@@ -915,16 +917,58 @@ def es_pct_change():cl=col(); a=random.randint(1,80); b=a+1; return f"cambio por
 def gen_spanish():
     return random.choice(SPANISH)()
 
+# ── finance pack: intent -> a MODEL spec; the add-in stamps the block of cells ──
+def gen_model():
+    r = random.random()
+    if r < 0.4:
+        q = random.choice(["build a ratio analysis", "calculate the key financial ratios",
+                           "show liquidity and profitability ratios", "make a financial ratios block",
+                           "build the standard financial ratios"])
+        return q, "MODEL type=ratios"
+    if r < 0.75:
+        a = hdr1(); b = hdr1()
+        q = random.choice([f"variance report of actual {a} versus budget {b}",
+                           f"build a budget variance for {a} vs {b}",
+                           f"actual {a} vs budget {b} with variance"])
+        return q, f"MODEL type=variance actual={a} budget={b}"
+    a = hdr1()
+    q = random.choice([f"build an aging report for {a}", f"AR aging of {a}", f"age {a} into buckets"])
+    return q, f"MODEL type=aging amount={a} date=date"
+
+# ── more sheet actions: data validation, sort, filter ──
+def gen_action():
+    r = random.random()
+    if r < 0.35:
+        c=col(); vals=random.sample(WORDS, random.randint(3,4))
+        q=random.choice([f"add a dropdown of {', '.join(vals)} in {c}",
+                         f"restrict {c} to {', '.join(vals)}",
+                         f"data validation list of {', '.join(vals)} in column {c}"])
+        return q, f"VALIDATE col={c} type=list items={'|'.join(vals)}"
+    if r < 0.55:
+        c=col(); a=num(); b=a+num()
+        q=random.choice([f"only allow numbers between {a} and {b} in {c}",
+                         f"restrict {c} to numbers from {a} to {b}"])
+        return q, f"VALIDATE col={c} type=number min={a} max={b}"
+    if r < 0.80:
+        h=hdr1(); o=random.choice(["desc","asc"]); wo="descending" if o=="desc" else "ascending"
+        q=random.choice([f"sort by {h} {wo}", f"sort the data by {h} {wo}", f"order by {h} {wo}"])
+        return q, f"SORT by={h} order={o}"
+    c=col(); w=word()
+    q=random.choice([f"filter to show only {w} in {c}", f"show only {w} rows in {c}", f"filter {c} to {w}"])
+    return q, f"FILTERVIEW col={c} value={w}"
+
 def sample():
     r = random.random()
-    if r < 0.62: _, q, a = gen(); return q, a   # English description -> formula (core)
-    if r < 0.70: return gen_spanish()           # Spanish description -> formula
-    if r < 0.77: return gen_explain()           # explain a formula -> plain english
-    if r < 0.84: return gen_fix()               # fix a broken formula -> correct formula
-    if r < 0.91: return gen_edit()              # edit an existing formula -> new formula
-    if r < 0.94: return gen_chart()             # chart / pivot intent -> spec
-    if r < 0.97: return gen_format()            # conditional formatting -> FORMAT spec
-    return gen_clean()                          # data cleaning -> CLEAN spec
+    if r < 0.58: _, q, a = gen(); return q, a   # English description -> formula (core)
+    if r < 0.66: return gen_spanish()           # Spanish description -> formula
+    if r < 0.73: return gen_explain()           # explain a formula -> plain english
+    if r < 0.80: return gen_fix()               # fix a broken formula -> correct formula
+    if r < 0.87: return gen_edit()              # edit an existing formula -> new formula
+    if r < 0.90: return gen_chart()             # chart / pivot intent -> spec
+    if r < 0.93: return gen_format()            # conditional formatting -> FORMAT spec
+    if r < 0.96: return gen_clean()             # data cleaning -> CLEAN spec
+    if r < 0.98: return gen_model()             # finance model -> MODEL spec
+    return gen_action()                         # validation / sort / filter -> action spec
 
 if __name__ == "__main__":
     with open("excel.txt", "w", encoding="utf-8") as f:
