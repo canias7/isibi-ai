@@ -33,10 +33,20 @@ an Office.js handler. Keep the model small; scale only when eval says so.
 
 ---
 
-## Next retrain (do after reading current run's eval)
-- 🔭 Fix the **weakest formula types** eval flags (more phrasings / examples / simpler forms)
-- 🔭 Retrain with **all 8 tasks** at once; read per-task eval (formula %, fix %, edit %)
-- 🔭 If core formula % drops vs the clean run → scale to **640/10/10 (~50M)**
+## Priority order — what to do next (validation first)
+We've built a lot on spec; the value now is **proving it**, not adding more.
+
+1. **Train all 8 tasks + read eval** — the real unknown: can ~26M juggle them?
+   - First fix the **weakest formula types** eval flags (more phrasings / simpler forms).
+   - Read **per-task eval** (formula %, fix %, edit %). If core formula % drops vs the
+     clean run → scale to **640/10/10 (~50M)**.
+2. **Live end-to-end in real Excel** — one formula into a real cell with header
+   mapping working. The whole pipeline (model → `serve.py` → task pane → bridge →
+   cell) has never run once. This is the moment it stops being an experiment.
+3. **Then add more — finance first:**
+   - ⭐ **Phase C templates** (amortization, cash flow, DCF) — most leverage for finance.
+   - ⭐ **Multi-word headers** ("Net Sales") — small change, big real-world impact.
+   - Then the rest of the action class (validation, sort/filter).
 
 ---
 
