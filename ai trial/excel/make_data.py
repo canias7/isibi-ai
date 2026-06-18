@@ -2990,6 +2990,37 @@ def gen_schema():
     return random.choice([f"what columns should a {t} have", f"set me up a {t}, what fields do I need",
                           f"what should a {t} include", f"design a {t}"]), SCHEMA[t]
 
+# ── natural-language data entry: free text -> a structured row (parse my note) ──
+_NE_MONTHS = ["jan 3", "feb 12", "march 5", "april 20", "may 8", "june 15", "july 1", "aug 9", "sept 22", "oct 30", "nov 11", "dec 6"]
+def _ne_expense():
+    amt = num(); cat = random.choice(["marketing","travel","office","meals","software","utilities","supplies"])
+    d = random.choice(_NE_MONTHS); desc = random.choice(["lunch","taxi","subscription","supplies","dinner","hotel","parking"])
+    return f"log a ${amt} {cat} {desc} on {d}", f"{d}, {cat}, {desc}, {amt}"
+def _ne_invoice():
+    c = random.choice(["Acme","Globex","Initech","Umbra","Stark","Wayne"]); amt = num(); d = random.choice(_NE_MONTHS)
+    return f"add an invoice for {c} for ${amt} due {d}", f"{c}, {amt}, {d}"
+def _ne_time():
+    h = random.choice([1,2,4,6,8]); p = random.choice(["website","app","report","audit","redesign","onboarding"]); d = random.choice(_NE_MONTHS + ["today"])
+    return f"log {h} hours on the {p} project on {d}", f"{d}, {p}, {h}"
+def _ne_sale():
+    q = random.choice([1,2,5,10,12]); p = random.choice(["widgets","gadgets","gizmos","units","licenses"]); pr = num()
+    return f"sold {q} {p} at ${pr} each", f"{p}, {q}, {pr}"
+def _ne_task():
+    t = random.choice(["follow up","send proposal","review budget","call client","fix the bug","ship update"]); o = random.choice(["alice","bob","carol","dave"]); d = random.choice(_NE_MONTHS)
+    return f"add a task to {t}, assigned to {o}, due {d}", f"{t}, {o}, {d}"
+def _ne_mileage():
+    m = random.choice([12,25,40,60,85]); dest = random.choice(["client site","airport","warehouse","office","supplier"]); d = random.choice(_NE_MONTHS)
+    return f"log {m} miles to the {dest} on {d}", f"{d}, {dest}, {m}"
+def _ne_payment():
+    c = random.choice(["Acme","Globex","Initech","Stark"]); amt = num(); d = random.choice(_NE_MONTHS)
+    return f"record a ${amt} payment from {c} on {d}", f"{d}, {c}, {amt}"
+def _ne_contact():
+    n = random.choice(["alice lee","bob diaz","carol shah","dave kim"]); co = random.choice(["Acme","Globex","Initech"]);
+    return f"add {n} from {co} to my contacts", f"{n}, {co}"
+NLENTRY = [_ne_expense, _ne_invoice, _ne_time, _ne_sale, _ne_task, _ne_mileage, _ne_payment, _ne_contact]
+def gen_nlentry():
+    return random.choice(NLENTRY)()
+
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
     (40, "formula"), (6, gen_spanish), (8, gen_lang), (5, gen_explain), (5, gen_fix), (5, gen_edit),
@@ -3012,6 +3043,8 @@ MODES = [
     (6, gen_kpi),
     # ── sheet design: set up a domain tracker with the right columns ──
     (4, gen_schema),
+    # ── natural-language data entry: parse a note into a structured row ──
+    (4, gen_nlentry),
 ]
 _MODE_FNS = [f for _, f in MODES]
 _MODE_WTS = [w for w, _ in MODES]
