@@ -838,6 +838,24 @@ def g_var_to_forecast():a=cell(); f=cell(); return f"percent variance of actual 
 @reg
 def g_contribution_ratio():c=cell(); s=cell(); return f"contribution margin ratio: contribution {c} over sales {s}", f"={c}/{s}"
 
+# ── time intelligence (YTD / MTD / rolling / prior year) ──
+@reg
+def g_ytd():        sc=col(); dc=col(); return f"year to date total of {sc} using dates in {dc}", f'=SUMIFS({sc}:{sc},{dc}:{dc},">="&DATE(YEAR(TODAY()),1,1),{dc}:{dc},"<="&TODAY())'
+@reg
+def g_mtd():        sc=col(); dc=col(); return f"month to date total of {sc} using dates in {dc}", f'=SUMIFS({sc}:{sc},{dc}:{dc},">="&EOMONTH(TODAY(),-1)+1,{dc}:{dc},"<="&TODAY())'
+@reg
+def g_rolling12():  sc=col(); dc=col(); return f"rolling 12 month total of {sc} using dates in {dc}", f'=SUMIFS({sc}:{sc},{dc}:{dc},">="&EDATE(TODAY(),-12),{dc}:{dc},"<="&TODAY())'
+@reg
+def g_prior_year(): sc=col(); dc=col(); return f"total {sc} for last year using dates in {dc}", f'=SUMIFS({sc}:{sc},{dc}:{dc},">="&DATE(YEAR(TODAY())-1,1,1),{dc}:{dc},"<="&DATE(YEAR(TODAY())-1,12,31))'
+
+# ── allocation / proration ──
+@reg
+def g_allocate_even():c=cell(); return f"allocate {c} evenly across 12 months", f"={c}/12"
+@reg
+def g_prorate():    a=cell(); d=cell(); return f"prorate {a} for {d} days out of 30", f"={a}*{d}/30"
+@reg
+def g_split_parts():c=cell(); n=random.randint(2,12); return f"split {c} across {n} equal parts", f"={c}/{n}"
+
 # ── phrasing engine: wrap each base request the many ways real people type it ──
 # (empties keep a good share clean; the rest add natural lead-ins / trailers)
 LEADS = ["", "", "", "", "", "", "",
@@ -1118,8 +1136,78 @@ def es_avg_named():h=hdr(); return f"promedio de {h}", f"=AVERAGE({h})"
 @es
 def es_pct_change():cl=col(); a=random.randint(1,80); b=a+1; return f"cambio porcentual de {cl}{a} a {cl}{b}", f"=({cl}{b}-{cl}{a})/{cl}{a}"
 
+# ── Portuguese ──
+PORTUGUESE = []
+def pt(fn): PORTUGUESE.append(fn); return fn
+@pt
+def pt_sum():     c=col(); return random.choice([f"soma da coluna {c}", f"somar {c}"]), f"=SUM({c}:{c})"
+@pt
+def pt_avg():     c=col(); return f"média da coluna {c}", f"=AVERAGE({c}:{c})"
+@pt
+def pt_count():   c=col(); return f"conte os números em {c}", f"=COUNT({c}:{c})"
+@pt
+def pt_max():     c=col(); return f"máximo de {c}", f"=MAX({c}:{c})"
+@pt
+def pt_min():     c=col(); return f"mínimo de {c}", f"=MIN({c}:{c})"
+@pt
+def pt_median():  c=col(); return f"mediana de {c}", f"=MEDIAN({c}:{c})"
+@pt
+def pt_sumif():   cc=col(); sc=col(); w=word(); return f"soma {sc} onde {cc} é {w}", f'=SUMIF({cc}:{cc},"{w}",{sc}:{sc})'
+@pt
+def pt_countif(): c=col(); w=word(); return f"conte {w} na coluna {c}", f'=COUNTIF({c}:{c},"{w}")'
+@pt
+def pt_if():      c=cell(); t=num(); return f"se {c} for maior que {t} diga alto senão baixo", f'=IF({c}>{t},"alto","baixo")'
+@pt
+def pt_round():   c=cell(); k=random.randint(0,3); return f"arredonde {c} para {k} casas decimais", f"=ROUND({c},{k})"
+@pt
+def pt_vlookup(): c=cell(); t=col(); t2=chr(ord(t)+1); k=random.randint(2,4); return f"procure {c} em {t}:{t2} e retorne a coluna {k}", f"=VLOOKUP({c},{t}:{t2},{k},FALSE)"
+@pt
+def pt_today():   return "a data de hoje", "=TODAY()"
+@pt
+def pt_concat():  a=cell(); b=cell(); return f"junte {a} e {b} com um espaço", f'={a}&" "&{b}'
+@pt
+def pt_upper():   c=cell(); return f"{c} em maiúsculas", f"=UPPER({c})"
+@pt
+def pt_lower():   c=cell(); return f"{c} em minúsculas", f"=LOWER({c})"
+
+# ── French ──
+FRENCH = []
+def fr(fn): FRENCH.append(fn); return fn
+@fr
+def fr_sum():     c=col(); return random.choice([f"somme de la colonne {c}", f"additionner {c}"]), f"=SUM({c}:{c})"
+@fr
+def fr_avg():     c=col(); return f"moyenne de la colonne {c}", f"=AVERAGE({c}:{c})"
+@fr
+def fr_count():   c=col(); return f"compter les nombres dans {c}", f"=COUNT({c}:{c})"
+@fr
+def fr_max():     c=col(); return f"maximum de {c}", f"=MAX({c}:{c})"
+@fr
+def fr_min():     c=col(); return f"minimum de {c}", f"=MIN({c}:{c})"
+@fr
+def fr_median():  c=col(); return f"médiane de {c}", f"=MEDIAN({c}:{c})"
+@fr
+def fr_sumif():   cc=col(); sc=col(); w=word(); return f"somme de {sc} où {cc} est {w}", f'=SUMIF({cc}:{cc},"{w}",{sc}:{sc})'
+@fr
+def fr_countif(): c=col(); w=word(); return f"compter {w} dans la colonne {c}", f'=COUNTIF({c}:{c},"{w}")'
+@fr
+def fr_if():      c=cell(); t=num(); return f"si {c} est supérieur à {t} dire haut sinon bas", f'=IF({c}>{t},"haut","bas")'
+@fr
+def fr_round():   c=cell(); k=random.randint(0,3); return f"arrondir {c} à {k} décimales", f"=ROUND({c},{k})"
+@fr
+def fr_vlookup(): c=cell(); t=col(); t2=chr(ord(t)+1); k=random.randint(2,4); return f"rechercher {c} dans {t}:{t2} et renvoyer la colonne {k}", f"=VLOOKUP({c},{t}:{t2},{k},FALSE)"
+@fr
+def fr_today():   return "la date d'aujourd'hui", "=TODAY()"
+@fr
+def fr_concat():  a=cell(); b=cell(); return f"joindre {a} et {b} avec un espace", f'={a}&" "&{b}'
+@fr
+def fr_upper():   c=cell(); return f"{c} en majuscules", f"=UPPER({c})"
+@fr
+def fr_lower():   c=cell(); return f"{c} en minuscules", f"=LOWER({c})"
+
 def gen_spanish():
     return random.choice(SPANISH)()
+def gen_lang():
+    return random.choice(SPANISH + PORTUGUESE + FRENCH)()
 
 # ── finance pack: intent -> a MODEL spec; the add-in stamps the block of cells ──
 def gen_model():
@@ -1201,9 +1289,27 @@ TRANSPILE = [
     ("=UNIQUE(A:A)", "df['A'].unique()"),
     ('=FILTER(A:A,B:B="x")', "df.loc[df['B']=='x','A']"),
 ]
+SQL = [
+    ("=SUM(A:A)", "SELECT SUM(A) FROM t"), ("=AVERAGE(A:A)", "SELECT AVG(A) FROM t"),
+    ("=COUNT(A:A)", "SELECT COUNT(A) FROM t"), ("=MAX(A:A)", "SELECT MAX(A) FROM t"),
+    ("=MIN(A:A)", "SELECT MIN(A) FROM t"),
+    ('=SUMIF(A:A,"x",B:B)', "SELECT SUM(B) FROM t WHERE A = 'x'"),
+    ('=COUNTIF(A:A,"x")', "SELECT COUNT(*) FROM t WHERE A = 'x'"),
+    ('=AVERAGEIF(A:A,"x",B:B)', "SELECT AVG(B) FROM t WHERE A = 'x'"),
+    ('=SUMIFS(C:C,A:A,"x",B:B,"y")', "SELECT SUM(C) FROM t WHERE A = 'x' AND B = 'y'"),
+    ("=UNIQUE(A:A)", "SELECT DISTINCT A FROM t"),
+]
+DAX = [
+    ("=SUM(A:A)", "SUM(t[A])"), ("=AVERAGE(A:A)", "AVERAGE(t[A])"),
+    ("=COUNT(A:A)", "COUNT(t[A])"), ("=MAX(A:A)", "MAX(t[A])"), ("=MIN(A:A)", "MIN(t[A])"),
+    ('=SUMIF(A:A,"x",B:B)', 'CALCULATE(SUM(t[B]), t[A]="x")'),
+    ('=COUNTIF(A:A,"x")', 'CALCULATE(COUNTROWS(t), t[A]="x")'),
+]
 def gen_transpile():
-    f, py = random.choice(TRANSPILE)
-    return random.choice([f"in python: {f}", f"convert to pandas: {f}", f"python equivalent of {f}", f"{f} in pandas"]), py
+    tgt = random.choice(["python", "python", "sql", "dax"])     # python weighted
+    src, out = random.choice({"python": TRANSPILE, "sql": SQL, "dax": DAX}[tgt])
+    lang = {"python": "python", "sql": "sql", "dax": "dax"}[tgt]
+    return random.choice([f"in {lang}: {src}", f"convert to {lang}: {src}", f"{src} in {lang}"]), out
 
 # ── optimize: make a formula better / simpler ──
 OPTIMIZE = [
@@ -1234,22 +1340,45 @@ def gen_audit():
     f, issue = random.choice(AUDIT)
     return random.choice([f"audit {f}", f"review {f}", f"any issues with {f}", f"critique {f}"]), issue
 
+# ── reverse transpile: Python/pandas -> Excel formula ──
+def gen_reverse():
+    f, py = random.choice(TRANSPILE)
+    return random.choice([f"excel formula for: {py}", f"convert {py} to a formula", f"{py} as an excel formula"]), f
+
+# ── natural language -> SQL ──
+NLSQL = [
+    ("total sales by region", "SELECT region, SUM(sales) FROM t GROUP BY region"),
+    ("count customers by status", "SELECT status, COUNT(*) FROM t GROUP BY status"),
+    ("average price per category", "SELECT category, AVG(price) FROM t GROUP BY category"),
+    ("top 10 customers by revenue", "SELECT customer, SUM(revenue) AS r FROM t GROUP BY customer ORDER BY r DESC LIMIT 10"),
+    ("total revenue where region is west", "SELECT SUM(revenue) FROM t WHERE region = 'west'"),
+    ("number of paid orders", "SELECT COUNT(*) FROM t WHERE status = 'paid'"),
+    ("sum of amount for each month", "SELECT month, SUM(amount) FROM t GROUP BY month"),
+    ("list distinct products", "SELECT DISTINCT product FROM t"),
+    ("max revenue by salesperson", "SELECT salesperson, MAX(revenue) FROM t GROUP BY salesperson"),
+]
+def gen_nlsql():
+    q, sql = random.choice(NLSQL)
+    return random.choice([f"sql for: {q}", f"write sql to get {q}", f"query for {q}"]), sql
+
 def sample():
     r = random.random()
-    if r < 0.50: _, q, a = gen(); return q, a   # English description -> formula (core)
-    if r < 0.58: return gen_spanish()           # Spanish description -> formula
-    if r < 0.65: return gen_explain()           # explain a formula -> plain english
-    if r < 0.72: return gen_fix()               # fix a broken formula -> correct formula
-    if r < 0.79: return gen_edit()              # edit an existing formula -> new formula
-    if r < 0.82: return gen_chart()             # chart / pivot intent -> spec
-    if r < 0.85: return gen_format()            # conditional formatting -> FORMAT spec
-    if r < 0.88: return gen_clean()             # data cleaning -> CLEAN spec
-    if r < 0.90: return gen_model()             # finance model -> MODEL spec
-    if r < 0.92: return gen_action()            # validation / sort / filter -> action spec
-    if r < 0.94: return gen_steps()             # multi-step automation -> STEPS sequence
-    if r < 0.96: return gen_transpile()         # Excel formula -> Python/pandas
-    if r < 0.98: return gen_optimize()          # formula -> a better formula
-    return gen_audit()                          # formula -> best-practice issues
+    if r < 0.48: _, q, a = gen(); return q, a   # English description -> formula (core)
+    if r < 0.56: return gen_spanish()           # Spanish description -> formula
+    if r < 0.63: return gen_explain()           # explain a formula -> plain english
+    if r < 0.70: return gen_fix()               # fix a broken formula -> correct formula
+    if r < 0.77: return gen_edit()              # edit an existing formula -> new formula
+    if r < 0.80: return gen_chart()             # chart / pivot intent -> spec
+    if r < 0.83: return gen_format()            # conditional formatting -> FORMAT spec
+    if r < 0.86: return gen_clean()             # data cleaning -> CLEAN spec
+    if r < 0.88: return gen_model()             # finance model -> MODEL spec
+    if r < 0.90: return gen_action()            # validation / sort / filter -> action spec
+    if r < 0.92: return gen_steps()             # multi-step automation -> STEPS sequence
+    if r < 0.94: return gen_transpile()         # Excel formula -> Python / SQL / DAX
+    if r < 0.955: return gen_reverse()          # Python/pandas -> Excel formula
+    if r < 0.97: return gen_optimize()          # formula -> a better formula
+    if r < 0.985: return gen_audit()            # formula -> best-practice issues
+    return gen_nlsql()                          # natural language -> SQL
 
 if __name__ == "__main__":
     with open("excel.txt", "w", encoding="utf-8") as f:
