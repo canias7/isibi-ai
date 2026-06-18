@@ -69,6 +69,14 @@ async function run() {
   if (result.startsWith("VALIDATE")) return applyValidate(parseSpec(result));
   if (result.startsWith("SORT")) return applySort(parseSpec(result));
   if (result.startsWith("FILTERVIEW")) return applyFilter(parseSpec(result));
+  if (result.startsWith("NUMFMT")) return applyNumfmt(parseSpec(result));
+  if (result.startsWith("FREEZE")) return applyFreeze(parseSpec(result));
+  if (result.startsWith("AUTOFIT")) return applyAutofit();
+  if (result.startsWith("HIDECOL")) return applyHide(parseSpec(result));
+  if (result.startsWith("DELETECOL")) return applyDeleteCol(parseSpec(result));
+  if (result.startsWith("NAMERANGE")) return applyNameRange(parseSpec(result));
+  if (result.startsWith("PROTECT")) return applyProtect(parseSpec(result));
+  if (result.startsWith("GENDATA")) return applyGendata(parseSpec(result));
   if (!result.startsWith("=")) { setOut(escapeHtml(result)); return; }  // explain / fix text
 
   // 5. a formula: bridge header names -> ranges, write it, and READ BACK the answer
@@ -200,6 +208,14 @@ async function applyClean(spec) {
       if (op === "split") {
         return setOut(`<div class="formula">${escapeHtml(spec)}</div><div class="muted">split is best-effort; coming next</div>`);
       }
+      if (op === "delblankrows") {
+        for (let i = used.rowCount - 1; i >= 0; i--) {
+          if (used.values[i].every((c) => c === "" || c == null))
+            sheet.getRangeByIndexes(used.rowIndex + i, 0, 1, used.columnIndex + used.columnCount).delete(Excel.DeleteShiftDirection.up);
+        }
+        await ctx.sync();
+        return setOut('<div class="muted">removed blank rows</div>');
+      }
 
       const hm = buildHeaderMap(used);
       const letter = hm[(m.col || "").toLowerCase()] || (m.col || "").toUpperCase();
@@ -209,6 +225,13 @@ async function applyClean(spec) {
       const body = sheet.getRangeByIndexes(used.rowIndex + 1, used.columnIndex + ci, used.rowCount - 1, 1);
       body.load("values");
       await ctx.sync();
+
+      if (op === "filldown") {
+        let last = "";
+        body.values = body.values.map((row) => { if (row[0] !== "" && row[0] != null) last = row[0]; return [last]; });
+        await ctx.sync();
+        return setOut(`<div class="muted">filled down ${escapeHtml(letter)}</div>`);
+      }
 
       const tx = {
         trim:       (v) => String(v).replace(/\s+/g, " ").trim(),
@@ -220,7 +243,7 @@ async function applyClean(spec) {
         replace:    (v) => (String(v) === m.find ? coerce(m.with) : v),
       };
       const f = tx[op];
-      if (!f) return setOut('<span class="err">Unknown clean op: ' + escapeHtml(op) + "</span>");
+      if (!f) return setOut(`<div class="formula">${escapeHtml(spec)}</div><div class="muted">${escapeHtml(op)} — handler coming soon</div>`);
       body.values = body.values.map((row) => [f(row[0])]);
       await ctx.sync();
       setOut(`<div class="formula">${escapeHtml(spec)}</div><div class="muted">cleaned ${escapeHtml(letter)} (${escapeHtml(op)})</div>`);
@@ -241,6 +264,10 @@ async function applyModel(spec) {
     if (m.type === "amortization")  return await buildAmortization();
     if (m.type === "breakeven")     return await buildBreakeven();
     if (m.type === "cashflow")      return await buildCashflow();
+    if (m.type === "depreciation")  return await buildDepreciation();
+    if (m.type === "budget")        return await buildBudget();
+    if (m.type === "invoice")       return await buildInvoice();
+    if (m.type === "expense")       return await buildExpense();
     // model types without a dedicated builder yet — show the spec rather than erroring
     setOut(`<div class="formula">${escapeHtml(spec)}</div><div class="muted">${escapeHtml(m.type || "")} model — builder coming soon</div>`);
   } catch (e) {
@@ -395,6 +422,85 @@ async function buildCashflow() {
   });
 }
 
+// straight-line depreciation: input cells + a 5-year schedule
+async function buildDepreciation() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex"); await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex, Lc = colLetter(c0 + 1);
+    const grid = [["Depreciation (straight-line)", "", "", ""]];
+    const rowOf = {};
+    ["Cost", "Salvage", "Life (years)"].forEach((n) => { rowOf[n] = r0 + grid.length + 1; grid.push([n, "", "", ""]); });
+    const cost = Lc + rowOf["Cost"], sal = Lc + rowOf["Salvage"], life = Lc + rowOf["Life (years)"];
+    grid.push(["", "", "", ""]);
+    grid.push(["Year", "Depreciation", "Accumulated", "Book Value"]);
+    const D = colLetter(c0 + 1), AC = colLetter(c0 + 2), BV = colLetter(c0 + 3);
+    for (let y = 1; y <= 5; y++) {
+      const sr = r0 + grid.length + 1;
+      const acc = y === 1 ? `=${D}${sr}` : `=${AC}${sr - 1}+${D}${sr}`;
+      grid.push([y, `=(${cost}-${sal})/${life}`, acc, `=${cost}-${AC}${sr}`]);
+    }
+    start.getResizedRange(grid.length - 1, 3).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a depreciation schedule — fill Cost, Salvage, Life</div>');
+  });
+}
+
+// budget tracker: categories with planned / actual / variance + total
+async function buildBudget() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex"); await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex;
+    const P = colLetter(c0 + 1), A = colLetter(c0 + 2), V = colLetter(c0 + 3);
+    const cats = ["Revenue", "COGS", "Salaries", "Rent", "Marketing", "Other"];
+    const grid = [["Budget", "Planned", "Actual", "Variance"]];
+    cats.forEach(() => { const sr = r0 + grid.length + 1; grid.push(["", "", "", `=${A}${sr}-${P}${sr}`]); });
+    cats.forEach((c, i) => { grid[i + 1][0] = c; });
+    const first = r0 + 2, last = r0 + 1 + cats.length, totSr = r0 + grid.length + 1;
+    grid.push(["Total", `=SUM(${P}${first}:${P}${last})`, `=SUM(${A}${first}:${A}${last})`, `=${A}${totSr}-${P}${totSr}`]);
+    start.getResizedRange(grid.length - 1, 3).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a budget tracker</div>');
+  });
+}
+
+// invoice: line items (qty*price) + subtotal / tax / total
+async function buildInvoice() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex"); await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex;
+    const Q = colLetter(c0 + 1), P = colLetter(c0 + 2), T = colLetter(c0 + 3);
+    const grid = [["Item", "Qty", "Price", "Total"]];
+    for (let i = 0; i < 5; i++) { const sr = r0 + grid.length + 1; grid.push(["", "", "", `=${Q}${sr}*${P}${sr}`]); }
+    const first = r0 + 2, last = r0 + 6, subSr = r0 + grid.length + 1;
+    grid.push(["Subtotal", "", "", `=SUM(${T}${first}:${T}${last})`]);
+    const taxSr = r0 + grid.length + 1;
+    grid.push(["Tax (8%)", "", "", `=${T}${subSr}*0.08`]);
+    grid.push(["Total", "", "", `=${T}${subSr}+${T}${taxSr}`]);
+    start.getResizedRange(grid.length - 1, 3).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built an invoice</div>');
+  });
+}
+
+// expense report: date / category / amount + total
+async function buildExpense() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex"); await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex, AM = colLetter(c0 + 2);
+    const grid = [["Date", "Category", "Amount"]];
+    for (let i = 0; i < 6; i++) grid.push(["", "", ""]);
+    const first = r0 + 2, last = r0 + 7;
+    grid.push(["", "Total", `=SUM(${AM}${first}:${AM}${last})`]);
+    start.getResizedRange(grid.length - 1, 2).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built an expense report</div>');
+  });
+}
+
 // "VALIDATE col=E type=list items=north|south|east" -> data-validation dropdown / number rule
 async function applyValidate(m) {
   try {
@@ -472,9 +578,95 @@ async function applySteps(spec) {
   }
 }
 
+// resolve a header name OR column letter to a column letter
+async function resolveCol(ctx, colSpec) {
+  const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+  const used = sheet.getUsedRangeOrNullObject();
+  used.load("values,columnIndex,isNullObject");
+  await ctx.sync();
+  const hm = used.isNullObject ? {} : buildHeaderMap(used);
+  return hm[(colSpec || "").toLowerCase()] || (colSpec || "").toUpperCase();
+}
+
+const NUMFMT = { currency: "$#,##0.00", percent: "0.00%", date: "mm/dd/yyyy", comma: "#,##0" };
+async function applyNumfmt(m) {
+  try { await Excel.run(async (ctx) => {
+    const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+    const used = sheet.getUsedRangeOrNullObject();
+    used.load("rowCount,rowIndex,columnIndex,values,isNullObject");
+    await ctx.sync();
+    if (used.isNullObject) return setOut('<span class="err">No data to format.</span>');
+    const hm = buildHeaderMap(used);
+    const letter = hm[(m.col || "").toLowerCase()] || (m.col || "").toUpperCase();
+    const ci = letterToIdx(letter) - used.columnIndex;
+    if (ci < 0) return setOut('<span class="err">Column not found.</span>');
+    const rows = Math.max(1, used.rowCount - 1);
+    const body = sheet.getRangeByIndexes(used.rowIndex + 1, used.columnIndex + ci, rows, 1);
+    body.numberFormat = Array.from({ length: rows }, () => [NUMFMT[m.as] || "General"]);
+    await ctx.sync();
+    setOut(`<div class="muted">formatted ${escapeHtml(letter)} as ${escapeHtml(m.as)}</div>`);
+  }); } catch (e) { setOut('<span class="err">Format failed: ' + escapeHtml(e.message) + "</span>"); }
+}
+async function applyFreeze(m) {
+  try { await Excel.run(async (ctx) => {
+    const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+    if (m.cols) sheet.freezePanes.freezeColumns(parseInt(m.cols) || 1);
+    else sheet.freezePanes.freezeRows(parseInt(m.rows) || 1);
+    await ctx.sync(); setOut('<div class="muted">panes frozen</div>');
+  }); } catch (e) { setOut('<span class="err">Freeze failed: ' + escapeHtml(e.message) + "</span>"); }
+}
+async function applyAutofit() {
+  try { await Excel.run(async (ctx) => {
+    ctx.workbook.worksheets.getActiveWorksheet().getUsedRange().format.autofitColumns();
+    await ctx.sync(); setOut('<div class="muted">columns autofit</div>');
+  }); } catch (e) { setOut('<span class="err">Autofit failed: ' + escapeHtml(e.message) + "</span>"); }
+}
+async function applyHide(m) {
+  try { await Excel.run(async (ctx) => {
+    const col = await resolveCol(ctx, m.col);
+    ctx.workbook.worksheets.getActiveWorksheet().getRange(`${col}:${col}`).columnHidden = true;
+    await ctx.sync(); setOut(`<div class="muted">hid column ${escapeHtml(col)}</div>`);
+  }); } catch (e) { setOut('<span class="err">Hide failed: ' + escapeHtml(e.message) + "</span>"); }
+}
+async function applyDeleteCol(m) {
+  try { await Excel.run(async (ctx) => {
+    const col = await resolveCol(ctx, m.col);
+    ctx.workbook.worksheets.getActiveWorksheet().getRange(`${col}:${col}`).delete(Excel.DeleteShiftDirection.left);
+    await ctx.sync(); setOut(`<div class="muted">deleted column ${escapeHtml(col)}</div>`);
+  }); } catch (e) { setOut('<span class="err">Delete failed: ' + escapeHtml(e.message) + "</span>"); }
+}
+async function applyNameRange(m) {
+  try { await Excel.run(async (ctx) => {
+    const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+    const rng = m.range ? sheet.getRange(m.range) : ctx.workbook.getSelectedRange();
+    ctx.workbook.names.add(m.name || "MyRange", rng);
+    await ctx.sync(); setOut(`<div class="muted">named range ${escapeHtml(m.name || "")}</div>`);
+  }); } catch (e) { setOut('<span class="err">Name failed: ' + escapeHtml(e.message) + "</span>"); }
+}
+async function applyProtect() {
+  try { await Excel.run(async (ctx) => {
+    ctx.workbook.worksheets.getActiveWorksheet().protection.protect();
+    await ctx.sync(); setOut('<div class="muted">sheet protected</div>');
+  }); } catch (e) { setOut('<span class="err">Protect failed: ' + escapeHtml(e.message) + "</span>"); }
+}
+const _GD = { region: ["north","south","east","west"], product: ["A","B","C","D"], status: ["paid","open","pending"], customer: ["Acme","Globex","Initech","Umbra"] };
+async function applyGendata(m) {
+  try { await Excel.run(async (ctx) => {
+    const cols = (m.cols || "").split(","), rows = parseInt(m.rows) || 10;
+    const grid = [cols];
+    for (let i = 0; i < rows; i++) grid.push(cols.map((c) => {
+      if (_GD[c]) return _GD[c][Math.floor(Math.random() * _GD[c].length)];
+      if (c === "date") return new Date(2024, Math.floor(Math.random() * 12), 1 + Math.floor(Math.random() * 28)).toLocaleDateString();
+      return Math.floor(Math.random() * 1000);
+    }));
+    ctx.workbook.getActiveCell().getResizedRange(grid.length - 1, cols.length - 1).values = grid;
+    await ctx.sync(); setOut(`<div class="muted">generated ${rows} rows × ${cols.length} cols</div>`);
+  }); } catch (e) { setOut('<span class="err">Generate failed: ' + escapeHtml(e.message) + "</span>"); }
+}
+
 function parseSpec(spec) {
   const out = {};
-  spec.replace(/^(CHART|PIVOT|FORMAT|CLEAN|MODEL|VALIDATE|SORT|FILTERVIEW)\s*/, "").split(/\s+/).forEach((tok) => {
+  spec.replace(/^(CHART|PIVOT|FORMAT|CLEAN|MODEL|VALIDATE|SORT|FILTERVIEW|NUMFMT|FREEZE|AUTOFIT|HIDECOL|DELETECOL|NAMERANGE|PROTECT|GENDATA)\s*/, "").split(/\s+/).forEach((tok) => {
     const i = tok.indexOf("=");
     if (i > 0) out[tok.slice(0, i)] = tok.slice(i + 1);
   });
