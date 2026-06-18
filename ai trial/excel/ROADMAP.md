@@ -91,6 +91,17 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 - 🔭 **Sensitivity / two-variable data tables** (what-if grid)
 - 🔭 **Break-even analysis**; **run-rate / annualization**
 - 🔭 **Reconciliation** — match two columns on a key, flag mismatches
+- 🔭 **Model library** — 3-statement linked (IS→BS→CF), debt schedule / cash sweep,
+  DCF + WACC build-up, comps table, LBO, unit economics (CAC/LTV/payback/churn),
+  working-capital schedule (DSO/DPO/DIO), Monte Carlo simulation
+
+## Backlog — correctness & governance (finance-grade trust)
+- 🔭 **Consistency checker** — flag a cell that breaks its row/column formula pattern
+- 🔭 **Tie-out / balance asserts** — BS balances, CF ties to cash, totals reconcile
+- 🔭 **Color inputs vs formulas** (blue inputs / black formulas convention)
+- 🔭 **Version diff** — compare two versions of a model, show what changed
+- 🔭 **Protect formula cells**, leave inputs editable
+- 🔭 **Root-cause error trace** — explain *why* a cell errors, from its precedents
 
 ## Backlog — model & training quality
 - 🔭 **Multi-word headers** ("net sales", "unit price") — data + bridge support
@@ -112,6 +123,13 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
   corrected formula) and fold it into the next training round (improvement flywheel)
 - 🔭 **Alternatives** — offer 2–3 candidate formulas (top-k) and let the user pick
 - 🔭 **Confidence calibration** — use the logit margin to flag shaky answers
+- 🔭 ⭐ **Constrained decoding** — mask generation to valid Excel grammar so the model
+  *can't* emit a syntactically broken formula
+- 🔭 ⭐ **Semantic eval** — run generated formulas in a real formula engine and check
+  the *computed result*, not just string exact-match
+- 🔭 **Self-check & retry** — generate → validate → regenerate if malformed
+- 🔭 **Multilingual** beyond ES (PT, FR) — same formulas, more phrasings
+- 🔭 **Formula-aware tokenizer** — special tokens for function names (smaller/faster)
 
 ## Backlog — add-in / product polish
 - 🔭 **Pivot auto-build** (Office.js `pivotTables`) — currently spec is shown only
@@ -126,6 +144,10 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 - 🔭 **Batch fill-down** — apply the formula down a whole column at once
 - 🔭 **Suggest-as-you-type** autocomplete of common requests
 - 🔭 **Voice input** — describe it out loud
+- 🔭 **Inline ghost-text** — Copilot-style formula suggestion as you type in a cell
+- 🔭 **Multi-cell pattern apply** — select a range, describe it, fill the pattern
+- 🔭 **Natural-language workbook search** — "where's the revenue total?"
+- 🔭 **Diff view** for edits — old vs new formula side by side
 
 ## Backlog — stretch / maybe-not (be honest)
 - 🔭 Multi-turn conversational ("make it only the paid ones" referencing last result)
@@ -133,12 +155,16 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
   bigger model than from-scratch 26M; revisit honestly
 - 🔭 Goal seek / what-if; regex extraction
 - 🔭 **On-device** model (ONNX/WASM in the browser) — no `serve.py`, fully offline
+- 🔭 **Screenshot → formula** — OCR a formula or table from an image (multimodal)
 
 ## Backlog — reach / platform
 - 🔭 **Google Sheets** version (Apps Script add-on) — same model, wider audience
 - 🔭 **Standalone web app** — paste data, get formulas, no Excel needed
 - 🔭 **Example gallery / onboarding** — "try these" prompts in the pane
 - 🔭 **Explain what changed** after an edit (diff old vs new formula)
+- 🔭 **Live market / FX data** — stock prices & exchange rates via a function
+- 🔭 **Connect to accounting software** (QuickBooks / Xero) — pull & reconcile
+- 🔭 **Mobile Excel** support
 
 ---
 
