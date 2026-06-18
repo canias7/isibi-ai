@@ -53,6 +53,10 @@ def score(label, gen, n=None):
 
 print("\n========== per-capability exact-match ==========")
 score("SPANISH",   make_data.gen_spanish)
+score("PORTUGUESE",make_data.gen_portuguese)
+score("FRENCH",    make_data.gen_french)
+score("GERMAN",    make_data.gen_german)
+score("ITALIAN",   make_data.gen_italian)
 score("FIX-IT",    make_data.gen_fix)
 score("EDIT",      make_data.gen_edit)
 score("OPTIMIZE",  make_data.gen_optimize)

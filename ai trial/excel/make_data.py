@@ -1347,6 +1347,22 @@ def es_sum_named():h=hdr(); return f"suma la columna de {h}", f"=SUM({h})"
 def es_avg_named():h=hdr(); return f"promedio de {h}", f"=AVERAGE({h})"
 @es
 def es_pct_change():cl=col(); a=random.randint(1,80); b=a+1; return f"cambio porcentual de {cl}{a} a {cl}{b}", f"=({cl}{b}-{cl}{a})/{cl}{a}"
+@es
+def es_xlookup(): c=cell(); k=col(); v=col(); return f"busca {c} en {k} y devuelve {v}", f"=XLOOKUP({c},{k}:{k},{v}:{v})"
+@es
+def es_trim():    c=cell(); return f"elimina los espacios de {c}", f"=TRIM({c})"
+@es
+def es_left():    c=cell(); n=random.randint(2,4); return f"los primeros {n} caracteres de {c}", f"=LEFT({c},{n})"
+@es
+def es_right():   c=cell(); n=random.randint(2,4); return f"los últimos {n} caracteres de {c}", f"=RIGHT({c},{n})"
+@es
+def es_abs():     c=cell(); return f"el valor absoluto de {c}", f"=ABS({c})"
+@es
+def es_maxifs():  sc=col(); cc=col(); w=word(); return f"el máximo de {sc} donde {cc} es {w}", f'=MAXIFS({sc}:{sc},{cc}:{cc},"{w}")'
+@es
+def es_pct_total():c=col(); r=random.randint(2,40); return f"qué porcentaje del total es {c}{r}", f"={c}{r}/SUM({c}:{c})"
+@es
+def es_year():    c=cell(); return f"el año de la fecha {c}", f"=YEAR({c})"
 
 # ── Portuguese ──
 PORTUGUESE = []
@@ -1381,6 +1397,30 @@ def pt_concat():  a=cell(); b=cell(); return f"junte {a} e {b} com um espaço", 
 def pt_upper():   c=cell(); return f"{c} em maiúsculas", f"=UPPER({c})"
 @pt
 def pt_lower():   c=cell(); return f"{c} em minúsculas", f"=LOWER({c})"
+@pt
+def pt_counta():  c=col(); return f"conte as células não vazias em {c}", f"=COUNTA({c}:{c})"
+@pt
+def pt_stdev():   c=col(); return f"desvio padrão de {c}", f"=STDEV({c}:{c})"
+@pt
+def pt_product(): c=col(); return f"multiplique todos os valores de {c}", f"=PRODUCT({c}:{c})"
+@pt
+def pt_averageif():cc=col(); ac=col(); w=word(); return f"média de {ac} onde {cc} é {w}", f'=AVERAGEIF({cc}:{cc},"{w}",{ac}:{ac})'
+@pt
+def pt_sumifs():  sc=col(); c1=col(); c2=col(); w1=word(); w2=word(); return f"some {sc} onde {c1} é {w1} e {c2} é {w2}", f'=SUMIFS({sc}:{sc},{c1}:{c1},"{w1}",{c2}:{c2},"{w2}")'
+@pt
+def pt_countifs():c1=col(); c2=col(); w1=word(); w2=word(); return f"conte linhas onde {c1} é {w1} e {c2} é {w2}", f'=COUNTIFS({c1}:{c1},"{w1}",{c2}:{c2},"{w2}")'
+@pt
+def pt_iferror(): a=cell(); b=cell(); return f"divida {a} por {b}, mostre 0 se houver erro", f"=IFERROR({a}/{b},0)"
+@pt
+def pt_len():     c=cell(); return f"comprimento de {c}", f"=LEN({c})"
+@pt
+def pt_xlookup(): c=cell(); k=col(); v=col(); return f"procure {c} em {k} e retorne {v}", f"=XLOOKUP({c},{k}:{k},{v}:{v})"
+@pt
+def pt_trim():    c=cell(); return f"remova os espaços de {c}", f"=TRIM({c})"
+@pt
+def pt_sum_named():h=hdr(); return f"soma da coluna {h}", f"=SUM({h})"
+@pt
+def pt_pct_change():cl=col(); a=random.randint(1,80); b=a+1; return f"variação percentual de {cl}{a} para {cl}{b}", f"=({cl}{b}-{cl}{a})/{cl}{a}"
 
 # ── French ──
 FRENCH = []
@@ -1415,11 +1455,141 @@ def fr_concat():  a=cell(); b=cell(); return f"joindre {a} et {b} avec un espace
 def fr_upper():   c=cell(); return f"{c} en majuscules", f"=UPPER({c})"
 @fr
 def fr_lower():   c=cell(); return f"{c} en minuscules", f"=LOWER({c})"
+@fr
+def fr_counta():  c=col(); return f"compter les cellules non vides dans {c}", f"=COUNTA({c}:{c})"
+@fr
+def fr_stdev():   c=col(); return f"écart type de {c}", f"=STDEV({c}:{c})"
+@fr
+def fr_product(): c=col(); return f"multiplier toutes les valeurs de {c}", f"=PRODUCT({c}:{c})"
+@fr
+def fr_averageif():cc=col(); ac=col(); w=word(); return f"moyenne de {ac} où {cc} est {w}", f'=AVERAGEIF({cc}:{cc},"{w}",{ac}:{ac})'
+@fr
+def fr_sumifs():  sc=col(); c1=col(); c2=col(); w1=word(); w2=word(); return f"somme de {sc} où {c1} est {w1} et {c2} est {w2}", f'=SUMIFS({sc}:{sc},{c1}:{c1},"{w1}",{c2}:{c2},"{w2}")'
+@fr
+def fr_countifs():c1=col(); c2=col(); w1=word(); w2=word(); return f"compter les lignes où {c1} est {w1} et {c2} est {w2}", f'=COUNTIFS({c1}:{c1},"{w1}",{c2}:{c2},"{w2}")'
+@fr
+def fr_iferror(): a=cell(); b=cell(); return f"diviser {a} par {b}, afficher 0 en cas d'erreur", f"=IFERROR({a}/{b},0)"
+@fr
+def fr_len():     c=cell(); return f"longueur de {c}", f"=LEN({c})"
+@fr
+def fr_xlookup(): c=cell(); k=col(); v=col(); return f"rechercher {c} dans {k} et renvoyer {v}", f"=XLOOKUP({c},{k}:{k},{v}:{v})"
+@fr
+def fr_trim():    c=cell(); return f"supprimer les espaces de {c}", f"=TRIM({c})"
+@fr
+def fr_sum_named():h=hdr(); return f"somme de la colonne {h}", f"=SUM({h})"
+@fr
+def fr_pct_change():cl=col(); a=random.randint(1,80); b=a+1; return f"variation en pourcentage de {cl}{a} à {cl}{b}", f"=({cl}{b}-{cl}{a})/{cl}{a}"
 
-def gen_spanish():
-    return random.choice(SPANISH)()
-def gen_lang():
-    return random.choice(SPANISH + PORTUGUESE + FRENCH)()
+# ── German ──
+GERMAN = []
+def de(fn): GERMAN.append(fn); return fn
+@de
+def de_sum():     c=col(); return random.choice([f"summe der spalte {c}", f"summiere {c}"]), f"=SUM({c}:{c})"
+@de
+def de_avg():     c=col(); return f"durchschnitt der spalte {c}", f"=AVERAGE({c}:{c})"
+@de
+def de_count():   c=col(); return f"zähle die zahlen in {c}", f"=COUNT({c}:{c})"
+@de
+def de_counta():  c=col(); return f"zähle die nicht leeren zellen in {c}", f"=COUNTA({c}:{c})"
+@de
+def de_max():     c=col(); return f"maximum von {c}", f"=MAX({c}:{c})"
+@de
+def de_min():     c=col(); return f"minimum von {c}", f"=MIN({c}:{c})"
+@de
+def de_median():  c=col(); return f"median von {c}", f"=MEDIAN({c}:{c})"
+@de
+def de_stdev():   c=col(); return f"standardabweichung von {c}", f"=STDEV({c}:{c})"
+@de
+def de_product(): c=col(); return f"multipliziere alle werte in {c}", f"=PRODUCT({c}:{c})"
+@de
+def de_sumif():   cc=col(); sc=col(); w=word(); return f"summiere {sc} wo {cc} gleich {w} ist", f'=SUMIF({cc}:{cc},"{w}",{sc}:{sc})'
+@de
+def de_countif(): c=col(); w=word(); return f"zähle wie viele {w} in {c} sind", f'=COUNTIF({c}:{c},"{w}")'
+@de
+def de_averageif():cc=col(); ac=col(); w=word(); return f"durchschnitt von {ac} wo {cc} gleich {w} ist", f'=AVERAGEIF({cc}:{cc},"{w}",{ac}:{ac})'
+@de
+def de_sumifs():  sc=col(); c1=col(); c2=col(); w1=word(); w2=word(); return f"summiere {sc} wo {c1} {w1} und {c2} {w2} ist", f'=SUMIFS({sc}:{sc},{c1}:{c1},"{w1}",{c2}:{c2},"{w2}")'
+@de
+def de_if():      c=cell(); t=num(); return f"wenn {c} größer als {t} ist sage hoch sonst niedrig", f'=IF({c}>{t},"hoch","niedrig")'
+@de
+def de_iferror(): a=cell(); b=cell(); return f"teile {a} durch {b}, zeige 0 bei fehler", f"=IFERROR({a}/{b},0)"
+@de
+def de_round():   c=cell(); k=random.randint(0,3); return f"runde {c} auf {k} dezimalstellen", f"=ROUND({c},{k})"
+@de
+def de_today():   return "das heutige datum", "=TODAY()"
+@de
+def de_vlookup(): c=cell(); t=col(); t2=chr(ord(t)+1); k=random.randint(2,4); return f"suche {c} in {t}:{t2} und gib spalte {k} zurück", f"=VLOOKUP({c},{t}:{t2},{k},FALSE)"
+@de
+def de_xlookup(): c=cell(); k=col(); v=col(); return f"suche {c} in {k} und gib {v} zurück", f"=XLOOKUP({c},{k}:{k},{v}:{v})"
+@de
+def de_concat():  a=cell(); b=cell(); return f"verbinde {a} und {b} mit einem leerzeichen", f'={a}&" "&{b}'
+@de
+def de_len():     c=cell(); return f"länge von {c}", f"=LEN({c})"
+@de
+def de_upper():   c=cell(); return f"{c} in großbuchstaben", f"=UPPER({c})"
+@de
+def de_lower():   c=cell(); return f"{c} in kleinbuchstaben", f"=LOWER({c})"
+@de
+def de_sum_named():h=hdr(); return f"summe der spalte {h}", f"=SUM({h})"
+
+# ── Italian ──
+ITALIAN = []
+def it(fn): ITALIAN.append(fn); return fn
+@it
+def it_sum():     c=col(); return random.choice([f"somma della colonna {c}", f"sommare {c}"]), f"=SUM({c}:{c})"
+@it
+def it_avg():     c=col(); return f"media della colonna {c}", f"=AVERAGE({c}:{c})"
+@it
+def it_count():   c=col(); return f"conta i numeri in {c}", f"=COUNT({c}:{c})"
+@it
+def it_counta():  c=col(); return f"conta le celle non vuote in {c}", f"=COUNTA({c}:{c})"
+@it
+def it_max():     c=col(); return f"massimo di {c}", f"=MAX({c}:{c})"
+@it
+def it_min():     c=col(); return f"minimo di {c}", f"=MIN({c}:{c})"
+@it
+def it_median():  c=col(); return f"mediana di {c}", f"=MEDIAN({c}:{c})"
+@it
+def it_stdev():   c=col(); return f"deviazione standard di {c}", f"=STDEV({c}:{c})"
+@it
+def it_product(): c=col(); return f"moltiplica tutti i valori di {c}", f"=PRODUCT({c}:{c})"
+@it
+def it_sumif():   cc=col(); sc=col(); w=word(); return f"somma {sc} dove {cc} è {w}", f'=SUMIF({cc}:{cc},"{w}",{sc}:{sc})'
+@it
+def it_countif(): c=col(); w=word(); return f"conta quanti {w} ci sono in {c}", f'=COUNTIF({c}:{c},"{w}")'
+@it
+def it_averageif():cc=col(); ac=col(); w=word(); return f"media di {ac} dove {cc} è {w}", f'=AVERAGEIF({cc}:{cc},"{w}",{ac}:{ac})'
+@it
+def it_sumifs():  sc=col(); c1=col(); c2=col(); w1=word(); w2=word(); return f"somma {sc} dove {c1} è {w1} e {c2} è {w2}", f'=SUMIFS({sc}:{sc},{c1}:{c1},"{w1}",{c2}:{c2},"{w2}")'
+@it
+def it_if():      c=cell(); t=num(); return f"se {c} è maggiore di {t} scrivi alto altrimenti basso", f'=IF({c}>{t},"alto","basso")'
+@it
+def it_iferror(): a=cell(); b=cell(); return f"dividi {a} per {b}, mostra 0 se c'è un errore", f"=IFERROR({a}/{b},0)"
+@it
+def it_round():   c=cell(); k=random.randint(0,3); return f"arrotonda {c} a {k} decimali", f"=ROUND({c},{k})"
+@it
+def it_today():   return "la data di oggi", "=TODAY()"
+@it
+def it_vlookup(): c=cell(); t=col(); t2=chr(ord(t)+1); k=random.randint(2,4); return f"cerca {c} in {t}:{t2} e restituisci la colonna {k}", f"=VLOOKUP({c},{t}:{t2},{k},FALSE)"
+@it
+def it_xlookup(): c=cell(); k=col(); v=col(); return f"cerca {c} in {k} e restituisci {v}", f"=XLOOKUP({c},{k}:{k},{v}:{v})"
+@it
+def it_concat():  a=cell(); b=cell(); return f"unisci {a} e {b} con uno spazio", f'={a}&" "&{b}'
+@it
+def it_len():     c=cell(); return f"lunghezza di {c}", f"=LEN({c})"
+@it
+def it_upper():   c=cell(); return f"{c} in maiuscolo", f"=UPPER({c})"
+@it
+def it_lower():   c=cell(); return f"{c} in minuscolo", f"=LOWER({c})"
+@it
+def it_sum_named():h=hdr(); return f"somma della colonna {h}", f"=SUM({h})"
+
+def gen_spanish():    return random.choice(SPANISH)()
+def gen_portuguese(): return random.choice(PORTUGUESE)()
+def gen_french():     return random.choice(FRENCH)()
+def gen_german():     return random.choice(GERMAN)()
+def gen_italian():    return random.choice(ITALIAN)()
+def gen_lang():       return random.choice(PORTUGUESE + FRENCH + GERMAN + ITALIAN)()
 
 # ── finance pack: intent -> a MODEL spec; the add-in stamps the block of cells ──
 _MODEL_SIMPLE = {
@@ -2101,7 +2271,7 @@ def gen_datadict():
 
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
-    (40, "formula"), (6, gen_spanish), (5, gen_explain), (5, gen_fix), (5, gen_edit),
+    (40, "formula"), (6, gen_spanish), (8, gen_lang), (5, gen_explain), (5, gen_fix), (5, gen_edit),
     (3, gen_chart), (3, gen_format), (3, gen_clean), (2.5, gen_model), (2.5, gen_action),
     (2, gen_steps), (3, gen_transpile), (2, gen_reverse), (2, gen_optimize),
     (2, gen_audit), (2, gen_nlsql), (2.5, gen_debug), (2, gen_absref), (1.5, gen_doc),
