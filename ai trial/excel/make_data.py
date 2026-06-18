@@ -532,6 +532,98 @@ def g_sortby():         a=col(); b=col(); return f"sort {a} by {b} from high to 
 @reg
 def g_sumifs_year():    sc=col(); dc=col(); y=random.randint(2018,2025); return f"total {sc} where the date in {dc} is in {y}", f'=SUMIFS({sc}:{sc},{dc}:{dc},">="&DATE({y},1,1),{dc}:{dc},"<="&DATE({y},12,31))'
 
+# ── advanced finance (irregular cash flows, depreciation, loan schedules) ──
+@reg
+def g_xnpv():     r=cell(); v=col(); d=col(); return f"net present value of cash flows in {v} on dates in {d} at rate {r}", f"=XNPV({r},{v}:{v},{d}:{d})"
+@reg
+def g_xirr():     v=col(); d=col(); return f"internal rate of return for cash flows in {v} on dates in {d}", f"=XIRR({v}:{v},{d}:{d})"
+@reg
+def g_mirr():     v=col(); r1=cell(); r2=cell(); return f"modified IRR of {v} with finance rate {r1} and reinvestment rate {r2}", f"=MIRR({v}:{v},{r1},{r2})"
+@reg
+def g_db():       a=cell(); b=cell(); c=cell(); pr=cell(); return f"declining balance depreciation: cost {a}, salvage {b}, life {c}, period {pr}", f"=DB({a},{b},{c},{pr})"
+@reg
+def g_ddb():      a=cell(); b=cell(); c=cell(); pr=cell(); return f"double declining balance depreciation: cost {a}, salvage {b}, life {c}, period {pr}", f"=DDB({a},{b},{c},{pr})"
+@reg
+def g_syd():      a=cell(); b=cell(); c=cell(); pr=cell(); return f"sum of years digits depreciation: cost {a}, salvage {b}, life {c}, period {pr}", f"=SYD({a},{b},{c},{pr})"
+@reg
+def g_cumipmt():  r=cell(); n=cell(); pv=cell(); return f"total interest paid over periods 1 to 12, rate {r}, periods {n}, present value {pv}", f"=CUMIPMT({r},{n},{pv},1,12,0)"
+@reg
+def g_cumprinc(): r=cell(); n=cell(); pv=cell(); return f"total principal paid over periods 1 to 12, rate {r}, periods {n}, present value {pv}", f"=CUMPRINC({r},{n},{pv},1,12,0)"
+@reg
+def g_effect():   r=cell(); return f"effective annual rate from nominal {r} compounded monthly", f"=EFFECT({r},12)"
+@reg
+def g_nominal():  r=cell(); return f"nominal rate from effective rate {r} compounded monthly", f"=NOMINAL({r},12)"
+@reg
+def g_monthly_pmt():r=cell(); y=cell(); pv=cell(); return f"monthly loan payment: annual rate {r}, {y} years, loan amount {pv}", f"=PMT({r}/12,{y}*12,{pv})"
+
+# ── more stats ──
+@reg
+def g_standardize():x=cell(); m=cell(); s=cell(); return f"z-score of {x} with mean {m} and standard deviation {s}", f"=STANDARDIZE({x},{m},{s})"
+@reg
+def g_rank_avg(): c=cell(); r,d=rng(); return f"average rank of {c} in {d}", f"=RANK.AVG({c},{r})"
+@reg
+def g_avedev():   r,d=rng(); return "average absolute deviation of "+d, f"=AVEDEV({r})"
+@reg
+def g_devsq():    r,d=rng(); return "sum of squared deviations of "+d, f"=DEVSQ({r})"
+
+# ── text utilities ──
+@reg
+def g_count_char():c=cell(); ch=random.choice(["a","e","o","-"," ",","]); return f'count how many "{ch}" are in {c}', f'=LEN({c})-LEN(SUBSTITUTE({c},"{ch}",""))'
+@reg
+def g_count_words():c=cell(); return f"count the words in {c}", f'=LEN(TRIM({c}))-LEN(SUBSTITUTE(TRIM({c})," ",""))+1'
+@reg
+def g_char():     n=random.randint(65,90); return f"the character for code {n}", f"=CHAR({n})"
+@reg
+def g_code():     c=cell(); return f"the character code of {c}", f"=CODE({c})"
+@reg
+def g_zip_pad():  c=cell(); return f"pad {c} to 5 digits with leading zeros", f'=TEXT({c},"00000")'
+
+# ── more lookup / reference ──
+@reg
+def g_index_match_2way():a=cell(); b=cell(); return f"two-way lookup: the row where A matches {a} and the column whose header matches {b}", f"=INDEX(B:F,MATCH({a},A:A,0),MATCH({b},B1:F1,0))"
+@reg
+def g_indirect(): c=cell(); return f"reference the cell named in {c}", f"=INDIRECT({c})"
+@reg
+def g_address():  a=cell(); b=cell(); return f"the cell address for row {a} and column {b}", f"=ADDRESS({a},{b})"
+@reg
+def g_rownum():   c=cell(); return f"the row number of {c}", f"=ROW({c})"
+@reg
+def g_colnum():   c=cell(); return f"the column number of {c}", f"=COLUMN({c})"
+@reg
+def g_lookup_last():cl=col(); return f"the last non-empty value in column {cl}", f'=LOOKUP(2,1/({cl}:{cl}<>""),{cl}:{cl})'
+@reg
+def g_sumif_wild():cc=col(); sc=col(); w=word(); return f"sum {sc} where {cc} contains {w}", f'=SUMIF({cc}:{cc},"*{w}*",{sc}:{sc})'
+@reg
+def g_countif_wild():cc=col(); w=word(); return f"count cells in {cc} containing {w}", f'=COUNTIF({cc}:{cc},"*{w}*")'
+
+# ── exclude criteria (<>) ──
+@reg
+def g_countif_not():cc=col(); w=word(); return f"count cells in {cc} not equal to {w}", f'=COUNTIF({cc}:{cc},"<>{w}")'
+@reg
+def g_sumif_not(): cc=col(); sc=col(); w=word(); return f"sum {sc} where {cc} is not {w}", f'=SUMIF({cc}:{cc},"<>{w}",{sc}:{sc})'
+
+# ── more info / error checks ──
+@reg
+def g_isna():     c=cell(); return f"check if {c} is a not-available error", f"=ISNA({c})"
+@reg
+def g_iseven():   c=cell(); return f"check if {c} is even", f"=ISEVEN({c})"
+@reg
+def g_isodd():    c=cell(); return f"check if {c} is odd", f"=ISODD({c})"
+@reg
+def g_isformula():c=cell(); return f"check if {c} contains a formula", f"=ISFORMULA({c})"
+
+# ── modern spill arrays ──
+@reg
+def g_sequence_2d():a=random.randint(2,10); b=random.randint(2,6); return f"a grid of numbers {a} rows by {b} columns", f"=SEQUENCE({a},{b})"
+@reg
+def g_randarray():a=random.randint(2,10); b=random.randint(2,6); return f"a random array {a} rows by {b} columns", f"=RANDARRAY({a},{b})"
+@reg
+def g_hstack():   a=col(); b=col(); return f"put {a} and {b} side by side", f"=HSTACK({a}:{a},{b}:{b})"
+@reg
+def g_vstack():   a=col(); b=col(); return f"stack {a} on top of {b}", f"=VSTACK({a}:{a},{b}:{b})"
+@reg
+def g_take():     c=col(); n=random.randint(3,20); return f"the first {n} rows of column {c}", f"=TAKE({c}:{c},{n})"
+
 # ── phrasing engine: wrap each base request the many ways real people type it ──
 # (empties keep a good share clean; the rest add natural lead-ins / trailers)
 LEADS = ["", "", "", "", "", "", "",
