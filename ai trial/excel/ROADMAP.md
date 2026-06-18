@@ -43,10 +43,12 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 2. **Live end-to-end in real Excel** — one formula into a real cell with header
    mapping working. The whole pipeline (model → `serve.py` → task pane → bridge →
    cell) has never run once. This is the moment it stops being an experiment.
-3. **Then add more — finance first:**
-   - ⭐ **Phase C templates** (amortization, cash flow, DCF) — most leverage for finance.
-   - ⭐ **Multi-word headers** ("Net Sales") — small change, big real-world impact.
-   - Then the rest of the action class (validation, sort/filter).
+3. **Then add more — locked-in priority picks (in order):**
+   1. 🎯 **Multi-word headers** ("Net Sales") — prerequisite for real sheets (bridge + data)
+   2. 🎯 **Ask-your-data** — compute the formula and show the *answer* (add-in; near-free)
+   3. 🎯 **Bilingual ES/EN input** — Spanish descriptions → same formula (data pass)
+   4. 🎯 **Finance pack** — ratio block / variance report (Phase C template)
+   - then: rest of the action class (validation, sort/filter), Phase B automation
 
 ---
 
@@ -63,6 +65,12 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
   (bar+line), histogram, dual-axis
 - 🔭 **Table ops** — merge/join two tables on a key; unpivot (wide→long);
   subtotals & grouping; consolidate multiple sheets
+- 🔭 **Proactive suggestions** — read the sheet's shape and offer next steps
+  ("price × qty → add a total column?", "looks monthly → add a trend?")
+- 🔭 **Range → Table** + structured references (`Table[Column]`)
+- 🔭 **Paste messy data → auto-structure** into a clean table (types, headers)
+- 🔭 **Parse a bank statement / PDF table** into columns
+- 🔭 **Cell comments** — document what a formula does, in the cell note
 
 ## Backlog — Phase B: automation (multi-step)
 - 🔭 Output an **ordered list of steps** ("dedupe, format as currency, then total it")
@@ -72,6 +80,7 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 ## Backlog — Phase C: build models (templates)
 - 🔭 Hybrid: model → **template + params**, add-in **stamps the grid**
 - 🔭 Templates: loan amortization, cash flow / budget, 3-statement skeleton, simple DCF
+- 🔭 Generic templates: invoice, budget tracker, expense report, inventory, Gantt
 
 ## Backlog — finance intelligence (finance-first, high value)
 - 🔭 **Ratio pack** — one block: current/quick ratio, ROE, ROA, debt-to-equity,
@@ -97,6 +106,12 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 - 🔭 **Refactor / convert** — VLOOKUP ↔ XLOOKUP ↔ INDEX-MATCH; simplify a formula
 - 🔭 **Golden test set** of real hand-written phrasings + **regression suite**
 - 🔭 **Telemetry** — log failed / low-confidence requests to guide the next data round
+- 🔭 ⭐ **Sheet-context awareness** — feed the real headers / selected range / nearby
+  cells to the model so formulas fit the actual sheet (training-format change)
+- 🔭 ⭐ **Learn from corrections** — when the user fixes an output, capture (input →
+  corrected formula) and fold it into the next training round (improvement flywheel)
+- 🔭 **Alternatives** — offer 2–3 candidate formulas (top-k) and let the user pick
+- 🔭 **Confidence calibration** — use the logit margin to flag shaky answers
 
 ## Backlog — add-in / product polish
 - 🔭 **Pivot auto-build** (Office.js `pivotTables`) — currently spec is shown only
@@ -118,6 +133,12 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
   bigger model than from-scratch 26M; revisit honestly
 - 🔭 Goal seek / what-if; regex extraction
 - 🔭 **On-device** model (ONNX/WASM in the browser) — no `serve.py`, fully offline
+
+## Backlog — reach / platform
+- 🔭 **Google Sheets** version (Apps Script add-on) — same model, wider audience
+- 🔭 **Standalone web app** — paste data, get formulas, no Excel needed
+- 🔭 **Example gallery / onboarding** — "try these" prompts in the pane
+- 🔭 **Explain what changed** after an edit (diff old vs new formula)
 
 ---
 
