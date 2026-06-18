@@ -3338,11 +3338,72 @@ _CC_STUCK_R = ["No worries — tell me in plain words what you want the spreadsh
                "Let's figure it out — what are you trying to calculate or build?"]
 _CC_NICE = ["you're great", "youre awesome", "good job", "nice work", "you're helpful"]
 _CC_NICE_R = ["Thanks! Happy to help — what's next?", "Appreciate it! What else can I crunch for you?"]
+_CC_AI = ["are you an ai", "are you a robot", "are you human", "are you a person"]
+_CC_AI_R = ["I'm an AI assistant focused on spreadsheets and accounting — here to help you with Excel.",
+            "AI, built to be your spreadsheet coworker. What can I help with?"]
+_CC_SEE = ["can you see my screen", "can you see my sheet", "do you see my data", "are you looking at my file"]
+_CC_SEE_R = ["I work with what you tell me or the active cell — describe your data or click a cell and ask.",
+             "I don't see the whole file, but tell me your columns or click a cell and I'll work with it."]
+_CC_VAGUE = ["what should I do", "help me", "idk", "not sure", "where do I start"]
+_CC_VAGUE_R = ["Tell me your goal — what you want the sheet to show or calculate — and I'll suggest how.",
+               "What are you trying to figure out? Give me the columns you have and the answer you want."]
+_CC_FRUST = ["this isnt working", "ugh", "this is frustrating", "i give up", "nothing works"]
+_CC_FRUST_R = ["Let's fix it together — paste the formula or describe what's going wrong and I'll sort it out.",
+               "No problem, we'll get it — what did you try and what happened?"]
+_CC_LOL = ["lol", "haha", "nice one", "haha nice"]
+_CC_LOL_R = ["Glad to keep it light — what's the next spreadsheet thing?", "Ha — alright, what do you need next?"]
 _CHITCHAT = [(_CC_GREET, _CC_GREET_R), (_CC_THANKS, _CC_THANKS_R), (_CC_WHO, _CC_WHO_R), (_CC_CAN, _CC_CAN_R),
-             (_CC_HOW, _CC_HOW_R), (_CC_BYE, _CC_BYE_R), (_CC_ACK, _CC_ACK_R), (_CC_STUCK, _CC_STUCK_R), (_CC_NICE, _CC_NICE_R)]
+             (_CC_HOW, _CC_HOW_R), (_CC_BYE, _CC_BYE_R), (_CC_ACK, _CC_ACK_R), (_CC_STUCK, _CC_STUCK_R), (_CC_NICE, _CC_NICE_R),
+             (_CC_AI, _CC_AI_R), (_CC_SEE, _CC_SEE_R), (_CC_VAGUE, _CC_VAGUE_R), (_CC_FRUST, _CC_FRUST_R), (_CC_LOL, _CC_LOL_R)]
 def gen_chitchat():
     ins, reps = random.choice(_CHITCHAT)
     return random.choice(ins), random.choice(reps)
+
+# ── function reference: explain an Excel function (purpose + syntax + when to use) ──
+FUNCREF = {
+    "VLOOKUP": "VLOOKUP(value, table, column_number, FALSE) finds a value in the first column of a range and returns a value from a column to its right. Use FALSE for an exact match.",
+    "XLOOKUP": "XLOOKUP(value, lookup_array, return_array, [if_not_found]) searches one range and returns from another — it can look left, needs no column count, and handles not-found cleanly.",
+    "HLOOKUP": "HLOOKUP works like VLOOKUP but searches across the top row instead of down the first column.",
+    "INDEX": "INDEX(range, row, [column]) returns the value at a position in a range. Pair it with MATCH for flexible lookups.",
+    "MATCH": "MATCH(value, range, 0) returns the position of a value in a range (0 means exact). Feed that into INDEX.",
+    "SUMIF": "SUMIF(range, criteria, sum_range) adds cells in sum_range where range meets one condition.",
+    "SUMIFS": "SUMIFS(sum_range, range1, criteria1, ...) sums with multiple conditions. Note the sum_range comes first.",
+    "COUNTIF": "COUNTIF(range, criteria) counts cells meeting one condition; use COUNTIFS for several.",
+    "COUNTIFS": "COUNTIFS(range1, criteria1, ...) counts rows that meet all the given conditions.",
+    "IF": "IF(test, value_if_true, value_if_false) returns one value when a condition holds and another when it doesn't.",
+    "IFS": "IFS(test1, value1, ..., TRUE, default) checks conditions in order — cleaner than deeply nested IFs.",
+    "IFERROR": "IFERROR(formula, value_if_error) returns your fallback if the formula errors. Use IFNA to catch only not-found.",
+    "SUMPRODUCT": "SUMPRODUCT(array1, array2) multiplies arrays element by element and sums them — great for weighted totals and multi-condition math.",
+    "TEXTJOIN": "TEXTJOIN(delimiter, ignore_empty, range) joins text with a separator and can skip blanks — better than chaining ampersands.",
+    "LEFT": "LEFT(text, n) returns the first n characters. RIGHT returns the last n; MID grabs from the middle.",
+    "MID": "MID(text, start, length) returns characters from the middle of text, starting at a position.",
+    "FIND": "FIND(substring, text) returns the position of a substring (case-sensitive); SEARCH is case-insensitive.",
+    "SUBSTITUTE": "SUBSTITUTE(text, old, new) replaces every occurrence of old text with new. REPLACE works by position.",
+    "TRIM": "TRIM(text) removes extra spaces, leaving single spaces between words — great for cleaning imported data.",
+    "TEXT": "TEXT(value, format) formats a number or date as text using a format code, like a percent or currency mask.",
+    "ROUND": "ROUND(number, digits) rounds to a set number of decimals; ROUNDUP and ROUNDDOWN force the direction.",
+    "DATEDIF": "DATEDIF(start, end, unit) returns the gap between dates in years, months, or days.",
+    "EOMONTH": "EOMONTH(date, months) returns the last day of the month n months away — handy for month-end reporting.",
+    "NETWORKDAYS": "NETWORKDAYS(start, end, [holidays]) counts working days between two dates, skipping weekends and listed holidays.",
+    "PMT": "PMT(rate, nper, pv) returns the periodic loan payment. Use a monthly rate and number of months for monthly payments.",
+    "NPV": "NPV(rate, cashflows) discounts future cash flows to today's value; add the initial outlay separately.",
+    "IRR": "IRR(cashflows) returns the discount rate where NPV is zero — the implied annual return.",
+    "FILTER": "FILTER(range, condition) returns only the rows that meet a condition and spills the result.",
+    "SORT": "SORT(range, [column], [order]) returns the range sorted and spills it; SORTBY sorts by another range.",
+    "UNIQUE": "UNIQUE(range) returns the distinct values from a range, spilling them — pair with SORT for a clean list.",
+    "SEQUENCE": "SEQUENCE(rows, [cols], [start], [step]) generates a spilling array of numbers — handy for schedules.",
+    "LET": "LET(name, value, ..., formula) names intermediate results so a complex formula is readable and each piece computes once.",
+    "LAMBDA": "LAMBDA(params, formula) builds a reusable custom function; name it in the Name Manager to call it like a built-in.",
+    "AVERAGEIF": "AVERAGEIF(range, criteria, average_range) averages cells meeting one condition; AVERAGEIFS handles several.",
+    "RANK.EQ": "RANK.EQ(value, range, [order]) returns the rank of a value in a list; ties share the same rank.",
+    "CONCAT": "CONCAT(range) joins text together; for a delimiter or to skip blanks, use TEXTJOIN instead.",
+    "VALUE": "VALUE(text) converts a number stored as text into a real number you can calculate with.",
+    "DATE": "DATE(year, month, day) builds a real date from its parts, useful inside date criteria.",
+}
+def gen_funcref():
+    fn = random.choice(list(FUNCREF))
+    return random.choice([f"what does {fn} do", f"how does {fn} work", f"explain the {fn} function",
+                          f"when do I use {fn}", f"{fn} syntax"]), FUNCREF[fn]
 
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
@@ -3372,6 +3433,8 @@ MODES = [
     (3, gen_followup),
     # ── conversational: greet / identity / capabilities / thanks (be a coworker) ──
     (4, gen_chitchat),
+    # ── function reference: explain an Excel function (purpose + syntax) ──
+    (4, gen_funcref),
 ]
 _MODE_FNS = [f for _, f in MODES]
 _MODE_WTS = [w for w, _ in MODES]
