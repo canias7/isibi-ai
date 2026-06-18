@@ -2693,6 +2693,147 @@ DOMAIN = [_d_dso,_d_dpo,_d_inv_turn,_d_quick,_d_gross_marg,_d_recon,_d_sln,_d_dd
 def gen_domain():
     return random.choice(DOMAIN)()
 
+# ══════════════════════════════════════════════════════════════════════
+#  ACCOUNTING COWORKER: advice, interpretation, judgment (not just formulas)
+# ══════════════════════════════════════════════════════════════════════
+
+# ── metric verdicts: look at a value and give a real coworker take ──
+def _adv_current_ratio():
+    v = random.choice(["0.6","0.8","1.2","1.6","2.0","3.5"]); f = float(v)
+    a = (f"A current ratio of {v} is a worry — current liabilities exceed current assets, so short-term bills could get tight. Aim for 1.5 to 2." if f < 1 else
+         f"A current ratio of {v} is healthy — you can cover short-term obligations comfortably. 1.5 to 2 is the sweet spot." if f <= 2.2 else
+         f"A current ratio of {v} is high — very liquid, but idle cash or inventory may mean capital isn't working hard enough.")
+    return random.choice([f"is a current ratio of {v} good", f"my current ratio is {v}, should I worry", f"what does a current ratio of {v} mean"]), a
+def _adv_net_margin():
+    v = random.choice(["2%","5%","12%","20%","35%"]); n = int(v[:-1])
+    a = (f"A {v} net margin is thin — little cushion for surprises. It can be fine for high-volume retail, but watch costs closely." if n < 6 else
+         f"A {v} net margin is solid for most businesses — healthy profitability with room to absorb shocks." if n <= 22 else
+         f"A {v} net margin is strong — typical of software or premium brands. Make sure it's sustainable, not under-investment.")
+    return random.choice([f"is a {v} net margin good", f"my net margin is {v}, how is that", f"what does a {v} net margin tell me"]), a
+def _adv_dso():
+    v = random.choice([28,40,55,75,95])
+    a = (f"A DSO of {v} days is good — you're collecting quickly, which keeps cash flowing." if v <= 45 else
+         f"A DSO of {v} days is on the high side — cash is tied up in receivables. Tighten terms and chase overdue invoices." if v <= 75 else
+         f"A DSO of {v} days is a red flag — collections are slow and cash is stuck. Review credit policy and follow up aggressively.")
+    return random.choice([f"is a DSO of {v} days good", f"my DSO is {v} days, is that bad", f"what does a {v} day DSO mean"]), a
+def _adv_churn():
+    v = random.choice(["1%","3%","5%","8%","12%"]); n = int(v[:-1])
+    a = (f"{v} monthly churn is excellent — customers are sticking around, which compounds growth." if n <= 2 else
+         f"{v} monthly churn is workable but worth improving — over a year that's a big chunk of your base." if n <= 5 else
+         f"{v} monthly churn is high — you're losing customers faster than is sustainable. Fixing retention beats chasing new sign-ups.")
+    return random.choice([f"is {v} monthly churn good", f"my churn is {v} a month, should I worry", f"what does {v} churn mean for my saas"]), a
+def _adv_runway():
+    v = random.choice([3,6,12,18,30])
+    a = (f"{v} months of runway is dangerous — start raising or cutting now; fundraising itself takes months." if v <= 6 else
+         f"{v} months of runway is comfortable — enough to hit milestones, but keep an eye on burn." if v <= 18 else
+         f"{v} months of runway is very safe — you have room to invest in growth rather than just survive.")
+    return random.choice([f"is {v} months of runway enough", f"i have {v} months of runway, what should I do", f"what does {v} months runway mean"]), a
+def _adv_debt_equity():
+    v = random.choice(["0.3","0.8","1.5","2.5","4.0"]); f = float(v)
+    a = (f"A debt-to-equity of {v} is conservative — low leverage and low risk, though you may be under-using cheap debt." if f < 1 else
+         f"A debt-to-equity of {v} is moderate — a normal amount of leverage for most industries." if f <= 2 else
+         f"A debt-to-equity of {v} is high — heavy leverage magnifies risk if revenue dips. Lenders may get nervous.")
+    return random.choice([f"is a debt to equity of {v} good", f"my debt to equity is {v}, is that risky", f"what does a {v} debt to equity ratio mean"]), a
+def _adv_quick_ratio():
+    v = random.choice(["0.5","0.9","1.2","2.0"]); f = float(v)
+    a = (f"A quick ratio of {v} is tight — without selling inventory you can't fully cover current liabilities. Watch cash closely." if f < 1 else
+         f"A quick ratio of {v} is healthy — you can cover short-term liabilities even without touching inventory.")
+    return random.choice([f"is a quick ratio of {v} good", f"my quick ratio is {v}, should I worry"]), a
+def _adv_ltv_cac():
+    v = random.choice(["0.8","2.0","3.5","6.0"]); f = float(v)
+    a = (f"An LTV:CAC of {v} is unsustainable — you're spending more to acquire customers than they're worth. Fix unit economics first." if f < 1 else
+         f"An LTV:CAC of {v} is okay but thin — 3:1 is the usual healthy target." if f < 3 else
+         f"An LTV:CAC of {v} is strong — customers are well worth their cost. If it's very high you might even spend more on growth.")
+    return random.choice([f"is an ltv to cac of {v} good", f"my ltv cac ratio is {v}, how is that"]), a
+def _adv_gross_margin():
+    v = random.choice(["18%","35%","55%","80%"]); n = int(v[:-1])
+    a = (f"A {v} gross margin is slim — common in retail or distribution; you'll need volume and tight overhead to profit." if n < 30 else
+         f"A {v} gross margin is solid — healthy room to cover operating costs and still profit." if n < 65 else
+         f"A {v} gross margin is excellent — typical of software or services, leaving lots of room for growth spend.")
+    return random.choice([f"is a {v} gross margin good", f"my gross margin is {v}, how does that look"]), a
+def _adv_inv_turnover():
+    v = random.choice([2,6,12,20])
+    a = (f"Inventory turnover of {v}x is low — stock is sitting too long, tying up cash and risking obsolescence." if v <= 4 else
+         f"Inventory turnover of {v}x is healthy — you're selling through stock at a good clip." if v <= 14 else
+         f"Inventory turnover of {v}x is very high — efficient, but make sure you're not stocking out and losing sales.")
+    return random.choice([f"is inventory turnover of {v} good", f"my inventory turns {v} times a year, is that good"]), a
+ADVISE = [_adv_current_ratio,_adv_net_margin,_adv_dso,_adv_churn,_adv_runway,_adv_debt_equity,
+          _adv_quick_ratio,_adv_ltv_cac,_adv_gross_margin,_adv_inv_turnover]
+def gen_advise():
+    return random.choice(ADVISE)()
+
+# ── concepts: explain accounting / finance terms like a patient coworker ──
+CONCEPTS = {
+    "accrual vs cash accounting": "Accrual records revenue and expenses when they're earned or incurred; cash accounting records them only when money actually moves. Accrual shows truer performance.",
+    "working capital": "Current assets minus current liabilities — the short-term cash cushion that funds day-to-day operations. Positive is good; negative can signal a cash crunch.",
+    "EBITDA": "Earnings before interest, taxes, depreciation and amortization — a rough proxy for operating cash profitability, stripping out financing and accounting choices.",
+    "depreciation": "Spreading the cost of a physical asset over its useful life, so the expense matches the years it helps generate revenue, instead of hitting all at once.",
+    "amortization": "Like depreciation, but for intangible assets (patents, software) or for paying down a loan's principal over time.",
+    "deferred revenue": "Cash you've collected for goods or services not yet delivered. It's a liability until you earn it, because you still owe the customer.",
+    "FIFO vs LIFO": "Inventory costing methods: FIFO assumes the oldest stock sells first, LIFO the newest. In rising prices, FIFO shows higher profit, LIFO lower taxes.",
+    "gross vs net profit": "Gross profit is revenue minus the direct cost of goods; net profit is what's left after ALL expenses, interest and taxes.",
+    "fixed vs variable costs": "Fixed costs (rent, salaries) stay the same regardless of output; variable costs (materials, shipping) rise and fall with how much you produce.",
+    "contribution margin": "Revenue minus variable costs — how much each sale contributes toward covering fixed costs and then profit.",
+    "accounts receivable": "Money customers owe you for sales already made on credit. It's an asset, but only useful once you actually collect it.",
+    "accounts payable": "Money you owe suppliers for purchases made on credit. Managed well, it's a free short-term source of financing.",
+    "retained earnings": "Cumulative profit the business has kept and reinvested rather than paid out as dividends.",
+    "COGS": "Cost of goods sold — the direct costs of producing what you sold (materials and direct labor), but not overhead or sales costs.",
+    "capex vs opex": "Capex is spending on long-lived assets (equipment, buildings) capitalized over time; opex is day-to-day running costs expensed immediately.",
+    "accrued expenses": "Costs you've incurred but not yet paid (like wages earned before payday). They're recorded as a liability to match the period they belong to.",
+    "prepaid expenses": "Costs paid in advance (like annual insurance). They sit as an asset and are expensed gradually as you use them up.",
+    "goodwill": "The premium paid to acquire a business above the fair value of its net assets — it reflects brand, relationships and other intangibles.",
+    "double-entry bookkeeping": "Every transaction hits at least two accounts so debits always equal credits, keeping the books in balance and catching errors.",
+    "the accounting equation": "Assets = Liabilities + Equity. It must always balance; it's the foundation of the balance sheet.",
+    "cash flow vs profit": "Profit is an accounting measure that can include non-cash items; cash flow is the actual money in and out. A profitable company can still run out of cash.",
+    "burn rate": "How fast you're spending cash each month. Net burn is expenses minus revenue — what's actually draining the bank.",
+    "runway": "How many months of cash you have left at your current burn rate before you run out.",
+    "debit vs credit": "Bookkeeping entries: debits increase assets and expenses, credits increase liabilities, equity and revenue. Every entry needs both sides.",
+    "balance sheet": "A snapshot at one point in time of what you own (assets), owe (liabilities) and the owners' stake (equity).",
+    "income statement": "Shows revenue, expenses and profit over a period — how the business performed, not what it owns.",
+    "cash flow statement": "Tracks actual cash moving through operations, investing and financing — it reconciles profit to the change in your bank balance.",
+    "break-even point": "The sales level where total revenue exactly covers total costs, so profit is zero. Past it, each sale adds profit.",
+    "net present value": "Today's value of future cash flows discounted for the time value of money. Positive NPV means an investment should add value.",
+    "overhead": "Ongoing costs of running the business that aren't tied to a specific product — rent, admin, utilities, insurance.",
+    "deferred tax": "A timing difference between accounting profit and taxable profit, creating tax you'll pay (or save) in a future period.",
+    "write-off": "Removing an asset's value from the books when it's no longer recoverable, like uncollectable receivables or obsolete inventory.",
+    "trial balance": "A list of all account balances used to check that total debits equal total credits before preparing financial statements.",
+    "operating vs net income": "Operating income is profit from core operations; net income subtracts interest, taxes and one-offs to get the true bottom line.",
+}
+def gen_concept():
+    t = random.choice(list(CONCEPTS))
+    return random.choice([f"what is {t}", f"explain {t}", f"what does {t} mean", f"can you explain {t}"]), CONCEPTS[t]
+
+# ── consulting: improve / diagnose / decide — actionable coworker guidance ──
+CONSULT = [
+    ("how do I lower my DSO", "Invoice the moment work is done, tighten payment terms, offer a small early-payment discount, and follow up on overdue accounts weekly."),
+    ("how can I improve my gross margin", "Raise prices where you can, negotiate supplier costs, cut waste in production, and shift the mix toward higher-margin products."),
+    ("how do I reduce churn", "Onboard customers well, watch for early warning signs of disengagement, fix the top cancellation reasons, and check in before renewals."),
+    ("how do I extend my runway", "Cut non-essential spend, slow hiring, focus on revenue that lands fast, and renegotiate big contracts — every month bought is leverage."),
+    ("how do I improve cash flow", "Speed up collections, slow down (without straining) payables, trim inventory, and bill in advance or in milestones where possible."),
+    ("how do I reduce inventory costs", "Order in smaller, more frequent batches, drop slow-moving SKUs, use demand forecasts, and negotiate consignment terms with suppliers."),
+    ("how do I increase average order value", "Bundle products, offer tiered pricing, add relevant upsells at checkout, and set free-shipping thresholds above your current average."),
+    ("how do I lower customer acquisition cost", "Double down on the channels that already convert, improve landing-page conversion, and lean on referrals and retention over paid ads."),
+    ("how do I speed up collections", "Send invoices immediately, automate reminders, make paying easy, and put repeat late-payers on prepayment or shorter terms."),
+    ("how do I cut overhead", "Audit recurring subscriptions, renegotiate rent and insurance, consolidate vendors, and question any cost that doesn't drive revenue."),
+    ("my AR is growing faster than revenue, what does that mean", "Customers are taking longer to pay — collections aren't keeping up with sales. Cash is tied up; tighten terms and chase overdue accounts."),
+    ("I have negative working capital, is that bad", "Often yes — it means short-term liabilities exceed short-term assets, a possible cash crunch. But some efficient businesses run it deliberately."),
+    ("my profit is up but cash is down, why", "Profit includes non-cash items and credit sales. Cash can fall while profit rises if receivables, inventory, or capex are growing."),
+    ("my margins are shrinking, what should I look at", "Check whether costs rose, prices fell, discounting crept up, or the sales mix shifted toward cheaper products — isolate which one moved."),
+    ("my expenses are growing faster than revenue, what now", "That's unsustainable — find which cost lines outpaced sales, freeze discretionary spend, and tie new spending to revenue it generates."),
+    ("inventory keeps rising, what does that signal", "You're buying or making faster than you sell — cash gets stuck and obsolescence risk grows. Tighten purchasing to actual demand."),
+    ("should I lease or buy equipment", "Buy if you'll use it long-term and have the cash; lease to preserve cash, stay flexible, or for fast-obsoleting gear. Compare total cost either way."),
+    ("should I raise my prices", "If you have pricing power and aren't losing deals on price, a small increase usually flows straight to profit. Test on a segment first."),
+    ("should I hire or use a contractor", "Hire for ongoing core work you can keep busy; use contractors for spiky, specialized, or short-term needs to stay flexible."),
+    ("when should I raise capital", "Raise from a position of strength — when growth is proven and you have 6+ months runway — not when you're nearly out of cash."),
+    ("should I offer early payment discounts", "Worth it if you need cash faster and the discount costs less than your financing. A 2% discount for 20 days early is a common trade."),
+    ("how do I know if I'm pricing too low", "Signs: you win nearly every deal, customers never push back on price, and margins are below industry norms. That's room to raise."),
+    ("what should I do if a customer won't pay", "Send a firm reminder with the due amount, pause further work, offer a payment plan, then escalate to collections or small claims as a last resort."),
+    ("how do I forecast cash flow", "Start with beginning cash, add expected collections by timing, subtract known payments, and roll it forward weekly — be conservative on inflows."),
+    ("is it better to focus on revenue or margin", "Both, but margin first — growing unprofitable revenue just loses money faster. Fix unit economics, then scale."),
+]
+def gen_consult():
+    return random.choice(CONSULT)
+
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
     (40, "formula"), (6, gen_spanish), (8, gen_lang), (5, gen_explain), (5, gen_fix), (5, gen_edit),
@@ -2709,6 +2850,8 @@ MODES = [
     (5, gen_dataground),
     # ── harder formulas + business-domain depth (accounting / FP&A) ──
     (4, gen_hard), (4, gen_domain),
+    # ── accounting coworker: advice / concepts / consulting (talk, not just compute) ──
+    (4, gen_advise), (5, gen_concept), (5, gen_consult),
 ]
 _MODE_FNS = [f for _, f in MODES]
 _MODE_WTS = [w for w, _ in MODES]
