@@ -1251,38 +1251,40 @@ def gen_chart():
                          f"plot {m} against {dim} as a {t} chart"])
         return q, f"CHART type={t} values={m} category={dim}"
     m=hdr1(); dim=hdr1(); agg=random.choice(["sum","count","average"])
-    q=random.choice([f"pivot {m} by {dim}", f"summarize {agg} of {m} by {dim}",
-                     f"pivot table of {m} grouped by {dim}"])
+    q=random.choice([f"summarize {agg} of {m} by {dim}", f"pivot the {agg} of {m} by {dim}",
+                     f"pivot table of {agg} {m} grouped by {dim}"])  # agg in every phrasing (no conflict)
     return q, f"PIVOT rows={dim} values={m} agg={agg}"
 
 # ── conditional formatting: intent -> a FORMAT spec the add-in applies ──
 COLORS = ["red", "green", "yellow", "orange", "blue"]
 def gen_format():
     h = hdr1(); color = random.choice(COLORS); r = random.random()
+    # NOTE: every phrasing must state the color, or the same prompt maps to different
+    # color answers (exact-match conflict that poisons training).
     if r < 0.35:
         o = opn(); n = num()
         q = random.choice([f"highlight {h} {opw(o)} {n} in {color}",
                            f"color {h} cells {opw(o)} {n} {color}",
-                           f"highlight the {h} column where it is {opw(o)} {n}"])
+                           f"highlight {h} {color} where it is {opw(o)} {n}"])
         return q, f"FORMAT range={h} rule={o}{n} color={color}"
     if r < 0.50:
         return random.choice([f"highlight negative {h} in red", f"color negative {h} values red"]), \
                f"FORMAT range={h} rule=<0 color=red"
     if r < 0.65:
-        return random.choice([f"highlight duplicates in {h}", f"flag duplicate {h} values in {color}"]), \
+        return random.choice([f"highlight duplicates in {h} in {color}", f"flag duplicate {h} values in {color}"]), \
                f"FORMAT range={h} rule=duplicate color={color}"
     if r < 0.80:
         k = random.choice([3, 5, 10])
-        return random.choice([f"highlight the top {k} {h}", f"color the top {k} values in {h} {color}"]), \
+        return random.choice([f"highlight the top {k} {h} in {color}", f"color the top {k} values in {h} {color}"]), \
                f"FORMAT range={h} rule=top{k} color={color}"
     if r < 0.85:
         w = word()
-        return random.choice([f"highlight {h} containing {w}", f"color {h} cells that contain {w} {color}"]), \
+        return random.choice([f"highlight {h} containing {w} in {color}", f"color {h} cells that contain {w} {color}"]), \
                f"FORMAT range={h} rule=contains:{w} color={color}"
     if r < 0.93:
         return random.choice([f"add a color scale to {h}", f"apply a heat map to the {h} column"]), \
                f"FORMAT range={h} rule=colorscale"
-    return random.choice([f"add data bars to {h}", f"show {h} as in-cell bars"]), \
+    return random.choice([f"add {color} data bars to {h}", f"show {h} as {color} in-cell bars"]), \
            f"FORMAT range={h} rule=databar color={color}"
 
 # ── data cleaning: intent -> a CLEAN spec the add-in runs via Office.js ──
@@ -1738,7 +1740,8 @@ def gen_steps():
         if k=="autofit":    return "autofit the columns", "AUTOFIT"
         if k=="bold":       return f"bold the {h} header", f"BOLD col={h}"
         w=word(); return f"filter {h} to {w}", f"FILTERVIEW col={h} value={w}"
-    kinds = random.sample(["trim","upper","lower","dedupe","delblank","fillblanks","fmt","sort","numfmt","freeze","autofit","bold","filt"], random.randint(3,6))
+    # 2-3 steps so the full Q+A fits in block_size (longer chains overflow and can't be learned)
+    kinds = random.sample(["trim","upper","lower","dedupe","delblank","fillblanks","fmt","sort","numfmt","freeze","autofit","bold","filt"], random.randint(2,3))
     steps = [step(k) for k in kinds]
     return ", then ".join(s[0] for s in steps), "STEPS " + " ; ".join(s[1] for s in steps)
 
@@ -2101,13 +2104,12 @@ def gen_modernize():
 # ── add error handling: wrap any formula in IFERROR / IFNA ──
 def gen_adderror():
     fn = random.choice(G); d, f = fn()
+    # deterministic: IFNA iff it's a lookup, and the fallback value is always stated in the prompt
     val, label = random.choice([("0", "0"), ('""', "blank"), ('"N/A"', "N/A"), ('"-"', "a dash")])
-    is_lookup = any(x in f for x in ("VLOOKUP", "XLOOKUP", "HLOOKUP", "MATCH", "INDEX"))
-    wrap = "IFNA" if (is_lookup and random.random() < 0.6) else "IFERROR"
+    wrap = "IFNA" if any(x in f for x in ("VLOOKUP", "XLOOKUP", "HLOOKUP", "MATCH", "INDEX")) else "IFERROR"
     out = f"={wrap}({f[1:]},{val})"
-    return random.choice([f"add error handling to {f}", f"wrap {f} so errors show {label}",
-                          f"handle errors in {f}", f"make {f} return {label} on error",
-                          f"catch errors in {f}"]), out
+    return random.choice([f"wrap {f} so errors show {label}", f"make {f} return {label} on error",
+                          f"handle errors in {f} by showing {label}", f"add error handling to {f} returning {label}"]), out
 
 # ── strip error handling: unwrap IFERROR / IFNA to expose the real result ──
 def gen_striperror():
@@ -2440,9 +2442,9 @@ GENDATA_COLS = ["region", "product", "amount", "date", "customer", "status", "pr
                 "name", "department", "salesperson", "invoice", "due_date", "rating", "cost"]
 def gen_gendata():
     n = random.choice([10, 20, 25, 50, 100, 200, 500])
-    cs = random.sample(GENDATA_COLS, random.randint(2, 5))
-    return random.choice([f"generate {n} rows of sample {cs[0]} data", f"make {n} rows of fake data with {', '.join(cs)}",
-                          f"create {n} sample rows of {', '.join(cs)}", f"mock up {n} rows: {', '.join(cs)}"]), \
+    cs = random.sample(GENDATA_COLS, random.randint(2, 5)); cols = ", ".join(cs)   # state ALL cols (no conflict)
+    return random.choice([f"generate {n} rows of sample data with {cols}", f"make {n} rows of fake data with {cols}",
+                          f"create {n} sample rows of {cols}", f"mock up {n} rows of {cols}"]), \
            f"GENDATA rows={n} cols={','.join(cs)}"
 
 # ── spreadsheet unit test (assertion) ──
@@ -2582,7 +2584,7 @@ def _h_sumifs_dates():
             f'=SUMIFS({sc}:{sc},{dc}:{dc},">="&DATE({y},1,1),{dc}:{dc},"<="&DATE({y},6,30))')
 def _h_averageifs_dates():
     sc=col(); dc=col(); y=random.choice([2023,2024])
-    return (f"average {sc} for the year {y}",
+    return (f"average {sc} where {dc} falls in {y}",
             f'=AVERAGEIFS({sc}:{sc},{dc}:{dc},">="&DATE({y},1,1),{dc}:{dc},"<="&DATE({y},12,31))')
 def _h_index_match_2d():
     a=cell(); b=cell()
@@ -2593,7 +2595,7 @@ def _h_let_margin():
             "=LET(rev,A1,cost,B1,(rev-cost)/rev)")
 def _h_filter_sum():
     sc=col(); cc=col(); w=word()
-    return (f"sum of {sc} for only the {w} rows using FILTER",
+    return (f"sum of {sc} where {cc} is {w} using FILTER",
             f'=SUM(FILTER({sc}:{sc},{cc}:{cc}="{w}"))')
 def _h_sort_unique():
     c=col(); return (f"a sorted list of the unique values in {c}", f"=SORT(UNIQUE({c}2:{c}100))")
