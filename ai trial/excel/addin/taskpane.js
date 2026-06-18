@@ -22,12 +22,51 @@ Office.onReady(() => {
 
 function setOut(html) { document.getElementById("out").innerHTML = html; }
 
-async function run() {
-  const text = document.getElementById("q").value.trim();
-  if (!text) return;
-  setOut('<span class="muted">thinking…</span>');
+// Split one big request into ordered steps on explicit connectors (then / ; / newline /
+// numbered lists). Conservative: never splits on bare commas, so "sum A, B, C" stays one step.
+function splitSteps(text) {
+  const out = [];
+  for (let p of text.split(/\s*\b(?:then|after that|next)\b\s*|;|\n/i)) {
+    p = (p || "").replace(/^\s*(?:and|then|also)\s+/i, "").replace(/\s*(?:,|\band\b|\balso\b)\s*$/i, "").trim();
+    const numbered = p.split(/\s*\d+[.)]\s+/);
+    if (numbered.length > 1) numbered.forEach((s) => s.trim() && out.push(s.trim()));
+    else if (p) out.push(p);
+  }
+  return out;
+}
 
-  // 1. read the active cell's current formula (enables "edit this formula")
+async function callModel(text) {
+  const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+  return (await r.json()).result;
+}
+
+async function run() {
+  const raw = document.getElementById("q").value.trim();
+  if (!raw) return;
+  const steps = splitSteps(raw);
+  if (steps.length <= 1) return runSingle(raw);          // single request keeps "edit this cell" behavior
+
+  // workflow: run each step in order, model called once per step (the agent loop)
+  const done = [];
+  const render = (cur) => setOut(
+    `<div class="muted">workflow ${done.length}/${steps.length} done${cur ? " — running: " + escapeHtml(cur) : ""}</div>` +
+    done.map(([s, ok]) => `<div class="${ok ? "muted" : "err"}">${ok ? "✓" : "✗"} ${escapeHtml(s)}</div>`).join("")
+  );
+  for (const step of steps) {
+    render(step);
+    let result;
+    try { result = await callModel(step); }
+    catch (e) { done.push([step + " (can't reach API)", false]); break; }
+    if (!result) { done.push([step + " (empty response)", false]); continue; }
+    try { await dispatch(result); done.push([step, true]); }
+    catch (e) { done.push([step + " (" + (e.message || "failed") + ")", false]); }
+  }
+  render();
+}
+
+async function runSingle(text) {
+  setOut('<span class="muted">thinking…</span>');
+  // read the active cell's current formula (enables "edit this formula")
   let current = "";
   try {
     await Excel.run(async (ctx) => {
@@ -38,26 +77,17 @@ async function run() {
       if (typeof v === "string" && v.startsWith("=")) current = v;
     });
   } catch (e) { /* no cell / no formula — treat as a fresh request */ }
-
-  // 2. if the cell already holds a formula, this is an edit; else a new request
   const prompt = current ? `edit ${current} to ${text}` : text;
-
-  // 3. ask the model
   let result;
-  try {
-    const r = await fetch(API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: prompt }),
-    });
-    result = (await r.json()).result;
-  } catch (e) {
-    setOut('<span class="err">Can\'t reach the model API. Is <code>serve.py</code> running on :8000?</span>');
-    return;
-  }
+  try { result = await callModel(prompt); }
+  catch (e) { setOut('<span class="err">Can\'t reach the model API. Is <code>serve.py</code> running on :8000?</span>'); return; }
   if (!result) { setOut('<span class="err">empty response</span>'); return; }
+  try { return await dispatch(result); }
+  catch (e) { setOut('<span class="err">Couldn\'t apply that: ' + escapeHtml(e.message) + "</span>"); }
+}
 
-  // 4. route by output type
+// route ONE model result to the right handler (used by both single + workflow paths)
+async function dispatch(result) {
   if (result.startsWith("STEPS")) return applySteps(result);
   if (result.startsWith("CHART")) return buildChart(result);
   if (result.startsWith("PIVOT")) {
@@ -79,34 +109,30 @@ async function run() {
   if (result.startsWith("PROTECT")) return applyProtect(parseSpec(result));
   if (result.startsWith("GENDATA")) return applyGendata(parseSpec(result));
   if (SHEET_VERBS.has(result.split(/\s/)[0])) return applySheet(result);
-  if (!result.startsWith("=")) { setOut(escapeHtml(result)); return; }  // explain / fix text
+  if (!result.startsWith("=")) { setOut(escapeHtml(result)); return; }  // explain / fix / advice text
 
-  // 5. a formula: bridge header names -> ranges, write it, and READ BACK the answer
-  try {
-    await Excel.run(async (ctx) => {
-      const sheet = ctx.workbook.worksheets.getActiveWorksheet();
-      const used = sheet.getUsedRangeOrNullObject();
-      used.load("values,columnIndex,isNullObject");
-      await ctx.sync();
+  // a formula: bridge header names -> ranges, write it, and READ BACK the answer
+  await Excel.run(async (ctx) => {
+    const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+    const used = sheet.getUsedRangeOrNullObject();
+    used.load("values,columnIndex,isNullObject");
+    await ctx.sync();
 
-      const headerMap = used.isNullObject ? {} : buildHeaderMap(used);
-      const finalFormula = applyBridge(result, headerMap);
+    const headerMap = used.isNullObject ? {} : buildHeaderMap(used);
+    const finalFormula = applyBridge(result, headerMap);
 
-      const cell = ctx.workbook.getActiveCell();
-      cell.formulas = [[finalFormula]];
-      cell.load("values");                 // ask-your-data: read the computed result
-      await ctx.sync();
+    const cell = ctx.workbook.getActiveCell();
+    cell.formulas = [[finalFormula]];
+    cell.load("values");                 // ask-your-data: read the computed result
+    await ctx.sync();
 
-      const val = cell.values[0][0];
-      const answer = (val !== "" && val != null && !String(val).startsWith("#"))
-        ? `<div class="answer">= ${escapeHtml(String(val))}</div>` : "";
-      const note = finalFormula !== result
-        ? `<div class="muted" style="margin-top:6px">from ${escapeHtml(result)}</div>` : "";
-      setOut(`<div class="formula">${escapeHtml(finalFormula)}</div>${answer}${note}`);
-    });
-  } catch (e) {
-    setOut('<span class="err">Couldn\'t write to the cell: ' + escapeHtml(e.message) + "</span>");
-  }
+    const val = cell.values[0][0];
+    const answer = (val !== "" && val != null && !String(val).startsWith("#"))
+      ? `<div class="answer">= ${escapeHtml(String(val))}</div>` : "";
+    const note = finalFormula !== result
+      ? `<div class="muted" style="margin-top:6px">from ${escapeHtml(result)}</div>` : "";
+    setOut(`<div class="formula">${escapeHtml(finalFormula)}</div>${answer}${note}`);
+  });
 }
 
 // "CHART type=bar values=sales category=region" -> build it from the matching columns
