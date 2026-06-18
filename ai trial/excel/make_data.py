@@ -1361,24 +1361,114 @@ def gen_nlsql():
     q, sql = random.choice(NLSQL)
     return random.choice([f"sql for: {q}", f"write sql to get {q}", f"query for {q}"]), sql
 
+# ── debug: formula + the error it throws -> diagnosis & fix ──
+DEBUG = [
+    ("=A1/B1", "#DIV/0!", "B1 is zero or blank — wrap it: =IFERROR(A1/B1,0)"),
+    ("=VLOOKUP(A1,B:C,2,FALSE)", "#N/A", "A1 isn't found in column B — check the value or wrap in IFNA"),
+    ("=SUM(A1:A10 B1:B10)", "#NULL!", "missing comma between ranges: =SUM(A1:A10,B1:B10)"),
+    ("=A1+Cc", "#NAME?", "Cc isn't a valid cell or name — did you mean a real cell?"),
+    ("=B1*#REF!", "#REF!", "the formula points at a deleted cell — rebuild the reference"),
+    ("=DATE(2024,13,1)", "#NUM!", "month 13 is invalid — months are 1 to 12"),
+]
+def gen_debug():
+    f, err, fix = random.choice(DEBUG)
+    return random.choice([f"{f} returns {err}, why?", f"why does {f} give {err}", f"{f} shows {err}, fix it"]), fix
+
+# ── convert references: relative <-> absolute ──
+def gen_absref():
+    cs = [f"{col()}{random.randint(1,50)}" for _ in range(2)]; op = random.choice(["+","-","*","/"])
+    rel = "=" + op.join(cs); absf = "=" + op.join(f"${c[0]}${c[1:]}" for c in cs)
+    if random.random() < 0.5:
+        return random.choice([f"make {rel} use absolute references", f"lock the references in {rel}"]), absf
+    return random.choice([f"make {absf} relative", f"unlock the references in {absf}"]), rel
+
+# ── document: formula -> a plain-English note/comment ──
+def gen_doc():
+    fn = random.choice(G); d, f = fn()
+    return random.choice([f"document {f}", f"write a comment for {f}", f"describe {f} for a note"]), d
+
+# ── solve: rearrange to find the unknown ──
+SOLVE = [
+    ("what revenue gives {p} profit when cost is {c}", "={p}+{c}"),
+    ("what price gives {m} margin on cost {c}", "={c}/(1-{m})"),
+    ("what quantity at price {p} reaches {t} in revenue", "={t}/{p}"),
+    ("what cost leaves {p} profit from revenue {t}", "={t}-{p}"),
+]
+def gen_solve():
+    tpl, ans = random.choice(SOLVE)
+    v = {k: cell() for k in ["p", "c", "m", "t"]}
+    return tpl.format(**v), ans.format(**v)
+
+# ── from examples (Flash-Fill): infer the transform ──
+FROMEX = [
+    ("hello -> HELLO, world -> WORLD", "=UPPER(A1)"), ("HELLO -> hello", "=LOWER(A1)"),
+    ("john smith -> John Smith", "=PROPER(A1)"), ("  hi  -> hi", "=TRIM(A1)"),
+    ("john@x.com -> x.com", '=TEXTAFTER(A1,"@")'), ("2024-01-15 -> 2024", "=YEAR(A1)"),
+    ("hello -> 5", "=LEN(A1)"), ("first last -> first", '=TEXTBEFORE(A1," ")'),
+]
+def gen_fromex():
+    ex, f = random.choice(FROMEX)
+    return random.choice([f"examples: {ex}", f"fill the pattern: {ex}", f"infer the formula: {ex}"]), f
+
+# ── rules table -> nested formula ──
+def gen_rules():
+    c = cell(); w1, w2 = random.sample(WORDS, 2); a, b = random.choice([(0.1,0.05),(0.2,0.1),(0.15,0.08)])
+    return f"on {c}: {w1} gives {a}, {w2} gives {b}, otherwise 0", f'=IFS({c}="{w1}",{a},{c}="{w2}",{b},TRUE,0)'
+
+# ── how-to Q&A: Excel UI instructions ──
+HOWTO = [
+    ("freeze the top row", "View -> Freeze Panes -> Freeze Top Row"),
+    ("remove duplicates", "Data -> Remove Duplicates"),
+    ("add a filter", "Data -> Filter (or Ctrl+Shift+L)"),
+    ("make a dropdown", "Data -> Data Validation -> List"),
+    ("wrap text", "Home -> Wrap Text"),
+    ("insert a pivot table", "Insert -> PivotTable"),
+    ("merge cells", "Home -> Merge & Center"),
+    ("freeze the first column", "View -> Freeze Panes -> Freeze First Column"),
+]
+def gen_howto():
+    q, a = random.choice(HOWTO)
+    return random.choice([f"how do i {q}", f"how to {q}", f"steps to {q}"]), a
+
+# ── chart recommendation ──
+CHARTREC = [
+    ("sales over time", "line chart"), ("market share by product", "pie chart"),
+    ("revenue by region", "bar chart"), ("price vs demand", "scatter chart"),
+    ("monthly totals", "column chart"), ("distribution of values", "histogram"),
+    ("comparison across categories", "bar chart"), ("a trend over months", "line chart"),
+]
+def gen_chartrec():
+    q, a = random.choice(CHARTREC)
+    return random.choice([f"best chart for {q}", f"what chart for {q}", f"which chart shows {q}"]), a
+
+# ── Office Script / macro generation ──
+SCRIPT = [
+    ("bold the header row", "sheet.getRange('1:1').format.font.bold = true;"),
+    ("autofit all columns", "sheet.getUsedRange().format.autofitColumns();"),
+    ("clear the sheet", "sheet.getUsedRange().clear();"),
+    ("freeze the top row", "sheet.freezePanes.freezeRows(1);"),
+    ("add a sheet called Summary", "workbook.addWorksheet('Summary');"),
+]
+def gen_script():
+    q, a = random.choice(SCRIPT)
+    return random.choice([f"office script to {q}", f"a macro to {q}", f"script that will {q}"]), a
+
+# ── weighted task mix (easy to extend; "formula" is the core branch) ──
+MODES = [
+    (40, "formula"), (6, gen_spanish), (5, gen_explain), (5, gen_fix), (5, gen_edit),
+    (3, gen_chart), (3, gen_format), (3, gen_clean), (2, gen_model), (2, gen_action),
+    (2, gen_steps), (2, gen_transpile), (1.5, gen_reverse), (1.5, gen_optimize),
+    (1.5, gen_audit), (1.5, gen_nlsql), (2, gen_debug), (2, gen_absref), (1.5, gen_doc),
+    (1.5, gen_solve), (2, gen_fromex), (1.5, gen_rules), (1.5, gen_howto),
+    (1.5, gen_chartrec), (1.5, gen_script),
+]
+_MODE_FNS = [f for _, f in MODES]
+_MODE_WTS = [w for w, _ in MODES]
 def sample():
-    r = random.random()
-    if r < 0.48: _, q, a = gen(); return q, a   # English description -> formula (core)
-    if r < 0.56: return gen_spanish()           # Spanish description -> formula
-    if r < 0.63: return gen_explain()           # explain a formula -> plain english
-    if r < 0.70: return gen_fix()               # fix a broken formula -> correct formula
-    if r < 0.77: return gen_edit()              # edit an existing formula -> new formula
-    if r < 0.80: return gen_chart()             # chart / pivot intent -> spec
-    if r < 0.83: return gen_format()            # conditional formatting -> FORMAT spec
-    if r < 0.86: return gen_clean()             # data cleaning -> CLEAN spec
-    if r < 0.88: return gen_model()             # finance model -> MODEL spec
-    if r < 0.90: return gen_action()            # validation / sort / filter -> action spec
-    if r < 0.92: return gen_steps()             # multi-step automation -> STEPS sequence
-    if r < 0.94: return gen_transpile()         # Excel formula -> Python / SQL / DAX
-    if r < 0.955: return gen_reverse()          # Python/pandas -> Excel formula
-    if r < 0.97: return gen_optimize()          # formula -> a better formula
-    if r < 0.985: return gen_audit()            # formula -> best-practice issues
-    return gen_nlsql()                          # natural language -> SQL
+    fn = random.choices(_MODE_FNS, weights=_MODE_WTS)[0]
+    if fn == "formula":
+        _, q, a = gen(); return q, a
+    return fn()
 
 if __name__ == "__main__":
     with open("excel.txt", "w", encoding="utf-8") as f:
