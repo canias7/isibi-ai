@@ -23,7 +23,7 @@ def amp():
 n_embd     = int(os.environ.get("NEMBD", 256))
 n_head     = int(os.environ.get("NHEAD", 4))
 n_layer    = int(os.environ.get("NLAYER", 4))
-block_size = int(os.environ.get("BLOCK", 128))
+block_size = int(os.environ.get("BLOCK", 256))   # raised: coworker answers + data tables run ~150-210 chars
 batch_size = int(os.environ.get("BATCH", 64))
 grad_ckpt  = os.environ.get("GRADCKPT", "0") == "1"
 dropout    = float(os.environ.get("DROPOUT", 0.1))
