@@ -28,6 +28,13 @@ Row 1 headers, ~10 rows of data:
 
 ---
 
+## Quick start (once a checkpoint exists)
+**Double-click `launch.bat`** — it starts both servers (model API on :8000 + task pane
+on :3001). Then sideload `addin/manifest.xml` in Excel (Layer 3) and you're live.
+If anything misbehaves, use the layered bring-up below to isolate it.
+
+---
+
 ## Layer 0 — checkpoint exists
 ```powershell
 cd "ai trial\excel"
@@ -97,6 +104,16 @@ For each layer that breaks, capture:
 
 Layers 1–2 are plumbing (quick fixes). Layer 3–4 errors are Office.js calls in
 `taskpane.js` — paste the message and we patch the specific handler.
+
+## Keep training in the background (serve the latest while it improves)
+Training now saves `excel.ckpt` **every `SAVE_EVERY` steps** (default 2000), not just
+at the end. So:
+1. Let a run produce a checkpoint → go live with `launch.bat`.
+2. Kick off another run that **resumes** (just run `train_resumable.py` again — it picks
+   up from `excel.ckpt`) to keep improving in the background.
+3. For the fresher model, **restart `serve.py`** (close its window, re-run `launch.bat`).
+   The running server holds its weights in memory, so background training overwriting
+   the file won't disturb a live session.
 
 ## After it works
 - Keep `serve.py` + the file server running while you use it.

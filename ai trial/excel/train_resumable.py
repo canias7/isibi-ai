@@ -30,6 +30,7 @@ dropout    = float(os.environ.get("DROPOUT", 0.1))
 lr         = 3e-4
 max_iters  = int(os.environ.get("ITERS", 5000))
 eval_every = int(os.environ.get("EVAL", 500))
+save_every = int(os.environ.get("SAVE_EVERY", 2000))   # periodic save -> servable mid-training
 CKPT = "excel.ckpt"
 
 # ── frozen tokenizer ──
@@ -195,6 +196,10 @@ def get_lr(it):
     ratio = (it - warmup) / max(1, lr_decay_iters - warmup)
     return min_lr + 0.5 * (1 + math.cos(math.pi * ratio)) * (lr - min_lr)
 
+def save_ckpt(step):
+    torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "step": step,
+                "config": {"n_embd": n_embd, "n_head": n_head, "n_layer": n_layer, "block_size": block_size}}, CKPT)
+
 t0 = time.time()
 for it in range(start_step, start_step + max_iters):
     cur_lr = get_lr(it)
@@ -203,6 +208,9 @@ for it in range(start_step, start_step + max_iters):
     if it % eval_every == 0:
         l = estimate_loss()
         print(f"step {it:6d} | train {l['train']:.3f} | val {l['val']:.3f} | lr {cur_lr:.1e} | {time.time()-t0:.0f}s")
+    if it > start_step and it % save_every == 0:        # periodic save -> serve the latest while it trains
+        save_ckpt(it)
+        print(f"  checkpoint saved at step {it} (servable now)")
     x, y = get_batch("train")
     with amp():
         _, loss = model(x, y)
@@ -213,8 +221,7 @@ for it in range(start_step, start_step + max_iters):
 final_step = start_step + max_iters
 l = estimate_loss()
 print(f"FINAL  {final_step} | train {l['train']:.3f} | val {l['val']:.3f}")
-torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "step": final_step,
-            "config": {"n_embd": n_embd, "n_head": n_head, "n_layer": n_layer, "block_size": block_size}}, CKPT)
+save_ckpt(final_step)
 print(f"saved checkpoint at step {final_step}")
 
 # ── test: give it descriptions, see the formulas it writes ──
