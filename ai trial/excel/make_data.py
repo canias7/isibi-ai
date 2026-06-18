@@ -856,6 +856,62 @@ def g_prorate():    a=cell(); d=cell(); return f"prorate {a} for {d} days out of
 @reg
 def g_split_parts():c=cell(); n=random.randint(2,12); return f"split {c} across {n} equal parts", f"={c}/{n}"
 
+# ── complete-Excel coverage: bulk single/double-arg functions via a factory ──
+def _bulk(name, sig, phrase):
+    def g():
+        if sig == "cell":  c=cell(); return phrase.format(x=c), f"={name}({c})"
+        if sig == "range": r,d=rng(); return phrase.format(x=d), f"={name}({r})"
+        if sig == "cell2": a=cell(); b=cell(); return phrase.format(a=a,b=b), f"={name}({a},{b})"
+        if sig == "celln": c=cell(); n=random.randint(2,9); return phrase.format(x=c,n=n), f"={name}({c},{n})"
+        return phrase, f"={name}()"
+    g.__name__ = "g_x_" + name.lower().replace(".", "")
+    G.append(g)
+
+_BULK = [
+    # trigonometry
+    ("SIN","cell","the sine of {x}"), ("COS","cell","the cosine of {x}"), ("TAN","cell","the tangent of {x}"),
+    ("ASIN","cell","the arcsine of {x}"), ("ACOS","cell","the arccosine of {x}"), ("ATAN","cell","the arctangent of {x}"),
+    ("SINH","cell","the hyperbolic sine of {x}"), ("COSH","cell","the hyperbolic cosine of {x}"), ("TANH","cell","the hyperbolic tangent of {x}"),
+    ("ASINH","cell","the inverse hyperbolic sine of {x}"), ("ACOSH","cell","the inverse hyperbolic cosine of {x}"), ("ATANH","cell","the inverse hyperbolic tangent of {x}"),
+    ("COT","cell","the cotangent of {x}"), ("ACOT","cell","the arccotangent of {x}"), ("SEC","cell","the secant of {x}"), ("CSC","cell","the cosecant of {x}"),
+    ("DEGREES","cell","convert {x} radians to degrees"), ("RADIANS","cell","convert {x} degrees to radians"),
+    ("PI","noarg","the value of pi"), ("ATAN2","cell2","the arctangent of the point {a} {b}"),
+    # math
+    ("SQRTPI","cell","the square root of {x} times pi"), ("GAMMALN","cell","the natural log of gamma of {x}"),
+    ("FACTDOUBLE","cell","the double factorial of {x}"), ("GAUSS","cell","the gauss of {x}"), ("PHI","cell","the density of the standard normal at {x}"),
+    ("FISHER","cell","the fisher transform of {x}"), ("FISHERINV","cell","the inverse fisher transform of {x}"),
+    ("ARABIC","cell","convert the roman numeral in {x} to a number"), ("ROMAN","cell","{x} as roman numerals"),
+    ("LOG","celln","log of {x} to base {n}"), ("BASE","celln","convert {x} to base {n}"),
+    ("COMBINA","celln","combinations with repetition of {x} choose {n}"), ("PERMUTATIONA","celln","permutations with repetition of {x} choose {n}"),
+    ("MULTINOMIAL","range","the multinomial of {x}"),
+    # statistics
+    ("AVERAGEA","range","the average of {x} counting text as zero"), ("STDEVA","range","sample standard deviation of {x} including text"),
+    ("STDEVPA","range","population standard deviation of {x} including text"), ("VARA","range","sample variance of {x} including text"),
+    ("VARPA","range","population variance of {x} including text"), ("MODE.SNGL","range","the single most common value in {x}"),
+    ("SKEW.P","range","the population skewness of {x}"),
+    # date / time
+    ("HOUR","cell","the hour from {x}"), ("MINUTE","cell","the minute from {x}"), ("SECOND","cell","the second from {x}"),
+    ("ISOWEEKNUM","cell","the ISO week number of {x}"), ("DATEVALUE","cell","convert the text date in {x} to a serial number"),
+    ("TIMEVALUE","cell","convert the text time in {x} to a serial number"),
+    ("DAYS360","cell2","days between {a} and {b} on a 360-day year"), ("YEARFRAC","cell2","the fraction of a year between {a} and {b}"),
+    # text
+    ("ASC","cell","convert {x} to single-byte characters"), ("PHONETIC","cell","the phonetic text in {x}"),
+    ("BAHTTEXT","cell","{x} as Thai baht text"), ("DOLLAR","celln","format {x} as currency text with {n} decimals"),
+    ("FIXED","celln","format {x} as text with {n} decimals"),
+    # information
+    ("ISERR","cell","check if {x} is an error other than N/A"), ("ISLOGICAL","cell","check if {x} is a logical value"),
+    ("ISNONTEXT","cell","check if {x} is not text"), ("ISREF","cell","check if {x} is a reference"),
+    ("ERROR.TYPE","cell","the error type number of {x}"),
+    # engineering
+    ("DEC2BIN","cell","convert {x} to binary"), ("DEC2HEX","cell","convert {x} to hexadecimal"), ("DEC2OCT","cell","convert {x} to octal"),
+    ("BIN2DEC","cell","convert the binary {x} to a number"), ("HEX2DEC","cell","convert the hex {x} to a number"), ("OCT2DEC","cell","convert the octal {x} to a number"),
+    ("ERF","cell","the error function of {x}"), ("ERFC","cell","the complementary error function of {x}"),
+    ("DELTA","cell2","1 if {a} equals {b} otherwise 0"), ("GESTEP","cell2","1 if {a} is at least {b} otherwise 0"),
+    ("BITAND","cell2","the bitwise AND of {a} and {b}"), ("BITOR","cell2","the bitwise OR of {a} and {b}"), ("BITXOR","cell2","the bitwise XOR of {a} and {b}"),
+]
+for _n, _s, _p in _BULK:
+    _bulk(_n, _s, _p)
+
 # ── phrasing engine: wrap each base request the many ways real people type it ──
 # (empties keep a good share clean; the rest add natural lead-ins / trailers)
 LEADS = ["", "", "", "", "", "", "",
