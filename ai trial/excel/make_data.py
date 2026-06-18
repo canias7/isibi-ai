@@ -2900,6 +2900,41 @@ KPI = [
     ("overtime rate from overtime hours A1 and total hours B1", "=A1/B1"),
     ("span of control from reports A1 and managers B1", "=A1/B1"),
     ("revenue per labor hour from revenue A1 and labor hours B1", "=A1/B1"),
+    # insurance
+    ("loss ratio from claims paid A1 and premiums earned B1", "=A1/B1"),
+    ("expense ratio from underwriting expenses A1 and premiums B1", "=A1/B1"),
+    ("combined ratio from losses plus expenses A1 and premiums B1", "=A1/B1"),
+    ("claims frequency from claims A1 and policies B1", "=A1/B1"),
+    ("policy retention from renewed A1 and up for renewal B1", "=A1/B1"),
+    # call center
+    ("average handle time from total talk minutes A1 and calls B1", "=A1/B1"),
+    ("service level from calls answered in target A1 and total calls B1", "=A1/B1"),
+    ("call abandonment rate from abandoned A1 and offered calls B1", "=A1/B1"),
+    ("agent occupancy from busy time A1 and logged-in time B1", "=A1/B1"),
+    # construction
+    ("cost per square foot from total cost A1 and square feet B1", "=A1/B1"),
+    ("percent of contract billed from billed A1 and contract value B1", "=A1/B1"),
+    ("change order rate from change orders A1 and original contract B1", "=A1/B1"),
+    ("labor productivity from output A1 and labor hours B1", "=A1/B1"),
+    # restaurant (deeper)
+    ("beverage cost percent from beverage cost A1 and beverage sales B1", "=A1/B1"),
+    ("waste rate from waste cost A1 and food cost B1", "=A1/B1"),
+    ("covers per labor hour from covers A1 and labor hours B1", "=A1/B1"),
+    ("comp rate from comped sales A1 and total sales B1", "=A1/B1"),
+    # SaaS (deeper)
+    ("trial conversion from paid signups A1 and trials B1", "=A1/B1"),
+    ("activation rate from activated users A1 and signups B1", "=A1/B1"),
+    ("expansion rate from expansion MRR A1 and starting MRR B1", "=A1/B1"),
+    ("logo retention from retained accounts A1 and starting accounts B1", "=A1/B1"),
+    ("gross revenue retention from retained MRR A1 and starting MRR B1", "=A1/B1"),
+    # logistics (deeper)
+    ("cost per mile from total cost A1 and miles B1", "=A1/B1"),
+    ("fleet utilization from active hours A1 and available hours B1", "=A1/B1"),
+    ("empty mile rate from empty miles A1 and total miles B1", "=A1/B1"),
+    # real estate (deeper)
+    ("operating expense ratio from operating expenses A1 and gross income B1", "=A1/B1"),
+    ("debt yield from NOI A1 and loan amount B1", "=A1/B1"),
+    ("loan to cost from loan A1 and total project cost B1", "=A1/B1"),
 ]
 def gen_kpi():
     q, a = random.choice(KPI)
@@ -3116,6 +3151,18 @@ CONCEPTS = {
     "gross burn vs net burn": "Gross burn is total monthly spend; net burn subtracts revenue — net burn is what actually drains the bank.",
     "EBIT": "Earnings before interest and taxes — operating profit, before financing and tax effects.",
     "days inventory outstanding": "The average number of days inventory sits before it's sold; lower means cash isn't stuck in stock.",
+    "sunk cost": "Money already spent that can't be recovered. It shouldn't influence future decisions — only future costs and benefits matter.",
+    "opportunity cost": "The value of the best alternative you give up when you choose one option over another.",
+    "economies of scale": "Cost per unit falls as volume rises because fixed costs spread over more units and you gain buying power.",
+    "standard costing": "Setting expected costs in advance, then analyzing the variances when actual costs differ.",
+    "activity-based costing": "Allocating overhead to products based on the activities they actually consume, rather than a blunt average.",
+    "transfer pricing": "The price one part of a company charges another for goods or services, which affects each unit's reported profit.",
+    "hurdle rate": "The minimum return an investment must beat to be worth doing, usually the cost of capital plus a risk margin.",
+    "leverage": "Using debt to amplify returns. It boosts gains when things go well and magnifies losses when they don't.",
+    "amortization schedule": "A table showing each loan payment split into interest and principal, with the falling balance over time.",
+    "cost of capital": "The blended return investors and lenders require to fund the business — the bar new projects must clear.",
+    "deferred revenue vs accrued revenue": "Deferred revenue is cash received before earning it (a liability); accrued revenue is earned before billing it (an asset).",
+    "fixed vs marginal cost": "Fixed cost doesn't change with output; marginal cost is the cost of producing one more unit.",
 }
 def gen_concept():
     t = random.choice(list(CONCEPTS))
@@ -3181,6 +3228,16 @@ CONSULT = [
     ("how do I reduce my tax bill legally", "Maximize deductions and credits, time income and expenses, use retirement and depreciation rules, and get a good accountant — plan, don't scramble."),
     ("what's a good profit margin for my business", "It varies by industry — grocery runs low single digits, software 70%+ gross. Compare to peers in your sector, not a universal number."),
     ("how do I improve employee productivity", "Remove blockers and busywork, set clear priorities, measure outcomes not hours, and invest in tools and training that compound."),
+    ("how do I price for profit", "Start from your fully-loaded cost, add your target margin, then sanity-check against what the market and competitors charge."),
+    ("when should I fire a customer", "When they cost more than they pay — constant discounts, scope creep, late payment, or eating support time that better customers deserve."),
+    ("how do I handle late-paying clients", "Invoice promptly, send firm reminders, charge late fees, pause work, and move repeat offenders to upfront or shorter terms."),
+    ("should I discount to win a deal", "Discount only for something in return — a longer term, upfront payment, or a reference. Habitual discounting trains buyers to wait."),
+    ("how do I forecast cash for a startup", "Project weekly: start cash, expected collections by timing, fixed and variable outflows. Be conservative on inflows and watch runway."),
+    ("how do I read a balance sheet", "Assets on one side, liabilities and equity on the other — they balance. Check liquidity (current ratio) and leverage (debt to equity)."),
+    ("what margin should I target", "Depends on industry — compare to peers. As a rule, protect gross margin first; it funds everything below it."),
+    ("how do I scale operations", "Document and standardize processes, automate the repetitive parts, hire ahead of bottlenecks, and watch that margins hold as you grow."),
+    ("when should I outsource", "Outsource non-core, specialized, or spiky work where an outside team is cheaper or better; keep your core advantage in-house."),
+    ("how do I set a budget", "Start from goals, build revenue conservatively, list fixed then variable costs, leave a contingency, and review actuals monthly."),
 ]
 def gen_consult():
     return random.choice(CONSULT)
@@ -3262,6 +3319,21 @@ SCHEMA = {
     "investor update metrics": "Metric, This Month, Last Month, Change, Target",
     "membership roster": "Member, Join Date, Tier, Dues Paid, Renewal Date, Status",
     "board meeting agenda": "Item, Presenter, Time, Type, Decision Needed",
+    "construction job cost sheet": "Job, Phase, Budget, Committed, Actual, Variance, Status",
+    "insurance policy log": "Policyholder, Policy Number, Type, Premium, Renewal Date, Status",
+    "claims log": "Claim Number, Claimant, Date, Type, Amount, Status, Adjuster",
+    "call center log": "Date, Agent, Calls, Avg Handle Time, Resolved, Satisfaction",
+    "menu engineering sheet": "Item, Food Cost, Price, Margin, Units Sold, Category",
+    "patient appointment schedule": "Patient, Date, Time, Provider, Type, Status",
+    "prescription log": "Patient, Drug, Dosage, Quantity, Refills, Date",
+    "shipment manifest": "Order, Carrier, Weight, Origin, Destination, Cost, Status",
+    "production schedule": "Order, Product, Quantity, Start, Due, Line, Status",
+    "real estate deal pipeline": "Property, Asking Price, Stage, Cap Rate, Offer, Status",
+    "donor pledge tracker": "Donor, Pledge, Paid, Balance, Campaign, Due Date",
+    "volunteer schedule": "Volunteer, Role, Date, Shift, Hours, Status",
+    "equipment maintenance log": "Equipment, Last Service, Next Service, Hours, Cost, Status",
+    "freight cost log": "Shipment, Carrier, Origin, Destination, Weight, Cost, Date",
+    "loan portfolio": "Borrower, Principal, Rate, Term, Payment, Balance, Status",
 }
 def gen_schema():
     t = random.choice(list(SCHEMA))
@@ -3379,10 +3451,24 @@ _CC_SURE_R = ["Double-check it against your own numbers, but yes — want me to 
 _CC_JOKE = ["tell me a joke", "say something funny", "make me laugh"]
 _CC_JOKE_R = ["I'm better with pivot tables than punchlines — but here's one: why did the accountant stay calm? They had everything balanced. Now, what's the task?",
               "Spreadsheets are my comedy: a SUM walks into a range... anyway, what can I calculate for you?"]
+_CC_THERE = ["you there", "hello?", "you still there", "anyone there"]
+_CC_THERE_R = ["Right here! What's the task?", "Still here — what do you need in the sheet?"]
+_CC_NEW = ["whats new", "what's up with you", "anything new"]
+_CC_NEW_R = ["Same mission — making your spreadsheets easier. What are we building?", "Ready as always. What do you need?"]
+_CC_NVM = ["never mind", "forget it", "nevermind", "no worries"]
+_CC_NVM_R = ["No problem — ping me when you need something.", "All good — I'm here when you do."]
+_CC_QUESTION = ["i have a question", "can I ask something", "quick question"]
+_CC_QUESTION_R = ["Go for it — what's the spreadsheet question?", "Of course — what do you want to know?"]
+_CC_WOW = ["this is amazing", "wow", "that's so helpful", "incredible"]
+_CC_WOW_R = ["Glad it helps! What else can I crunch?", "Happy to — what's next on the sheet?"]
+_CC_NIGHT = ["good night", "good evening", "talk tomorrow"]
+_CC_NIGHT_R = ["Night! Your spreadsheet will be here whenever you are.", "Take care — back whenever you need a formula."]
 _CHITCHAT = [(_CC_GREET, _CC_GREET_R), (_CC_THANKS, _CC_THANKS_R), (_CC_WHO, _CC_WHO_R), (_CC_CAN, _CC_CAN_R),
              (_CC_HOW, _CC_HOW_R), (_CC_BYE, _CC_BYE_R), (_CC_ACK, _CC_ACK_R), (_CC_STUCK, _CC_STUCK_R), (_CC_NICE, _CC_NICE_R),
              (_CC_AI, _CC_AI_R), (_CC_SEE, _CC_SEE_R), (_CC_VAGUE, _CC_VAGUE_R), (_CC_FRUST, _CC_FRUST_R), (_CC_LOL, _CC_LOL_R),
-             (_CC_TIME, _CC_TIME_R), (_CC_DOIT, _CC_DOIT_R), (_CC_SURE, _CC_SURE_R), (_CC_JOKE, _CC_JOKE_R)]
+             (_CC_TIME, _CC_TIME_R), (_CC_DOIT, _CC_DOIT_R), (_CC_SURE, _CC_SURE_R), (_CC_JOKE, _CC_JOKE_R),
+             (_CC_THERE, _CC_THERE_R), (_CC_NEW, _CC_NEW_R), (_CC_NVM, _CC_NVM_R), (_CC_QUESTION, _CC_QUESTION_R),
+             (_CC_WOW, _CC_WOW_R), (_CC_NIGHT, _CC_NIGHT_R)]
 def gen_chitchat():
     ins, reps = random.choice(_CHITCHAT)
     return random.choice(ins), random.choice(reps)
@@ -3452,6 +3538,17 @@ FUNCREF = {
     "PV": "PV(rate, nper, pmt) returns the present value today of a stream of future payments.",
     "NPER": "NPER(rate, pmt, pv) returns how many periods it takes to pay off or reach a value.",
     "RATE": "RATE(nper, pmt, pv) returns the periodic interest rate of a loan or investment.",
+    "AVERAGEIFS": "AVERAGEIFS(avg_range, range1, criteria1, ...) averages cells meeting several conditions.",
+    "MAXIFS": "MAXIFS(max_range, range1, criteria1, ...) returns the largest value meeting all the conditions; MINIFS does the smallest.",
+    "COUNTBLANK": "COUNTBLANK(range) counts the empty cells in a range.",
+    "IFNA": "IFNA(formula, value) catches only the #N/A error, leaving other errors visible — better than IFERROR for lookups.",
+    "SWITCH": "SWITCH(expression, value1, result1, ..., default) matches an expression against options — cleaner than nested IFs for exact matches.",
+    "TEXTBEFORE": "TEXTBEFORE(text, delimiter) returns the part of text before a delimiter; TEXTAFTER returns the part after.",
+    "TEXTSPLIT": "TEXTSPLIT(text, delimiter) splits text into separate cells by a delimiter, spilling the result.",
+    "XMATCH": "XMATCH(value, array, [mode]) returns the position of a value, with more options than MATCH including reverse search.",
+    "EDATE": "EDATE(start, months) returns the date a number of months before or after a start date.",
+    "TRANSPOSE": "TRANSPOSE(range) flips rows into columns and columns into rows.",
+    "REPT": "REPT(text, n) repeats text n times — handy for simple in-cell bar charts.",
 }
 def gen_funcref():
     fn = random.choice(list(FUNCREF))
