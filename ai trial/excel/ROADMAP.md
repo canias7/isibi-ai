@@ -71,11 +71,20 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 - 🔭 **Paste messy data → auto-structure** into a clean table (types, headers)
 - 🔭 **Parse a bank statement / PDF table** into columns
 - 🔭 **Cell comments** — document what a formula does, in the cell note
+- 🔭 **Generate sample/dummy data** — "100 rows of fake sales" for testing
+- 🔭 **Generate a starter spreadsheet** from a prompt ("build a CRM tracker")
+- 🔭 **Icon sets & data bars** — conditional formatting beyond color (arrows, traffic lights)
+- 🔭 **KPI cards / mini-dashboard** from a prompt
+- 🔭 **Intelligent fill series** — flash-fill-style pattern completion
 
 ## Backlog — Phase B: automation (multi-step)
 - 🔭 Output an **ordered list of steps** ("dedupe, format as currency, then total it")
 - 🔭 Needs: bigger model + **block_size 256** + add-in **step executor**
 - 🔭 New training data: chained tasks
+- 🔭 **Office Scripts / VBA generation** — emit runnable automation, not just steps
+- 🔭 **Reusable recipes** — save a bot action sequence as a named, parameterized
+  routine ("monthly close"); re-run on demand
+- 🔭 **Scheduled / triggered** actions; **bulk apply** across many sheets / files
 
 ## Backlog — Phase C: build models (templates)
 - 🔭 Hybrid: model → **template + params**, add-in **stamps the grid**
@@ -95,6 +104,13 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
   DCF + WACC build-up, comps table, LBO, unit economics (CAC/LTV/payback/churn),
   working-capital schedule (DSO/DPO/DIO), Monte Carlo simulation
 
+## Backlog — domain packs (beyond finance, widen the audience)
+- 🔭 **Sales / CRM** — pipeline, conversion, quota attainment
+- 🔭 **HR / payroll** — PTO accrual, headcount, comp bands
+- 🔭 **Marketing** — ROI, CAC, attribution, funnel
+- 🔭 **Real estate** — rent roll, cap rate, NOI, mortgage
+- 🔭 **Operations** — inventory, reorder points, scheduling
+
 ## Backlog — correctness & governance (finance-grade trust)
 - 🔭 **Consistency checker** — flag a cell that breaks its row/column formula pattern
 - 🔭 **Tie-out / balance asserts** — BS balances, CF ties to cash, totals reconcile
@@ -102,6 +118,14 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 - 🔭 **Version diff** — compare two versions of a model, show what changed
 - 🔭 **Protect formula cells**, leave inputs editable
 - 🔭 **Root-cause error trace** — explain *why* a cell errors, from its precedents
+
+## Backlog — spreadsheet health (performance & best practice)
+- 🔭 **Linter** — flag volatile functions (NOW/OFFSET/INDIRECT), whole-column refs,
+  hardcoded numbers, redundant formulas
+- 🔭 **Optimize slow formulas** — swap array-heavy / volatile for efficient equivalents
+- 🔭 **Decompose a giant formula** into helper cells / `LET`
+- 🔭 **Spreadsheet unit tests** — assert cell X = expected, re-check after edits
+- 🔭 **Audit / compliance report** — auto-document every formula + assumptions
 
 ## Backlog — model & training quality
 - 🔭 **Multi-word headers** ("net sales", "unit price") — data + bridge support
@@ -130,6 +154,9 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 - 🔭 **Self-check & retry** — generate → validate → regenerate if malformed
 - 🔭 **Multilingual** beyond ES (PT, FR) — same formulas, more phrasings
 - 🔭 **Formula-aware tokenizer** — special tokens for function names (smaller/faster)
+- 🔭 **Personalization** — learn your naming conventions, preferred functions
+  (XLOOKUP vs VLOOKUP), date/currency style
+- 🔭 **Teach / tutorial mode** — explain at beginner vs expert level; practice exercises
 
 ## Backlog — add-in / product polish
 - 🔭 **Pivot auto-build** (Office.js `pivotTables`) — currently spec is shown only
@@ -165,6 +192,9 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 - 🔭 **Live market / FX data** — stock prices & exchange rates via a function
 - 🔭 **Connect to accounting software** (QuickBooks / Xero) — pull & reconcile
 - 🔭 **Mobile Excel** support
+- 🔭 **Slack / Teams bot** — ask the formula bot in chat, paste the result back
+- 🔭 **PII detection & masking** — flag/obscure sensitive data before processing
+- 🔭 **Developer API** — let other tools call the model
 
 ---
 
