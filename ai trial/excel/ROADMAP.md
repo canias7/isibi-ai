@@ -14,7 +14,9 @@ an Office.js handler. Keep the model small; scale only when eval says so.
 ## Status now
 
 **Model tasks**
-- ✅ Write formulas — 259 types (current training run)
+- ✅ Write formulas — 259 types — **TRAINED: 96.9% held-out exact / ~99% formula-correct**
+  (slope/trend/etc. "0%" was an ill-posed eval — now fixed to whole-column ranges;
+  rank→RANK.EQ; moving_avg oversampled 4×. Only real gap was window arithmetic.)
 - 🟡 Messy-input robustness (typos + shorthand)
 - 🟡 Explain a formula → plain English
 - 🟡 Fix a broken formula

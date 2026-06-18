@@ -235,7 +235,7 @@ def g_percentile():r,d=rng(); pc=random.choice([0.25,0.5,0.75,0.9]); return f"th
 @reg
 def g_quartile():  r,d=rng(); k=random.randint(1,3); return f"quartile {k} of {d}", f"=QUARTILE({r},{k})"
 @reg
-def g_rank():      c=cell(); r,d=rng(); return f"rank of {c} within {d}", f"=RANK({c},{r})"
+def g_rank():      c=cell(); r,d=rng(); return f"rank of {c} within {d}", f"=RANK.EQ({c},{r})"
 @reg
 def g_large():     r,d=rng(); k=random.randint(2,5); return f"the {k}th largest in {d}", f"=LARGE({r},{k})"
 @reg
@@ -244,18 +244,20 @@ def g_small():     r,d=rng(); k=random.randint(2,5); return f"the {k}th smallest
 def g_correl():    a=col(); b=col(); return f"correlation between {a} and {b}", f"=CORREL({a}:{a},{b}:{b})"
 
 # ── analysis / trends / forecasting (covers "analyze data") ──
+# Whole-column ranges so the request is WELL-POSED (the description fully determines
+# the formula); TREND/FORECAST/GROWTH state the new-x cell so it's reproducible.
 @reg
-def g_trend():      y,x,nx,yc,xc=xy(); return p(f"predict the next {yc} value from {xc}", f"extend the trend of {yc} against {xc}"), f"=TREND({y},{x},{nx})"
+def g_trend():      yc,xc=random.sample(COLS,2); nx=f"{xc}{random.randint(2,100)}"; return p(f"predict {yc} from {xc} at {nx}", f"extend the trend of {yc} on {xc} to {nx}"), f"=TREND({yc}:{yc},{xc}:{xc},{nx})"
 @reg
-def g_forecast():   y,x,nx,yc,xc=xy(); return p(f"forecast {yc} when {xc} reaches {nx}", f"linear forecast of the next {yc}"), f"=FORECAST.LINEAR({nx},{y},{x})"
+def g_forecast():   yc,xc=random.sample(COLS,2); nx=f"{xc}{random.randint(2,100)}"; return p(f"forecast {yc} when {xc} is {nx}", f"linear forecast of {yc} at {xc} {nx}"), f"=FORECAST.LINEAR({nx},{yc}:{yc},{xc}:{xc})"
 @reg
-def g_slope():      y,x,nx,yc,xc=xy(); return p(f"slope of {yc} versus {xc}", f"how much {yc} changes per unit of {xc}"), f"=SLOPE({y},{x})"
+def g_slope():      yc,xc=random.sample(COLS,2); return p(f"slope of {yc} versus {xc}", f"how much {yc} changes per unit of {xc}"), f"=SLOPE({yc}:{yc},{xc}:{xc})"
 @reg
-def g_intercept():  y,x,nx,yc,xc=xy(); return f"intercept of {yc} against {xc}", f"=INTERCEPT({y},{x})"
+def g_intercept():  yc,xc=random.sample(COLS,2); return f"intercept of {yc} against {xc}", f"=INTERCEPT({yc}:{yc},{xc}:{xc})"
 @reg
-def g_rsq():        y,x,nx,yc,xc=xy(); return p(f"r squared of {yc} against {xc}", f"how well {xc} explains {yc}"), f"=RSQ({y},{x})"
+def g_rsq():        yc,xc=random.sample(COLS,2); return p(f"r squared of {yc} against {xc}", f"how well {xc} explains {yc}"), f"=RSQ({yc}:{yc},{xc}:{xc})"
 @reg
-def g_growth():     y,x,nx,yc,xc=xy(); return f"exponential forecast of {yc} from {xc}", f"=GROWTH({y},{x},{nx})"
+def g_growth():     yc,xc=random.sample(COLS,2); nx=f"{xc}{random.randint(2,100)}"; return f"exponential forecast of {yc} from {xc} at {nx}", f"=GROWTH({yc}:{yc},{xc}:{xc},{nx})"
 @reg
 def g_covar():      a=col(); b=col(); return f"covariance of {a} and {b}", f"=COVARIANCE.P({a}:{a},{b}:{b})"
 @reg
@@ -288,6 +290,7 @@ def g_pct_change(): cl=col(); a=random.randint(1,80); b=a+1; return p(f"percent 
 def g_cagr():       cl=col(); a=random.randint(1,5); n=random.randint(2,10); b=a+n; return f"compound annual growth rate from {cl}{a} to {cl}{b} over {n} years", f"=({cl}{b}/{cl}{a})^(1/{n})-1"
 @reg
 def g_moving_avg(): c=cell(); k=random.choice([3,5,7]); cl=c[0]; row=int(c[1:]); s=max(1,row-k+1); return f"{k}-period moving average ending at {c}", f"=AVERAGE({cl}{s}:{cl}{row})"
+G += [g_moving_avg] * 3   # oversample 4x — window arithmetic is the one real weak spot
 @reg
 def g_frequency():  d=col(); b=col(); return f"frequency of {d} into the bins in {b}", f"=FREQUENCY({d}:{d},{b}:{b})"
 @reg
