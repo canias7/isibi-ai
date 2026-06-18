@@ -8,11 +8,12 @@ import os, re, json, sys, torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-CKPT = "excel.ckpt"
+device = os.environ.get("DEVICE") or ("cuda" if torch.cuda.is_available() else "cpu")
+CKPT = os.environ.get("CKPT", "excel.ckpt")        # override to serve a .bak checkpoint
+TOK  = os.environ.get("TOK", "tokenizer.json")     # ...with its matching tokenizer
 
 # ── frozen tokenizer ──
-tok = json.load(open("tokenizer.json"))
+tok = json.load(open(TOK))
 chars, merges = tok["chars"], [tuple(m) for m in tok["merges"]]
 vocab = chars + [a + b for a, b in merges] + ["<UNK>"]
 stoi = {t: i for i, t in enumerate(vocab)}
