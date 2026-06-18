@@ -61,6 +61,13 @@ Also works:
 - **Charts** — `bar chart of sales by region` → the model emits
   `CHART type=bar values=sales category=region`; the add-in maps the headers to
   columns and builds the chart. (Pivot specs are shown for now; auto-build is next.)
+- **Conditional formatting** — `highlight sales over 100 in red`,
+  `highlight duplicates in region`, `color the top 5 revenue` → `FORMAT ...` spec
+  the add-in applies as a real conditional-format rule.
+- **Data cleaning** — `remove duplicate rows`, `trim spaces in name`,
+  `fill blanks in revenue with 0`, `make region uppercase`, `convert price to
+  numbers` → `CLEAN op=...` the add-in runs on your data. (split into columns is
+  best-effort for now.)
 
 ## Notes / limits (v1)
 

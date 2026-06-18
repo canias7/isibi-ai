@@ -792,13 +792,69 @@ def gen_chart():
                      f"pivot table of {m} grouped by {dim}"])
     return q, f"PIVOT rows={dim} values={agg} of {m}"
 
+# ── conditional formatting: intent -> a FORMAT spec the add-in applies ──
+COLORS = ["red", "green", "yellow", "orange", "blue"]
+def gen_format():
+    h = hdr(); color = random.choice(COLORS); r = random.random()
+    if r < 0.35:
+        o = opn(); n = num()
+        q = random.choice([f"highlight {h} {opw(o)} {n} in {color}",
+                           f"color {h} cells {opw(o)} {n} {color}",
+                           f"highlight the {h} column where it is {opw(o)} {n}"])
+        return q, f"FORMAT range={h} rule={o}{n} color={color}"
+    if r < 0.50:
+        return random.choice([f"highlight negative {h} in red", f"color negative {h} values red"]), \
+               f"FORMAT range={h} rule=<0 color=red"
+    if r < 0.65:
+        return random.choice([f"highlight duplicates in {h}", f"flag duplicate {h} values in {color}"]), \
+               f"FORMAT range={h} rule=duplicate color={color}"
+    if r < 0.80:
+        k = random.choice([3, 5, 10])
+        return random.choice([f"highlight the top {k} {h}", f"color the top {k} values in {h} {color}"]), \
+               f"FORMAT range={h} rule=top{k} color={color}"
+    if r < 0.90:
+        w = word()
+        return random.choice([f"highlight {h} containing {w}", f"color {h} cells that contain {w} {color}"]), \
+               f"FORMAT range={h} rule=contains:{w} color={color}"
+    return random.choice([f"add a color scale to {h}", f"apply a heat map to the {h} column"]), \
+           f"FORMAT range={h} rule=colorscale"
+
+# ── data cleaning: intent -> a CLEAN spec the add-in runs via Office.js ──
+def gen_clean():
+    h = hdr(); r = random.random()
+    if r < 0.18:
+        return random.choice(["remove duplicate rows", "delete duplicates", "drop duplicate rows"]), \
+               "CLEAN op=dedupe"
+    if r < 0.34:
+        _, nm = random.choice(DELIMS)
+        return random.choice([f"split {h} into separate columns by the {nm}", f"split the {h} column on the {nm}"]), \
+               f"CLEAN op=split col={h} by={nm.replace(' ', '')}"
+    if r < 0.50:
+        v = random.choice(["0", "n/a", word()])
+        return random.choice([f"fill blank cells in {h} with {v}", f"replace empties in {h} with {v}"]), \
+               f"CLEAN op=fillblanks col={h} value={v}"
+    if r < 0.62:
+        return random.choice([f"trim extra spaces in {h}", f"remove extra spaces from {h}"]), \
+               f"CLEAN op=trim col={h}"
+    if r < 0.74:
+        return random.choice([f"convert {h} to numbers", f"turn the text in {h} into numbers"]), \
+               f"CLEAN op=tonumber col={h}"
+    if r < 0.86:
+        op, wrd = random.choice([("upper", "uppercase"), ("lower", "lowercase"), ("proper", "capitalize")])
+        return random.choice([f"make {h} {wrd}", f"{wrd} the {h} column"]), f"CLEAN op={op} col={h}"
+    a, b = random.sample(WORDS, 2)
+    return random.choice([f"replace {a} with {b} in {h}", f"change all {a} to {b} in {h}"]), \
+           f"CLEAN op=replace col={h} find={a} with={b}"
+
 def sample():
     r = random.random()
-    if r < 0.72: _, q, a = gen(); return q, a   # description -> formula (core task)
-    if r < 0.80: return gen_explain()           # explain a formula -> plain english
-    if r < 0.88: return gen_fix()               # fix a broken formula -> correct formula
-    if r < 0.96: return gen_edit()              # edit an existing formula -> new formula
-    return gen_chart()                          # chart / pivot intent -> spec
+    if r < 0.70: _, q, a = gen(); return q, a   # description -> formula (core task)
+    if r < 0.77: return gen_explain()           # explain a formula -> plain english
+    if r < 0.84: return gen_fix()               # fix a broken formula -> correct formula
+    if r < 0.91: return gen_edit()              # edit an existing formula -> new formula
+    if r < 0.94: return gen_chart()             # chart / pivot intent -> spec
+    if r < 0.97: return gen_format()            # conditional formatting -> FORMAT spec
+    return gen_clean()                          # data cleaning -> CLEAN spec
 
 if __name__ == "__main__":
     with open("excel.txt", "w", encoding="utf-8") as f:

@@ -83,3 +83,15 @@ random.seed(222)
 for _ in range(5):
     q, a = make_data.gen_chart()
     print(f"  Q: {q}\n     -> {ask.ask(q)}")
+
+# ── action specs: conditional formatting + data cleaning (eyeball) ──
+print("\nFORMAT samples:")
+random.seed(333)
+for _ in range(5):
+    q, a = make_data.gen_format()
+    print(f"  Q: {q}\n     -> {ask.ask(q)}")
+print("\nCLEAN samples:")
+random.seed(444)
+for _ in range(5):
+    q, a = make_data.gen_clean()
+    print(f"  Q: {q}\n     -> {ask.ask(q)}")
