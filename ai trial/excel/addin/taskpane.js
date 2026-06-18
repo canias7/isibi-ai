@@ -47,6 +47,17 @@ async function run() {
   if (steps.length <= 1) return runSingle(raw);          // single request keeps "edit this cell" behavior
 
   // workflow: run each step in order, model called once per step (the agent loop)
+  // formula steps land in successive cells (place cursor advances); actions don't consume a cell
+  let place = null;
+  try {
+    await Excel.run(async (ctx) => {
+      const c = ctx.workbook.getActiveCell();
+      c.load("rowIndex,columnIndex");
+      await ctx.sync();
+      place = { row: c.rowIndex, col: c.columnIndex };
+    });
+  } catch (e) { /* no active cell — formulas fall back to the active cell each time */ }
+
   const done = [];
   const render = (cur) => setOut(
     `<div class="muted">workflow ${done.length}/${steps.length} done${cur ? " — running: " + escapeHtml(cur) : ""}</div>` +
@@ -58,8 +69,11 @@ async function run() {
     try { result = await callModel(step); }
     catch (e) { done.push([step + " (can't reach API)", false]); break; }
     if (!result) { done.push([step + " (empty response)", false]); continue; }
-    try { await dispatch(result); done.push([step, true]); }
-    catch (e) { done.push([step + " (" + (e.message || "failed") + ")", false]); }
+    try {
+      await dispatch(result, place);
+      if (place && result.startsWith("=")) place.row++;   // advance only after writing a formula
+      done.push([step, true]);
+    } catch (e) { done.push([step + " (" + (e.message || "failed") + ")", false]); }
   }
   render();
 }
@@ -86,8 +100,9 @@ async function runSingle(text) {
   catch (e) { setOut('<span class="err">Couldn\'t apply that: ' + escapeHtml(e.message) + "</span>"); }
 }
 
-// route ONE model result to the right handler (used by both single + workflow paths)
-async function dispatch(result) {
+// route ONE model result to the right handler (used by both single + workflow paths).
+// `place` (optional) = {row, col} target for a formula in a workflow; null = use the active cell.
+async function dispatch(result, place) {
   if (result.startsWith("STEPS")) return applySteps(result);
   if (result.startsWith("CHART")) return buildChart(result);
   if (result.startsWith("PIVOT")) {
@@ -121,7 +136,10 @@ async function dispatch(result) {
     const headerMap = used.isNullObject ? {} : buildHeaderMap(used);
     const finalFormula = applyBridge(result, headerMap);
 
-    const cell = ctx.workbook.getActiveCell();
+    // workflow: write to the tracked successive cell; single: write to the active cell
+    const cell = (place && Number.isInteger(place.row))
+      ? sheet.getRangeByIndexes(place.row, place.col, 1, 1)
+      : ctx.workbook.getActiveCell();
     cell.formulas = [[finalFormula]];
     cell.load("values");                 // ask-your-data: read the computed result
     await ctx.sync();
