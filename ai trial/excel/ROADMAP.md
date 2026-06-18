@@ -58,6 +58,11 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 - 🔭 **Find & replace** across the whole sheet
 - 🔭 **Named ranges** — "name A1:A10 prices"
 - 🔭 **Summary row** — total/avg/count/max under each column (mini build-model)
+- 🔭 **Ask-your-data** — write the formula, compute it, and show the *answer* (read-back)
+- 🔭 **Sparklines** (in-cell mini charts) + more chart types: waterfall, combo
+  (bar+line), histogram, dual-axis
+- 🔭 **Table ops** — merge/join two tables on a key; unpivot (wide→long);
+  subtotals & grouping; consolidate multiple sheets
 
 ## Backlog — Phase B: automation (multi-step)
 - 🔭 Output an **ordered list of steps** ("dedupe, format as currency, then total it")
@@ -68,6 +73,16 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 - 🔭 Hybrid: model → **template + params**, add-in **stamps the grid**
 - 🔭 Templates: loan amortization, cash flow / budget, 3-statement skeleton, simple DCF
 
+## Backlog — finance intelligence (finance-first, high value)
+- 🔭 **Ratio pack** — one block: current/quick ratio, ROE, ROA, debt-to-equity,
+  gross/net margin, EBITDA
+- 🔭 **AR/AP aging report** — buckets 0–30 / 31–60 / 61–90 / 90+
+- 🔭 **Variance report** — actual vs budget with % and over/under flags
+- 🔭 **Scenario block** — best / base / worst columns
+- 🔭 **Sensitivity / two-variable data tables** (what-if grid)
+- 🔭 **Break-even analysis**; **run-rate / annualization**
+- 🔭 **Reconciliation** — match two columns on a key, flag mismatches
+
 ## Backlog — model & training quality
 - 🔭 **Multi-word headers** ("net sales", "unit price") — data + bridge support
 - 🔭 More **phrasing variety** (ongoing, eval-driven)
@@ -75,6 +90,13 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 - 🔭 **Output validation** — check balanced parens / known function before returning
 - 🔭 **Quantize** (q8) for faster, smaller serving
 - 🔭 Decoding: keep greedy (exact formulas); revisit only if needed
+- 🔭 ⭐ **Bilingual input** — Spanish + English descriptions → same formula
+- 🔭 **Locale formats** — semicolon args (`=SUM(A1;A2)`), € / £ / ¥ currency
+- 🔭 **Audit: flag hardcoded numbers** baked into formulas (modeling best practice)
+- 🔭 **Error sweep** — find all #REF! / #DIV0! / #N/A on the sheet and explain each
+- 🔭 **Refactor / convert** — VLOOKUP ↔ XLOOKUP ↔ INDEX-MATCH; simplify a formula
+- 🔭 **Golden test set** of real hand-written phrasings + **regression suite**
+- 🔭 **Telemetry** — log failed / low-confidence requests to guide the next data round
 
 ## Backlog — add-in / product polish
 - 🔭 **Pivot auto-build** (Office.js `pivotTables`) — currently spec is shown only
@@ -86,12 +108,16 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 - 🔭 **Ribbon button** (today it's task-pane only) + manifest **icons**
 - 🔭 **One-click launcher** that starts both servers
 - 🔭 Recent-request **history** in the pane
+- 🔭 **Batch fill-down** — apply the formula down a whole column at once
+- 🔭 **Suggest-as-you-type** autocomplete of common requests
+- 🔭 **Voice input** — describe it out loud
 
 ## Backlog — stretch / maybe-not (be honest)
 - 🔭 Multi-turn conversational ("make it only the paid ones" referencing last result)
 - 🔭 True **data reasoning** (read 1000 rows, find anomalies) — likely needs a much
   bigger model than from-scratch 26M; revisit honestly
 - 🔭 Goal seek / what-if; regex extraction
+- 🔭 **On-device** model (ONNX/WASM in the browser) — no `serve.py`, fully offline
 
 ---
 
