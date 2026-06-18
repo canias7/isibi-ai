@@ -1181,6 +1181,42 @@ def e_multiply_by():
 def e_concat_space():
     a=cell(); b=cell()
     return f"={a}&{b}", "put a space between them", f'={a}&" "&{b}'
+@edit
+def e_change_lookup_value():
+    a=cell(); b=cell(); t=col(); t2=chr(ord(t)+1); k=random.randint(2,3)
+    return f"=VLOOKUP({a},{t}:{t2},{k},FALSE)", f"look up {b} instead", f"=VLOOKUP({b},{t}:{t2},{k},FALSE)"
+@edit
+def e_add_wildcard():
+    c=col(); w=word()
+    return f'=COUNTIF({c}:{c},"{w}")', "count the ones that contain it", f'=COUNTIF({c}:{c},"*{w}*")'
+@edit
+def e_to_average():
+    r,d=rng()
+    return f"=SUM({r})", "average them instead", f"=AVERAGE({r})"
+@edit
+def e_make_relative():
+    c=col(); a=random.randint(1,40); b=a+random.randint(3,30)
+    return f"=SUM(${c}${a}:${c}${b})", "unlock the references", f"=SUM({c}{a}:{c}{b})"
+@edit
+def e_divide_by():
+    c=col(); r=random.randint(2,40); n=random.choice([12,100,1000])
+    return f"={c}{r}", f"divided by {n}", f"={c}{r}/{n}"
+@edit
+def e_subtract():
+    a=cell(); b=cell()
+    return f"={a}", f"minus {b}", f"={a}-{b}"
+@edit
+def e_negate():
+    c=col(); r=random.randint(2,40)
+    return f"={c}{r}", "make it negative", f"=-{c}{r}"
+@edit
+def e_pct_change():
+    a=cell(); b=cell()
+    return f"={a}", f"as a percent change from {b}", f"=({a}-{b})/{b}"
+@edit
+def e_extend_range():
+    c=col(); a=random.randint(1,5); b=random.choice([10,20,50]); b2=b+random.choice([10,30,50])
+    return f"=SUM({c}{a}:{c}{b})", f"include through row {b2}", f"=SUM({c}{a}:{c}{b2})"
 
 EDIT_TEMPLATES = ["edit {o} to {i}", "change {o} so it {i}", "take {o} and {i}",
                   "{i}: {o}", "in {o}, {i}", "modify {o}: {i}"]
@@ -1591,6 +1627,15 @@ OPTIMIZE = [
     ("=POWER(A1,2)", "=A1^2"), ("=CONCAT(A1,B1)", "=A1&B1"),
     ('=DATEDIF(A1,B1,"d")', "=B1-A1"),
     ("=IF(A1<>0,B1/A1,0)", "=IFERROR(B1/A1,0)"),
+    ("=IF(A1>=B1,A1,B1)", "=MAX(A1,B1)"),
+    ("=A1^0.5", "=SQRT(A1)"), ("=A1^(1/2)", "=SQRT(A1)"),
+    ('=A1&""&B1&""&C1', "=A1&B1&C1"),
+    ("=IF(A1>0,A1*2,A1*2)", "=A1*2"),
+    ("=-(-A1)", "=A1"),
+    ("=NOT(A1<B1)", "=A1>=B1"), ("=NOT(A1>B1)", "=A1<=B1"),
+    ('=SUMPRODUCT(1*(A:A="x"))', '=COUNTIF(A:A,"x")'),
+    ("=MROUND(A1,1)", "=ROUND(A1,0)"),
+    ('=TRIM(A1)&""', "=TRIM(A1)"),
 ]
 def gen_optimize():
     bad, good = random.choice(OPTIMIZE)
@@ -1630,6 +1675,20 @@ AUDIT = [
     ("=ROUND(A1,2)+ROUND(B1,2)", "rounding each piece can drift from the real total — round the final result instead"),
     ("=A1/B1*100", "no guard for B1 being zero — wrap it in IFERROR or test B1 first"),
     ("=VLOOKUP(A1,B:F,5,FALSE)&VLOOKUP(A1,B:G,6,FALSE)", "the same row is looked up twice — do it once with LET or a helper column"),
+    ("=A1+A2", "if these are merged cells only the top-left holds a value — merged cells break formulas and sorting"),
+    ("=SUM(A1:A100)", "the range stops at row 100 — new data below is silently excluded; use a Table or A:A"),
+    ("=VLOOKUP(A1,C:E,3,FALSE)", "VLOOKUP can't return columns left of the key — XLOOKUP or INDEX/MATCH is more flexible"),
+    ('=IF(A1>0,"yes")', "IF has no value_if_false, so it returns FALSE on failure — add the else value"),
+    ("=A1&B1", "joining numbers with & makes text you can't sum — keep them numeric or use a helper column"),
+    ('=COUNTIF(A:A,"*text*")', "wildcards in COUNTIF only match text — numbers stored as numbers won't be found"),
+    ("=SUMIF(A:A,B1)", "two-arg SUMIF sums the criteria range itself — add a sum range if you meant another column"),
+    ('=A1=""', 'this is TRUE for empty cells AND formulas returning "" — use ISBLANK for truly empty'),
+    ("=VLOOKUP(A1,External!B:C,2,0)", "a link to another workbook breaks when the file moves — paste as values or keep the source open"),
+    ("=RANK(A1,A:A)", "RANK is legacy — use RANK.EQ or RANK.AVG and decide how ties are handled"),
+    ('=IF(A1=1,"a",IF(A1=2,"b",IF(A1=3,"c",IF(A1=4,"d","e"))))', "deeply nested IFs are hard to maintain — use IFS, SWITCH, or a lookup table"),
+    ('=IFERROR(A1,"")', "a blanket IFERROR hides real problems — only catch the specific error you expect"),
+    ("=$A$1+B1", "one absolute and one relative ref — fine, but check that's intended before you fill it"),
+    ('=DATEDIF(A1,B1,"m")', "DATEDIF is undocumented and buggy for some month/day combos — verify the edge cases"),
 ]
 def gen_audit():
     f, issue = random.choice(AUDIT)
@@ -1687,6 +1746,12 @@ DEBUG = [
     ('=IFS(A1>10,"big")', "#N/A", "no IFS condition matched — add TRUE as a final catch-all"),
     ("='Sales Data'!A1", "#REF!", "the sheet was renamed or deleted — fix the sheet name (spaces need single quotes)"),
     ('=SUMIF(A:A,">1/1/2024",B:B)', "0", 'a date inside text criteria won\'t compare — use ">"&DATE(2024,1,1)'),
+    ("=XLOOKUP(A1,B:B,C:D)", "#VALUE!", "the return array is two columns wide — point it at a single column"),
+    ("=VLOOKUP(123,A:B,2,FALSE)", "#N/A", "the key is a number but the column stores it as text (or vice versa) — match the data types"),
+    ("=INDEX(A:A,B1)", "#REF!", "B1 is bigger than the number of rows — the index is out of range"),
+    ("=A1*B1", "#####", "that's not an error — the column is too narrow to show the number; just widen it"),
+    ("=A1=A2", "FALSE", "floating-point math means 0.1+0.2 isn't exactly 0.3 — compare with ROUND or a small tolerance"),
+    ("=A1&B1", "wrong", "& always returns text — if you meant to add the numbers, use + or SUM"),
 ]
 def gen_debug():
     f, err, fix = random.choice(DEBUG)
@@ -1725,6 +1790,17 @@ MODERNIZE = [
     ('=IF(COUNTIF(B:B,A2)>0,"yes","no")', '=IF(ISNUMBER(XMATCH(A2,B:B)),"yes","no")'),
     ("=SMALL(A:A,1)", "=MIN(A:A)"),
     ("=LARGE(A:A,1)", "=MAX(A:A)"),
+    ('=SUM(IF(A:A="x",B:B))', '=SUMIF(A:A,"x",B:B)'),
+    ('=SUMPRODUCT((A:A=E1)*(B:B=F1)*C:C)', '=SUMIFS(C:C,A:A,E1,B:B,F1)'),
+    ('=RIGHT(A2,LEN(A2)-FIND("@",A2))', '=TEXTAFTER(A2,"@")'),
+    ('=MID(A2,1,FIND(" ",A2)-1)', '=TEXTBEFORE(A2," ")'),
+    ('=A2&", "&B2&", "&C2', '=TEXTJOIN(", ",TRUE,A2:C2)'),
+    ('=IF(ISERROR(A2),"",A2)', '=IFERROR(A2,"")'),
+    ('=IF(ISNA(A2),0,A2)', '=IFNA(A2,0)'),
+    ("=A2*B2-A2*C2", "=LET(x,A2,x*B2-x*C2)"),
+    ('=INDEX(B:B,MATCH(1,(C:C="x")*(D:D="y"),0))', '=XLOOKUP(1,(C:C="x")*(D:D="y"),B:B)'),
+    ('=SUMPRODUCT(--(A:A>0))', '=COUNTIF(A:A,">0")'),
+    ('=CONCATENATE(A2,B2,C2)', '=TEXTJOIN("",TRUE,A2:C2)'),
 ]
 def gen_modernize():
     old, new = random.choice(MODERNIZE)
@@ -1807,6 +1883,17 @@ EVALUATE = [
     ("=LEFT(A1,FIND(\" \",A1)-1)", '1) FIND(" ",A1) gets the position of the first space. 2) LEFT takes that many minus one characters, giving the first word.'),
     ("=INDEX(F:F,MATCH(A2,B:B,0))", "1) MATCH(A2,B:B,0) finds which row A2 sits on in column B. 2) INDEX returns the value on that row of column F."),
     ('=TEXTJOIN(", ",TRUE,A1:A5)', '1) take the values A1:A5. 2) drop the blanks (TRUE). 3) glue them together separated by a comma and space.'),
+    ('=IFERROR(VLOOKUP(A2,D:F,3,FALSE),"not found")', '1) look up A2 in column D. 2) return column F on that row. 3) if it errors, show "not found" instead.'),
+    ('=SUMIFS(D:D,A:A,"west",B:B,"paid")', '1) find rows where column A is "west" and column B is "paid". 2) add up column D for just those rows.'),
+    ("=ROUND(B2*(1+C2),2)", "1) 1+C2 turns the rate into a multiplier. 2) B2 times that applies the increase. 3) ROUND trims it to 2 decimals."),
+    ('=IF(AND(A2>0,B2>0),"ok","check")', '1) test A2>0 and B2>0. 2) AND is true only if both are. 3) return "ok" if both pass, else "check".'),
+    ('=LEFT(A2,2)&"-"&RIGHT(A2,4)', '1) LEFT grabs the first 2 characters. 2) RIGHT grabs the last 4. 3) join them with a dash between.'),
+    ("=XLOOKUP(MAX(B:B),B:B,A:A)", "1) MAX(B:B) finds the largest value in column B. 2) XLOOKUP finds that value in B. 3) return the matching name from column A."),
+    ("=A2/SUM(A:A)", "1) SUM(A:A) totals the whole column. 2) divide A2 by that total to get its share (format it as % to read it as a percentage)."),
+    ("=EOMONTH(A2,0)", "1) take the date in A2. 2) EOMONTH with 0 returns the last day of that same month."),
+    ('=IFS(A2>=90,"A",A2>=80,"B",TRUE,"C")', '1) check A2>=90 first, that gives "A". 2) else check A2>=80, that gives "B". 3) TRUE is the catch-all, gives "C".'),
+    ('=SUMPRODUCT((A:A="x")*B:B)', '1) (A:A="x") makes a column of TRUE/FALSE. 2) times B:B turns TRUE into the B value and FALSE into 0. 3) SUMPRODUCT adds them up.'),
+    ('=TEXT(A2,"0.0%")', "1) take the number in A2. 2) TEXT formats it as a percent with one decimal, returning text."),
 ]
 def gen_evaluate():
     f, steps = random.choice(EVALUATE)
