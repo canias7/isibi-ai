@@ -76,6 +76,7 @@ score("REF-LOCK",  make_data.gen_reflock)
 score("R1C1",      make_data.gen_r1c1)
 score("LOCALE",    make_data.gen_locale)
 score("DYNAMIC",   make_data.gen_dynamic)
+score("DATA-Q",    make_data.gen_dataground)
 
 # ── generative / spec tasks (eyeball — not exact-match) ──
 def show(label, gen, n=5):

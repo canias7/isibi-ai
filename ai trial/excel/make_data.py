@@ -5,7 +5,7 @@
 import os, re, random
 
 random.seed(0)
-N = int(os.environ.get("N", 200000))
+N = int(os.environ.get("N", 600000))   # way bigger default; override with N=2000000 etc. for more
 COT = os.environ.get("COT", "0") == "1"   # chain-of-thought on the reasoning-heavy types
 COLS = list("ABCDEFGHIJKLMN")
 WORDS = ["paid", "done", "open", "yes", "no", "active", "north", "south", "east",
@@ -2498,6 +2498,49 @@ def gen_datadict():
                           f"describe the fields {', '.join(cs)}"]), \
            "; ".join(f"{c}: {_infer_field(c)}" for c in cs)
 
+# ── data-grounded: read a small inline table and answer from the actual values ──
+# Teaches the model to GROUND in data (read/compare/compute), not just map a phrase to a formula.
+_DG_LABELS = ["west", "east", "north", "south", "q1", "q2", "q3", "q4", "jan", "feb", "mar", "apr",
+              "alice", "bob", "carol", "dave", "acme", "globex", "initech", "widgets", "gadgets", "gizmos"]
+def _dg_table():
+    n = random.randint(3, 4)
+    labels = random.sample(_DG_LABELS, n)
+    vals = [num() for _ in range(n)]
+    return labels, vals
+def _dg_fmt(L, V):
+    return "[" + ", ".join(f"{l}={v}" for l, v in zip(L, V)) + "]"
+def _dg_which_max():
+    L, V = _dg_table(); return f"in {_dg_fmt(L,V)} which is highest", L[V.index(max(V))]
+def _dg_which_min():
+    L, V = _dg_table(); return f"in {_dg_fmt(L,V)} which is lowest", L[V.index(min(V))]
+def _dg_total():
+    L, V = _dg_table(); return f"what is the total of {_dg_fmt(L,V)}", str(sum(V))
+def _dg_maxval():
+    L, V = _dg_table(); return f"the highest value in {_dg_fmt(L,V)}", str(max(V))
+def _dg_minval():
+    L, V = _dg_table(); return f"the lowest value in {_dg_fmt(L,V)}", str(min(V))
+def _dg_lookup():
+    L, V = _dg_table(); i = random.randrange(len(L)); return f"in {_dg_fmt(L,V)} what is {L[i]}", str(V[i])
+def _dg_diff():
+    L, V = _dg_table(); i, j = random.sample(range(len(L)), 2); return f"in {_dg_fmt(L,V)} the difference between {L[i]} and {L[j]}", str(abs(V[i]-V[j]))
+def _dg_compare():
+    L, V = _dg_table(); i, j = random.sample(range(len(L)), 2); return f"in {_dg_fmt(L,V)} is {L[i]} more than {L[j]}", ("yes" if V[i] > V[j] else "no")
+def _dg_count_over():
+    L, V = _dg_table(); t = random.choice([20, 50, 100, 200]); return f"in {_dg_fmt(L,V)} how many are over {t}", str(sum(1 for v in V if v > t))
+def _dg_range():
+    L, V = _dg_table(); return f"the range (max minus min) of {_dg_fmt(L,V)}", str(max(V)-min(V))
+def _dg_count_rows():
+    L, V = _dg_table(); return f"how many rows are in {_dg_fmt(L,V)}", str(len(L))
+def _dg_sum_formula():
+    L, V = _dg_table(); return f"given {_dg_fmt(L,V)}, write a formula for the total", "=" + "+".join(str(v) for v in V)
+def _dg_avg_of_two():
+    L, V = _dg_table(); i, j = random.sample(range(len(L)), 2); s = V[i] + V[j]
+    return f"in {_dg_fmt(L,V)} the average of {L[i]} and {L[j]}", str(s // 2) if s % 2 == 0 else f"{s/2:.1f}"
+_DATAGROUND = [_dg_which_max, _dg_which_min, _dg_total, _dg_maxval, _dg_minval, _dg_lookup,
+               _dg_diff, _dg_compare, _dg_count_over, _dg_range, _dg_count_rows, _dg_sum_formula, _dg_avg_of_two]
+def gen_dataground():
+    return random.choice(_DATAGROUND)()
+
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
     (40, "formula"), (6, gen_spanish), (8, gen_lang), (5, gen_explain), (5, gen_fix), (5, gen_edit),
@@ -2510,6 +2553,8 @@ MODES = [
     # ── understand-&-fix expansion: formula refactoring / comprehension ──
     (2, gen_modernize), (1.5, gen_adderror), (1, gen_striperror), (1.5, gen_reflock),
     (1, gen_r1c1), (1, gen_locale), (1.5, gen_dynamic), (1.5, gen_evaluate),
+    # ── data-grounded reasoning: read an inline table and answer from the values ──
+    (5, gen_dataground),
 ]
 _MODE_FNS = [f for _, f in MODES]
 _MODE_WTS = [w for w, _ in MODES]
