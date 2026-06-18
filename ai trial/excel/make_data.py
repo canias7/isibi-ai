@@ -3458,6 +3458,53 @@ def gen_funcref():
     return random.choice([f"what does {fn} do", f"how does {fn} work", f"explain the {fn} function",
                           f"when do I use {fn}", f"{fn} syntax"]), FUNCREF[fn]
 
+# ── error reference: what an Excel error means and what usually causes it ──
+ERRREF = {
+    "#DIV/0!": "You're dividing by zero or an empty cell. Guard it with =IFERROR(a/b,0), or check the denominator isn't blank.",
+    "#N/A": "A lookup found no match. Check the value exists, watch for extra spaces or text-vs-number, or wrap it in IFNA.",
+    "#REF!": "A formula points at a cell that was deleted or moved out of range. Rebuild the reference.",
+    "#NAME?": "Excel doesn't recognize a name — usually a misspelled function, missing quotes around text, or an undefined named range.",
+    "#VALUE!": "Wrong type of value — often math on text, or a function getting text where it expects a number.",
+    "#NUM!": "An invalid number for the operation, like the square root of a negative or an impossible date.",
+    "#NULL!": "You put a space between two ranges instead of a comma; the ranges don't intersect.",
+    "#SPILL!": "A dynamic array can't spill because cells it needs are blocked. Clear the cells below or to the right.",
+    "#CALC!": "A dynamic-array calculation failed, often an empty array from FILTER. Add a fallback value.",
+    "#####": "Not really an error — the column is too narrow to show the number or date. Just widen it.",
+    "#GETTING_DATA": "An external or data-model query is still loading. Wait for it to finish.",
+    "#FIELD!": "A linked data type doesn't have that field. Choose a field that exists.",
+    "a circular reference": "A formula refers back to its own cell, directly or through a chain. Break the loop, or turn on iterative calculation on purpose.",
+}
+def gen_errref():
+    e = random.choice(list(ERRREF))
+    return random.choice([f"what does {e} mean", f"what causes {e}", f"why am I getting {e}", f"how do I fix {e}"]), ERRREF[e]
+
+# ── number format codes: describe a format -> the custom format string ──
+NUMFORMAT = {
+    "currency with two decimals": "$#,##0.00",
+    "currency with no decimals": "$#,##0",
+    "a percentage": "0%",
+    "a percentage with one decimal": "0.0%",
+    "a thousands separator": "#,##0",
+    "accounting style": "_($* #,##0.00_)",
+    "two decimal places": "0.00",
+    "a date like 2024-01-15": "yyyy-mm-dd",
+    "a date like Jan 15 2024": "mmm dd yyyy",
+    "month and year": "mmm yyyy",
+    "the day of the week": "dddd",
+    "a time": "h:mm AM/PM",
+    "negative numbers in red": "#,##0;[Red]-#,##0",
+    "a phone number": "(000) 000-0000",
+    "scientific notation": "0.00E+00",
+    "millions with an M": '#,##0,,"M"',
+    "thousands with a K": '#,##0,"K"',
+    "leading zeros to five digits": "00000",
+    "a plus sign on positives": "+0;-0",
+}
+def gen_numformat():
+    d = random.choice(list(NUMFORMAT))
+    return random.choice([f"number format code for {d}", f"custom format for {d}",
+                          f"how do I format a cell as {d}", f"format code to show {d}"]), NUMFORMAT[d]
+
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
     (40, "formula"), (6, gen_spanish), (8, gen_lang), (5, gen_explain), (5, gen_fix), (5, gen_edit),
@@ -3488,6 +3535,8 @@ MODES = [
     (4, gen_chitchat),
     # ── function reference: explain an Excel function (purpose + syntax) ──
     (4, gen_funcref),
+    # ── error reference + number format codes (coworker reference knowledge) ──
+    (3, gen_errref), (3, gen_numformat),
 ]
 _MODE_FNS = [f for _, f in MODES]
 _MODE_WTS = [w for w, _ in MODES]
