@@ -2942,6 +2942,54 @@ CONSULT = [
 def gen_consult():
     return random.choice(CONSULT)
 
+# ── sheet design: "set me up a tracker for X" -> the right columns (a coworker skill) ──
+SCHEMA = {
+    "accounts payable tracker": "Vendor, Invoice Number, Amount, Invoice Date, Due Date, Status, Date Paid",
+    "accounts receivable tracker": "Customer, Invoice Number, Amount, Invoice Date, Due Date, Days Overdue, Status",
+    "expense tracker": "Date, Category, Description, Amount, Payment Method, Receipt",
+    "inventory tracker": "SKU, Product, In Stock, Reorder Point, Unit Cost, Supplier, Status",
+    "project tracker": "Task, Owner, Start Date, Due Date, Status, Percent Complete, Notes",
+    "sales pipeline": "Company, Contact, Deal Value, Stage, Close Date, Owner, Probability",
+    "employee roster": "Name, Employee ID, Department, Role, Start Date, Salary, Status",
+    "payroll register": "Employee, Hours, Rate, Gross Pay, Deductions, Net Pay, Pay Date",
+    "time tracking sheet": "Date, Employee, Project, Hours, Billable, Rate",
+    "budget sheet": "Category, Planned, Actual, Variance, Notes",
+    "invoice log": "Invoice Number, Client, Date, Due Date, Amount, Tax, Total, Status",
+    "maintenance log": "Asset, Last Service, Next Service, Cost, Technician, Status",
+    "fleet tracker": "Vehicle, Mileage, Last Service, Fuel Cost, Driver, Status",
+    "recruiting tracker": "Candidate, Role, Stage, Interview Date, Status, Source",
+    "marketing campaign tracker": "Campaign, Channel, Budget, Spend, Leads, Conversions, ROAS",
+    "support ticket log": "Ticket ID, Customer, Issue, Priority, Status, Opened, Resolved",
+    "rent roll": "Property, Unit, Tenant, Rent, Lease End, Status",
+    "donation tracker": "Donor, Date, Amount, Campaign, Method, Acknowledged",
+    "grant tracker": "Grant, Funder, Amount, Start Date, End Date, Spent, Report Due",
+    "commission tracker": "Rep, Sales, Quota, Attainment, Commission Rate, Commission",
+    "cash flow sheet": "Month, Beginning Cash, Inflows, Outflows, Ending Cash",
+    "kpi dashboard": "Metric, Target, Actual, Variance, Status",
+    "asset register": "Asset, Purchase Date, Cost, Depreciation, Book Value, Location",
+    "vendor list": "Vendor, Contact, Category, Contract End, Rating, Annual Spend",
+    "purchase order log": "PO Number, Vendor, Item, Quantity, Unit Price, Total, Status",
+    "shipment tracker": "Order, Carrier, Tracking Number, Ship Date, Delivery Date, Status",
+    "production log": "Batch, Product, Quantity, Start, End, Defects, Status",
+    "quality inspection log": "Inspection, Product, Date, Inspector, Result, Defects, Action",
+    "gradebook": "Student, Assignment, Score, Max Score, Percent, Grade",
+    "attendance sheet": "Date, Name, Status, Time In, Time Out, Hours",
+    "event guest list": "Guest, RSVP, Table, Meal, Plus One, Checked In",
+    "patient log": "Patient, Date of Birth, Visit Date, Provider, Diagnosis, Billed, Insurance",
+    "subscription tracker": "Customer, Plan, MRR, Start Date, Renewal Date, Status",
+    "contract tracker": "Party, Type, Start Date, End Date, Value, Renewal, Status",
+    "loan amortization sheet": "Period, Payment, Interest, Principal, Balance",
+    "risk register": "Risk, Likelihood, Impact, Score, Owner, Mitigation, Status",
+    "content calendar": "Date, Title, Channel, Author, Status, Performance",
+    "warehouse bin sheet": "SKU, Location, Quantity, Received, Picked, Status",
+    "petty cash log": "Date, Description, Cash In, Cash Out, Balance",
+    "mileage log": "Date, Start, Destination, Miles, Purpose, Rate",
+}
+def gen_schema():
+    t = random.choice(list(SCHEMA))
+    return random.choice([f"what columns should a {t} have", f"set me up a {t}, what fields do I need",
+                          f"what should a {t} include", f"design a {t}"]), SCHEMA[t]
+
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
     (40, "formula"), (6, gen_spanish), (8, gen_lang), (5, gen_explain), (5, gen_fix), (5, gen_edit),
@@ -2962,6 +3010,8 @@ MODES = [
     (4, gen_advise), (5, gen_concept), (5, gen_consult),
     # ── industry KPI vocabulary (120+ business functions -> the right metric) ──
     (6, gen_kpi),
+    # ── sheet design: set up a domain tracker with the right columns ──
+    (4, gen_schema),
 ]
 _MODE_FNS = [f for _, f in MODES]
 _MODE_WTS = [w for w, _ in MODES]
