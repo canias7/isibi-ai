@@ -652,15 +652,78 @@ def vary(desc):
         desc = desc[0].upper() + desc[1:]
     return desc
 
+# ── messy input: real users abbreviate and mistype. We only ever touch plain
+# filler/intent words — never cell refs (have digits), headers, criteria values,
+# sheet names (capitalized) or numbers — so the target formula stays correct. ──
+HEADERS_SET, WORDS_SET = set(HEADERS), set(WORDS)
+SHORT = {"columns": "cols", "column": "col", "average": "avg", "maximum": "max",
+         "minimum": "min", "standard deviation": "stdev", "number of": "num of"}
+def _typo_word(w):
+    s = list(w); i = random.randrange(len(s) - 1)
+    r = random.random()
+    if r < 0.4:   s[i], s[i + 1] = s[i + 1], s[i]   # swap adjacent
+    elif r < 0.7: s.pop(i)                          # drop a char
+    else:         s.insert(i, s[i])                 # duplicate a char
+    return "".join(s)
+def messy(desc):
+    if random.random() < 0.5:                       # shorthand / abbreviations
+        for lng, sht in SHORT.items():
+            if lng in desc and random.random() < 0.5:
+                desc = desc.replace(lng, sht)
+    if random.random() < 0.5:                       # one typo on a safe filler word
+        ws = desc.split(" ")
+        elig = [i for i, w in enumerate(ws)
+                if w.isalpha() and w.islower() and len(w) >= 4
+                and w not in HEADERS_SET and w not in WORDS_SET]
+        if elig:
+            i = random.choice(elig); ws[i] = _typo_word(ws[i]); desc = " ".join(ws)
+    return desc
+
 def gen():
-    """Pick a random formula type and return (name, varied description, formula)."""
+    """Pick a random formula type and return (name, description, formula)."""
     fn = random.choice(G)
     desc, formula = fn()
-    return fn.__name__, vary(cellphrase(desc)), formula
+    desc = vary(cellphrase(desc))
+    if random.random() < 0.25:          # a quarter of inputs are abbreviated / mistyped
+        desc = messy(desc)
+    return fn.__name__, desc, formula
+
+# ── two extra tasks the same model learns: explain a formula, and fix a broken one ──
+def gen_explain():
+    fn = random.choice(G); desc, formula = fn()
+    lead = random.choice(["explain ", "what does ", "describe ", "in plain english "])
+    return lead + formula, desc
+
+def corrupt(f):
+    r = random.random()
+    if r < 0.25 and ")" in f:           # drop a closing paren
+        i = f.rfind(")"); return f[:i] + f[i + 1:]
+    if r < 0.45 and "," in f:           # drop a comma
+        i = f.rfind(","); return f[:i] + f[i + 1:]
+    if r < 0.60:                        # forget the leading =
+        return f[1:]
+    if r < 0.80 and f.count('"') >= 2:  # drop a quote
+        i = f.find('"'); return f[:i] + f[i + 1:]
+    i = random.randrange(1, len(f) - 1) # drop a char in the middle
+    return f[:i] + f[i + 1:]
+def gen_fix():
+    fn = random.choice(G); desc, formula = fn()
+    broken = corrupt(formula)
+    if broken == formula: broken = formula[:-1]
+    lead = random.choice(["fix ", "repair ", "correct ", "what's wrong with "])
+    return lead + broken, formula
+
+def sample():
+    r = random.random()
+    if r < 0.82:                        # core task: description -> formula
+        _, q, a = gen(); return q, a
+    if r < 0.91:                        # explain a formula -> plain english
+        return gen_explain()
+    return gen_fix()                    # fix a broken formula -> correct formula
 
 if __name__ == "__main__":
     with open("excel.txt", "w", encoding="utf-8") as f:
         for _ in range(N):
-            _, desc, formula = gen()
-            f.write(f"Q: {desc}\nA: {formula}\n\n")
-    print(f"wrote {N} examples to excel.txt  ({len(G)} formula types)")
+            q, a = sample()
+            f.write(f"Q: {q}\nA: {a}\n\n")
+    print(f"wrote {N} examples to excel.txt  ({len(G)} formula types + explain + fix-it)")

@@ -39,3 +39,25 @@ for desc, exp, got in misses:
     print(f"  Q: {desc}")
     print(f"     want {exp}")
     print(f"     got  {got}")
+
+# ── fix-it task: exact-match on the corrected formula ──
+random.seed(54321)
+FN = min(N, 1000)
+fix_ok, fix_misses = 0, []
+for _ in range(FN):
+    q, a = make_data.gen_fix()
+    got = ask.ask(q)
+    if got == a:
+        fix_ok += 1
+    elif len(fix_misses) < 5:
+        fix_misses.append((q, a, got))
+print(f"\nFIX-IT: {fix_ok}/{FN} = {100*fix_ok/FN:.1f}% exact match")
+for q, a, g in fix_misses:
+    print(f"  Q: {q}\n     want {a}\n     got  {g}")
+
+# ── explain task: plain-English, shown for eyeballing (not exact-match) ──
+print("\nEXPLAIN samples:")
+random.seed(11111)
+for _ in range(6):
+    q, a = make_data.gen_explain()
+    print(f"  Q: {q}\n     -> {ask.ask(q)}")
