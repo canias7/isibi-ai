@@ -1008,14 +1008,18 @@ def gen_explain():
 
 def corrupt(f):
     r = random.random()
-    if r < 0.25 and ")" in f:           # drop a closing paren
+    if r < 0.20 and ")" in f:           # drop a closing paren
         i = f.rfind(")"); return f[:i] + f[i + 1:]
-    if r < 0.45 and "," in f:           # drop a comma
+    if r < 0.36 and "," in f:           # drop a comma
         i = f.rfind(","); return f[:i] + f[i + 1:]
-    if r < 0.60:                        # forget the leading =
+    if r < 0.50:                        # forget the leading =
         return f[1:]
-    if r < 0.80 and f.count('"') >= 2:  # drop a quote
+    if r < 0.66 and f.count('"') >= 2:  # drop a quote
         i = f.find('"'); return f[:i] + f[i + 1:]
+    if r < 0.78 and "(" in f:           # double a closing paren
+        i = f.find("("); return f[:i] + "((" + f[i + 1:]
+    if r < 0.88 and "," in f:           # comma -> semicolon (wrong separator)
+        i = f.find(","); return f[:i] + ";" + f[i + 1:]
     i = random.randrange(1, len(f) - 1) # drop a char in the middle
     return f[:i] + f[i + 1:]
 def gen_fix():
@@ -1083,6 +1087,46 @@ def e_wrap_abs():
 def e_vlookup_approx():
     c=cell(); t=col(); t2=chr(ord(t)+1); k=random.randint(2,4)
     return f"=VLOOKUP({c},{t}:{t2},{k},FALSE)", "use approximate match", f"=VLOOKUP({c},{t}:{t2},{k},TRUE)"
+@edit
+def e_vlookup_col():
+    c=cell(); t=col(); t2=chr(ord(t)+3); a,b=random.sample([2,3,4],2)
+    return f"=VLOOKUP({c},{t}:{t2},{a},FALSE)", f"return column {b} instead", f"=VLOOKUP({c},{t}:{t2},{b},FALSE)"
+@edit
+def e_wrap_ifna():
+    c=cell(); t=col(); t2=chr(ord(t)+1); k=random.randint(2,4)
+    return f"=VLOOKUP({c},{t}:{t2},{k},FALSE)", "show a dash if not found", f'=IFNA(VLOOKUP({c},{t}:{t2},{k},FALSE),"-")'
+@edit
+def e_negate():
+    c=col(); o,no=random.choice([(">","<="),("<",">="),(">=","<"),("<=",">")]); n=num()
+    return f'=COUNTIF({c}:{c},"{o}{n}")', "flip the comparison", f'=COUNTIF({c}:{c},"{no}{n}")'
+@edit
+def e_to_max():
+    r,d=rng()
+    return f"=SUM({r})", "give me the biggest one instead", f"=MAX({r})"
+@edit
+def e_add_trim():
+    a=cell(); b=cell()
+    return f"=VLOOKUP({a},{b[0]}:{chr(ord(b[0])+1)},2,FALSE)", "ignore extra spaces in the lookup", f"=VLOOKUP(TRIM({a}),{b[0]}:{chr(ord(b[0])+1)},2,FALSE)"
+@edit
+def e_make_upper():
+    a=cell()
+    return f"={a}", "in uppercase", f"=UPPER({a})"
+@edit
+def e_pct_of_total():
+    c=col(); r=random.randint(2,40)
+    return f"={c}{r}", "as a percent of the column total", f"={c}{r}/SUM(${c}:${c})"
+@edit
+def e_change_decimals():
+    r,d=rng(); a,b=random.sample([0,1,2,3,4],2)
+    return f"=ROUND(SUM({r}),{a})", f"round to {b} decimals instead", f"=ROUND(SUM({r}),{b})"
+@edit
+def e_xlookup_default():
+    c=cell(); k=col(); v=col()
+    return f"=XLOOKUP({c},{k}:{k},{v}:{v})", "return not found if missing", f'=XLOOKUP({c},{k}:{k},{v}:{v},"not found")'
+@edit
+def e_swap_and_or():
+    a=cell(); b=cell(); fr,to=random.choice([("AND","OR"),("OR","AND")])
+    return f"={fr}({a}>0,{b}>0)", f"match if either holds" if to=="OR" else "require both", f"={to}({a}>0,{b}>0)"
 
 EDIT_TEMPLATES = ["edit {o} to {i}", "change {o} so it {i}", "take {o} and {i}",
                   "{i}: {o}", "in {o}, {i}", "modify {o}: {i}"]
@@ -1463,15 +1507,34 @@ OPTIMIZE = [
     ("=VLOOKUP(A1,B:C,2,FALSE)", "=XLOOKUP(A1,B:B,C:C)"),
     ('=IF(A1>9,"a",IF(A1>5,"b","c"))', '=IFS(A1>9,"a",A1>5,"b",TRUE,"c")'),
     ("=SUM(A1,A2,A3,A4,A5)", "=SUM(A1:A5)"),
-    ("=A1*1", "=A1"), ('=A1&""&B1', "=A1&B1"),
+    ("=A1*1", "=A1"), ('=A1&""&B1', "=A1&B1"), ('=A1&""', "=A1"),
     ("=IF(A1>0,TRUE,FALSE)", "=A1>0"),
     ("=A1/B1", "=IFERROR(A1/B1,0)"),
     ('=SUMIF(A:A,">0",A:A)', '=SUMIF(A:A,">0")'),
     ("=INDEX(B:B,MATCH(A1,C:C,0))", "=XLOOKUP(A1,C:C,B:B)"),
+    ("=IF(A1>B1,A1,B1)", "=MAX(A1,B1)"),
+    ("=IF(A1<B1,A1,B1)", "=MIN(A1,B1)"),
+    ("=CONCATENATE(A1,B1)", "=A1&B1"),
+    ("=NOT(A1=B1)", "=A1<>B1"),
+    ("=A1+A1*0.1", "=A1*1.1"),
+    ("=A1-A1*0.1", "=A1*0.9"),
+    ("=SUM(A1:A10)/COUNT(A1:A10)", "=AVERAGE(A1:A10)"),
+    ('=IF(ISNUMBER(SEARCH("x",A1)),TRUE,FALSE)', '=ISNUMBER(SEARCH("x",A1))'),
+    ('=SUMPRODUCT((A:A="x")*B:B)', '=SUMIF(A:A,"x",B:B)'),
+    ('=SUMPRODUCT(--(A:A="x"))', '=COUNTIF(A:A,"x")'),
+    ('=LEFT(A1,FIND(" ",A1)-1)', '=TEXTBEFORE(A1," ")'),
+    ('=MID(A1,FIND("@",A1)+1,LEN(A1))', '=TEXTAFTER(A1,"@")'),
+    ('=IFERROR(VLOOKUP(A1,B:C,2,FALSE),"")', '=IFNA(XLOOKUP(A1,B:B,C:C),"")'),
+    ("=IF(A1=TRUE,1,0)", "=IF(A1,1,0)"),
+    ("=A1*100&\"%\"", '=TEXT(A1,"0%")'),
+    ("=ROUND(A1,0)+0", "=ROUND(A1,0)"),
+    ("=AND(A1>0,A1>0)", "=A1>0"),
 ]
 def gen_optimize():
     bad, good = random.choice(OPTIMIZE)
-    return random.choice([f"optimize {bad}", f"simplify {bad}", f"improve {bad}", f"make {bad} better"]), good
+    return random.choice([f"optimize {bad}", f"simplify {bad}", f"improve {bad}",
+                          f"make {bad} better", f"shorten {bad}", f"clean up {bad}",
+                          f"is there a better way to write {bad}"]), good
 
 # ── audit: flag issues / best-practice problems in a formula ──
 AUDIT = [
@@ -1482,10 +1545,26 @@ AUDIT = [
     ("=VLOOKUP(A1,B:Z,5,TRUE)", "approximate match (TRUE) can return wrong values — use FALSE for exact match"),
     ("=SUM(A:A)+5", "hardcoded +5 added to the total — reference a cell instead"),
     ("=A1+A2+A3+A4+A5", "long manual addition — use SUM(A1:A5) instead"),
+    ("=TODAY()", "TODAY() is volatile and changes every day — if you need a fixed date, paste it as a value"),
+    ("=NOW()", "NOW() is volatile and updates on every edit — press Ctrl+; for a static timestamp"),
+    ("=RAND()", "RAND() reshuffles on every change — copy and paste-special as values to lock the numbers"),
+    ("=INDIRECT(A1)", "INDIRECT is volatile and breaks if a sheet is renamed — use a direct reference if you can"),
+    ("=VLOOKUP(A1,B:C,2)", "missing the 4th argument, so it defaults to approximate match — add FALSE for an exact match"),
+    ("=SUM(A:A)", "summing the whole column is slow on large files — limit it to the actual data range"),
+    ("=IFERROR(VLOOKUP(A1,B:C,2,FALSE),0)", "IFERROR hides every error including typos — use IFNA so only 'not found' is caught"),
+    ("=A1=B1", "comparing decimals directly can fail from rounding — wrap both sides in ROUND first"),
+    ("=LEFT(A1,5)", "this assumes A1 has at least 5 characters — short text will be silently truncated"),
+    ("=A1*A2*A3*A4*A5", "long manual multiplication — use PRODUCT(A1:A5) instead"),
+    ("=A1&B1&C1&D1&E1", "many joins chained with & — TEXTJOIN is cleaner and lets you set a delimiter"),
+    ("=VLOOKUP(A1,B:F,5,FALSE)", "the column index 5 breaks if columns are inserted — XLOOKUP or INDEX/MATCH is safer"),
+    ("=A1>DATE(2024,1,1)", "hardcoded cutoff date — put the date in a cell and reference it"),
+    ('="$"&A1', "building currency as text loses the numeric value — use a currency number format instead"),
+    ("=SUMIF(A1:A50,B1,C1:C40)", "the criteria range and sum range are different sizes — they should line up"),
 ]
 def gen_audit():
     f, issue = random.choice(AUDIT)
-    return random.choice([f"audit {f}", f"review {f}", f"any issues with {f}", f"critique {f}"]), issue
+    return random.choice([f"audit {f}", f"review {f}", f"any issues with {f}", f"critique {f}",
+                          f"what's wrong with the design of {f}", f"is {f} good practice"]), issue
 
 # ── reverse transpile: Python/pandas -> Excel formula ──
 def gen_reverse():
@@ -1516,10 +1595,26 @@ DEBUG = [
     ("=A1+Cc", "#NAME?", "Cc isn't a valid cell or name — did you mean a real cell?"),
     ("=B1*#REF!", "#REF!", "the formula points at a deleted cell — rebuild the reference"),
     ("=DATE(2024,13,1)", "#NUM!", "month 13 is invalid — months are 1 to 12"),
+    ('=FILTER(A:A,B:B="x")', "#CALC!", 'FILTER found no matching rows — add a fallback: =FILTER(A:A,B:B="x","none")'),
+    ("=SORT(A1:A10)", "#SPILL!", "something is blocking the spill range — clear the cells below the formula"),
+    ('=A1*"x"', "#VALUE!", "you're doing math on text — make sure the inputs are numbers"),
+    ("=XLOOKUP(A1,B:B,C:C)", "#N/A", 'A1 isn\'t in column B — add a not-found value: =XLOOKUP(A1,B:B,C:C,"missing")'),
+    ("=SUM(A1:A10)", "0", "the numbers are stored as text — convert them with VALUE or multiply by 1"),
+    ("=A1", "circular", "the cell refers back to itself — point it at a different cell"),
+    ("=DATE(2024,1,32)", "#NUM!", "day 32 doesn't exist — days run 1 to 31"),
+    ("=SQRT(-4)", "#NUM!", "you can't square-root a negative — check or ABS the input"),
+    ("=VLOOKUP(A1,B:C,5,FALSE)", "#REF!", "column 5 is outside the B:C table — the index is too big"),
+    ("=IF(A1>10)", "error", "IF is missing its value_if_true — add the result arguments"),
+    ("=Sheet3!A1", "#REF!", "Sheet3 was deleted or renamed — fix the sheet reference"),
+    ("=A1+B1", "date", "the result is showing as a date — set the cell format back to General or Number"),
+    ("=AVERAGE(A1:A10)", "#DIV/0!", "the range has no numbers to average — the cells are blank or text"),
+    ("=COUNTIF(A:A,B1)", "0", "B1 has trailing spaces so nothing matches — wrap it in TRIM"),
+    ("=A1:A10*2", "#VALUE!", "a legacy array formula needs Ctrl+Shift+Enter, or use a spill-aware version"),
 ]
 def gen_debug():
     f, err, fix = random.choice(DEBUG)
-    return random.choice([f"{f} returns {err}, why?", f"why does {f} give {err}", f"{f} shows {err}, fix it"]), fix
+    return random.choice([f"{f} returns {err}, why?", f"why does {f} give {err}", f"{f} shows {err}, fix it",
+                          f"{f} is throwing {err}", f"help, {f} = {err}"]), fix
 
 # ── convert references: relative <-> absolute ──
 def gen_absref():
@@ -1533,6 +1628,113 @@ def gen_absref():
 def gen_doc():
     fn = random.choice(G); d, f = fn()
     return random.choice([f"document {f}", f"write a comment for {f}", f"describe {f} for a note"]), d
+
+# ── modernize: replace legacy functions with their Excel-365 equivalents ──
+MODERNIZE = [
+    ("=VLOOKUP(A2,B:F,5,FALSE)", "=XLOOKUP(A2,B:B,F:F)"),
+    ("=VLOOKUP(A2,B:F,5,0)", "=XLOOKUP(A2,B:B,F:F)"),
+    ("=HLOOKUP(A2,B1:Z2,2,FALSE)", "=XLOOKUP(A2,B1:Z1,B2:Z2)"),
+    ("=INDEX(F:F,MATCH(A2,B:B,0))", "=XLOOKUP(A2,B:B,F:F)"),
+    ('=IF(A2>90,"A",IF(A2>80,"B",IF(A2>70,"C","F")))', '=IFS(A2>90,"A",A2>80,"B",A2>70,"C",TRUE,"F")'),
+    ('=IF(A2=1,"one",IF(A2=2,"two","other"))', '=SWITCH(A2,1,"one",2,"two","other")'),
+    ('=CONCATENATE(A2," ",B2)', '=TEXTJOIN(" ",TRUE,A2,B2)'),
+    ('=A2&" "&B2&" "&C2', '=TEXTJOIN(" ",TRUE,A2,B2,C2)'),
+    ('=IFERROR(VLOOKUP(A2,B:F,5,FALSE),"")', '=IFNA(XLOOKUP(A2,B:B,F:F),"")'),
+    ('=IF(ISNA(VLOOKUP(A2,B:F,5,FALSE)),"",VLOOKUP(A2,B:F,5,FALSE))', '=IFNA(XLOOKUP(A2,B:B,F:F),"")'),
+    ('=LEFT(A2,FIND(" ",A2)-1)', '=TEXTBEFORE(A2," ")'),
+    ('=MID(A2,FIND("@",A2)+1,LEN(A2))', '=TEXTAFTER(A2,"@")'),
+    ('=SUMPRODUCT((A:A="x")*B:B)', '=SUMIF(A:A,"x",B:B)'),
+    ("=TRANSPOSE(A1:A5)", "=TOROW(A1:A5)"),
+    ('=IF(COUNTIF(B:B,A2)>0,"yes","no")', '=IF(ISNUMBER(XMATCH(A2,B:B)),"yes","no")'),
+    ("=SMALL(A:A,1)", "=MIN(A:A)"),
+    ("=LARGE(A:A,1)", "=MAX(A:A)"),
+]
+def gen_modernize():
+    old, new = random.choice(MODERNIZE)
+    return random.choice([f"modernize {old}", f"update {old} to new functions",
+                          f"use modern functions for {old}", f"rewrite {old} the new way",
+                          f"convert {old} to dynamic functions"]), new
+
+# ── add error handling: wrap any formula in IFERROR / IFNA ──
+def gen_adderror():
+    fn = random.choice(G); d, f = fn()
+    val, label = random.choice([("0", "0"), ('""', "blank"), ('"N/A"', "N/A"), ('"-"', "a dash")])
+    is_lookup = any(x in f for x in ("VLOOKUP", "XLOOKUP", "HLOOKUP", "MATCH", "INDEX"))
+    wrap = "IFNA" if (is_lookup and random.random() < 0.6) else "IFERROR"
+    out = f"={wrap}({f[1:]},{val})"
+    return random.choice([f"add error handling to {f}", f"wrap {f} so errors show {label}",
+                          f"handle errors in {f}", f"make {f} return {label} on error",
+                          f"catch errors in {f}"]), out
+
+# ── strip error handling: unwrap IFERROR / IFNA to expose the real result ──
+def gen_striperror():
+    fn = random.choice(G); d, f = fn()
+    val = random.choice(["0", '""', '"N/A"', '"-"'])
+    wrap = random.choice(["IFERROR", "IFNA"])
+    wrapped = f"={wrap}({f[1:]},{val})"
+    return random.choice([f"remove the error handling from {wrapped}", f"strip the {wrap} from {wrapped}",
+                          f"show the real error in {wrapped}", f"unwrap {wrapped}"]), f
+
+# ── directional anchoring: set the right mixed $ refs for filling across / down ──
+def gen_reflock():
+    c = col(); r = random.randint(1, 40)
+    d1, d2, out = random.choice([
+        ("when you drag it right",  "lock the column",        f"${c}{r}"),   # $A1
+        ("when you drag it down",   "lock the row",           f"{c}${r}"),   # A$1
+        ("when you copy it anywhere","keep both fixed",        f"${c}${r}"),  # $A$1
+    ])
+    return random.choice([f"{d2} for {c}{r}", f"anchor {c}{r} so it stays put {d1}",
+                          f"keep {c}{r} from moving {d1}"]), "=" + out
+
+# ── A1 <-> R1C1 notation (absolute refs, unambiguous) ──
+def _col_num(s):
+    n = 0
+    for ch in s: n = n * 26 + (ord(ch) - 64)
+    return n
+def gen_r1c1():
+    c = col(); r = random.randint(1, 30); a1 = f"${c}${r}"; r1c1 = f"R{r}C{_col_num(c)}"
+    if random.random() < 0.5:
+        return random.choice([f"convert {a1} to R1C1", f"what is {a1} in R1C1 notation",
+                              f"{a1} in R1C1"]), r1c1
+    return random.choice([f"convert {r1c1} to A1 notation", f"what cell is {r1c1}",
+                          f"{r1c1} in A1"]), a1
+
+# ── locale: swap , <-> ; argument separators (quote-free formulas only, so it's exact) ──
+def gen_locale():
+    f = "=SUM(A1,B1,C1)"
+    for _ in range(20):
+        fn = random.choice(G); _, cand = fn()
+        if '"' not in cand and "," in cand: f = cand; break
+    if random.random() < 0.5:
+        return random.choice([f"convert {f} to European format", f"use semicolons in {f}",
+                              f"{f} with semicolon separators"]), f.replace(",", ";")
+    eu = f.replace(",", ";")
+    return random.choice([f"convert {eu} to US format", f"use commas in {eu}",
+                          f"{eu} with comma separators"]), f
+
+# ── dynamic range: turn a fixed range into a whole-column reference ──
+def gen_dynamic():
+    c = col(); a = random.randint(2, 5); b = random.choice([50, 100, 200, 500, 1000])
+    fn = random.choice(["SUM", "AVERAGE", "COUNT", "MAX", "MIN", "COUNTA"])
+    fixed = f"={fn}({c}{a}:{c}{b})"
+    return random.choice([f"make {fixed} cover the whole column", f"convert {fixed} to a full-column reference",
+                          f"make {fixed} include new rows automatically", f"make {fixed} dynamic"]), f"={fn}({c}:{c})"
+
+# ── evaluate step by step: walk a nested formula inner-to-outer (like Excel's Evaluate Formula) ──
+EVALUATE = [
+    ("=ROUND(AVERAGE(A1:A10),2)", "1) AVERAGE(A1:A10) gets the mean of the range. 2) ROUND(...,2) rounds that to 2 decimals."),
+    ('=IF(SUM(B:B)>1000,"high","low")', '1) SUM(B:B) totals column B. 2) check if that is over 1000. 3) return "high" if true, else "low".'),
+    ("=VLOOKUP(A2,D:F,3,FALSE)", "1) take the value in A2. 2) find it in column D. 3) return the value 3 columns across (F) on that row."),
+    ('=IFERROR(A1/B1,0)', "1) compute A1/B1. 2) if that errors (B1 is 0 or blank), return 0 instead."),
+    ("=SUMIF(A:A,\"west\",C:C)", '1) look down column A for cells equal to "west". 2) add up the matching cells in column C.'),
+    ("=LEFT(A1,FIND(\" \",A1)-1)", '1) FIND(" ",A1) gets the position of the first space. 2) LEFT takes that many minus one characters, giving the first word.'),
+    ("=INDEX(F:F,MATCH(A2,B:B,0))", "1) MATCH(A2,B:B,0) finds which row A2 sits on in column B. 2) INDEX returns the value on that row of column F."),
+    ('=TEXTJOIN(", ",TRUE,A1:A5)', '1) take the values A1:A5. 2) drop the blanks (TRUE). 3) glue them together separated by a comma and space.'),
+]
+def gen_evaluate():
+    f, steps = random.choice(EVALUATE)
+    return random.choice([f"evaluate {f} step by step", f"walk through {f}", f"break down how {f} works",
+                          f"trace {f}"]), steps
 
 # ── solve: rearrange to find the unknown ──
 SOLVE = [
@@ -1649,11 +1851,14 @@ def gen_datadict():
 MODES = [
     (40, "formula"), (6, gen_spanish), (5, gen_explain), (5, gen_fix), (5, gen_edit),
     (3, gen_chart), (3, gen_format), (3, gen_clean), (2.5, gen_model), (2.5, gen_action),
-    (2, gen_steps), (2, gen_transpile), (1.5, gen_reverse), (1.5, gen_optimize),
-    (1.5, gen_audit), (1.5, gen_nlsql), (2, gen_debug), (2, gen_absref), (1.5, gen_doc),
+    (2, gen_steps), (2, gen_transpile), (1.5, gen_reverse), (2, gen_optimize),
+    (2, gen_audit), (1.5, gen_nlsql), (2.5, gen_debug), (2, gen_absref), (1.5, gen_doc),
     (1.5, gen_solve), (2, gen_fromex), (1.5, gen_rules), (1.5, gen_howto),
     (1.5, gen_chartrec), (1.5, gen_script), (1.5, gen_keyboard), (1.5, gen_vba),
     (1.5, gen_gendata), (1.5, gen_unittest), (1.5, gen_datadict),
+    # ── understand-&-fix expansion: formula refactoring / comprehension ──
+    (2, gen_modernize), (1.5, gen_adderror), (1, gen_striperror), (1.5, gen_reflock),
+    (1, gen_r1c1), (1, gen_locale), (1.5, gen_dynamic), (1.5, gen_evaluate),
 ]
 _MODE_FNS = [f for _, f in MODES]
 _MODE_WTS = [w for w, _ in MODES]

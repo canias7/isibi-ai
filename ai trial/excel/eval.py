@@ -64,6 +64,14 @@ score("SOLVE",     make_data.gen_solve)
 score("FROM-EX",   make_data.gen_fromex)
 score("RULES",     make_data.gen_rules)
 score("UNIT-TEST", make_data.gen_unittest)
+# understand-&-fix expansion (exact-match refactors)
+score("MODERNIZE", make_data.gen_modernize)
+score("ADD-ERROR", make_data.gen_adderror)
+score("STRIP-ERR", make_data.gen_striperror)
+score("REF-LOCK",  make_data.gen_reflock)
+score("R1C1",      make_data.gen_r1c1)
+score("LOCALE",    make_data.gen_locale)
+score("DYNAMIC",   make_data.gen_dynamic)
 
 # ── generative / spec tasks (eyeball — not exact-match) ──
 def show(label, gen, n=5):
@@ -76,6 +84,7 @@ def show(label, gen, n=5):
 print("\n========== generative / spec samples ==========")
 show("EXPLAIN",     make_data.gen_explain)
 show("AUDIT",       make_data.gen_audit)
+show("EVALUATE",    make_data.gen_evaluate)
 show("CHART/PIVOT", make_data.gen_chart)
 show("FORMAT",      make_data.gen_format)
 show("CLEAN",       make_data.gen_clean)
