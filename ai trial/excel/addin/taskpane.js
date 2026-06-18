@@ -234,9 +234,12 @@ function coerce(v) { return v == null ? "" : (/^-?\d+(\.\d+)?$/.test(String(v)) 
 async function applyModel(spec) {
   const m = parseSpec(spec);
   try {
-    if (m.type === "ratios")   return await buildRatios();
-    if (m.type === "variance") return await buildVariance(m);
-    if (m.type === "aging")    return await buildAging(m);
+    if (m.type === "ratios")        return await buildRatios();
+    if (m.type === "variance")      return await buildVariance(m);
+    if (m.type === "aging")         return await buildAging(m);
+    if (m.type === "amortization")  return await buildAmortization();
+    if (m.type === "breakeven")     return await buildBreakeven();
+    if (m.type === "cashflow")      return await buildCashflow();
     setOut('<span class="err">Unknown model type: ' + escapeHtml(m.type || "") + "</span>");
   } catch (e) {
     setOut('<span class="err">Model build failed: ' + escapeHtml(e.message) + "</span>");
@@ -313,6 +316,80 @@ async function buildAging(m) {
     ctx.workbook.getActiveCell().getResizedRange(grid.length - 1, 1).formulas = grid;
     await ctx.sync();
     setOut('<div class="muted">built an aging report</div>');
+  });
+}
+
+// loan amortization: input cells + a 12-period schedule whose rows chain off each other
+async function buildAmortization() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex");
+    await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex, Lc = colLetter(c0 + 1);
+    const grid = [["Loan Amortization", "", "", "", ""]];
+    const rowOf = {};
+    ["Loan Amount", "Annual Rate", "Years"].forEach((n) => { rowOf[n] = r0 + grid.length + 1; grid.push([n, "", "", "", ""]); });
+    const amt = Lc + rowOf["Loan Amount"], rate = Lc + rowOf["Annual Rate"], yrs = Lc + rowOf["Years"];
+    rowOf.pmt = r0 + grid.length + 1;
+    grid.push(["Monthly Payment", `=PMT(${rate}/12,${yrs}*12,-${amt})`, "", "", ""]);
+    const pmt = Lc + rowOf.pmt;
+    grid.push(["", "", "", "", ""]);
+    grid.push(["Period", "Payment", "Interest", "Principal", "Balance"]);
+    const PM = colLetter(c0 + 1), I = colLetter(c0 + 2), PR = colLetter(c0 + 3), B = colLetter(c0 + 4);
+    for (let p = 1; p <= 12; p++) {
+      const sr = r0 + grid.length + 1;
+      const prevBal = p === 1 ? amt : `${B}${sr - 1}`;
+      grid.push([p, `=${pmt}`, `=${prevBal}*${rate}/12`, `=${PM}${sr}-${I}${sr}`, `=${prevBal}-${PR}${sr}`]);
+    }
+    start.getResizedRange(grid.length - 1, 4).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built an amortization model — fill Loan Amount, Annual Rate, Years</div>');
+  });
+}
+
+// break-even: input cells + contribution margin / units / revenue
+async function buildBreakeven() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex");
+    await ctx.sync();
+    const r0 = start.rowIndex, v = colLetter(start.columnIndex + 1);
+    const grid = [["Break-Even Analysis", ""], ["Inputs", ""]];
+    const rowOf = {};
+    ["Fixed Costs", "Price per Unit", "Variable Cost per Unit"].forEach((n) => { rowOf[n] = r0 + grid.length + 1; grid.push([n, ""]); });
+    const cm = `(${v}${rowOf["Price per Unit"]}-${v}${rowOf["Variable Cost per Unit"]})`;
+    grid.push(["Results", ""]);
+    grid.push(["Contribution Margin", `=${cm}`]);
+    grid.push(["Break-Even Units", `=${v}${rowOf["Fixed Costs"]}/${cm}`]);
+    grid.push(["Break-Even Revenue", `=${v}${rowOf["Fixed Costs"]}/${cm}*${v}${rowOf["Price per Unit"]}`]);
+    start.getResizedRange(grid.length - 1, 1).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a break-even model — fill the inputs</div>');
+  });
+}
+
+// 3-month cash flow: revenue/COGS/opex inputs + a Net row formula per month
+async function buildCashflow() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex");
+    await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex;
+    const m1 = colLetter(c0 + 1), m2 = colLetter(c0 + 2), m3 = colLetter(c0 + 3);
+    const grid = [
+      ["Cash Flow", "Month 1", "Month 2", "Month 3"],
+      ["Revenue", "", "", ""],
+      ["COGS", "", "", ""],
+      ["Operating Expenses", "", "", ""],
+    ];
+    const rev = r0 + 2, cogs = r0 + 3, opex = r0 + 4;
+    grid.push(["Net Cash Flow",
+      `=${m1}${rev}-${m1}${cogs}-${m1}${opex}`,
+      `=${m2}${rev}-${m2}${cogs}-${m2}${opex}`,
+      `=${m3}${rev}-${m3}${cogs}-${m3}${opex}`]);
+    start.getResizedRange(grid.length - 1, 3).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a 3-month cash flow — fill revenue / COGS / expenses</div>');
   });
 }
 

@@ -643,6 +643,72 @@ def g_vstack():   a=col(); b=col(); return f"stack {a} on top of {b}", f"=VSTACK
 @reg
 def g_take():     c=col(); n=random.randint(3,20); return f"the first {n} rows of column {c}", f"=TAKE({c}:{c},{n})"
 
+# ── extended breadth: more math / stats / finance / text / array / info ──
+@reg
+def g_gcd():       r,d=rng(); return "greatest common divisor of "+d, f"=GCD({r})"
+@reg
+def g_lcm():       r,d=rng(); return "least common multiple of "+d, f"=LCM({r})"
+@reg
+def g_fact():      c=cell(); return f"factorial of {c}", f"=FACT({c})"
+@reg
+def g_combin():    c=cell(); k=random.randint(2,6); return f"combinations of {c} choose {k}", f"=COMBIN({c},{k})"
+@reg
+def g_sumsq():     r,d=rng(); return "sum of squares of "+d, f"=SUMSQ({r})"
+@reg
+def g_norm_dist(): x=cell(); m=cell(); s=cell(); return f"normal distribution of {x} with mean {m} and sd {s}", f"=NORM.DIST({x},{m},{s},TRUE)"
+@reg
+def g_norm_inv():  p=cell(); m=cell(); s=cell(); return f"inverse normal for probability {p}, mean {m}, sd {s}", f"=NORM.INV({p},{m},{s})"
+@reg
+def g_percentile_inc():r,d=rng(); pc=random.choice([0.25,0.5,0.75,0.9]); return f"the {int(pc*100)}th percentile of {d} inclusive", f"=PERCENTILE.INC({r},{pc})"
+@reg
+def g_quartile_inc():r,d=rng(); k=random.randint(1,3); return f"quartile {k} of {d} inclusive", f"=QUARTILE.INC({r},{k})"
+@reg
+def g_stdev_s():   r,d=rng(); return "sample standard deviation of "+d, f"=STDEV.S({r})"
+@reg
+def g_var_s():     r,d=rng(); return "sample variance of "+d, f"=VAR.S({r})"
+@reg
+def g_confidence():s=cell(); n=cell(); return f"95 percent confidence interval with sd {s} and size {n}", f"=CONFIDENCE.NORM(0.05,{s},{n})"
+@reg
+def g_pduration(): rt=cell(); pv=cell(); fv=cell(); return f"periods to grow {pv} to {fv} at rate {rt}", f"=PDURATION({rt},{pv},{fv})"
+@reg
+def g_rri():       n=cell(); pv=cell(); fv=cell(); return f"the return rate to grow {pv} to {fv} over {n} periods", f"=RRI({n},{pv},{fv})"
+@reg
+def g_ispmt():     rt=cell(); pr=cell(); n=cell(); pv=cell(); return f"interest paid in period {pr}, rate {rt}, periods {n}, value {pv}", f"=ISPMT({rt},{pr},{n},{pv})"
+@reg
+def g_dollarde():  c=cell(); fr=random.choice([8,16,32]); return f"convert {c} from fractional dollars in {fr}ths to decimal", f"=DOLLARDE({c},{fr})"
+@reg
+def g_dollarfr():  c=cell(); fr=random.choice([8,16,32]); return f"convert {c} from decimal to fractional dollars in {fr}ths", f"=DOLLARFR({c},{fr})"
+@reg
+def g_numbervalue():c=cell(); return f"convert the text in {c} to a number", f"=NUMBERVALUE({c})"
+@reg
+def g_tfn():       c=cell(); return f"return {c} only if it is text", f"=T({c})"
+@reg
+def g_nfn():       c=cell(); return f"convert {c} to its numeric value", f"=N({c})"
+@reg
+def g_unichar():   n=random.randint(65,200); return f"the character for unicode {n}", f"=UNICHAR({n})"
+@reg
+def g_unicode():   c=cell(); return f"the unicode number of {c}", f"=UNICODE({c})"
+@reg
+def g_let():       c=cell(); return f"with x as {c}, return x doubled", f"=LET(x,{c},x*2)"
+@reg
+def g_tocol():     a=col(); b=chr(ord(a)+2); return f"flatten {a}:{b} into a single column", f"=TOCOL({a}:{b})"
+@reg
+def g_torow():     a=col(); b=chr(ord(a)+2); return f"flatten {a}:{b} into a single row", f"=TOROW({a}:{b})"
+@reg
+def g_choosecols():a=col(); b=chr(ord(a)+4); i=random.randint(1,2); j=random.randint(3,4); return f"keep only columns {i} and {j} of {a}:{b}", f"=CHOOSECOLS({a}:{b},{i},{j})"
+@reg
+def g_chooserows():a=col(); b=chr(ord(a)+4); i=random.randint(1,2); j=random.randint(3,5); return f"keep only rows {i} and {j} of {a}:{b}", f"=CHOOSEROWS({a}:{b},{i},{j})"
+@reg
+def g_drop():      c=col(); k=random.randint(1,3); return f"drop the first {k} rows of column {c}", f"=DROP({c}:{c},{k})"
+@reg
+def g_expand():    c=col(); k=random.randint(5,20); return f"expand column {c} to {k} rows padding with 0", f"=EXPAND({c}:{c},{k},1,0)"
+@reg
+def g_formulatext():c=cell(); return f"show the formula in {c} as text", f"=FORMULATEXT({c})"
+@reg
+def g_typenum():   c=cell(); return f"the data type code of {c}", f"=TYPE({c})"
+@reg
+def g_sheetnum():  return random.choice(["the current sheet number", "this sheet's number"]), "=SHEET()"
+
 # ── phrasing engine: wrap each base request the many ways real people type it ──
 # (empties keep a good share clean; the rest add natural lead-ins / trailers)
 LEADS = ["", "", "", "", "", "", "",
@@ -929,20 +995,30 @@ def gen_spanish():
 # ── finance pack: intent -> a MODEL spec; the add-in stamps the block of cells ──
 def gen_model():
     r = random.random()
-    if r < 0.4:
+    if r < 0.22:
         q = random.choice(["build a ratio analysis", "calculate the key financial ratios",
                            "show liquidity and profitability ratios", "make a financial ratios block",
                            "build the standard financial ratios"])
         return q, "MODEL type=ratios"
-    if r < 0.75:
+    if r < 0.40:
         a = hdr1(); b = hdr1()
         q = random.choice([f"variance report of actual {a} versus budget {b}",
                            f"build a budget variance for {a} vs {b}",
                            f"actual {a} vs budget {b} with variance"])
         return q, f"MODEL type=variance actual={a} budget={b}"
-    a = hdr1()
-    q = random.choice([f"build an aging report for {a}", f"AR aging of {a}", f"age {a} into buckets"])
-    return q, f"MODEL type=aging amount={a} date=date"
+    if r < 0.55:
+        a = hdr1()
+        q = random.choice([f"build an aging report for {a}", f"AR aging of {a}", f"age {a} into buckets"])
+        return q, f"MODEL type=aging amount={a} date=date"
+    if r < 0.72:
+        q = random.choice(["build a loan amortization table", "amortization schedule",
+                           "build an amortization model", "loan payoff schedule"])
+        return q, "MODEL type=amortization"
+    if r < 0.87:
+        q = random.choice(["build a break-even analysis", "break-even model", "break even calculation"])
+        return q, "MODEL type=breakeven"
+    q = random.choice(["build a 3-month cash flow", "monthly cash flow projection", "cash flow model"])
+    return q, "MODEL type=cashflow"
 
 # ── more sheet actions: data validation, sort, filter ──
 def gen_action():
