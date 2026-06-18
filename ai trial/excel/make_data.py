@@ -2164,6 +2164,18 @@ SOLVE = [
     ("what price gives {m} margin on cost {c}", "={c}/(1-{m})"),
     ("what quantity at price {p} reaches {t} in revenue", "={t}/{p}"),
     ("what cost leaves {p} profit from revenue {t}", "={t}-{p}"),
+    ("what selling price gives {m} markup on cost {c}", "={c}*(1+{m})"),
+    ("what was the original price if {p} is after a {m} discount", "={p}/(1-{m})"),
+    ("what pre-tax amount gives {t} after {m} tax", "={t}/(1+{m})"),
+    ("how many units at {p} each to reach {t} in sales", "={t}/{p}"),
+    ("how many hours at {p} per hour to earn {t}", "={t}/{p}"),
+    ("what sales at a {m} commission rate yield {t} in commission", "={t}/{m}"),
+    ("what profit on a {c} investment gives a {m} return", "={c}*{m}"),
+    ("what value gives {m} growth over {c}", "={c}*(1+{m})"),
+    ("what units cover {c} fixed costs at {m} contribution each", "={c}/{m}"),
+    ("how much can I spend to keep {p} of a {t} budget", "={t}-{p}"),
+    ("what cost gives {m} margin at price {p}", "={p}*(1-{m})"),
+    ("what revenue covers {c} costs plus {p} target profit", "={c}+{p}"),
 ]
 def gen_solve():
     tpl, ans = random.choice(SOLVE)
@@ -2176,15 +2188,44 @@ FROMEX = [
     ("john smith -> John Smith", "=PROPER(A1)"), ("  hi  -> hi", "=TRIM(A1)"),
     ("john@x.com -> x.com", '=TEXTAFTER(A1,"@")'), ("2024-01-15 -> 2024", "=YEAR(A1)"),
     ("hello -> 5", "=LEN(A1)"), ("first last -> first", '=TEXTBEFORE(A1," ")'),
+    ("first.last@x.com -> first.last", '=TEXTBEFORE(A1,"@")'),
+    ("first last -> last", '=TEXTAFTER(A1," ")'),
+    ("2024-01-15 -> January", '=TEXT(A1,"mmmm")'),
+    ("2024-01-15 -> 15", "=DAY(A1)"), ("2024-01-15 -> 1", "=MONTH(A1)"),
+    ("0.25 -> 25%", '=TEXT(A1,"0%")'),
+    ("1234.5 -> 1,234.50", '=TEXT(A1,"#,##0.00")'),
+    ("hello -> h", "=LEFT(A1,1)"), ("hello -> o", "=RIGHT(A1,1)"),
+    ("SKU-12345 -> 12345", '=TEXTAFTER(A1,"-")'),
+    ("john -> john@company.com", '=A1&"@company.com"'),
+    ("5 -> 5.00", '=TEXT(A1,"0.00")'),
+    ("cat -> cats", '=A1&"s"'),
+    ("TRUE -> Yes, FALSE -> No", '=IF(A1,"Yes","No")'),
 ]
 def gen_fromex():
     ex, f = random.choice(FROMEX)
     return random.choice([f"examples: {ex}", f"fill the pattern: {ex}", f"infer the formula: {ex}"]), f
 
-# ── rules table -> nested formula ──
-def gen_rules():
-    c = cell(); w1, w2 = random.sample(WORDS, 2); a, b = random.choice([(0.1,0.05),(0.2,0.1),(0.15,0.08)])
+# ── rules table -> nested formula (commission tiers, grade bands, mappings, approvals) ──
+def _rule_text2():
+    c=cell(); w1,w2=random.sample(WORDS,2); a,b=random.choice([(0.1,0.05),(0.2,0.1),(0.15,0.08)])
     return f"on {c}: {w1} gives {a}, {w2} gives {b}, otherwise 0", f'=IFS({c}="{w1}",{a},{c}="{w2}",{b},TRUE,0)'
+def _rule_text3():
+    c=cell(); w1,w2,w3=random.sample(WORDS,3)
+    return f"map {c}: {w1} to 0.2, {w2} to 0.1, {w3} to 0.05, else 0", f'=IFS({c}="{w1}",0.2,{c}="{w2}",0.1,{c}="{w3}",0.05,TRUE,0)'
+def _rule_tiers():
+    c=cell(); a,b=random.choice([(1000,500),(100,50),(10000,5000)])
+    return f"{c}: over {a} gives 0.1, over {b} gives 0.05, else 0", f'=IFS({c}>{a},0.1,{c}>{b},0.05,TRUE,0)'
+def _rule_grade():
+    c=cell(); return f"grade {c}: 90+ is A, 80+ is B, 70+ is C, else F", f'=IFS({c}>=90,"A",{c}>=80,"B",{c}>=70,"C",TRUE,"F")'
+def _rule_switch():
+    c=cell(); k1,k2,k3=random.sample(WORDS,3); return f"switch on {c}: {k1}=1, {k2}=2, {k3}=3", f'=SWITCH({c},"{k1}",1,"{k2}",2,"{k3}",3)'
+def _rule_approve():
+    c=cell(); t=num(); return f"flag {c}: over {t} needs review, otherwise ok", f'=IF({c}>{t},"review","ok")'
+def _rule_shipping():
+    c=cell(); return f"shipping for weight {c}: under 1 is 5, under 5 is 10, else 20", f'=IFS({c}<1,5,{c}<5,10,TRUE,20)'
+RULES_GEN = [_rule_text2, _rule_text3, _rule_tiers, _rule_grade, _rule_switch, _rule_approve, _rule_shipping]
+def gen_rules():
+    return random.choice(RULES_GEN)()
 
 # ── how-to Q&A: Excel UI instructions ──
 HOWTO = [
@@ -2202,6 +2243,28 @@ HOWTO = [
     ("see what a cell feeds into", "Formulas -> Trace Dependents"),
     ("protect a sheet", "Review -> Protect Sheet"),
     ("compare two workbooks", "Inquire add-in -> Compare Files"),
+    ("add conditional formatting", "Home -> Conditional Formatting"),
+    ("create a named range", "Formulas -> Define Name (or type it in the Name Box)"),
+    ("split text into columns", "Data -> Text to Columns"),
+    ("use flash fill", "Data -> Flash Fill (or Ctrl+E)"),
+    ("group rows together", "select the rows -> Data -> Group"),
+    ("add subtotals", "Data -> Subtotal"),
+    ("record a macro", "View -> Macros -> Record Macro"),
+    ("open the VBA editor", "press Alt+F11"),
+    ("insert a slicer", "select a table or pivot -> Insert -> Slicer"),
+    ("sort by cell color", "Data -> Sort -> Sort On: Cell Color"),
+    ("show formulas instead of values", "Formulas -> Show Formulas (shortcut: Ctrl + grave accent)"),
+    ("convert a range to a table", "Insert -> Table (or Ctrl+T)"),
+    ("paste values only", "copy -> Paste Special -> Values (Ctrl+Alt+V, then V)"),
+    ("transpose rows and columns", "copy -> Paste Special -> Transpose"),
+    ("set a print area", "Page Layout -> Print Area -> Set Print Area"),
+    ("fit everything on one page", "Page Layout -> Scale to Fit -> Width: 1 page"),
+    ("highlight duplicate values", "Home -> Conditional Formatting -> Highlight Cells Rules -> Duplicate Values"),
+    ("add data bars", "Home -> Conditional Formatting -> Data Bars"),
+    ("add a trendline to a chart", "click the chart -> Chart Design -> Add Chart Element -> Trendline"),
+    ("lock specific cells", "Format Cells -> Protection -> Locked, then Review -> Protect Sheet"),
+    ("insert a header or footer", "Insert -> Header & Footer"),
+    ("run spell check", "Review -> Spelling (or F7)"),
 ]
 def gen_howto():
     q, a = random.choice(HOWTO)
@@ -2213,6 +2276,16 @@ CHARTREC = [
     ("revenue by region", "bar chart"), ("price vs demand", "scatter chart"),
     ("monthly totals", "column chart"), ("distribution of values", "histogram"),
     ("comparison across categories", "bar chart"), ("a trend over months", "line chart"),
+    ("parts of a whole", "pie chart"), ("cumulative total over time", "area chart"),
+    ("progress toward a goal", "bar chart"), ("ranking of items", "sorted bar chart"),
+    ("a change broken into contributions", "waterfall chart"),
+    ("budget versus actual", "clustered column chart"),
+    ("data by country or state", "map chart"), ("a single key metric", "big-number card"),
+    ("nested categories by size", "treemap"), ("performance across many metrics", "radar chart"),
+    ("steps in a conversion funnel", "funnel chart"),
+    ("composition by category over time", "stacked column chart"),
+    ("relationship between three variables", "bubble chart"),
+    ("stock prices over a day", "candlestick chart"),
 ]
 def gen_chartrec():
     q, a = random.choice(CHARTREC)
@@ -2252,22 +2325,56 @@ def gen_vba():
     return random.choice([f"vba to {q}", f"a vba macro to {q}", f"vba code to {q}"]), a
 
 # ── generate sample data -> GENDATA spec ──
+GENDATA_COLS = ["region", "product", "amount", "date", "customer", "status", "price", "quantity",
+                "email", "phone", "city", "country", "category", "sku", "discount", "tax", "total",
+                "name", "department", "salesperson", "invoice", "due_date", "rating", "cost"]
 def gen_gendata():
-    n = random.choice([10, 20, 50, 100])
-    cs = random.sample(["region", "product", "amount", "date", "customer", "status", "price", "quantity"], random.randint(2, 4))
+    n = random.choice([10, 20, 25, 50, 100, 200, 500])
+    cs = random.sample(GENDATA_COLS, random.randint(2, 5))
     return random.choice([f"generate {n} rows of sample {cs[0]} data", f"make {n} rows of fake data with {', '.join(cs)}",
-                          f"create {n} sample rows of {', '.join(cs)}"]), f"GENDATA rows={n} cols={','.join(cs)}"
+                          f"create {n} sample rows of {', '.join(cs)}", f"mock up {n} rows: {', '.join(cs)}"]), \
+           f"GENDATA rows={n} cols={','.join(cs)}"
 
 # ── spreadsheet unit test (assertion) ──
+def _ut_eq():     c=cell(); n=num(); return random.choice([f"assert {c} equals {n}", f"test that {c} is {n}"]), f"=({c}={n})"
+def _ut_gt():     c=cell(); n=num(); return f"check that {c} is greater than {n}", f"=({c}>{n})"
+def _ut_lt():     c=cell(); n=num(); return f"check that {c} is less than {n}", f"=({c}<{n})"
+def _ut_between():c=cell(); a=num(); b=a+num(); return f"check {c} is between {a} and {b}", f"=AND({c}>={a},{c}<={b})"
+def _ut_pos():    c=cell(); return f"assert {c} is positive", f"=({c}>0)"
+def _ut_notblank():c=cell(); return f"check {c} is not blank", f'=({c}<>"")'
+def _ut_isnum():  c=cell(); return f"assert {c} is a number", f"=ISNUMBER({c})"
+def _ut_noerror():c=cell(); return f"check {c} has no error", f"=NOT(ISERROR({c}))"
+def _ut_approx(): c=cell(); n=num(); return f"assert {c} is about {n} within 0.01", f"=(ABS({c}-{n})<0.01)"
+def _ut_text():   c=cell(); w=word(); return f'assert {c} equals "{w}"', f'=({c}="{w}")'
+def _ut_sum():    r,d=rng(); n=num(); return f"check the total of {r} equals {n}", f"=(SUM({r})={n})"
+def _ut_count():  c=col(); w=word(); n=num(); return f'check there are {n} "{w}" in {c}', f'=(COUNTIF({c}:{c},"{w}")={n})'
+UNITTEST_GEN = [_ut_eq, _ut_gt, _ut_lt, _ut_between, _ut_pos, _ut_notblank, _ut_isnum, _ut_noerror, _ut_approx, _ut_text, _ut_sum, _ut_count]
 def gen_unittest():
-    c = cell(); n = num()
-    return random.choice([f"assert {c} equals {n}", f"test that {c} is {n}", f"check {c} equals {n}"]), f"=({c}={n})"
+    return random.choice(UNITTEST_GEN)()
 
-# ── data dictionary ──
+# ── data dictionary: real field descriptions (type — meaning) ──
+DATADICT = {
+    "revenue": "currency — total sales amount for the row",
+    "cost": "currency — cost of goods or expense for the row",
+    "region": "text — sales territory (north/south/east/west)",
+    "date": "date — when the transaction happened",
+    "customer": "text — customer name or account ID",
+    "quantity": "integer — number of units",
+    "status": "text — order state (open/paid/cancelled)",
+    "price": "currency — price per unit",
+    "margin": "percent — profit as a share of revenue",
+    "email": "text — contact email address",
+    "sku": "text — stock-keeping unit / product code",
+    "discount": "percent — reduction applied to the price",
+    "tax": "currency — tax charged on the row",
+    "total": "currency — line total after tax and discount",
+    "salesperson": "text — rep who closed the deal",
+}
 def gen_datadict():
-    cs = random.sample(["revenue", "cost", "region", "date", "customer", "quantity", "status", "price"], 3)
-    return random.choice([f"data dictionary for {', '.join(cs)}", f"document the columns {', '.join(cs)}"]), \
-           "; ".join(f"{c}: the {c} for each row" for c in cs)
+    cs = random.sample(list(DATADICT), 3)
+    return random.choice([f"data dictionary for {', '.join(cs)}", f"document the columns {', '.join(cs)}",
+                          f"describe the fields {', '.join(cs)}"]), \
+           "; ".join(f"{c}: {DATADICT[c]}" for c in cs)
 
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
@@ -2275,9 +2382,9 @@ MODES = [
     (3, gen_chart), (3, gen_format), (3, gen_clean), (2.5, gen_model), (2.5, gen_action),
     (2, gen_steps), (3, gen_transpile), (2, gen_reverse), (2, gen_optimize),
     (2, gen_audit), (2, gen_nlsql), (2.5, gen_debug), (2, gen_absref), (1.5, gen_doc),
-    (1.5, gen_solve), (2, gen_fromex), (1.5, gen_rules), (1.5, gen_howto),
-    (1.5, gen_chartrec), (1.5, gen_script), (1.5, gen_keyboard), (1.5, gen_vba),
-    (1.5, gen_gendata), (1.5, gen_unittest), (1.5, gen_datadict),
+    (2, gen_solve), (2, gen_fromex), (2, gen_rules), (2, gen_howto),
+    (2, gen_chartrec), (1.5, gen_script), (1.5, gen_keyboard), (1.5, gen_vba),
+    (1.5, gen_gendata), (2, gen_unittest), (1.5, gen_datadict),
     # ── understand-&-fix expansion: formula refactoring / comprehension ──
     (2, gen_modernize), (1.5, gen_adderror), (1, gen_striperror), (1.5, gen_reflock),
     (1, gen_r1c1), (1, gen_locale), (1.5, gen_dynamic), (1.5, gen_evaluate),
