@@ -1345,10 +1345,49 @@ def _a_merge():       c=col(); a=random.randint(1,5); b=a+random.randint(1,4); r
 def _a_table():       c=col(); c2=chr(ord(c)+3); return f"convert {c}:{c2} to a table", f"TABLE range={c}:{c2}"
 def _a_gridlines():   s=random.choice(["off","on"]); return f"turn gridlines {s}", f"GRIDLINES show={'false' if s=='off' else 'true'}"
 def _a_tabcolor():    k=random.choice(COLORS); return f"color the sheet tab {k}", f"TABCOLOR color={k}"
+FONTS = ["Arial", "Calibri", "Times New Roman", "Verdana"]
+def _a_italic():      c=col(); return f"italicize column {c}", f"ITALIC col={c}"
+def _a_underline():   c=col(); return f"underline column {c}", f"UNDERLINE col={c}"
+def _a_strike():      c=col(); return f"strikethrough column {c}", f"STRIKE col={c}"
+def _a_fontsize():    c=col(); n=random.choice([8,10,12,14,16,18,24]); return f"set column {c} font size to {n}", f"FONTSIZE col={c} pt={n}"
+def _a_fontname():    c=col(); f=random.choice(FONTS); return f"set column {c} font to {f}", f"FONTNAME col={c} font={f.replace(' ','_')}"
+def _a_valign():      c=col(); v=random.choice(["top","middle","bottom"]); return f"vertically align column {c} to {v}", f"VALIGN col={c} to={v}"
+def _a_indent():      c=col(); return f"indent column {c}", f"INDENT col={c}"
+def _a_rotate():      c=col(); d=random.choice([45,90,-45]); return f"rotate text in {c} by {d} degrees", f"ROTATE col={c} deg={d}"
+def _a_shrinkfit():   c=col(); return f"shrink text to fit in {c}", f"SHRINKFIT col={c}"
+def _a_hiderow():     n=random.randint(2,50); return f"hide row {n}", f"HIDEROW row={n}"
+def _a_unhiderow():   n=random.randint(2,50); return f"unhide row {n}", f"UNHIDEROW row={n}"
+def _a_deleterow():   n=random.randint(2,50); return f"delete row {n}", f"DELETEROW row={n}"
+def _a_rowheight():   n=random.randint(2,50); h=random.choice([15,20,30,40]); return f"set row {n} height to {h}", f"ROWHEIGHT row={n} px={h}"
+def _a_grouprows():   a=random.randint(2,20); b=a+random.randint(2,10); return f"group rows {a} to {b}", f"GROUPROWS from={a} to={b}"
+def _a_groupcols():   c=col(); c2=chr(ord(c)+2); return f"group columns {c} to {c2}", f"GROUPCOLS from={c} to={c2}"
+def _a_insertsheet(): h=hdr1(); return f"add a sheet called {h}", f"INSERTSHEET name={h}"
+def _a_deletesheet(): h=hdr1(); return f"delete the {h} sheet", f"DELETESHEET name={h}"
+def _a_renamesheet(): h=hdr1(); return f"rename the sheet to {h}", f"RENAMESHEET name={h}"
+def _a_copysheet():   return random.choice(["duplicate the sheet","copy this sheet"]), "COPYSHEET"
+def _a_hidesheet():   return "hide this sheet", "HIDESHEET"
+def _a_clearfilter(): return random.choice(["clear all filters","remove the filter"]), "CLEARFILTER"
+def _a_refresh():     return random.choice(["refresh all data","refresh the data connections"]), "REFRESH"
+def _a_zoom():        n=random.choice([50,75,100,125,150]); return f"zoom to {n} percent", f"ZOOM pct={n}"
+def _a_showformulas():s=random.choice(["true","false"]); return ("show formulas" if s=="true" else "hide formulas"), f"SHOWFORMULAS show={s}"
+def _a_split():       return "split the panes", "SPLITPANES"
+def _a_hyperlink():   c=cell(); return f"add a hyperlink in {c} to example.com", f"HYPERLINK cell={c} url=example.com"
+def _a_comment():     c=cell(); w=word(); return f"add a note to {c} saying {w}", f"COMMENT cell={c} text={w}"
+def _a_sparkline():   c=cell(); cl=col(); return f"add a sparkline in {c} for column {cl}", f"SPARKLINE cell={c} data={cl}:{cl}"
+def _a_orientation(): o=random.choice(["landscape","portrait"]); return f"set page orientation to {o}", f"ORIENTATION to={o}"
+def _a_printarea():   c=col(); c2=chr(ord(c)+3); return f"set the print area to {c}:{c2}", f"PRINTAREA range={c}:{c2}"
+def _a_calcnow():     return random.choice(["recalculate now","force a recalculation"]), "CALCNOW"
+def _a_precedents():  c=cell(); return f"trace the precedents of {c}", f"PRECEDENTS cell={c}"
+def _a_texttocols():  c=col(); return f"split {c} into columns by delimiter", f"TEXTTOCOLS col={c}"
+def _a_subtotal():    h=hdr1(); return f"add subtotals by {h}", f"SUBTOTAL by={h}"
 _ACTIONS = [_a_validate_list, _a_validate_num, _a_sort, _a_filter, _a_numfmt, _a_freeze_row, _a_freeze_col,
             _a_autofit, _a_hide, _a_unhide, _a_delete, _a_insertrow, _a_insertcol, _a_namerange, _a_protect,
             _a_width, _a_border, _a_fillcolor, _a_fontcolor, _a_bold, _a_align, _a_wrap, _a_clear, _a_merge,
-            _a_table, _a_gridlines, _a_tabcolor]
+            _a_table, _a_gridlines, _a_tabcolor, _a_italic, _a_underline, _a_strike, _a_fontsize, _a_fontname,
+            _a_valign, _a_indent, _a_rotate, _a_shrinkfit, _a_hiderow, _a_unhiderow, _a_deleterow, _a_rowheight,
+            _a_grouprows, _a_groupcols, _a_insertsheet, _a_deletesheet, _a_renamesheet, _a_copysheet, _a_hidesheet,
+            _a_clearfilter, _a_refresh, _a_zoom, _a_showformulas, _a_split, _a_hyperlink, _a_comment, _a_sparkline,
+            _a_orientation, _a_printarea, _a_calcnow, _a_precedents, _a_texttocols, _a_subtotal]
 def gen_action():
     return random.choice(_ACTIONS)()
 

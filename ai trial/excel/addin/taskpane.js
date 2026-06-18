@@ -77,7 +77,7 @@ async function run() {
   if (result.startsWith("NAMERANGE")) return applyNameRange(parseSpec(result));
   if (result.startsWith("PROTECT")) return applyProtect(parseSpec(result));
   if (result.startsWith("GENDATA")) return applyGendata(parseSpec(result));
-  if (/^(UNHIDE|INSERTROW|INSERTCOL|WIDTH|BORDER|FILLCOLOR|FONTCOLOR|BOLD|ALIGN|WRAP|CLEAR|MERGE|TABLE|GRIDLINES|TABCOLOR)\b/.test(result)) return applySheet(result);
+  if (SHEET_VERBS.has(result.split(/\s/)[0])) return applySheet(result);
   if (!result.startsWith("=")) { setOut(escapeHtml(result)); return; }  // explain / fix text
 
   // 5. a formula: bridge header names -> ranges, write it, and READ BACK the answer
@@ -667,6 +667,26 @@ async function applyGendata(m) {
 
 // catch-all for the simpler sheet actions (one Excel.run, dispatch on the verb)
 const COLOR = { red: "#FF0000", green: "#00B050", yellow: "#FFFF00", orange: "#FFA500", blue: "#0070C0" };
+
+// Verbs applySheet routes. Membership test (not a regex on the whole string) so SQL
+// like "SELECT ..." or plain explain text never accidentally lands here.
+const SHEET_VERBS = new Set([
+  // column formatting
+  "UNHIDE","WIDTH","BORDER","FILLCOLOR","FONTCOLOR","BOLD","ITALIC","UNDERLINE","STRIKE",
+  "FONTSIZE","FONTNAME","ALIGN","VALIGN","WRAP","INDENT","ROTATE","SHRINKFIT","CLEAR",
+  // rows
+  "INSERTROW","HIDEROW","UNHIDEROW","DELETEROW","ROWHEIGHT","GROUPROWS","GROUPCOLS",
+  // columns / ranges
+  "INSERTCOL","MERGE","TABLE","PRINTAREA",
+  // sheet-level
+  "GRIDLINES","TABCOLOR","INSERTSHEET","DELETESHEET","RENAMESHEET","COPYSHEET","HIDESHEET",
+  "CLEARFILTER","ORIENTATION","CALCNOW",
+  // cells
+  "HYPERLINK","COMMENT",
+  // recognised but no clean Office.js path (handled gracefully below)
+  "REFRESH","ZOOM","SHOWFORMULAS","SPLITPANES","SPARKLINE","PRECEDENTS","TEXTTOCOLS","SUBTOTAL",
+]);
+
 async function applySheet(spec) {
   const verb = spec.split(/\s/)[0];
   const m = parseSpec(spec);
@@ -674,30 +694,67 @@ async function applySheet(spec) {
     await Excel.run(async (ctx) => {
       const sheet = ctx.workbook.worksheets.getActiveWorksheet();
       const colRange = async () => { const c = await resolveCol(ctx, m.col); return sheet.getRange(`${c}:${c}`); };
+      const rowRange = () => sheet.getRange(`${m.row}:${m.row}`);
+      let handled = true;
+      // ── column formatting ──
       if (verb === "UNHIDE") (await colRange()).columnHidden = false;
-      else if (verb === "INSERTROW") sheet.getRange(`${m.at}:${m.at}`).insert(Excel.InsertShiftDirection.down);
-      else if (verb === "INSERTCOL") { const c = await resolveCol(ctx, m.at); sheet.getRange(`${c}:${c}`).insert(Excel.InsertShiftDirection.right); }
       else if (verb === "WIDTH") (await colRange()).format.columnWidth = parseInt(m.px) || 100;
       else if (verb === "BORDER") { const r = await colRange(); ["EdgeTop","EdgeBottom","EdgeLeft","EdgeRight","InsideHorizontal","InsideVertical"].forEach((e) => { r.format.borders.getItem(e).style = Excel.BorderLineStyle.continuous; }); }
       else if (verb === "FILLCOLOR") (await colRange()).format.fill.color = COLOR[m.color] || "#FFFF00";
       else if (verb === "FONTCOLOR") (await colRange()).format.font.color = COLOR[m.color] || "#FF0000";
       else if (verb === "BOLD") (await colRange()).format.font.bold = true;
-      else if (verb === "ALIGN") (await colRange()).format.horizontalAlignment = (m.to || "center").charAt(0).toUpperCase() + (m.to || "center").slice(1);
+      else if (verb === "ITALIC") (await colRange()).format.font.italic = true;
+      else if (verb === "UNDERLINE") (await colRange()).format.font.underline = "Single";
+      else if (verb === "FONTSIZE") (await colRange()).format.font.size = parseInt(m.pt) || 11;
+      else if (verb === "FONTNAME") (await colRange()).format.font.name = (m.font || "Calibri").replace(/_/g, " ");
+      else if (verb === "ALIGN") (await colRange()).format.horizontalAlignment = cap(m.to || "center");
+      else if (verb === "VALIGN") (await colRange()).format.verticalAlignment = ({ top: "Top", middle: "Center", bottom: "Bottom" }[m.to] || "Center");
       else if (verb === "WRAP") (await colRange()).format.wrapText = true;
+      else if (verb === "INDENT") (await colRange()).format.indentLevel = 1;
+      else if (verb === "ROTATE") (await colRange()).format.textOrientation = parseInt(m.deg) || 0;
+      else if (verb === "SHRINKFIT") (await colRange()).format.shrinkToFit = true;
       else if (verb === "CLEAR") (await colRange()).clear(m.what === "formats" ? Excel.ClearApplyTo.formats : Excel.ClearApplyTo.contents);
+      // ── rows ──
+      else if (verb === "INSERTROW") sheet.getRange(`${m.at}:${m.at}`).insert(Excel.InsertShiftDirection.down);
+      else if (verb === "HIDEROW") rowRange().rowHidden = true;
+      else if (verb === "UNHIDEROW") rowRange().rowHidden = false;
+      else if (verb === "DELETEROW") rowRange().delete(Excel.DeleteShiftDirection.up);
+      else if (verb === "ROWHEIGHT") rowRange().format.rowHeight = parseInt(m.px) || 20;
+      else if (verb === "GROUPROWS") sheet.getRange(`${m.from}:${m.to}`).group(Excel.GroupOption.byRows);
+      else if (verb === "GROUPCOLS") sheet.getRange(`${m.from}:${m.to}`).group(Excel.GroupOption.byColumns);
+      // ── columns / ranges ──
+      else if (verb === "INSERTCOL") { const c = await resolveCol(ctx, m.at); sheet.getRange(`${c}:${c}`).insert(Excel.InsertShiftDirection.right); }
       else if (verb === "MERGE") sheet.getRange(m.range).merge();
       else if (verb === "TABLE") sheet.tables.add(m.range, true);
+      else if (verb === "PRINTAREA") sheet.pageLayout.setPrintArea(m.range);
+      // ── sheet-level ──
       else if (verb === "GRIDLINES") sheet.showGridlines = m.show === "true";
       else if (verb === "TABCOLOR") sheet.tabColor = COLOR[m.color] || "#0070C0";
+      else if (verb === "INSERTSHEET") ctx.workbook.worksheets.add(m.name);
+      else if (verb === "DELETESHEET") ctx.workbook.worksheets.getItem(m.name).delete();
+      else if (verb === "RENAMESHEET") sheet.name = m.name;
+      else if (verb === "COPYSHEET") sheet.copy();
+      else if (verb === "HIDESHEET") sheet.visibility = Excel.SheetVisibility.hidden;
+      else if (verb === "CLEARFILTER") sheet.autoFilter.clearCriteria();
+      else if (verb === "ORIENTATION") sheet.pageLayout.orientation = m.to === "portrait" ? "Portrait" : "Landscape";
+      else if (verb === "CALCNOW") ctx.workbook.application.calculate(Excel.CalculationType.full);
+      // ── cells ──
+      else if (verb === "HYPERLINK") { const url = /^https?:\/\//.test(m.url || "") ? m.url : "https://" + (m.url || ""); (await sheet.getRange(m.cell)).hyperlink = { address: url, textToDisplay: m.url || url }; }
+      else if (verb === "COMMENT") ctx.workbook.comments.add(sheet.getRange(m.cell), m.text || "");
+      // ── recognised, but no clean one-click Office.js call ──
+      else handled = false;
       await ctx.sync();
-      setOut(`<div class="muted">${escapeHtml(verb.toLowerCase())} done</div>`);
+      setOut(handled
+        ? `<div class="muted">${escapeHtml(verb.toLowerCase())} done</div>`
+        : `<div class="formula">${escapeHtml(spec)}</div><div class="muted">no one-click action for ${escapeHtml(verb.toLowerCase())} in Office.js yet — do it from the ribbon</div>`);
     });
   } catch (e) { setOut('<span class="err">' + escapeHtml(verb) + " failed: " + escapeHtml(e.message) + "</span>"); }
 }
 
 function parseSpec(spec) {
   const out = {};
-  spec.replace(/^(CHART|PIVOT|FORMAT|CLEAN|MODEL|VALIDATE|SORT|FILTERVIEW|NUMFMT|FREEZE|AUTOFIT|HIDECOL|DELETECOL|NAMERANGE|PROTECT|GENDATA|UNHIDE|INSERTROW|INSERTCOL|WIDTH|BORDER|FILLCOLOR|FONTCOLOR|BOLD|ALIGN|WRAP|CLEAR|MERGE|TABLE|GRIDLINES|TABCOLOR)\s*/, "").split(/\s+/).forEach((tok) => {
+  // strip the leading VERB token (all-caps), then collect key=value pairs
+  spec.replace(/^[A-Z][A-Z0-9.]*\s*/, "").split(/\s+/).forEach((tok) => {
     const i = tok.indexOf("=");
     if (i > 0) out[tok.slice(0, i)] = tok.slice(i + 1);
   });
@@ -738,5 +795,6 @@ function letterToIdx(s) {            // A -> 0, Z -> 25, AA -> 26
   for (const ch of s.toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
   return n - 1;
 }
+function cap(s) { return String(s).charAt(0).toUpperCase() + String(s).slice(1); }
 function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
 function escapeHtml(s)  { return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
