@@ -2176,6 +2176,10 @@ SOLVE = [
     ("how much can I spend to keep {p} of a {t} budget", "={t}-{p}"),
     ("what cost gives {m} margin at price {p}", "={p}*(1-{m})"),
     ("what revenue covers {c} costs plus {p} target profit", "={c}+{p}"),
+    ("what monthly payment on a {p} loan at {m} monthly rate over {t} months", "=PMT({m},{t},-{p})"),
+    ("what annual growth rate from {c} to {t} over {p} years", "=({t}/{c})^(1/{p})-1"),
+    ("what value is needed to reach an average of {t} across {p} items totaling {c}", "={t}*{p}-{c}"),
+    ("what {c} grows to at {m} per period over {t} periods", "={c}*(1+{m})^{t}"),
 ]
 def gen_solve():
     tpl, ans = random.choice(SOLVE)
@@ -2200,6 +2204,14 @@ FROMEX = [
     ("5 -> 5.00", '=TEXT(A1,"0.00")'),
     ("cat -> cats", '=A1&"s"'),
     ("TRUE -> Yes, FALSE -> No", '=IF(A1,"Yes","No")'),
+    ("John Smith -> J.S.", '=LEFT(A1,1)&"."&MID(A1,FIND(" ",A1)+1,1)&"."'),
+    ("John Smith -> Smith, John", '=MID(A1,FIND(" ",A1)+1,LEN(A1))&", "&LEFT(A1,FIND(" ",A1)-1)'),
+    ("john smith jones -> jones", '=TEXTAFTER(A1," ",-1)'),
+    ("2024-01-15 -> Q1", '="Q"&ROUNDUP(MONTH(A1)/3,0)'),
+    ("5 -> 005", '=TEXT(A1,"000")'),
+    ("1234567 -> 1,234,567", '=TEXT(A1,"#,##0")'),
+    ("$1234 -> 1234", '=VALUE(SUBSTITUTE(A1,"$",""))'),
+    ("john_smith -> john smith", '=SUBSTITUTE(A1,"_"," ")'),
 ]
 def gen_fromex():
     ex, f = random.choice(FROMEX)
@@ -2223,7 +2235,14 @@ def _rule_approve():
     c=cell(); t=num(); return f"flag {c}: over {t} needs review, otherwise ok", f'=IF({c}>{t},"review","ok")'
 def _rule_shipping():
     c=cell(); return f"shipping for weight {c}: under 1 is 5, under 5 is 10, else 20", f'=IFS({c}<1,5,{c}<5,10,TRUE,20)'
-RULES_GEN = [_rule_text2, _rule_text3, _rule_tiers, _rule_grade, _rule_switch, _rule_approve, _rule_shipping]
+def _rule_lookup():
+    c=cell(); t=col(); t2=chr(ord(t)+1); return f"look up the rate for {c} in the {t}:{t2} rate table", f"=VLOOKUP({c},{t}:{t2},2,FALSE)"
+def _rule_overdue():
+    c=cell(); return f"mark {c} overdue if its due date is before today", f'=IF({c}<TODAY(),"overdue","ok")'
+def _rule_multi():
+    c1=cell(); c2=cell(); t=num(); return f'approve if {c1} is over {t} and {c2} is yes', f'=IF(AND({c1}>{t},{c2}="yes"),"approve","deny")'
+RULES_GEN = [_rule_text2, _rule_text3, _rule_tiers, _rule_grade, _rule_switch, _rule_approve, _rule_shipping,
+             _rule_lookup, _rule_overdue, _rule_multi]
 def gen_rules():
     return random.choice(RULES_GEN)()
 
@@ -2265,6 +2284,16 @@ HOWTO = [
     ("lock specific cells", "Format Cells -> Protection -> Locked, then Review -> Protect Sheet"),
     ("insert a header or footer", "Insert -> Header & Footer"),
     ("run spell check", "Review -> Spelling (or F7)"),
+    ("use Goal Seek", "Data -> What-If Analysis -> Goal Seek"),
+    ("use Solver", "Data -> Solver (enable it under File -> Options -> Add-ins first)"),
+    ("get data from a CSV or the web", "Data -> Get Data (Power Query)"),
+    ("refresh a pivot table", "PivotTable Analyze -> Refresh (or right-click -> Refresh)"),
+    ("change a pivot value to average", "right-click the value -> Summarize Values By -> Average"),
+    ("add a sparkline", "Insert -> Sparklines -> Line"),
+    ("create a scenario", "Data -> What-If Analysis -> Scenario Manager"),
+    ("add a secondary axis", "click the series -> Format Data Series -> Secondary Axis"),
+    ("make a custom number format", "Format Cells -> Number -> Custom"),
+    ("autofit row height", "Home -> Format -> AutoFit Row Height"),
 ]
 def gen_howto():
     q, a = random.choice(HOWTO)
@@ -2286,6 +2315,11 @@ CHARTREC = [
     ("composition by category over time", "stacked column chart"),
     ("relationship between three variables", "bubble chart"),
     ("stock prices over a day", "candlestick chart"),
+    ("two measures on different scales", "combo chart with a secondary axis"),
+    ("the vital few causes (80/20)", "pareto chart"),
+    ("spread and outliers of a dataset", "box and whisker chart"),
+    ("a single value against a target", "gauge chart"),
+    ("a tiny trend inside one cell", "sparkline"),
 ]
 def gen_chartrec():
     q, a = random.choice(CHARTREC)
@@ -2348,7 +2382,12 @@ def _ut_approx(): c=cell(); n=num(); return f"assert {c} is about {n} within 0.0
 def _ut_text():   c=cell(); w=word(); return f'assert {c} equals "{w}"', f'=({c}="{w}")'
 def _ut_sum():    r,d=rng(); n=num(); return f"check the total of {r} equals {n}", f"=(SUM({r})={n})"
 def _ut_count():  c=col(); w=word(); n=num(); return f'check there are {n} "{w}" in {c}', f'=(COUNTIF({c}:{c},"{w}")={n})'
-UNITTEST_GEN = [_ut_eq, _ut_gt, _ut_lt, _ut_between, _ut_pos, _ut_notblank, _ut_isnum, _ut_noerror, _ut_approx, _ut_text, _ut_sum, _ut_count]
+def _ut_inlist(): c=cell(); cl=col(); return f"check {c} appears somewhere in {cl}", f"=(COUNTIF({cl}:{cl},{c})>0)"
+def _ut_nodupes():c=col(); return f"check {c} has no duplicates", f"=(COUNTA({c}:{c})=COUNTA(UNIQUE({c}:{c})))"
+def _ut_rowcount():c=col(); n=num(); return f"check {c} has {n} non-empty cells", f"=(COUNTA({c}:{c})={n})"
+def _ut_allpos(): c=col(); return f"check every value in {c} is positive", f'=(COUNTIF({c}:{c},"<=0")=0)'
+UNITTEST_GEN = [_ut_eq, _ut_gt, _ut_lt, _ut_between, _ut_pos, _ut_notblank, _ut_isnum, _ut_noerror, _ut_approx, _ut_text,
+                _ut_sum, _ut_count, _ut_inlist, _ut_nodupes, _ut_rowcount, _ut_allpos]
 def gen_unittest():
     return random.choice(UNITTEST_GEN)()
 
@@ -2370,11 +2409,24 @@ DATADICT = {
     "total": "currency — line total after tax and discount",
     "salesperson": "text — rep who closed the deal",
 }
+def _infer_field(c):
+    if c in DATADICT: return DATADICT[c]
+    cl = c.lower()
+    if cl.startswith(("is_", "has_")) or cl in ("active", "paid", "flag"): return "boolean — a TRUE/FALSE flag"
+    if cl.endswith("date") or cl in ("date", "day", "month", "year"): return "date — a date value"
+    if any(k in cl for k in ("price", "cost", "revenue", "amount", "total", "salary", "fee", "balance", "value")): return "currency — a monetary amount"
+    if any(k in cl for k in ("qty", "quantity", "count", "units", "age", "number")): return "integer — a whole-number count"
+    if any(k in cl for k in ("rate", "pct", "percent", "margin", "discount", "growth", "ratio")): return "percent — a rate or ratio"
+    if any(k in cl for k in ("email", "name", "id", "sku", "code", "status", "region", "city", "country", "category", "type", "description", "department")): return "text — a label or identifier"
+    return "text — a value for each row"
+DATADICT_POOL = list(DATADICT) + ["unit_price", "order_date", "ship_date", "is_active", "has_paid",
+                                  "employee_id", "product_name", "city", "country", "growth_rate",
+                                  "balance", "age", "units", "department"]
 def gen_datadict():
-    cs = random.sample(list(DATADICT), 3)
+    cs = random.sample(DATADICT_POOL, 3)
     return random.choice([f"data dictionary for {', '.join(cs)}", f"document the columns {', '.join(cs)}",
                           f"describe the fields {', '.join(cs)}"]), \
-           "; ".join(f"{c}: {DATADICT[c]}" for c in cs)
+           "; ".join(f"{c}: {_infer_field(c)}" for c in cs)
 
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
