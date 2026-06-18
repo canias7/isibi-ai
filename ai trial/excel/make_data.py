@@ -1186,19 +1186,70 @@ def gen_steps():
     steps = [one() for _ in range(random.randint(2,3))]
     return ", then ".join(s[0] for s in steps), "STEPS " + " ; ".join(s[1] for s in steps)
 
+# ── transpile: Excel formula -> Python / pandas ──
+TRANSPILE = [
+    ("=SUM(A:A)", "df['A'].sum()"), ("=AVERAGE(B:B)", "df['B'].mean()"),
+    ("=COUNT(C:C)", "df['C'].count()"), ("=MAX(A:A)", "df['A'].max()"),
+    ("=MIN(D:D)", "df['D'].min()"), ("=MEDIAN(A:A)", "df['A'].median()"),
+    ("=STDEV(A:A)", "df['A'].std()"), ("=PRODUCT(A:A)", "df['A'].prod()"),
+    ('=SUMIF(A:A,"x",B:B)', "df.loc[df['A']=='x','B'].sum()"),
+    ('=COUNTIF(A:A,"x")', "(df['A']=='x').sum()"),
+    ('=AVERAGEIF(A:A,"x",B:B)', "df.loc[df['A']=='x','B'].mean()"),
+    ("=ROUND(A1,2)", "round(a, 2)"), ("=LEN(A1)", "len(a)"),
+    ('=IF(A1>10,"hi","lo")', "'hi' if a > 10 else 'lo'"),
+    ("=A1+B1", "a + b"), ('=A1&" "&B1', "a + ' ' + b"),
+    ("=UNIQUE(A:A)", "df['A'].unique()"),
+    ('=FILTER(A:A,B:B="x")', "df.loc[df['B']=='x','A']"),
+]
+def gen_transpile():
+    f, py = random.choice(TRANSPILE)
+    return random.choice([f"in python: {f}", f"convert to pandas: {f}", f"python equivalent of {f}", f"{f} in pandas"]), py
+
+# ── optimize: make a formula better / simpler ──
+OPTIMIZE = [
+    ("=VLOOKUP(A1,B:C,2,FALSE)", "=XLOOKUP(A1,B:B,C:C)"),
+    ('=IF(A1>9,"a",IF(A1>5,"b","c"))', '=IFS(A1>9,"a",A1>5,"b",TRUE,"c")'),
+    ("=SUM(A1,A2,A3,A4,A5)", "=SUM(A1:A5)"),
+    ("=A1*1", "=A1"), ('=A1&""&B1', "=A1&B1"),
+    ("=IF(A1>0,TRUE,FALSE)", "=A1>0"),
+    ("=A1/B1", "=IFERROR(A1/B1,0)"),
+    ('=SUMIF(A:A,">0",A:A)', '=SUMIF(A:A,">0")'),
+    ("=INDEX(B:B,MATCH(A1,C:C,0))", "=XLOOKUP(A1,C:C,B:B)"),
+]
+def gen_optimize():
+    bad, good = random.choice(OPTIMIZE)
+    return random.choice([f"optimize {bad}", f"simplify {bad}", f"improve {bad}", f"make {bad} better"]), good
+
+# ── audit: flag issues / best-practice problems in a formula ──
+AUDIT = [
+    ("=A1*1.08", "hardcoded tax rate 1.08 — put it in a cell and reference it"),
+    ("=A1*0.15", "hardcoded rate 0.15 — use a cell reference instead"),
+    ("=SUM(OFFSET(A1,0,0,10,1))", "OFFSET is volatile and recalculates constantly — use a fixed range"),
+    ("=A1/B1", "no error handling — wrap in IFERROR in case B1 is zero or blank"),
+    ("=VLOOKUP(A1,B:Z,5,TRUE)", "approximate match (TRUE) can return wrong values — use FALSE for exact match"),
+    ("=SUM(A:A)+5", "hardcoded +5 added to the total — reference a cell instead"),
+    ("=A1+A2+A3+A4+A5", "long manual addition — use SUM(A1:A5) instead"),
+]
+def gen_audit():
+    f, issue = random.choice(AUDIT)
+    return random.choice([f"audit {f}", f"review {f}", f"any issues with {f}", f"critique {f}"]), issue
+
 def sample():
     r = random.random()
-    if r < 0.56: _, q, a = gen(); return q, a   # English description -> formula (core)
-    if r < 0.64: return gen_spanish()           # Spanish description -> formula
-    if r < 0.71: return gen_explain()           # explain a formula -> plain english
-    if r < 0.78: return gen_fix()               # fix a broken formula -> correct formula
-    if r < 0.85: return gen_edit()              # edit an existing formula -> new formula
-    if r < 0.88: return gen_chart()             # chart / pivot intent -> spec
-    if r < 0.91: return gen_format()            # conditional formatting -> FORMAT spec
-    if r < 0.94: return gen_clean()             # data cleaning -> CLEAN spec
-    if r < 0.96: return gen_model()             # finance model -> MODEL spec
-    if r < 0.98: return gen_action()            # validation / sort / filter -> action spec
-    return gen_steps()                          # multi-step automation -> STEPS sequence
+    if r < 0.50: _, q, a = gen(); return q, a   # English description -> formula (core)
+    if r < 0.58: return gen_spanish()           # Spanish description -> formula
+    if r < 0.65: return gen_explain()           # explain a formula -> plain english
+    if r < 0.72: return gen_fix()               # fix a broken formula -> correct formula
+    if r < 0.79: return gen_edit()              # edit an existing formula -> new formula
+    if r < 0.82: return gen_chart()             # chart / pivot intent -> spec
+    if r < 0.85: return gen_format()            # conditional formatting -> FORMAT spec
+    if r < 0.88: return gen_clean()             # data cleaning -> CLEAN spec
+    if r < 0.90: return gen_model()             # finance model -> MODEL spec
+    if r < 0.92: return gen_action()            # validation / sort / filter -> action spec
+    if r < 0.94: return gen_steps()             # multi-step automation -> STEPS sequence
+    if r < 0.96: return gen_transpile()         # Excel formula -> Python/pandas
+    if r < 0.98: return gen_optimize()          # formula -> a better formula
+    return gen_audit()                          # formula -> best-practice issues
 
 if __name__ == "__main__":
     with open("excel.txt", "w", encoding="utf-8") as f:
