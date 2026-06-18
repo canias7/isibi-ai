@@ -2571,9 +2571,24 @@ def _dg2_diff_cat():
     if len(cats) < 2: return _dg2_sum_where()
     a, b = cats[0], cats[1]
     return f"in [{_dg2_fmt(cols,rows)}] the difference in total {cols[2]} between {a} and {b}", str(abs(sum(v for _, c, v in rows if c == a) - sum(v for _, c, v in rows if c == b)))
+# compound reasoning: two conditions, or filter-then-rank (deepest analyst skill)
+def _dg3_sum_2cond():
+    cols, rows = _dg2_build(); k = random.choice([c for _, c, _ in rows]); t = random.choice([20, 50, 100])
+    return f"in [{_dg2_fmt(cols,rows)}] total {cols[2]} where {cols[1]} is {k} and {cols[2]} is over {t}", str(sum(v for _, c, v in rows if c == k and v > t))
+def _dg3_count_2cond():
+    cols, rows = _dg2_build(); k = random.choice([c for _, c, _ in rows]); t = random.choice([20, 50, 100])
+    return f"in [{_dg2_fmt(cols,rows)}] how many rows have {cols[1]} = {k} and {cols[2]} over {t}", str(sum(1 for _, c, v in rows if c == k and v > t))
+def _dg3_top_among():
+    cols, rows = _dg2_build(); k = random.choice([c for _, c, _ in rows])
+    top = max((r for r in rows if r[1] == k), key=lambda r: r[2])
+    return f"in [{_dg2_fmt(cols,rows)}] which {cols[0]} has the highest {cols[2]} among the {k} rows", top[0]
+def _dg3_max_among():
+    cols, rows = _dg2_build(); k = random.choice([c for _, c, _ in rows])
+    return f"in [{_dg2_fmt(cols,rows)}] the highest {cols[2]} among the {k} rows", str(max(v for _, c, v in rows if c == k))
 _DATAGROUND = [_dg_which_max, _dg_which_min, _dg_total, _dg_maxval, _dg_minval, _dg_lookup,
                _dg_diff, _dg_compare, _dg_count_over, _dg_range, _dg_count_rows, _dg_sum_formula, _dg_avg_of_two,
-               _dg2_sum_where, _dg2_count_where, _dg2_max_where, _dg2_which_max, _dg2_diff_cat]
+               _dg2_sum_where, _dg2_count_where, _dg2_max_where, _dg2_which_max, _dg2_diff_cat,
+               _dg3_sum_2cond, _dg3_count_2cond, _dg3_top_among, _dg3_max_among]
 def gen_dataground():
     return random.choice(_DATAGROUND)()
 
