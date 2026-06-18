@@ -1608,6 +1608,12 @@ _MODEL_SIMPLE = {
     "inventory": ["build an inventory tracker", "build a stock tracking sheet"],
     "dashboard": ["build a KPI dashboard", "build a metrics scorecard"],
     "montecarlo": ["build a monte carlo simulation", "build a monte carlo risk model"],
+    "commission": ["build a sales commission calculator", "build a tiered commission model"],
+    "runway": ["build a cash runway model", "calculate burn rate and runway"],
+    "savings": ["build a savings goal calculator", "build a future value savings plan"],
+    "loancompare": ["compare two loan options", "build a loan comparison"],
+    "contribution": ["build a contribution margin analysis", "build a product margin breakdown"],
+    "roi": ["build an ROI calculator", "build a payback period model"],
 }
 def gen_model():
     r = random.random()

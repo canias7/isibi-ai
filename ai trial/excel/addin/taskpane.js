@@ -276,6 +276,12 @@ async function applyModel(spec) {
     if (m.type === "inventory")     return await buildInventory();
     if (m.type === "dashboard")     return await buildDashboard();
     if (m.type === "montecarlo")    return await buildMonteCarlo();
+    if (m.type === "commission")    return await buildCommission();
+    if (m.type === "runway")        return await buildRunway();
+    if (m.type === "savings")       return await buildSavings();
+    if (m.type === "loancompare")   return await buildLoanCompare();
+    if (m.type === "contribution")  return await buildContribution();
+    if (m.type === "roi")           return await buildROI();
     // model types without a dedicated builder yet — show the spec rather than erroring
     setOut(`<div class="formula">${escapeHtml(spec)}</div><div class="muted">${escapeHtml(m.type || "")} model — builder coming soon</div>`);
   } catch (e) {
@@ -673,6 +679,89 @@ async function buildMonteCarlo() {
     start.getResizedRange(grid.length - 1, 1).formulas = grid;
     await ctx.sync();
     setOut('<div class="muted">built a Monte Carlo sim (20 trials) — fill Mean and Std Dev</div>');
+  });
+}
+
+// helper: stamp a 2-column input/output block from {label: formula-or-blank} rows
+async function _stampBlock(title, rows, msg) {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex"); await ctx.sync();
+    const r0 = start.rowIndex, V = colLetter(start.columnIndex + 1);
+    const grid = [[title, ""]]; const rowOf = {};
+    rows.forEach((row) => { rowOf[row[0]] = r0 + grid.length + 1; });   // pre-reserve row numbers
+    rows.forEach((row) => grid.push([row[0], typeof row[1] === "function" ? row[1](rowOf, V) : (row[1] || "")]));
+    start.getResizedRange(grid.length - 1, 1).formulas = grid;
+    await ctx.sync();
+    setOut(`<div class="muted">${msg}</div>`);
+  });
+}
+const _v = (rowOf, V, name) => V + rowOf[name];
+
+// tiered sales commission
+async function buildCommission() {
+  await _stampBlock("Commission Calculator", [
+    ["Sales", ""], ["Tier 1 Rate", ""], ["Tier 2 Rate", ""], ["Tier Threshold", ""],
+    ["Commission", (R, V) => `=IF(${_v(R,V,"Sales")}<=${_v(R,V,"Tier Threshold")},${_v(R,V,"Sales")}*${_v(R,V,"Tier 1 Rate")},${_v(R,V,"Tier Threshold")}*${_v(R,V,"Tier 1 Rate")}+(${_v(R,V,"Sales")}-${_v(R,V,"Tier Threshold")})*${_v(R,V,"Tier 2 Rate")})`],
+  ], "built a tiered commission calculator — fill sales, rates, threshold");
+}
+
+// cash runway / burn rate
+async function buildRunway() {
+  await _stampBlock("Cash Runway", [
+    ["Cash on Hand", ""], ["Monthly Revenue", ""], ["Monthly Expenses", ""],
+    ["Net Burn", (R, V) => `=${_v(R,V,"Monthly Expenses")}-${_v(R,V,"Monthly Revenue")}`],
+    ["Runway (months)", (R, V) => `=IF(${_v(R,V,"Net Burn")}>0,${_v(R,V,"Cash on Hand")}/${_v(R,V,"Net Burn")},"profitable")`],
+  ], "built a cash-runway model — fill cash, revenue, expenses");
+}
+
+// savings goal: future value of monthly contributions
+async function buildSavings() {
+  await _stampBlock("Savings Plan", [
+    ["Monthly Contribution", ""], ["Annual Rate", ""], ["Years", ""],
+    ["Future Value", (R, V) => `=FV(${_v(R,V,"Annual Rate")}/12,${_v(R,V,"Years")}*12,-${_v(R,V,"Monthly Contribution")})`],
+  ], "built a savings plan — fill contribution, rate, years");
+}
+
+// ROI / payback
+async function buildROI() {
+  await _stampBlock("ROI Calculator", [
+    ["Initial Investment", ""], ["Annual Return", ""],
+    ["ROI %", (R, V) => `=${_v(R,V,"Annual Return")}/${_v(R,V,"Initial Investment")}`],
+    ["Payback (years)", (R, V) => `=${_v(R,V,"Initial Investment")}/${_v(R,V,"Annual Return")}`],
+  ], "built an ROI calculator — fill investment and annual return");
+}
+
+// two loans side by side: monthly payment + total paid
+async function buildLoanCompare() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex"); await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex, A = colLetter(c0 + 1), B = colLetter(c0 + 2);
+    const grid = [["Loan Comparison", "Option A", "Option B"], ["Amount", "", ""], ["Annual Rate", "", ""], ["Years", "", ""]];
+    const amt = r0 + 2, rate = r0 + 3, yrs = r0 + 4, payRow = r0 + grid.length + 1;
+    grid.push(["Monthly Payment", `=PMT(${A}${rate}/12,${A}${yrs}*12,-${A}${amt})`, `=PMT(${B}${rate}/12,${B}${yrs}*12,-${B}${amt})`]);
+    grid.push(["Total Paid", `=${A}${payRow}*${A}${yrs}*12`, `=${B}${payRow}*${B}${yrs}*12`]);
+    start.getResizedRange(grid.length - 1, 2).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a loan comparison — fill amount, rate, years per option</div>');
+  });
+}
+
+// contribution margin per product
+async function buildContribution() {
+  await Excel.run(async (ctx) => {
+    const start = ctx.workbook.getActiveCell();
+    start.load("rowIndex,columnIndex"); await ctx.sync();
+    const r0 = start.rowIndex, c0 = start.columnIndex, P = colLetter(c0 + 1), VC = colLetter(c0 + 2), UM = colLetter(c0 + 3);
+    const grid = [["Product", "Price", "Variable Cost", "Unit Margin", "Margin %"]];
+    for (let i = 0; i < 6; i++) {
+      const sr = r0 + grid.length + 1;
+      grid.push(["", "", "", `=${P}${sr}-${VC}${sr}`, `=${UM}${sr}/${P}${sr}`]);
+    }
+    start.getResizedRange(grid.length - 1, 4).formulas = grid;
+    await ctx.sync();
+    setOut('<div class="muted">built a contribution-margin table — fill product, price, variable cost</div>');
   });
 }
 
