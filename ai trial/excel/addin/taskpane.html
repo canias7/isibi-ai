@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Formula Bot</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="taskpane.js" defer></script>
+  <style>
+    body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; padding: 16px; color: #1f1f1f; }
+    h1 { font-size: 15px; margin: 0 0 4px; }
+    p.sub { font-size: 12px; color: #666; margin: 0 0 14px; }
+    textarea { width: 100%; box-sizing: border-box; height: 64px; font-size: 14px; padding: 8px;
+               border: 1px solid #ccc; border-radius: 6px; resize: vertical; }
+    button { margin-top: 10px; width: 100%; padding: 10px; font-size: 14px; font-weight: 600;
+             color: #fff; background: #217346; border: none; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #1a5c38; }
+    .out { margin-top: 14px; font-size: 13px; min-height: 20px; }
+    .formula { font-family: Consolas, monospace; background: #f3f3f3; padding: 8px; border-radius: 6px;
+               word-break: break-all; }
+    .muted { color: #888; }
+    .err { color: #b00020; }
+    .ex { font-size: 11px; color: #999; margin-top: 10px; line-height: 1.6; }
+    .ex code { background: #f3f3f3; padding: 1px 4px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Formula Bot</h1>
+  <p class="sub">Describe it in plain English → it writes the formula into the selected cell.</p>
+
+  <textarea id="q" placeholder="e.g. sum the revenue column"></textarea>
+  <button id="go">Insert formula</button>
+
+  <div class="out" id="out"></div>
+
+  <div class="ex">
+    Try:
+    <code>average of column B</code> ·
+    <code>count cells in A over 100</code> ·
+    <code>total sales where region is west</code><br>
+    Also: <code>explain =SUM(A:A)</code> · <code>fix =CODE(M32</code>
+  </div>
+</body>
+</html>
