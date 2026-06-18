@@ -402,6 +402,136 @@ def g_unique_named():   h=hdr(); return f"list the unique {h} values", f"=UNIQUE
 @reg
 def g_xlookup_named():  k=hdr(); r=hdr(); c=cell(); return f"look up {c} in {k} and return the {r}", f"=XLOOKUP({c},{k},{r})"
 
+# ── compound logic (the nests real formulas actually use) ──
+FB = [("not found", '"not found"'), ("blank", '""'), ("zero", "0")]
+@reg
+def g_if_and():       a=cell(); b=cell(); t=num(); u=num(); return f"if {a} is over {t} and {b} is over {u} say yes otherwise no", f'=IF(AND({a}>{t},{b}>{u}),"yes","no")'
+@reg
+def g_if_and_words(): a=cell(); b=cell(); w1=word(); w2=word(); return f"if {a} is {w1} and {b} is {w2} say yes otherwise no", f'=IF(AND({a}="{w1}",{b}="{w2}"),"yes","no")'
+@reg
+def g_if_or():        a=cell(); b=cell(); t=num(); return f"if {a} or {b} is over {t} say yes otherwise no", f'=IF(OR({a}>{t},{b}>{t}),"yes","no")'
+@reg
+def g_if_diff():      a=cell(); b=cell(); return f"if {a} is bigger than {b} give the difference otherwise 0", f"=IF({a}>{b},{a}-{b},0)"
+@reg
+def g_if_blank():     a=cell(); b=cell(); return f"use {b} when {a} is empty otherwise {a}", f"=IF(ISBLANK({a}),{b},{a})"
+@reg
+def g_iferror_vlookup(): c=cell(); t=col(); t2=chr(ord(t)+1); k=random.randint(2,4); n,v=random.choice(FB); return f"look up {c} in {t}:{t2} column {k}, show {n} if not found", f"=IFERROR(VLOOKUP({c},{t}:{t2},{k},FALSE),{v})"
+@reg
+def g_ifna_vlookup():    c=cell(); t=col(); t2=chr(ord(t)+1); k=random.randint(2,4); return f"look up {c} in {t}:{t2} column {k}, blank if not available", f'=IFNA(VLOOKUP({c},{t}:{t2},{k},FALSE),"")'
+@reg
+def g_xlookup_nf():      c=cell(); kc=col(); rc=col(); n,v=random.choice(FB); return f"xlookup {c} in {kc} returning {rc}, show {n} if missing", f"=XLOOKUP({c},{kc}:{kc},{rc}:{rc},{v})"
+
+# ── real-world date math ──
+def days(): return random.choice([1, 7, 14, 30, 60, 90, 180, 365])
+@reg
+def g_days_until():    c=cell(); return f"how many days until {c}", f"={c}-TODAY()"
+@reg
+def g_age_years():     c=cell(); return f"age in years from birthdate {c}", f'=DATEDIF({c},TODAY(),"y")'
+@reg
+def g_add_days():      c=cell(); n=days(); return f"the date {n} days after {c}", f"={c}+{n}"
+@reg
+def g_sub_days():      c=cell(); n=days(); return f"the date {n} days before {c}", f"={c}-{n}"
+@reg
+def g_is_weekend():    c=cell(); return f"check if {c} falls on a weekend", f"=WEEKDAY({c},2)>5"
+@reg
+def g_first_of_month():c=cell(); return f"the first day of the month for {c}", f"=EOMONTH({c},-1)+1"
+@reg
+def g_last_of_month(): c=cell(); return f"the last day of the month containing {c}", f"=EOMONTH({c},0)"
+@reg
+def g_quarter():       c=cell(); return f"which quarter {c} falls in", f"=ROUNDUP(MONTH({c})/3,0)"
+@reg
+def g_days_in_month(): c=cell(); return f"how many days are in the month of {c}", f"=DAY(EOMONTH({c},0))"
+@reg
+def g_years_between(): a=cell(); b=cell(); return f"full years between {a} and {b}", f'=DATEDIF({a},{b},"y")'
+
+# ── text extraction (FIND / TEXTBEFORE / TEXTAFTER / TEXTSPLIT) ──
+DELIMS = [("-","dash"), (",","comma"), ("@","at sign"), ("/","slash"), (";","semicolon"), (" ","space")]
+@reg
+def g_first_name():  c=cell(); return f"the first name in {c}", f'=LEFT({c},FIND(" ",{c})-1)'
+@reg
+def g_last_name():   c=cell(); return f"the last name in {c}", f'=MID({c},FIND(" ",{c})+1,LEN({c}))'
+@reg
+def g_text_before(): c=cell(); d,nm=random.choice(DELIMS); return f"the text before the {nm} in {c}", f'=TEXTBEFORE({c},"{d}")'
+@reg
+def g_text_after():  c=cell(); d,nm=random.choice(DELIMS); return f"the text after the {nm} in {c}", f'=TEXTAFTER({c},"{d}")'
+@reg
+def g_email_domain():c=cell(); return f"the domain from the email in {c}", f'=TEXTAFTER({c},"@")'
+@reg
+def g_text_split():  c=cell(); d,nm=random.choice(DELIMS); return f"split {c} by the {nm}", f'=TEXTSPLIT({c},"{d}")'
+
+# ── cross-sheet references ──
+SHEETS = ["Sheet1", "Sheet2", "Data", "Summary", "Sales", "Raw", "Report"]
+def sheet(): return random.choice(SHEETS)
+@reg
+def g_sheet_sum():    s=sheet(); c=col(); return f"sum column {c} on {s}", f"=SUM({s}!{c}:{c})"
+@reg
+def g_sheet_avg():    s=sheet(); c=col(); return f"average column {c} on {s}", f"=AVERAGE({s}!{c}:{c})"
+@reg
+def g_sheet_cell():   s=sheet(); c=cell(); return f"pull {c} from {s}", f"={s}!{c}"
+@reg
+def g_sheet_vlookup():s=sheet(); c=cell(); t=col(); t2=chr(ord(t)+1); k=random.randint(2,4); return f"look up {c} in {s} columns {t} to {t2} return column {k}", f"=VLOOKUP({c},{s}!{t}:{t2},{k},FALSE)"
+
+# ── distinct / weighted / top-N / flags / ratio ──
+@reg
+def g_count_unique(): c=col(); return f"count of unique values in {c}", f"=COUNTA(UNIQUE({c}:{c}))"
+@reg
+def g_weighted_avg(): a=col(); b=col(); return f"weighted average of {a} using weights in {b}", f"=SUMPRODUCT({a}:{a},{b}:{b})/SUM({b}:{b})"
+@reg
+def g_topn_sum():     c=col(); k=random.choice([3,5,10]); arr="{"+",".join(str(i) for i in range(1,k+1))+"}"; return f"sum of the top {k} values in {c}", f"=SUM(LARGE({c}:{c},{arr}))"
+@reg
+def g_above_avg():    c=cell(); return f"flag if {c} is above the {c[0]} column average", f"={c}>AVERAGE({c[0]}:{c[0]})"
+@reg
+def g_is_max():       c=cell(); return f"true if {c} is the largest in column {c[0]}", f"={c}=MAX({c[0]}:{c[0]})"
+@reg
+def g_is_duplicate(): c=cell(); return f"check if {c} is a duplicate in column {c[0]}", f"=COUNTIF({c[0]}:{c[0]},{c})>1"
+@reg
+def g_ratio():        a=cell(); b=cell(); return f"the ratio of {a} to {b}", f"={a}/{b}"
+
+# ── business / finance math (margin, markup, variance, tax, depreciation) ──
+PCTS = [5, 10, 15, 20, 25, 30, 40, 50]
+@reg
+def g_gross_margin():   a=cell(); b=cell(); return f"gross margin from price {a} and cost {b}", f"=({a}-{b})/{a}"
+@reg
+def g_markup():         a=cell(); b=cell(); return f"markup from cost {a} to price {b}", f"=({b}-{a})/{a}"
+@reg
+def g_profit():         a=cell(); b=cell(); return f"profit from revenue {a} minus cost {b}", f"={a}-{b}"
+@reg
+def g_pct_to_goal():    a=cell(); b=cell(); return f"{a} as a percent of goal {b}", f"={a}/{b}"
+@reg
+def g_variance_budget():a=cell(); b=cell(); return f"variance of actual {a} versus budget {b}", f"={a}-{b}"
+@reg
+def g_pct_variance():   a=cell(); b=cell(); return f"percent variance of actual {a} versus budget {b}", f"=({a}-{b})/{b}"
+@reg
+def g_discount_price(): c=cell(); n=random.choice(PCTS); return f"{c} after a {n} percent discount", f"={c}*(1-{n}/100)"
+@reg
+def g_price_with_tax(): c=cell(); n=random.choice(PCTS); return f"{c} plus {n} percent tax", f"={c}*(1+{n}/100)"
+@reg
+def g_rate():           n=cell(); pmt=cell(); pv=cell(); return f"interest rate given periods {n}, payment {pmt}, present value {pv}", f"=RATE({n},{pmt},{pv})"
+@reg
+def g_ipmt():           r=cell(); per=cell(); n=cell(); pv=cell(); return f"interest portion of payment {per}, rate {r}, periods {n}, present value {pv}", f"=IPMT({r},{per},{n},{pv})"
+@reg
+def g_ppmt():           r=cell(); per=cell(); n=cell(); pv=cell(); return f"principal portion of payment {per}, rate {r}, periods {n}, present value {pv}", f"=PPMT({r},{per},{n},{pv})"
+@reg
+def g_sln():            a=cell(); b=cell(); c=cell(); return f"straight line depreciation with cost {a}, salvage {b}, life {c}", f"=SLN({a},{b},{c})"
+
+# ── extra math / lookup / array ──
+@reg
+def g_mround():         c=cell(); k=random.choice([5,10,25,100,0.05,0.25]); return f"round {c} to the nearest multiple of {k}", f"=MROUND({c},{k})"
+@reg
+def g_quotient():       a=cell(); k=random.randint(2,10); return f"integer division of {a} by {k}", f"=QUOTIENT({a},{k})"
+@reg
+def g_even():           c=cell(); return f"round {c} up to the next even number", f"=EVEN({c})"
+@reg
+def g_odd():            c=cell(); return f"round {c} up to the next odd number", f"=ODD({c})"
+@reg
+def g_vlookup_approx(): c=cell(); t=col(); t2=chr(ord(t)+1); k=random.randint(2,4); return f"find the bracket for {c} in {t}:{t2} column {k} with approximate match", f"=VLOOKUP({c},{t}:{t2},{k},TRUE)"
+@reg
+def g_filter_multi():   a=col(); c1=col(); c2=col(); w=word(); n=num(); return f"filter {a} where {c1} is {w} and {c2} is over {n}", f'=FILTER({a}:{a},({c1}:{c1}="{w}")*({c2}:{c2}>{n}))'
+@reg
+def g_sortby():         a=col(); b=col(); return f"sort {a} by {b} from high to low", f"=SORTBY({a}:{a},{b}:{b},-1)"
+@reg
+def g_sumifs_year():    sc=col(); dc=col(); y=random.randint(2018,2025); return f"total {sc} where the date in {dc} is in {y}", f'=SUMIFS({sc}:{sc},{dc}:{dc},">="&DATE({y},1,1),{dc}:{dc},"<="&DATE({y},12,31))'
+
 # ── phrasing engine: wrap each base request the many ways real people type it ──
 # (empties keep a good share clean; the rest add natural lead-ins / trailers)
 LEADS = ["", "", "", "", "", "", "",
