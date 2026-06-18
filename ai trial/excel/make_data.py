@@ -6,6 +6,7 @@ import os, re, random
 
 random.seed(0)
 N = int(os.environ.get("N", 200000))
+COT = os.environ.get("COT", "0") == "1"   # chain-of-thought on the reasoning-heavy types
 COLS = list("ABCDEFGHIJKLMN")
 WORDS = ["paid", "done", "open", "yes", "no", "active", "north", "south", "east",
          "west", "pending", "shipped", "q1", "q2", "high", "low", "vip", "complete"]
@@ -289,7 +290,11 @@ def g_pct_change(): cl=col(); a=random.randint(1,80); b=a+1; return p(f"percent 
 @reg
 def g_cagr():       cl=col(); a=random.randint(1,5); n=random.randint(2,10); b=a+n; return f"compound annual growth rate from {cl}{a} to {cl}{b} over {n} years", f"=({cl}{b}/{cl}{a})^(1/{n})-1"
 @reg
-def g_moving_avg(): c=cell(); k=random.choice([3,5,7]); cl=c[0]; row=int(c[1:]); s=max(1,row-k+1); return f"{k}-period moving average ending at {c}", f"=AVERAGE({cl}{s}:{cl}{row})"
+def g_moving_avg():
+    c=cell(); k=random.choice([3,5,7]); cl=c[0]; row=int(c[1:]); s=max(1,row-k+1)
+    f=f"=AVERAGE({cl}{s}:{cl}{row})"; desc=f"{k}-period moving average ending at {c}"
+    if COT: return desc, f"{k} periods ending at row {row}, start = {row}-{k}+1 = {s} => {f}"
+    return desc, f
 G += [g_moving_avg] * 3   # oversample 4x — window arithmetic is the one real weak spot
 @reg
 def g_frequency():  d=col(); b=col(); return f"frequency of {d} into the bins in {b}", f"=FREQUENCY({d}:{d},{b}:{b})"
@@ -487,7 +492,11 @@ def g_count_unique(): c=col(); return f"count of unique values in {c}", f"=COUNT
 @reg
 def g_weighted_avg(): a=col(); b=col(); return f"weighted average of {a} using weights in {b}", f"=SUMPRODUCT({a}:{a},{b}:{b})/SUM({b}:{b})"
 @reg
-def g_topn_sum():     c=col(); k=random.choice([3,5,10]); arr="{"+",".join(str(i) for i in range(1,k+1))+"}"; return f"sum of the top {k} values in {c}", f"=SUM(LARGE({c}:{c},{arr}))"
+def g_topn_sum():
+    c=col(); k=random.choice([3,5,10]); arr="{"+",".join(str(i) for i in range(1,k+1))+"}"
+    f=f"=SUM(LARGE({c}:{c},{arr}))"; desc=f"sum of the top {k} values in {c}"
+    if COT: return desc, f"top {k} = ranks {arr} => {f}"
+    return desc, f
 @reg
 def g_above_avg():    c=cell(); return f"flag if {c} is above the {c[0]} column average", f"={c}>AVERAGE({c[0]}:{c[0]})"
 @reg

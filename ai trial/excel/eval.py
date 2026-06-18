@@ -22,6 +22,8 @@ correct = 0
 by_fn = collections.defaultdict(lambda: [0, 0])   # name -> [right, total]
 misses = []
 for name, desc, expected in tests:
+    if "=>" in expected:                  # CoT answers: grade only the final formula
+        expected = expected.split("=>")[-1].strip()
     got = ask.ask(desc)
     ok = got == expected
     correct += ok

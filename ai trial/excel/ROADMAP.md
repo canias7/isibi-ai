@@ -241,7 +241,9 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 
 ## Backlog — model research frontiers (from-scratch ML)
 - 🔭 **RAG / formula memory** — retrieve from a function + example library at inference
-- 🔭 **Chain-of-thought** — let the model reason before emitting a complex formula
+- ✅ **Chain-of-thought** — BUILT & staged (`COT=1`): moving-avg + top-N emit
+  "work => formula"; ask.py/eval.py grade only the final formula. Flip on if the
+  next eval still shows reasoning gaps.
 - 🔭 **Verifier model** — a second model that checks the first's output
 - 🔭 **Tool use** — call a validator / real formula engine mid-generation
 - 🔭 **Preference learning** — thumbs up/down as a from-scratch reward signal

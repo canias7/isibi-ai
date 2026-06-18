@@ -104,14 +104,17 @@ model.load_state_dict(ckpt["model"])
 model.eval()
 
 @torch.no_grad()
-def ask(desc, max_new=40):
+def ask(desc, max_new=64):
     idx = torch.tensor([encode(f"Q: {desc}\nA: ")], dtype=torch.long, device=device)
     for _ in range(max_new):
         logits = model(idx[:, -block_size:])
         nxt = torch.argmax(logits[:, -1, :], dim=-1, keepdim=True)   # greedy = most likely
         idx = torch.cat((idx, nxt), dim=1)
     out = decode(idx[0].tolist())
-    return out.split("A: ", 1)[-1].split("\n", 1)[0].strip()
+    ans = out.split("A: ", 1)[-1].split("\n", 1)[0].strip()
+    if "=>" in ans:                       # chain-of-thought: keep only the final formula
+        ans = ans.split("=>")[-1].strip()
+    return ans
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
