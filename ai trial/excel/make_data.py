@@ -3101,6 +3101,21 @@ CONCEPTS = {
     "days payable outstanding": "The average number of days you take to pay suppliers — higher (within terms) keeps cash longer.",
     "treasury stock": "A company's own shares it has bought back; they reduce equity and aren't counted as outstanding.",
     "double declining balance": "An accelerated depreciation method that expenses more in the early years at twice the straight-line rate.",
+    "operating expenses": "The day-to-day costs of running the business (rent, salaries, marketing) that aren't tied to producing a specific unit.",
+    "cost center vs profit center": "A cost center only incurs costs (like IT or HR); a profit center generates revenue and is measured on profit.",
+    "intangible asset": "A non-physical asset with value — patents, trademarks, software, goodwill — usually amortized rather than depreciated.",
+    "long-term liability": "Debt or obligations due beyond one year, like a mortgage or bonds, separate from current liabilities.",
+    "shareholders equity": "What's left for owners after subtracting liabilities from assets: paid-in capital plus retained earnings.",
+    "stock split": "Dividing existing shares into more shares to lower the price each; ownership and total value don't change.",
+    "IPO": "Initial public offering — the first sale of a company's shares to the public, turning a private company public.",
+    "venture capital": "Investment in early high-growth companies in exchange for equity, betting on big future returns.",
+    "bootstrapping": "Growing a business on its own revenue and the founder's cash, without outside investment.",
+    "convertible note": "Short-term debt that converts into equity later, often at a discount — a common early-stage fundraising tool.",
+    "vesting": "Earning equity or options gradually over time, so people stay; a typical schedule is four years with a one-year cliff.",
+    "unit economics": "The revenue and cost of a single unit or customer — if each one is unprofitable, scaling just loses money faster.",
+    "gross burn vs net burn": "Gross burn is total monthly spend; net burn subtracts revenue — net burn is what actually drains the bank.",
+    "EBIT": "Earnings before interest and taxes — operating profit, before financing and tax effects.",
+    "days inventory outstanding": "The average number of days inventory sits before it's sold; lower means cash isn't stuck in stock.",
 }
 def gen_concept():
     t = random.choice(list(CONCEPTS))
@@ -3352,9 +3367,22 @@ _CC_FRUST_R = ["Let's fix it together — paste the formula or describe what's g
                "No problem, we'll get it — what did you try and what happened?"]
 _CC_LOL = ["lol", "haha", "nice one", "haha nice"]
 _CC_LOL_R = ["Glad to keep it light — what's the next spreadsheet thing?", "Ha — alright, what do you need next?"]
+_CC_TIME = ["what time is it", "whats the date", "what day is it", "whats todays date"]
+_CC_TIME_R = ["I can't read the clock, but =TODAY() drops today's date in a cell and =NOW() adds the time.",
+              "Put =TODAY() in a cell for the date, or =NOW() for date and time."]
+_CC_DOIT = ["do it for me", "can you do this for me", "just do it", "handle it"]
+_CC_DOIT_R = ["Sure — tell me the columns you have and what you want the result to be, and I'll write it.",
+              "Happy to. Point me at the data and the goal and I'll build the formula."]
+_CC_SURE = ["are you sure", "is that right", "really", "you sure about that"]
+_CC_SURE_R = ["Double-check it against your own numbers, but yes — want me to explain how the formula works?",
+              "It should be right for the data you described — tell me if your setup differs and I'll adjust."]
+_CC_JOKE = ["tell me a joke", "say something funny", "make me laugh"]
+_CC_JOKE_R = ["I'm better with pivot tables than punchlines — but here's one: why did the accountant stay calm? They had everything balanced. Now, what's the task?",
+              "Spreadsheets are my comedy: a SUM walks into a range... anyway, what can I calculate for you?"]
 _CHITCHAT = [(_CC_GREET, _CC_GREET_R), (_CC_THANKS, _CC_THANKS_R), (_CC_WHO, _CC_WHO_R), (_CC_CAN, _CC_CAN_R),
              (_CC_HOW, _CC_HOW_R), (_CC_BYE, _CC_BYE_R), (_CC_ACK, _CC_ACK_R), (_CC_STUCK, _CC_STUCK_R), (_CC_NICE, _CC_NICE_R),
-             (_CC_AI, _CC_AI_R), (_CC_SEE, _CC_SEE_R), (_CC_VAGUE, _CC_VAGUE_R), (_CC_FRUST, _CC_FRUST_R), (_CC_LOL, _CC_LOL_R)]
+             (_CC_AI, _CC_AI_R), (_CC_SEE, _CC_SEE_R), (_CC_VAGUE, _CC_VAGUE_R), (_CC_FRUST, _CC_FRUST_R), (_CC_LOL, _CC_LOL_R),
+             (_CC_TIME, _CC_TIME_R), (_CC_DOIT, _CC_DOIT_R), (_CC_SURE, _CC_SURE_R), (_CC_JOKE, _CC_JOKE_R)]
 def gen_chitchat():
     ins, reps = random.choice(_CHITCHAT)
     return random.choice(ins), random.choice(reps)
@@ -3399,6 +3427,31 @@ FUNCREF = {
     "CONCAT": "CONCAT(range) joins text together; for a delimiter or to skip blanks, use TEXTJOIN instead.",
     "VALUE": "VALUE(text) converts a number stored as text into a real number you can calculate with.",
     "DATE": "DATE(year, month, day) builds a real date from its parts, useful inside date criteria.",
+    "SUM": "SUM(range) adds up all the numbers in a range. The most common function in Excel.",
+    "AVERAGE": "AVERAGE(range) returns the arithmetic mean of the numbers in a range, ignoring blanks and text.",
+    "COUNT": "COUNT(range) counts how many cells contain numbers; COUNTA counts non-empty cells of any type.",
+    "COUNTA": "COUNTA(range) counts cells that aren't empty, including text — useful for counting records.",
+    "MAX": "MAX(range) returns the largest number in a range; MIN returns the smallest.",
+    "MEDIAN": "MEDIAN(range) returns the middle value — more robust to outliers than the average.",
+    "STDEV": "STDEV.S(range) measures how spread out a sample is; STDEV.P is for a whole population.",
+    "ABS": "ABS(number) returns the value without its sign, turning negatives positive.",
+    "MOD": "MOD(number, divisor) returns the remainder after division — handy for every-nth-row logic.",
+    "POWER": "POWER(number, power) raises a number to an exponent; the ^ operator does the same.",
+    "AND": "AND(test1, test2, ...) returns TRUE only if every condition is true; combine with IF.",
+    "OR": "OR(test1, test2, ...) returns TRUE if any condition is true.",
+    "NOT": "NOT(test) flips a TRUE to FALSE and vice versa.",
+    "CHOOSE": "CHOOSE(index, value1, value2, ...) returns the nth value from a list based on a number.",
+    "OFFSET": "OFFSET(reference, rows, cols, [height], [width]) returns a range shifted from a starting cell. It's volatile — INDEX is often safer.",
+    "INDIRECT": "INDIRECT(text) turns a text string into a real cell reference. Powerful but volatile and fragile if sheets are renamed.",
+    "SUBTOTAL": "SUBTOTAL(function_num, range) aggregates while ignoring other subtotals and hidden filtered rows.",
+    "AGGREGATE": "AGGREGATE(function, options, range) is like SUBTOTAL but can also ignore errors — useful over messy data.",
+    "LARGE": "LARGE(range, k) returns the kth largest value; SMALL returns the kth smallest.",
+    "WEEKDAY": "WEEKDAY(date) returns the day of the week as a number, so you can flag weekends.",
+    "WORKDAY": "WORKDAY(start, days, [holidays]) returns a date a number of working days away, skipping weekends and holidays.",
+    "FV": "FV(rate, nper, pmt, [pv]) returns the future value of an investment with regular payments.",
+    "PV": "PV(rate, nper, pmt) returns the present value today of a stream of future payments.",
+    "NPER": "NPER(rate, pmt, pv) returns how many periods it takes to pay off or reach a value.",
+    "RATE": "RATE(nper, pmt, pv) returns the periodic interest rate of a loan or investment.",
 }
 def gen_funcref():
     fn = random.choice(list(FUNCREF))
