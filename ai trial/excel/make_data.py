@@ -709,6 +709,71 @@ def g_typenum():   c=cell(); return f"the data type code of {c}", f"=TYPE({c})"
 @reg
 def g_sheetnum():  return random.choice(["the current sheet number", "this sheet's number"]), "=SHEET()"
 
+# ── business pack: payroll, sales, pricing, inventory, invoicing, tax, KPIs ──
+def pct(): return random.choice([3, 5, 8, 10, 12, 15, 20, 25, 30, 40])
+@reg
+def g_gross_pay():     h=cell(); r=cell(); return f"gross pay for {h} hours at {r} per hour", f"={h}*{r}"
+@reg
+def g_overtime():      h=cell(); o=cell(); r=cell(); return f"pay for {h} regular plus {o} overtime hours at {r} per hour at 1.5x overtime", f"={h}*{r}+{o}*{r}*1.5"
+@reg
+def g_net_pay():       g=cell(); p=pct(); return f"net pay from gross {g} after {p} percent tax", f"={g}*(1-{p}/100)"
+@reg
+def g_bonus():         s=cell(); p=pct(); return f"a {p} percent bonus on salary {s}", f"={s}*{p}/100"
+@reg
+def g_annual_salary(): r=cell(); h=cell(); return f"annual salary at {r} per hour, {h} hours per week", f"={r}*{h}*52"
+@reg
+def g_commission():    s=cell(); p=pct(); return f"{p} percent commission on sales {s}", f"={s}*{p}/100"
+@reg
+def g_tiered_comm():   s=cell(); t=num(); return f"commission on {s}: 10 percent if over {t} otherwise 5 percent", f"=IF({s}>{t},{s}*0.1,{s}*0.05)"
+@reg
+def g_quota():         a=cell(); q=cell(); return f"quota attainment of actual {a} against quota {q}", f"={a}/{q}"
+@reg
+def g_sales_tax():     s=cell(); p=pct(); return f"sales tax on {s} at {p} percent", f"={s}*{p}/100"
+@reg
+def g_win_rate():      w=cell(); t=cell(); return f"win rate: {w} won out of {t} deals", f"={w}/{t}"
+@reg
+def g_line_total():    q=cell(); p=cell(); return f"line total for {q} units at {p} each", f"={q}*{p}"
+@reg
+def g_discount_chain():p=cell(); a=pct(); b=pct(); return f"{p} after a {a} percent then {b} percent discount", f"={p}*(1-{a}/100)*(1-{b}/100)"
+@reg
+def g_markup_price():  c=cell(); m=pct(); return f"price from cost {c} with a {m} percent markup", f"={c}*(1+{m}/100)"
+@reg
+def g_invoice_total(): s=cell(); t=pct(); d=cell(); return f"invoice total: subtotal {s} plus {t} percent tax minus discount {d}", f"={s}*(1+{t}/100)-{d}"
+@reg
+def g_inventory_value():q=cell(); c=cell(); return f"inventory value of {q} units at {c} cost", f"={q}*{c}"
+@reg
+def g_turnover():      c=cell(); i=cell(); return f"inventory turnover: COGS {c} over average inventory {i}", f"={c}/{i}"
+@reg
+def g_days_inventory():i=cell(); d=cell(); return f"days of inventory: {i} over daily COGS {d}", f"={i}/{d}"
+@reg
+def g_reorder():       u=cell(); l=cell(); return f"reorder point: daily usage {u} times lead time {l}", f"={u}*{l}"
+@reg
+def g_eoq():           d=cell(); o=cell(); h=cell(); return f"economic order quantity: demand {d}, order cost {o}, holding cost {h}", f"=SQRT(2*{d}*{o}/{h})"
+@reg
+def g_effective_tax(): t=cell(); i=cell(); return f"effective tax rate: tax {t} over income {i}", f"={t}/{i}"
+@reg
+def g_after_tax():     i=cell(); r=pct(); return f"after-tax income from {i} at {r} percent", f"={i}*(1-{r}/100)"
+@reg
+def g_credit_util():   b=cell(); l=cell(); return f"credit utilization: balance {b} over limit {l}", f"={b}/{l}"
+@reg
+def g_interest_accrued():p=cell(); r=cell(); d=cell(); return f"interest accrued on {p} at rate {r} for {d} days", f"={p}*{r}*{d}/365"
+@reg
+def g_yoy():           a=cell(); b=cell(); return f"year over year growth from {a} to {b}", f"=({b}-{a})/{a}"
+@reg
+def g_arpu():          r=cell(); u=cell(); return f"ARPU: revenue {r} over {u} users", f"={r}/{u}"
+@reg
+def g_churn():         l=cell(); t=cell(); return f"churn rate: {l} lost of {t} customers", f"={l}/{t}"
+@reg
+def g_conversion():    c=cell(); v=cell(); return f"conversion rate: {c} conversions over {v} visitors", f"={c}/{v}"
+@reg
+def g_ltv():           a=cell(); l=cell(); return f"customer lifetime value: ARPU {a} times lifespan {l}", f"={a}*{l}"
+@reg
+def g_cac_payback():   c=cell(); m=cell(); return f"CAC payback months: CAC {c} over monthly margin {m}", f"={c}/{m}"
+@reg
+def g_run_rate():      m=cell(); return f"annual run rate from monthly {m}", f"={m}*12"
+@reg
+def g_currency():      a=cell(); r=cell(); return f"convert {a} at exchange rate {r}", f"={a}*{r}"
+
 # ── phrasing engine: wrap each base request the many ways real people type it ──
 # (empties keep a good share clean; the rest add natural lead-ins / trailers)
 LEADS = ["", "", "", "", "", "", "",
