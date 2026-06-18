@@ -77,6 +77,8 @@ score("R1C1",      make_data.gen_r1c1)
 score("LOCALE",    make_data.gen_locale)
 score("DYNAMIC",   make_data.gen_dynamic)
 score("DATA-Q",    make_data.gen_dataground)
+score("HARD",      make_data.gen_hard)
+score("DOMAIN",    make_data.gen_domain)
 
 # ── generative / spec tasks (eyeball — not exact-match) ──
 def show(label, gen, n=5):

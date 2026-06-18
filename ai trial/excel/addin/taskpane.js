@@ -839,6 +839,12 @@ async function applySteps(spec) {
       else if (s.startsWith("FORMAT")) await applyFormat(s);
       else if (s.startsWith("SORT")) await applySort(parseSpec(s));
       else if (s.startsWith("FILTERVIEW")) await applyFilter(parseSpec(s));
+      else if (s.startsWith("NUMFMT")) await applyNumfmt(parseSpec(s));
+      else if (s.startsWith("FREEZE")) await applyFreeze(parseSpec(s));
+      else if (s.startsWith("AUTOFIT")) await applyAutofit();
+      else if (s.startsWith("VALIDATE")) await applyValidate(parseSpec(s));
+      else if (s.startsWith("NAMERANGE")) await applyNameRange(parseSpec(s));
+      else if (SHEET_VERBS.has(s.split(/\s/)[0])) await applySheet(s);
     }
     setOut(`<div class="formula">${escapeHtml(spec)}</div><div class="muted">ran ${parts.length} steps</div>`);
   } catch (e) {

@@ -1723,17 +1723,23 @@ def gen_action():
 
 # ── multi-step automation: chain several actions into one sequence (the "automate" tier) ──
 def gen_steps():
-    def one():
-        k = random.choice(["trim","upper","lower","dedupe","fillblanks","fmt","sort","filt"]); h = hdr1()
+    def step(k):
+        h = hdr1()
         if k=="trim":       return f"trim spaces in {h}", f"CLEAN op=trim col={h}"
         if k=="upper":      return f"uppercase {h}", f"CLEAN op=upper col={h}"
         if k=="lower":      return f"lowercase {h}", f"CLEAN op=lower col={h}"
         if k=="dedupe":     return "remove duplicate rows", "CLEAN op=dedupe"
+        if k=="delblank":   return "remove blank rows", "CLEAN op=delblankrows"
         if k=="fillblanks": v=random.choice(["0",word()]); return f"fill blanks in {h} with {v}", f"CLEAN op=fillblanks col={h} value={v}"
         if k=="fmt":        o=opn(); n=num(); return f"highlight {h} {opw(o)} {n}", f"FORMAT range={h} rule={o}{n} color=red"
         if k=="sort":       o=random.choice(["desc","asc"]); return f"sort by {h} {'descending' if o=='desc' else 'ascending'}", f"SORT by={h} order={o}"
+        if k=="numfmt":     fmt=random.choice(["currency","percent","comma"]); return f"format {h} as {fmt}", f"NUMFMT col={h} as={fmt}"
+        if k=="freeze":     return "freeze the top row", "FREEZE rows=1"
+        if k=="autofit":    return "autofit the columns", "AUTOFIT"
+        if k=="bold":       return f"bold the {h} header", f"BOLD col={h}"
         w=word(); return f"filter {h} to {w}", f"FILTERVIEW col={h} value={w}"
-    steps = [one() for _ in range(random.randint(2,3))]
+    kinds = random.sample(["trim","upper","lower","dedupe","delblank","fillblanks","fmt","sort","numfmt","freeze","autofit","bold","filt"], random.randint(3,6))
+    steps = [step(k) for k in kinds]
     return ", then ".join(s[0] for s in steps), "STEPS " + " ; ".join(s[1] for s in steps)
 
 # ── transpile: Excel formula -> Python / pandas ──
@@ -2541,6 +2547,90 @@ _DATAGROUND = [_dg_which_max, _dg_which_min, _dg_total, _dg_maxval, _dg_minval, 
 def gen_dataground():
     return random.choice(_DATAGROUND)()
 
+# ── harder formulas: the gnarly real-analyst constructs (shifts the complexity up) ──
+def _h_sumifs_dates():
+    sc=col(); dc=col(); y=random.choice([2023,2024,2025])
+    return (f"total {sc} where {dc} is in the first half of {y}",
+            f'=SUMIFS({sc}:{sc},{dc}:{dc},">="&DATE({y},1,1),{dc}:{dc},"<="&DATE({y},6,30))')
+def _h_averageifs_dates():
+    sc=col(); dc=col(); y=random.choice([2023,2024])
+    return (f"average {sc} for the year {y}",
+            f'=AVERAGEIFS({sc}:{sc},{dc}:{dc},">="&DATE({y},1,1),{dc}:{dc},"<="&DATE({y},12,31))')
+def _h_index_match_2d():
+    a=cell(); b=cell()
+    return (f"two-way lookup: find the value for row key {a} and column key {b}",
+            f"=INDEX(B2:F20,MATCH({a},A2:A20,0),MATCH({b},B1:F1,0))")
+def _h_let_margin():
+    return ("net margin with LET using revenue A1 and cost B1",
+            "=LET(rev,A1,cost,B1,(rev-cost)/rev)")
+def _h_filter_sum():
+    sc=col(); cc=col(); w=word()
+    return (f"sum of {sc} for only the {w} rows using FILTER",
+            f'=SUM(FILTER({sc}:{sc},{cc}:{cc}="{w}"))')
+def _h_sort_unique():
+    c=col(); return (f"a sorted list of the unique values in {c}", f"=SORT(UNIQUE({c}2:{c}100))")
+def _h_xlookup_full():
+    a=cell(); k=col(); v=col()
+    return (f"look up {a} in {k}, return {v}, exact match, or 'not found'",
+            f'=XLOOKUP({a},{k}:{k},{v}:{v},"not found",0)')
+def _h_iferror_chain():
+    a=cell(); k1=col(); v1=col(); k2=col(); v2=col()
+    return (f"look up {a} in {k1}/{v1}, and if missing try {k2}/{v2}",
+            f"=IFERROR(XLOOKUP({a},{k1}:{k1},{v1}:{v1}),XLOOKUP({a},{k2}:{k2},{v2}:{v2}))")
+def _h_sumproduct_multi():
+    a=col(); b=col(); c=col(); w=word(); n=num()
+    return (f"sum {c} where {a} is {w} and {b} is over {n}",
+            f'=SUMPRODUCT(({a}:{a}="{w}")*({b}:{b}>{n})*{c}:{c})')
+def _h_weighted_avg():
+    v=col(); w=col(); return (f"weighted average of {v} weighted by {w}", f"=SUMPRODUCT({v}:{v},{w}:{w})/SUM({w}:{w})")
+def _h_distinct_count():
+    c=col(); return (f"count the distinct values in {c}", f"=SUMPRODUCT(1/COUNTIF({c}2:{c}50,{c}2:{c}50))")
+def _h_running_total():
+    c=col(); r=random.randint(2,40); return (f"running total down {c} at row {r}", f"=SUM(${c}$2:{c}{r})")
+def _h_rank_no_ties():
+    c=col(); r=random.randint(2,40); return (f"rank of {c}{r} with ties broken by order", f"=RANK.EQ({c}{r},{c}:{c})+COUNTIF(${c}$2:{c}{r},{c}{r})-1")
+def _h_map_lambda():
+    c=col(); return (f"double every value in {c} with MAP and LAMBDA", f"=MAP({c}2:{c}20,LAMBDA(x,x*2))")
+def _h_textjoin_filter():
+    a=col(); b=col(); w=word(); return (f"a comma list of {a} where {b} is {w}", f'=TEXTJOIN(", ",TRUE,FILTER({a}2:{a}50,{b}2:{b}50="{w}"))')
+def _h_nested_ifs():
+    c=cell(); return (f"letter grade for {c}", f'=IFS({c}>=90,"A",{c}>=80,"B",{c}>=70,"C",{c}>=60,"D",TRUE,"F")')
+def _h_countifs_multi():
+    a=col(); b=col(); w=word(); n=num(); return (f"count rows where {a} is {w} and {b} is over {n}", f'=COUNTIFS({a}:{a},"{w}",{b}:{b},">"&{n})')
+def _h_vstack():
+    a=col(); b=col(); return (f"stack {a} on top of {b} into one list", f"=VSTACK({a}2:{a}20,{b}2:{b}20)")
+HARD = [_h_sumifs_dates,_h_averageifs_dates,_h_index_match_2d,_h_let_margin,_h_filter_sum,_h_sort_unique,
+        _h_xlookup_full,_h_iferror_chain,_h_sumproduct_multi,_h_weighted_avg,_h_distinct_count,_h_running_total,
+        _h_rank_no_ties,_h_map_lambda,_h_textjoin_filter,_h_nested_ifs,_h_countifs_multi,_h_vstack]
+def gen_hard():
+    return random.choice(HARD)()
+
+# ── domain depth: accounting + FP&A terminology -> the right formula ──
+def _d_dso():       return ("days sales outstanding from receivables A1 and revenue B1", "=A1/B1*365")
+def _d_dpo():       return ("days payable outstanding from payables A1 and COGS B1", "=A1/B1*365")
+def _d_inv_turn():  return ("inventory turnover from COGS A1 and average inventory B1", "=A1/B1")
+def _d_quick():     return ("quick ratio from current assets A1, inventory B1, current liabilities C1", "=(A1-B1)/C1")
+def _d_gross_marg():return ("gross margin from revenue A1 and COGS B1", "=(A1-B1)/A1")
+def _d_recon():     a=cell(); b=cell(); return (f"reconcile {a} against {b}", f'=IF({a}={b},"OK","off by "&({a}-{b}))')
+def _d_sln():       return ("straight-line depreciation from cost A1, salvage B1, life C1", "=(A1-B1)/C1")
+def _d_ddb():       return ("declining-balance depreciation from book value A1 and rate B1", "=A1*B1")
+def _d_yoy():       a=cell(); b=cell(); return (f"year-over-year growth from {a} to {b}", f"=({b}-{a})/{a}")
+def _d_mom():       c=col(); r=random.randint(3,40); return (f"month-over-month growth in {c} at row {r}", f"=({c}{r}-{c}{r-1})/{c}{r-1}")
+def _d_cagr():      return ("CAGR from beginning A1, ending B1, over C1 years", "=(B1/A1)^(1/C1)-1")
+def _d_var_budget():return ("variance to budget from actual A1 and budget B1", "=(A1-B1)/B1")
+def _d_run_rate():  c=cell(); return (f"annualized run rate from monthly value {c}", f"={c}*12")
+def _d_pct_total(): c=col(); r=random.randint(2,40); return (f"{c}{r} as a percent of the column total", f"={c}{r}/SUM({c}:{c})")
+def _d_ytd():       c=col(); r=random.randint(2,40); return (f"year-to-date cumulative {c} at row {r}", f"=SUM(${c}$2:{c}{r})")
+def _d_contrib():   return ("contribution margin ratio from price A1 and variable cost B1", "=(A1-B1)/A1")
+def _d_breakeven(): return ("break-even units from fixed costs A1, price B1, variable cost C1", "=A1/(B1-C1)")
+def _d_retention(): return ("customer retention from starting count A1 and retained B1", "=B1/A1")
+def _d_roas():      return ("return on ad spend from revenue A1 and ad cost B1", "=A1/B1")
+def _d_ebitda_marg():return ("EBITDA margin from EBITDA A1 and revenue B1", "=A1/B1")
+DOMAIN = [_d_dso,_d_dpo,_d_inv_turn,_d_quick,_d_gross_marg,_d_recon,_d_sln,_d_ddb,_d_yoy,_d_mom,_d_cagr,
+          _d_var_budget,_d_run_rate,_d_pct_total,_d_ytd,_d_contrib,_d_breakeven,_d_retention,_d_roas,_d_ebitda_marg]
+def gen_domain():
+    return random.choice(DOMAIN)()
+
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
     (40, "formula"), (6, gen_spanish), (8, gen_lang), (5, gen_explain), (5, gen_fix), (5, gen_edit),
@@ -2555,6 +2645,8 @@ MODES = [
     (1, gen_r1c1), (1, gen_locale), (1.5, gen_dynamic), (1.5, gen_evaluate),
     # ── data-grounded reasoning: read an inline table and answer from the values ──
     (5, gen_dataground),
+    # ── harder formulas + business-domain depth (accounting / FP&A) ──
+    (4, gen_hard), (4, gen_domain),
 ]
 _MODE_FNS = [f for _, f in MODES]
 _MODE_WTS = [w for w, _ in MODES]
