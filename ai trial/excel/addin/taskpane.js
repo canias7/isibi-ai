@@ -650,16 +650,35 @@ async function applyProtect() {
     await ctx.sync(); setOut('<div class="muted">sheet protected</div>');
   }); } catch (e) { setOut('<span class="err">Protect failed: ' + escapeHtml(e.message) + "</span>"); }
 }
-const _GD = { region: ["north","south","east","west"], product: ["A","B","C","D"], status: ["paid","open","pending"], customer: ["Acme","Globex","Initech","Umbra"] };
+const _GD = {
+  region: ["north","south","east","west"], product: ["A","B","C","D"],
+  status: ["paid","open","pending","cancelled"], customer: ["Acme","Globex","Initech","Umbra","Stark","Wayne"],
+  city: ["London","Paris","Tokyo","Berlin","Madrid","Lima"], country: ["US","UK","DE","FR","ES","JP"],
+  category: ["Hardware","Software","Service","Supplies"], department: ["Sales","Finance","HR","IT","Ops"],
+  name: ["Alex Kim","Sam Lee","Jordan Cruz","Pat Diaz","Robin Shah"],
+  salesperson: ["Alex Kim","Sam Lee","Jordan Cruz","Pat Diaz"],
+};
+function _gdRand(a) { return a[Math.floor(Math.random() * a.length)]; }
+// realistic value for a column, inferred from its name (mirrors the data-dictionary types)
+function _gdValue(c) {
+  const cl = c.toLowerCase();
+  if (_GD[c]) return _gdRand(_GD[c]);
+  if (cl === "date" || cl.endsWith("date")) return new Date(2024, Math.floor(Math.random()*12), 1 + Math.floor(Math.random()*28)).toLocaleDateString();
+  if (cl.startsWith("is_") || cl.startsWith("has_") || cl === "active" || cl === "paid") return Math.random() < 0.5;
+  if (cl.includes("email")) return _gdRand(["alex","sam","jordan","pat","robin"]) + "@example.com";
+  if (cl.includes("phone")) return "555-0" + (100 + Math.floor(Math.random()*900));
+  if (cl.includes("sku") || cl.includes("invoice") || cl.includes("code") || cl.endsWith("id")) return _gdRand(["SKU","INV","ID"]) + "-" + (1000 + Math.floor(Math.random()*9000));
+  if (cl.includes("rating")) return 1 + Math.floor(Math.random()*5);
+  if (["rate","pct","percent","margin","discount","growth","ratio"].some((k) => cl.includes(k))) return Math.round(Math.random()*40)/100;
+  if (["qty","quantity","units","count","age"].some((k) => cl.includes(k))) return 1 + Math.floor(Math.random()*100);
+  if (["price","cost","amount","total","revenue","salary","balance","value","fee","tax"].some((k) => cl.includes(k))) return Math.round((10 + Math.random()*9990)*100)/100;
+  return Math.floor(Math.random()*1000);
+}
 async function applyGendata(m) {
   try { await Excel.run(async (ctx) => {
     const cols = (m.cols || "").split(","), rows = parseInt(m.rows) || 10;
     const grid = [cols];
-    for (let i = 0; i < rows; i++) grid.push(cols.map((c) => {
-      if (_GD[c]) return _GD[c][Math.floor(Math.random() * _GD[c].length)];
-      if (c === "date") return new Date(2024, Math.floor(Math.random() * 12), 1 + Math.floor(Math.random() * 28)).toLocaleDateString();
-      return Math.floor(Math.random() * 1000);
-    }));
+    for (let i = 0; i < rows; i++) grid.push(cols.map((c) => _gdValue(c)));
     ctx.workbook.getActiveCell().getResizedRange(grid.length - 1, cols.length - 1).values = grid;
     await ctx.sync(); setOut(`<div class="muted">generated ${rows} rows × ${cols.length} cols</div>`);
   }); } catch (e) { setOut('<span class="err">Generate failed: ' + escapeHtml(e.message) + "</span>"); }
