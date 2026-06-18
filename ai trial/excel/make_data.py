@@ -774,6 +774,70 @@ def g_run_rate():      m=cell(); return f"annual run rate from monthly {m}", f"=
 @reg
 def g_currency():      a=cell(); r=cell(); return f"convert {a} at exchange rate {r}", f"={a}*{r}"
 
+# ── industry metrics: SaaS / startup, real estate, accounting, forecasting ──
+@reg
+def g_mrr():           c=cell(); p=cell(); return f"monthly recurring revenue from {c} customers at {p} average price", f"={c}*{p}"
+@reg
+def g_arr():           m=cell(); return f"annual recurring revenue from MRR {m}", f"={m}*12"
+@reg
+def g_nrr():           s=cell(); e=cell(); c=cell(); return f"net revenue retention: start {s} plus expansion {e} minus churn {c} over start", f"=({s}+{e}-{c})/{s}"
+@reg
+def g_burn_rate():     s=cell(); e=cell(); m=cell(); return f"monthly burn: cash {s} minus {e} over {m} months", f"=({s}-{e})/{m}"
+@reg
+def g_runway():        c=cell(); b=cell(); return f"runway in months: cash {c} over monthly burn {b}", f"={c}/{b}"
+@reg
+def g_rule_of_40():    g=cell(); p=cell(); return f"rule of 40: growth {g} plus profit margin {p}", f"={g}+{p}"
+@reg
+def g_magic_number():  a=cell(); s=cell(); return f"magic number: new ARR {a} over sales and marketing spend {s}", f"={a}/{s}"
+@reg
+def g_gross_churn():   l=cell(); t=cell(); return f"gross MRR churn: {l} churned over {t} total MRR", f"={l}/{t}"
+@reg
+def g_expansion_rate():e=cell(); s=cell(); return f"expansion rate: {e} expansion over {s} starting MRR", f"={e}/{s}"
+@reg
+def g_cap_rate():      n=cell(); v=cell(); return f"cap rate: NOI {n} over property value {v}", f"={n}/{v}"
+@reg
+def g_noi():           g=cell(); e=cell(); return f"net operating income: gross income {g} minus operating expenses {e}", f"={g}-{e}"
+@reg
+def g_cash_on_cash():  c=cell(); i=cell(); return f"cash on cash return: annual cash flow {c} over cash invested {i}", f"={c}/{i}"
+@reg
+def g_grm():           p=cell(); r=cell(); return f"gross rent multiplier: price {p} over annual rent {r}", f"={p}/{r}"
+@reg
+def g_dscr():          n=cell(); d=cell(); return f"debt service coverage ratio: NOI {n} over debt service {d}", f"={n}/{d}"
+@reg
+def g_price_sqft():    p=cell(); s=cell(); return f"price per square foot: price {p} over {s} square feet", f"={p}/{s}"
+@reg
+def g_rental_yield():  r=cell(); p=cell(); return f"rental yield: annual rent {r} over price {p}", f"={r}/{p}"
+@reg
+def g_ltv_ratio():     l=cell(); v=cell(); return f"loan to value ratio: loan {l} over value {v}", f"={l}/{v}"
+@reg
+def g_dso():           a=cell(); r=cell(); return f"days sales outstanding: AR {a} over revenue {r} times 365", f"={a}/{r}*365"
+@reg
+def g_dpo():           a=cell(); c=cell(); return f"days payable outstanding: AP {a} over COGS {c} times 365", f"={a}/{c}*365"
+@reg
+def g_dio():           i=cell(); c=cell(); return f"days inventory outstanding: inventory {i} over COGS {c} times 365", f"={i}/{c}*365"
+@reg
+def g_ccc():           a=cell(); b=cell(); c=cell(); return f"cash conversion cycle: DSO {a} plus DIO {b} minus DPO {c}", f"={a}+{b}-{c}"
+@reg
+def g_working_capital():a=cell(); l=cell(); return f"working capital: current assets {a} minus current liabilities {l}", f"={a}-{l}"
+@reg
+def g_current_ratio(): a=cell(); l=cell(); return f"current ratio: current assets {a} over current liabilities {l}", f"={a}/{l}"
+@reg
+def g_quick_ratio():   a=cell(); i=cell(); l=cell(); return f"quick ratio: current assets {a} minus inventory {i} over current liabilities {l}", f"=({a}-{i})/{l}"
+@reg
+def g_operating_margin():o=cell(); r=cell(); return f"operating margin: operating income {o} over revenue {r}", f"={o}/{r}"
+@reg
+def g_gross_profit_calc():r=cell(); c=cell(); return f"gross profit: revenue {r} minus COGS {c}", f"={r}-{c}"
+@reg
+def g_seasonal_index():p=cell(); a=cell(); return f"seasonal index: period average {p} over overall average {a}", f"={p}/{a}"
+@reg
+def g_exp_smoothing(): x=cell(); p=cell(); return f"exponential smoothing of actual {x} and prior forecast {p} at alpha 0.3", f"=0.3*{x}+0.7*{p}"
+@reg
+def g_weighted_ma():   a=cell(); b=cell(); c=cell(); return f"weighted moving average of {a} {b} {c} weighted 3 2 1", f"=({a}*3+{b}*2+{c})/6"
+@reg
+def g_var_to_forecast():a=cell(); f=cell(); return f"percent variance of actual {a} to forecast {f}", f"=({a}-{f})/{f}"
+@reg
+def g_contribution_ratio():c=cell(); s=cell(); return f"contribution margin ratio: contribution {c} over sales {s}", f"={c}/{s}"
+
 # ── phrasing engine: wrap each base request the many ways real people type it ──
 # (empties keep a good share clean; the rest add natural lead-ins / trailers)
 LEADS = ["", "", "", "", "", "", "",
@@ -1107,18 +1171,34 @@ def gen_action():
     q=random.choice([f"filter to show only {w} in {c}", f"show only {w} rows in {c}", f"filter {c} to {w}"])
     return q, f"FILTERVIEW col={c} value={w}"
 
+# ── multi-step automation: chain several actions into one sequence (the "automate" tier) ──
+def gen_steps():
+    def one():
+        k = random.choice(["trim","upper","lower","dedupe","fillblanks","fmt","sort","filt"]); h = hdr1()
+        if k=="trim":       return f"trim spaces in {h}", f"CLEAN op=trim col={h}"
+        if k=="upper":      return f"uppercase {h}", f"CLEAN op=upper col={h}"
+        if k=="lower":      return f"lowercase {h}", f"CLEAN op=lower col={h}"
+        if k=="dedupe":     return "remove duplicate rows", "CLEAN op=dedupe"
+        if k=="fillblanks": v=random.choice(["0",word()]); return f"fill blanks in {h} with {v}", f"CLEAN op=fillblanks col={h} value={v}"
+        if k=="fmt":        o=opn(); n=num(); return f"highlight {h} {opw(o)} {n}", f"FORMAT range={h} rule={o}{n} color=red"
+        if k=="sort":       o=random.choice(["desc","asc"]); return f"sort by {h} {'descending' if o=='desc' else 'ascending'}", f"SORT by={h} order={o}"
+        w=word(); return f"filter {h} to {w}", f"FILTERVIEW col={h} value={w}"
+    steps = [one() for _ in range(random.randint(2,3))]
+    return ", then ".join(s[0] for s in steps), "STEPS " + " ; ".join(s[1] for s in steps)
+
 def sample():
     r = random.random()
-    if r < 0.58: _, q, a = gen(); return q, a   # English description -> formula (core)
-    if r < 0.66: return gen_spanish()           # Spanish description -> formula
-    if r < 0.73: return gen_explain()           # explain a formula -> plain english
-    if r < 0.80: return gen_fix()               # fix a broken formula -> correct formula
-    if r < 0.87: return gen_edit()              # edit an existing formula -> new formula
-    if r < 0.90: return gen_chart()             # chart / pivot intent -> spec
-    if r < 0.93: return gen_format()            # conditional formatting -> FORMAT spec
-    if r < 0.96: return gen_clean()             # data cleaning -> CLEAN spec
-    if r < 0.98: return gen_model()             # finance model -> MODEL spec
-    return gen_action()                         # validation / sort / filter -> action spec
+    if r < 0.56: _, q, a = gen(); return q, a   # English description -> formula (core)
+    if r < 0.64: return gen_spanish()           # Spanish description -> formula
+    if r < 0.71: return gen_explain()           # explain a formula -> plain english
+    if r < 0.78: return gen_fix()               # fix a broken formula -> correct formula
+    if r < 0.85: return gen_edit()              # edit an existing formula -> new formula
+    if r < 0.88: return gen_chart()             # chart / pivot intent -> spec
+    if r < 0.91: return gen_format()            # conditional formatting -> FORMAT spec
+    if r < 0.94: return gen_clean()             # data cleaning -> CLEAN spec
+    if r < 0.96: return gen_model()             # finance model -> MODEL spec
+    if r < 0.98: return gen_action()            # validation / sort / filter -> action spec
+    return gen_steps()                          # multi-step automation -> STEPS sequence
 
 if __name__ == "__main__":
     with open("excel.txt", "w", encoding="utf-8") as f:

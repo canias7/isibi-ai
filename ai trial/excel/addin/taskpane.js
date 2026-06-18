@@ -57,6 +57,7 @@ async function run() {
   if (!result) { setOut('<span class="err">empty response</span>'); return; }
 
   // 4. route by output type
+  if (result.startsWith("STEPS")) return applySteps(result);
   if (result.startsWith("CHART")) return buildChart(result);
   if (result.startsWith("PIVOT")) {
     setOut(`<div class="formula">${escapeHtml(result)}</div><div class="muted">pivot spec (auto-build coming next)</div>`);
@@ -451,6 +452,23 @@ async function applyFilter(m) {
       setOut('<div class="muted">filtered ' + escapeHtml(m.col) + " to " + escapeHtml(m.value) + "</div>");
     });
   } catch (e) { setOut('<span class="err">Filter failed: ' + escapeHtml(e.message) + "</span>"); }
+}
+
+// "STEPS CLEAN op=trim col=A ; FORMAT range=A rule=>100 color=red ; SORT by=A order=desc"
+// -> run each action in sequence (the automate tier; reuses the existing handlers)
+async function applySteps(spec) {
+  const parts = spec.replace(/^STEPS\s*/, "").split(" ; ").map((s) => s.trim()).filter(Boolean);
+  try {
+    for (const s of parts) {
+      if (s.startsWith("CLEAN")) await applyClean(s);
+      else if (s.startsWith("FORMAT")) await applyFormat(s);
+      else if (s.startsWith("SORT")) await applySort(parseSpec(s));
+      else if (s.startsWith("FILTERVIEW")) await applyFilter(parseSpec(s));
+    }
+    setOut(`<div class="formula">${escapeHtml(spec)}</div><div class="muted">ran ${parts.length} steps</div>`);
+  } catch (e) {
+    setOut('<span class="err">Steps failed: ' + escapeHtml(e.message) + "</span>");
+  }
 }
 
 function parseSpec(spec) {
