@@ -196,6 +196,76 @@ We've built a lot on spec; the value now is **proving it**, not adding more.
 - 🔭 **PII detection & masking** — flag/obscure sensitive data before processing
 - 🔭 **Developer API** — let other tools call the model
 
+## Backlog — deep finance II (advanced)
+- 🔭 **Options pricing** (Black-Scholes), **VaR** (value at risk), **portfolio optimization**
+- 🔭 **Hedging** calcs; **bond pricing / yield curve**
+- 🔭 **Accounting standards** — lease (ASC 842), revenue recognition (ASC 606)
+- 🔭 **Consolidation eliminations** (intercompany)
+
+## Backlog — data wrangling (beyond basic cleaning)
+- 🔭 **Fuzzy matching / similarity dedup** (near-duplicate names)
+- 🔭 **Standardize formats** — dates, phone, addresses, currency
+- 🔭 **Outlier detection & flagging**
+- 🔭 **Missing-data imputation** (mean / median / forward-fill)
+- 🔭 **Address parsing / geocoding**
+
+## Backlog — ML ops & infra (the model factory)
+- 🔭 **Experiment tracking** — log every run's config + metrics
+- 🔭 **Hyperparameter sweeps**; **curriculum** (easy → hard)
+- 🔭 **Regression dashboard** — accuracy per task across model versions
+- 🔭 **Error taxonomy** — cluster failures to target the next data round
+- 🔭 **Data quality filtering & dedup** of the synthetic corpus
+- 🔭 **Checkpoint EMA / averaging**; **auto-scale** size on eval signal
+- 🔭 **Model versioning + rollback**; **canary** releases; **latency monitoring**
+- 🔭 **One-click installer** / packaged app; **auto-update**
+
+## Backlog — reporting & narrative output
+- 🔭 **Narrative summary** — "revenue grew 12% MoM, driven by region X"
+- 🔭 **Export to PDF / PowerPoint**; **email delivery**
+- 🔭 **Scheduled reports**
+
+## Backlog — security & compliance (enterprise trust)
+- 🔭 **Audit logging** of every AI action
+- 🔭 **On-prem / air-gapped** deployment (no data leaves)
+- 🔭 **Role-based access** for teams
+- 🔭 **Provenance** — show which pattern/example produced a formula
+
+## Backlog — ecosystem & engagement
+- 🔭 **Formula encyclopedia** — every function explained, searchable
+- 🔭 **Template marketplace** / community formula sharing
+- 🔭 **Team library** + org-wide style enforcement + admin usage analytics
+- 🔭 **Formula of the day** / usage streaks (engagement)
+
+## Backlog — model research frontiers (from-scratch ML)
+- 🔭 **RAG / formula memory** — retrieve from a function + example library at inference
+- 🔭 **Chain-of-thought** — let the model reason before emitting a complex formula
+- 🔭 **Verifier model** — a second model that checks the first's output
+- 🔭 **Tool use** — call a validator / real formula engine mid-generation
+- 🔭 **Preference learning** — thumbs up/down as a from-scratch reward signal
+- 🔭 **Self-improvement** — mine the model's own hard cases for the next round
+- 🔭 **Speculative decoding** for speed
+- 🔭 **Mine public templates** for real-world phrasing/structure (still our own training)
+
+## Backlog — more dialects & target outputs
+- 🔭 **Python / pandas** equivalent of a formula
+- 🔭 **SQL** from natural language
+- 🔭 **DAX** (Power BI) measures; **Power Query M**
+- 🔭 **Google Sheets** dialect (separator / function differences)
+
+## Backlog — agentic / proactive
+- 🔭 **Audit-my-whole-model** — agentic sweep over the workbook
+- 🔭 **Watch & flag** — surface issues live as you type
+- 🔭 **Auto-build the next step** (suggest + apply with consent)
+- 🔭 **Auto-insights / trend alerts** ("sales dropped in March")
+
+## Backlog — input modalities & adaptation
+- 🔭 **Sketch a chart** → build it; **photo of a paper table** → digitize
+- 🔭 **Per-org adaptation** — retrain (from scratch) on a company's own sheets
+- 🔭 **Few-shot from the current workbook** — learn from nearby examples on the fly
+
+## Backlog — quality of life
+- 🔭 **Command palette**, **dark mode**, **poppable / resizable** pane, **multi-language UI**
+
 ---
 
 ## Decisions / constraints (so we don't relitigate)
