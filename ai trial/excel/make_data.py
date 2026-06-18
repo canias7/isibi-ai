@@ -2542,8 +2542,36 @@ def _dg_sum_formula():
 def _dg_avg_of_two():
     L, V = _dg_table(); i, j = random.sample(range(len(L)), 2); s = V[i] + V[j]
     return f"in {_dg_fmt(L,V)} the average of {L[i]} and {L[j]}", str(s // 2) if s % 2 == 0 else f"{s/2:.1f}"
+# multi-column: filter by a category column, THEN aggregate — the core of real analysis
+_DG2_COLS = [("name", "status", "amount"), ("region", "type", "sales"), ("item", "category", "price"), ("rep", "stage", "deal")]
+def _dg2_build():
+    cols = random.choice(_DG2_COLS); n = 3   # keep multi-col tables short to fit the context window
+    labels = random.sample(_DG_LABELS, n)
+    catset = random.choice([["paid", "open"], ["new", "old"], ["yes", "no"], ["hot", "cold"]])
+    rows = [(labels[i], random.choice(catset), num()) for i in range(n)]
+    return cols, rows
+def _dg2_fmt(cols, rows):
+    return f"{cols[0]}/{cols[1]}/{cols[2]}: " + "; ".join(f"{l},{c},{v}" for l, c, v in rows)
+def _dg2_sum_where():
+    cols, rows = _dg2_build(); k = random.choice([c for _, c, _ in rows])
+    return f"in [{_dg2_fmt(cols,rows)}] total {cols[2]} where {cols[1]} is {k}", str(sum(v for _, c, v in rows if c == k))
+def _dg2_count_where():
+    cols, rows = _dg2_build(); k = random.choice([c for _, c, _ in rows])
+    return f"in [{_dg2_fmt(cols,rows)}] how many rows have {cols[1]} = {k}", str(sum(1 for _, c, _ in rows if c == k))
+def _dg2_max_where():
+    cols, rows = _dg2_build(); k = random.choice([c for _, c, _ in rows])
+    return f"in [{_dg2_fmt(cols,rows)}] the highest {cols[2]} where {cols[1]} is {k}", str(max(v for _, c, v in rows if c == k))
+def _dg2_which_max():
+    cols, rows = _dg2_build(); top = max(rows, key=lambda r: r[2])
+    return f"in [{_dg2_fmt(cols,rows)}] which {cols[0]} has the highest {cols[2]}", top[0]
+def _dg2_diff_cat():
+    cols, rows = _dg2_build(); cats = list(dict.fromkeys(c for _, c, _ in rows))
+    if len(cats) < 2: return _dg2_sum_where()
+    a, b = cats[0], cats[1]
+    return f"in [{_dg2_fmt(cols,rows)}] the difference in total {cols[2]} between {a} and {b}", str(abs(sum(v for _, c, v in rows if c == a) - sum(v for _, c, v in rows if c == b)))
 _DATAGROUND = [_dg_which_max, _dg_which_min, _dg_total, _dg_maxval, _dg_minval, _dg_lookup,
-               _dg_diff, _dg_compare, _dg_count_over, _dg_range, _dg_count_rows, _dg_sum_formula, _dg_avg_of_two]
+               _dg_diff, _dg_compare, _dg_count_over, _dg_range, _dg_count_rows, _dg_sum_formula, _dg_avg_of_two,
+               _dg2_sum_where, _dg2_count_where, _dg2_max_where, _dg2_which_max, _dg2_diff_cat]
 def gen_dataground():
     return random.choice(_DATAGROUND)()
 
@@ -2626,8 +2654,42 @@ def _d_breakeven(): return ("break-even units from fixed costs A1, price B1, var
 def _d_retention(): return ("customer retention from starting count A1 and retained B1", "=B1/A1")
 def _d_roas():      return ("return on ad spend from revenue A1 and ad cost B1", "=A1/B1")
 def _d_ebitda_marg():return ("EBITDA margin from EBITDA A1 and revenue B1", "=A1/B1")
+# tax
+def _d_sales_tax():  return ("sales tax on A1 at rate B1", "=A1*B1")
+def _d_after_tax():  return ("after-tax amount of A1 at tax rate B1", "=A1*(1-B1)")
+def _d_pretax():     return ("pre-tax amount from gross A1 at rate B1", "=A1/(1+B1)")
+def _d_eff_rate():   return ("effective tax rate from tax paid A1 and income B1", "=A1/B1")
+def _d_gross_tax():  return ("gross amount including B1 tax on net A1", "=A1*(1+B1)")
+# payroll
+def _d_gross_pay():  return ("gross pay from hours A1 and hourly rate B1", "=A1*B1")
+def _d_overtime():   return ("overtime pay for A1 hours beyond 40 at rate B1", "=(A1-40)*B1*1.5")
+def _d_annualize():  return ("annual salary from hourly rate A1 at 40h over 52 weeks", "=A1*40*52")
+def _d_net_pay():    return ("net pay from gross A1 and deductions B1", "=A1-B1")
+def _d_fica():       return ("FICA tax at 7.65% on wages A1", "=A1*0.0765")
+# retail / commerce
+def _d_markup():     return ("markup percent from price A1 and cost B1", "=(A1-B1)/B1")
+def _d_sell_through():return ("sell-through rate from units sold A1 and received B1", "=A1/B1")
+def _d_aov():        return ("average order value from revenue A1 and orders B1", "=A1/B1")
+def _d_conversion(): return ("conversion rate from orders A1 and visits B1", "=A1/B1")
+# SaaS metrics
+def _d_mrr():        return ("MRR from customers A1 and ARPU B1", "=A1*B1")
+def _d_arr():        return ("ARR from MRR A1", "=A1*12")
+def _d_churn():      return ("churn rate from customers lost A1 and total B1", "=A1/B1")
+def _d_ltv():        return ("customer lifetime value from ARPU A1 and churn rate B1", "=A1/B1")
+def _d_ltv_cac():    return ("LTV to CAC ratio from LTV A1 and CAC B1", "=A1/B1")
+def _d_nrr():        return ("net revenue retention from ending MRR A1 and starting MRR B1", "=A1/B1")
+def _d_arpu():       return ("ARPU from revenue A1 and active users B1", "=A1/B1")
+# real estate
+def _d_cap_rate():   return ("cap rate from NOI A1 and property price B1", "=A1/B1")
+def _d_cash_cash(): return ("cash-on-cash return from annual cash flow A1 and cash invested B1", "=A1/B1")
+def _d_price_sqft(): return ("price per square foot from price A1 and area B1", "=A1/B1")
 DOMAIN = [_d_dso,_d_dpo,_d_inv_turn,_d_quick,_d_gross_marg,_d_recon,_d_sln,_d_ddb,_d_yoy,_d_mom,_d_cagr,
-          _d_var_budget,_d_run_rate,_d_pct_total,_d_ytd,_d_contrib,_d_breakeven,_d_retention,_d_roas,_d_ebitda_marg]
+          _d_var_budget,_d_run_rate,_d_pct_total,_d_ytd,_d_contrib,_d_breakeven,_d_retention,_d_roas,_d_ebitda_marg,
+          _d_sales_tax,_d_after_tax,_d_pretax,_d_eff_rate,_d_gross_tax,
+          _d_gross_pay,_d_overtime,_d_annualize,_d_net_pay,_d_fica,
+          _d_markup,_d_sell_through,_d_aov,_d_conversion,
+          _d_mrr,_d_arr,_d_churn,_d_ltv,_d_ltv_cac,_d_nrr,_d_arpu,
+          _d_cap_rate,_d_cash_cash,_d_price_sqft]
 def gen_domain():
     return random.choice(DOMAIN)()
 
