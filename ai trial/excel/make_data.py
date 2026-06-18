@@ -1006,27 +1006,53 @@ def gen_explain():
     lead = random.choice(["explain ", "what does ", "describe ", "in plain english "])
     return lead + formula, desc
 
+# common function-name misspellings people actually type (matched as NAME( so SUM != SUMIF)
+FN_TYPOS = {
+    "VLOOKUP": ["VLOKUP", "VLOOOKUP", "VLOOKUPP", "VLOOKP"], "HLOOKUP": ["HLOKUP", "HLOOKUPP"],
+    "XLOOKUP": ["XLOKUP", "XLOOKUPP"], "SUM": ["SUMM", "SUmM"], "AVERAGE": ["AVERGAE", "AVRAGE", "AVEARGE"],
+    "COUNT": ["COUNNT", "CONT"], "COUNTIF": ["COUNTIFF", "COUNITF"], "SUMIF": ["SUMIFF", "SUMIIF"],
+    "SUMIFS": ["SUMIFFS"], "IFERROR": ["IFEROR", "IFERRROR", "IFERORR"], "INDEX": ["INDX", "INDEXX"],
+    "MATCH": ["MACTH", "MATCHH"], "CONCATENATE": ["CONCATENAT", "CONCATNATE"], "TEXTJOIN": ["TEXJOIN", "TEXTJION"],
+    "ROUND": ["ROUNND", "RUOND"], "TODAY": ["TODY"], "MEDIAN": ["MEDIANN", "MEDAIN"],
+}
+def _typo_fn(f):
+    cands = [m.group(1) for m in re.finditer(r"([A-Z]+)\(", f) if m.group(1) in FN_TYPOS]
+    if not cands: return f
+    name = random.choice(cands)
+    return f.replace(name + "(", random.choice(FN_TYPOS[name]) + "(", 1)
+def _drop_last(f, ch):  i = f.rfind(ch); return f[:i] + f[i + 1:]
+def _smart_quotes(f):   return f.replace('"', "“", 1).replace('"', "”", 1)   # curly “ ” from web paste
+
+# each corrupter maps a correct formula -> a realistic broken version (return f unchanged = N/A)
+CORRUPTERS = [
+    lambda f: _drop_last(f, ")") if ")" in f else f,            # missing closing paren
+    lambda f: f + ")",                                          # extra closing paren
+    lambda f: f.replace("(", "", 1),                           # missing opening paren
+    lambda f: _drop_last(f, ",") if "," in f else f,           # missing comma between args
+    lambda f: f[1:],                                            # forgot the leading =
+    lambda f: _drop_last(f, '"') if f.count('"') >= 2 else f,   # missing a quote
+    lambda f: _smart_quotes(f) if f.count('"') >= 2 else f,     # curly “smart” quotes
+    lambda f: f.replace(",", ";", 1) if "," in f else f,        # wrong separator (;)
+    lambda f: f.replace(",", ",,", 1) if "," in f else f,       # extra/empty argument
+    lambda f: f.replace(":", "", 1) if ":" in f else f,         # missing colon in range (A1A10)
+    lambda f: f.replace("(", " (", 1),                         # stray space before paren
+    lambda f: f.replace("(", "[", 1),                          # wrong bracket type
+    _typo_fn,                                                   # misspelled function name
+    lambda f: f.replace("=", "= ", 1) if f.startswith("=") else f,  # space after =
+    lambda f: (lambda i: f[:i] + f[i + 1:])(random.randrange(1, len(f) - 1)),  # dropped char (catch-all)
+]
 def corrupt(f):
-    r = random.random()
-    if r < 0.20 and ")" in f:           # drop a closing paren
-        i = f.rfind(")"); return f[:i] + f[i + 1:]
-    if r < 0.36 and "," in f:           # drop a comma
-        i = f.rfind(","); return f[:i] + f[i + 1:]
-    if r < 0.50:                        # forget the leading =
-        return f[1:]
-    if r < 0.66 and f.count('"') >= 2:  # drop a quote
-        i = f.find('"'); return f[:i] + f[i + 1:]
-    if r < 0.78 and "(" in f:           # double a closing paren
-        i = f.find("("); return f[:i] + "((" + f[i + 1:]
-    if r < 0.88 and "," in f:           # comma -> semicolon (wrong separator)
-        i = f.find(","); return f[:i] + ";" + f[i + 1:]
-    i = random.randrange(1, len(f) - 1) # drop a char in the middle
-    return f[:i] + f[i + 1:]
+    order = CORRUPTERS[:]; random.shuffle(order)
+    for c in order:
+        try: g = c(f)
+        except Exception: continue
+        if g and g != f: return g
+    return f[:-1]
 def gen_fix():
     fn = random.choice(G); desc, formula = fn()
     broken = corrupt(formula)
     if broken == formula: broken = formula[:-1]
-    lead = random.choice(["fix ", "repair ", "correct ", "what's wrong with "])
+    lead = random.choice(["fix ", "repair ", "correct ", "what's wrong with ", "debug ", "fix the formula "])
     return lead + broken, formula
 
 # ── formula editing: an existing formula + an instruction -> the modified formula ──
@@ -1127,6 +1153,34 @@ def e_xlookup_default():
 def e_swap_and_or():
     a=cell(); b=cell(); fr,to=random.choice([("AND","OR"),("OR","AND")])
     return f"={fr}({a}>0,{b}>0)", f"match if either holds" if to=="OR" else "require both", f"={to}({a}>0,{b}>0)"
+@edit
+def e_remove_condition():
+    cc=col(); sc=col(); w=word()
+    return f'=SUMIF({cc}:{cc},"{w}",{sc}:{sc})', "for everything, not just that one", f"=SUM({sc}:{sc})"
+@edit
+def e_change_operator():
+    c=col(); o,no=random.choice([(">","<"),("<",">"),(">=","<="),("<=",">=")]); n=num()
+    return f'=COUNTIF({c}:{c},"{o}{n}")', "go the other direction", f'=COUNTIF({c}:{c},"{no}{n}")'
+@edit
+def e_to_countifs():
+    c1=col(); c2=col(); w1,w2=random.sample(WORDS,2)
+    return f'=COUNTIF({c1}:{c1},"{w1}")', f"and where {c2} is {w2}", f'=COUNTIFS({c1}:{c1},"{w1}",{c2}:{c2},"{w2}")'
+@edit
+def e_change_sheet():
+    s1,s2=random.sample(SHEETS,2); c=cell()
+    return f"={s1}!{c}", f"pull from {s2} instead", f"={s2}!{c}"
+@edit
+def e_lock_cols():
+    c=col(); a=random.randint(1,40); b=a+random.randint(3,30)
+    return f"=SUM({c}{a}:{c}{b})", "lock only the columns so it can fill down", f"=SUM(${c}{a}:${c}{b})"
+@edit
+def e_multiply_by():
+    c=col(); r=random.randint(2,40); k=random.choice(["1.1","1.05","0.9","2"])
+    return f"={c}{r}", f"multiplied by {k}", f"={c}{r}*{k}"
+@edit
+def e_concat_space():
+    a=cell(); b=cell()
+    return f"={a}&{b}", "put a space between them", f'={a}&" "&{b}'
 
 EDIT_TEMPLATES = ["edit {o} to {i}", "change {o} so it {i}", "take {o} and {i}",
                   "{i}: {o}", "in {o}, {i}", "modify {o}: {i}"]
@@ -1529,6 +1583,14 @@ OPTIMIZE = [
     ("=A1*100&\"%\"", '=TEXT(A1,"0%")'),
     ("=ROUND(A1,0)+0", "=ROUND(A1,0)"),
     ("=AND(A1>0,A1>0)", "=A1>0"),
+    ("=A1+0", "=A1"), ("=A1*1.0", "=A1"),
+    ('=SUMIFS(C:C,A:A,"x")', '=SUMIF(A:A,"x",C:C)'),
+    ('=AVERAGEIFS(C:C,A:A,"x")', '=AVERAGEIF(A:A,"x",C:C)'),
+    ("=A1-(-B1)", "=A1+B1"), ("=A1*-1", "=-A1"),
+    ("=SUM(A1:A1)", "=A1"), ("=PRODUCT(A1,B1)", "=A1*B1"),
+    ("=POWER(A1,2)", "=A1^2"), ("=CONCAT(A1,B1)", "=A1&B1"),
+    ('=DATEDIF(A1,B1,"d")', "=B1-A1"),
+    ("=IF(A1<>0,B1/A1,0)", "=IFERROR(B1/A1,0)"),
 ]
 def gen_optimize():
     bad, good = random.choice(OPTIMIZE)
@@ -1560,6 +1622,14 @@ AUDIT = [
     ("=A1>DATE(2024,1,1)", "hardcoded cutoff date — put the date in a cell and reference it"),
     ('="$"&A1', "building currency as text loses the numeric value — use a currency number format instead"),
     ("=SUMIF(A1:A50,B1,C1:C40)", "the criteria range and sum range are different sizes — they should line up"),
+    ("=SUM(1:1)", "summing an entire row scans every column and is slow — use a bounded range"),
+    ("=IFERROR(IFERROR(A1,B1),C1)", "nested IFERROR is hard to follow — restructure it or use a single IFS"),
+    ("=OFFSET(A1,B1,0)", "OFFSET is volatile and recalculates constantly — INDEX is a non-volatile alternative"),
+    ("=SUMPRODUCT(A:A,B:B)", "SUMPRODUCT over whole columns scans about a million rows — bound the ranges to your data"),
+    ("=A1=TRUE", "comparing to TRUE is redundant — just use A1 on its own"),
+    ("=ROUND(A1,2)+ROUND(B1,2)", "rounding each piece can drift from the real total — round the final result instead"),
+    ("=A1/B1*100", "no guard for B1 being zero — wrap it in IFERROR or test B1 first"),
+    ("=VLOOKUP(A1,B:F,5,FALSE)&VLOOKUP(A1,B:G,6,FALSE)", "the same row is looked up twice — do it once with LET or a helper column"),
 ]
 def gen_audit():
     f, issue = random.choice(AUDIT)
@@ -1610,6 +1680,13 @@ DEBUG = [
     ("=AVERAGE(A1:A10)", "#DIV/0!", "the range has no numbers to average — the cells are blank or text"),
     ("=COUNTIF(A:A,B1)", "0", "B1 has trailing spaces so nothing matches — wrap it in TRIM"),
     ("=A1:A10*2", "#VALUE!", "a legacy array formula needs Ctrl+Shift+Enter, or use a spill-aware version"),
+    ("=A1", "#GETTING_DATA", "an external or data-model query is still loading — wait for it to finish"),
+    ("=A1.Price", "#FIELD!", "that field doesn't exist on the linked data type — choose a valid field"),
+    ("=VLOOKUP(A1,B:C,2,TRUE)", "wrong value", "approximate match needs column B sorted ascending — sort it, or use FALSE"),
+    ("=A1=B1", "FALSE", "they look equal but one has trailing spaces or is text vs a number — TRIM and match the types"),
+    ('=IFS(A1>10,"big")', "#N/A", "no IFS condition matched — add TRUE as a final catch-all"),
+    ("='Sales Data'!A1", "#REF!", "the sheet was renamed or deleted — fix the sheet name (spaces need single quotes)"),
+    ('=SUMIF(A:A,">1/1/2024",B:B)', "0", 'a date inside text criteria won\'t compare — use ">"&DATE(2024,1,1)'),
 ]
 def gen_debug():
     f, err, fix = random.choice(DEBUG)
