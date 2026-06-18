@@ -61,3 +61,25 @@ random.seed(11111)
 for _ in range(6):
     q, a = make_data.gen_explain()
     print(f"  Q: {q}\n     -> {ask.ask(q)}")
+
+# ── edit task: exact-match on the modified formula ──
+random.seed(24680)
+EN = min(N, 1000)
+edit_ok, edit_misses = 0, []
+for _ in range(EN):
+    q, a = make_data.gen_edit()
+    got = ask.ask(q)
+    if got == a:
+        edit_ok += 1
+    elif len(edit_misses) < 5:
+        edit_misses.append((q, a, got))
+print(f"\nEDIT: {edit_ok}/{EN} = {100*edit_ok/EN:.1f}% exact match")
+for q, a, g in edit_misses:
+    print(f"  Q: {q}\n     want {a}\n     got  {g}")
+
+# ── chart / pivot specs: shown for eyeballing ──
+print("\nCHART/PIVOT samples:")
+random.seed(222)
+for _ in range(5):
+    q, a = make_data.gen_chart()
+    print(f"  Q: {q}\n     -> {ask.ask(q)}")

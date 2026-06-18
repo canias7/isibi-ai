@@ -53,8 +53,14 @@ Header mapping example: if your sheet has `revenue` in column C, then
 `sum the revenue column` → model says `=SUM(revenue)` → bridge writes `=SUM(C:C)`.
 
 Also works:
-- `explain =SUMIF(A:A,"paid",B:B)` → plain-English description
-- `fix =CODE(M32` → `=CODE(M32)`
+- **Edit** — click a cell that already has a formula, type an instruction
+  ("only where region is west", "round to 2 decimals", "lock the references") →
+  it sends `edit <current formula> to <your text>` and rewrites the cell.
+- **Explain** — `explain =SUMIF(A:A,"paid",B:B)` → plain-English description.
+- **Fix** — `fix =CODE(M32` → `=CODE(M32)`.
+- **Charts** — `bar chart of sales by region` → the model emits
+  `CHART type=bar values=sales category=region`; the add-in maps the headers to
+  columns and builds the chart. (Pivot specs are shown for now; auto-build is next.)
 
 ## Notes / limits (v1)
 

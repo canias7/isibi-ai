@@ -713,13 +713,92 @@ def gen_fix():
     lead = random.choice(["fix ", "repair ", "correct ", "what's wrong with "])
     return lead + broken, formula
 
+# ── formula editing: an existing formula + an instruction -> the modified formula ──
+EDITS = []
+def edit(fn): EDITS.append(fn); return fn
+
+@edit
+def e_swap_fn():
+    r, d = rng()
+    a, b, wrd = random.choice([("SUM","AVERAGE","an average"), ("AVERAGE","SUM","a sum"),
+                               ("MAX","MIN","the minimum"), ("MIN","MAX","the maximum"),
+                               ("SUM","MAX","the max"), ("COUNT","COUNTA","count everything")])
+    return f"={a}({r})", f"make it {wrd}", f"={b}({r})"
+@edit
+def e_add_condition():
+    sc=col(); cc=col(); w=word()
+    fn, ifn = random.choice([("SUM","SUMIF"), ("AVERAGE","AVERAGEIF")])
+    return f"={fn}({sc}:{sc})", f"only where {cc} is {w}", f'={ifn}({cc}:{cc},"{w}",{sc}:{sc})'
+@edit
+def e_count_condition():
+    cc=col(); w=word()
+    return f"=COUNT({cc}:{cc})", f"only the {w} ones", f'=COUNTIF({cc}:{cc},"{w}")'
+@edit
+def e_wrap_iferror():
+    fn=random.choice(G); d,f=fn()
+    label, val = random.choice([("0","0"), ("blank",'""'), ("not found",'"not found"')])
+    return f, f"show {label} if it errors", f"=IFERROR({f[1:]},{val})"
+@edit
+def e_round_result():
+    r,d=rng(); fn=random.choice(["SUM","AVERAGE","PRODUCT"]); k=random.randint(0,3)
+    return f"={fn}({r})", f"round it to {k} decimals", f"=ROUND({fn}({r}),{k})"
+@edit
+def e_absolute():
+    c=col(); a=random.randint(1,50); b=a+random.randint(5,40)
+    return f"=SUM({c}{a}:{c}{b})", "lock the references", f"=SUM(${c}${a}:${c}${b})"
+@edit
+def e_change_threshold():
+    c=col(); o=opn(); a,b=random.sample([5,10,20,25,50,100,200,500],2)
+    return f'=COUNTIF({c}:{c},"{o}{a}")', f"use {b} instead of {a}", f'=COUNTIF({c}:{c},"{o}{b}")'
+@edit
+def e_change_value():
+    cc=col(); sc=col(); w1,w2=random.sample(WORDS,2)
+    return f'=SUMIF({cc}:{cc},"{w1}",{sc}:{sc})', f"change {w1} to {w2}", f'=SUMIF({cc}:{cc},"{w2}",{sc}:{sc})'
+@edit
+def e_add_second_condition():
+    sc=col(); c1=col(); c2=col(); w1=word(); w2=word()
+    return (f'=SUMIF({c1}:{c1},"{w1}",{sc}:{sc})', f"also where {c2} is {w2}",
+            f'=SUMIFS({sc}:{sc},{c1}:{c1},"{w1}",{c2}:{c2},"{w2}")')
+@edit
+def e_as_percent():
+    a=cell(); b=cell()
+    return f"={a}/{b}", "show it as a percentage", f'=TEXT({a}/{b},"0.00%")'
+@edit
+def e_wrap_abs():
+    a=cell(); b=cell()
+    return f"={a}-{b}", "make it always positive", f"=ABS({a}-{b})"
+@edit
+def e_vlookup_approx():
+    c=cell(); t=col(); t2=chr(ord(t)+1); k=random.randint(2,4)
+    return f"=VLOOKUP({c},{t}:{t2},{k},FALSE)", "use approximate match", f"=VLOOKUP({c},{t}:{t2},{k},TRUE)"
+
+EDIT_TEMPLATES = ["edit {o} to {i}", "change {o} so it {i}", "take {o} and {i}",
+                  "{i}: {o}", "in {o}, {i}", "modify {o}: {i}"]
+def gen_edit():
+    o, i, new = random.choice(EDITS)()
+    return random.choice(EDIT_TEMPLATES).format(o=o, i=i), new
+
+# ── chart / pivot specs: intent -> a spec the add-in builds via Office.js ──
+CHART_TYPES = ["bar", "column", "line", "pie", "scatter"]
+def gen_chart():
+    if random.random() < 0.7:
+        t=random.choice(CHART_TYPES); m=hdr(); dim=hdr()
+        q=random.choice([f"{t} chart of {m} by {dim}",
+                         f"make a {t} chart of {m} for each {dim}",
+                         f"plot {m} against {dim} as a {t} chart"])
+        return q, f"CHART type={t} values={m} category={dim}"
+    m=hdr(); dim=hdr(); agg=random.choice(["sum","count","average"])
+    q=random.choice([f"pivot {m} by {dim}", f"summarize {agg} of {m} by {dim}",
+                     f"pivot table of {m} grouped by {dim}"])
+    return q, f"PIVOT rows={dim} values={agg} of {m}"
+
 def sample():
     r = random.random()
-    if r < 0.82:                        # core task: description -> formula
-        _, q, a = gen(); return q, a
-    if r < 0.91:                        # explain a formula -> plain english
-        return gen_explain()
-    return gen_fix()                    # fix a broken formula -> correct formula
+    if r < 0.72: _, q, a = gen(); return q, a   # description -> formula (core task)
+    if r < 0.80: return gen_explain()           # explain a formula -> plain english
+    if r < 0.88: return gen_fix()               # fix a broken formula -> correct formula
+    if r < 0.96: return gen_edit()              # edit an existing formula -> new formula
+    return gen_chart()                          # chart / pivot intent -> spec
 
 if __name__ == "__main__":
     with open("excel.txt", "w", encoding="utf-8") as f:
