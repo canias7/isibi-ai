@@ -3505,6 +3505,26 @@ def gen_numformat():
     return random.choice([f"number format code for {d}", f"custom format for {d}",
                           f"how do I format a cell as {d}", f"format code to show {d}"]), NUMFORMAT[d]
 
+# ── best practices / tips: how to build spreadsheets well (coworker know-how) ──
+TIPS = [
+    ("how do I make my spreadsheet faster", "Avoid volatile functions (OFFSET, INDIRECT, NOW), limit whole-column references, cut array formulas where you can, and set calc to manual while editing big models."),
+    ("best practices for formulas", "Put inputs in labeled cells instead of hardcoding, use named ranges or Tables, keep one calculation per cell, and wrap risky ones in IFERROR."),
+    ("how do I avoid errors in my spreadsheet", "Constrain inputs with Data Validation, use IFERROR/IFNA, never hardcode numbers inside formulas, and cross-check totals a second way."),
+    ("how should I organize a financial model", "Separate inputs, calculations, and outputs into clear sections or tabs; color-code inputs, flow left-to-right and top-to-bottom, and label everything."),
+    ("how do I make my spreadsheet easy to audit", "Show your assumptions, keep hardcodes out of formulas, use a consistent structure, and add notes for anything non-obvious."),
+    ("should I use tables or plain ranges", "Use Excel Tables (Ctrl+T) — they auto-expand, give readable structured references, and make formulas and charts update as data grows."),
+    ("how do I protect my formulas", "Lock the formula cells, leave input cells unlocked, then protect the sheet so people can only type where you intend."),
+    ("how do I handle a large dataset", "Use Tables and Power Query to clean, prefer SUMIFS over SUMPRODUCT, avoid full-column math, and use the data model for millions of rows."),
+    ("how do I make a reusable template", "Drive everything off separated input cells, clear the sample data, lock the structure, and save it as a template file."),
+    ("how do I document my spreadsheet", "Add a notes or readme tab, comment the tricky cells, label every assumption, and date your versions."),
+    ("how do I reduce my file size", "Delete unused rows, columns and formatting, trim excess conditional formatting, compress images, and remove stale sheets and named ranges."),
+    ("how do I keep formulas consistent", "Write the formula once and fill it across, anchor with absolute refs, use Tables for auto-fill, and avoid one-off manual edits in a column."),
+    ("how do I check my model is right", "Cross-foot totals two ways, sanity-check against a number you know, stress-test with extreme inputs, and trace precedents on key cells."),
+    ("how do I stop people breaking my sheet", "Protect the structure, lock formulas, use Data Validation to constrain inputs, and keep raw data on a separate protected tab."),
+]
+def gen_tips():
+    return random.choice(TIPS)
+
 # ── weighted task mix (easy to extend; "formula" is the core branch) ──
 MODES = [
     (40, "formula"), (6, gen_spanish), (8, gen_lang), (5, gen_explain), (5, gen_fix), (5, gen_edit),
@@ -3537,6 +3557,8 @@ MODES = [
     (4, gen_funcref),
     # ── error reference + number format codes (coworker reference knowledge) ──
     (3, gen_errref), (3, gen_numformat),
+    # ── best practices / tips: how to build spreadsheets well ──
+    (3, gen_tips),
 ]
 _MODE_FNS = [f for _, f in MODES]
 _MODE_WTS = [w for w, _ in MODES]
