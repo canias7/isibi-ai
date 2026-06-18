@@ -42,8 +42,17 @@ endpoint, so nothing in the add-in changes.
 ## If you hit trouble
 - **OOM during training:** lower `per_device_train_batch_size` to 1 in finetune_qwen.py
   (raise `gradient_accumulation_steps` to keep the effective batch), or use the 3B base.
-- **unsloth install issues on Windows:** the fallback is plain `transformers` + `peft` +
-  `bitsandbytes` QLoRA (same idea, a bit more code) — ask and I'll write that version.
+- **unsloth install issues on Windows:** use the plain-transformers fallback instead —
+  same QLoRA, more portable:
+  ```powershell
+  pip install transformers peft bitsandbytes trl datasets accelerate
+  python make_finetune_data.py
+  python finetune_qwen_hf.py      # -> qwen_excel_lora/
+  python serve_qwen_hf.py         # serve base Qwen + adapter
+  ```
+  (Downloads the full ~15GB Qwen and 4-bit quantizes on load. If `trl` complains about
+  `SFTConfig`/`processing_class` args, that's a version difference — paste the error and
+  I'll match it to your installed trl/transformers versions.)
 
 ## How this differs from the from-scratch model
 | | From-scratch (`train_resumable.py`) | Fine-tune (this) |
