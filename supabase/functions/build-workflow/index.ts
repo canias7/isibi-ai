@@ -15,7 +15,7 @@ const MODEL = "claude-opus-4-8";
 const ML_BASE_URL = (Deno.env.get("WORKFLOW_MODEL_BASE_URL") || "").replace(/\/$/, "");
 const ML_MODEL = Deno.env.get("WORKFLOW_MODEL_NAME") || "gf-workflows";
 const ML_KEY = Deno.env.get("WORKFLOW_MODEL_KEY") || "ollama";
-const ML_TIMEOUT_MS = 15000;   // cold start ~8.7s; 15s degrades a hung tunnel to Opus without cutting off a slow-but-alive model
+const ML_TIMEOUT_MS = 120000;  // Modal GPU cold start ~1-3 min: wait it out and use the 7B instead of falling back to Opus. Keep <= the Supabase fn limit + the app's client timeout, and pair with a Modal scaledown_window so cold starts are rare.
 
 
 const ALLOWED_ORIGINS = new Set([
