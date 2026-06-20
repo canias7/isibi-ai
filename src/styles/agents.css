@@ -237,6 +237,27 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-tpl-preview-bar button { background: none; border: none; color: var(--link, #6aa3ff); font: inherit; font-size: var(--fs-caption); cursor: pointer; }
 .ag-tpl-frame { width: 100%; height: 320px; border: 0; display: block; background: #fff; }
 
+/* AI generate controls (designed vs plain) */
+.ag-ai-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ag-ai-toggle { display: inline-flex; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--glass-edge); border-radius: 9px; padding: 2px; }
+.ag-ai-toggle button { border: none; background: none; color: var(--text-dim); font: inherit; font-size: var(--fs-caption); font-weight: 600; padding: 5px 10px; border-radius: 7px; cursor: pointer; }
+.ag-ai-toggle button.on { background: var(--grad-brand); color: var(--on-brand, #fff); }
+
+/* Brand profile editor */
+.ag-brand-logo { display: flex; align-items: center; gap: 12px; }
+.ag-brand-logo img { width: 64px; height: 64px; object-fit: contain; border-radius: 12px; background: #fff; border: 1px solid var(--glass-edge); }
+.ag-brand-logo-ph { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 12px; border: 1px dashed var(--glass-edge); color: var(--text-dim); font-size: var(--fs-label); text-align: center; flex-shrink: 0; }
+.ag-brand-color { display: flex; align-items: center; gap: 10px; color: var(--text-dim); font-size: var(--fs-footnote); }
+.ag-brand-color input[type="color"] { width: 40px; height: 28px; border: none; background: none; padding: 0; border-radius: 6px; cursor: pointer; }
+.ag-brand-color span { color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* Brand voice entry row in the templates list */
+.ag-brand-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer; padding: 12px 13px; margin-bottom: 10px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: 14px; color: var(--text); font: inherit; }
+.ag-brand-row-ic { font-size: 20px; }
+.ag-brand-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ag-brand-row-t { font-weight: 700; font-size: var(--fs-body-s); }
+.ag-brand-row-s { color: var(--text-dim); font-size: var(--fs-caption); margin-top: 1px; }
+
 /* Confirm-before-send sheet */
 .ag-confirm-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 10; }
 .ag-confirm {
