@@ -883,7 +883,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       <div className="ag-chatb-tools"><button className="ag-chatb-undo" onClick={undoChat} disabled={chatBusy}>↩ Undo last change</button></div>
                     )}
                     <div className="ag-chatb-thread">
-                      <div className="ag-cb-a">Hey! Describe the email you want and I’ll design it on your brand. ✨</div>
+                      <div className="ag-cb-a">Hey! Describe the email you want and I’ll design it on your brand. ✨ Paste a product or page link and I’ll build from it — or ask me to look something up.</div>
                       {chatMsgs.map((m, i) => (
                         <div key={i} className={m.role === 'user' ? 'ag-cb-u' : 'ag-cb-a'}>{m.content}</div>
                       ))}
@@ -898,7 +898,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     )}
                     <div className="ag-chatb-bar">
                       <button className="ag-chatb-attach" disabled={tplImgBusy} onClick={addDesignImage} aria-label="Attach photo">{tplImgBusy ? '…' : '📎'}</button>
-                      <input className="ag-chatb-input" placeholder="Message Sendra…" value={chatInput}
+                      <input className="ag-chatb-input" placeholder="Message Sendra… or paste a link" value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter' && chatInput.trim() && !chatBusy) sendChat(); }} />
                       <button className="ag-chatb-send" disabled={!chatInput.trim() || chatBusy} onClick={sendChat}>↑</button>

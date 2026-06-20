@@ -1,19 +1,21 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 // Sendra email templates + brand profile. Body is plain text (kind 'text') or
-// ready HTML (kind 'html'). `generate` writes copy or a designed layout; `chat`
-// is the Lovable-style iterative builder (create/edit the email turn by turn);
-// `upload` hosts an image. Service-role only.
+// ready HTML (kind 'html'). generate writes copy or a designed layout; chat
+// is the Lovable-style iterative builder; both can use Anthropic's built-in
+// web_search + web_fetch tools to read links / search. upload hosts an image.
 //
 // App-level outcomes return HTTP 200 { error }; only infra failures stay 5xx.
-//
-// POST { action, ... }:
-//   list / save / delete / getBrand / saveBrand / upload
-//   generate { prompt, mode?, images? }            -> { subject, body, kind }
-//   chat     { messages, body?, images? }          -> { subject, body, reply, kind }
 
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const MODEL = "claude-opus-4-8";
+// Built-in Anthropic server-side tools: web_fetch reads any URL the user shares
+// (product/landing page), web_search looks things up. GA on Opus 4.8 (no beta
+// header); Claude runs them and returns the finished answer in one call.
+const WEB_TOOLS = [
+  { type: "web_search_20260209", name: "web_search" },
+  { type: "web_fetch_20260209", name: "web_fetch" },
+];
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SB_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -69,13 +71,17 @@ function brandLines(b: Record<string, string>): string[] {
   return parts;
 }
 
-async function callClaude(system: string, messages: { role: string; content: string }[], maxTokens: number): Promise<string | null> {
+// deno-lint-ignore no-explicit-any
+async function callClaude(system: string, messages: { role: string; content: string }[], maxTokens: number, tools?: any[]): Promise<string | null> {
+  // deno-lint-ignore no-explicit-any
+  const reqBody: Record<string, any> = { model: MODEL, max_tokens: maxTokens, system, messages };
+  if (tools && tools.length) reqBody.tools = tools;
   let r: Response;
   try {
     r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages }),
+      body: JSON.stringify(reqBody),
     });
   } catch {
     return null;
@@ -103,7 +109,8 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
     ? ("You are an expert email designer and copywriter. Produce ONE marketing newsletter email as clean, email-client-safe HTML. " +
       "Structure top to bottom: a header with the logo (or the business name as a wordmark if no logo); a full-width hero image; a bold headline; one or two short intro paragraphs; then one or more feature/product sections, each with an image, a short title and a line of copy (add a small rounded discount badge like '20% off' ONLY if the description mentions a deal); a single prominent call-to-action button (rounded, brand-color background, white text); and a footer with the business name and address. " +
       "Rules: inline styles ONLY (no style tag, no script tag, no external CSS, no markdown). One centered container, max-width 600px, width 100%, light background, mobile-friendly. Use the brand color for the button, links and accents (fall back to a tasteful blue if none). Every img must be display:block; width:100%; height:auto. " +
-      "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). End with the sign-off. Do NOT include an unsubscribe line (the system appends one)." +
+      "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). End with the sign-off. Do NOT include an unsubscribe line (the system appends one). " +
+      "You can use web_search to find details and web_fetch to read any URL in the request (e.g. a product or landing page) - use the page's real copy and image URLs in the email." +
       brandBlock + imgBlock +
       " Respond with ONLY a JSON object with two string keys: subject (short and compelling) and body (the full HTML).")
     : ("You are an expert email copywriter for a small business owner. From the user's short description, write ONE email they can send to their contacts. " +
@@ -113,7 +120,7 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
       "Keep it under ~180 words with real line breaks between short paragraphs, and end with a simple sign-off. " +
       "Do NOT add an unsubscribe line (the system appends one)." + brandBlock +
       " Respond with ONLY a JSON object with two string keys, subject and body.");
-  const o = parseJson(await callClaude(system, [{ role: "user", content: prompt.slice(0, 2000) }], mode === "design" ? 4000 : 1500));
+  const o = parseJson(await callClaude(system, [{ role: "user", content: prompt.slice(0, 2000) }], mode === "design" ? 8000 : 1500, mode === "design" ? WEB_TOOLS : undefined));
   if (o && o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 50000) };
   return null;
 }
@@ -131,12 +138,13 @@ async function chatDesign(messages: { role: string; content: string }[], current
   const system =
     "You are Sendra, an expert email designer and copywriter. You build and edit ONE marketing newsletter email as clean, email-client-safe HTML (inline styles only, no style or script tags, no markdown; one centered container max-width 600px, width 100%, mobile-friendly; every img display:block; width:100%; height:auto). " +
     "When creating fresh: logo header (or business-name wordmark), optional hero image, bold headline, short intro, optional feature/product sections with images and a small discount badge only if a deal is mentioned, ONE call-to-action button in the brand color, and a footer with the business name and address. " +
-    "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one)." +
+    "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one). " +
+    "You can use web_search to look things up and web_fetch to read any link the user shares (a product or landing page) - pull its real copy and image URLs into the email." +
     brandBlock + imgBlock + curBlock +
     " The reply must be ONE short, friendly sentence describing what you did. Respond with ONLY a JSON object with three string keys: subject, body (the full HTML), and reply.";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
   if (!conv.length || conv[0].role !== "user") return null;
-  const o = parseJson(await callClaude(system, conv, 4000));
+  const o = parseJson(await callClaude(system, conv, 8000, WEB_TOOLS));
   if (o && o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 50000), reply: String(o.reply || "Done.").slice(0, 300) };
   return null;
 }
