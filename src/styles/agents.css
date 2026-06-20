@@ -133,12 +133,18 @@
 .ag-inbox .gf-email.gf-p-gmail::before { background: rgba(255, 255, 255, 0.35); }
 .ag-inbox .gf-email.gf-p-outlook { background: linear-gradient(0deg, rgba(56, 132, 255, 0.12), rgba(56, 132, 255, 0.12)), #16181d; }
 .ag-inbox .gf-email.gf-p-outlook::before { background: #3b82f6; }
-/* Crisp white text on every card, regardless of provider. */
-.ag-inbox .gf-email .gf-from { color: #fff; font-weight: 700; }
-.ag-inbox .gf-email .gf-subject { color: #eceef1; }
-.ag-inbox .gf-email .gf-num,
-.ag-inbox .gf-email .gf-time,
-.ag-inbox .gf-email .gf-snippet { color: #9298a2; }
+/* Crisp white text on every card, regardless of provider OR read state. The list
+   container still carries .gf-gmail/.gf-outlook (from the first row), which pulls
+   in email.css's light-card rules — and the unread one
+   (.gf-gmail .gf-email.unread .gf-from) outranks a plain override — so we match
+   that specificity with .gf-emails + an explicit .unread variant. */
+.ag-inbox .gf-emails .gf-email .gf-from,
+.ag-inbox .gf-emails .gf-email.unread .gf-from { color: #fff; font-weight: 700; }
+.ag-inbox .gf-emails .gf-email .gf-subject,
+.ag-inbox .gf-emails .gf-email.unread .gf-subject { color: #eceef1; }
+.ag-inbox .gf-emails .gf-email .gf-num,
+.ag-inbox .gf-emails .gf-email .gf-time,
+.ag-inbox .gf-emails .gf-email .gf-snippet { color: #9298a2; }
 .ag-inbox .gf-email.tappable { transition: transform 0.12s ease; }
 .ag-inbox .gf-email.tappable:active { transform: scale(0.985); }
 @keyframes agCardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
