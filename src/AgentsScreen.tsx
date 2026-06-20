@@ -118,6 +118,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [refreshing, setRefreshing] = useState(false);
   const [pageIdx, setPageIdx] = useState(0);
   const [nextTok, setNextTok] = useState<string | null>(null);
+  const [mergedMax, setMergedMax] = useState(40);     // combined inbox: how many merged rows are loaded
+  const [mergedMore, setMergedMore] = useState(false); // ...and whether there are likely older ones
   const [reading, setReading] = useState<EmailItem | null>(null);
   const [pull, setPull] = useState(0);
   const [contacts, setContacts] = useState<ContactItem[]>([]);
@@ -202,13 +204,21 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
   }, [mailApp]);
   const refreshInbox = useCallback(() => { tokensRef.current = [undefined]; loadPage(0); }, [loadPage]);
-  // Combined inbox (2+ mailboxes): one merged, newest-first page, no pager.
-  const loadMerged = useCallback(() => {
+  // Combined inbox (2+ mailboxes): one merged, newest-first feed. No per-provider
+  // pager (each has its own cursor), so we grow a single merged window instead —
+  // "Load older" bumps `max` and re-merges; a full window means there may be more.
+  const loadMerged = useCallback((max = 40) => {
     setRefreshing(true);
     if (!inboxCache['all']) setInboxState('loading');
+    setMergedMax(max);
     const apps = ['gmail', 'outlook'].filter((a) => (a === 'gmail' ? connApps.includes('gmail') : connApps.includes('m365') || connApps.includes('outlook')));
-    fetchInboxMerged(apps, 40)
-      .then((items) => { if (!mountedRef.current) return; setInbox(items); setInboxState('ok'); inboxCache['all'] = items; inboxScrollRef.current?.scrollTo({ top: 0 }); })
+    fetchInboxMerged(apps, max)
+      .then((items) => {
+        if (!mountedRef.current) return;
+        setInbox(items); setInboxState('ok'); inboxCache['all'] = items;
+        setMergedMore(items.length >= max); // got a full window -> likely older mail remains
+        if (max <= 40) inboxScrollRef.current?.scrollTo({ top: 0 }); // keep scroll when loading more
+      })
       .catch(() => { if (mountedRef.current && !inboxCache['all']) setInboxState('err'); })
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
   }, [connApps]);
@@ -371,6 +381,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const refreshSpin = refreshing || (inTgList && tgListState === 'loading');
   const doRefresh = () => { tap(); if (inMailInbox) { if (combinedInbox) loadMerged(); else refreshInbox(); } else if (inTgList) loadTgChats(); };
   const goPage = (idx: number) => { if (refreshing) return; tap(); loadPage(idx); };
+  const loadMoreMerged = () => { if (refreshing) return; tap(); loadMerged(mergedMax + 40); };
   const hasPager = pageIdx > 0 || !!nextTok;
 
   const connectCard = (extra: string) => (
@@ -671,6 +682,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     <button onClick={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || refreshing}>‹ Prev</button>
                     <span className="ag-pager-n">Page {pageIdx + 1}</span>
                     <button onClick={() => goPage(pageIdx + 1)} disabled={!nextTok || refreshing}>Next ›</button>
+                  </div>
+                )}
+                {combinedInbox && mergedMore && (
+                  <div className="ag-pager">
+                    <button onClick={loadMoreMerged} disabled={refreshing}>{refreshing ? 'Loading…' : 'Load older'}</button>
                   </div>
                 )}
               </>
