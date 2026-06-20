@@ -62,6 +62,40 @@ Deno.serve(async (req: Request) => {
   const uid = await verifyUser(token);
   if (!uid) return json(req, { items: [], error: "unauthorized" }, 401);
 
+  // ---- Outlook (Microsoft 365) — OUTLOOK_OUTLOOK_LIST_CONTACTS (Graph shape) ----
+  const app = (new URL(req.url).searchParams.get("app") || "gmail").toLowerCase();
+  if (app === "outlook" || app === "m365") {
+    try {
+      const res = await fetch("https://backend.composio.dev/api/v3/tools/execute/OUTLOOK_OUTLOOK_LIST_CONTACTS", {
+        method: "POST",
+        headers: { "x-api-key": API_KEY, "content-type": "application/json" },
+        body: JSON.stringify({ user_id: uid, arguments: { top: 50 } }),
+      });
+      const b = await res.json().catch(() => ({}));
+      const d = ((b as Record<string, unknown>)?.data ?? b) as Record<string, unknown>;
+      const rd = (d?.response_data ?? d?.data ?? d) as Record<string, unknown>;
+      const rows = ((rd?.value ?? rd?.contacts ?? d?.value) as Record<string, unknown>[]) ?? [];
+      const seen = new Set<string>();
+      const items: Record<string, string>[] = [];
+      for (const c of (Array.isArray(rows) ? rows : [])) {
+        const emails = (c.emailAddresses as Record<string, unknown>[]) ?? [];
+        const email = String((emails[0]?.address ?? "") as string).trim();
+        const name = String((c.displayName ?? emails[0]?.name ?? "") as string).trim();
+        const phone = String((c.mobilePhone ?? (c.businessPhones as string[])?.[0] ?? (c.homePhones as string[])?.[0] ?? "") as string).trim();
+        const key = (email || name || phone).toLowerCase();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        if (name || email || phone) items.push({ name, email, phone });
+        if (items.length >= 50) break;
+      }
+      items.sort((a, b) => (a.name ? 0 : 1) - (b.name ? 0 : 1));
+      return json(req, { items });
+    } catch (e) {
+      console.error("contacts(outlook) error:", e);
+      return json(req, { items: [], error: "fetch_failed" }, 502);
+    }
+  }
+
   // deno-lint-ignore no-explicit-any
   const exec = async (extra: Record<string, unknown>): Promise<any> => {
     try {
