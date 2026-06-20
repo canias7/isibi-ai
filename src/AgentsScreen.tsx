@@ -16,7 +16,7 @@ type IconCmp = typeof IconCompose;
 type AgentDef = { id: string; name: string; desc: string; icon: IconCmp; live: boolean };
 
 const AGENTS: AgentDef[] = [
-  { id: 'email', name: 'Email Agent', desc: 'Drafts, sequences & broadcasts across your inbox', icon: IconCompose, live: true },
+  { id: 'email', name: 'Sendra', desc: 'Your email agent — inbox, replies, contacts & sending', icon: IconCompose, live: true },
   { id: 'books', name: 'Bookkeeper', desc: 'Invoices, payments & reconciliation', icon: IconBank, live: false },
   { id: 'sched', name: 'Scheduler', desc: 'Meetings, reminders & calendar triage', icon: IconClock, live: false },
 ];
@@ -170,7 +170,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               : agent === 'email' && emailTab === 'inbox' ? 'Inbox'
               : agent === 'email' && emailTab === 'contacts' ? 'Contacts'
               : agent === 'email' && emailTab === 'compose' ? (replyThreadId ? 'Reply' : 'New email')
-              : agent === 'email' ? 'Email Agent'
+              : agent === 'email' ? 'Sendra'
               : 'Agents'}
           </h1>
           <p className="memg-sub">
