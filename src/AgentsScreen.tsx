@@ -47,10 +47,10 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
 };
 // Sendra home menu. 'apps' opens the constellation; the rest are P0 scaffolds.
 const HOME_TOOLS: { id: SendraTab; name: string; desc: string; Icon: IconCmp }[] = [
-  { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS — send to a whole list', Icon: IconWaveform },
-  { id: 'templates', name: 'Templates', desc: 'Reusable messages for your campaigns', Icon: IconDoc },
-  { id: 'analytics', name: 'Analytics', desc: 'Opens, clicks, replies & delivery', Icon: IconChart },
-  { id: 'calendar', name: 'Calendar', desc: 'Scheduled sends & reminders', Icon: IconCalendar },
+  { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
+  { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
+  { id: 'analytics', name: 'Analytics', desc: 'Opens & clicks', Icon: IconChart },
+  { id: 'calendar', name: 'Calendar', desc: 'Scheduled sends', Icon: IconCalendar },
   { id: 'apps', name: 'My apps', desc: '', Icon: IconConnectors },
 ];
 
@@ -403,15 +403,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         sendraTab === 'home' ? (
           // ---- Sendra home: the tool menu (Campaigns, Templates, Analytics, Calendar, My apps) ----
           <div className="ag-stage">
-            <div className="ag-list">
+            <div className="ag-grid">
               {HOME_TOOLS.map((t) => (
-                <button key={t.id} className="ag-card" onClick={() => { tap(); setNote(''); setSendraTab(t.id); }}>
-                  <span className="ag-ic"><t.Icon size={22} /></span>
-                  <span className="ag-meta">
-                    <span className="ag-name">{t.name}</span>
-                    <span className="ag-desc">{t.id === 'apps' ? (deckApps.length ? deckApps.map((c) => c.name).join(' · ') : 'Connect Gmail, Outlook or Telegram') : t.desc}</span>
-                  </span>
-                  <span className="ag-chev" aria-hidden="true">›</span>
+                <button key={t.id} className="ag-act" onClick={() => { tap(); setNote(''); setSendraTab(t.id); }}>
+                  <span className="ag-act-ic"><t.Icon size={20} /></span>
+                  <span className="ag-act-label">{t.name}</span>
+                  <span className="ag-act-sub">{t.id === 'apps' ? (deckApps.length ? deckApps.map((c) => c.name).join(' · ') : 'Connect an app') : t.desc}</span>
                 </button>
               ))}
             </div>
