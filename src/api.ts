@@ -61,7 +61,7 @@ export async function fetchInbox(max = 20, pageToken?: string): Promise<{ items:
 // Send an email (Composio GMAIL_SEND_EMAIL, server-verified). Returns on success,
 // throws on failure so the composer can show an error.
 const SEND_API = CONNECT_API.replace(/\/gmail-oauth$/, '/gmail-send');
-export async function sendEmail(msg: { to: string; subject: string; body: string; cc?: string[]; bcc?: string[] }): Promise<void> {
+export async function sendEmail(msg: { to: string; subject: string; body: string; threadId?: string; cc?: string[]; bcc?: string[] }): Promise<void> {
   const token = await authToken();
   const res = await fetch(SEND_API, {
     method: 'POST',

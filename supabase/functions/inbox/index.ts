@@ -139,6 +139,7 @@ Deno.serve(async (req: Request) => {
         unread: Array.isArray(labels) && labels.includes("UNREAD"),
         draft: Array.isArray(labels) && labels.includes("DRAFT"),
         id: String(m.messageId ?? m.id ?? ""),
+        threadId: String(m.threadId ?? m.thread_id ?? ""),
         app: "gmail",
       };
     });

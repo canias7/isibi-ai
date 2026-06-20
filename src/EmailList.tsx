@@ -18,6 +18,7 @@ export interface EmailItem {
   unread?: boolean;
   app?: string; // mailbox provider ('gmail' | 'outlook'); themes the card
   draft?: boolean; // an unsent draft (shows a "Draft" badge); id = its message id
+  threadId?: string; // Gmail thread id — used to reply in-thread
 }
 
 export interface EmailMessage {
