@@ -3,16 +3,13 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // Direct inbox listing -> EmailItem[] (no chat turn). Mirrors the transform in
 // chat/index.ts `buildInboxCard`: calls Composio GMAIL_FETCH_EMAILS with the
 // caller's server-verified user id and shapes each message into the same card
-// the chat pipeline produces. Used by the Email Agent screen to render a real
-// inbox. Identity is verified server-side (the caller's Supabase access token),
-// so a client can never list someone else's mail.
+// the chat pipeline produces. Identity is verified server-side (the caller's
+// Supabase access token), so a client can never list someone else's mail.
 
 const API_KEY = Deno.env.get("COMPOSIO_API_KEY") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
-// CORS allowlist: native app (Capacitor) + local dev. No-Origin (native fetch /
-// curl) is allowed; unknown browser origins are blocked.
 const ALLOWED_ORIGINS = new Set([
   "capacitor://localhost",
   "ionic://localhost",
@@ -50,6 +47,20 @@ async function verifyUser(token: string | null): Promise<string | null> {
   }
 }
 
+// Some emails put full HTML in the text field — strip it so the snippet is
+// readable plain text (drops comments, <style>/<script> blocks, tags, entities).
+function stripHtml(s: string): string {
+  return s
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<(style|script)[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"')
+    .replace(/&#\d+;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
   if (!API_KEY) return json(req, { items: [], error: "composio_unset" }, 500);
@@ -72,8 +83,8 @@ Deno.serve(async (req: Request) => {
     const body = await res.json().catch(() => ({}));
     const data = (body as Record<string, unknown>)?.data ?? body;
     const msgs: Record<string, unknown>[] =
-      (data as Record<string, unknown>)?.messages as Record<string, unknown>[] ??
-      ((data as Record<string, unknown>)?.data as Record<string, unknown>)?.messages as Record<string, unknown>[] ??
+      ((data as Record<string, unknown>)?.messages as Record<string, unknown>[]) ??
+      (((data as Record<string, unknown>)?.data as Record<string, unknown>)?.messages as Record<string, unknown>[]) ??
       [];
     const dstr = (d: Date, o: Intl.DateTimeFormatOptions) => {
       try { return new Intl.DateTimeFormat("en-US", { timeZone: tz, ...o }).format(d); } catch { return ""; }
@@ -92,8 +103,8 @@ Deno.serve(async (req: Request) => {
           ? dstr(d, { hour: "numeric", minute: "2-digit" })
           : dstr(d, { month: "short", day: "numeric" });
       }
-      const snippet = String((m.messageText ?? (m.preview as Record<string, unknown>)?.body ?? ""))
-        .replace(/\s+/g, " ").trim().split(" ").slice(0, 12).join(" ");
+      const snippet = stripHtml(String(m.messageText ?? (m.preview as Record<string, unknown>)?.body ?? ""))
+        .split(" ").slice(0, 14).join(" ");
       return {
         from: from || email || "Unknown",
         email,

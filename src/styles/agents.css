@@ -89,6 +89,12 @@
 .ag-corner:active { background: var(--glass-strong, #ffffff14); }
 .ag-corner:disabled { cursor: default; }
 .ag-corner.spinning { color: var(--brand); animation: agSpin 0.8s linear infinite; }
+/* Pull-to-refresh: indicator above the inbox list; its height tracks the drag. */
+.ag-ptr { display: grid; place-items: center; overflow: hidden; }
+.ag-ptr-ic { color: var(--text-faint); transition: transform 0.15s ease, color 0.15s ease; }
+.ag-ptr-ic.ready { color: var(--brand); transform: rotate(180deg); }
+.ag-ptr-ic.spinning { color: var(--brand); animation: agSpin 0.8s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .ag-ptr-ic { transition: none; } .ag-ptr-ic.spinning { animation: none; } }
 .ag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ag-act {
   display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
