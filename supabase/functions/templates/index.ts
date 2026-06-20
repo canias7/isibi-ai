@@ -1,22 +1,16 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// Sendra email templates + brand profile. A template's body is plain text
-// (kind 'text', wrapped to HTML on send) or ready HTML (kind 'html' - flyer
-// image, pasted design, or AI-designed layout). `generate` writes copy or a
-// designed HTML layout with Claude, using the user's brand profile. `upload`
-// hosts an image. Identity is server-verified; rows are service-role only.
+// Sendra email templates + brand profile. Body is plain text (kind 'text') or
+// ready HTML (kind 'html'). `generate` writes copy or a designed layout; `chat`
+// is the Lovable-style iterative builder (create/edit the email turn by turn);
+// `upload` hosts an image. Service-role only.
 //
-// App-level outcomes return HTTP 200 { error } (supabase-js hides non-2xx
-// bodies); only infra failures stay 5xx.
+// App-level outcomes return HTTP 200 { error }; only infra failures stay 5xx.
 //
 // POST { action, ... }:
-//   list                                              -> { templates }
-//   save     { id?, name, subject, body, kind? }      -> { id }
-//   delete   { id }                                   -> { ok }
-//   generate { prompt, mode? }                        -> { subject, body, kind }
-//   upload   { dataB64, contentType }                 -> { url }
-//   getBrand                                          -> { brand }
-//   saveBrand { name, logo_url, color, voice, signoff } -> { ok }
+//   list / save / delete / getBrand / saveBrand / upload
+//   generate { prompt, mode?, images? }            -> { subject, body, kind }
+//   chat     { messages, body?, images? }          -> { subject, body, reply, kind }
 
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const MODEL = "claude-opus-4-8";
@@ -64,24 +58,47 @@ async function getBrand(uid: string): Promise<Record<string, string>> {
   }
 }
 
-// Ask Claude for one email as JSON { subject, body }. mode 'text' -> plain text
-// with {{name}}; mode 'design' -> a rich, email-client-safe HTML newsletter using
-// the brand + the provided image URLs (first = hero, rest fill feature sections).
-async function generate(prompt: string, mode: string, brand: Record<string, string>, images: string[]): Promise<{ subject: string; body: string } | null> {
-  if (!ANTHROPIC_KEY) return null;
-  const b = brand || {};
+function brandLines(b: Record<string, string>): string[] {
   const parts: string[] = [];
   if (b.name) parts.push(`business name: ${b.name}`);
   if (b.voice) parts.push(`voice/tone: ${b.voice}`);
-  if (b.signoff) parts.push(`sign off every email exactly with: ${b.signoff}`);
-  if (b.color) parts.push(`brand color (hex) for buttons and accents: ${b.color}`);
-  if (b.logo_url) parts.push(`logo image URL for the header: ${b.logo_url}`);
-  if (b.address) parts.push(`footer business address: ${b.address}`);
-  const brandBlock = parts.length ? ` Match this brand - ${parts.join("; ")}.` : "";
+  if (b.signoff) parts.push(`sign off with: ${b.signoff}`);
+  if (b.color) parts.push(`brand color (hex): ${b.color}`);
+  if (b.logo_url) parts.push(`logo image URL: ${b.logo_url}`);
+  if (b.address) parts.push(`footer address: ${b.address}`);
+  return parts;
+}
+
+async function callClaude(system: string, messages: { role: string; content: string }[], maxTokens: number): Promise<string | null> {
+  let r: Response;
+  try {
+    r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages }),
+    });
+  } catch {
+    return null;
+  }
+  if (!r.ok) return null;
+  const data = await r.json().catch(() => null) as { content?: { type: string; text?: string }[] } | null;
+  return (data?.content ?? []).filter((x) => x.type === "text").map((x) => x.text ?? "").join("").trim();
+}
+function parseJson(text: string | null): Record<string, unknown> | null {
+  if (!text) return null;
+  const a = text.indexOf("{"), z = text.lastIndexOf("}");
+  if (a < 0 || z <= a) return null;
+  try { return JSON.parse(text.slice(a, z + 1)) as Record<string, unknown>; } catch { return null; }
+}
+
+// mode 'text' -> plain text with {{name}}; mode 'design' -> a rich HTML newsletter
+// using the brand + provided image URLs (first = hero, rest fill feature sections).
+async function generate(prompt: string, mode: string, brand: Record<string, string>, images: string[]): Promise<{ subject: string; body: string } | null> {
+  if (!ANTHROPIC_KEY) return null;
+  const brandBlock = brandLines(brand).length ? ` Match this brand - ${brandLines(brand).join("; ")}.` : "";
   const imgBlock = images.length
     ? ` Use these image URLs in order, first as the full-width hero, the rest in the feature sections: ${images.join(", ")}.`
     : " No images were provided - use light gray placeholder boxes (a div, background #eeeeee, height about 220px, centered muted 'Image' label) wherever an image would go.";
-
   const system = mode === "design"
     ? ("You are an expert email designer and copywriter. Produce ONE marketing newsletter email as clean, email-client-safe HTML. " +
       "Structure top to bottom: a header with the logo (or the business name as a wordmark if no logo); a full-width hero image; a bold headline; one or two short intro paragraphs; then one or more feature/product sections, each with an image, a short title and a line of copy (add a small rounded discount badge like '20% off' ONLY if the description mentions a deal); a single prominent call-to-action button (rounded, brand-color background, white text); and a footer with the business name and address. " +
@@ -96,26 +113,31 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
       "Keep it under ~180 words with real line breaks between short paragraphs, and end with a simple sign-off. " +
       "Do NOT add an unsubscribe line (the system appends one)." + brandBlock +
       " Respond with ONLY a JSON object with two string keys, subject and body.");
+  const o = parseJson(await callClaude(system, [{ role: "user", content: prompt.slice(0, 2000) }], mode === "design" ? 4000 : 1500));
+  if (o && o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 50000) };
+  return null;
+}
 
-  let r: Response;
-  try {
-    r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: MODEL, max_tokens: mode === "design" ? 4000 : 1500, system, messages: [{ role: "user", content: prompt.slice(0, 2000) }] }),
-    });
-  } catch {
-    return null;
-  }
-  if (!r.ok) return null;
-  const data = await r.json().catch(() => null) as { content?: { type: string; text?: string }[] } | null;
-  const text = (data?.content ?? []).filter((x) => x.type === "text").map((x) => x.text ?? "").join("").trim();
-  const a = text.indexOf("{"), z = text.lastIndexOf("}");
-  if (a < 0 || z <= a) return null;
-  try {
-    const o = JSON.parse(text.slice(a, z + 1)) as { subject?: unknown; body?: unknown };
-    if (o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 50000) };
-  } catch { /* fall through */ }
+// Lovable-style iterative builder: given the conversation + the CURRENT email
+// HTML, create it (first turn) or edit it (later turns), and return the full
+// updated email plus a one-line reply. Brand + image URLs ground the design.
+async function chatDesign(messages: { role: string; content: string }[], current: string, brand: Record<string, string>, images: string[]): Promise<{ subject: string; body: string; reply: string } | null> {
+  if (!ANTHROPIC_KEY) return null;
+  const brandBlock = brandLines(brand).length ? ` Brand to match - ${brandLines(brand).join("; ")}.` : "";
+  const imgBlock = images.length ? ` Image URLs you may place (first is the hero): ${images.join(", ")}.` : "";
+  const curBlock = current.trim()
+    ? ` The CURRENT email HTML is between <<< and >>>. Apply the user's latest instruction by editing it and keeping everything else the same. <<<${current.slice(0, 40000)}>>>`
+    : " There is no email yet - create one from the user's request.";
+  const system =
+    "You are Sendra, an expert email designer and copywriter. You build and edit ONE marketing newsletter email as clean, email-client-safe HTML (inline styles only, no style or script tags, no markdown; one centered container max-width 600px, width 100%, mobile-friendly; every img display:block; width:100%; height:auto). " +
+    "When creating fresh: logo header (or business-name wordmark), optional hero image, bold headline, short intro, optional feature/product sections with images and a small discount badge only if a deal is mentioned, ONE call-to-action button in the brand color, and a footer with the business name and address. " +
+    "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one)." +
+    brandBlock + imgBlock + curBlock +
+    " The reply must be ONE short, friendly sentence describing what you did. Respond with ONLY a JSON object with three string keys: subject, body (the full HTML), and reply.";
+  const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
+  if (!conv.length || conv[0].role !== "user") return null;
+  const o = parseJson(await callClaude(system, conv, 4000));
+  if (o && o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 50000), reply: String(o.reply || "Done.").slice(0, 300) };
   return null;
 }
 
@@ -133,7 +155,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (action === "list") {
-      const r = await fetch(`${SB_URL}/rest/v1/templates?user_id=eq.${uid}&select=id,name,subject,body,kind,updated_at&order=updated_at.desc&limit=100`, { headers: sbHeaders });
+      const r = await fetch(`${SB_URL}/rest/v1/templates?user_id=eq.${uid}&select=id,name,subject,body,kind,chat,updated_at&order=updated_at.desc&limit=100`, { headers: sbHeaders });
       const templates = await r.json().catch(() => []);
       return json(req, { templates: Array.isArray(templates) ? templates : [] });
     }
@@ -191,11 +213,22 @@ Deno.serve(async (req: Request) => {
       return out ? json(req, { ...out, kind: mode === "design" ? "html" : "text" }) : json(req, { error: "generate_failed" });
     }
 
+    if (action === "chat") {
+      if (!ANTHROPIC_KEY) return json(req, { error: "ai_unset" });
+      const messages = Array.isArray(body?.messages) ? (body.messages as { role: string; content: string }[]) : [];
+      const current = String(body?.body || "");
+      const images = Array.isArray(body?.images) ? (body.images as unknown[]).map((x) => String(x)).filter(Boolean).slice(0, 8) : [];
+      if (!messages.length) return json(req, { error: "missing_prompt" });
+      const out = await chatDesign(messages, current, await getBrand(uid), images);
+      return out ? json(req, { ...out, kind: "html" }) : json(req, { error: "generate_failed" });
+    }
+
     if (action === "save") {
       const name = String(body?.name || "").slice(0, 120);
       const subject = String(body?.subject || "").trim().slice(0, 200);
       const tbody = String(body?.body || "").slice(0, 50000);
       const kind = String(body?.kind || "text") === "html" ? "html" : "text";
+      const chat = Array.isArray(body?.chat) ? (body.chat as unknown[]).slice(-40) : [];
       const id = body?.id ? String(body.id) : "";
       if (!subject || !tbody) return json(req, { error: "missing_content" });
 
@@ -203,7 +236,7 @@ Deno.serve(async (req: Request) => {
         const r = await fetch(`${SB_URL}/rest/v1/templates?id=eq.${id}&user_id=eq.${uid}`, {
           method: "PATCH",
           headers: { ...sbHeaders, Prefer: "return=representation" },
-          body: JSON.stringify({ name, subject, body: tbody, kind, updated_at: new Date().toISOString() }),
+          body: JSON.stringify({ name, subject, body: tbody, kind, chat, updated_at: new Date().toISOString() }),
         });
         const row = (await r.json().catch(() => []))?.[0];
         return row?.id ? json(req, { id: row.id }) : json(req, { error: "not_found" });
@@ -211,7 +244,7 @@ Deno.serve(async (req: Request) => {
       const r = await fetch(`${SB_URL}/rest/v1/templates`, {
         method: "POST",
         headers: { ...sbHeaders, Prefer: "return=representation" },
-        body: JSON.stringify({ user_id: uid, name: name || subject.slice(0, 60), subject, body: tbody, kind }),
+        body: JSON.stringify({ user_id: uid, name: name || subject.slice(0, 60), subject, body: tbody, kind, chat }),
       });
       const row = (await r.json().catch(() => []))?.[0];
       return row?.id ? json(req, { id: row.id }) : json(req, { error: "save_failed" }, 502);
