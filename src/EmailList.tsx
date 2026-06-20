@@ -336,8 +336,8 @@ const FRAME_HEAD =
   '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src http: https: data:; style-src \'unsafe-inline\'; font-src http: https: data:; media-src http: https: data:; base-uri \'none\'; form-action \'none\'; upgrade-insecure-requests">' +
   '<meta name="viewport" content="width=device-width,initial-scale=1">' +
   '<base target="_blank"><style>html,body{margin:0}body{padding:12px;background:#fff;color:#111;' +
-  'font:14px/1.55 -apple-system,system-ui,sans-serif;word-break:break-word;overflow-x:hidden}' +
-  'img{max-width:100%!important;height:auto}a{color:#1a73e8}table{max-width:100%!important}</style></head><body>';
+  'font:14px/1.55 -apple-system,system-ui,sans-serif;word-break:break-word}' +
+  'img{max-width:100%!important;height:auto}a{color:#1a73e8}</style></head><body>';
 const FRAME_FOOT = '</body></html>';
 
 // Format an RFC date header into the short label the card shows ("9:41 AM" today,
@@ -410,12 +410,41 @@ function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fa
     return () => { alive = false; };
   }, [id, app]);
 
-  // Size the frame to its content (sandbox allows same-origin reads; no scripts run).
+  // Size the frame to its content AND fit-to-width. Many emails use a fixed ~600px
+  // layout, so we measure the natural content width and scale the whole frame down
+  // to fit the screen (like Gmail) instead of clipping it. Responsive emails that
+  // already fit are just sized to their height. (sandbox allows same-origin reads;
+  // no scripts run.)
   function fit() {
     const f = frameRef.current;
+    if (!f) return;
+    const wrap = f.parentElement;
     try {
-      const h = f?.contentWindow?.document?.body?.scrollHeight;
-      if (f && h) f.style.height = Math.min(h + 8, 6000) + 'px';
+      const cdoc = f.contentWindow?.document;
+      if (!cdoc || !wrap) return;
+      const containerW = wrap.clientWidth || f.clientWidth || 0;
+      if (!containerW) return;
+      // Measure natural width at full size (transform off).
+      f.style.transform = 'none';
+      f.style.width = containerW + 'px';
+      const naturalW = Math.max(cdoc.documentElement.scrollWidth, cdoc.body.scrollWidth, containerW);
+      if (naturalW > containerW + 4) {
+        // Wide fixed-layout email -> scale the whole thing down to fit.
+        const k = containerW / naturalW;
+        f.style.width = naturalW + 'px';
+        const naturalH = Math.min(cdoc.body.scrollHeight, 20000);
+        f.style.height = naturalH + 'px';
+        f.style.transformOrigin = '0 0';
+        f.style.transform = 'scale(' + k + ')';
+        wrap.style.height = Math.ceil(naturalH * k) + 'px';
+      } else {
+        // Already fits -> normal full-width, size to content height.
+        f.style.width = '100%';
+        f.style.transform = 'none';
+        f.style.transformOrigin = '';
+        wrap.style.height = '';
+        f.style.height = Math.min(cdoc.body.scrollHeight + 8, 20000) + 'px';
+      }
     } catch { /* opaque — keep default height */ }
   }
 
