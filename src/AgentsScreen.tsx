@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, listCampaigns, createCampaign, sendCampaignBatch, listTemplates, saveTemplate, deleteTemplate, generateTemplate, chatTemplate, uploadEmailImage, getBrand, saveBrand, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, listTemplates, saveTemplate, deleteTemplate, generateTemplate, chatTemplate, uploadEmailImage, getBrand, saveBrand, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SesDomain, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -156,6 +156,16 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campProg, setCampProg] = useState({ sent: 0, total: 0, failed: 0 });
   const [campList, setCampList] = useState<Campaign[]>([]);
   const [campBodyKind, setCampBodyKind] = useState<'text' | 'html'>('text'); // 'html' when a designed template is applied
+  // Custom sending domains (Amazon SES) + the campaign "From" picker
+  const [campView, setCampView] = useState<'list' | 'domains'>('list');
+  const [sesDomains, setSesDomains] = useState<SesDomain[]>([]);
+  const [domNew, setDomNew] = useState('');
+  const [domBusy, setDomBusy] = useState(false);
+  const [domErr, setDomErr] = useState('');
+  const [domOpen, setDomOpen] = useState<string | null>(null);
+  const [campDomain, setCampDomain] = useState('');     // '' = send via mailbox; else a verified domain
+  const [campFromName, setCampFromName] = useState(''); // display name when sending from a domain
+  const [campFromLocal, setCampFromLocal] = useState('news'); // local-part of the From address
   // Templates (reusable, AI-writable, or bring-your-own)
   const [tplList, setTplList] = useState<Template[]>([]);
   const [tplEdit, setTplEdit] = useState<null | { id?: string }>(null);
@@ -340,6 +350,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   useEffect(() => {
     if (agent !== 'email' || commsApp !== null) return;
     if (sendraTab === 'campaigns' && !campNew) listCampaigns().then((c) => { if (mountedRef.current) setCampList(c); });
+    if (sendraTab === 'campaigns') listSesDomains().then((d) => { if (mountedRef.current) setSesDomains(d); });
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
     if (sendraTab === 'templates') getBrand().then((br) => {
       if (!mountedRef.current) return;
@@ -449,6 +460,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     tap(); setCampNew(true); setCampState('idle'); setCampErr('');
     setCampSubject(''); setCampBody(''); setCampBodyKind('text'); setCampRecips(''); setCampProg({ sent: 0, total: 0, failed: 0 });
     setCampApp(connApps.includes('gmail') ? 'gmail' : 'outlook');
+    setCampDomain(''); setCampFromName(''); setCampFromLocal('news');
   };
   const applyTemplate = (t: Template) => { tap(); setCampSubject(t.subject); setCampBody(t.body); setCampBodyKind(t.kind === 'html' ? 'html' : 'text'); if (campState === 'err') setCampState('idle'); };
   const runCampaign = async () => {
@@ -456,14 +468,23 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (!campSubject.trim() || !campBody.trim() || !recipients.length || campState === 'sending') return;
     tap(); setCampState('sending'); setCampErr(''); setCampProg({ sent: 0, total: recipients.length, failed: 0 });
     try {
-      const c = await createCampaign({ app: campApp, subject: campSubject.trim(), body: campBodyKind === 'html' ? campBody : campToHtml(campBody.trim()), recipients });
+      const useDomain = !!campDomain && sesDomains.some((d) => d.domain === campDomain && d.status === 'verified');
+      const c = await createCampaign({
+        app: campApp,
+        subject: campSubject.trim(),
+        body: campBodyKind === 'html' ? campBody : campToHtml(campBody.trim()),
+        recipients,
+        ...(useDomain ? { send_via: 'ses' as const, from_email: `${(campFromLocal.trim() || 'news')}@${campDomain}`, from_name: campFromName.trim() || undefined } : {}),
+      });
       if (!mountedRef.current) return;
       if (c.error || !c.id) {
         setCampState('err');
         setCampErr(
           c.error === 'no_recipients' ? `No one to send to${c.invalid ? ` — ${c.invalid} invalid` : ''}${c.skipped ? `, ${c.skipped} unsubscribed` : ''}.`
             : c.error === 'missing_content' ? 'Add a subject and a message.'
-              : 'Couldn’t create the campaign — try again.');
+              : c.error === 'domain_not_verified' ? 'That domain isn’t verified yet — check its DNS records under Sending domains.'
+                : c.error === 'bad_from' ? 'Enter a valid From address.'
+                  : 'Couldn’t create the campaign — try again.');
         return;
       }
       setCampProg({ sent: 0, total: c.queued ?? recipients.length, failed: 0 });
@@ -479,6 +500,30 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     } catch {
       if (mountedRef.current) { setCampState('err'); setCampErr('Something went wrong while sending — check your connection and try again.'); }
     }
+  };
+
+  // ---- Sending domains (SES) ----
+  const loadDomains = () => listSesDomains().then((d) => { if (mountedRef.current) setSesDomains(d); });
+  const copyText = (s: string) => { try { navigator.clipboard?.writeText(s); tap(); } catch { /* ignore */ } };
+  const addDomain = async () => {
+    const d = domNew.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (!d || domBusy) return;
+    tap(); setDomBusy(true); setDomErr('');
+    try {
+      const r = await addSesDomain(d);
+      if (!mountedRef.current) return;
+      if (r.error) setDomErr(r.error === 'bad_domain' ? 'That doesn’t look like a valid domain.' : 'Couldn’t add the domain — try again.');
+      else { setDomNew(''); setDomOpen(r.domain || d); await loadDomains(); }
+    } catch { if (mountedRef.current) setDomErr('Something went wrong — try again.'); }
+    finally { if (mountedRef.current) setDomBusy(false); }
+  };
+  const checkDomain = async (domain: string) => {
+    tap();
+    try { await checkSesDomain(domain); await loadDomains(); } catch { /* ignore */ }
+  };
+  const removeDomain = async (domain: string) => {
+    tap();
+    try { await removeSesDomain(domain); if (campDomain === domain) setCampDomain(''); await loadDomains(); } catch { /* ignore */ }
   };
 
   // ---- Templates ----
@@ -780,10 +825,30 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         ))}
                       </div>
                     )}
-                    {mailApiApps.length >= 2 && (
+                    {sesDomains.some((d) => d.status === 'verified') && (
+                      <div className="ag-from">
+                        <span className="ag-from-lbl">Send from</span>
+                        <select className="ag-field ag-from-sel" value={campDomain} onChange={(e) => { tap(); setCampDomain(e.target.value); if (campState === 'err') setCampState('idle'); }}>
+                          <option value="">My mailbox</option>
+                          {sesDomains.filter((d) => d.status === 'verified').map((d) => (
+                            <option key={d.domain} value={d.domain}>{d.domain} (my domain)</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {!campDomain && mailApiApps.length >= 2 && (
                       <div className="ag-seg">
                         <button className={campApp === 'gmail' ? 'on' : ''} onClick={() => { tap(); setCampApp('gmail'); }}>Gmail</button>
                         <button className={campApp === 'outlook' ? 'on' : ''} onClick={() => { tap(); setCampApp('outlook'); }}>Outlook</button>
+                      </div>
+                    )}
+                    {campDomain && (
+                      <div className="ag-from-fields">
+                        <input className="ag-field" placeholder="From name (e.g. Acme News)" value={campFromName} onChange={(e) => setCampFromName(e.target.value)} />
+                        <div className="ag-from-addr">
+                          <input className="ag-field" placeholder="news" value={campFromLocal} onChange={(e) => setCampFromLocal(e.target.value.replace(/[^a-zA-Z0-9._-]/g, ''))} />
+                          <span className="ag-from-at">@{campDomain}</span>
+                        </div>
                       </div>
                     )}
                     <input className="ag-field" placeholder="Subject" value={campSubject}
@@ -804,12 +869,60 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       {campState === 'sending' ? `Sending… ${campProg.sent}/${campProg.total}` : 'Send campaign'}
                     </button>
                     <button className="ag-send-btn ghost" disabled={campState === 'sending'} onClick={() => { tap(); setCampNew(false); }}>Cancel</button>
-                    <p className="ag-foot">Sends from your {campApp === 'outlook' ? 'Outlook' : 'Gmail'}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
+                    <p className="ag-foot">{campDomain ? `Sends from ${(campFromLocal.trim() || 'news')}@${campDomain} (your verified domain)` : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
                   </div>
                 )
+              ) : campView === 'domains' ? (
+                <div className="ag-compose">
+                  <div className="ag-dom-head">
+                    <button className="ag-back-link" onClick={() => { tap(); setCampView('list'); }}>‹ Campaigns</button>
+                    <span className="ag-dom-title">Sending domains</span>
+                  </div>
+                  <p className="ag-foot">Verify a domain you own to send campaigns from your own address (e.g. news@yourbrand.com). Add the records below at your DNS host, then tap Check — verification can take a few minutes to a few hours.</p>
+                  <div className="ag-dom-add">
+                    <input className="ag-field" placeholder="yourbrand.com" autoCapitalize="none" autoCorrect="off" value={domNew} onChange={(e) => { setDomNew(e.target.value); if (domErr) setDomErr(''); }} />
+                    <button className="ag-send-btn" disabled={domBusy || !domNew.trim()} onClick={addDomain}>{domBusy ? 'Adding…' : 'Add domain'}</button>
+                  </div>
+                  {domErr && <div className="ag-send-err">{domErr}</div>}
+                  {sesDomains.length === 0 ? (
+                    <div className="ag-empty" style={{ marginTop: 12 }}>No domains yet. Add one above to send from your own address.</div>
+                  ) : (
+                    <div className="ag-dom-list">
+                      {sesDomains.map((d) => (
+                        <div className="ag-dom" key={d.domain}>
+                          <button className="ag-dom-row" onClick={() => { tap(); setDomOpen(domOpen === d.domain ? null : d.domain); }}>
+                            <span className="ag-dom-name">{d.domain}</span>
+                            <span className={`ag-camp-pill is-${d.status === 'verified' ? 'sent' : d.status === 'failed' ? 'failed' : 'sending'}`}>{d.status === 'verified' ? '✓ verified' : d.status === 'failed' ? 'failed' : 'pending'}</span>
+                          </button>
+                          {domOpen === d.domain && (
+                            <div className="ag-dom-body">
+                              {d.status === 'verified'
+                                ? <p className="ag-foot">Verified — pick it under “Send from” when creating a campaign.</p>
+                                : <p className="ag-foot">Add these DNS records at your domain host, then tap Check verification.</p>}
+                              <div className="ag-dns">
+                                {(d.records || []).map((r, i) => (
+                                  <div className="ag-dns-rec" key={i}>
+                                    <div className="ag-dns-top"><span className="ag-dns-type">{r.type}</span>{r.note && <span className="ag-dns-note">{r.note}</span>}</div>
+                                    <div className="ag-dns-field"><label>Name / Host</label><div className="ag-dns-val"><code>{r.name}</code><button onClick={() => copyText(r.name)}>Copy</button></div></div>
+                                    <div className="ag-dns-field"><label>Value</label><div className="ag-dns-val"><code>{r.value}</code><button onClick={() => copyText(r.value)}>Copy</button></div></div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="ag-dom-actions">
+                                {d.status !== 'verified' && <button className="ag-send-btn" onClick={() => checkDomain(d.domain)}>Check verification</button>}
+                                <button className="ag-send-btn ghost" onClick={() => removeDomain(d.domain)}>Remove</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <>
                   <button className="ag-send-btn" onClick={openCampNew}>+ New email campaign</button>
+                  <button className="ag-send-btn ghost ag-dom-link" onClick={() => { tap(); setCampView('domains'); loadDomains(); }}>Sending domains{sesDomains.some((d) => d.status === 'verified') ? ` · ${sesDomains.filter((d) => d.status === 'verified').length} verified` : sesDomains.length ? ' · setup' : ''}</button>
                   {campList.length === 0 ? (
                     <div className="ag-empty" style={{ marginTop: 12 }}>No campaigns yet. Write once and send to your whole list — straight from your mailbox.</div>
                   ) : (
