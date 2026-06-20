@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, listCampaigns, createCampaign, sendCampaignBatch, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -145,6 +145,16 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [smsBody, setSmsBody] = useState('');
   const [smsState, setSmsState] = useState<SendState>('idle');
   const [smsErr, setSmsErr] = useState('');
+  // Email campaign builder
+  const [campNew, setCampNew] = useState(false);
+  const [campApp, setCampApp] = useState<'gmail' | 'outlook'>('gmail');
+  const [campSubject, setCampSubject] = useState('');
+  const [campBody, setCampBody] = useState('');
+  const [campRecips, setCampRecips] = useState('');
+  const [campState, setCampState] = useState<'idle' | 'sending' | 'done' | 'err'>('idle');
+  const [campErr, setCampErr] = useState('');
+  const [campProg, setCampProg] = useState({ sent: 0, total: 0, failed: 0 });
+  const [campList, setCampList] = useState<Campaign[]>([]);
 
   const tokensRef = useRef<(string | undefined)[]>([undefined]);
   const pullStart = useRef<number | null>(null);
@@ -289,6 +299,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     }
   }, [agent, commsApp, emailTab, tgChat, combinedInbox, refreshInbox, loadMerged, loadContacts, loadTgChats, loadTgMsgs]);
 
+  // Load past campaigns when the Campaigns tab opens (and after a send).
+  useEffect(() => {
+    if (agent === 'email' && commsApp === null && sendraTab === 'campaigns' && !campNew) {
+      listCampaigns().then((c) => { if (mountedRef.current) setCampList(c); });
+    }
+  }, [agent, commsApp, sendraTab, campNew]);
+
   // Inbox opened straight from the Sendra home (top-level). Lands on the mail
   // inbox of the first connected mailbox — which is the merged feed when 2+ are
   // connected. `inboxHome` makes Back return to the home, not the app grid.
@@ -376,6 +393,49 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     sendSms(smsTo.trim(), smsBody.trim())
       .then(() => { if (mountedRef.current) { setSmsState('sent'); setSmsBody(''); } })
       .catch((e) => { if (mountedRef.current) { setSmsState('err'); setSmsErr(smsFriendly(String((e as Error)?.message || ''))); } });
+  };
+
+  // ---- Email campaign builder ----
+  // Plain text -> simple HTML (escape + line breaks); {{name}} survives for the
+  // backend to personalize. Recipients: one per line/comma, "email" or "Name <email>".
+  const campToHtml = (t: string) => t.split('\n').map((l) => l.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('<br>');
+  const parseRecips = (t: string) => t.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean).map((tok) => {
+    const m = tok.match(/^(.*?)\s*<([^>]+)>$/);
+    return m ? { email: m[2].trim(), name: m[1].trim() || undefined } : { email: tok };
+  });
+  const openCampNew = () => {
+    tap(); setCampNew(true); setCampState('idle'); setCampErr('');
+    setCampSubject(''); setCampBody(''); setCampRecips(''); setCampProg({ sent: 0, total: 0, failed: 0 });
+    setCampApp(connApps.includes('gmail') ? 'gmail' : 'outlook');
+  };
+  const runCampaign = async () => {
+    const recipients = parseRecips(campRecips);
+    if (!campSubject.trim() || !campBody.trim() || !recipients.length || campState === 'sending') return;
+    tap(); setCampState('sending'); setCampErr(''); setCampProg({ sent: 0, total: recipients.length, failed: 0 });
+    try {
+      const c = await createCampaign({ app: campApp, subject: campSubject.trim(), body: campToHtml(campBody.trim()), recipients });
+      if (!mountedRef.current) return;
+      if (c.error || !c.id) {
+        setCampState('err');
+        setCampErr(
+          c.error === 'no_recipients' ? `No one to send to${c.invalid ? ` — ${c.invalid} invalid` : ''}${c.skipped ? `, ${c.skipped} unsubscribed` : ''}.`
+            : c.error === 'missing_content' ? 'Add a subject and a message.'
+              : 'Couldn’t create the campaign — try again.');
+        return;
+      }
+      setCampProg({ sent: 0, total: c.queued ?? recipients.length, failed: 0 });
+      let done = false;
+      while (!done) {
+        const r = await sendCampaignBatch(c.id);
+        if (!mountedRef.current) return;
+        setCampProg((p) => ({ total: p.total, sent: p.sent + r.sent, failed: p.failed + r.failed }));
+        done = r.done;
+      }
+      setCampState('done');
+      listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); });
+    } catch {
+      if (mountedRef.current) { setCampState('err'); setCampErr('Something went wrong while sending — check your connection and try again.'); }
+    }
   };
 
   const inMailInbox = !!commsApp && commsApp !== 'telegram' && emailTab === 'inbox' && !reading;
@@ -526,22 +586,63 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <div className="ag-stage">
             {note && <div className="ag-note">{note}</div>}
             {sendraTab === 'campaigns' ? (
-              <>
-                <button className="ag-send-btn" onClick={() => { tap(); setNote('Campaign builder is next — pick Email or SMS, choose a list, write once, and Sendra sends to everyone.'); }}>+ New campaign</button>
-                <div className="ag-grid" style={{ marginTop: 12 }}>
-                  <button className="ag-act" onClick={() => { tap(); setNote('Email campaigns: small sends go through your mailbox now; bulk uses the built-in sender (P2).'); }}>
-                    <span className="ag-act-ic"><IconCompose size={20} /></span>
-                    <span className="ag-act-label">Email campaign</span>
-                    <span className="ag-act-sub">To a list</span>
-                  </button>
-                  <button className="ag-act" onClick={() => { tap(); setNote('SMS campaigns use the built-in SMS sender (Twilio + 10DLC) — coming in P3.'); }}>
-                    <span className="ag-act-ic"><IconWaveform size={20} /></span>
-                    <span className="ag-act-label">SMS campaign</span>
-                    <span className="ag-act-sub">To a list</span>
-                  </button>
-                </div>
-                <div className="ag-empty" style={{ marginTop: 12 }}>No campaigns yet.</div>
-              </>
+              campNew ? (
+                campState === 'done' ? (
+                  <div className="ag-sent">
+                    <span className="ag-sent-ic"><IconCheck size={26} /></span>
+                    <div className="ag-sent-title">Campaign sent</div>
+                    <div className="ag-sent-sub">{campProg.sent} sent{campProg.failed ? `, ${campProg.failed} failed` : ''}.</div>
+                    <div className="ag-sent-actions">
+                      <button className="ag-send-btn ghost" onClick={openCampNew}>New campaign</button>
+                      <button className="ag-send-btn" onClick={() => { tap(); setCampNew(false); setCampState('idle'); }}>Done</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="ag-compose">
+                    {mailApiApps.length >= 2 && (
+                      <div className="ag-seg">
+                        <button className={campApp === 'gmail' ? 'on' : ''} onClick={() => { tap(); setCampApp('gmail'); }}>Gmail</button>
+                        <button className={campApp === 'outlook' ? 'on' : ''} onClick={() => { tap(); setCampApp('outlook'); }}>Outlook</button>
+                      </div>
+                    )}
+                    <input className="ag-field" placeholder="Subject" value={campSubject}
+                      onChange={(e) => { setCampSubject(e.target.value); if (campState === 'err') setCampState('idle'); }} />
+                    <textarea className="ag-field ag-body" placeholder="Write your message… use {{name}} to personalize each email" value={campBody}
+                      onChange={(e) => { setCampBody(e.target.value); if (campState === 'err') setCampState('idle'); }} />
+                    <textarea className="ag-field ag-camp-recips" placeholder={'Recipients — one per line:\njane@example.com\nJohn Smith <john@example.com>'} value={campRecips}
+                      onChange={(e) => { setCampRecips(e.target.value); if (campState === 'err') setCampState('idle'); }} />
+                    {campState === 'err' && <div className="ag-send-err">{campErr}</div>}
+                    <button className="ag-send-btn" disabled={campState === 'sending' || !campSubject.trim() || !campBody.trim() || !campRecips.trim()} onClick={runCampaign}>
+                      {campState === 'sending' ? `Sending… ${campProg.sent}/${campProg.total}` : 'Send campaign'}
+                    </button>
+                    <button className="ag-send-btn ghost" disabled={campState === 'sending'} onClick={() => { tap(); setCampNew(false); }}>Cancel</button>
+                    <p className="ag-foot">Sends from your {campApp === 'outlook' ? 'Outlook' : 'Gmail'}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
+                  </div>
+                )
+              ) : (
+                <>
+                  <button className="ag-send-btn" onClick={openCampNew}>+ New email campaign</button>
+                  {campList.length === 0 ? (
+                    <div className="ag-empty" style={{ marginTop: 12 }}>No campaigns yet. Write once and send to your whole list — straight from your mailbox.</div>
+                  ) : (
+                    <div className="ag-camp-list">
+                      {campList.map((c) => (
+                        <div className="ag-camp" key={c.id}>
+                          <div className="ag-camp-main">
+                            <div className="ag-camp-name">{c.name || c.subject || 'Campaign'}</div>
+                            <div className="ag-camp-sub">{c.subject}</div>
+                          </div>
+                          <div className="ag-camp-meta">
+                            <span className={`ag-camp-pill is-${c.status}`}>{c.status}</span>
+                            <span className="ag-camp-count">{c.sent}/{c.total}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="ag-foot">SMS campaigns (Twilio) are coming next.</p>
+                </>
+              )
             ) : sendraTab === 'templates' ? (
               <>
                 <button className="ag-send-btn" onClick={() => { tap(); setNote('Templates are next — save a reusable email or SMS, then drop it into any campaign.'); }}>+ New template</button>

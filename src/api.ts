@@ -162,6 +162,27 @@ export async function sendSms(to: string, body: string): Promise<{ sid?: string;
   return { sid: d.sid as string | undefined, remaining: typeof d.remaining === 'number' ? d.remaining : undefined };
 }
 
+// ---- Email campaigns (sent through the user's mailbox, via the `campaigns` fn) ----
+// create -> then call sendCampaignBatch(id) repeatedly until { done:true }. App
+// outcomes (no_recipients / missing_content) come back as 200 { error }.
+export interface Campaign { id: string; name: string; subject: string; app: string; status: string; total: number; sent: number; failed: number; created_at: string }
+export async function listCampaigns(): Promise<Campaign[]> {
+  const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'list' } });
+  if (error) return [];
+  const c = (data as { campaigns?: Campaign[] } | null)?.campaigns;
+  return Array.isArray(c) ? c : [];
+}
+export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[] }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'create', ...p } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { id?: string; queued?: number; skipped?: number; invalid?: number; error?: string };
+}
+export async function sendCampaignBatch(id: string): Promise<{ sent: number; failed: number; remaining: number; done: boolean; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'send', id } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { sent: number; failed: number; remaining: number; done: boolean; error?: string };
+}
+
 // Fetch one attachment's bytes (base64) or hosted URL — for inline images,
 // preview, and download. `app` routes to the right mailbox provider.
 export async function fetchAttachment(mid: string, aid: string, name = 'file', app?: string): Promise<{ b64?: string; url?: string }> {
