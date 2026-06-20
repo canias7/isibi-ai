@@ -48,10 +48,10 @@ export async function fetchEmailHtml(
 // renders these with <EmailList>; same card shape the chat pipeline produces.
 // Page through with the returned nextPageToken (Gmail page tokens).
 const INBOX_API = CONNECT_API.replace(/\/gmail-oauth$/, '/inbox');
-export async function fetchInbox(max = 20, pageToken?: string): Promise<{ items: EmailItem[]; nextPageToken: string | null }> {
+export async function fetchInbox(max = 20, pageToken?: string, app = 'gmail'): Promise<{ items: EmailItem[]; nextPageToken: string | null }> {
   const token = await authToken();
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  const q = `max=${max}&tz=${encodeURIComponent(tz)}${pageToken ? `&page_token=${encodeURIComponent(pageToken)}` : ''}`;
+  const q = `max=${max}&tz=${encodeURIComponent(tz)}&app=${encodeURIComponent(app)}${pageToken ? `&page_token=${encodeURIComponent(pageToken)}` : ''}`;
   const res = await fetch(`${INBOX_API}?${q}`, { headers: { authorization: `Bearer ${token}` } });
   if (!res.ok) throw new Error(`Inbox fetch failed: ${res.status}`);
   const j = await res.json();
@@ -60,9 +60,9 @@ export async function fetchInbox(max = 20, pageToken?: string): Promise<{ items:
 
 // Fetch the user's contacts directly (no chat turn) — rendered with <ContactsList>.
 const CONTACTS_API = CONNECT_API.replace(/\/gmail-oauth$/, '/contacts');
-export async function fetchContacts(): Promise<ContactItem[]> {
+export async function fetchContacts(app = 'gmail'): Promise<ContactItem[]> {
   const token = await authToken();
-  const res = await fetch(CONTACTS_API, { headers: { authorization: `Bearer ${token}` } });
+  const res = await fetch(`${CONTACTS_API}?app=${encodeURIComponent(app)}`, { headers: { authorization: `Bearer ${token}` } });
   if (!res.ok) throw new Error(`Contacts fetch failed: ${res.status}`);
   const j = await res.json();
   return Array.isArray(j.items) ? j.items : [];
@@ -71,7 +71,7 @@ export async function fetchContacts(): Promise<ContactItem[]> {
 // Send an email (Composio GMAIL_SEND_EMAIL, server-verified). Returns on success,
 // throws on failure so the composer can show an error.
 const SEND_API = CONNECT_API.replace(/\/gmail-oauth$/, '/gmail-send');
-export async function sendEmail(msg: { to: string; subject: string; body: string; threadId?: string; cc?: string[]; bcc?: string[] }): Promise<void> {
+export async function sendEmail(msg: { to: string; subject: string; body: string; threadId?: string; cc?: string[]; bcc?: string[]; app?: string }): Promise<void> {
   const token = await authToken();
   const res = await fetch(SEND_API, {
     method: 'POST',
@@ -80,6 +80,42 @@ export async function sendEmail(msg: { to: string; subject: string; body: string
   });
   const j = await res.json().catch(() => ({}));
   if (!res.ok || !j.ok) throw new Error(j.error || `Send failed: ${res.status}`);
+}
+
+// ---- Telegram (our OWN MTProto backend, via the `telegram` Edge Function) ----
+// Mirrors the connectors-page tgCall: the MTProto library is heavy to cold-start
+// (can 546 on the first hit after idle), so retry ONCE on an infra-level invoke
+// error — but never on an app-level {error}, which surfaces immediately.
+export interface TgChat { id: number | string; title: string; username?: string | null; kind?: string | null }
+export interface TgMessage { id: number; text: string; date: number | null; outgoing: boolean; from?: string | null }
+
+async function tgInvoke(action: string, extra: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { data, error } = await supabase.functions.invoke('telegram', { body: { action, ...extra } });
+    if (error) {
+      if (attempt === 0) { await new Promise((r) => setTimeout(r, 1500)); continue; }
+      throw new Error(error.message || 'Request failed');
+    }
+    const d = (data || {}) as Record<string, unknown>;
+    if (d.error) throw new Error(String(d.error));
+    return d;
+  }
+  throw new Error('Request failed');
+}
+export async function tgStatus(): Promise<{ connected: boolean; phone?: string | null }> {
+  const d = await tgInvoke('status');
+  return { connected: !!d.connected, phone: (d.phone as string) ?? null };
+}
+export async function tgChats(limit = 30): Promise<TgChat[]> {
+  const d = await tgInvoke('chats', { limit });
+  return Array.isArray(d.chats) ? (d.chats as TgChat[]) : [];
+}
+export async function tgMessages(chatId: number | string, limit = 40): Promise<TgMessage[]> {
+  const d = await tgInvoke('messages', { chatId, limit });
+  return Array.isArray(d.messages) ? (d.messages as TgMessage[]) : [];
+}
+export async function tgSend(chatId: number | string, text: string): Promise<void> {
+  await tgInvoke('send', { chatId, text });
 }
 
 // Fetch one attachment's bytes (base64) or hosted URL — for inline images,

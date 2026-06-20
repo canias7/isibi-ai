@@ -94,8 +94,62 @@ Deno.serve(async (req: Request) => {
   // big max_results is slow and returns nothing. Cap at 30.
   const max = Math.min(Math.max(parseInt(url.searchParams.get("max") ?? "20", 10) || 20, 1), 30);
   const pageToken = url.searchParams.get("page_token") || "";
+  const app = (url.searchParams.get("app") || "gmail").toLowerCase();
 
   try {
+    const dstr = (d: Date, o: Intl.DateTimeFormatOptions) => {
+      try { return new Intl.DateTimeFormat("en-US", { timeZone: tz, ...o }).format(d); } catch { return ""; }
+    };
+    const today = dstr(new Date(), { dateStyle: "short" });
+    const fmtTime = (ms: number): string => {
+      const d = new Date(ms);
+      if (!ms || isNaN(d.getTime())) return "";
+      return dstr(d, { dateStyle: "short" }) === today
+        ? dstr(d, { hour: "numeric", minute: "2-digit" })
+        : dstr(d, { month: "short", day: "numeric" });
+    };
+
+    // ---- Outlook (Microsoft 365) — OUTLOOK_OUTLOOK_LIST_MESSAGES, skip/top paging ----
+    // (Composio execute slugs for Outlook are double-prefixed; the Graph response
+    // carries `value[]` with from.emailAddress.{name,address}, bodyPreview, etc.)
+    if (app === "outlook" || app === "m365") {
+      const skip = parseInt(pageToken || "0", 10) || 0;
+      const res = await fetch("https://backend.composio.dev/api/v3/tools/execute/OUTLOOK_OUTLOOK_LIST_MESSAGES", {
+        method: "POST",
+        headers: { "x-api-key": API_KEY, "content-type": "application/json" },
+        body: JSON.stringify({ user_id: uid, arguments: { top: max, skip, folder: "inbox" } }),
+      });
+      const body = await res.json().catch(() => ({}));
+      const data = ((body as Record<string, unknown>)?.data ?? body) as Record<string, unknown>;
+      const inner = (data?.response_data ?? data?.data ?? data) as Record<string, unknown>;
+      const msgs = ((data?.value ?? data?.messages ?? inner?.value ?? inner?.messages) as Record<string, unknown>[]) ?? [];
+      const items = (Array.isArray(msgs) ? msgs : []).map((m) => {
+        const fe = ((m.from as Record<string, unknown>)?.emailAddress
+          ?? (m.sender as Record<string, unknown>)?.emailAddress ?? {}) as Record<string, unknown>;
+        const from = String(fe.name ?? "");
+        const email = String(fe.address ?? "");
+        const ms = Date.parse(String(m.receivedDateTime ?? m.sentDateTime ?? ""));
+        const snippet = stripHtml(String(m.bodyPreview ?? (m.body as Record<string, unknown>)?.content ?? ""))
+          .split(" ").slice(0, 14).join(" ");
+        return {
+          from: from || email || "Unknown",
+          email,
+          subject: String(m.subject ?? "(no subject)"),
+          snippet,
+          time: Number.isFinite(ms) ? fmtTime(ms) : "",
+          unread: m.isRead === false,
+          draft: false,
+          id: String(m.id ?? ""),
+          threadId: String(m.id ?? ""), // Outlook replies key off the MESSAGE id (OUTLOOK_REPLY_EMAIL)
+          app: "outlook",
+        };
+      });
+      // Outlook pages by offset; hand the next skip back as an opaque page token.
+      const nextPageToken = items.length >= max ? String(skip + max) : null;
+      return json(req, { items, nextPageToken });
+    }
+
+    // ---- Gmail — GMAIL_FETCH_EMAILS, page-token paging ----
     const args: Record<string, unknown> = { max_results: max };
     if (pageToken) args.page_token = pageToken;
     const res = await fetch("https://backend.composio.dev/api/v3/tools/execute/GMAIL_FETCH_EMAILS", {
@@ -109,10 +163,6 @@ Deno.serve(async (req: Request) => {
     const msgs: Record<string, unknown>[] =
       ((data?.messages ?? inner?.messages) as Record<string, unknown>[]) ?? [];
     const nextPageToken = pickToken(data) ?? pickToken(inner);
-    const dstr = (d: Date, o: Intl.DateTimeFormatOptions) => {
-      try { return new Intl.DateTimeFormat("en-US", { timeZone: tz, ...o }).format(d); } catch { return ""; }
-    };
-    const today = dstr(new Date(), { dateStyle: "short" });
     // Newest first — Composio's order isn't reliably by date, so sort explicitly.
     const sorted = (Array.isArray(msgs) ? msgs : []).slice().sort((a, b) => tsOf(b) - tsOf(a));
     const items = sorted.map((m) => {
@@ -121,13 +171,6 @@ Deno.serve(async (req: Request) => {
       const from = mt ? mt[1].trim() : sender;
       const email = mt ? mt[2].trim() : "";
       const labels: string[] = (m.labelIds as string[]) ?? [];
-      let time = "";
-      const d = new Date(tsOf(m));
-      if (tsOf(m) && !isNaN(d.getTime())) {
-        time = dstr(d, { dateStyle: "short" }) === today
-          ? dstr(d, { hour: "numeric", minute: "2-digit" })
-          : dstr(d, { month: "short", day: "numeric" });
-      }
       const snippet = stripHtml(String(m.messageText ?? (m.preview as Record<string, unknown>)?.body ?? ""))
         .split(" ").slice(0, 14).join(" ");
       return {
@@ -135,7 +178,7 @@ Deno.serve(async (req: Request) => {
         email,
         subject: String(m.subject ?? "(no subject)"),
         snippet,
-        time,
+        time: fmtTime(tsOf(m)),
         unread: Array.isArray(labels) && labels.includes("UNREAD"),
         draft: Array.isArray(labels) && labels.includes("DRAFT"),
         id: String(m.messageId ?? m.id ?? ""),

@@ -5,23 +5,36 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, sendEmail, fetchContacts } from './api';
+import { fetchInbox, sendEmail, fetchContacts, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, type EmailItem, type ContactItem } from './EmailList';
+import { BrandLogo } from './brandLogos';
+import { SENDRA_LOGO } from './sendraLogo';
 
-// Each agent is a *role* that spans apps (not an app). Only the Email agent is
-// live today; the rest are shown as "soon" so the roadmap is visible without
-// faking capability. Tapping a live agent opens its full-screen workspace.
+// Each agent is a *role* that spans apps (not an app). Only Sendra is live today;
+// the rest are shown as "soon" so the roadmap is visible without faking capability.
+// Tapping Sendra opens a swipeable deck of the user's connected communication apps
+// (Gmail, Outlook, Telegram); picking one opens its workspace.
 type AgentId = 'email';
 type IconCmp = typeof IconCompose;
 type AgentDef = { id: string; name: string; desc: string; icon: IconCmp; live: boolean };
 
 const AGENTS: AgentDef[] = [
-  { id: 'email', name: 'Sendra', desc: 'Your email agent — inbox, replies, contacts & sending', icon: IconCompose, live: true },
+  { id: 'email', name: 'Sendra', desc: 'Your comms agent — Gmail, Outlook & Telegram in one place', icon: IconCompose, live: true },
   { id: 'books', name: 'Bookkeeper', desc: 'Invoices, payments & reconciliation', icon: IconBank, live: false },
   { id: 'sched', name: 'Scheduler', desc: 'Meetings, reminders & calendar triage', icon: IconClock, live: false },
 ];
 
-// The Email agent's top cards. Inbox / New email / Contacts are live; the rest are stubs.
+// The communication apps Sendra can manage. Only the CONNECTED ones appear in the
+// deck. `mail` apps share the email workspace (inbox/compose/contacts); telegram
+// has its own chat workspace.
+type CommsId = 'gmail' | 'm365' | 'telegram';
+const COMMS: { id: CommsId; name: string; tagline: string; mail: boolean }[] = [
+  { id: 'gmail', name: 'Gmail', tagline: 'Inbox, replies & contacts', mail: true },
+  { id: 'm365', name: 'Outlook', tagline: 'Mail, replies & contacts', mail: true },
+  { id: 'telegram', name: 'Telegram', tagline: 'Chats & quick replies', mail: false },
+];
+
+// The mail workspace's top cards. Inbox / New email / Contacts are live; rest are stubs.
 const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[] = [
   { id: 'inbox', label: 'Inbox', sub: 'View mail', icon: IconInbox },
   { id: 'new', label: 'New email', sub: 'Single send', icon: IconCompose },
@@ -34,9 +47,38 @@ const PAGE_SIZE = 20;       // emails per page (kept small — GMAIL_FETCH_EMAIL
 const PULL_THRESHOLD = 64;  // px of pull-down that triggers a refresh
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Session caches (in-memory only) so re-opening a view is instant.
-let inboxCache: EmailItem[] | null = null;
-let contactsCache: ContactItem[] | null = null;
+// Session caches (in-memory only), keyed by app so re-opening a view is instant
+// and Gmail/Outlook don't share each other's mail.
+const inboxCache: Record<string, EmailItem[]> = {};
+const contactsCache: Record<string, ContactItem[]> = {};
+let tgChatsCache: TgChat[] | null = null;
+
+// Is an app connected? Mail apps come from the chat backend's connected list
+// (passed as connApps); Telegram has its own backend, seeded here from the
+// connectors-screen status cache and refreshed live.
+function cachedConnected(id: string): boolean {
+  try {
+    const a = JSON.parse(localStorage.getItem('gf_connstatus') || '[]');
+    return Array.isArray(a) && a.some((x) => x?.id === id);
+  } catch { return false; }
+}
+
+const fmtTime = (ms: number | null): string => {
+  if (!ms) return '';
+  try { return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); } catch { return ''; }
+};
+
+// Sendra constellation: a central hub with the connected comms apps as nodes
+// around it. Positions are % within the stage (polar around the hub). Small-N
+// angles are hand-picked so 1-3 apps sit nicely; 4+ spread evenly on the circle.
+const HUB = { x: 50, y: 42 };
+const TREE_RX = 32, TREE_RY = 26;
+const NODE_ANGLES: Record<number, number[]> = { 1: [90], 2: [145, 35], 3: [90, 205, 335] };
+function nodePos(i: number, n: number): { x: number; y: number } {
+  const arr = NODE_ANGLES[n] ?? Array.from({ length: n }, (_, k) => -90 + (k * 360) / n);
+  const a = ((arr[i] ?? 0) * Math.PI) / 180;
+  return { x: HUB.x + TREE_RX * Math.cos(a), y: HUB.y + TREE_RY * Math.sin(a) };
+}
 
 type EmailTab = 'home' | 'inbox' | 'compose' | 'contacts';
 type SendState = 'idle' | 'confirm' | 'sending' | 'sent' | 'err';
@@ -44,70 +86,149 @@ type Loadable = 'idle' | 'loading' | 'ok' | 'err';
 
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [agent, setAgent] = useState<AgentId | null>(null);
+  const [commsApp, setCommsApp] = useState<CommsId | null>(null); // null while Sendra shows its home / the app constellation
+  const [sendraTab, setSendraTab] = useState<'home' | 'apps'>('home'); // Sendra landing: 'home' menu -> 'apps' constellation
+  // Mail workspace
   const [emailTab, setEmailTab] = useState<EmailTab>('home');
-  const [inbox, setInbox] = useState<EmailItem[]>(() => inboxCache ?? []);
-  const [inboxState, setInboxState] = useState<Loadable>(inboxCache ? 'ok' : 'idle');
+  const [inbox, setInbox] = useState<EmailItem[]>([]);
+  const [inboxState, setInboxState] = useState<Loadable>('idle');
   const [refreshing, setRefreshing] = useState(false);
   const [pageIdx, setPageIdx] = useState(0);
   const [nextTok, setNextTok] = useState<string | null>(null);
   const [reading, setReading] = useState<EmailItem | null>(null);
   const [pull, setPull] = useState(0);
-  const [contacts, setContacts] = useState<ContactItem[]>(() => contactsCache ?? []);
-  const [contactsState, setContactsState] = useState<Loadable>(contactsCache ? 'ok' : 'idle');
+  const [contacts, setContacts] = useState<ContactItem[]>([]);
+  const [contactsState, setContactsState] = useState<Loadable>('idle');
   // Compose / reply state
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
   const [bodyText, setBodyText] = useState('');
   const [replyThreadId, setReplyThreadId] = useState<string | null>(null);
   const [sendState, setSendState] = useState<SendState>('idle');
+  // Telegram workspace
+  const [tgConnected, setTgConnected] = useState<boolean>(() => cachedConnected('telegram'));
+  const [tgList, setTgList] = useState<TgChat[]>(() => tgChatsCache ?? []);
+  const [tgListState, setTgListState] = useState<Loadable>(tgChatsCache ? 'ok' : 'idle');
+  const [tgChat, setTgChat] = useState<TgChat | null>(null);
+  const [tgMsgs, setTgMsgs] = useState<TgMessage[]>([]);
+  const [tgMsgsState, setTgMsgsState] = useState<Loadable>('idle');
+  const [tgReply, setTgReply] = useState('');
+  const [tgSending, setTgSending] = useState(false);
+
   const tokensRef = useRef<(string | undefined)[]>([undefined]);
   const pullStart = useRef<number | null>(null);
   const inboxScrollRef = useRef<HTMLDivElement>(null);
+  const tgMsgsRef = useRef<HTMLDivElement>(null);
   const trapRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
-  // Back steps one level: reader -> sub-view -> the agent's cards -> list -> close.
+  // Which provider the mail workspace is talking to (Composio app id -> our param).
+  const mailApp = commsApp === 'm365' ? 'outlook' : 'gmail';
+  const mailConnected = commsApp === 'm365'
+    ? connApps.includes('m365') || connApps.includes('outlook')
+    : connApps.includes('gmail');
+
+  // The connected comms apps, in COMMS order — the deck.
+  const isCommConnected = useCallback((id: CommsId): boolean => {
+    if (id === 'telegram') return tgConnected;
+    if (id === 'm365') return connApps.includes('m365') || connApps.includes('outlook');
+    return connApps.includes(id);
+  }, [connApps, tgConnected]);
+  const deckApps = COMMS.filter((c) => isCommConnected(c.id));
+
+  // Back steps one level: reader -> sub-view -> workspace -> deck -> list -> close.
   const back = () => {
     tap();
     if (reading) setReading(null);
+    else if (tgChat) setTgChat(null);
     else if (sendState === 'confirm') setSendState('idle');
-    else if (emailTab !== 'home') setEmailTab('home');
+    else if (commsApp && commsApp !== 'telegram' && emailTab !== 'home') setEmailTab('home');
+    else if (commsApp) setCommsApp(null);
+    else if (sendraTab === 'apps') setSendraTab('home');
     else if (agent) setAgent(null);
     else onClose();
   };
   useFocusTrap(true, trapRef, back);
 
-  const hasMail = connApps.includes('gmail') || connApps.includes('outlook');
-
+  // ---- mail workspace loaders (provider-aware) ----
   const loadPage = useCallback((idx: number) => {
     setRefreshing(true);
-    if (idx === 0 && !inboxCache) setInboxState('loading');
-    fetchInbox(PAGE_SIZE, tokensRef.current[idx])
+    if (idx === 0 && !inboxCache[mailApp]) setInboxState('loading');
+    fetchInbox(PAGE_SIZE, tokensRef.current[idx], mailApp)
       .then(({ items, nextPageToken }) => {
         if (!mountedRef.current) return;
         setInbox(items); setInboxState('ok'); setPageIdx(idx); setNextTok(nextPageToken);
         if (nextPageToken && tokensRef.current.length === idx + 1) tokensRef.current.push(nextPageToken);
-        if (idx === 0) inboxCache = items;
+        if (idx === 0) inboxCache[mailApp] = items;
         inboxScrollRef.current?.scrollTo({ top: 0 });
       })
-      .catch(() => { if (mountedRef.current && idx === 0 && !inboxCache) setInboxState('err'); })
+      .catch(() => { if (mountedRef.current && idx === 0 && !inboxCache[mailApp]) setInboxState('err'); })
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
-  }, []);
+  }, [mailApp]);
   const refreshInbox = useCallback(() => { tokensRef.current = [undefined]; loadPage(0); }, [loadPage]);
 
   const loadContacts = useCallback(() => {
-    if (!contactsCache) setContactsState('loading');
-    fetchContacts()
-      .then((items) => { if (mountedRef.current) { contactsCache = items; setContacts(items); setContactsState('ok'); } })
-      .catch(() => { if (mountedRef.current && !contactsCache) setContactsState('err'); });
+    if (!contactsCache[mailApp]) setContactsState('loading');
+    fetchContacts(mailApp)
+      .then((items) => { if (mountedRef.current) { contactsCache[mailApp] = items; setContacts(items); setContactsState('ok'); } })
+      .catch(() => { if (mountedRef.current && !contactsCache[mailApp]) setContactsState('err'); });
+  }, [mailApp]);
+
+  // ---- telegram workspace loaders ----
+  const loadTgChats = useCallback(() => {
+    if (!tgChatsCache) setTgListState('loading');
+    tgChats(30)
+      .then((items) => { if (mountedRef.current) { tgChatsCache = items; setTgList(items); setTgListState('ok'); } })
+      .catch(() => { if (mountedRef.current && !tgChatsCache) setTgListState('err'); });
+  }, []);
+  const loadTgMsgs = useCallback((chatId: number | string) => {
+    setTgMsgsState('loading');
+    tgMessages(chatId, 40)
+      .then((items) => {
+        if (!mountedRef.current) return;
+        setTgMsgs(items); setTgMsgsState('ok');
+        requestAnimationFrame(() => tgMsgsRef.current?.scrollTo({ top: tgMsgsRef.current.scrollHeight }));
+      })
+      .catch(() => { if (mountedRef.current) setTgMsgsState('err'); });
   }, []);
 
+  // Live-check Telegram's connection when Sendra opens (seeded instantly from cache).
   useEffect(() => {
-    if (agent !== 'email' || !hasMail) return;
-    if (emailTab === 'inbox') refreshInbox();
-    else if (emailTab === 'contacts') loadContacts();
-  }, [agent, emailTab, hasMail, refreshInbox, loadContacts]);
+    if (agent !== 'email') return;
+    tgStatus().then((s) => { if (mountedRef.current) setTgConnected(s.connected); }).catch(() => {});
+  }, [agent]);
+
+  // Load the active workspace view.
+  useEffect(() => {
+    if (agent !== 'email' || commsApp === null) return;
+    if (commsApp === 'telegram') {
+      if (tgChat) loadTgMsgs(tgChat.id); else loadTgChats();
+    } else if (emailTab === 'inbox') {
+      refreshInbox();
+    } else if (emailTab === 'contacts') {
+      loadContacts();
+    }
+  }, [agent, commsApp, emailTab, tgChat, refreshInbox, loadContacts, loadTgChats, loadTgMsgs]);
+
+  const openComms = (id: CommsId) => {
+    tap();
+    setCommsApp(id);
+    if (id === 'telegram') {
+      setTgChat(null);
+      setTgList(tgChatsCache ?? []);
+      setTgListState(tgChatsCache ? 'ok' : 'idle');
+    } else {
+      const a = id === 'm365' ? 'outlook' : 'gmail';
+      setEmailTab('home');
+      setInbox(inboxCache[a] ?? []);
+      setInboxState(inboxCache[a] ? 'ok' : 'idle');
+      setContacts(contactsCache[a] ?? []);
+      setContactsState(contactsCache[a] ? 'ok' : 'idle');
+      tokensRef.current = [undefined];
+      setPageIdx(0);
+    }
+  };
 
   const onPullStart = (e: React.TouchEvent<HTMLDivElement>) => {
     pullStart.current = e.currentTarget.scrollTop <= 0 ? e.touches[0].clientY : null;
@@ -118,7 +239,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setPull(dy > 0 ? Math.min(dy * 0.5, 90) : 0);
   };
   const onPullEnd = () => {
-    if (pullStart.current !== null && pull >= PULL_THRESHOLD && hasMail && !refreshing) refreshInbox();
+    if (pullStart.current !== null && pull >= PULL_THRESHOLD && mailConnected && !refreshing) refreshInbox();
     pullStart.current = null;
     setPull(0);
   };
@@ -141,12 +262,34 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const doSend = () => {
     tap();
     setSendState('sending');
-    sendEmail({ to: to.trim(), subject: subject.trim(), body: bodyText, threadId: replyThreadId || undefined })
+    sendEmail({ to: to.trim(), subject: subject.trim(), body: bodyText, threadId: replyThreadId || undefined, app: mailApp })
       .then(() => { if (mountedRef.current) setSendState('sent'); })
       .catch(() => { if (mountedRef.current) setSendState('err'); });
   };
 
-  const inInbox = agent === 'email' && emailTab === 'inbox' && !reading;
+  // Telegram send
+  const doTgSend = () => {
+    if (!tgChat || !tgReply.trim() || tgSending) return;
+    tap();
+    const text = tgReply.trim();
+    setTgSending(true);
+    tgSend(tgChat.id, text)
+      .then(() => {
+        if (!mountedRef.current) return;
+        setTgReply('');
+        setTgMsgs((m) => [...m, { id: Date.now(), text, date: Date.now(), outgoing: true, from: 'You' }]);
+        requestAnimationFrame(() => tgMsgsRef.current?.scrollTo({ top: tgMsgsRef.current.scrollHeight }));
+        if (tgChat) loadTgMsgs(tgChat.id);
+      })
+      .catch(() => { /* keep the draft so they can retry */ })
+      .finally(() => { if (mountedRef.current) setTgSending(false); });
+  };
+
+  const inMailInbox = !!commsApp && commsApp !== 'telegram' && emailTab === 'inbox' && !reading;
+  const inTgList = commsApp === 'telegram' && !tgChat;
+  const showRefresh = inMailInbox || inTgList;
+  const refreshSpin = refreshing || (inTgList && tgListState === 'loading');
+  const doRefresh = () => { tap(); if (inMailInbox) refreshInbox(); else if (inTgList) loadTgChats(); };
   const goPage = (idx: number) => { if (refreshing) return; tap(); loadPage(idx); };
   const hasPager = pageIdx > 0 || !!nextTok;
 
@@ -154,40 +297,46 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     <div className="ag-connect">
       <span className="ag-connect-ic"><IconConnectors size={20} /></span>
       <div className="ag-connect-text">
-        <div className="ag-connect-title">Connect a mailbox</div>
+        <div className="ag-connect-title">Connect a communication app</div>
         <div className="ag-connect-sub">{extra}</div>
       </div>
     </div>
   );
+
+  // ---- header titles ----
+  const title = reading ? 'Email'
+    : agent === null ? 'Agents'
+    : commsApp === null ? (sendraTab === 'apps' ? 'My apps' : 'Sendra')
+    : commsApp === 'telegram' ? (tgChat ? tgChat.title : 'Telegram')
+    : emailTab === 'inbox' ? 'Inbox'
+    : emailTab === 'contacts' ? 'Contacts'
+    : emailTab === 'compose' ? (replyThreadId ? 'Reply' : 'New email')
+    : (commsApp === 'm365' ? 'Outlook' : 'Gmail');
+  const subtitle = reading ? (reading.from || reading.email || 'Message')
+    : agent === null ? 'Your AI specialists — each one handles a job'
+    : commsApp === null ? (sendraTab === 'apps' ? 'Tap an app to open it' : 'Your communication hub')
+    : commsApp === 'telegram' ? (tgChat ? (tgChat.username ? `@${tgChat.username}` : 'Chat') : `${tgList.length || ''} chats`.trim() || 'Your chats')
+    : emailTab === 'inbox' ? 'Newest first'
+    : emailTab === 'contacts' ? (contacts.length ? `${contacts.length} people` : 'Your contacts')
+    : emailTab === 'compose' ? (sendState === 'sent' ? 'Sent' : 'Compose')
+    : (mailConnected ? 'Ready' : 'Connect to begin');
+
+  const sortedMsgs = [...tgMsgs].sort((a, b) => (a.date || 0) - (b.date || 0));
 
   return (
     <div className="memg ag" ref={trapRef} tabIndex={-1}>
       <div className="memg-top">
         <button className="memg-back" onClick={back} aria-label={reading || agent ? 'Back' : 'Close'}><IconArrowLeft size={22} /></button>
         <div className="memg-titles">
-          <h1 className="memg-title">
-            {reading ? 'Email'
-              : agent === 'email' && emailTab === 'inbox' ? 'Inbox'
-              : agent === 'email' && emailTab === 'contacts' ? 'Contacts'
-              : agent === 'email' && emailTab === 'compose' ? (replyThreadId ? 'Reply' : 'New email')
-              : agent === 'email' ? 'Sendra'
-              : 'Agents'}
-          </h1>
-          <p className="memg-sub">
-            {reading ? (reading.from || reading.email || 'Message')
-              : agent === 'email' && emailTab === 'inbox' ? 'Newest first'
-              : agent === 'email' && emailTab === 'contacts' ? (contacts.length ? `${contacts.length} people` : 'Your contacts')
-              : agent === 'email' && emailTab === 'compose' ? (sendState === 'sent' ? 'Sent' : 'Compose')
-              : agent === 'email' ? (hasMail ? 'Ready' : 'Connect a mailbox to begin')
-              : 'Your AI specialists — each one handles a job'}
-          </p>
+          <h1 className="memg-title">{title}</h1>
+          <p className="memg-sub">{subtitle}</p>
         </div>
-        {inInbox ? (
+        {showRefresh ? (
           <button
-            className={`ag-corner${refreshing ? ' spinning' : ''}`}
-            onClick={() => { tap(); refreshInbox(); }}
-            disabled={refreshing}
-            aria-label="Refresh inbox"
+            className={`ag-corner${refreshSpin ? ' spinning' : ''}`}
+            onClick={doRefresh}
+            disabled={refreshSpin}
+            aria-label="Refresh"
           >
             <IconRefresh size={18} />
           </button>
@@ -201,7 +350,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             subject: reading.subject, time: reading.time, unread: reading.unread,
             draft: reading.draft, body: reading.snippet || '',
           }} />
-          {hasMail && reading.threadId ? (
+          {mailConnected && reading.threadId ? (
             <button className="ag-send-btn ag-reply-btn" onClick={openReply}>Reply</button>
           ) : null}
         </div>
@@ -213,9 +362,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 key={a.id}
                 className={`ag-card${a.live ? '' : ' soon'}`}
                 disabled={!a.live}
-                onClick={() => { if (a.live) { tap(); setEmailTab('home'); setAgent(a.id as AgentId); } }}
+                onClick={() => { if (a.live) { tap(); setCommsApp(null); setSendraTab('home'); setAgent(a.id as AgentId); } }}
               >
-                <span className="ag-ic"><a.icon size={22} /></span>
+                {a.id === 'email'
+                  ? <span className="ag-ic ag-ic-logo"><img src={SENDRA_LOGO} alt="" /></span>
+                  : <span className="ag-ic"><a.icon size={22} /></span>}
                 <span className="ag-meta">
                   <span className="ag-name">{a.name}</span>
                   <span className="ag-desc">{a.desc}</span>
@@ -226,6 +377,123 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           </div>
           <p className="ag-foot">More agents on the way — each a specialist that works across your connected apps.</p>
         </div>
+
+      ) : commsApp === null ? (
+        sendraTab === 'home' ? (
+          // ---- Sendra home: a menu of Sendra's tools (My apps -> the constellation) ----
+          <div className="ag-stage">
+            <div className="ag-list">
+              <button className="ag-card" onClick={() => { tap(); setSendraTab('apps'); }}>
+                <span className="ag-ic"><IconConnectors size={22} /></span>
+                <span className="ag-meta">
+                  <span className="ag-name">My apps</span>
+                  <span className="ag-desc">{deckApps.length ? deckApps.map((c) => c.name).join(' · ') : 'Connect Gmail, Outlook or Telegram'}</span>
+                </span>
+                <span className="ag-chev" aria-hidden="true">›</span>
+              </button>
+            </div>
+            <p className="ag-foot">More Sendra tools on the way — drafts, sequences and triage across every app.</p>
+          </div>
+        ) : (
+          // ---- Sendra constellation: hub + connected comms apps as nodes ----
+          <div className="ag-stage ag-tree-stage">
+          {deckApps.length === 0 ? (
+            connectCard('Link Gmail, Outlook or Telegram so Sendra has something to manage.')
+          ) : (
+            <div className="ag-tree">
+              <svg className="ag-tree-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                {deckApps.map((c, i) => {
+                  const p = nodePos(i, deckApps.length);
+                  return <line key={c.id} x1={HUB.x} y1={HUB.y} x2={p.x} y2={p.y} pathLength={1} className="ag-tree-line" style={{ animationDelay: `${i * 90}ms` }} />;
+                })}
+              </svg>
+              <div className="ag-tree-hub" style={{ left: `${HUB.x}%`, top: `${HUB.y}%` }}>
+                <span className="ag-tree-hub-ic"><img src={SENDRA_LOGO} alt="Sendra" /></span>
+                <span className="ag-tree-hub-name">Sendra</span>
+              </div>
+              {deckApps.map((c, i) => {
+                const p = nodePos(i, deckApps.length);
+                return (
+                  <button
+                    key={c.id}
+                    className="ag-tree-node"
+                    style={{ left: `${p.x}%`, top: `${p.y}%`, animationDelay: `${140 + i * 90}ms` }}
+                    onClick={() => openComms(c.id)}
+                  >
+                    <span className="ag-tree-node-ic"><BrandLogo app={c.id} size={34} /></span>
+                    <span className="ag-tree-node-name">{c.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <p className="ag-tree-hint">Tap an app — Sendra runs them all.</p>
+        </div>
+        )
+
+      ) : commsApp === 'telegram' ? (
+        tgChat ? (
+          // ---- telegram thread ----
+          <div className="ag-stage ag-tg-thread">
+            <div className="ag-tg-msgs" ref={tgMsgsRef}>
+              {tgMsgsState === 'loading' && tgMsgs.length === 0 ? (
+                <EmailSkeleton />
+              ) : tgMsgsState === 'err' ? (
+                <div className="ag-empty">Couldn’t load this chat.{' '}
+                  <button className="ag-retry" onClick={() => { tap(); loadTgMsgs(tgChat.id); }}>Try again</button>
+                </div>
+              ) : sortedMsgs.length === 0 ? (
+                <div className="ag-empty">No messages yet.</div>
+              ) : (
+                sortedMsgs.map((m) => (
+                  <div key={m.id} className={`ag-bubble ${m.outgoing ? 'out' : 'in'}`}>
+                    <span className="ag-bubble-text">{m.text || '—'}</span>
+                    <span className="ag-bubble-time">{fmtTime(m.date)}</span>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="ag-tg-composer">
+              <input
+                className="ag-tg-input" placeholder="Message…" value={tgReply}
+                onChange={(e) => setTgReply(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && tgReply.trim() && !tgSending) doTgSend(); }}
+              />
+              <button className="ag-tg-sendbtn" onClick={doTgSend} disabled={!tgReply.trim() || tgSending} aria-label="Send">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
+              </button>
+            </div>
+          </div>
+        ) : (
+          // ---- telegram chats list ----
+          <div className="ag-stage">
+            {tgListState === 'err' ? (
+              <div className="ag-empty">Couldn’t load your chats.{' '}
+                <button className="ag-retry" onClick={() => { tap(); loadTgChats(); }}>Try again</button>
+              </div>
+            ) : tgListState === 'ok' && tgList.length === 0 ? (
+              <div className="ag-empty">No chats found.</div>
+            ) : tgList.length ? (
+              <div className="ag-tg-list">
+                {tgList.map((c) => (
+                  <button key={String(c.id)} className="ag-tg-row" onClick={() => { tap(); setTgChat(c); }}>
+                    <span className="ag-tg-ava" style={{ background: `hsl(${(String(c.title).charCodeAt(0) * 47) % 360} 55% 45%)` }}>
+                      {(c.title || '?').charAt(0).toUpperCase()}
+                    </span>
+                    <span className="ag-tg-row-meta">
+                      <span className="ag-tg-row-name">{c.title}</span>
+                      {c.username ? <span className="ag-tg-row-sub">@{c.username}</span> : null}
+                    </span>
+                    <span className="ag-chev" aria-hidden="true">›</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <EmailSkeleton />
+            )}
+          </div>
+        )
+
       ) : emailTab === 'inbox' ? (
         <div className="ag-stage" ref={inboxScrollRef} onTouchStart={onPullStart} onTouchMove={onPullMove} onTouchEnd={onPullEnd}>
           <div
@@ -237,7 +505,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               <IconRefresh size={18} />
             </span>
           </div>
-          {!hasMail ? connectCard('Link Gmail or Outlook so the agent can read your inbox.')
+          {!mailConnected ? connectCard('Link this mailbox so the agent can read your inbox.')
             : inboxState === 'err' ? (
               <div className="ag-empty">
                 Couldn’t load your inbox.{' '}
@@ -264,7 +532,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         </div>
       ) : emailTab === 'contacts' ? (
         <div className="ag-stage">
-          {!hasMail ? connectCard('Link Gmail so the agent can pull your contacts.')
+          {!mailConnected ? connectCard('Link this mailbox so the agent can pull your contacts.')
             : contactsState === 'err' ? (
               <div className="ag-empty">
                 Couldn’t load contacts.{' '}
@@ -280,7 +548,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         </div>
       ) : emailTab === 'compose' ? (
         <div className="ag-stage ag-compose">
-          {!hasMail ? connectCard('Link Gmail so the agent can send on your behalf.')
+          {!mailConnected ? connectCard('Link this mailbox so the agent can send on your behalf.')
             : sendState === 'sent' ? (
               <div className="ag-sent">
                 <span className="ag-sent-ic"><IconCheck size={26} /></span>
@@ -325,8 +593,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           )}
         </div>
       ) : (
+        // mail workspace home (action grid)
         <div className="ag-stage">
-          {!hasMail && connectCard('Link Gmail or Outlook so the agent can read, draft and send.')}
+          {!mailConnected && connectCard('Link this mailbox so the agent can read, draft and send.')}
           <div className="ag-grid">
             {EMAIL_ACTIONS.map((act) => (
               <button

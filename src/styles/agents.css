@@ -33,6 +33,9 @@
   display: grid; place-items: center;
   background: var(--grad-brand); color: var(--on-brand);
 }
+/* Sendra's real brand mark (its own gradient) instead of the gradient glyph tile. */
+.ag-ic-logo { background: none; overflow: hidden; }
+.ag-ic-logo img { width: 100%; height: 100%; display: block; }
 .ag-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .ag-name { font-size: var(--fs-body-s); font-weight: 700; }
 .ag-desc { font-size: var(--fs-footnote); color: var(--text-dim); line-height: 1.4; }
@@ -227,3 +230,104 @@
   background: none; border: none; color: var(--brand);
   font: inherit; font-weight: 700; cursor: pointer; padding: 0;
 }
+
+/* ---- Sendra constellation (hub + connected comms apps as nodes) ------- */
+/* A central "Sendra" hub with the connected comms apps orbiting it on drawn-in
+   lines. Deliberately distinct from the Connectors galaxy: fewer nodes, a
+   labeled hub, tap-to-open (no dragging). */
+.ag-tree-stage { display: flex; flex-direction: column; overflow: hidden; }
+.ag-tree { position: relative; flex: 1; width: 100%; min-height: 360px; }
+.ag-tree-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.ag-tree-line {
+  stroke: var(--brand); stroke-width: 1.6; opacity: 0.5; stroke-linecap: round;
+  stroke-dasharray: 1; stroke-dashoffset: 1; animation: agLineDraw 0.5s ease forwards;
+}
+@keyframes agLineDraw { to { stroke-dashoffset: 0; } }
+.ag-tree-hub {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 7px; pointer-events: none;
+}
+.ag-tree-hub-ic {
+  width: 76px; height: 76px; border-radius: 22px; overflow: hidden;
+  box-shadow: 0 0 0 6px rgba(255, 110, 80, 0.16), 0 10px 30px rgba(0, 0, 0, 0.35);
+  animation: agHubPulse 3s ease-in-out infinite;
+}
+.ag-tree-hub-ic img { width: 100%; height: 100%; display: block; }
+.ag-tree-hub-name { font-weight: 700; font-size: var(--fs-body-s); }
+@keyframes agHubPulse {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(255, 110, 80, 0.16), 0 10px 30px rgba(0, 0, 0, 0.35); }
+  50% { box-shadow: 0 0 0 14px rgba(255, 110, 80, 0.05), 0 10px 30px rgba(0, 0, 0, 0.35); }
+}
+.ag-tree-node {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: none; border: none; cursor: pointer; font: inherit; color: var(--text);
+  animation: agNodeIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ag-tree-node-ic {
+  width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge); box-shadow: var(--glass-hi), var(--glass-shadow);
+  transition: transform 0.14s ease;
+}
+.ag-tree-node:active .ag-tree-node-ic { transform: scale(0.92); }
+.ag-tree-node-name { font-size: var(--fs-footnote); font-weight: 600; color: var(--text-dim); }
+@keyframes agNodeIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.ag-tree-hint { text-align: center; color: var(--text-faint); font-size: var(--fs-footnote); padding-bottom: 6px; }
+@media (prefers-reduced-motion: reduce) {
+  .ag-tree-line, .ag-tree-node { animation: none; stroke-dashoffset: 0; }
+  .ag-tree-hub-ic { animation: none; }
+}
+
+/* ---- Telegram workspace: chats list + thread ------------------------- */
+.ag-tg-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.ag-tg-row {
+  display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; padding: 12px 13px;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge); box-shadow: var(--glass-hi);
+  border-radius: var(--r-card); color: var(--text); font: inherit; cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.ag-tg-row:active { transform: scale(0.985); }
+.ag-tg-ava { flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 1.05rem; }
+.ag-tg-row-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ag-tg-row-name { font-weight: 600; font-size: var(--fs-body-s); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-tg-row-sub { font-size: var(--fs-footnote); color: var(--text-dim); }
+
+.ag-tg-thread { display: flex; flex-direction: column; overflow: hidden; padding-top: 0; padding-bottom: 0; }
+.ag-tg-msgs {
+  width: 100%; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: flex; flex-direction: column; gap: 8px; padding: 14px 2px;
+}
+.ag-bubble {
+  max-width: 80%; padding: 8px 12px; border-radius: 16px;
+  font-size: var(--fs-body-s); line-height: 1.4; word-break: break-word;
+  display: flex; flex-direction: column;
+  animation: agCardIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ag-bubble.in { align-self: flex-start; background: var(--glass); border: 1px solid var(--glass-edge); border-bottom-left-radius: 5px; color: var(--text); }
+.ag-bubble.out { align-self: flex-end; background: var(--grad-brand); color: var(--on-brand); border-bottom-right-radius: 5px; }
+.ag-bubble-text { white-space: pre-wrap; }
+.ag-bubble-time { font-size: 10px; opacity: 0.6; margin-top: 3px; align-self: flex-end; }
+@media (prefers-reduced-motion: reduce) { .ag-bubble { animation: none; } }
+.ag-tg-composer { width: 100%; flex-shrink: 0; display: flex; gap: 8px; align-items: center; padding: 10px 2px calc(12px + env(safe-area-inset-bottom)); }
+.ag-tg-input {
+  flex: 1; min-width: 0; box-sizing: border-box;
+  background: var(--glass); border: 1px solid var(--glass-edge);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  color: var(--text); font: inherit; font-size: var(--fs-body-s);
+  padding: 11px 15px; border-radius: var(--r-pill);
+}
+.ag-tg-input::placeholder { color: var(--text-faint); }
+.ag-tg-input:focus { outline: none; border-color: var(--brand); }
+.ag-tg-sendbtn {
+  flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; border: none;
+  background: var(--grad-brand); color: var(--on-brand);
+  display: grid; place-items: center; cursor: pointer;
+}
+.ag-tg-sendbtn:active { filter: brightness(0.95); }
+.ag-tg-sendbtn:disabled { opacity: 0.45; cursor: default; }

@@ -66,15 +66,25 @@ Deno.serve(async (req: Request) => {
   const bcc = Array.isArray(payload.bcc) ? (payload.bcc as string[]).filter((s) => EMAIL_RE.test(String(s).trim())) : [];
   // New email needs a valid recipient; a reply gets the recipient from the thread.
   if (!threadId && !EMAIL_RE.test(to)) return json(req, { ok: false, error: "invalid_recipient" }, 400);
+  const app = String(payload.app ?? "gmail").toLowerCase();
+  const outlook = app === "outlook" || app === "m365";
 
   try {
-    const tool = threadId ? "GMAIL_REPLY_TO_THREAD" : "GMAIL_SEND_EMAIL";
-    const args: Record<string, unknown> = threadId
-      ? { thread_id: threadId, message_body: body, is_html: false }
-      : { recipient_email: to, subject, body, is_html: false };
-    if (threadId && EMAIL_RE.test(to)) args.recipient_email = to;
-    if (cc.length) args.cc = cc;
-    if (bcc.length) args.bcc = bcc;
+    // Outlook execute slugs are double-prefixed; reply keys off the MESSAGE id
+    // (passed as threadId), `to` is a plain string, cc/bcc are *_emails arrays.
+    let tool: string;
+    const args: Record<string, unknown> = {};
+    if (outlook) {
+      if (threadId) { tool = "OUTLOOK_OUTLOOK_REPLY_EMAIL"; args.message_id = threadId; args.comment = body; args.is_html = false; }
+      else { tool = "OUTLOOK_OUTLOOK_SEND_EMAIL"; args.to = to; args.subject = subject; args.body = body; args.is_html = false; }
+      if (cc.length) args.cc_emails = cc;
+      if (bcc.length) args.bcc_emails = bcc;
+    } else {
+      if (threadId) { tool = "GMAIL_REPLY_TO_THREAD"; args.thread_id = threadId; args.message_body = body; args.is_html = false; if (EMAIL_RE.test(to)) args.recipient_email = to; }
+      else { tool = "GMAIL_SEND_EMAIL"; args.recipient_email = to; args.subject = subject; args.body = body; args.is_html = false; }
+      if (cc.length) args.cc = cc;
+      if (bcc.length) args.bcc = bcc;
+    }
     const res = await fetch(`https://backend.composio.dev/api/v3/tools/execute/${tool}`, {
       method: "POST",
       headers: { "x-api-key": API_KEY, "content-type": "application/json" },
