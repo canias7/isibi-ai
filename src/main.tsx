@@ -10,6 +10,7 @@ import './styles/sidebar.css';
 import './styles/auth.css';
 import './styles/screens.css';
 import './styles/email.css';
+import './styles/agents.css';
 import './styles/call.css';
 import './styles/touch.css'; // global touch feel — must stay LAST so its transitions win
 import { initOta } from './ota';

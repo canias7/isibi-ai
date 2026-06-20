@@ -1,0 +1,13 @@
+shakespeare.txt
+coder/code.txt
+coder/coder.pt
+coder/merges.json
+coder/coder_bpe.pt
+coder/coder_gpu.pt
+coder/tokenizer.json
+coder/coder.ckpt
+excel/excel.txt
+excel/tokenizer.json
+excel/excel.ckpt
+__pycache__/
+*.pyc
