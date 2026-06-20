@@ -346,6 +346,21 @@ const FRAME_HEAD =
   'img{max-width:100%!important;height:auto}a{color:#1a73e8}</style></head><body>';
 const FRAME_FOOT = '</body></html>';
 
+// Microsoft Graph (Outlook) returns the body as a FULL HTML document; Gmail can
+// too. Wrapping a full <html> doc inside FRAME_HEAD double-nests it, which drops
+// our viewport meta and makes the email render at desktop width (zoomed in). So
+// for a full document we inject our CSP + viewport + base into its existing
+// <head> instead of double-wrapping; only true fragments get FRAME_HEAD/FOOT.
+const FRAME_INJECT =
+  '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src http: https: data:; style-src \'unsafe-inline\'; font-src http: https: data:; media-src http: https: data:; base-uri \'none\'; form-action \'none\'; upgrade-insecure-requests">' +
+  '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+  '<base target="_blank"><style>html{margin:0}body{margin:0;padding:12px;word-break:break-word}img{max-width:100%!important;height:auto}</style>';
+function buildSrcDoc(doc: string): string {
+  if (!/<html[\s>]/i.test(doc)) return FRAME_HEAD + doc + FRAME_FOOT;
+  if (/<head[\s>]/i.test(doc)) return doc.replace(/<head([^>]*)>/i, (m) => m + FRAME_INJECT);
+  return doc.replace(/<html([^>]*)>/i, (m) => m + '<head>' + FRAME_INJECT + '</head>');
+}
+
 // Format an RFC date header into the short label the card shows ("9:41 AM" today,
 // else "May 19"), in the viewer's locale/timezone.
 function fmtTime(date?: string): string {
@@ -497,7 +512,7 @@ function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fa
           // hostile email run code against the app's origin. Scripts are blocked
           // today by this sandbox AND the default-src 'none' CSP in FRAME_HEAD.
           sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-          srcDoc={FRAME_HEAD + doc + FRAME_FOOT}
+          srcDoc={buildSrcDoc(doc)}
           onLoad={() => { fit(); setTimeout(fit, 500); }}
         />
       </div>

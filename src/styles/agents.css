@@ -228,18 +228,17 @@
 /* Opened email: match the dark inbox cards — dark surface, white header text, and
    the same soft provider wash + left accent bar. The white email-body iframe is
    real HTML and stays untouched (dark chrome around a white message, iOS-Mail style). */
-.ag-reader .gf-msg { position: relative; overflow: hidden; }
+/* NB: no `overflow: hidden` here — the reader card is a flex item (.ag-reader is
+   a flex column), and clipping collapses its auto min-height to 0, so the column
+   shrinks the card and the tall email body can't scroll. The left accent bar is
+   drawn with an inset box-shadow instead (it follows the border-radius cleanly). */
 .ag-reader .gf-msg.gf-gmail,
 .ag-reader .gf-msg.gf-outlook {
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
   -webkit-backdrop-filter: none; backdrop-filter: none;
 }
-.ag-reader .gf-msg.gf-gmail { background: linear-gradient(0deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), #16181d; }
-.ag-reader .gf-msg.gf-outlook { background: linear-gradient(0deg, rgba(56, 132, 255, 0.12), rgba(56, 132, 255, 0.12)), #16181d; }
-.ag-reader .gf-msg::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
-.ag-reader .gf-msg.gf-gmail::before { background: rgba(255, 255, 255, 0.35); }
-.ag-reader .gf-msg.gf-outlook::before { background: #3b82f6; }
+.ag-reader .gf-msg.gf-gmail { background: linear-gradient(0deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), #16181d; box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.35), 0 6px 18px rgba(0, 0, 0, 0.28); }
+.ag-reader .gf-msg.gf-outlook { background: linear-gradient(0deg, rgba(56, 132, 255, 0.12), rgba(56, 132, 255, 0.12)), #16181d; box-shadow: inset 3px 0 0 #3b82f6, 0 6px 18px rgba(0, 0, 0, 0.28); }
 .ag-reader .gf-msg .gf-msg-name,
 .ag-reader .gf-msg .gf-msg-subject { color: #fff; }
 .ag-reader .gf-msg .gf-msg-addr,
