@@ -6,8 +6,8 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, listCampaigns, createCampaign, sendCampaignBatch, listTemplates, saveTemplate, deleteTemplate, generateTemplate, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type Template } from './api';
-import { EmailList, EmailDetail, EmailSkeleton, ContactsList, type EmailItem, type ContactItem } from './EmailList';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, listCampaigns, createCampaign, sendCampaignBatch, listTemplates, saveTemplate, deleteTemplate, generateTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type Template } from './api';
+import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -155,12 +155,17 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campErr, setCampErr] = useState('');
   const [campProg, setCampProg] = useState({ sent: 0, total: 0, failed: 0 });
   const [campList, setCampList] = useState<Campaign[]>([]);
-  // Templates (reusable, AI-writable)
+  const [campBodyKind, setCampBodyKind] = useState<'text' | 'html'>('text'); // 'html' when a designed template is applied
+  // Templates (reusable, AI-writable, or bring-your-own)
   const [tplList, setTplList] = useState<Template[]>([]);
   const [tplEdit, setTplEdit] = useState<null | { id?: string }>(null);
+  const [tplMode, setTplMode] = useState<'text' | 'flyer' | 'html'>('text');
   const [tplName, setTplName] = useState('');
   const [tplSubject, setTplSubject] = useState('');
-  const [tplBody, setTplBody] = useState('');
+  const [tplBody, setTplBody] = useState('');      // text mode: plain text; html mode: raw HTML
+  const [tplFlyerUrl, setTplFlyerUrl] = useState(''); // flyer mode: uploaded image URL
+  const [tplFlyerLink, setTplFlyerLink] = useState('');
+  const [tplImgBusy, setTplImgBusy] = useState(false);
   const [tplPrompt, setTplPrompt] = useState('');
   const [tplGen, setTplGen] = useState(false);
   const [tplSaving, setTplSaving] = useState(false);
@@ -416,15 +421,16 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   });
   const openCampNew = () => {
     tap(); setCampNew(true); setCampState('idle'); setCampErr('');
-    setCampSubject(''); setCampBody(''); setCampRecips(''); setCampProg({ sent: 0, total: 0, failed: 0 });
+    setCampSubject(''); setCampBody(''); setCampBodyKind('text'); setCampRecips(''); setCampProg({ sent: 0, total: 0, failed: 0 });
     setCampApp(connApps.includes('gmail') ? 'gmail' : 'outlook');
   };
+  const applyTemplate = (t: Template) => { tap(); setCampSubject(t.subject); setCampBody(t.body); setCampBodyKind(t.kind === 'html' ? 'html' : 'text'); if (campState === 'err') setCampState('idle'); };
   const runCampaign = async () => {
     const recipients = parseRecips(campRecips);
     if (!campSubject.trim() || !campBody.trim() || !recipients.length || campState === 'sending') return;
     tap(); setCampState('sending'); setCampErr(''); setCampProg({ sent: 0, total: recipients.length, failed: 0 });
     try {
-      const c = await createCampaign({ app: campApp, subject: campSubject.trim(), body: campToHtml(campBody.trim()), recipients });
+      const c = await createCampaign({ app: campApp, subject: campSubject.trim(), body: campBodyKind === 'html' ? campBody : campToHtml(campBody.trim()), recipients });
       if (!mountedRef.current) return;
       if (c.error || !c.id) {
         setCampState('err');
@@ -450,8 +456,36 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   };
 
   // ---- Templates ----
-  const openTplNew = () => { tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setTplPrompt(''); setTplErr(''); };
-  const openTplEdit = (t: Template) => { tap(); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplPrompt(''); setTplErr(''); };
+  const flyerHtml = (url: string, link: string) =>
+    (link.trim()
+      ? `<a href="${link.trim()}" style="text-decoration:none"><img src="${url}" alt="" style="display:block;width:100%;max-width:100%;height:auto;border:0"></a>`
+      : `<img src="${url}" alt="" style="display:block;width:100%;max-width:100%;height:auto;border:0">`);
+  // The stored body + kind for the active editor mode.
+  const tplComputed = (): { body: string; kind: 'text' | 'html' } =>
+    tplMode === 'flyer' ? { body: tplFlyerUrl ? flyerHtml(tplFlyerUrl, tplFlyerLink) : '', kind: 'html' }
+      : tplMode === 'html' ? { body: tplBody.trim(), kind: 'html' }
+        : { body: tplBody.trim(), kind: 'text' };
+  // Pick an image from the device and hand back raw base64 + content type.
+  const pickImage = (cb: (b64: string, ct: string) => void) => {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*';
+    inp.onchange = () => {
+      const f = inp.files?.[0]; if (!f) return;
+      const rd = new FileReader();
+      rd.onload = () => { const s = String(rd.result || ''); cb(s.split(',')[1] || '', f.type || 'image/png'); };
+      rd.readAsDataURL(f);
+    };
+    inp.click();
+  };
+  const uploadFlyer = () => pickImage(async (b64, ct) => {
+    if (!b64) return;
+    setTplImgBusy(true); setTplErr('');
+    try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setTplFlyerUrl(url); }
+    catch { if (mountedRef.current) setTplErr('Upload failed — try a smaller image.'); }
+    finally { if (mountedRef.current) setTplImgBusy(false); }
+  });
+  const openTplNew = () => { tap(); setTplEdit({}); setTplMode('text'); setTplName(''); setTplSubject(''); setTplBody(''); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplErr(''); };
+  const openTplEdit = (t: Template) => { tap(); setTplEdit({ id: t.id }); setTplMode(t.kind === 'html' ? 'html' : 'text'); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplErr(''); };
   const genTpl = async () => {
     if (!tplPrompt.trim() || tplGen) return;
     tap(); setTplGen(true); setTplErr('');
@@ -465,10 +499,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     finally { if (mountedRef.current) setTplGen(false); }
   };
   const saveTpl = async () => {
-    if (!tplSubject.trim() || !tplBody.trim() || tplSaving) return;
+    const { body, kind } = tplComputed();
+    if (!tplSubject.trim() || !body || tplSaving) return;
     tap(); setTplSaving(true); setTplErr('');
     try {
-      await saveTemplate({ id: tplEdit?.id, name: tplName.trim() || tplSubject.trim().slice(0, 60), subject: tplSubject.trim(), body: tplBody.trim() });
+      await saveTemplate({ id: tplEdit?.id, name: tplName.trim() || tplSubject.trim().slice(0, 60), subject: tplSubject.trim(), body, kind });
       if (!mountedRef.current) return;
       setTplEdit(null);
       listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
@@ -649,7 +684,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       <div className="ag-tpl-row">
                         <span className="ag-tpl-lbl">Start from:</span>
                         {tplList.slice(0, 8).map((t) => (
-                          <button key={t.id} className="ag-tpl-chip" onClick={() => { tap(); setCampSubject(t.subject); setCampBody(t.body); if (campState === 'err') setCampState('idle'); }}>{t.name || t.subject}</button>
+                          <button key={t.id} className="ag-tpl-chip" onClick={() => applyTemplate(t)}>{t.name || t.subject}</button>
                         ))}
                       </div>
                     )}
@@ -661,8 +696,15 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     )}
                     <input className="ag-field" placeholder="Subject" value={campSubject}
                       onChange={(e) => { setCampSubject(e.target.value); if (campState === 'err') setCampState('idle'); }} />
-                    <textarea className="ag-field ag-body" placeholder="Write your message… use {{name}} to personalize each email" value={campBody}
-                      onChange={(e) => { setCampBody(e.target.value); if (campState === 'err') setCampState('idle'); }} />
+                    {campBodyKind === 'html' ? (
+                      <div className="ag-tpl-preview">
+                        <div className="ag-tpl-preview-bar"><span>Designed template</span><button onClick={() => { tap(); setCampBody(''); setCampBodyKind('text'); }}>✕ Write plain text</button></div>
+                        <iframe className="ag-tpl-frame" title="Template preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(campBody)} />
+                      </div>
+                    ) : (
+                      <textarea className="ag-field ag-body" placeholder="Write your message… use {{name}} to personalize each email" value={campBody}
+                        onChange={(e) => { setCampBody(e.target.value); if (campState === 'err') setCampState('idle'); }} />
+                    )}
                     <textarea className="ag-field ag-camp-recips" placeholder={'Recipients — one per line:\njane@example.com\nJohn Smith <john@example.com>'} value={campRecips}
                       onChange={(e) => { setCampRecips(e.target.value); if (campState === 'err') setCampState('idle'); }} />
                     {campState === 'err' && <div className="ag-send-err">{campErr}</div>}
@@ -700,16 +742,41 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             ) : sendraTab === 'templates' ? (
               tplEdit ? (
                 <div className="ag-compose">
-                  <div className="ag-ai">
-                    <textarea className="ag-ai-input" placeholder="Describe the email — e.g. “a warm note announcing 20% off summer styles, ends Sunday”" value={tplPrompt}
-                      onChange={(e) => setTplPrompt(e.target.value)} />
-                    <button className="ag-ai-btn" disabled={tplGen || !tplPrompt.trim()} onClick={genTpl}>{tplGen ? 'Writing…' : '✨ Generate with AI'}</button>
+                  <div className="ag-seg">
+                    <button className={tplMode === 'text' ? 'on' : ''} onClick={() => { tap(); setTplMode('text'); }}>Write</button>
+                    <button className={tplMode === 'flyer' ? 'on' : ''} onClick={() => { tap(); setTplMode('flyer'); }}>Flyer</button>
+                    <button className={tplMode === 'html' ? 'on' : ''} onClick={() => { tap(); setTplMode('html'); }}>Paste HTML</button>
                   </div>
                   <input className="ag-field" placeholder="Template name" value={tplName} onChange={(e) => setTplName(e.target.value)} />
                   <input className="ag-field" placeholder="Subject" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
-                  <textarea className="ag-field ag-body" placeholder="Body — use {{name}} to personalize" value={tplBody} onChange={(e) => setTplBody(e.target.value)} />
+                  {tplMode === 'text' && (
+                    <>
+                      <div className="ag-ai">
+                        <textarea className="ag-ai-input" placeholder="Describe the email — e.g. “a warm note announcing 20% off summer styles, ends Sunday”" value={tplPrompt}
+                          onChange={(e) => setTplPrompt(e.target.value)} />
+                        <button className="ag-ai-btn" disabled={tplGen || !tplPrompt.trim()} onClick={genTpl}>{tplGen ? 'Writing…' : '✨ Generate with AI'}</button>
+                      </div>
+                      <textarea className="ag-field ag-body" placeholder="Body — use {{name}} to personalize" value={tplBody} onChange={(e) => setTplBody(e.target.value)} />
+                    </>
+                  )}
+                  {tplMode === 'flyer' && (
+                    <>
+                      {tplFlyerUrl ? <img className="ag-flyer-img" src={tplFlyerUrl} alt="Flyer" /> : <div className="ag-flyer-drop">Upload a flyer or poster — it becomes the whole email.</div>}
+                      <button className="ag-send-btn ghost" disabled={tplImgBusy} onClick={uploadFlyer}>{tplImgBusy ? 'Uploading…' : tplFlyerUrl ? 'Replace image' : 'Upload image'}</button>
+                      <input className="ag-field" placeholder="Link when tapped (optional) — https://…" value={tplFlyerLink} onChange={(e) => setTplFlyerLink(e.target.value)} />
+                    </>
+                  )}
+                  {tplMode === 'html' && (
+                    <textarea className="ag-field ag-body ag-html-input" placeholder="Paste your email HTML here…" value={tplBody} onChange={(e) => setTplBody(e.target.value)} />
+                  )}
+                  {tplMode !== 'text' && tplComputed().body && (
+                    <div className="ag-tpl-preview">
+                      <div className="ag-tpl-preview-bar"><span>Preview</span></div>
+                      <iframe className="ag-tpl-frame" title="Template preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(tplComputed().body)} />
+                    </div>
+                  )}
                   {tplErr && <div className="ag-send-err">{tplErr}</div>}
-                  <button className="ag-send-btn" disabled={tplSaving || !tplSubject.trim() || !tplBody.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save template'}</button>
+                  <button className="ag-send-btn" disabled={tplSaving || !tplSubject.trim() || !tplComputed().body} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save template'}</button>
                   <div className="ag-sent-actions">
                     <button className="ag-send-btn ghost" disabled={tplSaving} onClick={() => { tap(); setTplEdit(null); }}>Cancel</button>
                     {tplEdit.id && <button className="ag-send-btn ghost" disabled={tplSaving} onClick={delTpl}>Delete</button>}

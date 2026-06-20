@@ -228,6 +228,15 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-tpl-lbl { color: var(--text-dim); font-size: var(--fs-caption); }
 .ag-tpl-chip { background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text); font: inherit; font-size: var(--fs-caption); font-weight: 600; padding: 5px 10px; border-radius: 999px; cursor: pointer; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Template editor: flyer upload, HTML paste, live preview */
+.ag-flyer-img { width: 100%; border-radius: 12px; border: 1px solid var(--glass-edge); display: block; }
+.ag-flyer-drop { padding: 28px 14px; text-align: center; color: var(--text-dim); font-size: var(--fs-footnote); background: var(--glass); border: 1px dashed var(--glass-edge); border-radius: 12px; }
+.ag-html-input { min-height: 140px; font-family: ui-monospace, Menlo, monospace; font-size: var(--fs-caption); }
+.ag-tpl-preview { border: 1px solid var(--glass-edge); border-radius: 12px; overflow: hidden; }
+.ag-tpl-preview-bar { display: flex; align-items: center; justify-content: space-between; padding: 7px 11px; background: #16181d; color: var(--text-dim); font-size: var(--fs-caption); font-weight: 600; }
+.ag-tpl-preview-bar button { background: none; border: none; color: var(--link, #6aa3ff); font: inherit; font-size: var(--fs-caption); cursor: pointer; }
+.ag-tpl-frame { width: 100%; height: 320px; border: 0; display: block; background: #fff; }
+
 /* Confirm-before-send sheet */
 .ag-confirm-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 10; }
 .ag-confirm {

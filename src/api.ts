@@ -184,14 +184,24 @@ export async function sendCampaignBatch(id: string): Promise<{ sent: number; fai
 }
 
 // ---- Email templates (reusable, AI-writable, via the `templates` fn) ----
-export interface Template { id: string; name: string; subject: string; body: string; updated_at?: string }
+// kind: 'text' = plain text body (wrapped to HTML on send); 'html' = ready HTML
+// (flyer image, pasted design, AI layout) sent as-is.
+export interface Template { id: string; name: string; subject: string; body: string; kind?: 'text' | 'html'; updated_at?: string }
+// Upload an image (raw base64, no data: prefix) to the public email-assets bucket.
+export async function uploadEmailImage(dataB64: string, contentType: string): Promise<string> {
+  const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'upload', dataB64, contentType } });
+  if (error) throw new Error(error.message || 'Upload failed');
+  const d = (data || {}) as { url?: string; error?: string };
+  if (!d.url) throw new Error(d.error || 'Upload failed');
+  return d.url;
+}
 export async function listTemplates(): Promise<Template[]> {
   const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'list' } });
   if (error) return [];
   const t = (data as { templates?: Template[] } | null)?.templates;
   return Array.isArray(t) ? t : [];
 }
-export async function saveTemplate(t: { id?: string; name: string; subject: string; body: string }): Promise<{ id?: string; error?: string }> {
+export async function saveTemplate(t: { id?: string; name: string; subject: string; body: string; kind?: 'text' | 'html' }): Promise<{ id?: string; error?: string }> {
   const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'save', ...t } });
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { id?: string; error?: string };

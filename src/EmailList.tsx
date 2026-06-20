@@ -355,7 +355,8 @@ const FRAME_INJECT =
   '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src http: https: data:; style-src \'unsafe-inline\'; font-src http: https: data:; media-src http: https: data:; base-uri \'none\'; form-action \'none\'; upgrade-insecure-requests">' +
   '<meta name="viewport" content="width=device-width,initial-scale=1">' +
   '<base target="_blank"><style>html{margin:0}body{margin:0;padding:12px;word-break:break-word}img{max-width:100%!important;height:auto}</style>';
-function buildSrcDoc(doc: string): string {
+// eslint-disable-next-line react-refresh/only-export-components
+export function buildSrcDoc(doc: string): string {
   if (!/<html[\s>]/i.test(doc)) return FRAME_HEAD + doc + FRAME_FOOT;
   if (/<head[\s>]/i.test(doc)) return doc.replace(/<head([^>]*)>/i, (m) => m + FRAME_INJECT);
   return doc.replace(/<html([^>]*)>/i, (m) => m + '<head>' + FRAME_INJECT + '</head>');
