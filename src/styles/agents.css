@@ -279,6 +279,9 @@ button.ag-camp:active { filter: brightness(1.15); }
 
 /* Chat builder (Lovable-style) */
 .ag-chatb { position: relative; display: flex; flex-direction: column; height: 72vh; }
+.ag-chatb-tools { display: flex; justify-content: flex-end; padding: 0 2px 6px; }
+.ag-chatb-undo { background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text); font: inherit; font-size: var(--fs-caption); font-weight: 600; padding: 5px 11px; border-radius: 999px; cursor: pointer; }
+.ag-chatb-undo:disabled { opacity: 0.5; cursor: default; }
 .ag-chatb-thread { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 9px; padding: 4px 2px; }
 .ag-cb-u { align-self: flex-end; max-width: 80%; background: var(--grad-brand); color: var(--on-brand, #fff); font-size: var(--fs-footnote); padding: 8px 12px; border-radius: 14px 14px 4px 14px; }
 .ag-cb-a { align-self: flex-start; max-width: 86%; background: #16181d; border: 1px solid #23262d; color: #dfe1e6; font-size: var(--fs-footnote); padding: 8px 12px; border-radius: 14px 14px 14px 4px; line-height: 1.4; }

@@ -180,6 +180,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [chatBusy, setChatBusy] = useState(false);
   const [chatView, setChatView] = useState<'chat' | 'preview'>('chat');
   const [chatErr, setChatErr] = useState('');
+  const [chatHistory, setChatHistory] = useState<{ subject: string; body: string }[]>([]); // email state before each turn (Undo)
   // Brand profile (feeds the AI designer)
   const [brandEdit, setBrandEdit] = useState(false);
   const [bName, setBName] = useState('');
@@ -510,12 +511,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     finally { if (mountedRef.current) setTplImgBusy(false); }
   });
   const openChoice = () => { tap(); setTplChoose(true); };
-  const startAI = () => { tap(); setTplChoose(false); setTplBuild('chat'); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setTplImages([]); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatView('chat'); };
+  const startAI = () => { tap(); setTplChoose(false); setTplBuild('chat'); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setTplImages([]); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('chat'); };
   const startManual = () => { tap(); setTplChoose(false); setTplBuild('manual'); setTplEdit({}); setTplMode('text'); setTplName(''); setTplSubject(''); setTplBody(''); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplImages([]); setTplErr(''); };
   const openTplEdit = (t: Template) => {
     tap();
     if (t.chat && t.chat.length) {
-      setTplBuild('chat'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplImages([]); setChatMsgs(t.chat); setChatInput(''); setChatErr(''); setChatView('preview');
+      setTplBuild('chat'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplImages([]); setChatMsgs(t.chat); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('preview');
     } else {
       setTplBuild('manual'); setTplEdit({ id: t.id }); setTplMode(t.kind === 'html' ? 'html' : 'text'); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplImages([]); setTplErr('');
     }
@@ -525,6 +526,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (!text || chatBusy) return;
     tap();
     const next: ChatMsg[] = [...chatMsgs, { role: 'user', content: text }];
+    const prev = { subject: tplSubject, body: tplBody }; // snapshot for Undo
     setChatMsgs(next); setChatInput(''); setChatBusy(true); setChatErr('');
     try {
       const r = await chatTemplate(next, tplBody, tplImages);
@@ -533,9 +535,18 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       setTplBody(r.body); if (r.subject) setTplSubject(r.subject);
       if (!tplName.trim() && r.subject) setTplName(r.subject.slice(0, 60));
       setChatMsgs((m) => [...m, { role: 'assistant', content: r.reply || 'Done.' }]);
+      setChatHistory((h) => [...h, prev].slice(-20));
       setTplImages([]);
     } catch { if (mountedRef.current) setChatErr('Something went wrong — try again.'); }
     finally { if (mountedRef.current) setChatBusy(false); }
+  };
+  const undoChat = () => {
+    if (!chatHistory.length || chatBusy) return;
+    tap();
+    const last = chatHistory[chatHistory.length - 1];
+    setTplSubject(last.subject); setTplBody(last.body);
+    setChatMsgs((m) => m.slice(0, Math.max(0, m.length - 2)));
+    setChatHistory((h) => h.slice(0, -1));
   };
   // Add a photo for the AI designer to lay into the email.
   const addDesignImage = () => pickImage(async (b64, ct) => {
@@ -868,6 +879,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   </div>
                 ) : (
                   <div className="ag-chatb">
+                    {chatHistory.length > 0 && (
+                      <div className="ag-chatb-tools"><button className="ag-chatb-undo" onClick={undoChat} disabled={chatBusy}>↩ Undo last change</button></div>
+                    )}
                     <div className="ag-chatb-thread">
                       <div className="ag-cb-a">Hey! Describe the email you want and I’ll design it on your brand. ✨</div>
                       {chatMsgs.map((m, i) => (
