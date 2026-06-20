@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
-  IconConnectors, IconClock, IconBank, IconInbox, IconRefresh,
+  IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox } from './api';
+import { fetchInbox, sendEmail } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, type EmailItem } from './EmailList';
 
 // Each agent is a *role* that spans apps (not an app). Only the Email agent is
@@ -21,8 +21,7 @@ const AGENTS: AgentDef[] = [
   { id: 'sched', name: 'Scheduler', desc: 'Meetings, reminders & calendar triage', icon: IconClock, live: false },
 ];
 
-// The Email agent's top cards. "Inbox" opens the inbox view; the rest open their
-// own compose flows (stubbed for now).
+// The Email agent's top cards. "Inbox" and "New email" are live; the rest are stubs.
 const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[] = [
   { id: 'inbox', label: 'Inbox', sub: 'View mail', icon: IconInbox },
   { id: 'new', label: 'New email', sub: 'Single send', icon: IconCompose },
@@ -32,34 +31,43 @@ const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[]
 
 const PAGE_SIZE = 20;       // emails per page (kept small — GMAIL_FETCH_EMAILS is slow at high counts)
 const PULL_THRESHOLD = 64;  // px of pull-down that triggers a refresh
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Session cache (page 0) so re-opening the inbox is instant. The overlay
-// unmounts on close, so this lives at module scope. In-memory only — email
-// snippets are never written to disk.
+// Session cache (page 0) so re-opening the inbox is instant. In-memory only —
+// email snippets are never written to disk.
 let inboxCache: EmailItem[] | null = null;
+
+type EmailTab = 'home' | 'inbox' | 'compose';
+type SendState = 'idle' | 'confirm' | 'sending' | 'sent' | 'err';
 
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [agent, setAgent] = useState<AgentId | null>(null);
-  const [emailTab, setEmailTab] = useState<'home' | 'inbox'>('home');
+  const [emailTab, setEmailTab] = useState<EmailTab>('home');
   const [inbox, setInbox] = useState<EmailItem[]>(() => inboxCache ?? []);
   const [inboxState, setInboxState] = useState<'idle' | 'loading' | 'ok' | 'err'>(inboxCache ? 'ok' : 'idle');
   const [refreshing, setRefreshing] = useState(false);
   const [pageIdx, setPageIdx] = useState(0);
   const [nextTok, setNextTok] = useState<string | null>(null);
   const [reading, setReading] = useState<EmailItem | null>(null);
-  const [pull, setPull] = useState(0); // pull-to-refresh distance (px)
-  const tokensRef = useRef<(string | undefined)[]>([undefined]); // page_token per page (index 0 = none)
+  const [pull, setPull] = useState(0);
+  // Compose state
+  const [to, setTo] = useState('');
+  const [subject, setSubject] = useState('');
+  const [bodyText, setBodyText] = useState('');
+  const [sendState, setSendState] = useState<SendState>('idle');
+  const tokensRef = useRef<(string | undefined)[]>([undefined]);
   const pullStart = useRef<number | null>(null);
   const inboxScrollRef = useRef<HTMLDivElement>(null);
   const trapRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
-  // Back steps one level: reader -> inbox -> the agent's cards -> agent list -> close.
+  // Back steps one level: reader -> inbox/compose -> the agent's cards -> list -> close.
   const back = () => {
     tap();
     if (reading) setReading(null);
-    else if (emailTab === 'inbox') setEmailTab('home');
+    else if (sendState === 'confirm') setSendState('idle');
+    else if (emailTab === 'inbox' || emailTab === 'compose') setEmailTab('home');
     else if (agent) setAgent(null);
     else onClose();
   };
@@ -67,8 +75,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
 
   const hasMail = connApps.includes('gmail') || connApps.includes('outlook');
 
-  // Fetch one page (20). Page 0 is cached for instant re-open; forward pages use
-  // the stored Gmail page tokens. Small pages keep GMAIL_FETCH_EMAILS fast.
   const loadPage = useCallback((idx: number) => {
     setRefreshing(true);
     if (idx === 0 && !inboxCache) setInboxState('loading');
@@ -84,10 +90,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
   }, []);
 
-  // Refresh resets pagination back to the first page.
   const refreshInbox = useCallback(() => { tokensRef.current = [undefined]; loadPage(0); }, [loadPage]);
 
-  // Load when the inbox view opens (instant from cache, then a background refresh).
   useEffect(() => {
     if (agent === 'email' && emailTab === 'inbox' && hasMail) refreshInbox();
   }, [agent, emailTab, hasMail, refreshInbox]);
@@ -99,7 +103,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const onPullMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (pullStart.current === null) return;
     const dy = e.touches[0].clientY - pullStart.current;
-    setPull(dy > 0 ? Math.min(dy * 0.5, 90) : 0); // damped, capped
+    setPull(dy > 0 ? Math.min(dy * 0.5, 90) : 0);
   };
   const onPullEnd = () => {
     if (pullStart.current !== null && pull >= PULL_THRESHOLD && hasMail && !refreshing) refreshInbox();
@@ -107,9 +111,30 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setPull(0);
   };
 
+  // Compose helpers
+  const openCompose = () => { tap(); setTo(''); setSubject(''); setBodyText(''); setSendState('idle'); setEmailTab('compose'); };
+  const validTo = EMAIL_RE.test(to.trim());
+  const doSend = () => {
+    tap();
+    setSendState('sending');
+    sendEmail({ to: to.trim(), subject: subject.trim(), body: bodyText })
+      .then(() => { if (mountedRef.current) setSendState('sent'); })
+      .catch(() => { if (mountedRef.current) setSendState('err'); });
+  };
+
   const inInbox = agent === 'email' && emailTab === 'inbox' && !reading;
   const goPage = (idx: number) => { if (refreshing) return; tap(); loadPage(idx); };
   const hasPager = pageIdx > 0 || !!nextTok;
+
+  const connectCard = (extra: string) => (
+    <div className="ag-connect">
+      <span className="ag-connect-ic"><IconConnectors size={20} /></span>
+      <div className="ag-connect-text">
+        <div className="ag-connect-title">Connect a mailbox</div>
+        <div className="ag-connect-sub">{extra}</div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="memg ag" ref={trapRef} tabIndex={-1}>
@@ -117,11 +142,16 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         <button className="memg-back" onClick={back} aria-label={reading || agent ? 'Back' : 'Close'}><IconArrowLeft size={22} /></button>
         <div className="memg-titles">
           <h1 className="memg-title">
-            {reading ? 'Email' : inInbox ? 'Inbox' : agent === 'email' ? 'Email Agent' : 'Agents'}
+            {reading ? 'Email'
+              : agent === 'email' && emailTab === 'inbox' ? 'Inbox'
+              : agent === 'email' && emailTab === 'compose' ? 'New email'
+              : agent === 'email' ? 'Email Agent'
+              : 'Agents'}
           </h1>
           <p className="memg-sub">
             {reading ? (reading.from || reading.email || 'Message')
-              : inInbox ? 'Newest first'
+              : agent === 'email' && emailTab === 'inbox' ? 'Newest first'
+              : agent === 'email' && emailTab === 'compose' ? (sendState === 'sent' ? 'Sent' : 'Compose')
               : agent === 'email' ? (hasMail ? 'Ready' : 'Connect a mailbox to begin')
               : 'Your AI specialists — each one handles a job'}
           </p>
@@ -178,55 +208,86 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               <IconRefresh size={18} />
             </span>
           </div>
-          {!hasMail ? (
-            <div className="ag-connect">
-              <span className="ag-connect-ic"><IconConnectors size={20} /></span>
-              <div className="ag-connect-text">
-                <div className="ag-connect-title">Connect a mailbox</div>
-                <div className="ag-connect-sub">Link Gmail or Outlook so the agent can read your inbox.</div>
+          {!hasMail ? connectCard('Link Gmail or Outlook so the agent can read your inbox.')
+            : inboxState === 'err' ? (
+              <div className="ag-empty">
+                Couldn’t load your inbox.{' '}
+                <button className="ag-retry" onClick={() => { tap(); refreshInbox(); }}>Try again</button>
               </div>
-            </div>
-          ) : inboxState === 'err' ? (
-            <div className="ag-empty">
-              Couldn’t load your inbox.{' '}
-              <button className="ag-retry" onClick={() => { tap(); refreshInbox(); }}>Try again</button>
-            </div>
-          ) : inboxState === 'ok' && inbox.length === 0 ? (
-            <div className="ag-empty">Inbox is empty.</div>
-          ) : inbox.length ? (
-            <>
-              <div className="ag-inbox" key={pageIdx}>
-                <EmailList items={inbox} onOpen={(it) => { tap(); setReading(it); }} />
-              </div>
-              {hasPager && (
-                <div className="ag-pager">
-                  <button onClick={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || refreshing}>‹ Prev</button>
-                  <span className="ag-pager-n">Page {pageIdx + 1}</span>
-                  <button onClick={() => goPage(pageIdx + 1)} disabled={!nextTok || refreshing}>Next ›</button>
+            ) : inboxState === 'ok' && inbox.length === 0 ? (
+              <div className="ag-empty">Inbox is empty.</div>
+            ) : inbox.length ? (
+              <>
+                <div className="ag-inbox" key={pageIdx}>
+                  <EmailList items={inbox} onOpen={(it) => { tap(); setReading(it); }} />
                 </div>
-              )}
+                {hasPager && (
+                  <div className="ag-pager">
+                    <button onClick={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || refreshing}>‹ Prev</button>
+                    <span className="ag-pager-n">Page {pageIdx + 1}</span>
+                    <button onClick={() => goPage(pageIdx + 1)} disabled={!nextTok || refreshing}>Next ›</button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <EmailSkeleton />
+            )}
+        </div>
+      ) : emailTab === 'compose' ? (
+        <div className="ag-stage ag-compose">
+          {!hasMail ? connectCard('Link Gmail so the agent can send on your behalf.')
+            : sendState === 'sent' ? (
+              <div className="ag-sent">
+                <span className="ag-sent-ic"><IconCheck size={26} /></span>
+                <div className="ag-sent-title">Sent</div>
+                <div className="ag-sent-sub">Your email is on its way.</div>
+                <div className="ag-sent-actions">
+                  <button className="ag-send-btn ghost" onClick={openCompose}>New email</button>
+                  <button className="ag-send-btn" onClick={() => { tap(); setEmailTab('home'); }}>Done</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <input
+                  className="ag-field" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off"
+                  placeholder="To" value={to} onChange={(e) => setTo(e.target.value)}
+                />
+                <input className="ag-field" placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+                <textarea className="ag-field ag-body" placeholder="Write your message…" value={bodyText} onChange={(e) => setBodyText(e.target.value)} />
+                {sendState === 'err' && <div className="ag-send-err">Couldn’t send — check the address and try again.</div>}
+                <button
+                  className="ag-send-btn"
+                  onClick={() => { tap(); setSendState('confirm'); }}
+                  disabled={!validTo || sendState === 'sending'}
+                >
+                  {sendState === 'sending' ? 'Sending…' : 'Send'}
+                </button>
+              </>
+            )}
+
+          {sendState === 'confirm' && (
+            <>
+              <div className="ag-confirm-scrim" onClick={() => { tap(); setSendState('idle'); }} />
+              <div className="ag-confirm" role="dialog" aria-label="Confirm send">
+                <div className="ag-confirm-title">Send this email?</div>
+                <div className="ag-confirm-sub">To {to.trim()}{subject.trim() ? ` · ${subject.trim()}` : ''}</div>
+                <div className="ag-confirm-actions">
+                  <button className="ag-confirm-cancel" onClick={() => { tap(); setSendState('idle'); }}>Cancel</button>
+                  <button className="ag-confirm-send" onClick={doSend}>Send</button>
+                </div>
+              </div>
             </>
-          ) : (
-            <EmailSkeleton />
           )}
         </div>
       ) : (
         <div className="ag-stage">
-          {!hasMail && (
-            <div className="ag-connect">
-              <span className="ag-connect-ic"><IconConnectors size={20} /></span>
-              <div className="ag-connect-text">
-                <div className="ag-connect-title">Connect a mailbox</div>
-                <div className="ag-connect-sub">Link Gmail or Outlook so the agent can read, draft and send.</div>
-              </div>
-            </div>
-          )}
+          {!hasMail && connectCard('Link Gmail or Outlook so the agent can read, draft and send.')}
           <div className="ag-grid">
             {EMAIL_ACTIONS.map((act) => (
               <button
                 key={act.id}
                 className="ag-act"
-                onClick={() => { tap(); if (act.id === 'inbox') setEmailTab('inbox'); /* else TODO: open the compose flow */ }}
+                onClick={() => { tap(); if (act.id === 'inbox') setEmailTab('inbox'); else if (act.id === 'new') openCompose(); }}
               >
                 <span className="ag-act-ic"><act.icon size={20} /></span>
                 <span className="ag-act-label">{act.label}</span>

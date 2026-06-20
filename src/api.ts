@@ -58,6 +58,20 @@ export async function fetchInbox(max = 20, pageToken?: string): Promise<{ items:
   return { items: Array.isArray(j.items) ? j.items : [], nextPageToken: j.nextPageToken ?? null };
 }
 
+// Send an email (Composio GMAIL_SEND_EMAIL, server-verified). Returns on success,
+// throws on failure so the composer can show an error.
+const SEND_API = CONNECT_API.replace(/\/gmail-oauth$/, '/gmail-send');
+export async function sendEmail(msg: { to: string; subject: string; body: string; cc?: string[]; bcc?: string[] }): Promise<void> {
+  const token = await authToken();
+  const res = await fetch(SEND_API, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(msg),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok || !j.ok) throw new Error(j.error || `Send failed: ${res.status}`);
+}
+
 // Fetch one attachment's bytes (base64) or hosted URL — for inline images,
 // preview, and download. `app` routes to the right mailbox provider.
 export async function fetchAttachment(mid: string, aid: string, name = 'file', app?: string): Promise<{ b64?: string; url?: string }> {
