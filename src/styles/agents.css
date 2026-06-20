@@ -95,6 +95,56 @@
 .ag-ptr-ic.ready { color: var(--brand); transform: rotate(180deg); }
 .ag-ptr-ic.spinning { color: var(--brand); animation: agSpin 0.8s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .ag-ptr-ic { transition: none; } .ag-ptr-ic.spinning { animation: none; } }
+
+/* Crystal-glass inbox cards — scoped to the Email agent, so chat's email cards
+   stay as-is. Keeps the light Gmail color theme but makes each row its own more
+   transparent, frosted tile, with a staggered entrance + press feedback. */
+.ag-inbox { margin-top: 4px; }
+.ag-inbox .gf-emails.gf-gmail {
+  background: transparent; border: none; box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  overflow: visible; margin: 0;
+}
+.ag-inbox .gf-email {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 15px;
+  margin-bottom: 8px;
+  padding: 12px 13px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.60), rgba(247, 250, 253, 0.42));
+  -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  animation: agCardIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ag-inbox .gf-email.unread { background: linear-gradient(160deg, rgba(255, 255, 255, 0.74), rgba(247, 250, 253, 0.56)); }
+.ag-inbox .gf-email.tappable { transition: transform 0.12s ease; }
+.ag-inbox .gf-email.tappable:active { transform: scale(0.985); }
+@keyframes agCardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.ag-inbox .gf-email:nth-child(1) { animation-delay: 0ms; }
+.ag-inbox .gf-email:nth-child(2) { animation-delay: 30ms; }
+.ag-inbox .gf-email:nth-child(3) { animation-delay: 60ms; }
+.ag-inbox .gf-email:nth-child(4) { animation-delay: 90ms; }
+.ag-inbox .gf-email:nth-child(5) { animation-delay: 120ms; }
+.ag-inbox .gf-email:nth-child(6) { animation-delay: 150ms; }
+.ag-inbox .gf-email:nth-child(7) { animation-delay: 180ms; }
+.ag-inbox .gf-email:nth-child(8) { animation-delay: 210ms; }
+.ag-inbox .gf-email:nth-child(n+9) { animation-delay: 240ms; }
+@media (prefers-reduced-motion: reduce) {
+  .ag-inbox .gf-email { animation: none; }
+  .ag-inbox .gf-email.tappable { transition: none; }
+  .ag-inbox .gf-email.tappable:active { transform: none; }
+}
+
+/* Inbox pager (bottom of the inbox view). */
+.ag-pager { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 6px 0 4px; }
+.ag-pager button {
+  background: var(--glass); border: 1px solid var(--glass-edge);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  color: var(--text); font: inherit; font-size: var(--fs-footnote); font-weight: 600;
+  padding: 7px 15px; border-radius: var(--r-pill); cursor: pointer;
+}
+.ag-pager button:active { background: var(--glass-strong, #ffffff14); }
+.ag-pager button:disabled { opacity: 0.4; cursor: default; }
+.ag-pager-n { font-size: var(--fs-footnote); color: var(--text-dim); min-width: 96px; text-align: center; }
 .ag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ag-act {
   display: flex; flex-direction: column; align-items: flex-start; gap: 5px;

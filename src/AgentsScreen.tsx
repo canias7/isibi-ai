@@ -30,7 +30,9 @@ const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[]
   { id: 'broadcast', label: 'Broadcast', sub: 'To a list', icon: IconWaveform },
 ];
 
-const PULL_THRESHOLD = 64; // px of pull-down that triggers a refresh
+const PAGE_SIZE = 20;       // emails shown per inbox page
+const FETCH_COUNT = 60;     // how many we pull + sort (3 pages worth)
+const PULL_THRESHOLD = 64;  // px of pull-down that triggers a refresh
 
 // Session cache so re-opening the inbox is instant. The overlay unmounts on
 // close, so this lives at module scope (not component state). In-memory only —
@@ -43,9 +45,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [inbox, setInbox] = useState<EmailItem[]>(() => inboxCache ?? []);
   const [inboxState, setInboxState] = useState<'idle' | 'loading' | 'ok' | 'err'>(inboxCache ? 'ok' : 'idle');
   const [refreshing, setRefreshing] = useState(false);
+  const [pageIdx, setPageIdx] = useState(0);
   const [reading, setReading] = useState<EmailItem | null>(null);
   const [pull, setPull] = useState(0); // pull-to-refresh distance (px)
   const pullStart = useRef<number | null>(null);
+  const inboxScrollRef = useRef<HTMLDivElement>(null);
   const trapRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -67,8 +71,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const loadInbox = useCallback(() => {
     setRefreshing(true);
     if (!inboxCache) setInboxState('loading');
-    fetchInbox(12)
-      .then((items) => { if (!mountedRef.current) return; inboxCache = items; setInbox(items); setInboxState('ok'); })
+    fetchInbox(FETCH_COUNT)
+      .then((items) => { if (!mountedRef.current) return; inboxCache = items; setInbox(items); setInboxState('ok'); setPageIdx(0); })
       .catch(() => { if (mountedRef.current && !inboxCache) setInboxState('err'); })
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
   }, []);
@@ -94,6 +98,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   };
 
   const inInbox = agent === 'email' && emailTab === 'inbox' && !reading;
+  const totalPages = Math.max(1, Math.ceil(inbox.length / PAGE_SIZE));
+  const safeIdx = Math.min(pageIdx, totalPages - 1);
+  const pageItems = inbox.slice(safeIdx * PAGE_SIZE, safeIdx * PAGE_SIZE + PAGE_SIZE);
+  const goPage = (idx: number) => { tap(); setPageIdx(idx); inboxScrollRef.current?.scrollTo({ top: 0 }); };
 
   return (
     <div className="memg ag" ref={trapRef} tabIndex={-1}>
@@ -152,7 +160,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <p className="ag-foot">More agents on the way — each a specialist that works across your connected apps.</p>
         </div>
       ) : emailTab === 'inbox' ? (
-        <div className="ag-stage" onTouchStart={onPullStart} onTouchMove={onPullMove} onTouchEnd={onPullEnd}>
+        <div className="ag-stage" ref={inboxScrollRef} onTouchStart={onPullStart} onTouchMove={onPullMove} onTouchEnd={onPullEnd}>
           <div
             className="ag-ptr"
             style={{ height: pull, transition: pullStart.current !== null ? 'none' : 'height 0.18s ease' }}
@@ -178,7 +186,18 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           ) : inboxState === 'ok' && inbox.length === 0 ? (
             <div className="ag-empty">Inbox is empty.</div>
           ) : inbox.length ? (
-            <EmailList items={inbox} onOpen={(it) => { tap(); setReading(it); }} />
+            <>
+              <div className="ag-inbox" key={safeIdx}>
+                <EmailList items={pageItems} onOpen={(it) => { tap(); setReading(it); }} />
+              </div>
+              {totalPages > 1 && (
+                <div className="ag-pager">
+                  <button onClick={() => goPage(safeIdx - 1)} disabled={safeIdx === 0}>‹ Prev</button>
+                  <span className="ag-pager-n">Page {safeIdx + 1} of {totalPages}</span>
+                  <button onClick={() => goPage(safeIdx + 1)} disabled={safeIdx >= totalPages - 1}>Next ›</button>
+                </div>
+              )}
+            </>
           ) : (
             <EmailSkeleton />
           )}
