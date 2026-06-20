@@ -36,6 +36,7 @@ export const IMAP_PROVIDERS: Record<string, { imapHost?: string; imapPort?: numb
   mailcom: { imapHost: 'imap.mail.com', imapPort: 993, smtpHost: 'smtp.mail.com', smtpPort: 587 },
   mailru: { imapHost: 'imap.mail.ru', imapPort: 993, smtpHost: 'smtp.mail.ru', smtpPort: 465, help: 'https://help.mail.ru/mail/security/protection/external' },
   neo: { imapHost: 'imap0001.neo.space', imapPort: 993, smtpHost: 'smtp0001.neo.space', smtpPort: 465, help: 'https://support.neo.space/hc/en-us/articles/13617484527001-Configure-Neo-on-other-apps-using-IMAP-POP' },
+  titan: { imapHost: 'imap.titan.email', imapPort: 993, smtpHost: 'smtp.titan.email', smtpPort: 465, help: 'https://support.titan.email/hc/en-us/articles/900000215446-Configure-Titan-on-other-apps-using-IMAP-POP' },
   imap_other: {},
 };
 
@@ -69,6 +70,7 @@ export const CONNECTORS: Connector[] = [
   { id: 'mailcom', name: 'Mail.com', logo: fav('mail.com'), color: '#004788', desc: 'Mail.com — via IMAP', auth: 'imap' },
   { id: 'mailru', name: 'Mail.ru', logo: fav('mail.ru'), color: '#005FF9', desc: 'Mail.ru — via IMAP', auth: 'imap' },
   { id: 'neo', name: 'Neo', logo: fav('neo.space'), color: '#7A5AF8', desc: 'Neo business email — via IMAP', auth: 'imap' },
+  { id: 'titan', name: 'Titan Email', logo: fav('titan.email'), color: '#1A6DFF', desc: 'Titan business email — via IMAP', auth: 'imap' },
   { id: 'imap_other', name: 'Other email', logo: fav('mail'), color: '#8E8E93', desc: 'Any IMAP mailbox', auth: 'imap' },
   { id: 'slack', name: 'Slack', logo: fav('slack.com'), color: '#4A154B', desc: 'Read and send messages' },
   { id: 'hubspot', name: 'HubSpot', logo: si('hubspot'), color: '#FF7A59', desc: 'Contacts, deals & CRM' },
