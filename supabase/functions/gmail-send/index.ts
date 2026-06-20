@@ -1,8 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// Send an email via Composio GMAIL_SEND_EMAIL. Identity is verified server-side
-// (the caller's Supabase access token), so a client can only ever send as
-// themselves. POST { to, subject, body, cc?, bcc? } -> { ok } or { ok:false, error }.
+// Send a new email (GMAIL_SEND_EMAIL) or reply in a thread (GMAIL_REPLY_TO_THREAD
+// when a threadId is given). Identity is verified server-side (the caller's
+// Supabase access token), so a client can only ever send as themselves.
+// POST { to, subject, body, threadId?, cc?, bcc? } -> { ok } or { ok:false, error }.
 
 const API_KEY = Deno.env.get("COMPOSIO_API_KEY") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -60,15 +61,21 @@ Deno.serve(async (req: Request) => {
   const to = String(payload.to ?? "").trim();
   const subject = String(payload.subject ?? "");
   const body = String(payload.body ?? "");
+  const threadId = String(payload.threadId ?? "").trim();
   const cc = Array.isArray(payload.cc) ? (payload.cc as string[]).filter((s) => EMAIL_RE.test(String(s).trim())) : [];
   const bcc = Array.isArray(payload.bcc) ? (payload.bcc as string[]).filter((s) => EMAIL_RE.test(String(s).trim())) : [];
-  if (!EMAIL_RE.test(to)) return json(req, { ok: false, error: "invalid_recipient" }, 400);
+  // New email needs a valid recipient; a reply gets the recipient from the thread.
+  if (!threadId && !EMAIL_RE.test(to)) return json(req, { ok: false, error: "invalid_recipient" }, 400);
 
   try {
-    const args: Record<string, unknown> = { recipient_email: to, subject, body, is_html: false };
+    const tool = threadId ? "GMAIL_REPLY_TO_THREAD" : "GMAIL_SEND_EMAIL";
+    const args: Record<string, unknown> = threadId
+      ? { thread_id: threadId, message_body: body, is_html: false }
+      : { recipient_email: to, subject, body, is_html: false };
+    if (threadId && EMAIL_RE.test(to)) args.recipient_email = to;
     if (cc.length) args.cc = cc;
     if (bcc.length) args.bcc = bcc;
-    const res = await fetch("https://backend.composio.dev/api/v3/tools/execute/GMAIL_SEND_EMAIL", {
+    const res = await fetch(`https://backend.composio.dev/api/v3/tools/execute/${tool}`, {
       method: "POST",
       headers: { "x-api-key": API_KEY, "content-type": "application/json" },
       body: JSON.stringify({ user_id: uid, arguments: args }),
@@ -76,7 +83,7 @@ Deno.serve(async (req: Request) => {
     const b = await res.json().catch(() => ({})) as Record<string, unknown>;
     const ok = res.ok && b?.error == null && b?.successful !== false;
     if (!ok) {
-      console.error("send failed:", res.status, JSON.stringify(b?.error ?? b).slice(0, 300));
+      console.error("send failed:", tool, res.status, JSON.stringify(b?.error ?? b).slice(0, 300));
       return json(req, { ok: false, error: "send_failed" }, 502);
     }
     return json(req, { ok: true });

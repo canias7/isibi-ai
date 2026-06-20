@@ -33,8 +33,7 @@ const PAGE_SIZE = 20;       // emails per page (kept small — GMAIL_FETCH_EMAIL
 const PULL_THRESHOLD = 64;  // px of pull-down that triggers a refresh
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Session cache (page 0) so re-opening the inbox is instant. In-memory only —
-// email snippets are never written to disk.
+// Session cache (page 0) so re-opening the inbox is instant. In-memory only.
 let inboxCache: EmailItem[] | null = null;
 
 type EmailTab = 'home' | 'inbox' | 'compose';
@@ -50,10 +49,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [nextTok, setNextTok] = useState<string | null>(null);
   const [reading, setReading] = useState<EmailItem | null>(null);
   const [pull, setPull] = useState(0);
-  // Compose state
+  // Compose / reply state
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
   const [bodyText, setBodyText] = useState('');
+  const [replyThreadId, setReplyThreadId] = useState<string | null>(null);
   const [sendState, setSendState] = useState<SendState>('idle');
   const tokensRef = useRef<(string | undefined)[]>([undefined]);
   const pullStart = useRef<number | null>(null);
@@ -96,7 +96,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (agent === 'email' && emailTab === 'inbox' && hasMail) refreshInbox();
   }, [agent, emailTab, hasMail, refreshInbox]);
 
-  // Pull-to-refresh: only arms when the list is scrolled to the very top.
   const onPullStart = (e: React.TouchEvent<HTMLDivElement>) => {
     pullStart.current = e.currentTarget.scrollTop <= 0 ? e.touches[0].clientY : null;
   };
@@ -112,12 +111,24 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   };
 
   // Compose helpers
-  const openCompose = () => { tap(); setTo(''); setSubject(''); setBodyText(''); setSendState('idle'); setEmailTab('compose'); };
+  const openCompose = () => { tap(); setReplyThreadId(null); setTo(''); setSubject(''); setBodyText(''); setSendState('idle'); setEmailTab('compose'); };
+  const openReply = () => {
+    if (!reading) return;
+    tap();
+    const subj = reading.subject || '';
+    setReplyThreadId(reading.threadId || null);
+    setTo(reading.email || '');
+    setSubject(/^re:/i.test(subj) ? subj : `Re: ${subj}`);
+    setBodyText('');
+    setSendState('idle');
+    setReading(null);
+    setEmailTab('compose');
+  };
   const validTo = EMAIL_RE.test(to.trim());
   const doSend = () => {
     tap();
     setSendState('sending');
-    sendEmail({ to: to.trim(), subject: subject.trim(), body: bodyText })
+    sendEmail({ to: to.trim(), subject: subject.trim(), body: bodyText, threadId: replyThreadId || undefined })
       .then(() => { if (mountedRef.current) setSendState('sent'); })
       .catch(() => { if (mountedRef.current) setSendState('err'); });
   };
@@ -144,7 +155,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <h1 className="memg-title">
             {reading ? 'Email'
               : agent === 'email' && emailTab === 'inbox' ? 'Inbox'
-              : agent === 'email' && emailTab === 'compose' ? 'New email'
+              : agent === 'email' && emailTab === 'compose' ? (replyThreadId ? 'Reply' : 'New email')
               : agent === 'email' ? 'Email Agent'
               : 'Agents'}
           </h1>
@@ -169,12 +180,15 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       </div>
 
       {reading ? (
-        <div className="ag-stage">
+        <div className="ag-stage ag-reader">
           <EmailDetail msg={{
             id: reading.id, app: reading.app, from: reading.from, email: reading.email,
             subject: reading.subject, time: reading.time, unread: reading.unread,
             draft: reading.draft, body: reading.snippet || '',
           }} />
+          {hasMail && reading.threadId ? (
+            <button className="ag-send-btn ag-reply-btn" onClick={openReply}>Reply</button>
+          ) : null}
         </div>
       ) : agent === null ? (
         <div className="ag-stage">
@@ -239,7 +253,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             : sendState === 'sent' ? (
               <div className="ag-sent">
                 <span className="ag-sent-ic"><IconCheck size={26} /></span>
-                <div className="ag-sent-title">Sent</div>
+                <div className="ag-sent-title">{replyThreadId ? 'Replied' : 'Sent'}</div>
                 <div className="ag-sent-sub">Your email is on its way.</div>
                 <div className="ag-sent-actions">
                   <button className="ag-send-btn ghost" onClick={openCompose}>New email</button>
@@ -260,7 +274,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   onClick={() => { tap(); setSendState('confirm'); }}
                   disabled={!validTo || sendState === 'sending'}
                 >
-                  {sendState === 'sending' ? 'Sending…' : 'Send'}
+                  {sendState === 'sending' ? 'Sending…' : replyThreadId ? 'Send reply' : 'Send'}
                 </button>
               </>
             )}
@@ -269,7 +283,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             <>
               <div className="ag-confirm-scrim" onClick={() => { tap(); setSendState('idle'); }} />
               <div className="ag-confirm" role="dialog" aria-label="Confirm send">
-                <div className="ag-confirm-title">Send this email?</div>
+                <div className="ag-confirm-title">{replyThreadId ? 'Send this reply?' : 'Send this email?'}</div>
                 <div className="ag-confirm-sub">To {to.trim()}{subject.trim() ? ` · ${subject.trim()}` : ''}</div>
                 <div className="ag-confirm-actions">
                   <button className="ag-confirm-cancel" onClick={() => { tap(); setSendState('idle'); }}>Cancel</button>
