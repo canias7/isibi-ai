@@ -103,11 +103,16 @@
    stay as-is. Keeps the light Gmail color theme but makes each row its own more
    transparent, frosted tile, with a staggered entrance + press feedback. */
 .ag-inbox { margin-top: 4px; }
-.ag-inbox .gf-emails.gf-gmail {
+.ag-inbox .gf-emails.gf-gmail,
+.ag-inbox .gf-emails.gf-outlook {
   background: transparent; border: none; box-shadow: none;
   -webkit-backdrop-filter: none; backdrop-filter: none;
   overflow: visible; margin: 0;
 }
+/* Per-row mailbox badge in the combined inbox (G = Gmail, O = Outlook). */
+.gf-chan { flex-shrink: 0; font-size: 9px; font-weight: 800; line-height: 1; padding: 2px 5px; border-radius: 5px; color: #fff; }
+.gf-chan-gmail { background: #EA4335; }
+.gf-chan-outlook { background: #0A66C2; }
 .ag-inbox .gf-email {
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 15px;

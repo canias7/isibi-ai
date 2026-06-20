@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, sendEmail, fetchContacts, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage } from './api';
+import { fetchInbox, fetchInboxMerged, sendEmail, fetchContacts, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -126,6 +126,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [bodyText, setBodyText] = useState('');
   const [replyThreadId, setReplyThreadId] = useState<string | null>(null);
   const [sendState, setSendState] = useState<SendState>('idle');
+  const [sendApp, setSendApp] = useState<'gmail' | 'outlook'>('gmail'); // which mailbox a send/reply goes through
   // Telegram workspace
   const [tgConnected, setTgConnected] = useState<boolean>(() => cachedConnected('telegram'));
   const [tgList, setTgList] = useState<TgChat[]>(() => tgChatsCache ?? []);
@@ -149,6 +150,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const mailConnected = commsApp === 'm365'
     ? connApps.includes('m365') || connApps.includes('outlook')
     : connApps.includes('gmail');
+  // Connected mailboxes (api app names). With 2+, the Inbox is one merged,
+  // newest-first feed with per-row badges; with 1, the existing paged inbox.
+  const mailApiApps = ['gmail', 'outlook'].filter((a) => (a === 'gmail' ? connApps.includes('gmail') : connApps.includes('m365') || connApps.includes('outlook')));
+  const combinedInbox = mailApiApps.length >= 2;
 
   // The connected comms apps, in COMMS order — the deck.
   const isCommConnected = useCallback((id: CommsId): boolean => {
@@ -188,6 +193,16 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
   }, [mailApp]);
   const refreshInbox = useCallback(() => { tokensRef.current = [undefined]; loadPage(0); }, [loadPage]);
+  // Combined inbox (2+ mailboxes): one merged, newest-first page, no pager.
+  const loadMerged = useCallback(() => {
+    setRefreshing(true);
+    if (!inboxCache['all']) setInboxState('loading');
+    const apps = ['gmail', 'outlook'].filter((a) => (a === 'gmail' ? connApps.includes('gmail') : connApps.includes('m365') || connApps.includes('outlook')));
+    fetchInboxMerged(apps, 40)
+      .then((items) => { if (!mountedRef.current) return; setInbox(items); setInboxState('ok'); inboxCache['all'] = items; inboxScrollRef.current?.scrollTo({ top: 0 }); })
+      .catch(() => { if (mountedRef.current && !inboxCache['all']) setInboxState('err'); })
+      .finally(() => { if (mountedRef.current) setRefreshing(false); });
+  }, [connApps]);
 
   const loadContacts = useCallback(() => {
     if (!contactsCache[mailApp]) setContactsState('loading');
@@ -226,11 +241,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (commsApp === 'telegram') {
       if (tgChat) loadTgMsgs(tgChat.id); else loadTgChats();
     } else if (emailTab === 'inbox') {
-      refreshInbox();
+      if (combinedInbox) loadMerged(); else refreshInbox();
     } else if (emailTab === 'contacts') {
       loadContacts();
     }
-  }, [agent, commsApp, emailTab, tgChat, refreshInbox, loadContacts, loadTgChats, loadTgMsgs]);
+  }, [agent, commsApp, emailTab, tgChat, combinedInbox, refreshInbox, loadMerged, loadContacts, loadTgChats, loadTgMsgs]);
 
   const openComms = (id: CommsId) => {
     tap();
@@ -260,13 +275,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setPull(dy > 0 ? Math.min(dy * 0.5, 90) : 0);
   };
   const onPullEnd = () => {
-    if (pullStart.current !== null && pull >= PULL_THRESHOLD && mailConnected && !refreshing) refreshInbox();
+    if (pullStart.current !== null && pull >= PULL_THRESHOLD && mailConnected && !refreshing) { if (combinedInbox) loadMerged(); else refreshInbox(); }
     pullStart.current = null;
     setPull(0);
   };
 
   // Compose helpers
-  const openCompose = () => { tap(); setReplyThreadId(null); setTo(''); setSubject(''); setBodyText(''); setSendState('idle'); setEmailTab('compose'); };
+  const openCompose = () => { tap(); setReplyThreadId(null); setTo(''); setSubject(''); setBodyText(''); setSendState('idle'); setSendApp(mailApp); setEmailTab('compose'); };
   const openReply = () => {
     if (!reading) return;
     tap();
@@ -276,6 +291,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setSubject(/^re:/i.test(subj) ? subj : `Re: ${subj}`);
     setBodyText('');
     setSendState('idle');
+    setSendApp(reading.app === 'outlook' ? 'outlook' : 'gmail'); // reply through the email's own mailbox
     setReading(null);
     setEmailTab('compose');
   };
@@ -283,7 +299,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const doSend = () => {
     tap();
     setSendState('sending');
-    sendEmail({ to: to.trim(), subject: subject.trim(), body: bodyText, threadId: replyThreadId || undefined, app: mailApp })
+    sendEmail({ to: to.trim(), subject: subject.trim(), body: bodyText, threadId: replyThreadId || undefined, app: sendApp })
       .then(() => { if (mountedRef.current) setSendState('sent'); })
       .catch(() => { if (mountedRef.current) setSendState('err'); });
   };
@@ -310,7 +326,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const inTgList = commsApp === 'telegram' && !tgChat;
   const showRefresh = inMailInbox || inTgList;
   const refreshSpin = refreshing || (inTgList && tgListState === 'loading');
-  const doRefresh = () => { tap(); if (inMailInbox) refreshInbox(); else if (inTgList) loadTgChats(); };
+  const doRefresh = () => { tap(); if (inMailInbox) { if (combinedInbox) loadMerged(); else refreshInbox(); } else if (inTgList) loadTgChats(); };
   const goPage = (idx: number) => { if (refreshing) return; tap(); loadPage(idx); };
   const hasPager = pageIdx > 0 || !!nextTok;
 
@@ -569,16 +585,16 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             : inboxState === 'err' ? (
               <div className="ag-empty">
                 Couldn’t load your inbox.{' '}
-                <button className="ag-retry" onClick={() => { tap(); refreshInbox(); }}>Try again</button>
+                <button className="ag-retry" onClick={() => { tap(); if (combinedInbox) loadMerged(); else refreshInbox(); }}>Try again</button>
               </div>
             ) : inboxState === 'ok' && inbox.length === 0 ? (
               <div className="ag-empty">Inbox is empty.</div>
             ) : inbox.length ? (
               <>
                 <div className="ag-inbox" key={pageIdx}>
-                  <EmailList items={inbox} onOpen={(it) => { tap(); setReading(it); }} />
+                  <EmailList items={inbox} onOpen={(it) => { tap(); setReading(it); }} badges={combinedInbox} />
                 </div>
-                {hasPager && (
+                {!combinedInbox && hasPager && (
                   <div className="ag-pager">
                     <button onClick={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || refreshing}>‹ Prev</button>
                     <span className="ag-pager-n">Page {pageIdx + 1}</span>

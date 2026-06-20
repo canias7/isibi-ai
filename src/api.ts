@@ -58,6 +58,16 @@ export async function fetchInbox(max = 20, pageToken?: string, app = 'gmail'): P
   return { items: Array.isArray(j.items) ? j.items : [], nextPageToken: j.nextPageToken ?? null };
 }
 
+// Combined inbox: fetch each connected mailbox's recent emails in parallel and
+// merge newest-first across providers (by the `ts` epoch the backend stamps).
+// Used when 2+ mailboxes are connected; one provider failing doesn't sink it.
+export async function fetchInboxMerged(apps: string[], max = 40): Promise<EmailItem[]> {
+  const lists = await Promise.all(
+    apps.map((a) => fetchInbox(max, undefined, a).then((r) => r.items).catch(() => [] as EmailItem[])),
+  );
+  return lists.flat().sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0)).slice(0, max);
+}
+
 // Fetch the user's contacts directly (no chat turn) — rendered with <ContactsList>.
 const CONTACTS_API = CONNECT_API.replace(/\/gmail-oauth$/, '/contacts');
 export async function fetchContacts(app = 'gmail'): Promise<ContactItem[]> {

@@ -19,6 +19,7 @@ export interface EmailItem {
   app?: string; // mailbox provider ('gmail' | 'outlook'); themes the card
   draft?: boolean; // an unsent draft (shows a "Draft" badge); id = its message id
   threadId?: string; // Gmail thread id — used to reply in-thread
+  ts?: number; // epoch ms — used to merge-sort a combined (multi-mailbox) inbox
 }
 
 export interface EmailMessage {
@@ -125,14 +126,16 @@ function Avatar({ from, email }: { from?: string; email?: string }) {
   );
 }
 
-export function EmailList({ items, onOpen }: { items: EmailItem[]; onOpen?: (it: EmailItem) => void }) {
+export function EmailList({ items, onOpen, badges }: { items: EmailItem[]; onOpen?: (it: EmailItem) => void; badges?: boolean }) {
   const app = providerOf(items[0]?.app, items[0]?.id);
   for (const it of items) {
     if (it.id) rememberHint(it.id, { from: it.from, email: it.email, subject: it.subject, time: it.time, unread: it.unread, app: it.app, draft: it.draft });
   }
   return (
     <div className={`gf-emails gf-${app}`}>
-      {items.map((it, i) => (
+      {items.map((it, i) => {
+        const prov = providerOf(it.app, it.id); // per-row, so a combined inbox badges each mailbox
+        return (
         <div
           key={i}
           className={`gf-email ${it.unread ? 'unread' : ''}${onOpen ? ' tappable' : ''}`}
@@ -148,6 +151,7 @@ export function EmailList({ items, onOpen }: { items: EmailItem[]; onOpen?: (it:
           <div className="gf-main">
             <div className="gf-line1">
               <span className="gf-from">{it.from || it.email || 'Unknown'}</span>
+              {badges && <span className={`gf-chan gf-chan-${prov}`} title={prov === 'outlook' ? 'Outlook' : 'Gmail'}>{prov === 'outlook' ? 'O' : 'G'}</span>}
               {it.draft && <span className="gf-draft-pill">Draft</span>}
               {it.time && <span className="gf-time">{it.time}</span>}
             </div>
@@ -155,7 +159,8 @@ export function EmailList({ items, onOpen }: { items: EmailItem[]; onOpen?: (it:
             {it.snippet && <div className="gf-snippet">{it.snippet}</div>}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
