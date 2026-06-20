@@ -175,11 +175,21 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   // Telegram lives outside Composio too — its own `telegram` Edge Function (our
   // own MTProto auth). Special-cased by id for connect / status / disconnect.
   async function tgCall(action: string, extra: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
-    const { data, error } = await supabase.functions.invoke('telegram', { body: { action, ...extra } });
-    if (error) throw new Error(error.message || 'Request failed');
-    const d = (data || {}) as Record<string, unknown>;
-    if (d.error) throw new Error(String(d.error));
-    return d;
+    // The MTProto library is heavy to cold-start (can 546 WORKER_RESOURCE_LIMIT on
+    // the first hit after idle). Retry ONCE on an infra-level error to ride it out
+    // warm — but never on an app-level error (d.error like bad_code), which must
+    // surface immediately so we don't, e.g., resubmit a wrong login code.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { data, error } = await supabase.functions.invoke('telegram', { body: { action, ...extra } });
+      if (error) {
+        if (attempt === 0) { await new Promise((r) => setTimeout(r, 1500)); continue; }
+        throw new Error(error.message || 'Request failed');
+      }
+      const d = (data || {}) as Record<string, unknown>;
+      if (d.error) throw new Error(String(d.error));
+      return d;
+    }
+    throw new Error('Request failed');
   }
   // Plaid Hosted Link: open Plaid's page in the in-app browser, then poll the
   // backend until the bank is linked (public token exchanged + stored server-side).
