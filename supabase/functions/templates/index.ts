@@ -56,7 +56,7 @@ async function verifyUser(token: string | null): Promise<string | null> {
 
 async function getBrand(uid: string): Promise<Record<string, string>> {
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/brand_profiles?user_id=eq.${uid}&select=name,logo_url,color,voice,signoff`, { headers: sbHeaders });
+    const r = await fetch(`${SB_URL}/rest/v1/brand_profiles?user_id=eq.${uid}&select=name,logo_url,color,voice,signoff,address`, { headers: sbHeaders });
     const row = (await r.json().catch(() => []))?.[0];
     return (row && typeof row === "object") ? row : {};
   } catch {
@@ -65,8 +65,9 @@ async function getBrand(uid: string): Promise<Record<string, string>> {
 }
 
 // Ask Claude for one email as JSON { subject, body }. mode 'text' -> plain text
-// with {{name}}; mode 'design' -> email-client-safe HTML using the brand.
-async function generate(prompt: string, mode: string, brand: Record<string, string>): Promise<{ subject: string; body: string } | null> {
+// with {{name}}; mode 'design' -> a rich, email-client-safe HTML newsletter using
+// the brand + the provided image URLs (first = hero, rest fill feature sections).
+async function generate(prompt: string, mode: string, brand: Record<string, string>, images: string[]): Promise<{ subject: string; body: string } | null> {
   if (!ANTHROPIC_KEY) return null;
   const b = brand || {};
   const parts: string[] = [];
@@ -74,17 +75,19 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
   if (b.voice) parts.push(`voice/tone: ${b.voice}`);
   if (b.signoff) parts.push(`sign off every email exactly with: ${b.signoff}`);
   if (b.color) parts.push(`brand color (hex) for buttons and accents: ${b.color}`);
-  if (b.logo_url) parts.push(`logo image URL to place at the top: ${b.logo_url}`);
+  if (b.logo_url) parts.push(`logo image URL for the header: ${b.logo_url}`);
+  if (b.address) parts.push(`footer business address: ${b.address}`);
   const brandBlock = parts.length ? ` Match this brand - ${parts.join("; ")}.` : "";
+  const imgBlock = images.length
+    ? ` Use these image URLs in order, first as the full-width hero, the rest in the feature sections: ${images.join(", ")}.`
+    : " No images were provided - use light gray placeholder boxes (a div, background #eeeeee, height about 220px, centered muted 'Image' label) wherever an image would go.";
 
   const system = mode === "design"
-    ? ("You are an expert email designer and copywriter. Produce ONE marketing email as clean, email-client-safe HTML. " +
-      "Rules: inline styles ONLY (no style tag, no script tag, no external CSS, no markdown). One centered container, max-width 600px, width 100%, mobile-friendly. " +
-      "Put the logo at the top (max-height 48px) if a logo URL is given, otherwise the business name as a simple wordmark. " +
-      "Use the brand color for the main button, links and accents (fall back to a tasteful blue if none). " +
-      "Include a short headline, one to three short paragraphs, and ONE call-to-action button (rounded, brand-color background, white text) when it fits. " +
-      "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). End with the sign-off. " +
-      "Do NOT include an unsubscribe footer (the system appends one). Keep copy under ~150 words, warm and human." + brandBlock +
+    ? ("You are an expert email designer and copywriter. Produce ONE marketing newsletter email as clean, email-client-safe HTML. " +
+      "Structure top to bottom: a header with the logo (or the business name as a wordmark if no logo); a full-width hero image; a bold headline; one or two short intro paragraphs; then one or more feature/product sections, each with an image, a short title and a line of copy (add a small rounded discount badge like '20% off' ONLY if the description mentions a deal); a single prominent call-to-action button (rounded, brand-color background, white text); and a footer with the business name and address. " +
+      "Rules: inline styles ONLY (no style tag, no script tag, no external CSS, no markdown). One centered container, max-width 600px, width 100%, light background, mobile-friendly. Use the brand color for the button, links and accents (fall back to a tasteful blue if none). Every img must be display:block; width:100%; height:auto. " +
+      "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). End with the sign-off. Do NOT include an unsubscribe line (the system appends one)." +
+      brandBlock + imgBlock +
       " Respond with ONLY a JSON object with two string keys: subject (short and compelling) and body (the full HTML).")
     : ("You are an expert email copywriter for a small business owner. From the user's short description, write ONE email they can send to their contacts. " +
       "Voice: warm, clear, human; concise and scannable; no corporate fluff, no clickbait. " +
@@ -99,7 +102,7 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
     r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: MODEL, max_tokens: mode === "design" ? 3000 : 1500, system, messages: [{ role: "user", content: prompt.slice(0, 2000) }] }),
+      body: JSON.stringify({ model: MODEL, max_tokens: mode === "design" ? 4000 : 1500, system, messages: [{ role: "user", content: prompt.slice(0, 2000) }] }),
     });
   } catch {
     return null;
@@ -147,6 +150,7 @@ Deno.serve(async (req: Request) => {
         color: String(body?.color || "").slice(0, 20),
         voice: String(body?.voice || "").slice(0, 500),
         signoff: String(body?.signoff || "").slice(0, 300),
+        address: String(body?.address || "").slice(0, 300),
         updated_at: new Date().toISOString(),
       };
       const r = await fetch(`${SB_URL}/rest/v1/brand_profiles?on_conflict=user_id`, {
@@ -182,7 +186,8 @@ Deno.serve(async (req: Request) => {
       const prompt = String(body?.prompt || "").trim();
       if (!prompt) return json(req, { error: "missing_prompt" });
       const mode = String(body?.mode || "text") === "design" ? "design" : "text";
-      const out = await generate(prompt, mode, await getBrand(uid));
+      const images = Array.isArray(body?.images) ? (body.images as unknown[]).map((x) => String(x)).filter(Boolean).slice(0, 8) : [];
+      const out = await generate(prompt, mode, await getBrand(uid), images);
       return out ? json(req, { ...out, kind: mode === "design" ? "html" : "text" }) : json(req, { error: "generate_failed" });
     }
 
