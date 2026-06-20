@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { supabase } from './supabase';
-import { CONNECTORS, CONNECT_API, byId, type Connector } from './connectorData';
+import { CONNECTORS, CONNECT_API, IMAP_PROVIDERS, byId, type Connector } from './connectorData';
 import { tap } from './haptics';
 import { BrandLogo } from './brandLogos';
 import { hasBrand } from './brandData';
@@ -86,6 +86,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const keyRef = useRef<HTMLDivElement>(null);
   const tgRef = useRef<HTMLDivElement>(null);
+  const imapRef = useRef<HTMLDivElement>(null);
   // Seed from the on-device cache so the user's real apps show on the first
   // frame; refreshAll() reconciles against the server right after.
   const [status, setStatus] = useState<Record<string, Status>>(loadStatusCache);
@@ -110,13 +111,22 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const [tgToken, setTgToken] = useState('');
   const [tgBusy, setTgBusy] = useState(false);
   const [tgErr, setTgErr] = useState('');
+  // IMAP/SMTP "other email" connect form (our own auth) — email + app password.
+  const [imapFor, setImapFor] = useState<Connector | null>(null);
+  const [imapEmail, setImapEmail] = useState('');
+  const [imapPass, setImapPass] = useState('');
+  const [imapHost, setImapHost] = useState('');
+  const [imapSmtp, setImapSmtp] = useState('');
+  const [imapBusy, setImapBusy] = useState(false);
+  const [imapErr, setImapErr] = useState('');
   // With ToolManager open, the ROOT trap must go dormant too — its Esc handler
   // used to close the whole screen underneath the (trap-less) ToolManager.
-  useFocusTrap(!picker && !detail && !manage && !keyFor && !tgStep, rootRef, onClose);
-  useFocusTrap(picker && !detail && !keyFor && !tgStep, pickerRef, () => setPicker(false));
+  useFocusTrap(!picker && !detail && !manage && !keyFor && !tgStep && !imapFor, rootRef, onClose);
+  useFocusTrap(picker && !detail && !keyFor && !tgStep && !imapFor, pickerRef, () => setPicker(false));
   useFocusTrap(!!detail, sheetRef, () => setDetail(null));
   useFocusTrap(!!keyFor, keyRef, () => { setKeyFor(null); setKeyVal(''); });
   useFocusTrap(!!tgStep, tgRef, () => { setTgStep(null); setTgErr(''); });
+  useFocusTrap(!!imapFor, imapRef, () => { setImapFor(null); setImapErr(''); });
   // Animated dismissal for each layer; the sheet/manage content is latched so
   // it doesn't blank out during its exit beat.
   const pickerUi = useDismiss(picker);
@@ -190,6 +200,47 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       return d;
     }
     throw new Error('Request failed');
+  }
+  // IMAP/SMTP mailboxes (iCloud, Yahoo, Zoho, …) — our own `imap` Edge Function.
+  async function imapCall(action: string, extra: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { data, error } = await supabase.functions.invoke('imap', { body: { action, ...extra } });
+      if (error) { if (attempt === 0) { await new Promise((r) => setTimeout(r, 1500)); continue; } throw new Error(error.message || 'Request failed'); }
+      const d = (data || {}) as Record<string, unknown>;
+      if (d.error) throw new Error(String(d.error));
+      return d;
+    }
+    throw new Error('Request failed');
+  }
+  function imapFriendly(code: string): string {
+    if (/bad_credentials/i.test(code)) return 'That email or app password didn’t work — use an app-specific password, not your normal one.';
+    if (/need_servers/i.test(code)) return 'Enter your IMAP and SMTP server addresses.';
+    if (/imap_unset/i.test(code)) return 'Email connecting isn’t set up on the server yet.';
+    if (/connect_failed/i.test(code)) return 'Couldn’t reach that mail server — check the address.';
+    return 'Couldn’t connect — please try again.';
+  }
+  async function doImapConnect() {
+    if (!imapFor) return;
+    const email = imapEmail.trim();
+    if (!email || !imapPass) return;
+    const id = imapFor.id;
+    const p = IMAP_PROVIDERS[id] || {};
+    const extra: Record<string, unknown> = { email, password: imapPass, provider: id };
+    if (id === 'imap_other') {
+      if (!imapHost.trim() || !imapSmtp.trim()) { setImapErr('Enter your IMAP and SMTP server addresses.'); return; }
+      extra.imapHost = imapHost.trim(); extra.smtpHost = imapSmtp.trim();
+    } else { extra.imapHost = p.imapHost; extra.imapPort = p.imapPort; extra.smtpHost = p.smtpHost; extra.smtpPort = p.smtpPort; }
+    setImapBusy(true); setImapErr('');
+    try {
+      await imapCall('connect', extra);
+      void tap();
+      disconnectedAt.current.delete(id);
+      setStatus((s) => ({ ...s, [id]: { connected: true, email: null } })); // optimistic
+      setImapFor(null); setImapPass('');
+      void refreshAll(); setTimeout(() => void refreshAll(), 1500);
+    } catch (e) {
+      setImapErr(imapFriendly(String((e as Error)?.message || '')));
+    } finally { setImapBusy(false); }
   }
   // Plaid Hosted Link: open Plaid's page in the in-app browser, then poll the
   // backend until the bank is linked (public token exchanged + stored server-side).
@@ -331,6 +382,19 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       } catch {
         next.telegram = status.telegram ?? { connected: false, email: null };
       }
+      // IMAP mailboxes (our own backend) — one status call covers every imap tile.
+      try {
+        const im = await imapCall('status');
+        const accts = (im.accounts as { provider?: string }[]) ?? [];
+        for (const c of CONNECTORS) {
+          if (c.auth !== 'imap') continue;
+          next[c.id] = (disconnectedAt.current.get(c.id) ?? 0) > Date.now()
+            ? { connected: false, email: null }
+            : { connected: accts.some((a) => a.provider === c.id), email: null };
+        }
+      } catch {
+        for (const c of CONNECTORS) if (c.auth === 'imap') next[c.id] = status[c.id] ?? { connected: false, email: null };
+      }
       // A newer refresh (or a disconnect) superseded this one — drop the stale result.
       if (gen !== refreshSeq.current || !aliveRef.current) return;
       setStatus(next);
@@ -416,6 +480,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     void tap(); // the only overlay whose primary actions had no haptic
     if (id === 'plaid') { setPicker(false); void connectPlaid(); return; }
     if (id === 'telegram') { setPicker(false); setActionErr(''); setTgErr(''); setTgPhone(''); setTgCode(''); setTgPass(''); setTgToken(''); setTgStep('phone'); return; }
+    if (byId(id)?.auth === 'imap') { const c = byId(id)!; const p = IMAP_PROVIDERS[id] || {}; setPicker(false); setActionErr(''); setImapErr(''); setImapEmail(''); setImapPass(''); setImapHost(p.imapHost || ''); setImapSmtp(p.smtpHost || ''); setImapFor(c); return; }
     if (connecting || flowLock.current) return; // one OAuth at a time — ignore double-taps (two flows clobber pendingConnect; the state guard alone misses same-frame taps)
     flowLock.current = true;
     setTimeout(() => { flowLock.current = false; }, 600);
@@ -571,6 +636,12 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     if (id === 'telegram') {
       try { await tgCall('disconnect'); }
       catch (e) { disconnectedAt.current.delete('telegram'); setActionErr('Couldn’t disconnect Telegram — please try again.'); console.error('telegram disconnect', e); }
+      setTimeout(() => void refreshAll(), 800);
+      return;
+    }
+    if (byId(id)?.auth === 'imap') {
+      try { const im = await imapCall('status'); for (const a of ((im.accounts as { email: string; provider?: string }[]) ?? [])) { if (a.provider === id) await imapCall('disconnect', { email: a.email }); } }
+      catch (e) { disconnectedAt.current.delete(id); setActionErr('Couldn’t disconnect — please try again.'); console.error('imap disconnect', e); }
       setTimeout(() => void refreshAll(), 800);
       return;
     }
@@ -897,6 +968,8 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
                     ? (status[sheetConn.id]?.email || 'Bank linked')
                     : sheetConn.id === 'telegram'
                     ? (status[sheetConn.id]?.email || 'Telegram connected')
+                    : byId(sheetConn.id)?.auth === 'imap'
+                    ? (status[sheetConn.id]?.connected ? 'Mailbox connected' : 'Not connected')
                     : (status[sheetConn.id]?.emails?.length ?? 0) > 1
                       ? `${status[sheetConn.id]!.emails!.length} accounts: ${status[sheetConn.id]!.emails!.join(', ')}`
                       : (status[sheetConn.id]?.email ? `Connected as ${status[sheetConn.id]?.email}`
@@ -909,7 +982,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
                 Reconnect
               </button>
             )}
-            {sheetConn.id !== 'telegram' && (
+            {sheetConn.id !== 'telegram' && byId(sheetConn.id)?.auth !== 'imap' && (
               <button className="cg-sheet-btn" onClick={() => { const c = sheetConn; setDetail(null); setManage(c); }}>
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 7a2 2 0 104 0 2 2 0 10-4 0M6 17a2 2 0 104 0 2 2 0 10-4 0" /></svg>
                 Choose tools
@@ -919,6 +992,12 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
               <button className="cg-sheet-btn" onClick={() => { setDetail(null); void connectPlaid(); }}>
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                 Link another bank
+              </button>
+            )}
+            {byId(sheetConn.id)?.auth === 'imap' && (
+              <button className="cg-sheet-btn" onClick={() => { const c = sheetConn; setDetail(null); void connect(c.id); }}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                Add another mailbox
               </button>
             )}
             {/* No "Add another account" for OAuth apps — one account per app keeps
@@ -999,6 +1078,48 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
               || (tgStep === 'password' && !tgPass)}
               onClick={() => void tgSubmit()}>
               {tgBusy ? 'Working…' : tgStep === 'phone' ? 'Send code' : 'Verify'}
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ---- IMAP/SMTP "other email" connect: email + app password (our own auth) ---- */}
+      {imapFor && (
+        <>
+          <div className="cg-sheet-backdrop" onClick={() => { setImapFor(null); setImapErr(''); }} />
+          <div className="cg-sheet" role="dialog" aria-label={`Connect ${imapFor.name}`} ref={imapRef} tabIndex={-1}>
+            <div className="cg-sheet-head">
+              <span className="cg-tile"><Tile id={imapFor.id} size={22} /></span>
+              <div>
+                <b>Connect {imapFor.name}</b>
+                <small>Your email + an app-specific password</small>
+              </div>
+            </div>
+            <input className="cg-key-input" type="email" value={imapEmail} autoFocus autoComplete="off"
+              autoCapitalize="off" spellCheck={false} placeholder="you@example.com" inputMode="email"
+              onChange={(e) => setImapEmail(e.target.value)} />
+            <input className="cg-key-input" type="password" value={imapPass} autoComplete="off"
+              placeholder="App password"
+              onChange={(e) => setImapPass(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && imapEmail.trim() && imapPass && !imapBusy) void doImapConnect(); }} />
+            {imapFor.id === 'imap_other' && (
+              <>
+                <input className="cg-key-input" value={imapHost} autoComplete="off" autoCapitalize="off" spellCheck={false}
+                  placeholder="IMAP server — e.g. imap.example.com" onChange={(e) => setImapHost(e.target.value)} />
+                <input className="cg-key-input" value={imapSmtp} autoComplete="off" autoCapitalize="off" spellCheck={false}
+                  placeholder="SMTP server — e.g. smtp.example.com" onChange={(e) => setImapSmtp(e.target.value)} />
+              </>
+            )}
+            {IMAP_PROVIDERS[imapFor.id]?.help && (
+              <button
+                onClick={() => { const u = IMAP_PROVIDERS[imapFor.id]?.help; if (u) void Browser.open({ url: u }); }}
+                style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 0, padding: '2px 2px 0', color: 'var(--brand)', font: 'inherit', fontSize: 'var(--fs-footnote)', cursor: 'pointer' }}
+              >How to create an app password →</button>
+            )}
+            {imapErr && <div className="cg-key-err">{imapErr}</div>}
+            <button className="cg-sheet-btn fix" disabled={imapBusy || !imapEmail.trim() || !imapPass}
+              onClick={() => void doImapConnect()}>
+              {imapBusy ? 'Connecting…' : 'Connect'}
             </button>
           </div>
         </>

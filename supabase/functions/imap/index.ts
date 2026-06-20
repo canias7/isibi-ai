@@ -143,7 +143,7 @@ Deno.serve(async (req: Request) => {
       if (!imap_host || !smtp_host) return json(req, { error: "need_servers" }, 400);
       const imap_port = Number(body?.imapPort || preset?.imap_port || 993);
       const smtp_port = Number(body?.smtpPort || preset?.smtp_port || 465);
-      const provider = preset?.provider || "other";
+      const provider = String(body?.provider || preset?.provider || "other"); // tile id, so per-tile status matches
 
       // Verify the credentials by actually logging in over IMAP.
       try {
