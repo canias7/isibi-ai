@@ -227,3 +227,96 @@
   background: none; border: none; color: var(--brand);
   font: inherit; font-weight: 700; cursor: pointer; padding: 0;
 }
+
+/* ---- Sendra app deck (swipe to choose a comms app) -------------------- */
+/* A horizontal, snap-scrolling card deck with an app-switcher feel: the
+   centered card is full-size; neighbors scale/tilt/fade (set per-frame in JS
+   from each card's distance to the viewport center). Full-bleed so neighbors
+   peek at the screen edges. */
+.ag-deck-stage { display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding-left: 0; padding-right: 0; }
+.ag-deck-stage > * { max-width: none; }
+.ag-deck {
+  display: flex; gap: 14px;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 22px 0;
+  perspective: 1100px;
+}
+.ag-deck::-webkit-scrollbar { display: none; }
+/* edge spacers so the first/last card can snap to center ((100 - card)/2). */
+.ag-deck::before, .ag-deck::after { content: ''; flex: 0 0 12vw; }
+.ag-deck-card {
+  flex: 0 0 76vw; max-width: 320px; min-height: 360px;
+  scroll-snap-align: center;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  padding: 28px 24px;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-hi), var(--glass-shadow);
+  border-radius: 26px;
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+  transform-origin: center center;
+  transition: opacity 0.12s linear;
+  will-change: transform, opacity;
+}
+.ag-deck-logo {
+  width: 72px; height: 72px; border-radius: 20px; display: grid; place-items: center;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid var(--glass-edge); margin-bottom: 4px;
+}
+.ag-deck-name { font-size: var(--fs-title); font-weight: 700; }
+.ag-deck-tag { font-size: var(--fs-footnote); color: var(--text-dim); line-height: 1.4; }
+.ag-deck-open { margin-top: auto; font-size: var(--fs-body-s); font-weight: 700; color: var(--brand); }
+.ag-deck-hint { text-align: center; color: var(--text-faint); font-size: var(--fs-footnote); margin-top: 2px; }
+
+/* ---- Telegram workspace: chats list + thread ------------------------- */
+.ag-tg-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.ag-tg-row {
+  display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; padding: 12px 13px;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge); box-shadow: var(--glass-hi);
+  border-radius: var(--r-card); color: var(--text); font: inherit; cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.ag-tg-row:active { transform: scale(0.985); }
+.ag-tg-ava { flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 1.05rem; }
+.ag-tg-row-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ag-tg-row-name { font-weight: 600; font-size: var(--fs-body-s); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-tg-row-sub { font-size: var(--fs-footnote); color: var(--text-dim); }
+
+.ag-tg-thread { display: flex; flex-direction: column; overflow: hidden; padding-top: 0; padding-bottom: 0; }
+.ag-tg-msgs {
+  width: 100%; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: flex; flex-direction: column; gap: 8px; padding: 14px 2px;
+}
+.ag-bubble {
+  max-width: 80%; padding: 8px 12px; border-radius: 16px;
+  font-size: var(--fs-body-s); line-height: 1.4; word-break: break-word;
+  display: flex; flex-direction: column;
+  animation: agCardIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ag-bubble.in { align-self: flex-start; background: var(--glass); border: 1px solid var(--glass-edge); border-bottom-left-radius: 5px; color: var(--text); }
+.ag-bubble.out { align-self: flex-end; background: var(--grad-brand); color: var(--on-brand); border-bottom-right-radius: 5px; }
+.ag-bubble-text { white-space: pre-wrap; }
+.ag-bubble-time { font-size: 10px; opacity: 0.6; margin-top: 3px; align-self: flex-end; }
+@media (prefers-reduced-motion: reduce) { .ag-bubble { animation: none; } }
+.ag-tg-composer { width: 100%; flex-shrink: 0; display: flex; gap: 8px; align-items: center; padding: 10px 2px calc(12px + env(safe-area-inset-bottom)); }
+.ag-tg-input {
+  flex: 1; min-width: 0; box-sizing: border-box;
+  background: var(--glass); border: 1px solid var(--glass-edge);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  color: var(--text); font: inherit; font-size: var(--fs-body-s);
+  padding: 11px 15px; border-radius: var(--r-pill);
+}
+.ag-tg-input::placeholder { color: var(--text-faint); }
+.ag-tg-input:focus { outline: none; border-color: var(--brand); }
+.ag-tg-sendbtn {
+  flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; border: none;
+  background: var(--grad-brand); color: var(--on-brand);
+  display: grid; place-items: center; cursor: pointer;
+}
+.ag-tg-sendbtn:active { filter: brightness(0.95); }
+.ag-tg-sendbtn:disabled { opacity: 0.45; cursor: default; }
