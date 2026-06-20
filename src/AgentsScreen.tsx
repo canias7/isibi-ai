@@ -171,6 +171,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [tplSaving, setTplSaving] = useState(false);
   const [tplErr, setTplErr] = useState('');
   const [tplGenDesign, setTplGenDesign] = useState(true); // AI generates a designed HTML layout (vs plain text)
+  const [tplImages, setTplImages] = useState<string[]>([]); // photos the AI designer lays into the email
   // Brand profile (feeds the AI designer)
   const [brandEdit, setBrandEdit] = useState(false);
   const [bName, setBName] = useState('');
@@ -178,6 +179,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [bColor, setBColor] = useState('#FF7A45');
   const [bVoice, setBVoice] = useState('');
   const [bSignoff, setBSignoff] = useState('');
+  const [bAddress, setBAddress] = useState('');
   const [bBusy, setBBusy] = useState(false);
   const [bHas, setBHas] = useState(false); // a brand profile exists
 
@@ -332,8 +334,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
     if (sendraTab === 'templates') getBrand().then((br) => {
       if (!mountedRef.current) return;
-      setBName(br.name || ''); setBLogo(br.logo_url || ''); setBColor(br.color || '#FF7A45'); setBVoice(br.voice || ''); setBSignoff(br.signoff || '');
-      setBHas(!!(br.name || br.logo_url || br.voice || br.signoff));
+      setBName(br.name || ''); setBLogo(br.logo_url || ''); setBColor(br.color || '#FF7A45'); setBVoice(br.voice || ''); setBSignoff(br.signoff || ''); setBAddress(br.address || '');
+      setBHas(!!(br.name || br.logo_url || br.voice || br.signoff || br.address));
     });
   }, [agent, commsApp, sendraTab, campNew]);
 
@@ -499,13 +501,21 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     catch { if (mountedRef.current) setTplErr('Upload failed — try a smaller image.'); }
     finally { if (mountedRef.current) setTplImgBusy(false); }
   });
-  const openTplNew = () => { tap(); setTplEdit({}); setTplMode('text'); setTplName(''); setTplSubject(''); setTplBody(''); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplErr(''); };
-  const openTplEdit = (t: Template) => { tap(); setTplEdit({ id: t.id }); setTplMode(t.kind === 'html' ? 'html' : 'text'); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplErr(''); };
+  const openTplNew = () => { tap(); setTplEdit({}); setTplMode('text'); setTplName(''); setTplSubject(''); setTplBody(''); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplImages([]); setTplErr(''); };
+  const openTplEdit = (t: Template) => { tap(); setTplEdit({ id: t.id }); setTplMode(t.kind === 'html' ? 'html' : 'text'); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplImages([]); setTplErr(''); };
+  // Add a photo for the AI designer to lay into the email.
+  const addDesignImage = () => pickImage(async (b64, ct) => {
+    if (!b64) return;
+    setTplImgBusy(true); setTplErr('');
+    try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setTplImages((xs) => [...xs, url]); }
+    catch { if (mountedRef.current) setTplErr('Upload failed — try a smaller image.'); }
+    finally { if (mountedRef.current) setTplImgBusy(false); }
+  });
   const genTpl = async () => {
     if (!tplPrompt.trim() || tplGen) return;
     tap(); setTplGen(true); setTplErr('');
     try {
-      const r = await generateTemplate(tplPrompt.trim(), tplGenDesign ? 'design' : 'text');
+      const r = await generateTemplate(tplPrompt.trim(), tplGenDesign ? 'design' : 'text', tplGenDesign ? tplImages : []);
       if (!mountedRef.current) return;
       if (r.error || !r.subject) { setTplErr(r.error === 'ai_unset' ? 'AI writing isn’t set up on the server yet.' : 'Couldn’t generate — try rephrasing your description.'); return; }
       setTplSubject(r.subject || '');
@@ -548,9 +558,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (bBusy) return;
     tap(); setBBusy(true);
     try {
-      await saveBrand({ name: bName.trim(), logo_url: bLogo, color: bColor, voice: bVoice.trim(), signoff: bSignoff.trim() });
+      await saveBrand({ name: bName.trim(), logo_url: bLogo, color: bColor, voice: bVoice.trim(), signoff: bSignoff.trim(), address: bAddress.trim() });
       if (!mountedRef.current) return;
-      setBHas(!!(bName.trim() || bLogo || bVoice.trim() || bSignoff.trim()));
+      setBHas(!!(bName.trim() || bLogo || bVoice.trim() || bSignoff.trim() || bAddress.trim()));
       setBrandEdit(false);
     } catch { /* ignore */ }
     finally { if (mountedRef.current) setBBusy(false); }
@@ -787,6 +797,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   <label className="ag-brand-color">Brand color<input type="color" value={bColor} onChange={(e) => setBColor(e.target.value)} /><span>{bColor}</span></label>
                   <input className="ag-field" placeholder="Voice — e.g. warm & casual, polished & pro" value={bVoice} onChange={(e) => setBVoice(e.target.value)} />
                   <input className="ag-field" placeholder="Sign-off — e.g. — Cristian, Ania’s Capital" value={bSignoff} onChange={(e) => setBSignoff(e.target.value)} />
+                  <input className="ag-field" placeholder="Footer address — e.g. 1124 Robinwood Rd, Gastonia NC" value={bAddress} onChange={(e) => setBAddress(e.target.value)} />
                   <button className="ag-send-btn" disabled={bBusy} onClick={saveBrandProfile}>{bBusy ? 'Saving…' : 'Save brand'}</button>
                   <button className="ag-send-btn ghost" disabled={bBusy} onClick={() => { tap(); setBrandEdit(false); }}>Cancel</button>
                   <p className="ag-foot">The AI designer uses this on every generated email — logo, color, voice and sign-off.</p>
@@ -813,7 +824,21 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                           <button className="ag-ai-btn" disabled={tplGen || !tplPrompt.trim()} onClick={genTpl}>{tplGen ? 'Writing…' : '✨ Generate'}</button>
                         </div>
                       </div>
-                      <textarea className="ag-field ag-body" placeholder="Body — use {{name}} to personalize" value={tplBody} onChange={(e) => setTplBody(e.target.value)} />
+                      {tplGenDesign ? (
+                        <div className="ag-imgs">
+                          <div className="ag-imgs-head"><span>Photos for the design</span><button disabled={tplImgBusy} onClick={addDesignImage}>{tplImgBusy ? 'Uploading…' : '+ Add photo'}</button></div>
+                          {tplImages.length > 0 && (
+                            <div className="ag-imgs-row">
+                              {tplImages.map((u, i) => (
+                                <div className="ag-imgs-thumb" key={i}><img src={u} alt="" /><button onClick={() => { tap(); setTplImages((xs) => xs.filter((_, j) => j !== i)); }}>×</button></div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="ag-imgs-hint">First photo becomes the hero. No photos? The design uses placeholder boxes.</div>
+                        </div>
+                      ) : (
+                        <textarea className="ag-field ag-body" placeholder="Body — use {{name}} to personalize" value={tplBody} onChange={(e) => setTplBody(e.target.value)} />
+                      )}
                     </>
                   )}
                   {tplMode === 'flyer' && (
