@@ -91,3 +91,7 @@
   padding: 18px; text-align: center;
   border: 1px dashed var(--glass-edge); border-radius: var(--r-card);
 }
+.ag-retry {
+  background: none; border: none; color: var(--brand);
+  font: inherit; font-weight: 700; cursor: pointer; padding: 0;
+}
