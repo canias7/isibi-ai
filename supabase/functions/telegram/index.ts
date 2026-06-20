@@ -1,4 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// MTKruto MUST be a STATIC top-level import. Supabase bundles an edge function's
+// dependency graph into an eszip at deploy time by statically analyzing imports;
+// a dynamic `import(variableUrl)` is NOT followed, so the module is missing at
+// runtime ("Module not found") and every MTProto call 502s. Pinned to a current
+// release — the 0.1.x line's transitive deps no longer resolve on the runtime.
+import * as MTK from "https://deno.land/x/mtkruto@0.161.0/mod.ts";
 
 // Telegram connector — our OWN auth via Telegram's MTProto Client API (NOT
 // Composio). Mirrors how `plaid` is a standalone connector special-cased in the
@@ -6,6 +12,11 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // password; we hold the resulting session string AES-GCM-encrypted at rest
 // (never sent to the client), scoped to the Supabase uid so a client can only
 // ever act as themselves. MTProto runs in-process via MTKruto.
+//
+// MTKruto 0.161 TL API: invoke takes a plain object discriminated by `_`, e.g.
+// client.invoke({ _: "auth.sendCode", ... }) — there is no functions.*/types.*
+// constructor namespace anymore. checkPassword(password, accountPassword) is a
+// top-level export that returns the InputCheckPasswordSRP for auth.checkPassword.
 //
 // Actions (POST { action, ... }, invoked via supabase.functions.invoke):
 //   start          { phone }                -> { loginToken }           (sends the code)
@@ -27,8 +38,9 @@ const SB_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") || "";
 const sbHeaders = { apikey: SB_SERVICE, authorization: `Bearer ${SB_SERVICE}`, "content-type": "application/json" };
 
-// Pinned: the spike validated this exact version loads + connects in the edge runtime.
-const MTKRUTO = "https://deno.land/x/mtkruto@0.1.182/mod.ts";
+// MTKruto's surface is typed; we drive it dynamically, so alias to `any` once.
+// deno-lint-ignore no-explicit-any
+const M: any = MTK;
 
 // ---- CORS ----
 const ALLOWED_ORIGINS = new Set([
@@ -107,20 +119,19 @@ async function deleteSession(uid: string): Promise<void> {
 }
 
 // ---- MTKruto client ----
-// deno-lint-ignore no-explicit-any
-let MOD: any = null;
-// deno-lint-ignore no-explicit-any
-async function mtk(): Promise<any> { if (!MOD) MOD = await import(MTKRUTO); return MOD; }
 // Build a connected client. With an authString it RESUMES the existing auth key
 // (no re-handshake); without one it does a fresh MTProto handshake.
 // deno-lint-ignore no-explicit-any
 async function newClient(authString?: string): Promise<any> {
-  const mod = await mtk();
-  const client = new mod.Client({ storage: new mod.StorageMemory(), apiId: API_ID, apiHash: API_HASH });
+  const client = new M.Client({ storage: new M.StorageMemory(), apiId: API_ID, apiHash: API_HASH });
   if (authString) await client.importAuthString(authString);
   await client.connect();
   return client;
 }
+// MTKruto TelegramError stringifies as "<code>: <ERROR_MESSAGE> (<call>)" and
+// also exposes the bare code on .errorMessage — match against both.
+// deno-lint-ignore no-explicit-any
+function errOf(e: any): string { return String(e?.errorMessage || e?.message || e); }
 // JSON-safe: Telegram ids can be bigint.
 function safe<T>(o: T): T { return JSON.parse(JSON.stringify(o, (_k, v) => (typeof v === "bigint" ? Number(v) : v))); }
 // Coerce a numeric-string chatId back to a number (MTKruto chat ids); leave
@@ -148,26 +159,24 @@ Deno.serve(async (req: Request) => {
   const action = String(body?.action || "");
 
   // status is hot (the connectors page polls it) and needs no MTProto — answer
-  // before importing the heavy library.
+  // without touching the client.
   if (action === "status") {
     const s = await getSession(uid);
     return J({ connected: !!s, phone: s?.phone ?? null });
   }
 
   try {
-    const mod = await mtk();
-    const F = mod.functions;
-
     // ---- sign-in flow (no stored session yet) ----
     if (action === "start") {
       const phone = String(body?.phone || "").trim();
       if (!phone) return J({ error: "missing phone" }, 400);
       const client = await newClient();
       try {
-        const sent = await client.invoke(new F.auth.sendCode({
+        const sent = await client.invoke({
+          _: "auth.sendCode",
           phone_number: phone, api_id: API_ID, api_hash: API_HASH,
-          settings: new mod.types.CodeSettings({}),
-        }));
+          settings: { _: "codeSettings" },
+        });
         const phoneCodeHash = sent?.phone_code_hash;
         if (!phoneCodeHash) return J({ error: "send_code_failed" }, 502);
         // Carry the half-finished session (auth key + DC) + the code hash to the
@@ -175,7 +184,7 @@ Deno.serve(async (req: Request) => {
         const loginToken = await enc(JSON.stringify({ authString: await client.exportAuthString(), phoneCodeHash, phone }));
         return J({ loginToken });
       } catch (e) {
-        const msg = String((e as Error)?.message || e);
+        const msg = errOf(e);
         if (/PHONE_NUMBER_INVALID/i.test(msg)) return J({ error: "bad_phone" }, 400);
         if (/PHONE_NUMBER_BANNED/i.test(msg)) return J({ error: "phone_banned" }, 400);
         throw e;
@@ -190,9 +199,9 @@ Deno.serve(async (req: Request) => {
       const client = await newClient(authString);
       try {
         try {
-          await client.invoke(new F.auth.signIn({ phone_number: phone, phone_code_hash: phoneCodeHash, phone_code: code }));
+          await client.invoke({ _: "auth.signIn", phone_number: phone, phone_code_hash: phoneCodeHash, phone_code: code });
         } catch (e) {
-          const msg = String((e as Error)?.message || e);
+          const msg = errOf(e);
           if (/SESSION_PASSWORD_NEEDED/i.test(msg)) {
             // 2FA on — hand back a resumable token for verifyPassword.
             const again = await enc(JSON.stringify({ authString: await client.exportAuthString(), phone }));
@@ -216,15 +225,15 @@ Deno.serve(async (req: Request) => {
       const { authString, phone } = JSON.parse(await dec(loginToken));
       const client = await newClient(authString);
       try {
-        const pwd = await client.invoke(new F.account.getPassword());
-        const srp = await mod.checkPassword(password, pwd); // builds the SRP InputCheckPasswordSRP
-        await client.invoke(new F.auth.checkPassword({ password: srp }));
+        const pwd = await client.invoke({ _: "account.getPassword" });
+        const srp = await M.checkPassword(password, pwd); // builds the SRP InputCheckPasswordSRP
+        await client.invoke({ _: "auth.checkPassword", password: srp });
         const me = await client.getMe().catch(() => null);
         const ok = await saveSession(uid, await enc(await client.exportAuthString()), phone, me?.id != null ? String(me.id) : null);
         if (!ok) return J({ error: "save_failed" }, 502);
         return J({ ok: true });
       } catch (e) {
-        const msg = String((e as Error)?.message || e);
+        const msg = errOf(e);
         if (/PASSWORD_HASH_INVALID/i.test(msg)) return J({ error: "bad_password" }, 400);
         throw e;
       } finally { try { await client.disconnect(); } catch { /* ignore */ } }
@@ -240,13 +249,17 @@ Deno.serve(async (req: Request) => {
       const client = await newClient(sessionStr);
       try {
         const chats = await client.getChats({ limit });
+        // 0.161 getChats -> ChatListItem[], the chat sits under .chat (a ChatP).
         // deno-lint-ignore no-explicit-any
-        const out = (Array.isArray(chats) ? chats : []).map((c: any) => ({
-          id: typeof c?.id === "bigint" ? Number(c.id) : c?.id,
-          title: c?.title || [c?.firstName, c?.lastName].filter(Boolean).join(" ") || c?.username || "Chat",
-          username: c?.username ?? null,
-          kind: c?.type ?? null,
-        }));
+        const out = (Array.isArray(chats) ? chats : []).map((it: any) => {
+          const c = it?.chat ?? it;
+          return {
+            id: typeof c?.id === "bigint" ? Number(c.id) : c?.id,
+            title: c?.title || [c?.firstName, c?.lastName].filter(Boolean).join(" ") || c?.username || "Chat",
+            username: c?.username ?? null,
+            kind: c?.type ?? null,
+          };
+        });
         return J({ chats: safe(out) });
       } finally { try { await client.disconnect(); } catch { /* ignore */ } }
     }
@@ -262,7 +275,7 @@ Deno.serve(async (req: Request) => {
           id: m?.id,
           text: m?.text ?? m?.caption ?? "",
           date: m?.date instanceof Date ? m.date.getTime() : (typeof m?.date === "number" ? m.date * 1000 : null),
-          outgoing: !!m?.out,
+          outgoing: !!(m?.isOutgoing ?? m?.out),
           from: m?.from?.firstName || m?.from?.title || m?.from?.username || null,
         }));
         return J({ messages: safe(out) });
@@ -282,7 +295,7 @@ Deno.serve(async (req: Request) => {
     if (action === "disconnect") {
       const client = await newClient(sessionStr).catch(() => null);
       if (client) {
-        try { await client.invoke(new F.auth.logOut()); } catch { /* best effort — still drop our copy */ }
+        try { await client.invoke({ _: "auth.logOut" }); } catch { /* best effort — still drop our copy */ }
         try { await client.disconnect(); } catch { /* ignore */ }
       }
       await deleteSession(uid);
@@ -291,7 +304,7 @@ Deno.serve(async (req: Request) => {
 
     return J({ error: "unknown action" }, 400);
   } catch (e) {
-    console.error("telegram error:", action, String((e as Error)?.message || e));
+    console.error("telegram error:", action, errOf(e));
     return J({ error: "request_failed" }, 502);
   }
 });
