@@ -99,9 +99,29 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (action === "list") {
-      const r = await fetch(`${SB_URL}/rest/v1/templates?user_id=eq.${uid}&select=id,name,subject,body,updated_at&order=updated_at.desc&limit=100`, { headers: sbHeaders });
+      const r = await fetch(`${SB_URL}/rest/v1/templates?user_id=eq.${uid}&select=id,name,subject,body,kind,updated_at&order=updated_at.desc&limit=100`, { headers: sbHeaders });
       const templates = await r.json().catch(() => []);
       return json(req, { templates: Array.isArray(templates) ? templates : [] });
+    }
+
+    // Upload an image (base64) to the public email-assets bucket, return its URL.
+    if (action === "upload") {
+      const dataB64 = String(body?.dataB64 || "");
+      const ct = String(body?.contentType || "image/png").toLowerCase();
+      if (!dataB64) return json(req, { error: "missing_file" });
+      if (!ct.startsWith("image/")) return json(req, { error: "bad_type" });
+      let bytes: Uint8Array;
+      try { bytes = Uint8Array.from(atob(dataB64), (c) => c.charCodeAt(0)); } catch { return json(req, { error: "bad_file" }); }
+      if (bytes.length > 10 * 1024 * 1024) return json(req, { error: "too_large" });
+      const ext = ct.includes("jpeg") || ct.includes("jpg") ? "jpg" : ct.includes("png") ? "png" : ct.includes("gif") ? "gif" : ct.includes("webp") ? "webp" : "img";
+      const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const up = await fetch(`${SB_URL}/storage/v1/object/email-assets/${path}`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${SB_SERVICE}`, "content-type": ct, "x-upsert": "true" },
+        body: bytes,
+      });
+      if (!up.ok) return json(req, { error: "upload_failed" }, 502);
+      return json(req, { url: `${SB_URL}/storage/v1/object/public/email-assets/${path}` });
     }
 
     if (action === "generate") {
@@ -115,7 +135,8 @@ Deno.serve(async (req: Request) => {
     if (action === "save") {
       const name = String(body?.name || "").slice(0, 120);
       const subject = String(body?.subject || "").trim().slice(0, 200);
-      const tbody = String(body?.body || "").slice(0, 8000);
+      const tbody = String(body?.body || "").slice(0, 50000);
+      const kind = String(body?.kind || "text") === "html" ? "html" : "text";
       const id = body?.id ? String(body.id) : "";
       if (!subject || !tbody) return json(req, { error: "missing_content" });
 
@@ -123,7 +144,7 @@ Deno.serve(async (req: Request) => {
         const r = await fetch(`${SB_URL}/rest/v1/templates?id=eq.${id}&user_id=eq.${uid}`, {
           method: "PATCH",
           headers: { ...sbHeaders, Prefer: "return=representation" },
-          body: JSON.stringify({ name, subject, body: tbody, updated_at: new Date().toISOString() }),
+          body: JSON.stringify({ name, subject, body: tbody, kind, updated_at: new Date().toISOString() }),
         });
         const row = (await r.json().catch(() => []))?.[0];
         return row?.id ? json(req, { id: row.id }) : json(req, { error: "not_found" });
@@ -131,7 +152,7 @@ Deno.serve(async (req: Request) => {
       const r = await fetch(`${SB_URL}/rest/v1/templates`, {
         method: "POST",
         headers: { ...sbHeaders, Prefer: "return=representation" },
-        body: JSON.stringify({ user_id: uid, name: name || subject.slice(0, 60), subject, body: tbody }),
+        body: JSON.stringify({ user_id: uid, name: name || subject.slice(0, 60), subject, body: tbody, kind }),
       });
       const row = (await r.json().catch(() => []))?.[0];
       return row?.id ? json(req, { id: row.id }) : json(req, { error: "save_failed" }, 502);
