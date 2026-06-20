@@ -141,6 +141,7 @@ Deno.serve(async (req: Request) => {
           draft: false,
           id: String(m.id ?? ""),
           threadId: String(m.id ?? ""), // Outlook replies key off the MESSAGE id (OUTLOOK_REPLY_EMAIL)
+          ts: Number.isFinite(ms) ? ms : 0, // epoch ms — for merging a combined inbox
           app: "outlook",
         };
       });
@@ -183,6 +184,7 @@ Deno.serve(async (req: Request) => {
         draft: Array.isArray(labels) && labels.includes("DRAFT"),
         id: String(m.messageId ?? m.id ?? ""),
         threadId: String(m.threadId ?? m.thread_id ?? ""),
+        ts: tsOf(m), // epoch ms — for merging a combined inbox
         app: "gmail",
       };
     });

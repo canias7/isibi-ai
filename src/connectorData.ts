@@ -6,7 +6,7 @@ export interface Connector {
   desc: string;
   // How the user connects. Omitted = 'oauth' (one-click Composio-managed OAuth).
   // 'apikey' = paste a key; 'keyless' = no auth needed (public API).
-  auth?: 'oauth' | 'apikey' | 'keyless';
+  auth?: 'oauth' | 'apikey' | 'keyless' | 'imap';
 }
 
 // Brand logos: simple-icons CDN where available, Google's favicon service for
@@ -18,6 +18,27 @@ const cl = (slug: string) => `https://logos.composio.dev/api/${slug}`;
 // All connectors run through Composio (OAuth + MCP). The endpoint slug is
 // historical (`gmail-oauth`) but it connects any app via ?app=<id>.
 export const CONNECT_API = 'https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v1/gmail-oauth';
+
+// IMAP/SMTP email providers (our OWN auth, not Composio). Each is its own
+// connector tile (auth:'imap'); ConnectorsGraph special-cases them: tapping one
+// opens an in-app form (email + app password), and the `imap` Edge Function
+// verifies/stores it. Servers are sent from here (the backend also auto-detects
+// by domain). `help` links the provider's "create an app password" page; an empty
+// preset ({} for imap_other) makes the form ask for the server details.
+export const IMAP_PROVIDERS: Record<string, { imapHost?: string; imapPort?: number; smtpHost?: string; smtpPort?: number; help?: string }> = {
+  yahoo: { imapHost: 'imap.mail.yahoo.com', imapPort: 993, smtpHost: 'smtp.mail.yahoo.com', smtpPort: 465, help: 'https://help.yahoo.com/kb/SLN15241.html' },
+  fastmail: { imapHost: 'imap.fastmail.com', imapPort: 993, smtpHost: 'smtp.fastmail.com', smtpPort: 465, help: 'https://www.fastmail.help/hc/en-us/articles/360058752854' },
+  zoho: { imapHost: 'imap.zoho.com', imapPort: 993, smtpHost: 'smtp.zoho.com', smtpPort: 465, help: 'https://www.zoho.com/mail/help/imap-access.html' },
+  aol: { imapHost: 'imap.aol.com', imapPort: 993, smtpHost: 'smtp.aol.com', smtpPort: 465, help: 'https://help.aol.com/articles/Create-and-manage-app-password' },
+  gmx: { imapHost: 'imap.gmx.com', imapPort: 993, smtpHost: 'mail.gmx.com', smtpPort: 465 },
+  webde: { imapHost: 'imap.web.de', imapPort: 993, smtpHost: 'smtp.web.de', smtpPort: 587 },
+  yandex: { imapHost: 'imap.yandex.com', imapPort: 993, smtpHost: 'smtp.yandex.com', smtpPort: 465, help: 'https://yandex.com/support/mail/mail-clients/others.html' },
+  mailcom: { imapHost: 'imap.mail.com', imapPort: 993, smtpHost: 'smtp.mail.com', smtpPort: 587 },
+  mailru: { imapHost: 'imap.mail.ru', imapPort: 993, smtpHost: 'smtp.mail.ru', smtpPort: 465, help: 'https://help.mail.ru/mail/security/protection/external' },
+  neo: { imapHost: 'imap0001.neo.space', imapPort: 993, smtpHost: 'smtp0001.neo.space', smtpPort: 465, help: 'https://support.neo.space/hc/en-us/articles/13617484527001-Configure-Neo-on-other-apps-using-IMAP-POP' },
+  titan: { imapHost: 'imap.titan.email', imapPort: 993, smtpHost: 'smtp.titan.email', smtpPort: 465, help: 'https://support.titan.email/hc/en-us/articles/900000215446-Configure-Titan-on-other-apps-using-IMAP-POP' },
+  imap_other: {},
+};
 
 export const CONNECTORS: Connector[] = [
   { id: 'gdrive', name: 'Google Drive', logo: si('googledrive'), color: '#1FA463', desc: 'Search and read your files' },
@@ -37,6 +58,20 @@ export const CONNECTORS: Connector[] = [
   { id: 'notion', name: 'Notion', logo: si('notion'), color: '#111111', desc: 'Search and edit your workspace' },
   { id: 'atlassian', name: 'Atlassian Jira', logo: si('jira'), color: '#0052CC', desc: 'Search, read & create Jira issues' },
   { id: 'm365', name: 'Microsoft Outlook', logo: fav('outlook.com'), color: '#0078D4', desc: 'Outlook mail & calendar' },
+  // IMAP/SMTP mailboxes — our own auth (see IMAP_PROVIDERS). ConnectorsGraph
+  // special-cases auth:'imap' for connect/status/disconnect via the `imap` fn.
+  { id: 'yahoo', name: 'Yahoo Mail', logo: si('yahoo'), color: '#6001D2', desc: 'Yahoo Mail — via IMAP', auth: 'imap' },
+  { id: 'fastmail', name: 'Fastmail', logo: si('fastmail'), color: '#0067B9', desc: 'Fastmail — via IMAP', auth: 'imap' },
+  { id: 'zoho', name: 'Zoho Mail', logo: si('zoho'), color: '#C8202F', desc: 'Zoho Mail — via IMAP', auth: 'imap' },
+  { id: 'aol', name: 'AOL Mail', logo: fav('aol.com'), color: '#1B6BE3', desc: 'AOL Mail — via IMAP', auth: 'imap' },
+  { id: 'gmx', name: 'GMX', logo: fav('gmx.com'), color: '#1C449B', desc: 'GMX — via IMAP', auth: 'imap' },
+  { id: 'webde', name: 'web.de', logo: fav('web.de'), color: '#C8A200', desc: 'web.de — via IMAP', auth: 'imap' },
+  { id: 'yandex', name: 'Yandex Mail', logo: si('yandex'), color: '#FC3F1D', desc: 'Yandex Mail — via IMAP', auth: 'imap' },
+  { id: 'mailcom', name: 'Mail.com', logo: fav('mail.com'), color: '#004788', desc: 'Mail.com — via IMAP', auth: 'imap' },
+  { id: 'mailru', name: 'Mail.ru', logo: fav('mail.ru'), color: '#005FF9', desc: 'Mail.ru — via IMAP', auth: 'imap' },
+  { id: 'neo', name: 'Neo', logo: fav('neo.space'), color: '#7A5AF8', desc: 'Neo business email — via IMAP', auth: 'imap' },
+  { id: 'titan', name: 'Titan Email', logo: fav('titan.email'), color: '#1A6DFF', desc: 'Titan business email — via IMAP', auth: 'imap' },
+  { id: 'imap_other', name: 'Other email', logo: fav('mail'), color: '#8E8E93', desc: 'Any IMAP mailbox', auth: 'imap' },
   { id: 'slack', name: 'Slack', logo: fav('slack.com'), color: '#4A154B', desc: 'Read and send messages' },
   { id: 'hubspot', name: 'HubSpot', logo: si('hubspot'), color: '#FF7A59', desc: 'Contacts, deals & CRM' },
   { id: 'googlesheets', name: 'Google Sheets', logo: si('googlesheets'), color: '#0F9D58', desc: 'Read & edit spreadsheets' },
@@ -118,7 +153,6 @@ export const CONNECTORS: Connector[] = [
   { id: 'prisma', name: "Prisma", logo: si('prisma'), color: '#2D3748', desc: "Databases" },
   { id: 'mural', name: "Mural", logo: si('mural'), color: '#FF4B4B', desc: "Team Collaboration" },
   { id: 'moneybird', name: "Moneybird", logo: fav('moneybird'), color: '#6B7280', desc: "Accounting & invoices" },
-  { id: 'yandex', name: "Yandex", logo: si('yandex'), color: '#6B7280', desc: "Email" },
   { id: 'google_maps', name: "Google Maps", logo: si('googlemaps'), color: '#4285F4', desc: "Developer tools" },
   { id: 'dart', name: "Dart", logo: si('dart'), color: '#0175C2', desc: "Projects & tasks" },
   { id: 'dub', name: "Dub", logo: fav('dub'), color: '#6B7280', desc: "Url Shortener" },
