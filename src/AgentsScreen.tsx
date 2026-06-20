@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMerged, sendEmail, fetchContacts, sendSms, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -118,8 +118,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [refreshing, setRefreshing] = useState(false);
   const [pageIdx, setPageIdx] = useState(0);
   const [nextTok, setNextTok] = useState<string | null>(null);
-  const [mergedMax, setMergedMax] = useState(40);     // combined inbox: how many merged rows are loaded
-  const [mergedMore, setMergedMore] = useState(false); // ...and whether there are likely older ones
+  const [mergedTok, setMergedTok] = useState<Record<string, string | null>>({}); // combined inbox: each mailbox's next-page token
   const [reading, setReading] = useState<EmailItem | null>(null);
   const [pull, setPull] = useState(0);
   const [contacts, setContacts] = useState<ContactItem[]>([]);
@@ -204,24 +203,48 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
   }, [mailApp]);
   const refreshInbox = useCallback(() => { tokensRef.current = [undefined]; loadPage(0); }, [loadPage]);
-  // Combined inbox (2+ mailboxes): one merged, newest-first feed. No per-provider
-  // pager (each has its own cursor), so we grow a single merged window instead —
-  // "Load older" bumps `max` and re-merges; a full window means there may be more.
-  const loadMerged = useCallback((max = 40) => {
+  // Combined inbox (2+ mailboxes): one merged, newest-first feed. Each mailbox
+  // pages independently, so we keep a per-provider next-page token and append.
+  const combinedApps = useCallback(() => ['gmail', 'outlook'].filter((a) => (a === 'gmail' ? connApps.includes('gmail') : connApps.includes('m365') || connApps.includes('outlook'))), [connApps]);
+  const loadMerged = useCallback(() => {
     setRefreshing(true);
     if (!inboxCache['all']) setInboxState('loading');
-    setMergedMax(max);
-    const apps = ['gmail', 'outlook'].filter((a) => (a === 'gmail' ? connApps.includes('gmail') : connApps.includes('m365') || connApps.includes('outlook')));
-    fetchInboxMerged(apps, max)
-      .then((items) => {
+    fetchInboxMergedPaged(combinedApps().map((a) => ({ app: a })))
+      .then(({ items, next }) => {
         if (!mountedRef.current) return;
-        setInbox(items); setInboxState('ok'); inboxCache['all'] = items;
-        setMergedMore(items.length >= max); // got a full window -> likely older mail remains
-        if (max <= 40) inboxScrollRef.current?.scrollTo({ top: 0 }); // keep scroll when loading more
+        setInbox(items); setInboxState('ok'); inboxCache['all'] = items; setMergedTok(next);
+        inboxScrollRef.current?.scrollTo({ top: 0 });
       })
       .catch(() => { if (mountedRef.current && !inboxCache['all']) setInboxState('err'); })
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
-  }, [connApps]);
+  }, [combinedApps]);
+  // "Load older": pull the next page from every mailbox that still has one, then
+  // append + de-dupe + re-sort the whole feed so it stays newest-first.
+  const loadMoreMerged = () => {
+    if (refreshing) return;
+    const reqs = Object.entries(mergedTok).filter(([, t]) => !!t).map(([app, token]) => ({ app, token: token as string }));
+    if (!reqs.length) return;
+    tap();
+    setRefreshing(true);
+    fetchInboxMergedPaged(reqs)
+      .then(({ items, next }) => {
+        if (!mountedRef.current) return;
+        setInbox((prev) => {
+          const seen = new Set<string>();
+          const out: EmailItem[] = [];
+          for (const it of [...prev, ...items].sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0))) {
+            const k = it.id || `${it.from}|${it.subject}|${it.ts ?? ''}`;
+            if (seen.has(k)) continue;
+            seen.add(k); out.push(it);
+          }
+          inboxCache['all'] = out;
+          return out;
+        });
+        setMergedTok((prev) => ({ ...prev, ...next }));
+      })
+      .catch(() => { /* keep what we have */ })
+      .finally(() => { if (mountedRef.current) setRefreshing(false); });
+  };
 
   const loadContacts = useCallback(() => {
     if (!contactsCache[mailApp]) setContactsState('loading');
@@ -381,8 +404,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const refreshSpin = refreshing || (inTgList && tgListState === 'loading');
   const doRefresh = () => { tap(); if (inMailInbox) { if (combinedInbox) loadMerged(); else refreshInbox(); } else if (inTgList) loadTgChats(); };
   const goPage = (idx: number) => { if (refreshing) return; tap(); loadPage(idx); };
-  const loadMoreMerged = () => { if (refreshing) return; tap(); loadMerged(mergedMax + 40); };
   const hasPager = pageIdx > 0 || !!nextTok;
+  const mergedMore = combinedInbox && Object.values(mergedTok).some(Boolean);
 
   const connectCard = (extra: string) => (
     <div className="ag-connect">
@@ -684,7 +707,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     <button onClick={() => goPage(pageIdx + 1)} disabled={!nextTok || refreshing}>Next ›</button>
                   </div>
                 )}
-                {combinedInbox && mergedMore && (
+                {mergedMore && (
                   <div className="ag-pager">
                     <button onClick={loadMoreMerged} disabled={refreshing}>{refreshing ? 'Loading…' : 'Load older'}</button>
                   </div>

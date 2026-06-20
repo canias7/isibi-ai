@@ -58,14 +58,23 @@ export async function fetchInbox(max = 20, pageToken?: string, app = 'gmail'): P
   return { items: Array.isArray(j.items) ? j.items : [], nextPageToken: j.nextPageToken ?? null };
 }
 
-// Combined inbox: fetch each connected mailbox's recent emails in parallel and
-// merge newest-first across providers (by the `ts` epoch the backend stamps).
-// Used when 2+ mailboxes are connected; one provider failing doesn't sink it.
-export async function fetchInboxMerged(apps: string[], max = 40): Promise<EmailItem[]> {
-  const lists = await Promise.all(
-    apps.map((a) => fetchInbox(max, undefined, a).then((r) => r.items).catch(() => [] as EmailItem[])),
+// Combined inbox with paging: fetch one page from each requested mailbox (using
+// its OWN page token), merge newest-first across providers (by the `ts` epoch the
+// backend stamps), and hand back each provider's NEXT token so "Load older" can
+// pull the next page per mailbox and append. One provider failing doesn't sink it.
+export interface MergedPage { items: EmailItem[]; next: Record<string, string | null> }
+export async function fetchInboxMergedPaged(reqs: { app: string; token?: string }[], per = 30): Promise<MergedPage> {
+  const results = await Promise.all(
+    reqs.map((r) =>
+      fetchInbox(per, r.token, r.app)
+        .then((res) => ({ app: r.app, items: res.items, next: res.nextPageToken }))
+        .catch(() => ({ app: r.app, items: [] as EmailItem[], next: null as string | null })),
+    ),
   );
-  return lists.flat().sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0)).slice(0, max);
+  const items = results.flatMap((r) => r.items).sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0));
+  const next: Record<string, string | null> = {};
+  for (const r of results) next[r.app] = r.next;
+  return { items, next };
 }
 
 // Fetch the user's contacts directly (no chat turn) — rendered with <ContactsList>.
