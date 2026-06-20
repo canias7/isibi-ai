@@ -268,6 +268,24 @@ export const IconClock = ({ size }: { size?: number }) => (
   </Svg>
 );
 
+export const IconChart = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M3 3v18h18" />
+    <path d="M8 17v-5" />
+    <path d="M13 17V8" />
+    <path d="M18 17v-8" />
+  </Svg>
+);
+
+export const IconCalendar = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <rect x="3" y="4.5" width="18" height="16.5" rx="2" />
+    <path d="M3 9.5h18" />
+    <path d="M8 2.5v4" />
+    <path d="M16 2.5v4" />
+  </Svg>
+);
+
 export const IconBolt = ({ size }: { size?: number }) => (
   <Svg size={size}>
     <path d="M13 2 4.5 13.5a.5.5 0 0 0 .4.8H11l-1 7 8.5-11.5a.5.5 0 0 0-.4-.8H12z" />

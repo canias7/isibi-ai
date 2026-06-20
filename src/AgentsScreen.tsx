@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck, IconContacts,
+  IconChart, IconCalendar, IconDoc,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -32,6 +33,25 @@ const COMMS: { id: CommsId; name: string; tagline: string; mail: boolean }[] = [
   { id: 'gmail', name: 'Gmail', tagline: 'Inbox, replies & contacts', mail: true },
   { id: 'm365', name: 'Outlook', tagline: 'Mail, replies & contacts', mail: true },
   { id: 'telegram', name: 'Telegram', tagline: 'Chats & quick replies', mail: false },
+];
+
+// Sendra home tabs + their header copy.
+type SendraTab = 'home' | 'apps' | 'campaigns' | 'templates' | 'analytics' | 'calendar';
+const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
+  home: { t: 'Sendra', s: 'Your communication hub' },
+  apps: { t: 'My apps', s: 'Tap an app to open it' },
+  campaigns: { t: 'Campaigns', s: 'Email & SMS to your lists' },
+  templates: { t: 'Templates', s: 'Reusable messages' },
+  analytics: { t: 'Analytics', s: 'Performance across your sends' },
+  calendar: { t: 'Calendar', s: 'Scheduled sends & reminders' },
+};
+// Sendra home menu. 'apps' opens the constellation; the rest are P0 scaffolds.
+const HOME_TOOLS: { id: SendraTab; name: string; desc: string; Icon: IconCmp }[] = [
+  { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS — send to a whole list', Icon: IconWaveform },
+  { id: 'templates', name: 'Templates', desc: 'Reusable messages for your campaigns', Icon: IconDoc },
+  { id: 'analytics', name: 'Analytics', desc: 'Opens, clicks, replies & delivery', Icon: IconChart },
+  { id: 'calendar', name: 'Calendar', desc: 'Scheduled sends & reminders', Icon: IconCalendar },
+  { id: 'apps', name: 'My apps', desc: '', Icon: IconConnectors },
 ];
 
 // The mail workspace's top cards. Inbox / New email / Contacts are live; rest are stubs.
@@ -87,7 +107,8 @@ type Loadable = 'idle' | 'loading' | 'ok' | 'err';
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [agent, setAgent] = useState<AgentId | null>(null);
   const [commsApp, setCommsApp] = useState<CommsId | null>(null); // null while Sendra shows its home / the app constellation
-  const [sendraTab, setSendraTab] = useState<'home' | 'apps'>('home'); // Sendra landing: 'home' menu -> 'apps' constellation
+  const [sendraTab, setSendraTab] = useState<SendraTab>('home'); // Sendra landing: 'home' menu -> 'apps' / scaffolds
+  const [note, setNote] = useState(''); // transient explainer shown in the P0 scaffolds
   // Mail workspace
   const [emailTab, setEmailTab] = useState<EmailTab>('home');
   const [inbox, setInbox] = useState<EmailItem[]>([]);
@@ -145,7 +166,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     else if (sendState === 'confirm') setSendState('idle');
     else if (commsApp && commsApp !== 'telegram' && emailTab !== 'home') setEmailTab('home');
     else if (commsApp) setCommsApp(null);
-    else if (sendraTab === 'apps') setSendraTab('home');
+    else if (sendraTab !== 'home') setSendraTab('home');
     else if (agent) setAgent(null);
     else onClose();
   };
@@ -306,7 +327,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // ---- header titles ----
   const title = reading ? 'Email'
     : agent === null ? 'Agents'
-    : commsApp === null ? (sendraTab === 'apps' ? 'My apps' : 'Sendra')
+    : commsApp === null ? SENDRA_META[sendraTab].t
     : commsApp === 'telegram' ? (tgChat ? tgChat.title : 'Telegram')
     : emailTab === 'inbox' ? 'Inbox'
     : emailTab === 'contacts' ? 'Contacts'
@@ -314,7 +335,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     : (commsApp === 'm365' ? 'Outlook' : 'Gmail');
   const subtitle = reading ? (reading.from || reading.email || 'Message')
     : agent === null ? 'Your AI specialists — each one handles a job'
-    : commsApp === null ? (sendraTab === 'apps' ? 'Tap an app to open it' : 'Your communication hub')
+    : commsApp === null ? SENDRA_META[sendraTab].s
     : commsApp === 'telegram' ? (tgChat ? (tgChat.username ? `@${tgChat.username}` : 'Chat') : `${tgList.length || ''} chats`.trim() || 'Your chats')
     : emailTab === 'inbox' ? 'Newest first'
     : emailTab === 'contacts' ? (contacts.length ? `${contacts.length} people` : 'Your contacts')
@@ -380,21 +401,23 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
 
       ) : commsApp === null ? (
         sendraTab === 'home' ? (
-          // ---- Sendra home: a menu of Sendra's tools (My apps -> the constellation) ----
+          // ---- Sendra home: the tool menu (Campaigns, Templates, Analytics, Calendar, My apps) ----
           <div className="ag-stage">
             <div className="ag-list">
-              <button className="ag-card" onClick={() => { tap(); setSendraTab('apps'); }}>
-                <span className="ag-ic"><IconConnectors size={22} /></span>
-                <span className="ag-meta">
-                  <span className="ag-name">My apps</span>
-                  <span className="ag-desc">{deckApps.length ? deckApps.map((c) => c.name).join(' · ') : 'Connect Gmail, Outlook or Telegram'}</span>
-                </span>
-                <span className="ag-chev" aria-hidden="true">›</span>
-              </button>
+              {HOME_TOOLS.map((t) => (
+                <button key={t.id} className="ag-card" onClick={() => { tap(); setNote(''); setSendraTab(t.id); }}>
+                  <span className="ag-ic"><t.Icon size={22} /></span>
+                  <span className="ag-meta">
+                    <span className="ag-name">{t.name}</span>
+                    <span className="ag-desc">{t.id === 'apps' ? (deckApps.length ? deckApps.map((c) => c.name).join(' · ') : 'Connect Gmail, Outlook or Telegram') : t.desc}</span>
+                  </span>
+                  <span className="ag-chev" aria-hidden="true">›</span>
+                </button>
+              ))}
             </div>
-            <p className="ag-foot">More Sendra tools on the way — drafts, sequences and triage across every app.</p>
+            <p className="ag-foot">Sendra runs your communication — campaigns, templates and triage across every connected app.</p>
           </div>
-        ) : (
+        ) : sendraTab === 'apps' ? (
           // ---- Sendra constellation: hub + connected comms apps as nodes ----
           <div className="ag-stage ag-tree-stage">
           {deckApps.length === 0 ? (
@@ -429,6 +452,46 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           )}
           <p className="ag-tree-hint">Tap an app — Sendra runs them all.</p>
         </div>
+        ) : (
+          // ---- Campaigns / Templates / Analytics / Calendar (P0 scaffolds) ----
+          <div className="ag-stage">
+            {note && <div className="ag-note">{note}</div>}
+            {sendraTab === 'campaigns' ? (
+              <>
+                <button className="ag-send-btn" onClick={() => { tap(); setNote('Campaign builder is next — pick Email or SMS, choose a list, write once, and Sendra sends to everyone.'); }}>+ New campaign</button>
+                <div className="ag-grid" style={{ marginTop: 12 }}>
+                  <button className="ag-act" onClick={() => { tap(); setNote('Email campaigns: small sends go through your mailbox now; bulk uses the built-in sender (P2).'); }}>
+                    <span className="ag-act-ic"><IconCompose size={20} /></span>
+                    <span className="ag-act-label">Email campaign</span>
+                    <span className="ag-act-sub">To a list</span>
+                  </button>
+                  <button className="ag-act" onClick={() => { tap(); setNote('SMS campaigns use the built-in SMS sender (Twilio + 10DLC) — coming in P3.'); }}>
+                    <span className="ag-act-ic"><IconWaveform size={20} /></span>
+                    <span className="ag-act-label">SMS campaign</span>
+                    <span className="ag-act-sub">To a list</span>
+                  </button>
+                </div>
+                <div className="ag-empty" style={{ marginTop: 12 }}>No campaigns yet.</div>
+              </>
+            ) : sendraTab === 'templates' ? (
+              <>
+                <button className="ag-send-btn" onClick={() => { tap(); setNote('Templates are next — save a reusable email or SMS, then drop it into any campaign.'); }}>+ New template</button>
+                <div className="ag-empty" style={{ marginTop: 12 }}>No templates yet. Save reusable email &amp; SMS messages and reuse them across campaigns.</div>
+              </>
+            ) : sendraTab === 'analytics' ? (
+              <>
+                <div className="ag-stats">
+                  <div className="ag-stat"><div className="ag-stat-v">—</div><div className="ag-stat-k">Sent</div></div>
+                  <div className="ag-stat"><div className="ag-stat-v">—</div><div className="ag-stat-k">Delivered</div></div>
+                  <div className="ag-stat"><div className="ag-stat-v">—</div><div className="ag-stat-k">Opened</div></div>
+                  <div className="ag-stat"><div className="ag-stat-v">—</div><div className="ag-stat-k">Clicked</div></div>
+                </div>
+                <div className="ag-empty" style={{ marginTop: 12 }}>Analytics appear once you send a campaign — opens, clicks, replies and deliveries per send.</div>
+              </>
+            ) : (
+              <div className="ag-empty">Nothing scheduled. Schedule a campaign and it shows up here, alongside reminders.</div>
+            )}
+          </div>
         )
 
       ) : commsApp === 'telegram' ? (

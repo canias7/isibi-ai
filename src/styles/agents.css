@@ -231,6 +231,22 @@
   font: inherit; font-weight: 700; cursor: pointer; padding: 0;
 }
 
+/* Sendra scaffold helpers: a transient explainer note + analytics stat tiles. */
+.ag-note {
+  background: rgba(224, 161, 58, 0.10); border: 1px solid var(--brand);
+  border-radius: var(--r-card); color: var(--text);
+  font-size: var(--fs-footnote); line-height: 1.45; padding: 12px 14px; margin-bottom: 12px;
+}
+.ag-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ag-stat {
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge); box-shadow: var(--glass-hi);
+  border-radius: var(--r-card); padding: 16px;
+}
+.ag-stat-v { font-size: var(--fs-title); font-weight: 700; }
+.ag-stat-k { font-size: var(--fs-footnote); color: var(--text-dim); margin-top: 2px; }
+
 /* ---- Sendra constellation (hub + connected comms apps as nodes) ------- */
 /* A central "Sendra" hub with the connected comms apps orbiting it on drawn-in
    lines. Deliberately distinct from the Connectors galaxy: fewer nodes, a
