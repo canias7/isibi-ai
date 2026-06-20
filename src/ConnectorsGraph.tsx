@@ -111,6 +111,9 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const [tgToken, setTgToken] = useState('');
   const [tgBusy, setTgBusy] = useState(false);
   const [tgErr, setTgErr] = useState('');
+  // FLOOD_WAIT cooldown (seconds left): Telegram rate-limits repeated sendCode
+  // for a number/app. We tick it down and block the form until it clears.
+  const [tgCool, setTgCool] = useState(0);
   // IMAP/SMTP "other email" connect form (our own auth) — email + app password.
   const [imapFor, setImapFor] = useState<Connector | null>(null);
   const [imapEmail, setImapEmail] = useState('');
@@ -127,6 +130,11 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   useFocusTrap(!!keyFor, keyRef, () => { setKeyFor(null); setKeyVal(''); });
   useFocusTrap(!!tgStep, tgRef, () => { setTgStep(null); setTgErr(''); });
   useFocusTrap(!!imapFor, imapRef, () => { setImapFor(null); setImapErr(''); });
+  useEffect(() => {
+    if (tgCool <= 0) return;
+    const t = setTimeout(() => setTgCool((s) => Math.max(0, s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [tgCool]);
   // Animated dismissal for each layer; the sheet/manage content is latched so
   // it doesn't blank out during its exit beat.
   const pickerUi = useDismiss(picker);
@@ -570,6 +578,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   // Telegram sign-in step machine: phone -> sendCode; code -> signIn (which may
   // ask for the 2FA password); password -> checkPassword. On success: optimistic
   // connect, refresh, close. All server-side via the `telegram` Edge Function.
+  const fmtCool = (s: number) => (s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`);
   function tgFriendly(code: string): string {
     if (/bad_phone|PHONE_NUMBER_INVALID/i.test(code)) return 'That phone number doesn’t look right.';
     if (/phone_banned/i.test(code)) return 'That number is banned from Telegram.';
@@ -603,8 +612,12 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
       }
     } catch (e) {
       const msg = String((e as Error)?.message || '');
-      setTgErr(tgFriendly(msg));
-      if (/code_expired/i.test(msg)) setTgStep('phone'); // let them request a fresh code
+      const fw = msg.match(/flood_wait:(\d+)/i);
+      if (fw) { setTgCool(Number(fw[1]) || 60); setTgErr(''); } // Telegram rate-limit — start the countdown
+      else {
+        setTgErr(tgFriendly(msg));
+        if (/code_expired/i.test(msg)) setTgStep('phone'); // let them request a fresh code
+      }
     } finally {
       setTgBusy(false);
     }
@@ -1071,13 +1084,15 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setTgPass(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && tgPass && !tgBusy) void tgSubmit(); }} />
             )}
-            {tgErr && <div className="cg-key-err">{tgErr}</div>}
-            <button className="cg-sheet-btn fix" disabled={tgBusy
+            {tgCool > 0
+              ? <div className="cg-key-err">Too many attempts — try again in {fmtCool(tgCool)}.</div>
+              : tgErr && <div className="cg-key-err">{tgErr}</div>}
+            <button className="cg-sheet-btn fix" disabled={tgBusy || tgCool > 0
               || (tgStep === 'phone' && !tgPhone.trim())
               || (tgStep === 'code' && !tgCode.trim())
               || (tgStep === 'password' && !tgPass)}
               onClick={() => void tgSubmit()}>
-              {tgBusy ? 'Working…' : tgStep === 'phone' ? 'Send code' : 'Verify'}
+              {tgBusy ? 'Working…' : tgCool > 0 ? `Wait ${fmtCool(tgCool)}` : tgStep === 'phone' ? 'Send code' : 'Verify'}
             </button>
           </div>
         </>

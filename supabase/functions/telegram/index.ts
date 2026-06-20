@@ -304,7 +304,13 @@ Deno.serve(async (req: Request) => {
 
     return J({ error: "unknown action" }, 400);
   } catch (e) {
-    console.error("telegram error:", action, errOf(e));
+    const msg = errOf(e);
+    // Telegram rate-limits repeated auth.sendCode for a number/app: FLOOD_WAIT_<n>
+    // (seconds). Surface it so the UI can show a real "try again in N" countdown
+    // instead of a generic failure — covers start/verify (rethrown here).
+    const flood = msg.match(/FLOOD.*?(\d+)/i);
+    if (flood) return J({ error: `flood_wait:${flood[1]}` }, 429);
+    console.error("telegram error:", action, msg);
     return J({ error: "request_failed" }, 502);
   }
 });
