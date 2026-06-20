@@ -185,8 +185,10 @@ Deno.serve(async (req: Request) => {
         return J({ loginToken });
       } catch (e) {
         const msg = errOf(e);
-        if (/PHONE_NUMBER_INVALID/i.test(msg)) return J({ error: "bad_phone" }, 400);
-        if (/PHONE_NUMBER_BANNED/i.test(msg)) return J({ error: "phone_banned" }, 400);
+        // App-level outcomes -> HTTP 200 { error }: supabase-js hides non-2xx
+        // bodies, so a 4xx would reach the client as a generic failure.
+        if (/PHONE_NUMBER_INVALID/i.test(msg)) return J({ error: "bad_phone" });
+        if (/PHONE_NUMBER_BANNED/i.test(msg)) return J({ error: "phone_banned" });
         throw e;
       } finally { try { await client.disconnect(); } catch { /* ignore */ } }
     }
@@ -207,8 +209,8 @@ Deno.serve(async (req: Request) => {
             const again = await enc(JSON.stringify({ authString: await client.exportAuthString(), phone }));
             return J({ needPassword: true, loginToken: again });
           }
-          if (/PHONE_CODE_(INVALID|EMPTY)/i.test(msg)) return J({ error: "bad_code" }, 400);
-          if (/PHONE_CODE_EXPIRED/i.test(msg)) return J({ error: "code_expired" }, 400);
+          if (/PHONE_CODE_(INVALID|EMPTY)/i.test(msg)) return J({ error: "bad_code" });
+          if (/PHONE_CODE_EXPIRED/i.test(msg)) return J({ error: "code_expired" });
           throw e;
         }
         const me = await client.getMe().catch(() => null);
@@ -234,7 +236,7 @@ Deno.serve(async (req: Request) => {
         return J({ ok: true });
       } catch (e) {
         const msg = errOf(e);
-        if (/PASSWORD_HASH_INVALID/i.test(msg)) return J({ error: "bad_password" }, 400);
+        if (/PASSWORD_HASH_INVALID/i.test(msg)) return J({ error: "bad_password" });
         throw e;
       } finally { try { await client.disconnect(); } catch { /* ignore */ } }
     }
@@ -309,7 +311,7 @@ Deno.serve(async (req: Request) => {
     // (seconds). Surface it so the UI can show a real "try again in N" countdown
     // instead of a generic failure — covers start/verify (rethrown here).
     const flood = msg.match(/FLOOD.*?(\d+)/i);
-    if (flood) return J({ error: `flood_wait:${flood[1]}` }, 429);
+    if (flood) return J({ error: `flood_wait:${flood[1]}` }); // 200 so the client can read it (see above)
     console.error("telegram error:", action, msg);
     return J({ error: "request_failed" }, 502);
   }
