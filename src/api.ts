@@ -1,6 +1,7 @@
 import { supabase, SUPABASE_ANON_KEY } from './supabase';
 import { CONNECT_API } from './connectorData';
 import type { GeoLoc } from './geo';
+import type { EmailItem } from './EmailList';
 
 export interface MsgAttachment {
   name: string;
@@ -41,6 +42,20 @@ export async function fetchEmailHtml(
     attachments: Array.isArray(j.attachments) ? j.attachments : [],
     meta: { from: j.from, email: j.email, to: j.to, subject: j.subject, date: j.date, unread: j.unread, app: j.app },
   };
+}
+
+// Fetch a list of recent inbox emails directly (no chat turn) — the Email Agent
+// renders these with <EmailList>; same card shape the chat pipeline produces.
+const INBOX_API = CONNECT_API.replace(/\/gmail-oauth$/, '/inbox');
+export async function fetchInbox(max = 12): Promise<EmailItem[]> {
+  const token = await authToken();
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const res = await fetch(`${INBOX_API}?max=${max}&tz=${encodeURIComponent(tz)}`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`Inbox fetch failed: ${res.status}`);
+  const j = await res.json();
+  return Array.isArray(j.items) ? j.items : [];
 }
 
 // Fetch one attachment's bytes (base64) or hosted URL — for inline images,

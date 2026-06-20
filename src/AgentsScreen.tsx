@@ -1,10 +1,12 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconDoc, IconConnectors, IconClock, IconBank,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
+import { fetchInbox } from './api';
+import { EmailList, EmailDetail, EmailSkeleton, type EmailItem } from './EmailList';
 
 // Each agent is a *role* that spans apps (not an app). Only the Email agent is
 // live today; the rest are shown as "soon" so the roadmap is visible without
@@ -29,29 +31,52 @@ const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[]
 
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [agent, setAgent] = useState<AgentId | null>(null);
+  const [inbox, setInbox] = useState<EmailItem[]>([]);
+  const [inboxState, setInboxState] = useState<'idle' | 'loading' | 'ok' | 'err'>('idle');
+  const [reloadKey, setReloadKey] = useState(0);
+  const [reading, setReading] = useState<EmailItem | null>(null);
   const trapRef = useRef<HTMLDivElement>(null);
-  // Back steps one level: agent workspace -> the list -> close the overlay.
-  const back = () => { tap(); if (agent) setAgent(null); else onClose(); };
+  // Back steps one level: reader -> agent workspace -> the list -> close.
+  const back = () => { tap(); if (reading) setReading(null); else if (agent) setAgent(null); else onClose(); };
   useFocusTrap(true, trapRef, back);
 
   const hasMail = connApps.includes('gmail') || connApps.includes('outlook');
 
+  // Load the real inbox when the Email agent opens (and a mailbox is connected).
+  useEffect(() => {
+    if (agent !== 'email' || !hasMail) return;
+    let alive = true;
+    setInboxState('loading');
+    fetchInbox(12)
+      .then((items) => { if (alive) { setInbox(items); setInboxState('ok'); } })
+      .catch(() => { if (alive) setInboxState('err'); });
+    return () => { alive = false; };
+  }, [agent, hasMail, reloadKey]);
+
   return (
     <div className="memg ag" ref={trapRef} tabIndex={-1}>
       <div className="memg-top">
-        <button className="memg-back" onClick={back} aria-label={agent ? 'Back' : 'Close'}><IconArrowLeft size={22} /></button>
+        <button className="memg-back" onClick={back} aria-label={reading || agent ? 'Back' : 'Close'}><IconArrowLeft size={22} /></button>
         <div className="memg-titles">
-          <h1 className="memg-title">{agent === 'email' ? 'Email Agent' : 'Agents'}</h1>
+          <h1 className="memg-title">{reading ? 'Email' : agent === 'email' ? 'Email Agent' : 'Agents'}</h1>
           <p className="memg-sub">
-            {agent === 'email'
-              ? (hasMail ? 'Ready' : 'Connect a mailbox to begin')
+            {reading ? (reading.from || reading.email || 'Message')
+              : agent === 'email' ? (hasMail ? 'Ready' : 'Connect a mailbox to begin')
               : 'Your AI specialists — each one handles a job'}
           </p>
         </div>
         <span style={{ width: 40 }} />
       </div>
 
-      {agent === null ? (
+      {reading ? (
+        <div className="ag-stage">
+          <EmailDetail msg={{
+            id: reading.id, app: reading.app, from: reading.from, email: reading.email,
+            subject: reading.subject, time: reading.time, unread: reading.unread,
+            draft: reading.draft, body: reading.snippet || '',
+          }} />
+        </div>
+      ) : agent === null ? (
         <div className="ag-stage">
           <div className="ag-list">
             {AGENTS.map((a) => (
@@ -87,7 +112,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <div className="ag-sec">Start something</div>
           <div className="ag-grid">
             {EMAIL_ACTIONS.map((act) => (
-              <button key={act.id} className="ag-act" onClick={() => { tap(); /* TODO: open the `${act.id}` flow */ }}>
+              <button key={act.id} className="ag-act" onClick={() => { tap(); /* TODO: open the action flow */ }}>
                 <span className="ag-act-ic"><act.icon size={20} /></span>
                 <span className="ag-act-label">{act.label}</span>
                 <span className="ag-act-sub">{act.sub}</span>
@@ -95,8 +120,23 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             ))}
           </div>
 
-          <div className="ag-sec">Recent</div>
-          <div className="ag-empty">Nothing yet — pick an action above and the agent gets to work.</div>
+          {hasMail && (
+            <>
+              <div className="ag-sec">Inbox</div>
+              {inboxState === 'loading' ? (
+                <EmailSkeleton />
+              ) : inboxState === 'err' ? (
+                <div className="ag-empty">
+                  Couldn’t load your inbox.{' '}
+                  <button className="ag-retry" onClick={() => { tap(); setReloadKey((k) => k + 1); }}>Try again</button>
+                </div>
+              ) : inbox.length ? (
+                <EmailList items={inbox} onOpen={(it) => { tap(); setReading(it); }} />
+              ) : (
+                <div className="ag-empty">Inbox is empty.</div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
