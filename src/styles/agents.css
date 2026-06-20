@@ -219,6 +219,32 @@
 .ag-sent-actions .ag-send-btn { flex: 1; }
 /* Reply button under the email reader */
 .ag-reader { display: flex; flex-direction: column; }
+/* Opened email: match the dark inbox cards — dark surface, white header text, and
+   the same soft provider wash + left accent bar. The white email-body iframe is
+   real HTML and stays untouched (dark chrome around a white message, iOS-Mail style). */
+.ag-reader .gf-msg { position: relative; overflow: hidden; }
+.ag-reader .gf-msg.gf-gmail,
+.ag-reader .gf-msg.gf-outlook {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.ag-reader .gf-msg.gf-gmail { background: linear-gradient(0deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), #16181d; }
+.ag-reader .gf-msg.gf-outlook { background: linear-gradient(0deg, rgba(56, 132, 255, 0.12), rgba(56, 132, 255, 0.12)), #16181d; }
+.ag-reader .gf-msg::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+.ag-reader .gf-msg.gf-gmail::before { background: rgba(255, 255, 255, 0.35); }
+.ag-reader .gf-msg.gf-outlook::before { background: #3b82f6; }
+.ag-reader .gf-msg .gf-msg-name,
+.ag-reader .gf-msg .gf-msg-subject { color: #fff; }
+.ag-reader .gf-msg .gf-msg-addr,
+.ag-reader .gf-msg .gf-msg-to,
+.ag-reader .gf-msg .gf-msg-time { color: #9298a2; }
+.ag-reader .gf-msg .gf-msg-head { border-bottom-color: rgba(255, 255, 255, 0.10); }
+/* Unread pill readable on dark (the amber Draft pill keeps its own style). */
+.ag-reader .gf-msg .gf-msg-pill:not(.gf-draft-pill) { color: #cfe0ff; background: rgba(56, 132, 255, 0.18); border-color: rgba(56, 132, 255, 0.40); }
+.ag-reader .gf-msg .gf-att-name { color: #eceef1; }
+.ag-reader .gf-msg .gf-att-size { color: #9298a2; }
+.ag-reader .gf-msg .gf-att-btn { border-color: rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.06); color: #cfd2d8; }
 .ag-reply-btn { margin-top: 14px; flex-shrink: 0; }
 .ag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ag-act {
