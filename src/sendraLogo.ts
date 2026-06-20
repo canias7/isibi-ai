@@ -10,7 +10,8 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
 <stop offset="0" stop-color="#FF9A4D"/><stop offset=".55" stop-color="#FF6F47"/><stop offset="1" stop-color="#F8514E"/>
 </linearGradient></defs>
 <rect width="100" height="100" rx="23" fill="url(#sg)"/>
-<path d="M68 35C68 24 45 22 35 30C25 38 30 47 50 52C70 57 75 66 65 74C55 82 38 80 30 71" fill="none" stroke="#fff" stroke-width="12.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M68 35C68 24 45 22 35 30C25 38 30 47 50 52C70 57 75 66 65 74C57 80 45 80 37 75" fill="none" stroke="#fff" stroke-width="12.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M38 76 l-11 -2 4 11 z" fill="#fff"/>
 </svg>`;
 
 export const SENDRA_LOGO = `data:image/svg+xml,${encodeURIComponent(svg)}`;
