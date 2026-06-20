@@ -8,6 +8,7 @@ import { tap } from './haptics';
 import { fetchInbox, sendEmail, fetchContacts, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
+import { SENDRA_LOGO } from './sendraLogo';
 
 // Each agent is a *role* that spans apps (not an app). Only Sendra is live today;
 // the rest are shown as "soon" so the roadmap is visible without faking capability.
@@ -361,7 +362,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 disabled={!a.live}
                 onClick={() => { if (a.live) { tap(); setCommsApp(null); setAgent(a.id as AgentId); } }}
               >
-                <span className="ag-ic"><a.icon size={22} /></span>
+                {a.id === 'email'
+                  ? <span className="ag-ic ag-ic-logo"><img src={SENDRA_LOGO} alt="" /></span>
+                  : <span className="ag-ic"><a.icon size={22} /></span>}
                 <span className="ag-meta">
                   <span className="ag-name">{a.name}</span>
                   <span className="ag-desc">{a.desc}</span>
@@ -387,7 +390,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 })}
               </svg>
               <div className="ag-tree-hub" style={{ left: `${HUB.x}%`, top: `${HUB.y}%` }}>
-                <span className="ag-tree-hub-ic"><IconCompose size={26} /></span>
+                <span className="ag-tree-hub-ic"><img src={SENDRA_LOGO} alt="Sendra" /></span>
                 <span className="ag-tree-hub-name">Sendra</span>
               </div>
               {deckApps.map((c, i) => {

@@ -33,6 +33,9 @@
   display: grid; place-items: center;
   background: var(--grad-brand); color: var(--on-brand);
 }
+/* Sendra's real brand mark (its own gradient) instead of the gradient glyph tile. */
+.ag-ic-logo { background: none; overflow: hidden; }
+.ag-ic-logo img { width: 100%; height: 100%; display: block; }
 .ag-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .ag-name { font-size: var(--fs-body-s); font-weight: 700; }
 .ag-desc { font-size: var(--fs-footnote); color: var(--text-dim); line-height: 1.4; }
@@ -245,15 +248,15 @@
   display: flex; flex-direction: column; align-items: center; gap: 7px; pointer-events: none;
 }
 .ag-tree-hub-ic {
-  width: 74px; height: 74px; border-radius: 50%; display: grid; place-items: center;
-  background: var(--grad-brand); color: var(--on-brand);
-  box-shadow: 0 0 0 6px rgba(224, 161, 58, 0.12), 0 10px 30px rgba(0, 0, 0, 0.35);
+  width: 76px; height: 76px; border-radius: 22px; overflow: hidden;
+  box-shadow: 0 0 0 6px rgba(255, 110, 80, 0.16), 0 10px 30px rgba(0, 0, 0, 0.35);
   animation: agHubPulse 3s ease-in-out infinite;
 }
+.ag-tree-hub-ic img { width: 100%; height: 100%; display: block; }
 .ag-tree-hub-name { font-weight: 700; font-size: var(--fs-body-s); }
 @keyframes agHubPulse {
-  0%, 100% { box-shadow: 0 0 0 6px rgba(224, 161, 58, 0.12), 0 10px 30px rgba(0, 0, 0, 0.35); }
-  50% { box-shadow: 0 0 0 13px rgba(224, 161, 58, 0.045), 0 10px 30px rgba(0, 0, 0, 0.35); }
+  0%, 100% { box-shadow: 0 0 0 6px rgba(255, 110, 80, 0.16), 0 10px 30px rgba(0, 0, 0, 0.35); }
+  50% { box-shadow: 0 0 0 14px rgba(255, 110, 80, 0.05), 0 10px 30px rgba(0, 0, 0, 0.35); }
 }
 .ag-tree-node {
   position: absolute; transform: translate(-50%, -50%);
