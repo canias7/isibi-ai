@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, listCampaigns, createCampaign, sendCampaignBatch, listTemplates, saveTemplate, deleteTemplate, generateTemplate, uploadEmailImage, getBrand, saveBrand, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type Template } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, listCampaigns, createCampaign, sendCampaignBatch, listTemplates, saveTemplate, deleteTemplate, generateTemplate, chatTemplate, uploadEmailImage, getBrand, saveBrand, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -172,6 +172,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [tplErr, setTplErr] = useState('');
   const [tplGenDesign, setTplGenDesign] = useState(true); // AI generates a designed HTML layout (vs plain text)
   const [tplImages, setTplImages] = useState<string[]>([]); // photos the AI designer lays into the email
+  // New-template flow: choose AI vs manual; AI = Lovable-style chat builder.
+  const [tplChoose, setTplChoose] = useState(false);
+  const [tplBuild, setTplBuild] = useState<'chat' | 'manual'>('chat');
+  const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatView, setChatView] = useState<'chat' | 'preview'>('chat');
+  const [chatErr, setChatErr] = useState('');
   // Brand profile (feeds the AI designer)
   const [brandEdit, setBrandEdit] = useState(false);
   const [bName, setBName] = useState('');
@@ -501,8 +509,34 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     catch { if (mountedRef.current) setTplErr('Upload failed — try a smaller image.'); }
     finally { if (mountedRef.current) setTplImgBusy(false); }
   });
-  const openTplNew = () => { tap(); setTplEdit({}); setTplMode('text'); setTplName(''); setTplSubject(''); setTplBody(''); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplImages([]); setTplErr(''); };
-  const openTplEdit = (t: Template) => { tap(); setTplEdit({ id: t.id }); setTplMode(t.kind === 'html' ? 'html' : 'text'); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplImages([]); setTplErr(''); };
+  const openChoice = () => { tap(); setTplChoose(true); };
+  const startAI = () => { tap(); setTplChoose(false); setTplBuild('chat'); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setTplImages([]); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatView('chat'); };
+  const startManual = () => { tap(); setTplChoose(false); setTplBuild('manual'); setTplEdit({}); setTplMode('text'); setTplName(''); setTplSubject(''); setTplBody(''); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplImages([]); setTplErr(''); };
+  const openTplEdit = (t: Template) => {
+    tap();
+    if (t.chat && t.chat.length) {
+      setTplBuild('chat'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplImages([]); setChatMsgs(t.chat); setChatInput(''); setChatErr(''); setChatView('preview');
+    } else {
+      setTplBuild('manual'); setTplEdit({ id: t.id }); setTplMode(t.kind === 'html' ? 'html' : 'text'); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplImages([]); setTplErr('');
+    }
+  };
+  const sendChat = async () => {
+    const text = chatInput.trim();
+    if (!text || chatBusy) return;
+    tap();
+    const next: ChatMsg[] = [...chatMsgs, { role: 'user', content: text }];
+    setChatMsgs(next); setChatInput(''); setChatBusy(true); setChatErr('');
+    try {
+      const r = await chatTemplate(next, tplBody, tplImages);
+      if (!mountedRef.current) return;
+      if (r.error || !r.body) { setChatErr(r.error === 'ai_unset' ? 'AI builder isn’t set up on the server yet.' : 'Couldn’t build that — try rephrasing.'); return; }
+      setTplBody(r.body); if (r.subject) setTplSubject(r.subject);
+      if (!tplName.trim() && r.subject) setTplName(r.subject.slice(0, 60));
+      setChatMsgs((m) => [...m, { role: 'assistant', content: r.reply || 'Done.' }]);
+      setTplImages([]);
+    } catch { if (mountedRef.current) setChatErr('Something went wrong — try again.'); }
+    finally { if (mountedRef.current) setChatBusy(false); }
+  };
   // Add a photo for the AI designer to lay into the email.
   const addDesignImage = () => pickImage(async (b64, ct) => {
     if (!b64) return;
@@ -526,15 +560,15 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     finally { if (mountedRef.current) setTplGen(false); }
   };
   const saveTpl = async () => {
-    const { body, kind } = tplComputed();
-    if (!tplSubject.trim() || !body || tplSaving) return;
-    tap(); setTplSaving(true); setTplErr('');
+    const built: { body: string; kind: 'text' | 'html' } = tplBuild === 'chat' ? { body: tplBody.trim(), kind: 'html' } : tplComputed();
+    if (!tplSubject.trim() || !built.body || tplSaving) return;
+    tap(); setTplSaving(true); setTplErr(''); setChatErr('');
     try {
-      await saveTemplate({ id: tplEdit?.id, name: tplName.trim() || tplSubject.trim().slice(0, 60), subject: tplSubject.trim(), body, kind });
+      await saveTemplate({ id: tplEdit?.id, name: tplName.trim() || tplSubject.trim().slice(0, 60), subject: tplSubject.trim(), body: built.body, kind: built.kind, chat: tplBuild === 'chat' ? chatMsgs : undefined });
       if (!mountedRef.current) return;
       setTplEdit(null);
       listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
-    } catch { if (mountedRef.current) setTplErr('Couldn’t save — try again.'); }
+    } catch { if (mountedRef.current) { setTplErr('Couldn’t save — try again.'); setChatErr('Couldn’t save — try again.'); } }
     finally { if (mountedRef.current) setTplSaving(false); }
   };
   const delTpl = async () => {
@@ -802,6 +836,61 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   <button className="ag-send-btn ghost" disabled={bBusy} onClick={() => { tap(); setBrandEdit(false); }}>Cancel</button>
                   <p className="ag-foot">The AI designer uses this on every generated email — logo, color, voice and sign-off.</p>
                 </div>
+              ) : tplChoose ? (
+                <div className="ag-choose">
+                  <button className="ag-choice" onClick={startAI}>
+                    <span className="ag-choice-ic">✨</span>
+                    <span className="ag-choice-t">Generate with AI</span>
+                    <span className="ag-choice-s">Describe it in chat — Sendra designs it, you refine by chatting.</span>
+                  </button>
+                  <button className="ag-choice" onClick={startManual}>
+                    <span className="ag-choice-ic">🔧</span>
+                    <span className="ag-choice-t">Build manually</span>
+                    <span className="ag-choice-s">Write, paste your HTML, or upload a flyer yourself.</span>
+                  </button>
+                  <button className="ag-send-btn ghost" onClick={() => { tap(); setTplChoose(false); }}>Cancel</button>
+                </div>
+              ) : (tplEdit && tplBuild === 'chat') ? (
+                chatView === 'preview' ? (
+                  <div className="ag-compose">
+                    <div className="ag-tpl-preview-bar" style={{ borderRadius: '10px 10px 0 0' }}>
+                      <button onClick={() => { tap(); setChatView('chat'); }}>‹ Chat</button><span>Preview</span>
+                    </div>
+                    <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(tplBody || '<div style="padding:40px;text-align:center;color:#888;font-family:sans-serif">Nothing yet — chat to build it.</div>')} />
+                    <input className="ag-field" placeholder="Subject" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
+                    <input className="ag-field" placeholder="Template name" value={tplName} onChange={(e) => setTplName(e.target.value)} />
+                    {chatErr && <div className="ag-send-err">{chatErr}</div>}
+                    <button className="ag-send-btn" disabled={tplSaving || !tplBody.trim() || !tplSubject.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save template'}</button>
+                    <div className="ag-sent-actions">
+                      <button className="ag-send-btn ghost" disabled={tplSaving} onClick={() => { tap(); setTplEdit(null); }}>Close</button>
+                      {tplEdit.id && <button className="ag-send-btn ghost" disabled={tplSaving} onClick={delTpl}>Delete</button>}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="ag-chatb">
+                    <div className="ag-chatb-thread">
+                      <div className="ag-cb-a">Hey! Describe the email you want and I’ll design it on your brand. ✨</div>
+                      {chatMsgs.map((m, i) => (
+                        <div key={i} className={m.role === 'user' ? 'ag-cb-u' : 'ag-cb-a'}>{m.content}</div>
+                      ))}
+                      {chatBusy && <div className="ag-cb-a ag-cb-typing">Designing…</div>}
+                      {chatErr && <div className="ag-cb-err">{chatErr}</div>}
+                    </div>
+                    {tplBody.trim() && <button className="ag-chatb-peek" onClick={() => { tap(); setChatView('preview'); }}><span className="ar">→</span><span className="tx">VIEW</span></button>}
+                    {tplImages.length > 0 && (
+                      <div className="ag-chatb-atts">
+                        {tplImages.map((u, i) => (<div className="ag-imgs-thumb" key={i}><img src={u} alt="" /><button onClick={() => { tap(); setTplImages((xs) => xs.filter((_, j) => j !== i)); }}>×</button></div>))}
+                      </div>
+                    )}
+                    <div className="ag-chatb-bar">
+                      <button className="ag-chatb-attach" disabled={tplImgBusy} onClick={addDesignImage} aria-label="Attach photo">{tplImgBusy ? '…' : '📎'}</button>
+                      <input className="ag-chatb-input" placeholder="Message Sendra…" value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && chatInput.trim() && !chatBusy) sendChat(); }} />
+                      <button className="ag-chatb-send" disabled={!chatInput.trim() || chatBusy} onClick={sendChat}>↑</button>
+                    </div>
+                  </div>
+                )
               ) : tplEdit ? (
                 <div className="ag-compose">
                   <div className="ag-seg">
@@ -874,7 +963,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     </span>
                     <span className="ag-chev" aria-hidden="true">›</span>
                   </button>
-                  <button className="ag-send-btn" onClick={openTplNew}>+ New template</button>
+                  <button className="ag-send-btn" onClick={openChoice}>+ New template</button>
                   {tplList.length === 0 ? (
                     <div className="ag-empty" style={{ marginTop: 12 }}>No templates yet. Describe the email you want and let Sendra write it — then reuse it in any campaign.</div>
                   ) : (

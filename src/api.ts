@@ -186,7 +186,15 @@ export async function sendCampaignBatch(id: string): Promise<{ sent: number; fai
 // ---- Email templates (reusable, AI-writable, via the `templates` fn) ----
 // kind: 'text' = plain text body (wrapped to HTML on send); 'html' = ready HTML
 // (flyer image, pasted design, AI layout) sent as-is.
-export interface Template { id: string; name: string; subject: string; body: string; kind?: 'text' | 'html'; updated_at?: string }
+export interface ChatMsg { role: 'user' | 'assistant'; content: string }
+export interface Template { id: string; name: string; subject: string; body: string; kind?: 'text' | 'html'; chat?: ChatMsg[]; updated_at?: string }
+// Lovable-style iterative builder: send the thread + current email HTML, get the
+// updated email + a one-line reply back.
+export async function chatTemplate(messages: ChatMsg[], body: string, images: string[] = []): Promise<{ subject?: string; body?: string; reply?: string; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'chat', messages, body, images } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { subject?: string; body?: string; reply?: string; error?: string };
+}
 // Upload an image (raw base64, no data: prefix) to the public email-assets bucket.
 export async function uploadEmailImage(dataB64: string, contentType: string): Promise<string> {
   const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'upload', dataB64, contentType } });
@@ -201,7 +209,7 @@ export async function listTemplates(): Promise<Template[]> {
   const t = (data as { templates?: Template[] } | null)?.templates;
   return Array.isArray(t) ? t : [];
 }
-export async function saveTemplate(t: { id?: string; name: string; subject: string; body: string; kind?: 'text' | 'html' }): Promise<{ id?: string; error?: string }> {
+export async function saveTemplate(t: { id?: string; name: string; subject: string; body: string; kind?: 'text' | 'html'; chat?: ChatMsg[] }): Promise<{ id?: string; error?: string }> {
   const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'save', ...t } });
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { id?: string; error?: string };
