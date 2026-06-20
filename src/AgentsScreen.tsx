@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
-  IconDoc, IconConnectors, IconClock, IconBank,
+  IconDoc, IconConnectors, IconClock, IconBank, IconRefresh,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -29,29 +29,42 @@ const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[]
   { id: 'template', label: 'Template', sub: 'Reusable', icon: IconDoc },
 ];
 
+// Session cache so re-opening the Email agent is instant. The overlay unmounts
+// on close, so this lives at module scope (not component state). In-memory only —
+// email snippets are never written to disk.
+let inboxCache: EmailItem[] | null = null;
+
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [agent, setAgent] = useState<AgentId | null>(null);
-  const [inbox, setInbox] = useState<EmailItem[]>([]);
-  const [inboxState, setInboxState] = useState<'idle' | 'loading' | 'ok' | 'err'>('idle');
-  const [reloadKey, setReloadKey] = useState(0);
+  const [inbox, setInbox] = useState<EmailItem[]>(() => inboxCache ?? []);
+  const [inboxState, setInboxState] = useState<'idle' | 'loading' | 'ok' | 'err'>(inboxCache ? 'ok' : 'idle');
+  const [refreshing, setRefreshing] = useState(false);
   const [reading, setReading] = useState<EmailItem | null>(null);
   const trapRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
   // Back steps one level: reader -> agent workspace -> the list -> close.
   const back = () => { tap(); if (reading) setReading(null); else if (agent) setAgent(null); else onClose(); };
   useFocusTrap(true, trapRef, back);
 
   const hasMail = connApps.includes('gmail') || connApps.includes('outlook');
 
-  // Load the real inbox when the Email agent opens (and a mailbox is connected).
-  useEffect(() => {
-    if (agent !== 'email' || !hasMail) return;
-    let alive = true;
-    setInboxState('loading');
+  // Fetch the inbox. Shows the cached list instantly and refreshes in the
+  // background; only shows the skeleton when there's nothing cached yet.
+  const loadInbox = useCallback(() => {
+    setRefreshing(true);
+    if (!inboxCache) setInboxState('loading');
     fetchInbox(12)
-      .then((items) => { if (alive) { setInbox(items); setInboxState('ok'); } })
-      .catch(() => { if (alive) setInboxState('err'); });
-    return () => { alive = false; };
-  }, [agent, hasMail, reloadKey]);
+      .then((items) => { if (!mountedRef.current) return; inboxCache = items; setInbox(items); setInboxState('ok'); })
+      .catch(() => { if (mountedRef.current && !inboxCache) setInboxState('err'); })
+      .finally(() => { if (mountedRef.current) setRefreshing(false); });
+  }, []);
+
+  // Load on open (instant from cache, then a background refresh).
+  useEffect(() => {
+    if (agent === 'email' && hasMail) loadInbox();
+  }, [agent, hasMail, loadInbox]);
 
   return (
     <div className="memg ag" ref={trapRef} tabIndex={-1}>
@@ -122,13 +135,23 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
 
           {hasMail && (
             <>
-              <div className="ag-sec">Inbox</div>
+              <div className="ag-inbox-head">
+                <span className="ag-sec">Inbox</span>
+                <button
+                  className={`ag-refresh${refreshing ? ' spinning' : ''}`}
+                  onClick={() => { tap(); loadInbox(); }}
+                  disabled={refreshing}
+                  aria-label="Refresh inbox"
+                >
+                  <IconRefresh size={18} />
+                </button>
+              </div>
               {inboxState === 'loading' ? (
                 <EmailSkeleton />
               ) : inboxState === 'err' ? (
                 <div className="ag-empty">
                   Couldn’t load your inbox.{' '}
-                  <button className="ag-retry" onClick={() => { tap(); setReloadKey((k) => k + 1); }}>Try again</button>
+                  <button className="ag-retry" onClick={() => { tap(); loadInbox(); }}>Try again</button>
                 </div>
               ) : inbox.length ? (
                 <EmailList items={inbox} onOpen={(it) => { tap(); setReading(it); }} />

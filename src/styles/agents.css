@@ -65,6 +65,18 @@
   text-transform: uppercase; color: var(--text-faint);
   padding: 0 4px 10px; margin-top: 22px;
 }
+/* Inbox section header: the label + a refresh button on the right. */
+.ag-inbox-head { display: flex; align-items: center; justify-content: space-between; margin-top: 22px; padding: 0 4px 10px; }
+.ag-inbox-head .ag-sec { margin: 0; padding: 0; }
+.ag-refresh {
+  flex-shrink: 0; background: none; border: none; color: var(--text-faint);
+  cursor: pointer; padding: 0; display: grid; place-items: center;
+}
+.ag-refresh:active { color: var(--brand); }
+.ag-refresh:disabled { cursor: default; }
+.ag-refresh.spinning { color: var(--brand); animation: agSpin 0.8s linear infinite; }
+@keyframes agSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ag-refresh.spinning { animation: none; } }
 .ag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ag-act {
   display: flex; flex-direction: column; align-items: flex-start; gap: 5px;

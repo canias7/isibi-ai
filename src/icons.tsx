@@ -49,6 +49,16 @@ export const IconAgent = ({ size }: { size?: number }) => (
   </Svg>
 );
 
+// Refresh / reload (Lucide refresh-cw): two curved arrows forming a circle.
+export const IconRefresh = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+    <path d="M21 3v5h-5" />
+    <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+    <path d="M3 21v-5h5" />
+  </Svg>
+);
+
 export const IconConnectors = ({ size }: { size?: number }) => (
   <Svg size={size}>
     <path d="M12 22v-5" />
