@@ -1,0 +1,93 @@
+/* ---- Agents (+ menu → Agents) ----------------------------------------- */
+/* Reuses the .memg overlay shell (fixed full-screen, header, back, dot grid).
+   These styles cover the agent list and the Email agent workspace below it. */
+
+.ag-stage {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 8px 16px calc(40px + env(safe-area-inset-bottom));
+  z-index: 1;
+}
+.ag-stage > * { max-width: 640px; margin-left: auto; margin-right: auto; }
+
+/* --- Agent list --- */
+.ag-list { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.ag-card {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%; text-align: left; padding: 16px;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-hi), var(--glass-shadow);
+  border-radius: var(--r-card);
+  color: var(--text); font: inherit; cursor: pointer;
+  transition: transform 160ms var(--ease-enter, ease);
+}
+.ag-card:active { transform: scale(0.985); }
+.ag-card.soon { opacity: 0.5; cursor: default; }
+.ag-card.soon:active { transform: none; }
+.ag-ic {
+  flex-shrink: 0; width: 44px; height: 44px; border-radius: 14px;
+  display: grid; place-items: center;
+  background: var(--grad-brand); color: var(--on-brand);
+}
+.ag-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ag-name { font-size: var(--fs-body-s); font-weight: 700; }
+.ag-desc { font-size: var(--fs-footnote); color: var(--text-dim); line-height: 1.4; }
+.ag-chev { color: var(--text-faint); font-size: 1.6rem; line-height: 1; margin-left: 4px; }
+.ag-soon {
+  flex-shrink: 0; font-size: var(--fs-label); font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint);
+  border: 1px solid var(--glass-edge); border-radius: var(--r-pill); padding: 4px 9px;
+}
+.ag-foot { color: var(--text-dim); font-size: var(--fs-footnote); line-height: 1.5; margin: 18px 4px 0; text-align: center; }
+
+/* --- Email agent workspace --- */
+.ag-connect {
+  display: flex; align-items: center; gap: 13px;
+  padding: 14px; margin-top: 10px;
+  border: 1px solid var(--brand); border-radius: var(--r-card);
+  background: rgba(224, 161, 58, 0.08);
+}
+.ag-connect-ic {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 11px;
+  display: grid; place-items: center;
+  background: var(--grad-brand); color: var(--on-brand);
+}
+.ag-connect-text { flex: 1; min-width: 0; }
+.ag-connect-title { font-weight: 700; font-size: var(--fs-body-s); }
+.ag-connect-sub { font-size: var(--fs-footnote); color: var(--text-dim); line-height: 1.4; margin-top: 2px; }
+
+.ag-sec {
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-faint);
+  padding: 0 4px 10px; margin-top: 22px;
+}
+.ag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ag-act {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+  padding: 16px;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-hi), var(--glass-shadow);
+  border-radius: var(--r-card);
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+  transition: transform 160ms var(--ease-enter, ease);
+}
+.ag-act:active { transform: scale(0.97); }
+.ag-act-ic {
+  width: 38px; height: 38px; border-radius: 11px;
+  display: grid; place-items: center;
+  background: rgba(224, 161, 58, 0.12); color: var(--brand);
+  margin-bottom: 2px;
+}
+.ag-act-label { font-weight: 700; font-size: var(--fs-body-s); }
+.ag-act-sub { font-size: var(--fs-footnote); color: var(--text-dim); }
+.ag-empty {
+  color: var(--text-dim); font-size: var(--fs-body-s); line-height: 1.5;
+  padding: 18px; text-align: center;
+  border: 1px dashed var(--glass-edge); border-radius: var(--r-card);
+}

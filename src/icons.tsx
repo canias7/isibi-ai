@@ -40,6 +40,15 @@ export const IconChat = ({ size }: { size?: number }) => (
   </Svg>
 );
 
+// "Agents" — a small bot (Lucide bot geometry): head + antenna + eyes.
+export const IconAgent = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M12 8V4H8" />
+    <rect x="4" y="8" width="16" height="12" rx="2" />
+    <path d="M2 14h2M20 14h2M9 13v2M15 13v2" />
+  </Svg>
+);
+
 export const IconConnectors = ({ size }: { size?: number }) => (
   <Svg size={size}>
     <path d="M12 22v-5" />

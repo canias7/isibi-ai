@@ -6,7 +6,7 @@ import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
 import AssistantMessage from './AssistantMessage';
 import type { EmailItem } from './EmailList';
-import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconWaveform, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown, IconLogout, IconPhotos } from './icons';
+import { IconMenu, IconCompose, IconConnectors, IconTrash, IconCamera, IconFiles, IconX, IconDoc, IconEdit, IconPin, IconCopy, IconCheck, IconMemory, IconWorkflow, IconWaveform, IconClock, IconMic, IconArrowUp, IconArrowDown, IconPlus, IconThumbUp, IconThumbDown, IconLogout, IconPhotos, IconAgent } from './icons';
 import { Camera } from '@capacitor/camera';
 import { primeAudio, resumeAudio, audioState, closeAudio, listenOnce, transcribe, micSupported } from './voice';
 import { sentSound, replySound, soundsOn, setSoundsOn, soundTheme, setSoundTheme, type SoundTheme } from './earcons';
@@ -47,6 +47,7 @@ const MemoryGraph = lazy(() => import('./MemoryGraph'));
 const WorkflowsScreen = lazy(() => import('./WorkflowsScreen'));
 const CallScreen = lazy(() => import('./CallScreen'));
 const RemindersGraph = lazy(() => import('./RemindersGraph'));
+const AgentsScreen = lazy(() => import('./AgentsScreen'));
 
 // Compact fallback for a crashed overlay: the screen closes instead of the
 // whole app white-screening (the root boundary stays as the last resort).
@@ -215,6 +216,7 @@ export default function App() {
   // Whole-feature on/off (paused = not fed into chats and the save tool is dropped).
   const [memEnabled, setMemEnabled] = useState(() => { try { return localStorage.getItem('gf_memory_on') !== '0'; } catch { return true; } });
   const [wfOpen, setWfOpen] = useState(false); // Workflows screen (placeholder for now)
+  const [agentsOpen, setAgentsOpen] = useState(false); // Agents screen (+ menu → Agents)
   const [callOpen, setCallOpen] = useState(false); // voice "call mode" overlay
   const scrollRef = useRef<HTMLDivElement>(null);
   // Scroll anchoring: only auto-follow the stream while the user is AT the
@@ -548,6 +550,7 @@ export default function App() {
   const remUi = useDismiss(remOpen);
   const wfUi = useDismiss(wfOpen);
   const callUi = useDismiss(callOpen);
+  const agentsUi = useDismiss(agentsOpen);
 
   // Load this user's chats on login (local cache instantly, then cloud sync).
   useEffect(() => {
@@ -2310,23 +2313,26 @@ export default function App() {
                 staggered bottom-to-top; labels sit to the right (no overlap) */}
             {radialUi.mounted && (
               <div className={`radial${radialUi.closing ? ' closing' : ''}`} role="menu" aria-label="Attach and tools" ref={radialRef} tabIndex={-1}>
-                <button className="radial-item" style={{ left: 0, bottom: 388, animationDelay: '250ms' }} onClick={() => { setPlusOpen(false); openMemory(); }}>
+                <button className="radial-item" style={{ left: 0, bottom: 410, animationDelay: '230ms' }} onClick={() => { setPlusOpen(false); openMemory(); }}>
                   <IconMemory size={20} /><span className="radial-label">Memory</span>
                 </button>
-                <button className="radial-item" style={{ left: 17, bottom: 330, animationDelay: '210ms' }} onClick={() => { setPlusOpen(false); openReminders(); }}>
+                <button className="radial-item" style={{ left: 13, bottom: 358, animationDelay: '200ms' }} onClick={() => { setPlusOpen(false); openReminders(); }}>
                   <IconClock size={20} /><span className="radial-label">Reminders</span>
                 </button>
-                <button className="radial-item" style={{ left: 34, bottom: 272, animationDelay: '170ms' }} onClick={() => openPicker('camera')}>
+                <button className="radial-item" style={{ left: 27, bottom: 306, animationDelay: '170ms' }} onClick={() => openPicker('camera')}>
                   <IconCamera size={20} /><span className="radial-label">Camera</span>
                 </button>
-                <button className="radial-item" style={{ left: 50, bottom: 214, animationDelay: '130ms' }} onClick={() => { setPlusOpen(false); setAttachPop(true); }}>
+                <button className="radial-item" style={{ left: 40, bottom: 254, animationDelay: '140ms' }} onClick={() => { setPlusOpen(false); setAttachPop(true); }}>
                   <IconFiles size={20} /><span className="radial-label">Attachments</span>
                 </button>
-                <button className="radial-item" style={{ left: 65, bottom: 156, animationDelay: '90ms' }} onClick={() => { setPlusOpen(false); void loadConnectors(); setWfOpen(true); }}>
+                <button className="radial-item" style={{ left: 53, bottom: 202, animationDelay: '110ms' }} onClick={() => { setPlusOpen(false); void loadConnectors(); setWfOpen(true); }}>
                   <IconWorkflow size={20} /><span className="radial-label">Workflows</span>
                 </button>
-                <button className="radial-item" style={{ left: 79, bottom: 98, animationDelay: '50ms' }} onClick={() => { setPlusOpen(false); go('connectors'); }}>
+                <button className="radial-item" style={{ left: 66, bottom: 150, animationDelay: '80ms' }} onClick={() => { setPlusOpen(false); go('connectors'); }}>
                   <IconConnectors size={20} /><span className="radial-label">Connectors</span>
+                </button>
+                <button className="radial-item" style={{ left: 79, bottom: 98, animationDelay: '50ms' }} onClick={() => { setPlusOpen(false); void loadConnectors(); setAgentsOpen(true); }}>
+                  <IconAgent size={20} /><span className="radial-label">Agents</span>
                 </button>
               </div>
             )}
@@ -2493,6 +2499,16 @@ export default function App() {
           <div style={{ display: 'contents' }} className={wfUi.closing ? 'gf-out' : undefined}>
             <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setWfOpen(false); }} />}>
             <WorkflowsScreen connApps={connApps} onClose={() => setWfOpen(false)} />
+            </ErrorBoundary>
+          </div>
+        </Suspense>
+      )}
+
+      {agentsUi.mounted && (
+        <Suspense fallback={<RouteFallback />}>
+          <div style={{ display: 'contents' }} className={agentsUi.closing ? 'gf-out' : undefined}>
+            <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setAgentsOpen(false); }} />}>
+            <AgentsScreen connApps={connApps} onClose={() => setAgentsOpen(false)} />
             </ErrorBoundary>
           </div>
         </Suspense>
