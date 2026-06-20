@@ -27,6 +27,11 @@ export const CONNECTORS: Connector[] = [
   // Function (hosted Link). ConnectorsGraph special-cases this id for connect/
   // status/disconnect; the chat & workflow `apps` list stays Composio-only.
   { id: 'plaid', name: 'Plaid', logo: si('plaid'), color: '#111111', desc: 'Link your bank — balances & transactions' },
+  // Telegram is NOT a Composio connector — it uses our OWN MTProto auth via the
+  // `telegram` Edge Function (phone -> code -> 2FA). ConnectorsGraph special-cases
+  // this id for connect/status/disconnect; like Plaid it stays out of the
+  // Composio-only chat & workflow `apps` list (it never appears in /list).
+  { id: 'telegram', name: 'Telegram', logo: si('telegram'), color: '#26A5E4', desc: 'Your chats — read & reply' },
   { id: 'canva', name: 'Canva', logo: fav('canva.com'), color: '#00C4CC', desc: 'Designs and brand assets' },
   { id: 'figma', name: 'Figma', logo: si('figma'), color: '#F24E1E', desc: 'Design files and prototypes' },
   { id: 'notion', name: 'Notion', logo: si('notion'), color: '#111111', desc: 'Search and edit your workspace' },

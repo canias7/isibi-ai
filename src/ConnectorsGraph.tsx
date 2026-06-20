@@ -85,6 +85,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const pickerRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const keyRef = useRef<HTMLDivElement>(null);
+  const tgRef = useRef<HTMLDivElement>(null);
   // Seed from the on-device cache so the user's real apps show on the first
   // frame; refreshAll() reconciles against the server right after.
   const [status, setStatus] = useState<Record<string, Status>>(loadStatusCache);
@@ -100,12 +101,22 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   const [keyFor, setKeyFor] = useState<Connector | null>(null); // API-key / keyless connect sheet
   const [keyVal, setKeyVal] = useState('');
   const [keyBusy, setKeyBusy] = useState(false);
+  // Telegram connect is an in-app multi-step form (phone -> code -> 2FA), not a
+  // browser redirect — its own little state machine, scoped to this overlay.
+  const [tgStep, setTgStep] = useState<null | 'phone' | 'code' | 'password'>(null);
+  const [tgPhone, setTgPhone] = useState('');
+  const [tgCode, setTgCode] = useState('');
+  const [tgPass, setTgPass] = useState('');
+  const [tgToken, setTgToken] = useState('');
+  const [tgBusy, setTgBusy] = useState(false);
+  const [tgErr, setTgErr] = useState('');
   // With ToolManager open, the ROOT trap must go dormant too — its Esc handler
   // used to close the whole screen underneath the (trap-less) ToolManager.
-  useFocusTrap(!picker && !detail && !manage && !keyFor, rootRef, onClose);
-  useFocusTrap(picker && !detail && !keyFor, pickerRef, () => setPicker(false));
+  useFocusTrap(!picker && !detail && !manage && !keyFor && !tgStep, rootRef, onClose);
+  useFocusTrap(picker && !detail && !keyFor && !tgStep, pickerRef, () => setPicker(false));
   useFocusTrap(!!detail, sheetRef, () => setDetail(null));
   useFocusTrap(!!keyFor, keyRef, () => { setKeyFor(null); setKeyVal(''); });
+  useFocusTrap(!!tgStep, tgRef, () => { setTgStep(null); setTgErr(''); });
   // Animated dismissal for each layer; the sheet/manage content is latched so
   // it doesn't blank out during its exit beat.
   const pickerUi = useDismiss(picker);
@@ -156,6 +167,15 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   // `plaid` connector id for connect / status / disconnect throughout.
   async function plaidCall(action: string, extra: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
     const { data, error } = await supabase.functions.invoke('plaid', { body: { action, ...extra } });
+    if (error) throw new Error(error.message || 'Request failed');
+    const d = (data || {}) as Record<string, unknown>;
+    if (d.error) throw new Error(String(d.error));
+    return d;
+  }
+  // Telegram lives outside Composio too — its own `telegram` Edge Function (our
+  // own MTProto auth). Special-cased by id for connect / status / disconnect.
+  async function tgCall(action: string, extra: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+    const { data, error } = await supabase.functions.invoke('telegram', { body: { action, ...extra } });
     if (error) throw new Error(error.message || 'Request failed');
     const d = (data || {}) as Record<string, unknown>;
     if (d.error) throw new Error(String(d.error));
@@ -292,6 +312,15 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
         // next good refresh — keep what we last knew (mirrors the Composio path).
         next.plaid = status.plaid ?? { connected: false, email: null };
       }
+      // Telegram's connected state also comes from its own backend, not Composio.
+      try {
+        const ts = await tgCall('status');
+        next.telegram = (disconnectedAt.current.get('telegram') ?? 0) > Date.now()
+          ? { connected: false, email: null }
+          : { connected: !!ts.connected, email: (ts.phone as string) || (ts.connected ? 'Connected' : null) };
+      } catch {
+        next.telegram = status.telegram ?? { connected: false, email: null };
+      }
       // A newer refresh (or a disconnect) superseded this one — drop the stale result.
       if (gen !== refreshSeq.current || !aliveRef.current) return;
       setStatus(next);
@@ -376,6 +405,7 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
   async function connect(id: string) {
     void tap(); // the only overlay whose primary actions had no haptic
     if (id === 'plaid') { setPicker(false); void connectPlaid(); return; }
+    if (id === 'telegram') { setPicker(false); setActionErr(''); setTgErr(''); setTgPhone(''); setTgCode(''); setTgPass(''); setTgToken(''); setTgStep('phone'); return; }
     if (connecting || flowLock.current) return; // one OAuth at a time — ignore double-taps (two flows clobber pendingConnect; the state guard alone misses same-frame taps)
     flowLock.current = true;
     setTimeout(() => { flowLock.current = false; }, 600);
@@ -462,6 +492,49 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     }
   }
 
+  // Telegram sign-in step machine: phone -> sendCode; code -> signIn (which may
+  // ask for the 2FA password); password -> checkPassword. On success: optimistic
+  // connect, refresh, close. All server-side via the `telegram` Edge Function.
+  function tgFriendly(code: string): string {
+    if (/bad_phone|PHONE_NUMBER_INVALID/i.test(code)) return 'That phone number doesn’t look right.';
+    if (/phone_banned/i.test(code)) return 'That number is banned from Telegram.';
+    if (/bad_code/i.test(code)) return 'That code is incorrect — try again.';
+    if (/code_expired/i.test(code)) return 'That code expired — send a new one.';
+    if (/bad_password/i.test(code)) return 'Wrong password — try again.';
+    if (/telegram_unset/i.test(code)) return 'Telegram isn’t set up on the server yet.';
+    return 'Something went wrong — please try again.';
+  }
+  async function tgFinish() {
+    setTgStep(null); setTgPhone(''); setTgCode(''); setTgPass(''); setTgToken('');
+    disconnectedAt.current.delete('telegram');
+    setStatus((s) => ({ ...s, telegram: { connected: true, email: null } })); // optimistic
+    void refreshAll(); setTimeout(() => void refreshAll(), 1500);
+  }
+  async function tgSubmit() {
+    setTgBusy(true); setTgErr('');
+    try {
+      if (tgStep === 'phone') {
+        const d = await tgCall('start', { phone: tgPhone.trim() });
+        setTgToken(String(d.loginToken || ''));
+        setTgCode('');
+        setTgStep('code');
+      } else if (tgStep === 'code') {
+        const d = await tgCall('verify', { loginToken: tgToken, code: tgCode.trim() });
+        if (d.needPassword) { setTgToken(String(d.loginToken || tgToken)); setTgPass(''); setTgStep('password'); }
+        else { await tgFinish(); }
+      } else if (tgStep === 'password') {
+        await tgCall('verifyPassword', { loginToken: tgToken, password: tgPass });
+        await tgFinish();
+      }
+    } catch (e) {
+      const msg = String((e as Error)?.message || '');
+      setTgErr(tgFriendly(msg));
+      if (/code_expired/i.test(msg)) setTgStep('phone'); // let them request a fresh code
+    } finally {
+      setTgBusy(false);
+    }
+  }
+
   async function disconnect(id: string) {
     void tap();
     setDetail(null);
@@ -482,6 +555,12 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
     if (id === 'plaid') {
       try { const d = await plaidCall('list'); for (const b of ((d.banks as { id: string }[]) ?? [])) await plaidCall('unlink', { id: b.id }); }
       catch (e) { disconnectedAt.current.delete('plaid'); setActionErr('Couldn’t unlink — please try again.'); console.error('plaid unlink', e); }
+      setTimeout(() => void refreshAll(), 800);
+      return;
+    }
+    if (id === 'telegram') {
+      try { await tgCall('disconnect'); }
+      catch (e) { disconnectedAt.current.delete('telegram'); setActionErr('Couldn’t disconnect Telegram — please try again.'); console.error('telegram disconnect', e); }
       setTimeout(() => void refreshAll(), 800);
       return;
     }
@@ -806,6 +885,8 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
                   ? 'Connection expired — reconnect to keep using it'
                   : sheetConn.id === 'plaid'
                     ? (status[sheetConn.id]?.email || 'Bank linked')
+                    : sheetConn.id === 'telegram'
+                    ? (status[sheetConn.id]?.email || 'Telegram connected')
                     : (status[sheetConn.id]?.emails?.length ?? 0) > 1
                       ? `${status[sheetConn.id]!.emails!.length} accounts: ${status[sheetConn.id]!.emails!.join(', ')}`
                       : (status[sheetConn.id]?.email ? `Connected as ${status[sheetConn.id]?.email}`
@@ -818,10 +899,12 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
                 Reconnect
               </button>
             )}
-            <button className="cg-sheet-btn" onClick={() => { const c = sheetConn; setDetail(null); setManage(c); }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 7a2 2 0 104 0 2 2 0 10-4 0M6 17a2 2 0 104 0 2 2 0 10-4 0" /></svg>
-              Choose tools
-            </button>
+            {sheetConn.id !== 'telegram' && (
+              <button className="cg-sheet-btn" onClick={() => { const c = sheetConn; setDetail(null); setManage(c); }}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 7a2 2 0 104 0 2 2 0 10-4 0M6 17a2 2 0 104 0 2 2 0 10-4 0" /></svg>
+                Choose tools
+              </button>
+            )}
             {sheetConn.id === 'plaid' && (
               <button className="cg-sheet-btn" onClick={() => { setDetail(null); void connectPlaid(); }}>
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
@@ -862,6 +945,50 @@ export default function ConnectorsGraph({ onClose }: { onClose: () => void }) {
             <button className="cg-sheet-btn fix" disabled={keyBusy || (keyFor.auth === 'apikey' && !keyVal.trim())}
               onClick={() => void connectWithKey(keyFor, keyVal.trim())}>
               {keyBusy ? 'Connecting…' : 'Connect'}
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ---- Telegram sign-in: phone -> code -> 2FA (our own MTProto auth) ---- */}
+      {tgStep && (
+        <>
+          <div className="cg-sheet-backdrop" onClick={() => { setTgStep(null); setTgErr(''); }} />
+          <div className="cg-sheet" role="dialog" aria-label="Connect Telegram" ref={tgRef} tabIndex={-1}>
+            <div className="cg-sheet-head">
+              <span className="cg-tile"><Tile id="telegram" size={22} /></span>
+              <div>
+                <b>Connect Telegram</b>
+                <small>{tgStep === 'phone' ? 'Enter your phone — Telegram sends a login code'
+                  : tgStep === 'code' ? `Code sent to ${tgPhone}`
+                  : 'Two-step verification — enter your password'}</small>
+              </div>
+            </div>
+            {tgStep === 'phone' && (
+              <input className="cg-key-input" type="tel" value={tgPhone} autoFocus autoComplete="off"
+                autoCapitalize="off" spellCheck={false} placeholder="+1 555 123 4567" inputMode="tel"
+                onChange={(e) => setTgPhone(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && tgPhone.trim() && !tgBusy) void tgSubmit(); }} />
+            )}
+            {tgStep === 'code' && (
+              <input className="cg-key-input" type="text" value={tgCode} autoFocus autoComplete="one-time-code"
+                autoCapitalize="off" spellCheck={false} placeholder="Login code" inputMode="numeric"
+                onChange={(e) => setTgCode(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && tgCode.trim() && !tgBusy) void tgSubmit(); }} />
+            )}
+            {tgStep === 'password' && (
+              <input className="cg-key-input" type="password" value={tgPass} autoFocus autoComplete="current-password"
+                placeholder="2FA password"
+                onChange={(e) => setTgPass(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && tgPass && !tgBusy) void tgSubmit(); }} />
+            )}
+            {tgErr && <div className="cg-key-err">{tgErr}</div>}
+            <button className="cg-sheet-btn fix" disabled={tgBusy
+              || (tgStep === 'phone' && !tgPhone.trim())
+              || (tgStep === 'code' && !tgCode.trim())
+              || (tgStep === 'password' && !tgPass)}
+              onClick={() => void tgSubmit()}>
+              {tgBusy ? 'Working…' : tgStep === 'phone' ? 'Send code' : 'Verify'}
             </button>
           </div>
         </>
