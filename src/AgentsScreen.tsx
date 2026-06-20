@@ -67,6 +67,18 @@ const fmtTime = (ms: number | null): string => {
   try { return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); } catch { return ''; }
 };
 
+// Sendra constellation: a central hub with the connected comms apps as nodes
+// around it. Positions are % within the stage (polar around the hub). Small-N
+// angles are hand-picked so 1-3 apps sit nicely; 4+ spread evenly on the circle.
+const HUB = { x: 50, y: 42 };
+const TREE_RX = 32, TREE_RY = 26;
+const NODE_ANGLES: Record<number, number[]> = { 1: [90], 2: [145, 35], 3: [90, 205, 335] };
+function nodePos(i: number, n: number): { x: number; y: number } {
+  const arr = NODE_ANGLES[n] ?? Array.from({ length: n }, (_, k) => -90 + (k * 360) / n);
+  const a = ((arr[i] ?? 0) * Math.PI) / 180;
+  return { x: HUB.x + TREE_RX * Math.cos(a), y: HUB.y + TREE_RY * Math.sin(a) };
+}
+
 type EmailTab = 'home' | 'inbox' | 'compose' | 'contacts';
 type SendState = 'idle' | 'confirm' | 'sending' | 'sent' | 'err';
 type Loadable = 'idle' | 'loading' | 'ok' | 'err';
@@ -105,8 +117,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const pullStart = useRef<number | null>(null);
   const inboxScrollRef = useRef<HTMLDivElement>(null);
   const tgMsgsRef = useRef<HTMLDivElement>(null);
-  const deckRef = useRef<HTMLDivElement>(null);
-  const deckRaf = useRef(0);
   const trapRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -197,33 +207,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       loadContacts();
     }
   }, [agent, commsApp, emailTab, tgChat, refreshInbox, loadContacts, loadTgChats, loadTgMsgs]);
-
-  // ---- swipe deck: app-switcher coverflow (scale/tilt/fade by distance from center) ----
-  const applyDeck = useCallback(() => {
-    const el = deckRef.current;
-    if (!el) return;
-    const mid = el.scrollLeft + el.clientWidth / 2;
-    for (const node of Array.from(el.children)) {
-      const card = node as HTMLElement;
-      if (!card.classList.contains('ag-deck-card')) continue;
-      const c = card.offsetLeft + card.offsetWidth / 2;
-      const d = Math.max(-1, Math.min(1, (c - mid) / el.clientWidth));
-      const ad = Math.abs(d);
-      card.style.transform = `scale(${(1 - ad * 0.14).toFixed(3)}) rotateY(${(d * -16).toFixed(1)}deg)`;
-      card.style.opacity = (1 - ad * 0.4).toFixed(2);
-      card.style.zIndex = String(100 - Math.round(ad * 100));
-    }
-  }, []);
-  const onDeckScroll = () => {
-    if (deckRaf.current) return;
-    deckRaf.current = requestAnimationFrame(() => { deckRaf.current = 0; applyDeck(); });
-  };
-  const showingDeck = agent === 'email' && commsApp === null;
-  useEffect(() => {
-    if (!showingDeck) return;
-    const id = requestAnimationFrame(applyDeck);
-    return () => cancelAnimationFrame(id);
-  }, [showingDeck, deckApps.length, applyDeck]);
 
   const openComms = (id: CommsId) => {
     tap();
@@ -391,25 +374,39 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         </div>
 
       ) : commsApp === null ? (
-        // ---- the swipe deck of connected comms apps ----
-        <div className="ag-stage ag-deck-stage">
+        // ---- Sendra constellation: hub + connected comms apps as nodes ----
+        <div className="ag-stage ag-tree-stage">
           {deckApps.length === 0 ? (
             connectCard('Link Gmail, Outlook or Telegram so Sendra has something to manage.')
           ) : (
-            <>
-              <div className="ag-deck" ref={deckRef} onScroll={onDeckScroll}>
-                {deckApps.map((c) => (
-                  <button key={c.id} className="ag-deck-card" data-app={c.id} onClick={() => openComms(c.id)}>
-                    <span className="ag-deck-logo"><BrandLogo app={c.id} size={48} /></span>
-                    <span className="ag-deck-name">{c.name}</span>
-                    <span className="ag-deck-tag">{c.tagline}</span>
-                    <span className="ag-deck-open">Open ›</span>
-                  </button>
-                ))}
+            <div className="ag-tree">
+              <svg className="ag-tree-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                {deckApps.map((c, i) => {
+                  const p = nodePos(i, deckApps.length);
+                  return <line key={c.id} x1={HUB.x} y1={HUB.y} x2={p.x} y2={p.y} pathLength={1} className="ag-tree-line" style={{ animationDelay: `${i * 90}ms` }} />;
+                })}
+              </svg>
+              <div className="ag-tree-hub" style={{ left: `${HUB.x}%`, top: `${HUB.y}%` }}>
+                <span className="ag-tree-hub-ic"><IconCompose size={26} /></span>
+                <span className="ag-tree-hub-name">Sendra</span>
               </div>
-              <p className="ag-deck-hint">Swipe to choose — Sendra handles them all.</p>
-            </>
+              {deckApps.map((c, i) => {
+                const p = nodePos(i, deckApps.length);
+                return (
+                  <button
+                    key={c.id}
+                    className="ag-tree-node"
+                    style={{ left: `${p.x}%`, top: `${p.y}%`, animationDelay: `${140 + i * 90}ms` }}
+                    onClick={() => openComms(c.id)}
+                  >
+                    <span className="ag-tree-node-ic"><BrandLogo app={c.id} size={34} /></span>
+                    <span className="ag-tree-node-name">{c.name}</span>
+                  </button>
+                );
+              })}
+            </div>
           )}
+          <p className="ag-tree-hint">Tap an app — Sendra runs them all.</p>
         </div>
 
       ) : commsApp === 'telegram' ? (

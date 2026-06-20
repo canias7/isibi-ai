@@ -228,48 +228,56 @@
   font: inherit; font-weight: 700; cursor: pointer; padding: 0;
 }
 
-/* ---- Sendra app deck (swipe to choose a comms app) -------------------- */
-/* A horizontal, snap-scrolling card deck with an app-switcher feel: the
-   centered card is full-size; neighbors scale/tilt/fade (set per-frame in JS
-   from each card's distance to the viewport center). Full-bleed so neighbors
-   peek at the screen edges. */
-.ag-deck-stage { display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding-left: 0; padding-right: 0; }
-.ag-deck-stage > * { max-width: none; }
-.ag-deck {
-  display: flex; gap: 14px;
-  overflow-x: auto; overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding: 22px 0;
-  perspective: 1100px;
+/* ---- Sendra constellation (hub + connected comms apps as nodes) ------- */
+/* A central "Sendra" hub with the connected comms apps orbiting it on drawn-in
+   lines. Deliberately distinct from the Connectors galaxy: fewer nodes, a
+   labeled hub, tap-to-open (no dragging). */
+.ag-tree-stage { display: flex; flex-direction: column; overflow: hidden; }
+.ag-tree { position: relative; flex: 1; width: 100%; min-height: 360px; }
+.ag-tree-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.ag-tree-line {
+  stroke: var(--brand); stroke-width: 1.6; opacity: 0.5; stroke-linecap: round;
+  stroke-dasharray: 1; stroke-dashoffset: 1; animation: agLineDraw 0.5s ease forwards;
 }
-.ag-deck::-webkit-scrollbar { display: none; }
-/* edge spacers so the first/last card can snap to center ((100 - card)/2). */
-.ag-deck::before, .ag-deck::after { content: ''; flex: 0 0 12vw; }
-.ag-deck-card {
-  flex: 0 0 76vw; max-width: 320px; min-height: 360px;
-  scroll-snap-align: center;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
-  padding: 28px 24px;
-  background: var(--glass);
-  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-edge);
-  box-shadow: var(--glass-hi), var(--glass-shadow);
-  border-radius: 26px;
-  color: var(--text); font: inherit; text-align: left; cursor: pointer;
-  transform-origin: center center;
-  transition: opacity 0.12s linear;
-  will-change: transform, opacity;
+@keyframes agLineDraw { to { stroke-dashoffset: 0; } }
+.ag-tree-hub {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 7px; pointer-events: none;
 }
-.ag-deck-logo {
-  width: 72px; height: 72px; border-radius: 20px; display: grid; place-items: center;
-  background: rgba(255, 255, 255, 0.06); border: 1px solid var(--glass-edge); margin-bottom: 4px;
+.ag-tree-hub-ic {
+  width: 74px; height: 74px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--grad-brand); color: var(--on-brand);
+  box-shadow: 0 0 0 6px rgba(224, 161, 58, 0.12), 0 10px 30px rgba(0, 0, 0, 0.35);
+  animation: agHubPulse 3s ease-in-out infinite;
 }
-.ag-deck-name { font-size: var(--fs-title); font-weight: 700; }
-.ag-deck-tag { font-size: var(--fs-footnote); color: var(--text-dim); line-height: 1.4; }
-.ag-deck-open { margin-top: auto; font-size: var(--fs-body-s); font-weight: 700; color: var(--brand); }
-.ag-deck-hint { text-align: center; color: var(--text-faint); font-size: var(--fs-footnote); margin-top: 2px; }
+.ag-tree-hub-name { font-weight: 700; font-size: var(--fs-body-s); }
+@keyframes agHubPulse {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(224, 161, 58, 0.12), 0 10px 30px rgba(0, 0, 0, 0.35); }
+  50% { box-shadow: 0 0 0 13px rgba(224, 161, 58, 0.045), 0 10px 30px rgba(0, 0, 0, 0.35); }
+}
+.ag-tree-node {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: none; border: none; cursor: pointer; font: inherit; color: var(--text);
+  animation: agNodeIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ag-tree-node-ic {
+  width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge); box-shadow: var(--glass-hi), var(--glass-shadow);
+  transition: transform 0.14s ease;
+}
+.ag-tree-node:active .ag-tree-node-ic { transform: scale(0.92); }
+.ag-tree-node-name { font-size: var(--fs-footnote); font-weight: 600; color: var(--text-dim); }
+@keyframes agNodeIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.ag-tree-hint { text-align: center; color: var(--text-faint); font-size: var(--fs-footnote); padding-bottom: 6px; }
+@media (prefers-reduced-motion: reduce) {
+  .ag-tree-line, .ag-tree-node { animation: none; stroke-dashoffset: 0; }
+  .ag-tree-hub-ic { animation: none; }
+}
 
 /* ---- Telegram workspace: chats list + thread ------------------------- */
 .ag-tg-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
