@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
-  IconDoc, IconConnectors, IconClock, IconBank, IconRefresh,
+  IconConnectors, IconClock, IconBank, IconInbox, IconRefresh,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -21,21 +21,23 @@ const AGENTS: AgentDef[] = [
   { id: 'sched', name: 'Scheduler', desc: 'Meetings, reminders & calendar triage', icon: IconClock, live: false },
 ];
 
-// The Email agent's quick actions — each opens its own flow (stubbed for now).
+// The Email agent's top cards. "Inbox" opens the inbox view; the rest open their
+// own compose flows (stubbed for now).
 const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[] = [
+  { id: 'inbox', label: 'Inbox', sub: 'View mail', icon: IconInbox },
   { id: 'new', label: 'New email', sub: 'Single send', icon: IconCompose },
   { id: 'sequence', label: 'Sequence', sub: 'Multi-step', icon: IconLayers },
   { id: 'broadcast', label: 'Broadcast', sub: 'To a list', icon: IconWaveform },
-  { id: 'template', label: 'Template', sub: 'Reusable', icon: IconDoc },
 ];
 
-// Session cache so re-opening the Email agent is instant. The overlay unmounts
-// on close, so this lives at module scope (not component state). In-memory only —
+// Session cache so re-opening the inbox is instant. The overlay unmounts on
+// close, so this lives at module scope (not component state). In-memory only —
 // email snippets are never written to disk.
 let inboxCache: EmailItem[] | null = null;
 
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [agent, setAgent] = useState<AgentId | null>(null);
+  const [emailTab, setEmailTab] = useState<'home' | 'inbox'>('home');
   const [inbox, setInbox] = useState<EmailItem[]>(() => inboxCache ?? []);
   const [inboxState, setInboxState] = useState<'idle' | 'loading' | 'ok' | 'err'>(inboxCache ? 'ok' : 'idle');
   const [refreshing, setRefreshing] = useState(false);
@@ -44,8 +46,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
-  // Back steps one level: reader -> agent workspace -> the list -> close.
-  const back = () => { tap(); if (reading) setReading(null); else if (agent) setAgent(null); else onClose(); };
+  // Back steps one level: reader -> inbox -> the agent's cards -> agent list -> close.
+  const back = () => {
+    tap();
+    if (reading) setReading(null);
+    else if (emailTab === 'inbox') setEmailTab('home');
+    else if (agent) setAgent(null);
+    else onClose();
+  };
   useFocusTrap(true, trapRef, back);
 
   const hasMail = connApps.includes('gmail') || connApps.includes('outlook');
@@ -61,24 +69,38 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
   }, []);
 
-  // Load on open (instant from cache, then a background refresh).
+  // Load when the inbox view opens (instant from cache, then a background refresh).
   useEffect(() => {
-    if (agent === 'email' && hasMail) loadInbox();
-  }, [agent, hasMail, loadInbox]);
+    if (agent === 'email' && emailTab === 'inbox' && hasMail) loadInbox();
+  }, [agent, emailTab, hasMail, loadInbox]);
+
+  const inInbox = agent === 'email' && emailTab === 'inbox' && !reading;
 
   return (
     <div className="memg ag" ref={trapRef} tabIndex={-1}>
       <div className="memg-top">
         <button className="memg-back" onClick={back} aria-label={reading || agent ? 'Back' : 'Close'}><IconArrowLeft size={22} /></button>
         <div className="memg-titles">
-          <h1 className="memg-title">{reading ? 'Email' : agent === 'email' ? 'Email Agent' : 'Agents'}</h1>
+          <h1 className="memg-title">
+            {reading ? 'Email' : inInbox ? 'Inbox' : agent === 'email' ? 'Email Agent' : 'Agents'}
+          </h1>
           <p className="memg-sub">
             {reading ? (reading.from || reading.email || 'Message')
+              : inInbox ? (inbox.length ? `${inbox.length} recent` : 'Your inbox')
               : agent === 'email' ? (hasMail ? 'Ready' : 'Connect a mailbox to begin')
               : 'Your AI specialists — each one handles a job'}
           </p>
         </div>
-        <span style={{ width: 40 }} />
+        {inInbox ? (
+          <button
+            className={`ag-corner${refreshing ? ' spinning' : ''}`}
+            onClick={() => { tap(); loadInbox(); }}
+            disabled={refreshing}
+            aria-label="Refresh inbox"
+          >
+            <IconRefresh size={18} />
+          </button>
+        ) : <span style={{ width: 40 }} />}
       </div>
 
       {reading ? (
@@ -97,7 +119,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 key={a.id}
                 className={`ag-card${a.live ? '' : ' soon'}`}
                 disabled={!a.live}
-                onClick={() => { if (a.live) { tap(); setAgent(a.id as AgentId); } }}
+                onClick={() => { if (a.live) { tap(); setEmailTab('home'); setAgent(a.id as AgentId); } }}
               >
                 <span className="ag-ic"><a.icon size={22} /></span>
                 <span className="ag-meta">
@@ -110,6 +132,29 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           </div>
           <p className="ag-foot">More agents on the way — each a specialist that works across your connected apps.</p>
         </div>
+      ) : emailTab === 'inbox' ? (
+        <div className="ag-stage">
+          {!hasMail ? (
+            <div className="ag-connect">
+              <span className="ag-connect-ic"><IconConnectors size={20} /></span>
+              <div className="ag-connect-text">
+                <div className="ag-connect-title">Connect a mailbox</div>
+                <div className="ag-connect-sub">Link Gmail or Outlook so the agent can read your inbox.</div>
+              </div>
+            </div>
+          ) : inboxState === 'err' ? (
+            <div className="ag-empty">
+              Couldn’t load your inbox.{' '}
+              <button className="ag-retry" onClick={() => { tap(); loadInbox(); }}>Try again</button>
+            </div>
+          ) : inboxState === 'ok' && inbox.length === 0 ? (
+            <div className="ag-empty">Inbox is empty.</div>
+          ) : inbox.length ? (
+            <EmailList items={inbox} onOpen={(it) => { tap(); setReading(it); }} />
+          ) : (
+            <EmailSkeleton />
+          )}
+        </div>
       ) : (
         <div className="ag-stage">
           {!hasMail && (
@@ -121,45 +166,19 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               </div>
             </div>
           )}
-
-          <div className="ag-sec">Start something</div>
           <div className="ag-grid">
             {EMAIL_ACTIONS.map((act) => (
-              <button key={act.id} className="ag-act" onClick={() => { tap(); /* TODO: open the action flow */ }}>
+              <button
+                key={act.id}
+                className="ag-act"
+                onClick={() => { tap(); if (act.id === 'inbox') setEmailTab('inbox'); /* else TODO: open the compose flow */ }}
+              >
                 <span className="ag-act-ic"><act.icon size={20} /></span>
                 <span className="ag-act-label">{act.label}</span>
                 <span className="ag-act-sub">{act.sub}</span>
               </button>
             ))}
           </div>
-
-          {hasMail && (
-            <>
-              <div className="ag-inbox-head">
-                <span className="ag-sec">Inbox</span>
-                <button
-                  className={`ag-refresh${refreshing ? ' spinning' : ''}`}
-                  onClick={() => { tap(); loadInbox(); }}
-                  disabled={refreshing}
-                  aria-label="Refresh inbox"
-                >
-                  <IconRefresh size={18} />
-                </button>
-              </div>
-              {inboxState === 'loading' ? (
-                <EmailSkeleton />
-              ) : inboxState === 'err' ? (
-                <div className="ag-empty">
-                  Couldn’t load your inbox.{' '}
-                  <button className="ag-retry" onClick={() => { tap(); loadInbox(); }}>Try again</button>
-                </div>
-              ) : inbox.length ? (
-                <EmailList items={inbox} onOpen={(it) => { tap(); setReading(it); }} />
-              ) : (
-                <div className="ag-empty">Inbox is empty.</div>
-              )}
-            </>
-          )}
         </div>
       )}
     </div>
