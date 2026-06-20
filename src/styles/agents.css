@@ -77,6 +77,18 @@
 .ag-refresh.spinning { color: var(--brand); animation: agSpin 0.8s linear infinite; }
 @keyframes agSpin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .ag-refresh.spinning { animation: none; } }
+/* Refresh action in the overlay header's right corner (mirrors .memg-back). */
+.ag-corner {
+  position: absolute; top: 8px; right: 14px;
+  width: 34px; height: 34px;
+  border: 1px solid var(--glass-edge); background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: var(--glass-hi);
+  color: var(--text); border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+}
+.ag-corner:active { background: var(--glass-strong, #ffffff14); }
+.ag-corner:disabled { cursor: default; }
+.ag-corner.spinning { color: var(--brand); animation: agSpin 0.8s linear infinite; }
 .ag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ag-act {
   display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
