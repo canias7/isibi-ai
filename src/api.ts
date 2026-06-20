@@ -44,18 +44,18 @@ export async function fetchEmailHtml(
   };
 }
 
-// Fetch a list of recent inbox emails directly (no chat turn) — the Email Agent
+// Fetch a page of recent inbox emails directly (no chat turn) — the Email Agent
 // renders these with <EmailList>; same card shape the chat pipeline produces.
+// Page through with the returned nextPageToken (Gmail page tokens).
 const INBOX_API = CONNECT_API.replace(/\/gmail-oauth$/, '/inbox');
-export async function fetchInbox(max = 12): Promise<EmailItem[]> {
+export async function fetchInbox(max = 20, pageToken?: string): Promise<{ items: EmailItem[]; nextPageToken: string | null }> {
   const token = await authToken();
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  const res = await fetch(`${INBOX_API}?max=${max}&tz=${encodeURIComponent(tz)}`, {
-    headers: { authorization: `Bearer ${token}` },
-  });
+  const q = `max=${max}&tz=${encodeURIComponent(tz)}${pageToken ? `&page_token=${encodeURIComponent(pageToken)}` : ''}`;
+  const res = await fetch(`${INBOX_API}?${q}`, { headers: { authorization: `Bearer ${token}` } });
   if (!res.ok) throw new Error(`Inbox fetch failed: ${res.status}`);
   const j = await res.json();
-  return Array.isArray(j.items) ? j.items : [];
+  return { items: Array.isArray(j.items) ? j.items : [], nextPageToken: j.nextPageToken ?? null };
 }
 
 // Fetch one attachment's bytes (base64) or hosted URL — for inline images,
