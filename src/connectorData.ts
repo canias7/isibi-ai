@@ -26,12 +26,15 @@ export const CONNECT_API = 'https://lkpfeqrelvziltfwpuxi.supabase.co/functions/v
 // by domain). `help` links the provider's "create an app password" page; an empty
 // preset ({} for imap_other) makes the form ask for the server details.
 export const IMAP_PROVIDERS: Record<string, { imapHost?: string; imapPort?: number; smtpHost?: string; smtpPort?: number; help?: string }> = {
-  icloud: { imapHost: 'imap.mail.me.com', imapPort: 993, smtpHost: 'smtp.mail.me.com', smtpPort: 587, help: 'https://support.apple.com/102654' },
   yahoo: { imapHost: 'imap.mail.yahoo.com', imapPort: 993, smtpHost: 'smtp.mail.yahoo.com', smtpPort: 465, help: 'https://help.yahoo.com/kb/SLN15241.html' },
   fastmail: { imapHost: 'imap.fastmail.com', imapPort: 993, smtpHost: 'smtp.fastmail.com', smtpPort: 465, help: 'https://www.fastmail.help/hc/en-us/articles/360058752854' },
   zoho: { imapHost: 'imap.zoho.com', imapPort: 993, smtpHost: 'smtp.zoho.com', smtpPort: 465, help: 'https://www.zoho.com/mail/help/imap-access.html' },
   aol: { imapHost: 'imap.aol.com', imapPort: 993, smtpHost: 'smtp.aol.com', smtpPort: 465, help: 'https://help.aol.com/articles/Create-and-manage-app-password' },
   gmx: { imapHost: 'imap.gmx.com', imapPort: 993, smtpHost: 'mail.gmx.com', smtpPort: 465 },
+  webde: { imapHost: 'imap.web.de', imapPort: 993, smtpHost: 'smtp.web.de', smtpPort: 587 },
+  yandex: { imapHost: 'imap.yandex.com', imapPort: 993, smtpHost: 'smtp.yandex.com', smtpPort: 465, help: 'https://yandex.com/support/mail/mail-clients/others.html' },
+  mailcom: { imapHost: 'imap.mail.com', imapPort: 993, smtpHost: 'smtp.mail.com', smtpPort: 587 },
+  mailru: { imapHost: 'imap.mail.ru', imapPort: 993, smtpHost: 'smtp.mail.ru', smtpPort: 465, help: 'https://help.mail.ru/mail/security/protection/external' },
   imap_other: {},
 };
 
@@ -55,12 +58,15 @@ export const CONNECTORS: Connector[] = [
   { id: 'm365', name: 'Microsoft Outlook', logo: fav('outlook.com'), color: '#0078D4', desc: 'Outlook mail & calendar' },
   // IMAP/SMTP mailboxes — our own auth (see IMAP_PROVIDERS). ConnectorsGraph
   // special-cases auth:'imap' for connect/status/disconnect via the `imap` fn.
-  { id: 'icloud', name: 'iCloud Mail', logo: si('icloud'), color: '#3693F3', desc: 'Apple iCloud — via IMAP', auth: 'imap' },
   { id: 'yahoo', name: 'Yahoo Mail', logo: si('yahoo'), color: '#6001D2', desc: 'Yahoo Mail — via IMAP', auth: 'imap' },
   { id: 'fastmail', name: 'Fastmail', logo: si('fastmail'), color: '#0067B9', desc: 'Fastmail — via IMAP', auth: 'imap' },
   { id: 'zoho', name: 'Zoho Mail', logo: si('zoho'), color: '#C8202F', desc: 'Zoho Mail — via IMAP', auth: 'imap' },
   { id: 'aol', name: 'AOL Mail', logo: fav('aol.com'), color: '#1B6BE3', desc: 'AOL Mail — via IMAP', auth: 'imap' },
-  { id: 'gmx', name: 'GMX', logo: fav('gmx.com'), color: '#1C449B', desc: 'GMX & web.de — via IMAP', auth: 'imap' },
+  { id: 'gmx', name: 'GMX', logo: fav('gmx.com'), color: '#1C449B', desc: 'GMX — via IMAP', auth: 'imap' },
+  { id: 'webde', name: 'web.de', logo: fav('web.de'), color: '#C8A200', desc: 'web.de — via IMAP', auth: 'imap' },
+  { id: 'yandex', name: 'Yandex Mail', logo: si('yandex'), color: '#FC3F1D', desc: 'Yandex Mail — via IMAP', auth: 'imap' },
+  { id: 'mailcom', name: 'Mail.com', logo: fav('mail.com'), color: '#004788', desc: 'Mail.com — via IMAP', auth: 'imap' },
+  { id: 'mailru', name: 'Mail.ru', logo: fav('mail.ru'), color: '#005FF9', desc: 'Mail.ru — via IMAP', auth: 'imap' },
   { id: 'imap_other', name: 'Other email', logo: fav('mail'), color: '#8E8E93', desc: 'Any IMAP mailbox', auth: 'imap' },
   { id: 'slack', name: 'Slack', logo: fav('slack.com'), color: '#4A154B', desc: 'Read and send messages' },
   { id: 'hubspot', name: 'HubSpot', logo: si('hubspot'), color: '#FF7A59', desc: 'Contacts, deals & CRM' },
@@ -143,7 +149,6 @@ export const CONNECTORS: Connector[] = [
   { id: 'prisma', name: "Prisma", logo: si('prisma'), color: '#2D3748', desc: "Databases" },
   { id: 'mural', name: "Mural", logo: si('mural'), color: '#FF4B4B', desc: "Team Collaboration" },
   { id: 'moneybird', name: "Moneybird", logo: fav('moneybird'), color: '#6B7280', desc: "Accounting & invoices" },
-  { id: 'yandex', name: "Yandex", logo: si('yandex'), color: '#6B7280', desc: "Search & maps" },
   { id: 'google_maps', name: "Google Maps", logo: si('googlemaps'), color: '#4285F4', desc: "Developer tools" },
   { id: 'dart', name: "Dart", logo: si('dart'), color: '#0175C2', desc: "Projects & tasks" },
   { id: 'dub', name: "Dub", logo: fav('dub'), color: '#6B7280', desc: "Url Shortener" },
