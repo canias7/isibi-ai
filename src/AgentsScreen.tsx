@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck, IconContacts,
-  IconChart, IconCalendar, IconDoc,
+  IconChart, IconDoc,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -46,11 +46,11 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   calendar: { t: 'Calendar', s: 'Scheduled sends & reminders' },
 };
 // Sendra home menu. 'apps' opens the constellation; the rest are P0 scaffolds.
-const HOME_TOOLS: { id: SendraTab; name: string; desc: string; Icon: IconCmp }[] = [
+const HOME_TOOLS: { id: SendraTab | 'inbox'; name: string; desc: string; Icon: IconCmp }[] = [
+  { id: 'inbox', name: 'Inbox', desc: 'All your mail', Icon: IconInbox },
   { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
   { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
   { id: 'analytics', name: 'Analytics', desc: 'Opens & clicks', Icon: IconChart },
-  { id: 'calendar', name: 'Calendar', desc: 'Scheduled sends', Icon: IconCalendar },
   { id: 'apps', name: 'My apps', desc: '', Icon: IconConnectors },
 ];
 
@@ -127,6 +127,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [replyThreadId, setReplyThreadId] = useState<string | null>(null);
   const [sendState, setSendState] = useState<SendState>('idle');
   const [sendApp, setSendApp] = useState<'gmail' | 'outlook'>('gmail'); // which mailbox a send/reply goes through
+  const [inboxHome, setInboxHome] = useState(false); // Inbox opened from the Sendra home -> Back returns there, not the app grid
   // Telegram workspace
   const [tgConnected, setTgConnected] = useState<boolean>(() => cachedConnected('telegram'));
   const [tgList, setTgList] = useState<TgChat[]>(() => tgChatsCache ?? []);
@@ -169,8 +170,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (reading) setReading(null);
     else if (tgChat) setTgChat(null);
     else if (sendState === 'confirm') setSendState('idle');
-    else if (commsApp && commsApp !== 'telegram' && emailTab !== 'home') setEmailTab('home');
-    else if (commsApp) setCommsApp(null);
+    else if (commsApp && commsApp !== 'telegram' && emailTab === 'compose') setEmailTab(inboxHome ? 'inbox' : 'home');
+    else if (commsApp && commsApp !== 'telegram' && emailTab !== 'home' && !inboxHome) setEmailTab('home');
+    else if (commsApp) { setCommsApp(null); setInboxHome(false); }
     else if (sendraTab !== 'home') setSendraTab('home');
     else if (agent) setAgent(null);
     else onClose();
@@ -249,6 +251,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
 
   const openComms = (id: CommsId) => {
     tap();
+    setInboxHome(false);
     setCommsApp(id);
     if (id === 'telegram') {
       setTgChat(null);
@@ -264,6 +267,19 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       tokensRef.current = [undefined];
       setPageIdx(0);
     }
+  };
+
+  // Inbox opened straight from the Sendra home (top-level). Lands on the mail
+  // inbox of the first connected mailbox — which is the merged feed when 2+ are
+  // connected. `inboxHome` makes Back return to the home, not the app grid.
+  const openInbox = () => {
+    tap();
+    setNote('');
+    setReading(null);
+    setInboxHome(true);
+    const a: CommsId = !connApps.includes('gmail') && (connApps.includes('m365') || connApps.includes('outlook')) ? 'm365' : 'gmail';
+    setCommsApp(a);
+    setEmailTab('inbox');
   };
 
   const onPullStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -421,7 +437,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <div className="ag-stage">
             <div className="ag-grid">
               {HOME_TOOLS.map((t) => (
-                <button key={t.id} className="ag-act" onClick={() => { tap(); setNote(''); setSendraTab(t.id); }}>
+                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else { tap(); setNote(''); setSendraTab(t.id as SendraTab); } }}>
                   <span className="ag-act-ic"><t.Icon size={20} /></span>
                   <span className="ag-act-label">{t.name}</span>
                   <span className="ag-act-sub">{t.id === 'apps' ? (deckApps.length ? deckApps.map((c) => c.name).join(' · ') : 'Connect an app') : t.desc}</span>
