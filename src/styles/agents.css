@@ -215,6 +215,43 @@
 .ag-camp-count { color: #9298a2; font-size: var(--fs-caption); }
 button.ag-camp { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 button.ag-camp:active { filter: brightness(1.15); }
+.ag-camp-pill.is-failed { color: #ff6b6b; background: rgba(255, 107, 107, 0.14); }
+
+/* Campaign "From" picker (mailbox vs verified SES domain) */
+.ag-from { display: flex; align-items: center; gap: 10px; }
+.ag-from-lbl { color: var(--text-dim); font-size: var(--fs-footnote); font-weight: 600; flex-shrink: 0; }
+.ag-from-sel { flex: 1; -webkit-appearance: none; appearance: none; }
+.ag-from-fields { display: flex; flex-direction: column; gap: 8px; }
+.ag-from-addr { display: flex; align-items: center; gap: 8px; }
+.ag-from-addr .ag-field { flex: 1; }
+.ag-from-at { color: var(--text-dim); font-size: var(--fs-footnote); white-space: nowrap; }
+
+/* Sending domains (SES) manager */
+.ag-dom-link { margin-top: 8px; }
+.ag-dom-head { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+.ag-back-link { background: none; border: none; color: var(--brand); font: inherit; font-size: var(--fs-footnote); font-weight: 700; cursor: pointer; padding: 0; }
+.ag-dom-title { color: #fff; font-weight: 700; font-size: var(--fs-body-s); }
+.ag-dom-add { display: flex; gap: 8px; align-items: stretch; margin-top: 6px; }
+.ag-dom-add .ag-field { flex: 1; }
+.ag-dom-add .ag-send-btn { width: auto; flex-shrink: 0; padding: 12px 16px; }
+.ag-dom-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.ag-dom { background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; overflow: hidden; }
+.ag-dom-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 12px 13px; background: none; border: none; font: inherit; text-align: left; cursor: pointer; }
+.ag-dom-name { color: #fff; font-weight: 700; font-size: var(--fs-body-s); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-dom-body { padding: 0 13px 13px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.ag-dom-actions { display: flex; gap: 8px; margin-top: 10px; }
+.ag-dom-actions .ag-send-btn { width: auto; flex: 1; padding: 11px; }
+.ag-dns { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.ag-dns-rec { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 10px; padding: 10px; }
+.ag-dns-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ag-dns-type { color: var(--brand); font-size: var(--fs-label); font-weight: 800; letter-spacing: .04em; background: rgba(224, 161, 58, 0.12); padding: 2px 7px; border-radius: 6px; }
+.ag-dns-note { color: var(--text-dim); font-size: var(--fs-label); }
+.ag-dns-field { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+.ag-dns-field label { color: var(--text-faint); font-size: var(--fs-label); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.ag-dns-val { display: flex; align-items: center; gap: 8px; }
+.ag-dns-val code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; color: #d7dbe2; font-family: ui-monospace, Menlo, monospace; font-size: var(--fs-caption); background: rgba(0, 0, 0, 0.25); padding: 7px 9px; border-radius: 7px; }
+.ag-dns-val button { flex-shrink: 0; background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text); font: inherit; font-size: var(--fs-label); font-weight: 700; padding: 7px 11px; border-radius: 8px; cursor: pointer; }
+.ag-dns-val button:active { filter: brightness(1.2); }
 
 /* AI "describe -> generate" box (templates) */
 .ag-ai { display: flex; flex-direction: column; gap: 8px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: 14px; padding: 11px 12px; }

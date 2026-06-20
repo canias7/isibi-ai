@@ -172,7 +172,7 @@ export async function listCampaigns(): Promise<Campaign[]> {
   const c = (data as { campaigns?: Campaign[] } | null)?.campaigns;
   return Array.isArray(c) ? c : [];
 }
-export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[] }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; error?: string }> {
+export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[]; send_via?: 'mailbox' | 'ses'; from_email?: string; from_name?: string }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; error?: string }> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'create', ...p } });
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { id?: string; queued?: number; skipped?: number; invalid?: number; error?: string };
@@ -181,6 +181,36 @@ export async function sendCampaignBatch(id: string): Promise<{ sent: number; fai
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'send', id } });
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { sent: number; failed: number; remaining: number; done: boolean; error?: string };
+}
+
+// ---- Custom sending domains (Amazon SES, via the `ses` fn) ----
+// Verify your own domain once (add the DKIM CNAMEs to DNS), then campaigns can be
+// sent From news@yourdomain.com instead of through a connected mailbox.
+export interface SesRecord { type: string; name: string; value: string; note?: string }
+export interface SesDomain { id?: string; domain: string; status: string; records: SesRecord[]; verified_at?: string | null; created_at?: string }
+export async function listSesDomains(): Promise<SesDomain[]> {
+  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'list' } });
+  if (error) return [];
+  const d = (data as { domains?: SesDomain[] } | null)?.domains;
+  return Array.isArray(d) ? d : [];
+}
+export async function addSesDomain(domain: string): Promise<{ domain?: string; status?: string; records?: SesRecord[]; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'add', domain } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { domain?: string; status?: string; records?: SesRecord[]; error?: string };
+}
+export async function checkSesDomain(domain: string): Promise<{ domain?: string; status?: string; verified?: boolean; records?: SesRecord[]; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'status', domain } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { domain?: string; status?: string; verified?: boolean; records?: SesRecord[]; error?: string };
+}
+export async function removeSesDomain(domain: string): Promise<void> {
+  await supabase.functions.invoke('ses', { body: { action: 'remove', domain } });
+}
+export async function testSesDomain(domain: string, to: string): Promise<{ ok?: boolean; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'test', domain, to } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { ok?: boolean; error?: string };
 }
 
 // ---- Email templates (reusable, AI-writable, via the `templates` fn) ----

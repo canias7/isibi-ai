@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { AwsClient } from "https://esm.sh/aws4fetch@1.0.20";
 
 // Sendra email campaigns — sent through the user's connected Gmail/Outlook (no
 // ESP). Small lists only: GMAIL caps ~500/day, so we throttle and the client
@@ -17,7 +18,12 @@ const API_KEY = Deno.env.get("COMPOSIO_API_KEY") ?? "";
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SB_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const AWS_ID = Deno.env.get("AWS_SES_ACCESS_KEY_ID") ?? "";
+const AWS_SECRET = Deno.env.get("AWS_SES_SECRET_ACCESS_KEY") ?? "";
+const AWS_REGION = Deno.env.get("AWS_SES_REGION") ?? "us-east-1";
 const sbHeaders = { apikey: SB_SERVICE, authorization: `Bearer ${SB_SERVICE}`, "content-type": "application/json" };
+const aws = new AwsClient({ accessKeyId: AWS_ID, secretAccessKey: AWS_SECRET, region: AWS_REGION, service: "ses" });
+const SES_BASE = `https://email.${AWS_REGION}.amazonaws.com`;
 
 const ALLOWED_ORIGINS = new Set([
   "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
@@ -95,6 +101,30 @@ async function sendOne(uid: string, app: string, to: string, subject: string, ht
   }
 }
 
+// Send one email from a verified SES domain (custom-domain campaigns).
+async function sendOneSes(fromEmail: string, fromName: string | null, to: string, subject: string, html: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const From = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
+    const res = await aws.fetch(`${SES_BASE}/v2/email/outbound-emails`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        FromEmailAddress: From,
+        Destination: { ToAddresses: [to] },
+        Content: { Simple: {
+          Subject: { Data: subject, Charset: "UTF-8" },
+          Body: { Html: { Data: html, Charset: "UTF-8" } },
+        } },
+      }),
+    });
+    if (res.ok) return { ok: true };
+    const t = await res.text();
+    return { ok: false, error: `ses_${res.status}:${t}`.slice(0, 200) };
+  } catch (e) {
+    return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) };
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
@@ -117,6 +147,19 @@ Deno.serve(async (req: Request) => {
       const raw = Array.isArray(body?.recipients) ? body.recipients as Record<string, unknown>[] : [];
       if (!subject || !html) return json(req, { error: "missing_content" });
 
+      // Sending method: through the user's mailbox (default) or a verified SES domain.
+      const sendVia = String(body?.send_via || "mailbox").toLowerCase() === "ses" ? "ses" : "mailbox";
+      let fromEmail: string | null = null;
+      let fromName: string | null = null;
+      if (sendVia === "ses") {
+        fromEmail = String(body?.from_email || "").trim().toLowerCase();
+        fromName = body?.from_name ? String(body.from_name).slice(0, 120) : null;
+        if (!EMAIL_RE.test(fromEmail)) return json(req, { error: "bad_from" });
+        const dom = fromEmail.split("@")[1];
+        const dRes = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${dom}&status=eq.verified&select=domain`, { headers: sbHeaders });
+        if (!((await dRes.json().catch(() => [])) as unknown[]).length) return json(req, { error: "domain_not_verified" });
+      }
+
       // Dedupe + validate, then drop anyone suppressed for this user.
       const seen = new Set<string>();
       let invalid = 0;
@@ -137,7 +180,7 @@ Deno.serve(async (req: Request) => {
       const cRes = await fetch(`${SB_URL}/rest/v1/campaigns`, {
         method: "POST",
         headers: { ...sbHeaders, Prefer: "return=representation" },
-        body: JSON.stringify({ user_id: uid, app, name, subject, body: html, status: "draft", total: recips.length }),
+        body: JSON.stringify({ user_id: uid, app, name, subject, body: html, status: "draft", total: recips.length, send_via: sendVia, from_email: fromEmail, from_name: fromName }),
       });
       const camp = (await cRes.json().catch(() => []))?.[0];
       if (!cRes.ok || !camp?.id) return json(req, { error: "create_failed" }, 502);
@@ -171,13 +214,15 @@ Deno.serve(async (req: Request) => {
         const unsub = await unsubUrl(uid, r.email);
         const personalized = String(camp.body).replace(/\{\{\s*name\s*\}\}/g, esc(who));
         const html = `${personalized}<br><br><hr style="border:none;border-top:1px solid #eee"><p style="font-size:12px;color:#888;font-family:system-ui,sans-serif">You're receiving this because you're on a list managed in Sendra. <a href="${unsub}" style="color:#888">Unsubscribe</a>.</p>`;
-        const res = await sendOne(uid, camp.app, r.email, camp.subject, html);
+        const res = camp.send_via === "ses" && camp.from_email
+          ? await sendOneSes(camp.from_email, camp.from_name, r.email, camp.subject, html)
+          : await sendOne(uid, camp.app, r.email, camp.subject, html);
         await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, {
           method: "PATCH", headers: sbHeaders,
           body: JSON.stringify(res.ok ? { status: "sent", sent_at: new Date().toISOString() } : { status: "failed", error: res.error }),
         });
         if (res.ok) sent++; else failed++;
-        await sleep(700); // throttle — stay friendly to Gmail's rate limits
+        await sleep(camp.send_via === "ses" ? 1100 : 700); // throttle — SES sandbox is 1/sec; Gmail likes it slow too
       }
 
       const [totSent, totFailed, remaining] = await Promise.all([countBy(id, "sent"), countBy(id, "failed"), countBy(id, "queued")]);
