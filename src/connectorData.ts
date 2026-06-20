@@ -35,6 +35,7 @@ export const IMAP_PROVIDERS: Record<string, { imapHost?: string; imapPort?: numb
   yandex: { imapHost: 'imap.yandex.com', imapPort: 993, smtpHost: 'smtp.yandex.com', smtpPort: 465, help: 'https://yandex.com/support/mail/mail-clients/others.html' },
   mailcom: { imapHost: 'imap.mail.com', imapPort: 993, smtpHost: 'smtp.mail.com', smtpPort: 587 },
   mailru: { imapHost: 'imap.mail.ru', imapPort: 993, smtpHost: 'smtp.mail.ru', smtpPort: 465, help: 'https://help.mail.ru/mail/security/protection/external' },
+  neo: { imapHost: 'imap0001.neo.space', imapPort: 993, smtpHost: 'smtp0001.neo.space', smtpPort: 465, help: 'https://support.neo.space/hc/en-us/articles/13617484527001-Configure-Neo-on-other-apps-using-IMAP-POP' },
   imap_other: {},
 };
 
@@ -67,6 +68,7 @@ export const CONNECTORS: Connector[] = [
   { id: 'yandex', name: 'Yandex Mail', logo: si('yandex'), color: '#FC3F1D', desc: 'Yandex Mail — via IMAP', auth: 'imap' },
   { id: 'mailcom', name: 'Mail.com', logo: fav('mail.com'), color: '#004788', desc: 'Mail.com — via IMAP', auth: 'imap' },
   { id: 'mailru', name: 'Mail.ru', logo: fav('mail.ru'), color: '#005FF9', desc: 'Mail.ru — via IMAP', auth: 'imap' },
+  { id: 'neo', name: 'Neo', logo: fav('neo.space'), color: '#7A5AF8', desc: 'Neo business email — via IMAP', auth: 'imap' },
   { id: 'imap_other', name: 'Other email', logo: fav('mail'), color: '#8E8E93', desc: 'Any IMAP mailbox', auth: 'imap' },
   { id: 'slack', name: 'Slack', logo: fav('slack.com'), color: '#4A154B', desc: 'Read and send messages' },
   { id: 'hubspot', name: 'HubSpot', logo: si('hubspot'), color: '#FF7A59', desc: 'Contacts, deals & CRM' },
