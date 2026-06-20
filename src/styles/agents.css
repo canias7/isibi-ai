@@ -145,6 +145,55 @@
 .ag-pager button:active { background: var(--glass-strong, #ffffff14); }
 .ag-pager button:disabled { opacity: 0.4; cursor: default; }
 .ag-pager-n { font-size: var(--fs-footnote); color: var(--text-dim); min-width: 96px; text-align: center; }
+
+/* ---- Compose (New email) ---- */
+.ag-compose { display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.ag-field {
+  width: 100%; box-sizing: border-box;
+  background: var(--glass); border: 1px solid var(--glass-edge);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  color: var(--text); font: inherit; font-size: var(--fs-body-s);
+  padding: 12px 14px; border-radius: var(--r-card);
+}
+.ag-field::placeholder { color: var(--text-faint); }
+.ag-field:focus { outline: none; border-color: var(--brand); }
+.ag-body { flex: 1; min-height: 140px; resize: none; line-height: 1.5; }
+.ag-send-btn {
+  flex-shrink: 0; width: 100%; box-sizing: border-box;
+  background: var(--grad-brand); color: var(--on-brand);
+  border: none; font: inherit; font-size: var(--fs-body-s); font-weight: 700;
+  padding: 14px; border-radius: var(--r-pill); cursor: pointer;
+}
+.ag-send-btn:active { filter: brightness(0.95); }
+.ag-send-btn:disabled { opacity: 0.45; cursor: default; }
+.ag-send-btn.ghost { background: var(--glass); color: var(--text); border: 1px solid var(--glass-edge); }
+.ag-send-err { color: #ff6b6b; font-size: var(--fs-footnote); text-align: center; }
+
+/* Confirm-before-send sheet */
+.ag-confirm-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 10; }
+.ag-confirm {
+  position: absolute; left: 12px; right: 12px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 11;
+  max-width: 520px; margin: 0 auto;
+  background: var(--glass-strong, #1c1d22); border: 1px solid var(--glass-edge);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-hi), var(--glass-shadow); border-radius: var(--r-card);
+  padding: 16px; animation: agSheetIn 0.18s var(--ease-enter, ease);
+}
+@keyframes agSheetIn { from { opacity: 0; transform: translateY(12px); } }
+.ag-confirm-title { font-weight: 700; font-size: var(--fs-body-s); }
+.ag-confirm-sub { color: var(--text-dim); font-size: var(--fs-footnote); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-confirm-actions { display: flex; gap: 10px; margin-top: 14px; }
+.ag-confirm-actions button { flex: 1; font: inherit; font-size: var(--fs-body-s); font-weight: 700; padding: 11px; border-radius: var(--r-pill); cursor: pointer; }
+.ag-confirm-cancel { background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text); }
+.ag-confirm-send { background: var(--grad-brand); border: none; color: var(--on-brand); }
+
+/* Sent success */
+.ag-sent { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; padding: 36px 16px; flex: 1; }
+.ag-sent-ic { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--grad-brand); color: var(--on-brand); margin-bottom: 6px; }
+.ag-sent-title { font-size: var(--fs-title); font-weight: 700; }
+.ag-sent-sub { color: var(--text-dim); font-size: var(--fs-body-s); }
+.ag-sent-actions { display: flex; gap: 10px; margin-top: 18px; width: 100%; max-width: 320px; }
+.ag-sent-actions .ag-send-btn { flex: 1; }
 .ag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ag-act {
   display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
