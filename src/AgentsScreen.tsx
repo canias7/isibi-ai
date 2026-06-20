@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck, IconContacts,
-  IconChart, IconDoc,
+  IconChart, IconDoc, IconChat,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMerged, sendEmail, fetchContacts, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage } from './api';
+import { fetchInbox, fetchInboxMerged, sendEmail, fetchContacts, sendSms, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -36,10 +36,11 @@ const COMMS: { id: CommsId; name: string; tagline: string; mail: boolean }[] = [
 ];
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'apps' | 'campaigns' | 'templates' | 'analytics' | 'calendar';
+type SendraTab = 'home' | 'apps' | 'texts' | 'campaigns' | 'templates' | 'analytics' | 'calendar';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
   apps: { t: 'My apps', s: 'Tap an app to open it' },
+  texts: { t: 'Text', s: 'Send an SMS' },
   campaigns: { t: 'Campaigns', s: 'Email & SMS to your lists' },
   templates: { t: 'Templates', s: 'Reusable messages' },
   analytics: { t: 'Analytics', s: 'Performance across your sends' },
@@ -48,6 +49,7 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
 // Sendra home menu. 'apps' opens the constellation; the rest are P0 scaffolds.
 const HOME_TOOLS: { id: SendraTab | 'inbox'; name: string; desc: string; Icon: IconCmp }[] = [
   { id: 'inbox', name: 'Inbox', desc: 'All your mail', Icon: IconInbox },
+  { id: 'texts', name: 'Text', desc: 'Send an SMS', Icon: IconChat },
   { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
   { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
   { id: 'analytics', name: 'Analytics', desc: 'Opens & clicks', Icon: IconChart },
@@ -137,6 +139,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [tgMsgsState, setTgMsgsState] = useState<Loadable>('idle');
   const [tgReply, setTgReply] = useState('');
   const [tgSending, setTgSending] = useState(false);
+  // SMS composer (the platform's built-in Twilio sender)
+  const [smsTo, setSmsTo] = useState('');
+  const [smsBody, setSmsBody] = useState('');
+  const [smsState, setSmsState] = useState<SendState>('idle');
+  const [smsErr, setSmsErr] = useState('');
 
   const tokensRef = useRef<(string | undefined)[]>([undefined]);
   const pullStart = useRef<number | null>(null);
@@ -338,6 +345,26 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       .finally(() => { if (mountedRef.current) setTgSending(false); });
   };
 
+  // SMS send (platform Twilio). Errors come back as codes -> friendly copy.
+  const smsFriendly = (code: string): string => {
+    if (/sms_unset/i.test(code)) return 'Texting isn’t switched on yet — add the Twilio keys on the server.';
+    if (/bad_number/i.test(code)) return 'That number doesn’t look right — include the country code, e.g. +1 555 123 4567.';
+    if (/missing_body/i.test(code)) return 'Type a message first.';
+    if (/too_long/i.test(code)) return 'That message is too long.';
+    if (/rate_limited/i.test(code)) return 'Daily text limit reached — try again tomorrow.';
+    if (/send_failed/i.test(code)) return 'Couldn’t send — check the number and try again.';
+    return 'Couldn’t send — please try again.';
+  };
+  const validSmsTo = /^\+?[\d\s().-]{7,}$/.test(smsTo.trim());
+  const doSendSms = () => {
+    if (!validSmsTo || !smsBody.trim() || smsState === 'sending') return;
+    tap();
+    setSmsState('sending'); setSmsErr('');
+    sendSms(smsTo.trim(), smsBody.trim())
+      .then(() => { if (mountedRef.current) { setSmsState('sent'); setSmsBody(''); } })
+      .catch((e) => { if (mountedRef.current) { setSmsState('err'); setSmsErr(smsFriendly(String((e as Error)?.message || ''))); } });
+  };
+
   const inMailInbox = !!commsApp && commsApp !== 'telegram' && emailTab === 'inbox' && !reading;
   const inTgList = commsApp === 'telegram' && !tgChat;
   const showRefresh = inMailInbox || inTgList;
@@ -437,7 +464,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <div className="ag-stage">
             <div className="ag-grid">
               {HOME_TOOLS.map((t) => (
-                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else { tap(); setNote(''); setSendraTab(t.id as SendraTab); } }}>
+                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } setSendraTab(t.id as SendraTab); } }}>
                   <span className="ag-act-ic"><t.Icon size={20} /></span>
                   <span className="ag-act-label">{t.name}</span>
                   <span className="ag-act-sub">{t.id === 'apps' ? (deckApps.length ? deckApps.map((c) => c.name).join(' · ') : 'Connect an app') : t.desc}</span>
@@ -517,6 +544,35 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 </div>
                 <div className="ag-empty" style={{ marginTop: 12 }}>Analytics appear once you send a campaign — opens, clicks, replies and deliveries per send.</div>
               </>
+            ) : sendraTab === 'texts' ? (
+              smsState === 'sent' ? (
+                <div className="ag-sent">
+                  <span className="ag-sent-ic"><IconCheck size={26} /></span>
+                  <div className="ag-sent-title">Sent</div>
+                  <div className="ag-sent-sub">Your text is on its way.</div>
+                  <div className="ag-sent-actions">
+                    <button className="ag-send-btn ghost" onClick={() => { tap(); setSmsState('idle'); }}>New text</button>
+                    <button className="ag-send-btn" onClick={() => { tap(); setSendraTab('home'); }}>Done</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="ag-compose">
+                  <input
+                    className="ag-field" type="tel" inputMode="tel" autoCapitalize="none" autoCorrect="off"
+                    placeholder="To (+1 555 123 4567)" value={smsTo}
+                    onChange={(e) => { setSmsTo(e.target.value); if (smsState === 'err') setSmsState('idle'); }}
+                  />
+                  <textarea
+                    className="ag-field ag-body" placeholder="Type your message…" maxLength={1600} value={smsBody}
+                    onChange={(e) => { setSmsBody(e.target.value); if (smsState === 'err') setSmsState('idle'); }}
+                  />
+                  {smsState === 'err' && <div className="ag-send-err">{smsErr}</div>}
+                  <button className="ag-send-btn" onClick={doSendSms} disabled={!validSmsTo || !smsBody.trim() || smsState === 'sending'}>
+                    {smsState === 'sending' ? 'Sending…' : 'Send text'}
+                  </button>
+                  <p className="ag-foot">Texts send from your workspace number. Standard SMS rates apply.</p>
+                </div>
+              )
             ) : (
               <div className="ag-empty">Nothing scheduled. Schedule a campaign and it shows up here, alongside reminders.</div>
             )}

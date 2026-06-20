@@ -128,6 +128,31 @@ export async function tgSend(chatId: number | string, text: string): Promise<voi
   await tgInvoke('send', { chatId, text });
 }
 
+// ---- SMS (the platform's built-in Twilio sender, via the `sms` Edge Function) ----
+// App-level outcomes come back as 200 { error: code }; only infra errors are
+// non-2xx (retried once). `sendSms` throws Error(code) so callers can map a
+// friendly message (sms_unset / bad_number / rate_limited / send_failed / …).
+async function smsInvoke(action: string, extra: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { data, error } = await supabase.functions.invoke('sms', { body: { action, ...extra } });
+    if (error) {
+      if (attempt === 0) { await new Promise((r) => setTimeout(r, 1200)); continue; }
+      throw new Error(error.message || 'Request failed');
+    }
+    const d = (data || {}) as Record<string, unknown>;
+    if (d.error) throw new Error(String(d.error));
+    return d;
+  }
+  throw new Error('Request failed');
+}
+export async function smsStatus(): Promise<boolean> {
+  try { const d = await smsInvoke('status'); return !!d.ready; } catch { return false; }
+}
+export async function sendSms(to: string, body: string): Promise<{ sid?: string; remaining?: number }> {
+  const d = await smsInvoke('send', { to, body });
+  return { sid: d.sid as string | undefined, remaining: typeof d.remaining === 'number' ? d.remaining : undefined };
+}
+
 // Fetch one attachment's bytes (base64) or hosted URL — for inline images,
 // preview, and download. `app` routes to the right mailbox provider.
 export async function fetchAttachment(mid: string, aid: string, name = 'file', app?: string): Promise<{ b64?: string; url?: string }> {
