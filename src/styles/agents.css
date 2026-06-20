@@ -328,7 +328,7 @@
 .ag-tree-node {
   position: absolute; transform: translate(-50%, -50%);
   display: flex; flex-direction: column; align-items: center; gap: 6px;
-  background: none; border: none; cursor: pointer; font: inherit; color: var(--text);
+  color: var(--text); pointer-events: none; /* display-only map — touching does nothing */
   animation: agNodeIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .ag-tree-node-ic {
@@ -337,7 +337,6 @@
   border: 1px solid var(--glass-edge); box-shadow: var(--glass-hi), var(--glass-shadow);
   transition: transform 0.14s ease;
 }
-.ag-tree-node:active .ag-tree-node-ic { transform: scale(0.92); }
 .ag-tree-node-name { font-size: var(--fs-footnote); font-weight: 600; color: var(--text-dim); }
 @keyframes agNodeIn {
   from { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
