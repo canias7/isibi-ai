@@ -138,7 +138,7 @@ export function EmailList({ items, onOpen, badges }: { items: EmailItem[]; onOpe
         return (
         <div
           key={i}
-          className={`gf-email ${it.unread ? 'unread' : ''}${onOpen ? ' tappable' : ''}`}
+          className={`gf-email gf-p-${prov} ${it.unread ? 'unread' : ''}${onOpen ? ' tappable' : ''}`}
           onClick={onOpen ? () => onOpen(it) : undefined}
           role={onOpen ? 'button' : undefined}
           tabIndex={onOpen ? 0 : undefined}

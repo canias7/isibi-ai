@@ -113,6 +113,29 @@
 .gf-chan { flex-shrink: 0; font-size: 9px; font-weight: 800; line-height: 1; padding: 2px 5px; border-radius: 5px; color: #fff; }
 .gf-chan-gmail { background: #EA4335; }
 .gf-chan-outlook { background: #0A66C2; }
+/* Combined inbox: theme EACH card by its OWN provider (per-card class beats the
+   list's container provider class), so a Gmail and an Outlook email in the same
+   merged feed each render as their own card — and stay readable regardless of
+   which one happens to be first. */
+.ag-inbox .gf-email.gf-p-gmail .gf-num,
+.ag-inbox .gf-email.gf-p-gmail .gf-from,
+.ag-inbox .gf-email.gf-p-gmail .gf-time,
+.ag-inbox .gf-email.gf-p-gmail .gf-snippet { color: #4b5563; }
+.ag-inbox .gf-email.gf-p-gmail .gf-subject,
+.ag-inbox .gf-email.gf-p-gmail.unread .gf-from { color: #15181d; }
+.ag-inbox .gf-email.gf-p-outlook {
+  background: linear-gradient(160deg, rgba(40, 92, 156, 0.52), rgba(20, 58, 110, 0.42));
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.ag-inbox .gf-email.gf-p-outlook.unread {
+  background: linear-gradient(160deg, rgba(48, 104, 172, 0.62), rgba(26, 70, 126, 0.50));
+}
+.ag-inbox .gf-email.gf-p-outlook .gf-num,
+.ag-inbox .gf-email.gf-p-outlook .gf-from,
+.ag-inbox .gf-email.gf-p-outlook .gf-time,
+.ag-inbox .gf-email.gf-p-outlook .gf-snippet { color: rgba(255, 255, 255, 0.85); }
+.ag-inbox .gf-email.gf-p-outlook .gf-subject,
+.ag-inbox .gf-email.gf-p-outlook.unread .gf-from { color: #fff; }
 .ag-inbox .gf-email {
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 15px;
