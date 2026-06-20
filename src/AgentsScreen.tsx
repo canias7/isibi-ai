@@ -39,7 +39,7 @@ const COMMS: { id: CommsId; name: string; tagline: string; mail: boolean }[] = [
 type SendraTab = 'home' | 'apps' | 'texts' | 'campaigns' | 'templates' | 'analytics' | 'calendar';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
-  apps: { t: 'My apps', s: 'Tap an app to open it' },
+  apps: { t: 'My apps', s: 'The apps Sendra runs' },
   texts: { t: 'Text', s: 'Send an SMS' },
   campaigns: { t: 'Campaigns', s: 'Email & SMS to your lists' },
   templates: { t: 'Templates', s: 'Reusable messages' },
@@ -289,26 +289,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     }
   }, [agent, commsApp, emailTab, tgChat, combinedInbox, refreshInbox, loadMerged, loadContacts, loadTgChats, loadTgMsgs]);
 
-  const openComms = (id: CommsId) => {
-    tap();
-    setInboxHome(false);
-    setCommsApp(id);
-    if (id === 'telegram') {
-      setTgChat(null);
-      setTgList(tgChatsCache ?? []);
-      setTgListState(tgChatsCache ? 'ok' : 'idle');
-    } else {
-      const a = id === 'm365' ? 'outlook' : 'gmail';
-      setEmailTab('home');
-      setInbox(inboxCache[a] ?? []);
-      setInboxState(inboxCache[a] ? 'ok' : 'idle');
-      setContacts(contactsCache[a] ?? []);
-      setContactsState(contactsCache[a] ? 'ok' : 'idle');
-      tokensRef.current = [undefined];
-      setPageIdx(0);
-    }
-  };
-
   // Inbox opened straight from the Sendra home (top-level). Lands on the mail
   // inbox of the first connected mailbox — which is the merged feed when 2+ are
   // connected. `inboxHome` makes Back return to the home, not the app grid.
@@ -527,20 +507,19 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               {deckApps.map((c, i) => {
                 const p = nodePos(i, deckApps.length);
                 return (
-                  <button
+                  <div
                     key={c.id}
                     className="ag-tree-node"
                     style={{ left: `${p.x}%`, top: `${p.y}%`, animationDelay: `${140 + i * 90}ms` }}
-                    onClick={() => openComms(c.id)}
                   >
                     <span className="ag-tree-node-ic"><BrandLogo app={c.id} size={34} /></span>
                     <span className="ag-tree-node-name">{c.name}</span>
-                  </button>
+                  </div>
                 );
               })}
             </div>
           )}
-          <p className="ag-tree-hint">Tap an app — Sendra runs them all.</p>
+          <p className="ag-tree-hint">Sendra runs them all.</p>
         </div>
         ) : (
           // ---- Campaigns / Templates / Analytics / Calendar (P0 scaffolds) ----
