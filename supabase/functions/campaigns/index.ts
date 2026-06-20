@@ -115,7 +115,7 @@ Deno.serve(async (req: Request) => {
       const html = String(body?.body || "");
       const name = String(body?.name || subject || "Untitled campaign").slice(0, 120);
       const raw = Array.isArray(body?.recipients) ? body.recipients as Record<string, unknown>[] : [];
-      if (!subject || !html) return json(req, { error: "missing_content" }, 400);
+      if (!subject || !html) return json(req, { error: "missing_content" });
 
       // Dedupe + validate, then drop anyone suppressed for this user.
       const seen = new Set<string>();
@@ -132,7 +132,7 @@ Deno.serve(async (req: Request) => {
       const sup = new Set<string>(((await supRes.json().catch(() => [])) as { email: string }[]).map((s) => s.email.toLowerCase()));
       const recips = clean.filter((c) => !sup.has(c.email));
       const skipped = clean.length - recips.length;
-      if (!recips.length) return json(req, { error: "no_recipients", invalid, skipped }, 400);
+      if (!recips.length) return json(req, { error: "no_recipients", invalid, skipped });
 
       const cRes = await fetch(`${SB_URL}/rest/v1/campaigns`, {
         method: "POST",
@@ -157,7 +157,7 @@ Deno.serve(async (req: Request) => {
 
       const cRes = await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}&user_id=eq.${uid}&select=*`, { headers: sbHeaders });
       const camp = (await cRes.json().catch(() => []))?.[0];
-      if (!camp) return json(req, { error: "not_found" }, 404);
+      if (!camp) return json(req, { error: "not_found" });
       if (camp.status === "draft") {
         await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "sending", updated_at: new Date().toISOString() }) });
       }
@@ -193,7 +193,7 @@ Deno.serve(async (req: Request) => {
       const id = String(body?.id || "");
       const r = await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}&user_id=eq.${uid}&select=*`, { headers: sbHeaders });
       const camp = (await r.json().catch(() => []))?.[0];
-      return camp ? json(req, { campaign: camp }) : json(req, { error: "not_found" }, 404);
+      return camp ? json(req, { campaign: camp }) : json(req, { error: "not_found" });
     }
 
     if (action === "list") {
