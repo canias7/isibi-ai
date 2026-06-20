@@ -1,10 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// Direct inbox listing -> EmailItem[] (no chat turn). Mirrors the transform in
-// chat/index.ts `buildInboxCard`: calls Composio GMAIL_FETCH_EMAILS with the
-// caller's server-verified user id, sorts newest-first, and shapes each message
-// into the same card the chat pipeline produces. Identity is verified
-// server-side (the caller's Supabase access token), so a client can never list
+// Direct inbox listing -> { items: EmailItem[], nextPageToken } (no chat turn).
+// Mirrors chat/index.ts `buildInboxCard` (Composio GMAIL_FETCH_EMAILS + the same
+// transform), adds newest-first sorting and Gmail page-token pagination. Fetch a
+// SMALL page (≈20): GMAIL_FETCH_EMAILS pulls each message's payload, so large
+// max_results is slow and returns empty — page through instead. Identity is
+// verified server-side (the caller's Supabase token); a client can't list
 // someone else's mail.
 
 const API_KEY = Deno.env.get("COMPOSIO_API_KEY") ?? "";
@@ -72,38 +73,49 @@ function tsOf(m: Record<string, unknown>): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function pickToken(o: unknown): string | null {
+  const r = o as Record<string, unknown> | null | undefined;
+  const t = r?.next_page_token ?? r?.nextPageToken;
+  return typeof t === "string" && t ? t : null;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
-  if (!API_KEY) return json(req, { items: [], error: "composio_unset" }, 500);
+  if (!API_KEY) return json(req, { items: [], nextPageToken: null, error: "composio_unset" }, 500);
 
   const url = new URL(req.url);
   const auth = req.headers.get("authorization") || "";
   const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
   const uid = await verifyUser(token);
-  if (!uid) return json(req, { items: [], error: "unauthorized" }, 401);
+  if (!uid) return json(req, { items: [], nextPageToken: null, error: "unauthorized" }, 401);
 
   const tz = url.searchParams.get("tz") || "UTC";
-  const max = Math.min(Math.max(parseInt(url.searchParams.get("max") ?? "12", 10) || 12, 1), 100);
+  // Keep the page small: GMAIL_FETCH_EMAILS fetches each message's payload, so a
+  // big max_results is slow and returns nothing. Cap at 30.
+  const max = Math.min(Math.max(parseInt(url.searchParams.get("max") ?? "20", 10) || 20, 1), 30);
+  const pageToken = url.searchParams.get("page_token") || "";
 
   try {
+    const args: Record<string, unknown> = { max_results: max };
+    if (pageToken) args.page_token = pageToken;
     const res = await fetch("https://backend.composio.dev/api/v3/tools/execute/GMAIL_FETCH_EMAILS", {
       method: "POST",
       headers: { "x-api-key": API_KEY, "content-type": "application/json" },
-      body: JSON.stringify({ user_id: uid, arguments: { max_results: max } }),
+      body: JSON.stringify({ user_id: uid, arguments: args }),
     });
     const body = await res.json().catch(() => ({}));
-    const data = (body as Record<string, unknown>)?.data ?? body;
+    const data = ((body as Record<string, unknown>)?.data ?? body) as Record<string, unknown>;
+    const inner = (data?.response_data ?? data?.data ?? data) as Record<string, unknown>;
     const msgs: Record<string, unknown>[] =
-      ((data as Record<string, unknown>)?.messages as Record<string, unknown>[]) ??
-      (((data as Record<string, unknown>)?.data as Record<string, unknown>)?.messages as Record<string, unknown>[]) ??
-      [];
+      ((data?.messages ?? inner?.messages) as Record<string, unknown>[]) ?? [];
+    const nextPageToken = pickToken(data) ?? pickToken(inner);
     const dstr = (d: Date, o: Intl.DateTimeFormatOptions) => {
       try { return new Intl.DateTimeFormat("en-US", { timeZone: tz, ...o }).format(d); } catch { return ""; }
     };
     const today = dstr(new Date(), { dateStyle: "short" });
     // Newest first — Composio's order isn't reliably by date, so sort explicitly.
     const sorted = (Array.isArray(msgs) ? msgs : []).slice().sort((a, b) => tsOf(b) - tsOf(a));
-    const items = sorted.slice(0, max).map((m) => {
+    const items = sorted.map((m) => {
       const sender = String(m.sender ?? "");
       const mt = /^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/.exec(sender);
       const from = mt ? mt[1].trim() : sender;
@@ -130,9 +142,9 @@ Deno.serve(async (req: Request) => {
         app: "gmail",
       };
     });
-    return json(req, { items });
+    return json(req, { items, nextPageToken });
   } catch (e) {
     console.error("inbox error:", e);
-    return json(req, { items: [], error: "fetch_failed" }, 502);
+    return json(req, { items: [], nextPageToken: null, error: "fetch_failed" }, 502);
   }
 });

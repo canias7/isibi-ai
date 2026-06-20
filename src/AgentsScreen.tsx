@@ -30,13 +30,12 @@ const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[]
   { id: 'broadcast', label: 'Broadcast', sub: 'To a list', icon: IconWaveform },
 ];
 
-const PAGE_SIZE = 20;       // emails shown per inbox page
-const FETCH_COUNT = 60;     // how many we pull + sort (3 pages worth)
+const PAGE_SIZE = 20;       // emails per page (kept small — GMAIL_FETCH_EMAILS is slow at high counts)
 const PULL_THRESHOLD = 64;  // px of pull-down that triggers a refresh
 
-// Session cache so re-opening the inbox is instant. The overlay unmounts on
-// close, so this lives at module scope (not component state). In-memory only —
-// email snippets are never written to disk.
+// Session cache (page 0) so re-opening the inbox is instant. The overlay
+// unmounts on close, so this lives at module scope. In-memory only — email
+// snippets are never written to disk.
 let inboxCache: EmailItem[] | null = null;
 
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
@@ -46,8 +45,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [inboxState, setInboxState] = useState<'idle' | 'loading' | 'ok' | 'err'>(inboxCache ? 'ok' : 'idle');
   const [refreshing, setRefreshing] = useState(false);
   const [pageIdx, setPageIdx] = useState(0);
+  const [nextTok, setNextTok] = useState<string | null>(null);
   const [reading, setReading] = useState<EmailItem | null>(null);
   const [pull, setPull] = useState(0); // pull-to-refresh distance (px)
+  const tokensRef = useRef<(string | undefined)[]>([undefined]); // page_token per page (index 0 = none)
   const pullStart = useRef<number | null>(null);
   const inboxScrollRef = useRef<HTMLDivElement>(null);
   const trapRef = useRef<HTMLDivElement>(null);
@@ -66,21 +67,30 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
 
   const hasMail = connApps.includes('gmail') || connApps.includes('outlook');
 
-  // Fetch the inbox. Shows the cached list instantly and refreshes in the
-  // background; only shows the skeleton when there's nothing cached yet.
-  const loadInbox = useCallback(() => {
+  // Fetch one page (20). Page 0 is cached for instant re-open; forward pages use
+  // the stored Gmail page tokens. Small pages keep GMAIL_FETCH_EMAILS fast.
+  const loadPage = useCallback((idx: number) => {
     setRefreshing(true);
-    if (!inboxCache) setInboxState('loading');
-    fetchInbox(FETCH_COUNT)
-      .then((items) => { if (!mountedRef.current) return; inboxCache = items; setInbox(items); setInboxState('ok'); setPageIdx(0); })
-      .catch(() => { if (mountedRef.current && !inboxCache) setInboxState('err'); })
+    if (idx === 0 && !inboxCache) setInboxState('loading');
+    fetchInbox(PAGE_SIZE, tokensRef.current[idx])
+      .then(({ items, nextPageToken }) => {
+        if (!mountedRef.current) return;
+        setInbox(items); setInboxState('ok'); setPageIdx(idx); setNextTok(nextPageToken);
+        if (nextPageToken && tokensRef.current.length === idx + 1) tokensRef.current.push(nextPageToken);
+        if (idx === 0) inboxCache = items;
+        inboxScrollRef.current?.scrollTo({ top: 0 });
+      })
+      .catch(() => { if (mountedRef.current && idx === 0 && !inboxCache) setInboxState('err'); })
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
   }, []);
 
+  // Refresh resets pagination back to the first page.
+  const refreshInbox = useCallback(() => { tokensRef.current = [undefined]; loadPage(0); }, [loadPage]);
+
   // Load when the inbox view opens (instant from cache, then a background refresh).
   useEffect(() => {
-    if (agent === 'email' && emailTab === 'inbox' && hasMail) loadInbox();
-  }, [agent, emailTab, hasMail, loadInbox]);
+    if (agent === 'email' && emailTab === 'inbox' && hasMail) refreshInbox();
+  }, [agent, emailTab, hasMail, refreshInbox]);
 
   // Pull-to-refresh: only arms when the list is scrolled to the very top.
   const onPullStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -92,16 +102,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setPull(dy > 0 ? Math.min(dy * 0.5, 90) : 0); // damped, capped
   };
   const onPullEnd = () => {
-    if (pullStart.current !== null && pull >= PULL_THRESHOLD && hasMail && !refreshing) loadInbox();
+    if (pullStart.current !== null && pull >= PULL_THRESHOLD && hasMail && !refreshing) refreshInbox();
     pullStart.current = null;
     setPull(0);
   };
 
   const inInbox = agent === 'email' && emailTab === 'inbox' && !reading;
-  const totalPages = Math.max(1, Math.ceil(inbox.length / PAGE_SIZE));
-  const safeIdx = Math.min(pageIdx, totalPages - 1);
-  const pageItems = inbox.slice(safeIdx * PAGE_SIZE, safeIdx * PAGE_SIZE + PAGE_SIZE);
-  const goPage = (idx: number) => { tap(); setPageIdx(idx); inboxScrollRef.current?.scrollTo({ top: 0 }); };
+  const goPage = (idx: number) => { if (refreshing) return; tap(); loadPage(idx); };
+  const hasPager = pageIdx > 0 || !!nextTok;
 
   return (
     <div className="memg ag" ref={trapRef} tabIndex={-1}>
@@ -113,7 +121,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           </h1>
           <p className="memg-sub">
             {reading ? (reading.from || reading.email || 'Message')
-              : inInbox ? (inbox.length ? `${inbox.length} recent` : 'Your inbox')
+              : inInbox ? 'Newest first'
               : agent === 'email' ? (hasMail ? 'Ready' : 'Connect a mailbox to begin')
               : 'Your AI specialists — each one handles a job'}
           </p>
@@ -121,7 +129,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         {inInbox ? (
           <button
             className={`ag-corner${refreshing ? ' spinning' : ''}`}
-            onClick={() => { tap(); loadInbox(); }}
+            onClick={() => { tap(); refreshInbox(); }}
             disabled={refreshing}
             aria-label="Refresh inbox"
           >
@@ -181,20 +189,20 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           ) : inboxState === 'err' ? (
             <div className="ag-empty">
               Couldn’t load your inbox.{' '}
-              <button className="ag-retry" onClick={() => { tap(); loadInbox(); }}>Try again</button>
+              <button className="ag-retry" onClick={() => { tap(); refreshInbox(); }}>Try again</button>
             </div>
           ) : inboxState === 'ok' && inbox.length === 0 ? (
             <div className="ag-empty">Inbox is empty.</div>
           ) : inbox.length ? (
             <>
-              <div className="ag-inbox" key={safeIdx}>
-                <EmailList items={pageItems} onOpen={(it) => { tap(); setReading(it); }} />
+              <div className="ag-inbox" key={pageIdx}>
+                <EmailList items={inbox} onOpen={(it) => { tap(); setReading(it); }} />
               </div>
-              {totalPages > 1 && (
+              {hasPager && (
                 <div className="ag-pager">
-                  <button onClick={() => goPage(safeIdx - 1)} disabled={safeIdx === 0}>‹ Prev</button>
-                  <span className="ag-pager-n">Page {safeIdx + 1} of {totalPages}</span>
-                  <button onClick={() => goPage(safeIdx + 1)} disabled={safeIdx >= totalPages - 1}>Next ›</button>
+                  <button onClick={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || refreshing}>‹ Prev</button>
+                  <span className="ag-pager-n">Page {pageIdx + 1}</span>
+                  <button onClick={() => goPage(pageIdx + 1)} disabled={!nextTok || refreshing}>Next ›</button>
                 </div>
               )}
             </>
