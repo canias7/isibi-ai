@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, listCampaigns, createCampaign, sendCampaignBatch, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, listCampaigns, createCampaign, sendCampaignBatch, listTemplates, saveTemplate, deleteTemplate, generateTemplate, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type Template } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -155,6 +155,16 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campErr, setCampErr] = useState('');
   const [campProg, setCampProg] = useState({ sent: 0, total: 0, failed: 0 });
   const [campList, setCampList] = useState<Campaign[]>([]);
+  // Templates (reusable, AI-writable)
+  const [tplList, setTplList] = useState<Template[]>([]);
+  const [tplEdit, setTplEdit] = useState<null | { id?: string }>(null);
+  const [tplName, setTplName] = useState('');
+  const [tplSubject, setTplSubject] = useState('');
+  const [tplBody, setTplBody] = useState('');
+  const [tplPrompt, setTplPrompt] = useState('');
+  const [tplGen, setTplGen] = useState(false);
+  const [tplSaving, setTplSaving] = useState(false);
+  const [tplErr, setTplErr] = useState('');
 
   const tokensRef = useRef<(string | undefined)[]>([undefined]);
   const pullStart = useRef<number | null>(null);
@@ -299,11 +309,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     }
   }, [agent, commsApp, emailTab, tgChat, combinedInbox, refreshInbox, loadMerged, loadContacts, loadTgChats, loadTgMsgs]);
 
-  // Load past campaigns when the Campaigns tab opens (and after a send).
+  // Load campaigns (Campaigns tab) and templates (Campaigns builder picker + the
+  // Templates tab) when those tabs open.
   useEffect(() => {
-    if (agent === 'email' && commsApp === null && sendraTab === 'campaigns' && !campNew) {
-      listCampaigns().then((c) => { if (mountedRef.current) setCampList(c); });
-    }
+    if (agent !== 'email' || commsApp !== null) return;
+    if (sendraTab === 'campaigns' && !campNew) listCampaigns().then((c) => { if (mountedRef.current) setCampList(c); });
+    if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
   }, [agent, commsApp, sendraTab, campNew]);
 
   // Inbox opened straight from the Sendra home (top-level). Lands on the mail
@@ -436,6 +447,41 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     } catch {
       if (mountedRef.current) { setCampState('err'); setCampErr('Something went wrong while sending — check your connection and try again.'); }
     }
+  };
+
+  // ---- Templates ----
+  const openTplNew = () => { tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setTplPrompt(''); setTplErr(''); };
+  const openTplEdit = (t: Template) => { tap(); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplPrompt(''); setTplErr(''); };
+  const genTpl = async () => {
+    if (!tplPrompt.trim() || tplGen) return;
+    tap(); setTplGen(true); setTplErr('');
+    try {
+      const r = await generateTemplate(tplPrompt.trim());
+      if (!mountedRef.current) return;
+      if (r.error || !r.subject) { setTplErr(r.error === 'ai_unset' ? 'AI writing isn’t set up on the server yet.' : 'Couldn’t generate — try rephrasing your description.'); return; }
+      setTplSubject(r.subject || ''); setTplBody(r.body || '');
+      if (!tplName.trim()) setTplName((r.subject || 'Template').slice(0, 60));
+    } catch { if (mountedRef.current) setTplErr('Couldn’t generate — try again.'); }
+    finally { if (mountedRef.current) setTplGen(false); }
+  };
+  const saveTpl = async () => {
+    if (!tplSubject.trim() || !tplBody.trim() || tplSaving) return;
+    tap(); setTplSaving(true); setTplErr('');
+    try {
+      await saveTemplate({ id: tplEdit?.id, name: tplName.trim() || tplSubject.trim().slice(0, 60), subject: tplSubject.trim(), body: tplBody.trim() });
+      if (!mountedRef.current) return;
+      setTplEdit(null);
+      listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
+    } catch { if (mountedRef.current) setTplErr('Couldn’t save — try again.'); }
+    finally { if (mountedRef.current) setTplSaving(false); }
+  };
+  const delTpl = async () => {
+    if (!tplEdit?.id) { setTplEdit(null); return; }
+    tap();
+    await deleteTemplate(tplEdit.id).catch(() => {});
+    if (!mountedRef.current) return;
+    setTplEdit(null);
+    listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
   };
 
   const inMailInbox = !!commsApp && commsApp !== 'telegram' && emailTab === 'inbox' && !reading;
@@ -599,6 +645,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   </div>
                 ) : (
                   <div className="ag-compose">
+                    {tplList.length > 0 && (
+                      <div className="ag-tpl-row">
+                        <span className="ag-tpl-lbl">Start from:</span>
+                        {tplList.slice(0, 8).map((t) => (
+                          <button key={t.id} className="ag-tpl-chip" onClick={() => { tap(); setCampSubject(t.subject); setCampBody(t.body); if (campState === 'err') setCampState('idle'); }}>{t.name || t.subject}</button>
+                        ))}
+                      </div>
+                    )}
                     {mailApiApps.length >= 2 && (
                       <div className="ag-seg">
                         <button className={campApp === 'gmail' ? 'on' : ''} onClick={() => { tap(); setCampApp('gmail'); }}>Gmail</button>
@@ -644,10 +698,43 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 </>
               )
             ) : sendraTab === 'templates' ? (
-              <>
-                <button className="ag-send-btn" onClick={() => { tap(); setNote('Templates are next — save a reusable email or SMS, then drop it into any campaign.'); }}>+ New template</button>
-                <div className="ag-empty" style={{ marginTop: 12 }}>No templates yet. Save reusable email &amp; SMS messages and reuse them across campaigns.</div>
-              </>
+              tplEdit ? (
+                <div className="ag-compose">
+                  <div className="ag-ai">
+                    <textarea className="ag-ai-input" placeholder="Describe the email — e.g. “a warm note announcing 20% off summer styles, ends Sunday”" value={tplPrompt}
+                      onChange={(e) => setTplPrompt(e.target.value)} />
+                    <button className="ag-ai-btn" disabled={tplGen || !tplPrompt.trim()} onClick={genTpl}>{tplGen ? 'Writing…' : '✨ Generate with AI'}</button>
+                  </div>
+                  <input className="ag-field" placeholder="Template name" value={tplName} onChange={(e) => setTplName(e.target.value)} />
+                  <input className="ag-field" placeholder="Subject" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
+                  <textarea className="ag-field ag-body" placeholder="Body — use {{name}} to personalize" value={tplBody} onChange={(e) => setTplBody(e.target.value)} />
+                  {tplErr && <div className="ag-send-err">{tplErr}</div>}
+                  <button className="ag-send-btn" disabled={tplSaving || !tplSubject.trim() || !tplBody.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save template'}</button>
+                  <div className="ag-sent-actions">
+                    <button className="ag-send-btn ghost" disabled={tplSaving} onClick={() => { tap(); setTplEdit(null); }}>Cancel</button>
+                    {tplEdit.id && <button className="ag-send-btn ghost" disabled={tplSaving} onClick={delTpl}>Delete</button>}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button className="ag-send-btn" onClick={openTplNew}>+ New template</button>
+                  {tplList.length === 0 ? (
+                    <div className="ag-empty" style={{ marginTop: 12 }}>No templates yet. Describe the email you want and let Sendra write it — then reuse it in any campaign.</div>
+                  ) : (
+                    <div className="ag-camp-list">
+                      {tplList.map((t) => (
+                        <button className="ag-camp" key={t.id} onClick={() => openTplEdit(t)}>
+                          <div className="ag-camp-main">
+                            <div className="ag-camp-name">{t.name || t.subject || 'Template'}</div>
+                            <div className="ag-camp-sub">{t.subject}</div>
+                          </div>
+                          <span className="ag-chev" aria-hidden="true">›</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )
             ) : sendraTab === 'analytics' ? (
               <>
                 <div className="ag-stats">

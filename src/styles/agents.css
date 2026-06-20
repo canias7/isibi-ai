@@ -213,6 +213,20 @@
 .ag-camp-pill.is-sent { color: #34d399; background: rgba(52, 211, 153, 0.14); }
 .ag-camp-pill.is-sending { color: #fbbf24; background: rgba(251, 191, 36, 0.14); }
 .ag-camp-count { color: #9298a2; font-size: var(--fs-caption); }
+button.ag-camp { font: inherit; width: 100%; text-align: left; cursor: pointer; }
+button.ag-camp:active { filter: brightness(1.15); }
+
+/* AI "describe -> generate" box (templates) */
+.ag-ai { display: flex; flex-direction: column; gap: 8px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: 14px; padding: 11px 12px; }
+.ag-ai-input { width: 100%; min-height: 60px; resize: none; background: transparent; border: none; outline: none; color: var(--text); font: inherit; font-size: var(--fs-footnote); line-height: 1.5; }
+.ag-ai-input::placeholder { color: var(--text-dim); }
+.ag-ai-btn { align-self: flex-end; background: var(--grad-brand); color: var(--on-brand, #fff); border: none; font: inherit; font-weight: 700; font-size: var(--fs-footnote); padding: 8px 14px; border-radius: 10px; cursor: pointer; }
+.ag-ai-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* "Start from template" chips in the campaign builder */
+.ag-tpl-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ag-tpl-lbl { color: var(--text-dim); font-size: var(--fs-caption); }
+.ag-tpl-chip { background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text); font: inherit; font-size: var(--fs-caption); font-weight: 600; padding: 5px 10px; border-radius: 999px; cursor: pointer; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Confirm-before-send sheet */
 .ag-confirm-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 10; }

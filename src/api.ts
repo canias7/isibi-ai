@@ -183,6 +183,28 @@ export async function sendCampaignBatch(id: string): Promise<{ sent: number; fai
   return (data || {}) as { sent: number; failed: number; remaining: number; done: boolean; error?: string };
 }
 
+// ---- Email templates (reusable, AI-writable, via the `templates` fn) ----
+export interface Template { id: string; name: string; subject: string; body: string; updated_at?: string }
+export async function listTemplates(): Promise<Template[]> {
+  const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'list' } });
+  if (error) return [];
+  const t = (data as { templates?: Template[] } | null)?.templates;
+  return Array.isArray(t) ? t : [];
+}
+export async function saveTemplate(t: { id?: string; name: string; subject: string; body: string }): Promise<{ id?: string; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'save', ...t } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { id?: string; error?: string };
+}
+export async function deleteTemplate(id: string): Promise<void> {
+  await supabase.functions.invoke('templates', { body: { action: 'delete', id } });
+}
+export async function generateTemplate(prompt: string): Promise<{ subject?: string; body?: string; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'generate', prompt } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { subject?: string; body?: string; error?: string };
+}
+
 // Fetch one attachment's bytes (base64) or hosted URL — for inline images,
 // preview, and download. `app` routes to the right mailbox provider.
 export async function fetchAttachment(mid: string, aid: string, name = 'file', app?: string): Promise<{ b64?: string; url?: string }> {
