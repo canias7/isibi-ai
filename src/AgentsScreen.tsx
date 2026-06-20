@@ -86,7 +86,8 @@ type Loadable = 'idle' | 'loading' | 'ok' | 'err';
 
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [agent, setAgent] = useState<AgentId | null>(null);
-  const [commsApp, setCommsApp] = useState<CommsId | null>(null); // null while Sendra shows the app deck
+  const [commsApp, setCommsApp] = useState<CommsId | null>(null); // null while Sendra shows its home / the app constellation
+  const [sendraTab, setSendraTab] = useState<'home' | 'apps'>('home'); // Sendra landing: 'home' menu -> 'apps' constellation
   // Mail workspace
   const [emailTab, setEmailTab] = useState<EmailTab>('home');
   const [inbox, setInbox] = useState<EmailItem[]>([]);
@@ -144,6 +145,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     else if (sendState === 'confirm') setSendState('idle');
     else if (commsApp && commsApp !== 'telegram' && emailTab !== 'home') setEmailTab('home');
     else if (commsApp) setCommsApp(null);
+    else if (sendraTab === 'apps') setSendraTab('home');
     else if (agent) setAgent(null);
     else onClose();
   };
@@ -304,7 +306,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // ---- header titles ----
   const title = reading ? 'Email'
     : agent === null ? 'Agents'
-    : commsApp === null ? 'Sendra'
+    : commsApp === null ? (sendraTab === 'apps' ? 'My apps' : 'Sendra')
     : commsApp === 'telegram' ? (tgChat ? tgChat.title : 'Telegram')
     : emailTab === 'inbox' ? 'Inbox'
     : emailTab === 'contacts' ? 'Contacts'
@@ -312,7 +314,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     : (commsApp === 'm365' ? 'Outlook' : 'Gmail');
   const subtitle = reading ? (reading.from || reading.email || 'Message')
     : agent === null ? 'Your AI specialists — each one handles a job'
-    : commsApp === null ? 'Pick a communication app'
+    : commsApp === null ? (sendraTab === 'apps' ? 'Tap an app to open it' : 'Your communication hub')
     : commsApp === 'telegram' ? (tgChat ? (tgChat.username ? `@${tgChat.username}` : 'Chat') : `${tgList.length || ''} chats`.trim() || 'Your chats')
     : emailTab === 'inbox' ? 'Newest first'
     : emailTab === 'contacts' ? (contacts.length ? `${contacts.length} people` : 'Your contacts')
@@ -360,7 +362,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 key={a.id}
                 className={`ag-card${a.live ? '' : ' soon'}`}
                 disabled={!a.live}
-                onClick={() => { if (a.live) { tap(); setCommsApp(null); setAgent(a.id as AgentId); } }}
+                onClick={() => { if (a.live) { tap(); setCommsApp(null); setSendraTab('home'); setAgent(a.id as AgentId); } }}
               >
                 {a.id === 'email'
                   ? <span className="ag-ic ag-ic-logo"><img src={SENDRA_LOGO} alt="" /></span>
@@ -377,8 +379,24 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         </div>
 
       ) : commsApp === null ? (
-        // ---- Sendra constellation: hub + connected comms apps as nodes ----
-        <div className="ag-stage ag-tree-stage">
+        sendraTab === 'home' ? (
+          // ---- Sendra home: a menu of Sendra's tools (My apps -> the constellation) ----
+          <div className="ag-stage">
+            <div className="ag-list">
+              <button className="ag-card" onClick={() => { tap(); setSendraTab('apps'); }}>
+                <span className="ag-ic"><IconConnectors size={22} /></span>
+                <span className="ag-meta">
+                  <span className="ag-name">My apps</span>
+                  <span className="ag-desc">{deckApps.length ? deckApps.map((c) => c.name).join(' · ') : 'Connect Gmail, Outlook or Telegram'}</span>
+                </span>
+                <span className="ag-chev" aria-hidden="true">›</span>
+              </button>
+            </div>
+            <p className="ag-foot">More Sendra tools on the way — drafts, sequences and triage across every app.</p>
+          </div>
+        ) : (
+          // ---- Sendra constellation: hub + connected comms apps as nodes ----
+          <div className="ag-stage ag-tree-stage">
           {deckApps.length === 0 ? (
             connectCard('Link Gmail, Outlook or Telegram so Sendra has something to manage.')
           ) : (
@@ -411,6 +429,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           )}
           <p className="ag-tree-hint">Tap an app — Sendra runs them all.</p>
         </div>
+        )
 
       ) : commsApp === 'telegram' ? (
         tgChat ? (
