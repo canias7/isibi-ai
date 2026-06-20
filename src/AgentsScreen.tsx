@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
-  IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck,
+  IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck, IconContacts,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, sendEmail } from './api';
-import { EmailList, EmailDetail, EmailSkeleton, type EmailItem } from './EmailList';
+import { fetchInbox, sendEmail, fetchContacts } from './api';
+import { EmailList, EmailDetail, EmailSkeleton, ContactsList, type EmailItem, type ContactItem } from './EmailList';
 
 // Each agent is a *role* that spans apps (not an app). Only the Email agent is
 // live today; the rest are shown as "soon" so the roadmap is visible without
@@ -21,34 +21,39 @@ const AGENTS: AgentDef[] = [
   { id: 'sched', name: 'Scheduler', desc: 'Meetings, reminders & calendar triage', icon: IconClock, live: false },
 ];
 
-// The Email agent's top cards. "Inbox" and "New email" are live; the rest are stubs.
+// The Email agent's top cards. Inbox / New email / Contacts are live; the rest are stubs.
 const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[] = [
   { id: 'inbox', label: 'Inbox', sub: 'View mail', icon: IconInbox },
   { id: 'new', label: 'New email', sub: 'Single send', icon: IconCompose },
   { id: 'sequence', label: 'Sequence', sub: 'Multi-step', icon: IconLayers },
   { id: 'broadcast', label: 'Broadcast', sub: 'To a list', icon: IconWaveform },
+  { id: 'contacts', label: 'Contacts', sub: 'People', icon: IconContacts },
 ];
 
 const PAGE_SIZE = 20;       // emails per page (kept small — GMAIL_FETCH_EMAILS is slow at high counts)
 const PULL_THRESHOLD = 64;  // px of pull-down that triggers a refresh
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Session cache (page 0) so re-opening the inbox is instant. In-memory only.
+// Session caches (in-memory only) so re-opening a view is instant.
 let inboxCache: EmailItem[] | null = null;
+let contactsCache: ContactItem[] | null = null;
 
-type EmailTab = 'home' | 'inbox' | 'compose';
+type EmailTab = 'home' | 'inbox' | 'compose' | 'contacts';
 type SendState = 'idle' | 'confirm' | 'sending' | 'sent' | 'err';
+type Loadable = 'idle' | 'loading' | 'ok' | 'err';
 
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [agent, setAgent] = useState<AgentId | null>(null);
   const [emailTab, setEmailTab] = useState<EmailTab>('home');
   const [inbox, setInbox] = useState<EmailItem[]>(() => inboxCache ?? []);
-  const [inboxState, setInboxState] = useState<'idle' | 'loading' | 'ok' | 'err'>(inboxCache ? 'ok' : 'idle');
+  const [inboxState, setInboxState] = useState<Loadable>(inboxCache ? 'ok' : 'idle');
   const [refreshing, setRefreshing] = useState(false);
   const [pageIdx, setPageIdx] = useState(0);
   const [nextTok, setNextTok] = useState<string | null>(null);
   const [reading, setReading] = useState<EmailItem | null>(null);
   const [pull, setPull] = useState(0);
+  const [contacts, setContacts] = useState<ContactItem[]>(() => contactsCache ?? []);
+  const [contactsState, setContactsState] = useState<Loadable>(contactsCache ? 'ok' : 'idle');
   // Compose / reply state
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
@@ -62,12 +67,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
-  // Back steps one level: reader -> inbox/compose -> the agent's cards -> list -> close.
+  // Back steps one level: reader -> sub-view -> the agent's cards -> list -> close.
   const back = () => {
     tap();
     if (reading) setReading(null);
     else if (sendState === 'confirm') setSendState('idle');
-    else if (emailTab === 'inbox' || emailTab === 'compose') setEmailTab('home');
+    else if (emailTab !== 'home') setEmailTab('home');
     else if (agent) setAgent(null);
     else onClose();
   };
@@ -89,12 +94,20 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       .catch(() => { if (mountedRef.current && idx === 0 && !inboxCache) setInboxState('err'); })
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
   }, []);
-
   const refreshInbox = useCallback(() => { tokensRef.current = [undefined]; loadPage(0); }, [loadPage]);
 
+  const loadContacts = useCallback(() => {
+    if (!contactsCache) setContactsState('loading');
+    fetchContacts()
+      .then((items) => { if (mountedRef.current) { contactsCache = items; setContacts(items); setContactsState('ok'); } })
+      .catch(() => { if (mountedRef.current && !contactsCache) setContactsState('err'); });
+  }, []);
+
   useEffect(() => {
-    if (agent === 'email' && emailTab === 'inbox' && hasMail) refreshInbox();
-  }, [agent, emailTab, hasMail, refreshInbox]);
+    if (agent !== 'email' || !hasMail) return;
+    if (emailTab === 'inbox') refreshInbox();
+    else if (emailTab === 'contacts') loadContacts();
+  }, [agent, emailTab, hasMail, refreshInbox, loadContacts]);
 
   const onPullStart = (e: React.TouchEvent<HTMLDivElement>) => {
     pullStart.current = e.currentTarget.scrollTop <= 0 ? e.touches[0].clientY : null;
@@ -155,6 +168,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <h1 className="memg-title">
             {reading ? 'Email'
               : agent === 'email' && emailTab === 'inbox' ? 'Inbox'
+              : agent === 'email' && emailTab === 'contacts' ? 'Contacts'
               : agent === 'email' && emailTab === 'compose' ? (replyThreadId ? 'Reply' : 'New email')
               : agent === 'email' ? 'Email Agent'
               : 'Agents'}
@@ -162,6 +176,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <p className="memg-sub">
             {reading ? (reading.from || reading.email || 'Message')
               : agent === 'email' && emailTab === 'inbox' ? 'Newest first'
+              : agent === 'email' && emailTab === 'contacts' ? (contacts.length ? `${contacts.length} people` : 'Your contacts')
               : agent === 'email' && emailTab === 'compose' ? (sendState === 'sent' ? 'Sent' : 'Compose')
               : agent === 'email' ? (hasMail ? 'Ready' : 'Connect a mailbox to begin')
               : 'Your AI specialists — each one handles a job'}
@@ -247,6 +262,22 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               <EmailSkeleton />
             )}
         </div>
+      ) : emailTab === 'contacts' ? (
+        <div className="ag-stage">
+          {!hasMail ? connectCard('Link Gmail so the agent can pull your contacts.')
+            : contactsState === 'err' ? (
+              <div className="ag-empty">
+                Couldn’t load contacts.{' '}
+                <button className="ag-retry" onClick={() => { tap(); loadContacts(); }}>Try again</button>
+              </div>
+            ) : contactsState === 'ok' && contacts.length === 0 ? (
+              <div className="ag-empty">No contacts found.</div>
+            ) : contacts.length ? (
+              <ContactsList items={contacts} />
+            ) : (
+              <EmailSkeleton />
+            )}
+        </div>
       ) : emailTab === 'compose' ? (
         <div className="ag-stage ag-compose">
           {!hasMail ? connectCard('Link Gmail so the agent can send on your behalf.')
@@ -301,7 +332,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               <button
                 key={act.id}
                 className="ag-act"
-                onClick={() => { tap(); if (act.id === 'inbox') setEmailTab('inbox'); else if (act.id === 'new') openCompose(); }}
+                onClick={() => {
+                  tap();
+                  if (act.id === 'inbox') setEmailTab('inbox');
+                  else if (act.id === 'new') openCompose();
+                  else if (act.id === 'contacts') setEmailTab('contacts');
+                }}
               >
                 <span className="ag-act-ic"><act.icon size={20} /></span>
                 <span className="ag-act-label">{act.label}</span>

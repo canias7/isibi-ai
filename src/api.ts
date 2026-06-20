@@ -1,7 +1,7 @@
 import { supabase, SUPABASE_ANON_KEY } from './supabase';
 import { CONNECT_API } from './connectorData';
 import type { GeoLoc } from './geo';
-import type { EmailItem } from './EmailList';
+import type { EmailItem, ContactItem } from './EmailList';
 
 export interface MsgAttachment {
   name: string;
@@ -56,6 +56,16 @@ export async function fetchInbox(max = 20, pageToken?: string): Promise<{ items:
   if (!res.ok) throw new Error(`Inbox fetch failed: ${res.status}`);
   const j = await res.json();
   return { items: Array.isArray(j.items) ? j.items : [], nextPageToken: j.nextPageToken ?? null };
+}
+
+// Fetch the user's contacts directly (no chat turn) — rendered with <ContactsList>.
+const CONTACTS_API = CONNECT_API.replace(/\/gmail-oauth$/, '/contacts');
+export async function fetchContacts(): Promise<ContactItem[]> {
+  const token = await authToken();
+  const res = await fetch(CONTACTS_API, { headers: { authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error(`Contacts fetch failed: ${res.status}`);
+  const j = await res.json();
+  return Array.isArray(j.items) ? j.items : [];
 }
 
 // Send an email (Composio GMAIL_SEND_EMAIL, server-verified). Returns on success,
