@@ -1,18 +1,22 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// Sendra email templates — reusable subject + body (with {{name}} personalization)
-// that drop into the campaign builder. The `generate` action writes one with
-// Claude from a short description. Identity is server-verified (Supabase token);
-// rows are service-role only (RLS on, no client policies).
+// Sendra email templates + brand profile. A template's body is plain text
+// (kind 'text', wrapped to HTML on send) or ready HTML (kind 'html' - flyer
+// image, pasted design, or AI-designed layout). `generate` writes copy or a
+// designed HTML layout with Claude, using the user's brand profile. `upload`
+// hosts an image. Identity is server-verified; rows are service-role only.
 //
-// App-level outcomes are returned as HTTP 200 { error } (supabase-js hides the
-// body of non-2xx responses); only infra failures stay 5xx.
+// App-level outcomes return HTTP 200 { error } (supabase-js hides non-2xx
+// bodies); only infra failures stay 5xx.
 //
-// POST { action, ... } (via supabase.functions.invoke):
-//   list                                   -> { templates }
-//   save   { id?, name, subject, body }    -> { id }
-//   delete { id }                          -> { ok }
-//   generate { prompt }                    -> { subject, body }
+// POST { action, ... }:
+//   list                                              -> { templates }
+//   save     { id?, name, subject, body, kind? }      -> { id }
+//   delete   { id }                                   -> { ok }
+//   generate { prompt, mode? }                        -> { subject, body, kind }
+//   upload   { dataB64, contentType }                 -> { url }
+//   getBrand                                          -> { brand }
+//   saveBrand { name, logo_url, color, voice, signoff } -> { ok }
 
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const MODEL = "claude-opus-4-8";
@@ -50,37 +54,64 @@ async function verifyUser(token: string | null): Promise<string | null> {
   }
 }
 
-// Ask Claude for one ready-to-send email as JSON { subject, body }. Plain text
-// (no HTML/markdown) with {{name}} for the greeting — the campaign sender turns
-// line breaks into HTML and substitutes {{name}} per recipient.
-async function generate(prompt: string): Promise<{ subject: string; body: string } | null> {
+async function getBrand(uid: string): Promise<Record<string, string>> {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/brand_profiles?user_id=eq.${uid}&select=name,logo_url,color,voice,signoff`, { headers: sbHeaders });
+    const row = (await r.json().catch(() => []))?.[0];
+    return (row && typeof row === "object") ? row : {};
+  } catch {
+    return {};
+  }
+}
+
+// Ask Claude for one email as JSON { subject, body }. mode 'text' -> plain text
+// with {{name}}; mode 'design' -> email-client-safe HTML using the brand.
+async function generate(prompt: string, mode: string, brand: Record<string, string>): Promise<{ subject: string; body: string } | null> {
   if (!ANTHROPIC_KEY) return null;
-  const system =
-    "You are an expert email copywriter for a small business owner. From the user's short description, write ONE email they can send to their contacts. " +
-    "Voice: warm, clear, human; concise and scannable; no corporate fluff, no clickbait. " +
-    "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). " +
-    "Plain text only — no HTML, no markdown, no images, no placeholder brackets other than {{name}}. " +
-    "Keep it under ~180 words with real line breaks between short paragraphs, and end with a simple sign-off. " +
-    "Do NOT add an unsubscribe line (the system appends one). " +
-    "Respond with ONLY a JSON object with two string keys, subject and body. The subject is short and compelling.";
+  const b = brand || {};
+  const parts: string[] = [];
+  if (b.name) parts.push(`business name: ${b.name}`);
+  if (b.voice) parts.push(`voice/tone: ${b.voice}`);
+  if (b.signoff) parts.push(`sign off every email exactly with: ${b.signoff}`);
+  if (b.color) parts.push(`brand color (hex) for buttons and accents: ${b.color}`);
+  if (b.logo_url) parts.push(`logo image URL to place at the top: ${b.logo_url}`);
+  const brandBlock = parts.length ? ` Match this brand - ${parts.join("; ")}.` : "";
+
+  const system = mode === "design"
+    ? ("You are an expert email designer and copywriter. Produce ONE marketing email as clean, email-client-safe HTML. " +
+      "Rules: inline styles ONLY (no style tag, no script tag, no external CSS, no markdown). One centered container, max-width 600px, width 100%, mobile-friendly. " +
+      "Put the logo at the top (max-height 48px) if a logo URL is given, otherwise the business name as a simple wordmark. " +
+      "Use the brand color for the main button, links and accents (fall back to a tasteful blue if none). " +
+      "Include a short headline, one to three short paragraphs, and ONE call-to-action button (rounded, brand-color background, white text) when it fits. " +
+      "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). End with the sign-off. " +
+      "Do NOT include an unsubscribe footer (the system appends one). Keep copy under ~150 words, warm and human." + brandBlock +
+      " Respond with ONLY a JSON object with two string keys: subject (short and compelling) and body (the full HTML).")
+    : ("You are an expert email copywriter for a small business owner. From the user's short description, write ONE email they can send to their contacts. " +
+      "Voice: warm, clear, human; concise and scannable; no corporate fluff, no clickbait. " +
+      "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). " +
+      "Plain text only - no HTML, no markdown, no images, no placeholder brackets other than {{name}}. " +
+      "Keep it under ~180 words with real line breaks between short paragraphs, and end with a simple sign-off. " +
+      "Do NOT add an unsubscribe line (the system appends one)." + brandBlock +
+      " Respond with ONLY a JSON object with two string keys, subject and body.");
+
   let r: Response;
   try {
     r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: MODEL, max_tokens: 1500, system, messages: [{ role: "user", content: prompt.slice(0, 2000) }] }),
+      body: JSON.stringify({ model: MODEL, max_tokens: mode === "design" ? 3000 : 1500, system, messages: [{ role: "user", content: prompt.slice(0, 2000) }] }),
     });
   } catch {
     return null;
   }
   if (!r.ok) return null;
   const data = await r.json().catch(() => null) as { content?: { type: string; text?: string }[] } | null;
-  const text = (data?.content ?? []).filter((b) => b.type === "text").map((b) => b.text ?? "").join("").trim();
-  const a = text.indexOf("{"), b = text.lastIndexOf("}");
-  if (a < 0 || b <= a) return null;
+  const text = (data?.content ?? []).filter((x) => x.type === "text").map((x) => x.text ?? "").join("").trim();
+  const a = text.indexOf("{"), z = text.lastIndexOf("}");
+  if (a < 0 || z <= a) return null;
   try {
-    const o = JSON.parse(text.slice(a, b + 1)) as { subject?: unknown; body?: unknown };
-    if (o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 8000) };
+    const o = JSON.parse(text.slice(a, z + 1)) as { subject?: unknown; body?: unknown };
+    if (o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 50000) };
   } catch { /* fall through */ }
   return null;
 }
@@ -102,6 +133,28 @@ Deno.serve(async (req: Request) => {
       const r = await fetch(`${SB_URL}/rest/v1/templates?user_id=eq.${uid}&select=id,name,subject,body,kind,updated_at&order=updated_at.desc&limit=100`, { headers: sbHeaders });
       const templates = await r.json().catch(() => []);
       return json(req, { templates: Array.isArray(templates) ? templates : [] });
+    }
+
+    if (action === "getBrand") {
+      return json(req, { brand: await getBrand(uid) });
+    }
+
+    if (action === "saveBrand") {
+      const row = {
+        user_id: uid,
+        name: String(body?.name || "").slice(0, 200),
+        logo_url: String(body?.logo_url || "").slice(0, 1000),
+        color: String(body?.color || "").slice(0, 20),
+        voice: String(body?.voice || "").slice(0, 500),
+        signoff: String(body?.signoff || "").slice(0, 300),
+        updated_at: new Date().toISOString(),
+      };
+      const r = await fetch(`${SB_URL}/rest/v1/brand_profiles?on_conflict=user_id`, {
+        method: "POST",
+        headers: { ...sbHeaders, Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify(row),
+      });
+      return r.ok ? json(req, { ok: true }) : json(req, { error: "save_failed" }, 502);
     }
 
     // Upload an image (base64) to the public email-assets bucket, return its URL.
@@ -128,8 +181,9 @@ Deno.serve(async (req: Request) => {
       if (!ANTHROPIC_KEY) return json(req, { error: "ai_unset" });
       const prompt = String(body?.prompt || "").trim();
       if (!prompt) return json(req, { error: "missing_prompt" });
-      const out = await generate(prompt);
-      return out ? json(req, out) : json(req, { error: "generate_failed" });
+      const mode = String(body?.mode || "text") === "design" ? "design" : "text";
+      const out = await generate(prompt, mode, await getBrand(uid));
+      return out ? json(req, { ...out, kind: mode === "design" ? "html" : "text" }) : json(req, { error: "generate_failed" });
     }
 
     if (action === "save") {

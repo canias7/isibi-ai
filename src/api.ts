@@ -209,10 +209,21 @@ export async function saveTemplate(t: { id?: string; name: string; subject: stri
 export async function deleteTemplate(id: string): Promise<void> {
   await supabase.functions.invoke('templates', { body: { action: 'delete', id } });
 }
-export async function generateTemplate(prompt: string): Promise<{ subject?: string; body?: string; error?: string }> {
-  const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'generate', prompt } });
+export async function generateTemplate(prompt: string, mode: 'text' | 'design' = 'text'): Promise<{ subject?: string; body?: string; kind?: 'text' | 'html'; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'generate', prompt, mode } });
   if (error) throw new Error(error.message || 'Request failed');
-  return (data || {}) as { subject?: string; body?: string; error?: string };
+  return (data || {}) as { subject?: string; body?: string; kind?: 'text' | 'html'; error?: string };
+}
+
+// ---- Brand profile (feeds the AI template designer) ----
+export interface Brand { name?: string; logo_url?: string; color?: string; voice?: string; signoff?: string }
+export async function getBrand(): Promise<Brand> {
+  const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'getBrand' } });
+  if (error) return {};
+  return ((data as { brand?: Brand } | null)?.brand) || {};
+}
+export async function saveBrand(b: Brand): Promise<void> {
+  await supabase.functions.invoke('templates', { body: { action: 'saveBrand', ...b } });
 }
 
 // Fetch one attachment's bytes (base64) or hosted URL — for inline images,
