@@ -2,9 +2,10 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 // Direct inbox listing -> EmailItem[] (no chat turn). Mirrors the transform in
 // chat/index.ts `buildInboxCard`: calls Composio GMAIL_FETCH_EMAILS with the
-// caller's server-verified user id and shapes each message into the same card
-// the chat pipeline produces. Identity is verified server-side (the caller's
-// Supabase access token), so a client can never list someone else's mail.
+// caller's server-verified user id, sorts newest-first, and shapes each message
+// into the same card the chat pipeline produces. Identity is verified
+// server-side (the caller's Supabase access token), so a client can never list
+// someone else's mail.
 
 const API_KEY = Deno.env.get("COMPOSIO_API_KEY") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -61,6 +62,16 @@ function stripHtml(s: string): string {
     .trim();
 }
 
+// Epoch ms for sorting — handles ISO strings (the Date header) and numeric
+// epoch-ms strings (Gmail internalDate). Unparseable -> 0 (sorts to the bottom).
+function tsOf(m: Record<string, unknown>): number {
+  const raw = m.messageTimestamp ?? m.internalDate ?? "";
+  if (typeof raw === "number") return raw;
+  const s = String(raw);
+  const n = /^\d+$/.test(s) ? Number(s) : Date.parse(s);
+  return Number.isFinite(n) ? n : 0;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
   if (!API_KEY) return json(req, { items: [], error: "composio_unset" }, 500);
@@ -72,7 +83,7 @@ Deno.serve(async (req: Request) => {
   if (!uid) return json(req, { items: [], error: "unauthorized" }, 401);
 
   const tz = url.searchParams.get("tz") || "UTC";
-  const max = Math.min(Math.max(parseInt(url.searchParams.get("max") ?? "12", 10) || 12, 1), 25);
+  const max = Math.min(Math.max(parseInt(url.searchParams.get("max") ?? "12", 10) || 12, 1), 100);
 
   try {
     const res = await fetch("https://backend.composio.dev/api/v3/tools/execute/GMAIL_FETCH_EMAILS", {
@@ -90,15 +101,17 @@ Deno.serve(async (req: Request) => {
       try { return new Intl.DateTimeFormat("en-US", { timeZone: tz, ...o }).format(d); } catch { return ""; }
     };
     const today = dstr(new Date(), { dateStyle: "short" });
-    const items = (Array.isArray(msgs) ? msgs : []).slice(0, max).map((m) => {
+    // Newest first — Composio's order isn't reliably by date, so sort explicitly.
+    const sorted = (Array.isArray(msgs) ? msgs : []).slice().sort((a, b) => tsOf(b) - tsOf(a));
+    const items = sorted.slice(0, max).map((m) => {
       const sender = String(m.sender ?? "");
       const mt = /^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/.exec(sender);
       const from = mt ? mt[1].trim() : sender;
       const email = mt ? mt[2].trim() : "";
       const labels: string[] = (m.labelIds as string[]) ?? [];
       let time = "";
-      const d = new Date((m.messageTimestamp ?? m.internalDate ?? "") as string);
-      if (!isNaN(d.getTime())) {
+      const d = new Date(tsOf(m));
+      if (tsOf(m) && !isNaN(d.getTime())) {
         time = dstr(d, { dateStyle: "short" }) === today
           ? dstr(d, { hour: "numeric", minute: "2-digit" })
           : dstr(d, { month: "short", day: "numeric" });
