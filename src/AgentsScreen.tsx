@@ -163,6 +163,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [domBusy, setDomBusy] = useState(false);
   const [domErr, setDomErr] = useState('');
   const [domOpen, setDomOpen] = useState<string | null>(null);
+  const [copied, setCopied] = useState('');   // last-copied DNS value, for the "Copied" flash
   const [campDomain, setCampDomain] = useState('');     // '' = send via mailbox; else a verified domain
   const [campFromName, setCampFromName] = useState(''); // display name when sending from a domain
   const [campFromLocal, setCampFromLocal] = useState('news'); // local-part of the From address
@@ -504,7 +505,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
 
   // ---- Sending domains (SES) ----
   const loadDomains = () => listSesDomains().then((d) => { if (mountedRef.current) setSesDomains(d); });
-  const copyText = (s: string) => { try { navigator.clipboard?.writeText(s); tap(); } catch { /* ignore */ } };
+  const copyText = (s: string) => { try { navigator.clipboard?.writeText(s); tap(); setCopied(s); setTimeout(() => { if (mountedRef.current) setCopied(''); }, 1500); } catch { /* ignore */ } };
   const addDomain = async () => {
     const d = domNew.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     if (!d || domBusy) return;
@@ -888,34 +889,43 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     <div className="ag-empty" style={{ marginTop: 12 }}>No domains yet. Add one above to send from your own address.</div>
                   ) : (
                     <div className="ag-dom-list">
-                      {sesDomains.map((d) => (
-                        <div className="ag-dom" key={d.domain}>
-                          <button className="ag-dom-row" onClick={() => { tap(); setDomOpen(domOpen === d.domain ? null : d.domain); }}>
-                            <span className="ag-dom-name">{d.domain}</span>
-                            <span className={`ag-camp-pill is-${d.status === 'verified' ? 'sent' : d.status === 'failed' ? 'failed' : 'sending'}`}>{d.status === 'verified' ? '✓ verified' : d.status === 'failed' ? 'failed' : 'pending'}</span>
-                          </button>
-                          {domOpen === d.domain && (
-                            <div className="ag-dom-body">
-                              {d.status === 'verified'
-                                ? <p className="ag-foot">Verified — pick it under “Send from” when creating a campaign.</p>
-                                : <p className="ag-foot">Add these DNS records at your domain host, then tap Check verification.</p>}
-                              <div className="ag-dns">
-                                {(d.records || []).map((r, i) => (
-                                  <div className="ag-dns-rec" key={i}>
-                                    <div className="ag-dns-top"><span className="ag-dns-type">{r.type}</span>{r.note && <span className="ag-dns-note">{r.note}</span>}</div>
-                                    <div className="ag-dns-field"><label>Name / Host</label><div className="ag-dns-val"><code>{r.name}</code><button onClick={() => copyText(r.name)}>Copy</button></div></div>
-                                    <div className="ag-dns-field"><label>Value</label><div className="ag-dns-val"><code>{r.value}</code><button onClick={() => copyText(r.value)}>Copy</button></div></div>
-                                  </div>
-                                ))}
+                      {sesDomains.map((d) => {
+                        const open = domOpen === d.domain;
+                        const badge = d.status === 'verified' ? 'ok' : d.status === 'failed' ? 'bad' : 'wait';
+                        return (
+                          <div className={`ag-dom${open ? ' open' : ''}`} key={d.domain}>
+                            <button className="ag-dom-row" onClick={() => { tap(); setDomOpen(open ? null : d.domain); }}>
+                              <span className="ag-dom-ic">🌐</span>
+                              <span className="ag-dom-info">
+                                <span className="ag-dom-name">{d.domain}</span>
+                                <span className="ag-dom-sub">{d.status === 'verified' ? 'Sending enabled' : d.status === 'failed' ? 'Verification failed' : 'Awaiting DNS records'}</span>
+                              </span>
+                              <span className={`ag-badge is-${badge}`}><i className="ag-dot" />{d.status === 'verified' ? 'Verified' : d.status === 'failed' ? 'Failed' : 'Pending'}</span>
+                              <span className="ag-dom-chev">{open ? '▾' : '▸'}</span>
+                            </button>
+                            {open && (
+                              <div className="ag-dom-body">
+                                {d.status === 'verified'
+                                  ? <div className="ag-dom-ok">✓ Verified — pick this domain under “Send from” when creating a campaign.</div>
+                                  : <p className="ag-foot ag-dom-hint">Add these records at your DNS host, then tap Check. DNS can take a few minutes to a few hours to propagate.</p>}
+                                <div className="ag-dns">
+                                  {(d.records || []).map((r, i) => (
+                                    <div className="ag-dns-rec" key={i}>
+                                      <div className="ag-dns-top"><span className="ag-dns-type">{r.type}</span>{r.note && <span className="ag-dns-note">{r.note}</span>}</div>
+                                      <div className="ag-dns-field"><label>Name / Host</label><div className="ag-dns-val"><code>{r.name}</code><button className={copied === r.name ? 'ok' : ''} onClick={() => copyText(r.name)}>{copied === r.name ? 'Copied ✓' : 'Copy'}</button></div></div>
+                                      <div className="ag-dns-field"><label>Value</label><div className="ag-dns-val"><code>{r.value}</code><button className={copied === r.value ? 'ok' : ''} onClick={() => copyText(r.value)}>{copied === r.value ? 'Copied ✓' : 'Copy'}</button></div></div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="ag-dom-actions">
+                                  {d.status !== 'verified' && <button className="ag-send-btn" onClick={() => checkDomain(d.domain)}>Check verification</button>}
+                                  <button className="ag-send-btn ghost" onClick={() => removeDomain(d.domain)}>Remove</button>
+                                </div>
                               </div>
-                              <div className="ag-dom-actions">
-                                {d.status !== 'verified' && <button className="ag-send-btn" onClick={() => checkDomain(d.domain)}>Check verification</button>}
-                                <button className="ag-send-btn ghost" onClick={() => removeDomain(d.domain)}>Remove</button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

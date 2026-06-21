@@ -235,10 +235,22 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-dom-add .ag-field { flex: 1; }
 .ag-dom-add .ag-send-btn { width: auto; flex-shrink: 0; padding: 12px 16px; }
 .ag-dom-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-.ag-dom { background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; overflow: hidden; }
-.ag-dom-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 12px 13px; background: none; border: none; font: inherit; text-align: left; cursor: pointer; }
+.ag-dom { background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; overflow: hidden; transition: border-color .15s; }
+.ag-dom.open { border-color: rgba(255, 255, 255, 0.16); }
+.ag-dom-row { display: flex; align-items: center; gap: 11px; width: 100%; padding: 12px 13px; background: none; border: none; font: inherit; text-align: left; cursor: pointer; }
+.ag-dom-ic { flex-shrink: 0; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 16px; background: rgba(255, 255, 255, 0.06); border-radius: 9px; }
+.ag-dom-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .ag-dom-name { color: #fff; font-weight: 700; font-size: var(--fs-body-s); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ag-dom-body { padding: 0 13px 13px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.ag-dom-sub { color: #9298a2; font-size: var(--fs-caption); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-badge { flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-label); font-weight: 700; padding: 3px 9px 3px 8px; border-radius: 999px; color: #9298a2; background: rgba(255, 255, 255, 0.08); }
+.ag-badge .ag-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ag-badge.is-ok { color: #34d399; background: rgba(52, 211, 153, 0.14); }
+.ag-badge.is-wait { color: #fbbf24; background: rgba(251, 191, 36, 0.14); }
+.ag-badge.is-bad { color: #ff6b6b; background: rgba(255, 107, 107, 0.14); }
+.ag-dom-chev { flex-shrink: 0; color: var(--text-faint); font-size: var(--fs-footnote); width: 12px; text-align: center; }
+.ag-dom-body { padding: 4px 13px 13px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.ag-dom-hint { text-align: left; margin: 10px 0 0; }
+.ag-dom-ok { color: #34d399; background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.2); border-radius: 10px; padding: 10px 12px; font-size: var(--fs-footnote); line-height: 1.45; margin-top: 10px; }
 .ag-dom-actions { display: flex; gap: 8px; margin-top: 10px; }
 .ag-dom-actions .ag-send-btn { width: auto; flex: 1; padding: 11px; }
 .ag-dns { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
@@ -252,6 +264,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-dns-val code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; color: #d7dbe2; font-family: ui-monospace, Menlo, monospace; font-size: var(--fs-caption); background: rgba(0, 0, 0, 0.25); padding: 7px 9px; border-radius: 7px; }
 .ag-dns-val button { flex-shrink: 0; background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text); font: inherit; font-size: var(--fs-label); font-weight: 700; padding: 7px 11px; border-radius: 8px; cursor: pointer; }
 .ag-dns-val button:active { filter: brightness(1.2); }
+.ag-dns-val button.ok { color: #34d399; border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.12); }
 
 /* AI "describe -> generate" box (templates) */
 .ag-ai { display: flex; flex-direction: column; gap: 8px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: 14px; padding: 11px 12px; }
