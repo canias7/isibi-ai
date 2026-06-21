@@ -266,6 +266,10 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-dns-val button:active { filter: brightness(1.2); }
 .ag-dns-val button.ok { color: #34d399; border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.12); }
 
+/* SMS: per-user Twilio "connected" row */
+.ag-sms-conn { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: var(--fs-footnote); font-weight: 600; color: #34d399; }
+.ag-sms-conn button { background: none; border: none; color: var(--brand); font: inherit; font-weight: 700; cursor: pointer; padding: 0; }
+
 /* Send-test composer (verified domain) */
 .ag-dom-test { display: flex; gap: 8px; align-items: stretch; margin-top: 10px; }
 .ag-dom-test .ag-field { flex: 1; }
