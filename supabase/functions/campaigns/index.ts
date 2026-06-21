@@ -274,6 +274,19 @@ Deno.serve(async (req: Request) => {
       return json(req, { campaigns: Array.isArray(campaigns) ? campaigns : [] });
     }
 
+    if (action === "suppressions") {
+      const r = await fetch(`${SB_URL}/rest/v1/email_suppressions?user_id=eq.${uid}&select=email,reason,created_at&order=created_at.desc&limit=500`, { headers: sbHeaders });
+      const s = await r.json().catch(() => []);
+      return json(req, { suppressions: Array.isArray(s) ? s : [] });
+    }
+
+    if (action === "unsuppress") {
+      const email = String(body?.email || "").trim().toLowerCase();
+      if (!EMAIL_RE.test(email)) return json(req, { error: "bad_email" });
+      await fetch(`${SB_URL}/rest/v1/email_suppressions?user_id=eq.${uid}&email=eq.${encodeURIComponent(email)}`, { method: "DELETE", headers: sbHeaders });
+      return json(req, { ok: true });
+    }
+
     return json(req, { error: "unknown_action" }, 400);
   } catch (e) {
     console.error("campaigns error:", action, String((e as Error)?.message || e));

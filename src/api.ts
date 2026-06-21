@@ -183,6 +183,18 @@ export async function sendCampaignBatch(id: string): Promise<{ sent: number; fai
   return (data || {}) as { sent: number; failed: number; remaining: number; done: boolean; error?: string };
 }
 
+// ---- Suppressed contacts (unsubscribes, bounces, complaints — skipped on every send) ----
+export interface Suppression { email: string; reason: string; created_at?: string }
+export async function listSuppressions(): Promise<Suppression[]> {
+  const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'suppressions' } });
+  if (error) return [];
+  const s = (data as { suppressions?: Suppression[] } | null)?.suppressions;
+  return Array.isArray(s) ? s : [];
+}
+export async function removeSuppression(email: string): Promise<void> {
+  await supabase.functions.invoke('campaigns', { body: { action: 'unsuppress', email } });
+}
+
 // ---- Custom sending domains (Amazon SES, via the `ses` fn) ----
 // Verify your own domain once (add the DKIM CNAMEs to DNS), then campaigns can be
 // sent From news@yourdomain.com instead of through a connected mailbox.
