@@ -24,6 +24,21 @@ const AWS_REGION = Deno.env.get("AWS_SES_REGION") ?? "us-east-1";
 const sbHeaders = { apikey: SB_SERVICE, authorization: `Bearer ${SB_SERVICE}`, "content-type": "application/json" };
 const aws = new AwsClient({ accessKeyId: AWS_ID, secretAccessKey: AWS_SECRET, region: AWS_REGION, service: "ses" });
 const SES_BASE = `https://email.${AWS_REGION}.amazonaws.com`;
+const CONFIG_SET = "sendra";   // SES configuration set (created by the `ses` fn) — enables bounce/complaint tracking + tags
+let configReady = false;
+async function ensureConfigSet(): Promise<boolean> {
+  if (configReady) return true;
+  try {
+    const get = await aws.fetch(`${SES_BASE}/v2/email/configuration-sets/${CONFIG_SET}`, { method: "GET" });
+    if (get.ok) { configReady = true; return true; }
+    const mk = await aws.fetch(`${SES_BASE}/v2/email/configuration-sets`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ConfigurationSetName: CONFIG_SET }),
+    });
+    if (mk.ok) { configReady = true; return true; }
+    if (/AlreadyExists|already exists/i.test(await mk.text())) { configReady = true; return true; }
+  } catch { /* sends just go out without the config set / tags */ }
+  return false;
+}
 
 const ALLOWED_ORIGINS = new Set([
   "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
@@ -101,21 +116,31 @@ async function sendOne(uid: string, app: string, to: string, subject: string, ht
   }
 }
 
-// Send one email from a verified SES domain (custom-domain campaigns).
-async function sendOneSes(fromEmail: string, fromName: string | null, to: string, subject: string, html: string): Promise<{ ok: boolean; error?: string }> {
+// Send one email from a verified SES domain (custom-domain campaigns). Adds the
+// one-click List-Unsubscribe headers (Gmail/Yahoo bulk requirement); when the
+// `sendra` config set exists, tags the message (uid/campaign) and routes it through
+// the set so bounces/complaints flow back to the ses-events webhook.
+async function sendOneSes(p: { fromEmail: string; fromName: string | null; to: string; subject: string; html: string; unsub: string; uid: string; campaignId: string; withConfig: boolean }): Promise<{ ok: boolean; error?: string }> {
   try {
-    const From = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
+    const From = p.fromName ? `${p.fromName} <${p.fromEmail}>` : p.fromEmail;
+    const payload: Record<string, unknown> = {
+      FromEmailAddress: From,
+      Destination: { ToAddresses: [p.to] },
+      Content: { Simple: {
+        Subject: { Data: p.subject, Charset: "UTF-8" },
+        Body: { Html: { Data: p.html, Charset: "UTF-8" } },
+        Headers: [
+          { Name: "List-Unsubscribe", Value: `<${p.unsub}>` },
+          { Name: "List-Unsubscribe-Post", Value: "List-Unsubscribe=One-Click" },
+        ],
+      } },
+    };
+    if (p.withConfig) {
+      payload.ConfigurationSetName = CONFIG_SET;
+      payload.EmailTags = [{ Name: "uid", Value: p.uid }, { Name: "campaign_id", Value: p.campaignId }];
+    }
     const res = await aws.fetch(`${SES_BASE}/v2/email/outbound-emails`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        FromEmailAddress: From,
-        Destination: { ToAddresses: [to] },
-        Content: { Simple: {
-          Subject: { Data: subject, Charset: "UTF-8" },
-          Body: { Html: { Data: html, Charset: "UTF-8" } },
-        } },
-      }),
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload),
     });
     if (res.ok) return { ok: true };
     const t = await res.text();
@@ -208,14 +233,16 @@ Deno.serve(async (req: Request) => {
       const qRes = await fetch(`${SB_URL}/rest/v1/campaign_recipients?campaign_id=eq.${id}&status=eq.queued&select=id,email,name&order=id.asc&limit=${limit}`, { headers: sbHeaders });
       const batch = (await qRes.json().catch(() => [])) as { id: string; email: string; name: string | null }[];
 
+      const isSes = camp.send_via === "ses" && !!camp.from_email;
+      const withConfig = isSes ? await ensureConfigSet() : false;
       let sent = 0, failed = 0;
       for (const r of batch) {
         const who = r.name || "there";
         const unsub = await unsubUrl(uid, r.email);
         const personalized = String(camp.body).replace(/\{\{\s*name\s*\}\}/g, esc(who));
         const html = `${personalized}<br><br><hr style="border:none;border-top:1px solid #eee"><p style="font-size:12px;color:#888;font-family:system-ui,sans-serif">You're receiving this because you're on a list managed in Sendra. <a href="${unsub}" style="color:#888">Unsubscribe</a>.</p>`;
-        const res = camp.send_via === "ses" && camp.from_email
-          ? await sendOneSes(camp.from_email, camp.from_name, r.email, camp.subject, html)
+        const res = isSes
+          ? await sendOneSes({ fromEmail: camp.from_email, fromName: camp.from_name, to: r.email, subject: camp.subject, html, unsub, uid, campaignId: id, withConfig })
           : await sendOne(uid, camp.app, r.email, camp.subject, html);
         await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, {
           method: "PATCH", headers: sbHeaders,

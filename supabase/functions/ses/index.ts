@@ -25,7 +25,11 @@ const AWS_REGION = Deno.env.get("AWS_SES_REGION") ?? "us-east-1";
 
 const sbHeaders = { apikey: SB_SERVICE, authorization: `Bearer ${SB_SERVICE}`, "content-type": "application/json" };
 const aws = new AwsClient({ accessKeyId: AWS_ID, secretAccessKey: AWS_SECRET, region: AWS_REGION, service: "ses" });
+const awsSns = new AwsClient({ accessKeyId: AWS_ID, secretAccessKey: AWS_SECRET, region: AWS_REGION, service: "sns" });
 const SES_BASE = `https://email.${AWS_REGION}.amazonaws.com`;
+const CONFIG_SET = "sendra";                 // SES configuration set campaigns send through
+const TOPIC_NAME = "sendra-ses-events";      // SNS topic SES publishes bounce/complaint events to
+const EVENTS_URL = `${SB_URL}/functions/v1/ses-events`;
 
 const ALLOWED_ORIGINS = new Set([
   "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
@@ -86,6 +90,45 @@ async function ses(method: string, path: string, body?: unknown): Promise<{ ok: 
   return { ok: res.ok, status: res.status, body: j };
 }
 
+// --- Bounce/complaint tracking: SES configuration set -> SNS topic -> ses-events
+// webhook. Best-effort + idempotent. The config set needs only SES perms; the SNS
+// wiring needs the SNS perms on the IAM key. Cached per instance once fully wired.
+let trackingDone = false;
+async function snsCall(action: string, params: Record<string, string>): Promise<{ ok: boolean; text: string }> {
+  const body = new URLSearchParams({ Action: action, Version: "2010-03-31", ...params });
+  const res = await awsSns.fetch(`https://sns.${AWS_REGION}.amazonaws.com/`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+  return { ok: res.ok, text: await res.text() };
+}
+async function ensureTracking(): Promise<void> {
+  if (trackingDone) return;
+  // 1. Configuration set (SES-only — always safe to attempt).
+  const mk = await ses("POST", "/v2/email/configuration-sets", { ConfigurationSetName: CONFIG_SET });
+  if (!mk.ok && !/AlreadyExists|already exists/i.test(JSON.stringify(mk.body))) return;
+  // 2. SNS topic (idempotent; returns the existing ARN). Needs SNS perms.
+  const t = await snsCall("CreateTopic", { Name: TOPIC_NAME });
+  const arn = (t.text.match(/<TopicArn>([^<]+)<\/TopicArn>/) || [])[1];
+  if (!arn) return; // SNS perms not added yet — try again next time
+  const accountId = arn.split(":")[4] || "";
+  // 3. Allow SES to publish to the topic.
+  const policy = JSON.stringify({
+    Version: "2012-10-17",
+    Statement: [{ Effect: "Allow", Principal: { Service: "ses.amazonaws.com" }, Action: "sns:Publish", Resource: arn, Condition: { StringEquals: { "aws:SourceAccount": accountId } } }],
+  });
+  await snsCall("SetTopicAttributes", { TopicArn: arn, AttributeName: "Policy", AttributeValue: policy });
+  // 4. Subscribe our webhook (idempotent; SNS sends a confirmation the webhook auto-accepts).
+  await snsCall("Subscribe", { TopicArn: arn, Protocol: "https", Endpoint: EVENTS_URL, ReturnSubscriptionArn: "true" });
+  // 5. Route BOUNCE + COMPLAINT from the config set to the topic.
+  const ed = await ses("POST", `/v2/email/configuration-sets/${CONFIG_SET}/event-destinations`, {
+    EventDestinationName: "sendra-bounces",
+    EventDestination: { Enabled: true, MatchingEventTypes: ["BOUNCE", "COMPLAINT"], SnsDestination: { TopicArn: arn } },
+  });
+  if (ed.ok || /AlreadyExists|already exists/i.test(JSON.stringify(ed.body))) trackingDone = true;
+}
+
 // Persist a domain row (upsert on user_id+domain).
 async function upsertDomain(uid: string, domain: string, status: string, records: Rec[], verified: boolean) {
   const row: Record<string, unknown> = {
@@ -144,6 +187,7 @@ Deno.serve(async (req: Request) => {
       const records = buildRecords(domain, tokens);
       const status = verified ? "verified" : "pending";
       await upsertDomain(uid, domain, status, records, verified);
+      await ensureTracking().catch(() => {});  // wire bounce/complaint events (best-effort)
       return json(req, { domain, status, records });
     }
 
@@ -157,6 +201,7 @@ Deno.serve(async (req: Request) => {
       const records = buildRecords(domain, tokens);
       const status = verified ? "verified" : (get.body?.VerificationStatus === "FAILED" ? "failed" : "pending");
       await upsertDomain(uid, domain, status, records, verified);
+      await ensureTracking().catch(() => {});  // wire bounce/complaint events once perms exist (best-effort)
       return json(req, { domain, status, verified, records });
     }
 
@@ -187,6 +232,11 @@ Deno.serve(async (req: Request) => {
       });
       if (!r.ok) return json(req, { error: "send_failed", detail: String(r.body?.message || r.status).slice(0, 200) });
       return json(req, { ok: true });
+    }
+
+    if (action === "setup") {
+      await ensureTracking().catch(() => {});
+      return json(req, { ok: trackingDone });
     }
 
     return json(req, { error: "unknown_action" }, 400);
