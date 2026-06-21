@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, generateTemplate, chatTemplate, uploadEmailImage, getBrand, saveBrand, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, generateTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -204,16 +204,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [chatView, setChatView] = useState<'chat' | 'preview'>('chat');
   const [chatErr, setChatErr] = useState('');
   const [chatHistory, setChatHistory] = useState<{ subject: string; body: string }[]>([]); // email state before each turn (Undo)
-  // Brand profile (feeds the AI designer)
-  const [brandEdit, setBrandEdit] = useState(false);
-  const [bName, setBName] = useState('');
-  const [bLogo, setBLogo] = useState('');
-  const [bColor, setBColor] = useState('#FF7A45');
-  const [bVoice, setBVoice] = useState('');
-  const [bSignoff, setBSignoff] = useState('');
-  const [bAddress, setBAddress] = useState('');
-  const [bBusy, setBBusy] = useState(false);
-  const [bHas, setBHas] = useState(false); // a brand profile exists
 
   const tokensRef = useRef<(string | undefined)[]>([undefined]);
   const pullStart = useRef<number | null>(null);
@@ -366,11 +356,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (sendraTab === 'campaigns') listSesDomains().then((d) => { if (mountedRef.current) setSesDomains(d); });
     if (sendraTab === 'texts') smsStatus().then((s) => { if (mountedRef.current) { setSmsReady(s.ready); setSmsNumber(s.number); } });
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
-    if (sendraTab === 'templates') getBrand().then((br) => {
-      if (!mountedRef.current) return;
-      setBName(br.name || ''); setBLogo(br.logo_url || ''); setBColor(br.color || '#FF7A45'); setBVoice(br.voice || ''); setBSignoff(br.signoff || ''); setBAddress(br.address || '');
-      setBHas(!!(br.name || br.logo_url || br.voice || br.signoff || br.address));
-    });
   }, [agent, commsApp, sendraTab, campNew]);
 
   // Inbox opened straight from the Sendra home (top-level). Lands on the mail
@@ -697,26 +682,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (!mountedRef.current) return;
     setTplEdit(null);
     listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
-  };
-
-  // ---- Brand profile ----
-  const uploadLogo = () => pickImage(async (b64, ct) => {
-    if (!b64) return;
-    setBBusy(true);
-    try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setBLogo(url); }
-    catch { /* ignore */ }
-    finally { if (mountedRef.current) setBBusy(false); }
-  });
-  const saveBrandProfile = async () => {
-    if (bBusy) return;
-    tap(); setBBusy(true);
-    try {
-      await saveBrand({ name: bName.trim(), logo_url: bLogo, color: bColor, voice: bVoice.trim(), signoff: bSignoff.trim(), address: bAddress.trim() });
-      if (!mountedRef.current) return;
-      setBHas(!!(bName.trim() || bLogo || bVoice.trim() || bSignoff.trim() || bAddress.trim()));
-      setBrandEdit(false);
-    } catch { /* ignore */ }
-    finally { if (mountedRef.current) setBBusy(false); }
   };
 
   const inMailInbox = !!commsApp && commsApp !== 'telegram' && emailTab === 'inbox' && !reading;
@@ -1048,21 +1013,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 </>
               )
             ) : sendraTab === 'templates' ? (
-              brandEdit ? (
-                <div className="ag-compose">
-                  <div className="ag-brand-logo">
-                    {bLogo ? <img src={bLogo} alt="Logo" /> : <div className="ag-brand-logo-ph">No logo yet</div>}
-                    <button className="ag-send-btn ghost" disabled={bBusy} onClick={uploadLogo}>{bBusy ? 'Uploading…' : bLogo ? 'Replace logo' : 'Upload logo'}</button>
-                  </div>
-                  <input className="ag-field" placeholder="Business name" value={bName} onChange={(e) => setBName(e.target.value)} />
-                  <input className="ag-field" placeholder="Voice — e.g. warm & casual, polished & pro" value={bVoice} onChange={(e) => setBVoice(e.target.value)} />
-                  <input className="ag-field" placeholder="Sign-off — e.g. — Cristian, Ania’s Capital" value={bSignoff} onChange={(e) => setBSignoff(e.target.value)} />
-                  <input className="ag-field" placeholder="Footer address — e.g. 1124 Robinwood Rd, Gastonia NC" value={bAddress} onChange={(e) => setBAddress(e.target.value)} />
-                  <button className="ag-send-btn" disabled={bBusy} onClick={saveBrandProfile}>{bBusy ? 'Saving…' : 'Save brand'}</button>
-                  <button className="ag-send-btn ghost" disabled={bBusy} onClick={() => { tap(); setBrandEdit(false); }}>Cancel</button>
-                  <p className="ag-foot">The AI designer uses this on every generated email — logo, voice and sign-off.</p>
-                </div>
-              ) : tplChoose ? (
+              tplChoose ? (
                 <div className="ag-choose">
                   <button className="ag-choice" onClick={startAI}>
                     <span className="ag-choice-ic">✨</span>
@@ -1184,14 +1135,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 </div>
               ) : (
                 <>
-                  <button className="ag-brand-row" onClick={() => { tap(); setBrandEdit(true); }}>
-                    <span className="ag-brand-row-ic" aria-hidden="true">🎨</span>
-                    <span className="ag-brand-row-main">
-                      <span className="ag-brand-row-t">Brand voice</span>
-                      <span className="ag-brand-row-s">{bHas ? (bName || 'Logo & tone set') : 'Set your logo, voice & sign-off'}</span>
-                    </span>
-                    <span className="ag-chev" aria-hidden="true">›</span>
-                  </button>
                   <button className="ag-send-btn" onClick={openChoice}>+ New template</button>
                   {tplList.length === 0 ? (
                     <div className="ag-empty" style={{ marginTop: 12 }}>No templates yet. Describe the email you want and let Sendra write it — then reuse it in any campaign.</div>
