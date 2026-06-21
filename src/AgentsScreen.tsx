@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, connectSms, disconnectSms, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, generateTemplate, chatTemplate, uploadEmailImage, getBrand, saveBrand, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, generateTemplate, chatTemplate, uploadEmailImage, getBrand, saveBrand, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -145,14 +145,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [smsBody, setSmsBody] = useState('');
   const [smsState, setSmsState] = useState<SendState>('idle');
   const [smsErr, setSmsErr] = useState('');
-  // Per-user Twilio connection (SMS) — each user brings their own
+  // SMS: platform-provisioned Twilio number (per user, bought in-app)
   const [smsReady, setSmsReady] = useState<boolean | null>(null); // null = loading
-  const [smsConnecting, setSmsConnecting] = useState(false);      // showing the connect form
-  const [twSid, setTwSid] = useState('');
-  const [twToken, setTwToken] = useState('');
-  const [twFrom, setTwFrom] = useState('');
-  const [twBusy, setTwBusy] = useState(false);
-  const [twErr, setTwErr] = useState('');
+  const [smsNumber, setSmsNumber] = useState<string | null>(null);
+  const [numArea, setNumArea] = useState('');
+  const [numResults, setNumResults] = useState<SmsNumber[]>([]);
+  const [numBusy, setNumBusy] = useState(false);   // searching
+  const [numErr, setNumErr] = useState('');
+  const [buyingNum, setBuyingNum] = useState('');  // phoneNumber being purchased
   // Email campaign builder
   const [campNew, setCampNew] = useState(false);
   const [campApp, setCampApp] = useState<'gmail' | 'outlook'>('gmail');
@@ -364,7 +364,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (agent !== 'email' || commsApp !== null) return;
     if (sendraTab === 'campaigns' && !campNew) listCampaigns().then((c) => { if (mountedRef.current) setCampList(c); });
     if (sendraTab === 'campaigns') listSesDomains().then((d) => { if (mountedRef.current) setSesDomains(d); });
-    if (sendraTab === 'texts') smsStatus().then((r) => { if (mountedRef.current) setSmsReady(r); });
+    if (sendraTab === 'texts') smsStatus().then((s) => { if (mountedRef.current) { setSmsReady(s.ready); setSmsNumber(s.number); } });
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
     if (sendraTab === 'templates') getBrand().then((br) => {
       if (!mountedRef.current) return;
@@ -452,29 +452,37 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (/send_failed/i.test(code)) return 'Couldn’t send — check the number and try again.';
     return 'Couldn’t send — please try again.';
   };
-  const connectTwilio = async () => {
-    if (twBusy || !twSid.trim() || !twToken.trim() || !twFrom.trim()) return;
-    tap(); setTwBusy(true); setTwErr('');
+  const doSearchNumbers = async () => {
+    if (numBusy) return;
+    tap(); setNumBusy(true); setNumErr(''); setNumResults([]);
     try {
-      const r = await connectSms({ account_sid: twSid.trim(), auth_token: twToken.trim(), from: twFrom.trim() });
+      const r = await searchSmsNumbers(numArea.trim() || undefined);
+      if (!mountedRef.current) return;
+      if (r.error) setNumErr(r.error === 'sms_unset' ? 'SMS isn’t set up on this workspace yet.' : 'Couldn’t search numbers — try again.');
+      else if (!r.numbers.length) setNumErr('No numbers found — try a different area code, or leave it blank.');
+      else setNumResults(r.numbers);
+    } catch { if (mountedRef.current) setNumErr('Something went wrong — try again.'); }
+    finally { if (mountedRef.current) setNumBusy(false); }
+  };
+  const doBuyNumber = async (phone: string) => {
+    if (buyingNum) return;
+    tap(); setBuyingNum(phone); setNumErr('');
+    try {
+      const r = await buySmsNumber(phone);
       if (!mountedRef.current) return;
       if (r.error) {
-        setTwErr(
-          r.error === 'bad_creds' ? 'Twilio rejected those credentials — double-check the SID and token.'
-            : r.error === 'bad_sid' ? 'That Account SID doesn’t look right (it starts with “AC”).'
-              : r.error === 'missing_sender' ? 'Add your Twilio number.'
-                : r.error === 'missing_token' ? 'Add your Auth Token.'
-                  : 'Couldn’t connect — try again.');
-      } else {
-        setSmsReady(true); setSmsConnecting(false); setTwSid(''); setTwToken(''); setTwFrom('');
-      }
-    } catch { if (mountedRef.current) setTwErr('Something went wrong — try again.'); }
-    finally { if (mountedRef.current) setTwBusy(false); }
+        setNumErr(
+          r.error === 'already_provisioned' ? 'You already have a number — release it first to get a new one.'
+            : r.error === 'sms_unset' ? 'SMS isn’t set up on this workspace yet.'
+              : 'Couldn’t get that number — it may have just been taken. Try another.');
+      } else { setSmsReady(true); setSmsNumber(r.number || phone); setNumResults([]); setNumArea(''); }
+    } catch { if (mountedRef.current) setNumErr('Something went wrong — try again.'); }
+    finally { if (mountedRef.current) setBuyingNum(''); }
   };
-  const disconnectTwilio = async () => {
+  const doReleaseNumber = async () => {
     tap();
-    try { await disconnectSms(); } catch { /* ignore */ }
-    if (mountedRef.current) { setSmsReady(false); setSmsConnecting(false); }
+    try { await releaseSmsNumber(); } catch { /* ignore */ }
+    if (mountedRef.current) { setSmsReady(false); setSmsNumber(null); }
   };
   const validSmsTo = /^\+?[\d\s().-]{7,}$/.test(smsTo.trim());
   const doSendSms = () => {
@@ -1216,17 +1224,28 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             ) : sendraTab === 'texts' ? (
               smsReady === null ? (
                 <div className="ag-empty" style={{ marginTop: 12 }}>Loading…</div>
-              ) : (!smsReady || smsConnecting) ? (
+              ) : !smsReady ? (
                 <div className="ag-compose">
-                  <p className="ag-foot" style={{ textAlign: 'left', margin: '0 0 2px' }}>Connect your own Twilio account to send texts from your number. Grab these from the Twilio Console (console.twilio.com).</p>
-                  <input className="ag-field" autoCapitalize="none" autoCorrect="off" placeholder="Account SID (AC…)" value={twSid} onChange={(e) => { setTwSid(e.target.value); if (twErr) setTwErr(''); }} />
-                  <input className="ag-field" type="password" autoCapitalize="none" autoCorrect="off" placeholder="Auth Token" value={twToken} onChange={(e) => { setTwToken(e.target.value); if (twErr) setTwErr(''); }} />
-                  <input className="ag-field" type="tel" inputMode="tel" placeholder="From number (+1 555 123 4567)" value={twFrom} onChange={(e) => { setTwFrom(e.target.value); if (twErr) setTwErr(''); }} />
-                  {twErr && <div className="ag-send-err">{twErr}</div>}
-                  <button className="ag-send-btn" disabled={twBusy || !twSid.trim() || !twToken.trim() || !twFrom.trim()} onClick={connectTwilio}>{twBusy ? 'Connecting…' : 'Connect Twilio'}</button>
-                  {smsReady && <button className="ag-send-btn ghost" onClick={() => { tap(); setSmsConnecting(false); }}>Cancel</button>}
-                  {smsReady && <button className="ag-send-btn ghost" onClick={disconnectTwilio}>Disconnect</button>}
-                  <p className="ag-foot">Your Auth Token is stored securely server-side and never shown again.</p>
+                  <p className="ag-foot" style={{ textAlign: 'left', margin: '0 0 2px' }}>Get a phone number to send texts from. Pick an area code (optional) and search.</p>
+                  <div className="ag-num-search">
+                    <input className="ag-field" type="tel" inputMode="numeric" maxLength={5} placeholder="Area code (e.g. 415)" value={numArea} onChange={(e) => { setNumArea(e.target.value.replace(/\D/g, '')); if (numErr) setNumErr(''); }} />
+                    <button className="ag-send-btn" disabled={numBusy} onClick={doSearchNumbers}>{numBusy ? 'Searching…' : 'Search'}</button>
+                  </div>
+                  {numErr && <div className="ag-send-err">{numErr}</div>}
+                  {numResults.length > 0 && (
+                    <div className="ag-num-list">
+                      {numResults.map((n) => (
+                        <div className="ag-num" key={n.phoneNumber}>
+                          <div className="ag-num-info">
+                            <span className="ag-num-tel">{n.phoneNumber}</span>
+                            <span className="ag-num-loc">{[n.locality, n.region].filter(Boolean).join(', ')}</span>
+                          </div>
+                          <button className="ag-num-get" disabled={!!buyingNum} onClick={() => doBuyNumber(n.phoneNumber)}>{buyingNum === n.phoneNumber ? 'Getting…' : 'Get'}</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="ag-foot">Your number is provisioned instantly. Sending to any US number needs carrier registration (10DLC) — coming next.</p>
                 </div>
               ) : smsState === 'sent' ? (
                 <div className="ag-sent">
@@ -1240,7 +1259,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 </div>
               ) : (
                 <div className="ag-compose">
-                  <div className="ag-sms-conn"><span>✓ Twilio connected</span><button onClick={() => { tap(); setSmsConnecting(true); }}>Change</button></div>
+                  <div className="ag-sms-conn"><span>✓ {smsNumber}</span><button onClick={doReleaseNumber}>Release</button></div>
                   <input
                     className="ag-field" type="tel" inputMode="tel" autoCapitalize="none" autoCorrect="off"
                     placeholder="To (+1 555 123 4567)" value={smsTo}
@@ -1254,7 +1273,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   <button className="ag-send-btn" onClick={doSendSms} disabled={!validSmsTo || !smsBody.trim() || smsState === 'sending'}>
                     {smsState === 'sending' ? 'Sending…' : 'Send text'}
                   </button>
-                  <p className="ag-foot">Texts send from your connected Twilio number. Standard SMS rates apply.</p>
+                  <p className="ag-foot">Texts send from {smsNumber}. Standard SMS rates apply.</p>
                 </div>
               )
             ) : (

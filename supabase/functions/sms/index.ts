@@ -1,26 +1,30 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// SMS — per-user Twilio. Each user connects their OWN Twilio account + number
-// (like verifying their own email domain); credentials live in sms_connections
-// (RLS on, service-role only — the auth token never goes to the client). Identity
-// is server-verified (Supabase token). Every send is logged + lightly rate-limited.
+// SMS — platform-provisioned Twilio (ISV / subaccount model). ONE master Twilio
+// account (server secret) provisions a number per user IN-APP: the app creates a
+// Twilio subaccount for the user, buys a number into it, and sends from it — users
+// never touch the Twilio console. Per-user subaccount creds live in sms_connections
+// (RLS on, service-role only). 10DLC registration is a later stage.
 //
 // Actions (POST { action, ... }, via supabase.functions.invoke):
-//   status                                            -> { ready, from? }
-//   connect { account_sid, auth_token, from?, messaging_service_sid? } -> { ok } | { error }
-//   disconnect                                        -> { ok }
-//   send  { to, body }                                -> { ok, sid, remaining } | { error }
+//   status                                 -> { ready, number? }
+//   searchNumbers { areaCode?, country? }  -> { numbers:[{ phoneNumber, locality, region }] }
+//   buyNumber { phoneNumber }              -> { ok, number } | { error }
+//   release                                -> { ok }
+//   send { to, body }                      -> { ok, sid, remaining } | { error }
 //
-// App-level outcomes return HTTP 200 { error } — supabase-js hides the body of
-// non-2xx responses.
+// App-level outcomes return HTTP 200 { error } — supabase-js hides non-2xx bodies.
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SB_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") || "";
+const MASTER_SID = Deno.env.get("TWILIO_MASTER_SID") || "";
+const MASTER_TOKEN = Deno.env.get("TWILIO_MASTER_TOKEN") || "";
 const DAILY_LIMIT = Math.max(1, Number(Deno.env.get("SMS_DAILY_LIMIT") || "200"));
 const sbHeaders = { apikey: SB_SERVICE, authorization: `Bearer ${SB_SERVICE}`, "content-type": "application/json" };
+const TW = "https://api.twilio.com/2010-04-01";
+const masterReady = () => !!(MASTER_SID && MASTER_TOKEN);
 
-// ---- CORS ----
 const ALLOWED_ORIGINS = new Set([
   "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
   "http://localhost:5173", "http://localhost:4173",
@@ -50,55 +54,34 @@ async function verifyUser(req: Request): Promise<string | null> {
   }
 }
 
-// E.164: a leading + and 8–15 digits. We strip spaces/dashes/parens first.
 function toE164(raw: unknown): string | null {
   const cleaned = String(raw ?? "").replace(/[^\d+]/g, "");
   return /^\+\d{8,15}$/.test(cleaned) ? cleaned : null;
 }
 
-type Conn = { account_sid: string; auth_token: string; from_number?: string | null; messaging_service_sid?: string | null };
+// One Twilio REST call (Basic auth). `form` present => POST/DELETE body; GET otherwise.
+async function tw(authSid: string, authToken: string, method: string, path: string, form?: URLSearchParams): Promise<{ ok: boolean; status: number; j: any }> {
+  const init: RequestInit = { method, headers: { authorization: `Basic ${btoa(`${authSid}:${authToken}`)}` } };
+  if (form) {
+    (init.headers as Record<string, string>)["content-type"] = "application/x-www-form-urlencoded";
+    init.body = form.toString();
+  }
+  let r: Response;
+  try { r = await fetch(`${TW}${path}`, init); } catch (e) { return { ok: false, status: 0, j: { message: String((e as Error)?.message || e) } }; }
+  const j = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, j };
+}
+
+type Conn = { account_sid: string; auth_token: string; from_number: string | null; phone_sid: string | null; status: string };
 async function getConn(uid: string): Promise<Conn | null> {
   const r = await fetch(
-    `${SB_URL}/rest/v1/sms_connections?user_id=eq.${encodeURIComponent(uid)}&select=account_sid,auth_token,from_number,messaging_service_sid`,
+    `${SB_URL}/rest/v1/sms_connections?user_id=eq.${encodeURIComponent(uid)}&select=account_sid,auth_token,from_number,phone_sid,status`,
     { headers: sbHeaders },
   );
   const rows = await r.json().catch(() => []);
   return Array.isArray(rows) && rows[0] ? rows[0] as Conn : null;
 }
-const connReady = (c: Conn | null): boolean => !!(c && c.account_sid && c.auth_token && (c.from_number || c.messaging_service_sid));
-
-// Confirm the credentials work before saving (fetch the account resource).
-async function twilioValidate(sid: string, token: string): Promise<boolean> {
-  try {
-    const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}.json`, {
-      headers: { authorization: `Basic ${btoa(`${sid}:${token}`)}` },
-    });
-    return r.ok;
-  } catch {
-    return false;
-  }
-}
-
-async function twilioSend(c: Conn, to: string, body: string): Promise<{ sid?: string; error?: string }> {
-  const form = new URLSearchParams();
-  form.set("To", to);
-  if (c.messaging_service_sid) form.set("MessagingServiceSid", c.messaging_service_sid);
-  else form.set("From", c.from_number || "");
-  form.set("Body", body);
-  let r: Response;
-  try {
-    r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${c.account_sid}/Messages.json`, {
-      method: "POST",
-      headers: { authorization: `Basic ${btoa(`${c.account_sid}:${c.auth_token}`)}`, "content-type": "application/x-www-form-urlencoded" },
-      body: form.toString(),
-    });
-  } catch (e) {
-    return { error: String((e as Error)?.message || e) };
-  }
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok || j?.sid == null) return { error: String(j?.message || `twilio_${r.status}`) };
-  return { sid: String(j.sid) };
-}
+const connReady = (c: Conn | null): boolean => !!(c && c.account_sid && c.auth_token && c.from_number && c.status === "active");
 
 async function sentToday(uid: string): Promise<number> {
   const since = new Date(); since.setUTCHours(0, 0, 0, 0);
@@ -112,8 +95,7 @@ async function sentToday(uid: string): Promise<number> {
 }
 async function logSms(uid: string, to: string, sid: string | null, status: string): Promise<void> {
   await fetch(`${SB_URL}/rest/v1/sms_log`, {
-    method: "POST",
-    headers: { ...sbHeaders, prefer: "return=minimal" },
+    method: "POST", headers: { ...sbHeaders, prefer: "return=minimal" },
     body: JSON.stringify({ user_id: uid, to_number: to, sid, status }),
   });
 }
@@ -130,34 +112,67 @@ Deno.serve(async (req: Request) => {
 
   // deno-lint-ignore no-explicit-any
   let body: any = {};
-  try { body = await req.json(); } catch { /* status/disconnect take no body */ }
+  try { body = await req.json(); } catch { /* status/release take no body */ }
   const action = String(body?.action || "");
 
   if (action === "status") {
     const c = await getConn(uid);
-    return J({ ready: connReady(c), from: c?.from_number || (c?.messaging_service_sid ? "Messaging Service" : null) });
+    return J({ ready: connReady(c), number: c?.from_number || null });
   }
 
-  if (action === "connect") {
-    const sid = String(body?.account_sid ?? "").trim();
-    const tok = String(body?.auth_token ?? "").trim();
-    const from = body?.from ? toE164(body.from) : null;
-    const msgsvc = String(body?.messaging_service_sid ?? "").trim() || null;
-    if (!/^AC[0-9a-zA-Z]{32}$/.test(sid)) return J({ error: "bad_sid" });
-    if (!tok) return J({ error: "missing_token" });
-    if (!from && !msgsvc) return J({ error: "missing_sender" });
-    if (msgsvc && !/^MG[0-9a-zA-Z]{32}$/.test(msgsvc)) return J({ error: "bad_msgsvc" });
-    if (!(await twilioValidate(sid, tok))) return J({ error: "bad_creds" });
+  // ---- everything below provisions/sends through the master account ----
+  if (!masterReady()) return J({ error: "sms_unset" });
+
+  if (action === "searchNumbers") {
+    const country = (String(body?.country || "US").toUpperCase().match(/^[A-Z]{2}$/) || ["US"])[0];
+    const areaCode = String(body?.areaCode || "").replace(/\D/g, "").slice(0, 5);
+    const qs = new URLSearchParams({ SmsEnabled: "true", Limit: "12" });
+    if (areaCode) qs.set("AreaCode", areaCode);
+    const r = await tw(MASTER_SID, MASTER_TOKEN, "GET", `/Accounts/${MASTER_SID}/AvailablePhoneNumbers/${country}/Local.json?${qs}`);
+    if (!r.ok) return J({ error: "search_failed", detail: String(r.j?.message || r.status).slice(0, 200) });
+    const numbers = (r.j?.available_phone_numbers || []).map((n: any) => ({
+      phoneNumber: n.phone_number, locality: n.locality, region: n.region,
+    }));
+    return J({ numbers });
+  }
+
+  if (action === "buyNumber") {
+    const phone = toE164(body?.phoneNumber);
+    if (!phone) return J({ error: "bad_number" });
+    const existing = await getConn(uid);
+    if (existing && existing.status === "active") return J({ error: "already_provisioned" });
+
+    // 1. Create a subaccount for this user.
+    const sub = await tw(MASTER_SID, MASTER_TOKEN, "POST", `/Accounts.json`, new URLSearchParams({ FriendlyName: `sendra-${uid}` }));
+    if (!sub.ok || !sub.j?.sid || !sub.j?.auth_token) return J({ error: "subaccount_failed", detail: String(sub.j?.message || sub.status).slice(0, 200) });
+    const subSid = String(sub.j.sid);
+    const subToken = String(sub.j.auth_token);
+
+    // 2. Buy the number into the subaccount.
+    const buy = await tw(subSid, subToken, "POST", `/Accounts/${subSid}/IncomingPhoneNumbers.json`, new URLSearchParams({ PhoneNumber: phone }));
+    if (!buy.ok || !buy.j?.sid) {
+      // Roll back the empty subaccount we just created.
+      await tw(MASTER_SID, MASTER_TOKEN, "POST", `/Accounts/${subSid}.json`, new URLSearchParams({ Status: "closed" }));
+      return J({ error: "buy_failed", detail: String(buy.j?.message || buy.status).slice(0, 200) });
+    }
+
+    // 3. Save the connection.
     const r = await fetch(`${SB_URL}/rest/v1/sms_connections?on_conflict=user_id`, {
-      method: "POST",
-      headers: { ...sbHeaders, prefer: "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify({ user_id: uid, account_sid: sid, auth_token: tok, from_number: from, messaging_service_sid: msgsvc, updated_at: new Date().toISOString() }),
+      method: "POST", headers: { ...sbHeaders, prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ user_id: uid, account_sid: subSid, auth_token: subToken, from_number: phone, phone_sid: String(buy.j.sid), messaging_service_sid: null, status: "active", updated_at: new Date().toISOString() }),
     });
     if (!r.ok) return J({ error: "save_failed" }, 502);
-    return J({ ok: true });
+    return J({ ok: true, number: phone });
   }
 
-  if (action === "disconnect") {
+  if (action === "release") {
+    const c = await getConn(uid);
+    if (c?.account_sid) {
+      if (c.phone_sid && c.auth_token) {
+        await tw(c.account_sid, c.auth_token, "DELETE", `/Accounts/${c.account_sid}/IncomingPhoneNumbers/${c.phone_sid}.json`);
+      }
+      await tw(MASTER_SID, MASTER_TOKEN, "POST", `/Accounts/${c.account_sid}.json`, new URLSearchParams({ Status: "closed" }));
+    }
     await fetch(`${SB_URL}/rest/v1/sms_connections?user_id=eq.${encodeURIComponent(uid)}`, { method: "DELETE", headers: sbHeaders });
     return J({ ok: true });
   }
@@ -174,13 +189,14 @@ Deno.serve(async (req: Request) => {
     const used = await sentToday(uid);
     if (used >= DAILY_LIMIT) return J({ error: "rate_limited", limit: DAILY_LIMIT });
 
-    const res = await twilioSend(c!, to, text);
-    if (res.error) {
+    const form = new URLSearchParams({ To: to, From: c!.from_number!, Body: text });
+    const r = await tw(c!.account_sid, c!.auth_token, "POST", `/Accounts/${c!.account_sid}/Messages.json`, form);
+    if (!r.ok || !r.j?.sid) {
       await logSms(uid, to, null, "failed");
-      return J({ error: "send_failed", detail: res.error });
+      return J({ error: "send_failed", detail: String(r.j?.message || `twilio_${r.status}`).slice(0, 200) });
     }
-    await logSms(uid, to, res.sid ?? null, "sent");
-    return J({ ok: true, sid: res.sid, remaining: Math.max(0, DAILY_LIMIT - used - 1) });
+    await logSms(uid, to, String(r.j.sid), "sent");
+    return J({ ok: true, sid: String(r.j.sid), remaining: Math.max(0, DAILY_LIMIT - used - 1) });
   }
 
   return J({ error: "unknown action" }, 400);

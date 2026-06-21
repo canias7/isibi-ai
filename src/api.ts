@@ -154,20 +154,26 @@ async function smsInvoke(action: string, extra: Record<string, unknown> = {}): P
   }
   throw new Error('Request failed');
 }
-export async function smsStatus(): Promise<boolean> {
-  try { const d = await smsInvoke('status'); return !!d.ready; } catch { return false; }
+export async function smsStatus(): Promise<{ ready: boolean; number: string | null }> {
+  try { const d = await smsInvoke('status'); return { ready: !!d.ready, number: (d.number as string) || null }; }
+  catch { return { ready: false, number: null }; }
 }
 export async function sendSms(to: string, body: string): Promise<{ sid?: string; remaining?: number }> {
   const d = await smsInvoke('send', { to, body });
   return { sid: d.sid as string | undefined, remaining: typeof d.remaining === 'number' ? d.remaining : undefined };
 }
-// Per-user Twilio: connect (validates the creds server-side) / disconnect.
-export async function connectSms(p: { account_sid: string; auth_token: string; from?: string; messaging_service_sid?: string }): Promise<{ ok?: boolean; error?: string }> {
-  try { const d = await smsInvoke('connect', p); return { ok: !!d.ok }; }
+// Platform-provisioned Twilio (ISV): search / buy / release a number in-app.
+export interface SmsNumber { phoneNumber: string; locality?: string; region?: string }
+export async function searchSmsNumbers(areaCode?: string, country?: string): Promise<{ numbers: SmsNumber[]; error?: string }> {
+  try { const d = await smsInvoke('searchNumbers', { areaCode, country }); return { numbers: Array.isArray(d.numbers) ? d.numbers as SmsNumber[] : [] }; }
+  catch (e) { return { numbers: [], error: (e as Error)?.message || 'failed' }; }
+}
+export async function buySmsNumber(phoneNumber: string): Promise<{ ok?: boolean; number?: string; error?: string }> {
+  try { const d = await smsInvoke('buyNumber', { phoneNumber }); return { ok: !!d.ok, number: d.number as string | undefined }; }
   catch (e) { return { error: (e as Error)?.message || 'failed' }; }
 }
-export async function disconnectSms(): Promise<void> {
-  try { await smsInvoke('disconnect'); } catch { /* ignore */ }
+export async function releaseSmsNumber(): Promise<void> {
+  try { await smsInvoke('release'); } catch { /* ignore */ }
 }
 
 // ---- Email campaigns (sent through the user's mailbox, via the `campaigns` fn) ----
