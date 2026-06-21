@@ -161,6 +161,14 @@ export async function sendSms(to: string, body: string): Promise<{ sid?: string;
   const d = await smsInvoke('send', { to, body });
   return { sid: d.sid as string | undefined, remaining: typeof d.remaining === 'number' ? d.remaining : undefined };
 }
+// Per-user Twilio: connect (validates the creds server-side) / disconnect.
+export async function connectSms(p: { account_sid: string; auth_token: string; from?: string; messaging_service_sid?: string }): Promise<{ ok?: boolean; error?: string }> {
+  try { const d = await smsInvoke('connect', p); return { ok: !!d.ok }; }
+  catch (e) { return { error: (e as Error)?.message || 'failed' }; }
+}
+export async function disconnectSms(): Promise<void> {
+  try { await smsInvoke('disconnect'); } catch { /* ignore */ }
+}
 
 // ---- Email campaigns (sent through the user's mailbox, via the `campaigns` fn) ----
 // create -> then call sendCampaignBatch(id) repeatedly until { done:true }. App
