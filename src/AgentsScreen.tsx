@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type TplRow, type TplBlock, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -192,6 +192,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [tplSaving, setTplSaving] = useState(false);
   const [tplErr, setTplErr] = useState('');
   const [tplImages, setTplImages] = useState<string[]>([]); // photos the AI chat builder lays into the email
+  const [blkRows, setBlkRows] = useState<TplRow[]>([]);      // block-builder rows (manual "Build" mode)
+  const [blkImgBusy, setBlkImgBusy] = useState('');          // "ri-ci" of the block whose image is uploading
   // New-template flow: choose AI vs manual; AI = Lovable-style chat builder.
   const [tplChoose, setTplChoose] = useState(false);
   const [tplBuild, setTplBuild] = useState<'chat' | 'manual'>('chat');
@@ -576,11 +578,29 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     (link.trim()
       ? `<a href="${link.trim()}" style="text-decoration:none"><img src="${url}" alt="" style="display:block;width:100%;max-width:100%;height:auto;border:0"></a>`
       : `<img src="${url}" alt="" style="display:block;width:100%;max-width:100%;height:auto;border:0">`);
+  // Compile block-builder rows into one email-client-safe HTML body.
+  const compileBlocks = (rows: TplRow[]): string => {
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const blk = (b: TplBlock): string => {
+      if (b.type === 'heading') return `<h2 style="margin:0 0 12px;font-family:system-ui,Arial,sans-serif;font-size:22px;font-weight:700;color:#111">${esc(b.text || '')}</h2>`;
+      if (b.type === 'text') return `<p style="margin:0 0 14px;font-family:system-ui,Arial,sans-serif;font-size:16px;line-height:1.6;color:#333">${esc(b.text || '').replace(/\n/g, '<br>')}</p>`;
+      if (b.type === 'image') { if (!b.url) return ''; const img = `<img src="${b.url}" alt="" style="display:block;width:100%;max-width:100%;height:auto;border:0;border-radius:8px;margin:0 0 14px">`; return b.link ? `<a href="${esc(b.link)}" style="text-decoration:none">${img}</a>` : img; }
+      if (b.type === 'button') return `<div style="margin:0 0 16px;text-align:center"><a href="${esc(b.link || '#')}" style="display:inline-block;background:#e0951f;color:#ffffff;font-family:system-ui,Arial,sans-serif;font-size:15px;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px">${esc(b.label || 'Click here')}</a></div>`;
+      if (b.type === 'divider') return `<hr style="border:0;border-top:1px solid #e5e7eb;margin:18px 0">`;
+      return '';
+    };
+    const row = (r: TplRow): string => {
+      const cols = (r.cols || []).filter(Boolean);
+      if (cols.length <= 1) return blk(cols[0] || { type: 'text', text: '' });
+      return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px"><tr>${cols.map((c, i) => `<td valign="top" style="width:50%;padding-${i === 0 ? 'right' : 'left'}:8px">${blk(c)}</td>`).join('')}</tr></table>`;
+    };
+    return `<div style="max-width:600px;margin:0 auto;padding:24px;background:#ffffff;font-family:system-ui,Arial,sans-serif">${rows.map(row).join('')}</div>`;
+  };
   // The stored body + kind for the active editor mode.
   const tplComputed = (): { body: string; kind: 'text' | 'html' } =>
     tplMode === 'flyer' ? { body: tplFlyerUrl ? flyerHtml(tplFlyerUrl, tplFlyerLink) : '', kind: 'html' }
       : tplMode === 'html' ? { body: tplBody.trim(), kind: 'html' }
-        : { body: tplBody.trim(), kind: 'text' };
+        : { body: compileBlocks(blkRows), kind: 'html' };
   // Pick an image from the device and hand back raw base64 + content type.
   const pickImage = (cb: (b64: string, ct: string) => void) => {
     const inp = document.createElement('input');
@@ -600,25 +620,33 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     catch { if (mountedRef.current) setTplErr('Upload failed — try a smaller image.'); }
     finally { if (mountedRef.current) setTplImgBusy(false); }
   });
-  const STARTER_BODY = `Hi {{name}},
-
-Thanks for being here — here's what's new.
-
-[Write your main message here — what you want to say.]
-
-[Add a call to action — e.g. "Shop now" or "Read more".]
-
-Cheers,
-Your name`;
   const openChoice = () => { tap(); setTplChoose(true); };
   const startAI = () => { tap(); setTplChoose(false); setTplBuild('chat'); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setTplImages([]); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('chat'); };
-  const startManual = () => { tap(); setTplChoose(false); setTplBuild('manual'); setTplEdit({}); setTplMode('text'); setTplName(''); setTplSubject(''); setTplBody(STARTER_BODY); setTplFlyerUrl(''); setTplFlyerLink(''); setTplImages([]); setTplErr(''); };
+  const TYPE_LABEL: Record<TplBlock['type'], string> = { heading: 'Heading', text: 'Text', image: 'Image', button: 'Button', divider: 'Divider' };
+  const makeBlock = (type: TplBlock['type']): TplBlock =>
+    type === 'heading' ? { type, text: 'Your headline' }
+      : type === 'button' ? { type, label: 'Shop now', link: '' }
+        : type === 'image' ? { type, url: '' }
+          : type === 'divider' ? { type: 'divider' }
+            : { type: 'text', text: '' };
+  const addBlock = (type: TplBlock['type']) => { tap(); setBlkRows((rs) => [...rs, { cols: [makeBlock(type)] }]); };
+  const setBlk = (ri: number, ci: number, patch: Partial<TplBlock>) => setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: r.cols.map((c, j) => j !== ci ? c : { ...c, ...patch }) }));
+  const setColType = (ri: number, ci: number, type: TplBlock['type']) => { tap(); setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: r.cols.map((c, j) => j !== ci ? c : makeBlock(type)) })); };
+  const moveRow = (ri: number, dir: number) => { tap(); setBlkRows((rs) => { const j = ri + dir; if (j < 0 || j >= rs.length) return rs; const c = [...rs]; [c[ri], c[j]] = [c[j], c[ri]]; return c; }); };
+  const delRow = (ri: number) => { tap(); setBlkRows((rs) => rs.filter((_, i) => i !== ri)); };
+  const splitRow = (ri: number) => { tap(); setBlkRows((rs) => rs.map((r, i) => i !== ri || r.cols.length > 1 ? r : { cols: [r.cols[0], makeBlock('text')] })); };
+  const mergeRow = (ri: number) => { tap(); setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: [r.cols[0]] })); };
+  const uploadBlockImage = (ri: number, ci: number) => pickImage(async (b64, ct) => { if (!b64) return; setBlkImgBusy(`${ri}-${ci}`); try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setBlk(ri, ci, { url }); } catch { /* ignore */ } finally { if (mountedRef.current) setBlkImgBusy(''); } });
+  const startManual = () => { tap(); setTplChoose(false); setTplBuild('manual'); setTplEdit({}); setTplMode('text'); setTplName(''); setTplSubject(''); setTplBody(''); setBlkRows([{ cols: [makeBlock('heading')] }, { cols: [makeBlock('text')] }]); setTplFlyerUrl(''); setTplFlyerLink(''); setTplImages([]); setTplErr(''); };
   const openTplEdit = (t: Template) => {
     tap();
     if (t.chat && t.chat.length) {
       setTplBuild('chat'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplImages([]); setChatMsgs(t.chat); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('preview');
     } else {
-      setTplBuild('manual'); setTplEdit({ id: t.id }); setTplMode(t.kind === 'html' ? 'html' : 'text'); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplFlyerUrl(''); setTplFlyerLink(''); setTplImages([]); setTplErr('');
+      setTplBuild('manual'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplFlyerUrl(''); setTplFlyerLink(''); setTplImages([]); setTplErr('');
+      if (t.blocks && t.blocks.length) { setTplMode('text'); setBlkRows(t.blocks); setTplBody(''); }
+      else if (t.kind === 'html') { setTplMode('html'); setTplBody(t.body); setBlkRows([]); }
+      else { setTplMode('text'); setBlkRows([{ cols: [{ type: 'text', text: t.body }] }]); setTplBody(''); }
     }
   };
   const sendChat = async () => {
@@ -661,7 +689,7 @@ Your name`;
     if (!tplSubject.trim() || !built.body || tplSaving) return;
     tap(); setTplSaving(true); setTplErr(''); setChatErr('');
     try {
-      await saveTemplate({ id: tplEdit?.id, name: tplName.trim() || tplSubject.trim().slice(0, 60), subject: tplSubject.trim(), body: built.body, kind: built.kind, chat: tplBuild === 'chat' ? chatMsgs : undefined });
+      await saveTemplate({ id: tplEdit?.id, name: tplName.trim() || tplSubject.trim().slice(0, 60), subject: tplSubject.trim(), body: built.body, kind: built.kind, chat: tplBuild === 'chat' ? chatMsgs : undefined, blocks: tplBuild === 'manual' && tplMode === 'text' ? blkRows : undefined });
       if (!mountedRef.current) return;
       setTplEdit(null);
       listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
@@ -1067,14 +1095,55 @@ Your name`;
               ) : tplEdit ? (
                 <div className="ag-compose">
                   <div className="ag-seg">
-                    <button className={tplMode === 'text' ? 'on' : ''} onClick={() => { tap(); setTplMode('text'); }}>Write</button>
+                    <button className={tplMode === 'text' ? 'on' : ''} onClick={() => { tap(); setTplMode('text'); }}>Build</button>
                     <button className={tplMode === 'flyer' ? 'on' : ''} onClick={() => { tap(); setTplMode('flyer'); }}>Flyer</button>
                     <button className={tplMode === 'html' ? 'on' : ''} onClick={() => { tap(); setTplMode('html'); }}>Paste HTML</button>
                   </div>
                   <input className="ag-field" placeholder="Template name" value={tplName} onChange={(e) => setTplName(e.target.value)} />
                   <input className="ag-field" placeholder="Subject" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
                   {tplMode === 'text' && (
-                    <textarea className="ag-field ag-body" placeholder="Write your email — use {{name}} to personalize each one" value={tplBody} onChange={(e) => setTplBody(e.target.value)} />
+                    <div className="ag-blocks">
+                      {blkRows.map((r, ri) => (
+                        <div className="ag-blk" key={ri}>
+                          <div className="ag-blk-bar">
+                            <button className="ag-blk-ctrl" disabled={ri === 0} onClick={() => moveRow(ri, -1)} aria-label="Move up">↑</button>
+                            <button className="ag-blk-ctrl" disabled={ri === blkRows.length - 1} onClick={() => moveRow(ri, 1)} aria-label="Move down">↓</button>
+                            <span className="ag-blk-sp" />
+                            {r.cols.length < 2
+                              ? <button className="ag-blk-ctrl wide" onClick={() => splitRow(ri)}>⊞ 2 columns</button>
+                              : <button className="ag-blk-ctrl wide" onClick={() => mergeRow(ri)}>⊟ 1 column</button>}
+                            <button className="ag-blk-ctrl" onClick={() => delRow(ri)} aria-label="Delete">✕</button>
+                          </div>
+                          <div className="ag-blk-cols">
+                            {r.cols.map((c, ci) => (
+                              <div className="ag-blk-col" key={ci}>
+                                {r.cols.length > 1 && <div className="ag-blk-collbl">{ci === 0 ? 'Left' : 'Right'}</div>}
+                                <div className="ag-blk-types">
+                                  {(['heading', 'text', 'image', 'button', 'divider'] as const).map((tp) => (
+                                    <button key={tp} className={c.type === tp ? 'on' : ''} onClick={() => setColType(ri, ci, tp)}>{TYPE_LABEL[tp]}</button>
+                                  ))}
+                                </div>
+                                {c.type === 'heading' && <input className="ag-blk-in" placeholder="Headline" value={c.text || ''} onChange={(e) => setBlk(ri, ci, { text: e.target.value })} />}
+                                {c.type === 'text' && <textarea className="ag-blk-in ag-blk-ta" placeholder="Write your text… use {{name}} to personalize" value={c.text || ''} onChange={(e) => setBlk(ri, ci, { text: e.target.value })} />}
+                                {c.type === 'image' && (c.url
+                                  ? <div className="ag-blk-imgwrap"><img src={c.url} alt="" /><button onClick={() => uploadBlockImage(ri, ci)}>Replace</button></div>
+                                  : <button className="ag-blk-up" disabled={blkImgBusy === `${ri}-${ci}`} onClick={() => uploadBlockImage(ri, ci)}>{blkImgBusy === `${ri}-${ci}` ? 'Uploading…' : '＋ Upload image'}</button>)}
+                                {c.type === 'button' && (<><input className="ag-blk-in" placeholder="Button label" value={c.label || ''} onChange={(e) => setBlk(ri, ci, { label: e.target.value })} /><input className="ag-blk-in" placeholder="Link — https://…" value={c.link || ''} onChange={(e) => setBlk(ri, ci, { link: e.target.value })} /></>)}
+                                {c.type === 'divider' && <div className="ag-blk-divline" />}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      <div className="ag-blk-add">
+                        <span className="ag-blk-add-lbl">＋ Add block</span>
+                        <div className="ag-blk-addchips">
+                          {(['heading', 'text', 'image', 'button', 'divider'] as const).map((tp) => (
+                            <button key={tp} onClick={() => addBlock(tp)}>{TYPE_LABEL[tp]}</button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   )}
                   {tplMode === 'flyer' && (
                     <>

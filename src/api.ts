@@ -243,7 +243,9 @@ export async function testSesDomain(domain: string, to: string): Promise<{ ok?: 
 // kind: 'text' = plain text body (wrapped to HTML on send); 'html' = ready HTML
 // (flyer image, pasted design, AI layout) sent as-is.
 export interface ChatMsg { role: 'user' | 'assistant'; content: string }
-export interface Template { id: string; name: string; subject: string; body: string; kind?: 'text' | 'html'; chat?: ChatMsg[]; updated_at?: string }
+export interface TplBlock { type: 'heading' | 'text' | 'image' | 'button' | 'divider'; text?: string; url?: string; link?: string; label?: string }
+export interface TplRow { cols: TplBlock[] }
+export interface Template { id: string; name: string; subject: string; body: string; kind?: 'text' | 'html'; chat?: ChatMsg[]; blocks?: TplRow[]; updated_at?: string }
 // Lovable-style iterative builder: send the thread + current email HTML, get the
 // updated email + a one-line reply back.
 export async function chatTemplate(messages: ChatMsg[], body: string, images: string[] = []): Promise<{ subject?: string; body?: string; reply?: string; error?: string }> {
@@ -265,7 +267,7 @@ export async function listTemplates(): Promise<Template[]> {
   const t = (data as { templates?: Template[] } | null)?.templates;
   return Array.isArray(t) ? t : [];
 }
-export async function saveTemplate(t: { id?: string; name: string; subject: string; body: string; kind?: 'text' | 'html'; chat?: ChatMsg[] }): Promise<{ id?: string; error?: string }> {
+export async function saveTemplate(t: { id?: string; name: string; subject: string; body: string; kind?: 'text' | 'html'; chat?: ChatMsg[]; blocks?: TplRow[] }): Promise<{ id?: string; error?: string }> {
   const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'save', ...t } });
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { id?: string; error?: string };
