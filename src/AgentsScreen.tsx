@@ -1055,13 +1055,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     <button className="ag-send-btn ghost" disabled={bBusy} onClick={uploadLogo}>{bBusy ? 'Uploading…' : bLogo ? 'Replace logo' : 'Upload logo'}</button>
                   </div>
                   <input className="ag-field" placeholder="Business name" value={bName} onChange={(e) => setBName(e.target.value)} />
-                  <label className="ag-brand-color">Brand color<input type="color" value={bColor} onChange={(e) => setBColor(e.target.value)} /><span>{bColor}</span></label>
                   <input className="ag-field" placeholder="Voice — e.g. warm & casual, polished & pro" value={bVoice} onChange={(e) => setBVoice(e.target.value)} />
                   <input className="ag-field" placeholder="Sign-off — e.g. — Cristian, Ania’s Capital" value={bSignoff} onChange={(e) => setBSignoff(e.target.value)} />
                   <input className="ag-field" placeholder="Footer address — e.g. 1124 Robinwood Rd, Gastonia NC" value={bAddress} onChange={(e) => setBAddress(e.target.value)} />
                   <button className="ag-send-btn" disabled={bBusy} onClick={saveBrandProfile}>{bBusy ? 'Saving…' : 'Save brand'}</button>
                   <button className="ag-send-btn ghost" disabled={bBusy} onClick={() => { tap(); setBrandEdit(false); }}>Cancel</button>
-                  <p className="ag-foot">The AI designer uses this on every generated email — logo, color, voice and sign-off.</p>
+                  <p className="ag-foot">The AI designer uses this on every generated email — logo, voice and sign-off.</p>
                 </div>
               ) : tplChoose ? (
                 <div className="ag-choose">
