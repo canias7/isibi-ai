@@ -753,7 +753,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <h1 className="memg-title">{title}</h1>
           <p className="memg-sub">{subtitle}</p>
         </div>
-        {showRefresh ? (
+        {paperMode ? (
+          <button className="ag-corner-save" disabled={tplSaving || blkRows.length === 0} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save'}</button>
+        ) : showRefresh ? (
           <button
             className={`ag-corner${refreshSpin ? ' spinning' : ''}`}
             onClick={doRefresh}
@@ -1155,7 +1157,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     </div>
                   </div>
                   {tplErr && <div className="ag-send-err">{tplErr}</div>}
-                  {blkRows.length > 0 && <button className="ag-send-btn" disabled={tplSaving} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save template'}</button>}
                 </div>
               ) : (
                 <>
