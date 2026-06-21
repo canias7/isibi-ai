@@ -1188,7 +1188,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     <span className="ag-brand-row-ic" aria-hidden="true">🎨</span>
                     <span className="ag-brand-row-main">
                       <span className="ag-brand-row-t">Brand voice</span>
-                      <span className="ag-brand-row-s">{bHas ? (bName || 'Logo, color & tone set') : 'Set your logo, color, voice & sign-off'}</span>
+                      <span className="ag-brand-row-s">{bHas ? (bName || 'Logo & tone set') : 'Set your logo, voice & sign-off'}</span>
                     </span>
                     <span className="ag-chev" aria-hidden="true">›</span>
                   </button>
