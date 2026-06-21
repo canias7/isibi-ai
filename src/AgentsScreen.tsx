@@ -587,6 +587,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       if (b.type === 'image') { if (!b.url) return ''; const img = `<img src="${b.url}" alt="" style="display:block;width:100%;max-width:100%;height:auto;border:0;border-radius:8px;margin:0 0 14px">`; return b.link ? `<a href="${esc(b.link)}" style="text-decoration:none">${img}</a>` : img; }
       if (b.type === 'button') return `<div style="margin:0 0 16px;text-align:center"><a href="${esc(b.link || '#')}" style="display:inline-block;background:#e0951f;color:#ffffff;font-family:system-ui,Arial,sans-serif;font-size:15px;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px">${esc(b.label || 'Click here')}</a></div>`;
       if (b.type === 'divider') return `<hr style="border:0;border-top:1px solid #e5e7eb;margin:18px 0">`;
+      if (b.type === 'logo') { if (!b.url) return ''; return `<div style="text-align:center;margin:0 0 16px"><img src="${b.url}" alt="" style="display:inline-block;max-width:160px;width:auto;height:auto;border:0"></div>`; }
+      if (b.type === 'spacer') return `<div style="height:24px;line-height:24px;font-size:0">&nbsp;</div>`;
       return '';
     };
     const row = (r: TplRow): string => {
@@ -622,13 +624,15 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   });
   const openChoice = () => { tap(); setTplChoose(true); };
   const startAI = () => { tap(); setTplChoose(false); setTplBuild('chat'); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setTplImages([]); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('chat'); };
-  const TYPE_LABEL: Record<TplBlock['type'], string> = { heading: 'Heading', text: 'Text', image: 'Image', button: 'Button', divider: 'Divider' };
+  const TYPE_LABEL: Record<TplBlock['type'], string> = { heading: 'Heading', text: 'Text', image: 'Image', logo: 'Logo', button: 'Button', divider: 'Divider', spacer: 'Spacer' };
   const makeBlock = (type: TplBlock['type']): TplBlock =>
     type === 'heading' ? { type, text: 'Your headline' }
       : type === 'button' ? { type, label: 'Shop now', link: '' }
         : type === 'image' ? { type, url: '' }
-          : type === 'divider' ? { type: 'divider' }
-            : { type: 'text', text: '' };
+          : type === 'logo' ? { type, url: '' }
+            : type === 'divider' ? { type: 'divider' }
+              : type === 'spacer' ? { type: 'spacer' }
+                : { type: 'text', text: '' };
   const addBlock = (type: TplBlock['type']) => { tap(); setBlkRows((rs) => [...rs, { cols: [makeBlock(type)] }]); };
   const setBlk = (ri: number, ci: number, patch: Partial<TplBlock>) => setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: r.cols.map((c, j) => j !== ci ? c : { ...c, ...patch }) }));
   const setColType = (ri: number, ci: number, type: TplBlock['type']) => { tap(); setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: r.cols.map((c, j) => j !== ci ? c : makeBlock(type)) })); };
@@ -1119,17 +1123,18 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                               <div className="ag-blk-col" key={ci}>
                                 {r.cols.length > 1 && <div className="ag-blk-collbl">{ci === 0 ? 'Left' : 'Right'}</div>}
                                 <div className="ag-blk-types">
-                                  {(['heading', 'text', 'image', 'button', 'divider'] as const).map((tp) => (
+                                  {(['heading', 'text', 'image', 'logo', 'button', 'divider', 'spacer'] as const).map((tp) => (
                                     <button key={tp} className={c.type === tp ? 'on' : ''} onClick={() => setColType(ri, ci, tp)}>{TYPE_LABEL[tp]}</button>
                                   ))}
                                 </div>
                                 {c.type === 'heading' && <input className="ag-blk-in" placeholder="Headline" value={c.text || ''} onChange={(e) => setBlk(ri, ci, { text: e.target.value })} />}
                                 {c.type === 'text' && <textarea className="ag-blk-in ag-blk-ta" placeholder="Write your text… use {{name}} to personalize" value={c.text || ''} onChange={(e) => setBlk(ri, ci, { text: e.target.value })} />}
-                                {c.type === 'image' && (c.url
+                                {(c.type === 'image' || c.type === 'logo') && (c.url
                                   ? <div className="ag-blk-imgwrap"><img src={c.url} alt="" /><button onClick={() => uploadBlockImage(ri, ci)}>Replace</button></div>
-                                  : <button className="ag-blk-up" disabled={blkImgBusy === `${ri}-${ci}`} onClick={() => uploadBlockImage(ri, ci)}>{blkImgBusy === `${ri}-${ci}` ? 'Uploading…' : '＋ Upload image'}</button>)}
+                                  : <button className="ag-blk-up" disabled={blkImgBusy === `${ri}-${ci}`} onClick={() => uploadBlockImage(ri, ci)}>{blkImgBusy === `${ri}-${ci}` ? 'Uploading…' : (c.type === 'logo' ? '＋ Upload logo' : '＋ Upload image')}</button>)}
                                 {c.type === 'button' && (<><input className="ag-blk-in" placeholder="Button label" value={c.label || ''} onChange={(e) => setBlk(ri, ci, { label: e.target.value })} /><input className="ag-blk-in" placeholder="Link — https://…" value={c.link || ''} onChange={(e) => setBlk(ri, ci, { link: e.target.value })} /></>)}
                                 {c.type === 'divider' && <div className="ag-blk-divline" />}
+                                {c.type === 'spacer' && <div className="ag-blk-note">Adds vertical space.</div>}
                               </div>
                             ))}
                           </div>
@@ -1138,7 +1143,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       <div className="ag-blk-add">
                         <span className="ag-blk-add-lbl">＋ Add block</span>
                         <div className="ag-blk-addchips">
-                          {(['heading', 'text', 'image', 'button', 'divider'] as const).map((tp) => (
+                          {(['heading', 'text', 'image', 'logo', 'button', 'divider', 'spacer'] as const).map((tp) => (
                             <button key={tp} onClick={() => addBlock(tp)}>{TYPE_LABEL[tp]}</button>
                           ))}
                         </div>
@@ -1155,7 +1160,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   {tplMode === 'html' && (
                     <textarea className="ag-field ag-body ag-html-input" placeholder="Paste your email HTML here…" value={tplBody} onChange={(e) => setTplBody(e.target.value)} />
                   )}
-                  {tplMode !== 'text' && tplComputed().body && (
+                  {tplComputed().body && (
                     <div className="ag-tpl-preview">
                       <div className="ag-tpl-preview-bar"><span>Preview</span></div>
                       <iframe className="ag-tpl-frame" title="Template preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(tplComputed().body)} />

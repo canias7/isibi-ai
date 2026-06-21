@@ -301,6 +301,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-blk-imgwrap img { width: 100%; border-radius: 9px; display: block; }
 .ag-blk-imgwrap button { position: absolute; top: 8px; right: 8px; background: rgba(0, 0, 0, 0.6); color: #fff; border: none; font: inherit; font-size: var(--fs-label); font-weight: 700; padding: 5px 10px; border-radius: 999px; cursor: pointer; }
 .ag-blk-divline { height: 1px; background: rgba(255, 255, 255, 0.18); margin: 6px 0; }
+.ag-blk-note { color: var(--text-faint); font-size: var(--fs-caption); padding: 4px 2px; }
 .ag-blk-add { border: 1px dashed rgba(255, 255, 255, 0.16); border-radius: 14px; padding: 11px; display: flex; flex-direction: column; gap: 9px; align-items: center; }
 .ag-blk-add-lbl { color: var(--text-dim); font-size: var(--fs-footnote); font-weight: 600; }
 .ag-blk-addchips { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
