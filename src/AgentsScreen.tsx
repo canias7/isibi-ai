@@ -182,18 +182,17 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // Templates (reusable, AI-writable, or bring-your-own)
   const [tplList, setTplList] = useState<Template[]>([]);
   const [tplEdit, setTplEdit] = useState<null | { id?: string }>(null);
-  const [tplMode, setTplMode] = useState<'text' | 'flyer' | 'html'>('text');
   const [tplName, setTplName] = useState('');
   const [tplSubject, setTplSubject] = useState('');
-  const [tplBody, setTplBody] = useState('');      // text mode: plain text; html mode: raw HTML
-  const [tplFlyerUrl, setTplFlyerUrl] = useState(''); // flyer mode: uploaded image URL
-  const [tplFlyerLink, setTplFlyerLink] = useState('');
+  const [tplBody, setTplBody] = useState('');      // current email HTML for the AI chat builder
   const [tplImgBusy, setTplImgBusy] = useState(false);
   const [tplSaving, setTplSaving] = useState(false);
   const [tplErr, setTplErr] = useState('');
   const [tplImages, setTplImages] = useState<string[]>([]); // photos the AI chat builder lays into the email
   const [blkRows, setBlkRows] = useState<TplRow[]>([]);      // block-builder rows (manual "Build" mode)
   const [blkImgBusy, setBlkImgBusy] = useState('');          // "ri-ci" of the block whose image is uploading
+  const [addOpen, setAddOpen] = useState(false);            // block-type chooser open
+  const [pendingCol, setPendingCol] = useState<number | null>(null); // row whose 2nd column is being chosen
   // New-template flow: choose AI vs manual; AI = Lovable-style chat builder.
   const [tplChoose, setTplChoose] = useState(false);
   const [tplBuild, setTplBuild] = useState<'chat' | 'manual'>('chat');
@@ -574,10 +573,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   };
 
   // ---- Templates ----
-  const flyerHtml = (url: string, link: string) =>
-    (link.trim()
-      ? `<a href="${link.trim()}" style="text-decoration:none"><img src="${url}" alt="" style="display:block;width:100%;max-width:100%;height:auto;border:0"></a>`
-      : `<img src="${url}" alt="" style="display:block;width:100%;max-width:100%;height:auto;border:0">`);
   // Compile block-builder rows into one email-client-safe HTML body.
   const compileBlocks = (rows: TplRow[]): string => {
     const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -599,10 +594,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     return `<div style="max-width:600px;margin:0 auto;padding:24px;background:#ffffff;font-family:system-ui,Arial,sans-serif">${rows.map(row).join('')}</div>`;
   };
   // The stored body + kind for the active editor mode.
-  const tplComputed = (): { body: string; kind: 'text' | 'html' } =>
-    tplMode === 'flyer' ? { body: tplFlyerUrl ? flyerHtml(tplFlyerUrl, tplFlyerLink) : '', kind: 'html' }
-      : tplMode === 'html' ? { body: tplBody.trim(), kind: 'html' }
-        : { body: compileBlocks(blkRows), kind: 'html' };
+  const tplComputed = (): { body: string; kind: 'text' | 'html' } => ({ body: compileBlocks(blkRows), kind: 'html' });
   // Pick an image from the device and hand back raw base64 + content type.
   const pickImage = (cb: (b64: string, ct: string) => void) => {
     const inp = document.createElement('input');
@@ -615,16 +607,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     };
     inp.click();
   };
-  const uploadFlyer = () => pickImage(async (b64, ct) => {
-    if (!b64) return;
-    setTplImgBusy(true); setTplErr('');
-    try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setTplFlyerUrl(url); }
-    catch { if (mountedRef.current) setTplErr('Upload failed — try a smaller image.'); }
-    finally { if (mountedRef.current) setTplImgBusy(false); }
-  });
   const openChoice = () => { tap(); setTplChoose(true); };
   const startAI = () => { tap(); setTplChoose(false); setTplBuild('chat'); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setTplImages([]); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('chat'); };
   const TYPE_LABEL: Record<TplBlock['type'], string> = { heading: 'Heading', text: 'Text', image: 'Image', logo: 'Logo', button: 'Button', divider: 'Divider', spacer: 'Spacer' };
+  const BLOCK_TYPES = ['heading', 'text', 'image', 'logo', 'button', 'divider', 'spacer'] as const;
   const makeBlock = (type: TplBlock['type']): TplBlock =>
     type === 'heading' ? { type, text: 'Your headline' }
       : type === 'button' ? { type, label: 'Shop now', link: '' }
@@ -635,22 +621,19 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 : { type: 'text', text: '' };
   const addBlock = (type: TplBlock['type']) => { tap(); setBlkRows((rs) => [...rs, { cols: [makeBlock(type)] }]); };
   const setBlk = (ri: number, ci: number, patch: Partial<TplBlock>) => setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: r.cols.map((c, j) => j !== ci ? c : { ...c, ...patch }) }));
-  const setColType = (ri: number, ci: number, type: TplBlock['type']) => { tap(); setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: r.cols.map((c, j) => j !== ci ? c : makeBlock(type)) })); };
-  const moveRow = (ri: number, dir: number) => { tap(); setBlkRows((rs) => { const j = ri + dir; if (j < 0 || j >= rs.length) return rs; const c = [...rs]; [c[ri], c[j]] = [c[j], c[ri]]; return c; }); };
-  const delRow = (ri: number) => { tap(); setBlkRows((rs) => rs.filter((_, i) => i !== ri)); };
-  const splitRow = (ri: number) => { tap(); setBlkRows((rs) => rs.map((r, i) => i !== ri || r.cols.length > 1 ? r : { cols: [r.cols[0], makeBlock('text')] })); };
-  const mergeRow = (ri: number) => { tap(); setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: [r.cols[0]] })); };
+  const addColumn = (ri: number, type: TplBlock['type']) => { tap(); setPendingCol(null); setBlkRows((rs) => rs.map((r, i) => i !== ri || r.cols.length > 1 ? r : { cols: [r.cols[0], makeBlock(type)] })); };
+  const moveRow = (ri: number, dir: number) => { tap(); setPendingCol(null); setBlkRows((rs) => { const j = ri + dir; if (j < 0 || j >= rs.length) return rs; const c = [...rs]; [c[ri], c[j]] = [c[j], c[ri]]; return c; }); };
+  const delRow = (ri: number) => { tap(); setPendingCol(null); setBlkRows((rs) => rs.filter((_, i) => i !== ri)); };
+  const mergeRow = (ri: number) => { tap(); setPendingCol(null); setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: [r.cols[0]] })); };
   const uploadBlockImage = (ri: number, ci: number) => pickImage(async (b64, ct) => { if (!b64) return; setBlkImgBusy(`${ri}-${ci}`); try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setBlk(ri, ci, { url }); } catch { /* ignore */ } finally { if (mountedRef.current) setBlkImgBusy(''); } });
-  const startManual = () => { tap(); setTplChoose(false); setTplBuild('manual'); setTplEdit({}); setTplMode('text'); setTplName(''); setTplSubject(''); setTplBody(''); setBlkRows([{ cols: [makeBlock('heading')] }, { cols: [makeBlock('text')] }]); setTplFlyerUrl(''); setTplFlyerLink(''); setTplImages([]); setTplErr(''); };
+  const startManual = () => { tap(); setTplChoose(false); setTplBuild('manual'); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setBlkRows([]); setAddOpen(false); setPendingCol(null); setTplImages([]); setTplErr(''); };
   const openTplEdit = (t: Template) => {
     tap();
     if (t.chat && t.chat.length) {
       setTplBuild('chat'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplImages([]); setChatMsgs(t.chat); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('preview');
     } else {
-      setTplBuild('manual'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplFlyerUrl(''); setTplFlyerLink(''); setTplImages([]); setTplErr('');
-      if (t.blocks && t.blocks.length) { setTplMode('text'); setBlkRows(t.blocks); setTplBody(''); }
-      else if (t.kind === 'html') { setTplMode('html'); setTplBody(t.body); setBlkRows([]); }
-      else { setTplMode('text'); setBlkRows([{ cols: [{ type: 'text', text: t.body }] }]); setTplBody(''); }
+      setTplBuild('manual'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplImages([]); setTplErr(''); setAddOpen(false); setPendingCol(null); setTplBody('');
+      setBlkRows(t.blocks && t.blocks.length ? t.blocks : (t.body ? [{ cols: [{ type: 'text', text: t.body }] }] : []));
     }
   };
   const sendChat = async () => {
@@ -693,7 +676,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (!tplSubject.trim() || !built.body || tplSaving) return;
     tap(); setTplSaving(true); setTplErr(''); setChatErr('');
     try {
-      await saveTemplate({ id: tplEdit?.id, name: tplName.trim() || tplSubject.trim().slice(0, 60), subject: tplSubject.trim(), body: built.body, kind: built.kind, chat: tplBuild === 'chat' ? chatMsgs : undefined, blocks: tplBuild === 'manual' && tplMode === 'text' ? blkRows : undefined });
+      await saveTemplate({ id: tplEdit?.id, name: tplName.trim() || tplSubject.trim().slice(0, 60), subject: tplSubject.trim(), body: built.body, kind: built.kind, chat: tplBuild === 'chat' ? chatMsgs : undefined, blocks: tplBuild === 'manual' ? blkRows : undefined });
       if (!mountedRef.current) return;
       setTplEdit(null);
       listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
@@ -1098,69 +1081,59 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 )
               ) : tplEdit ? (
                 <div className="ag-compose">
-                  <div className="ag-seg">
-                    <button className={tplMode === 'text' ? 'on' : ''} onClick={() => { tap(); setTplMode('text'); }}>Build</button>
-                    <button className={tplMode === 'flyer' ? 'on' : ''} onClick={() => { tap(); setTplMode('flyer'); }}>Flyer</button>
-                    <button className={tplMode === 'html' ? 'on' : ''} onClick={() => { tap(); setTplMode('html'); }}>Paste HTML</button>
-                  </div>
                   <input className="ag-field" placeholder="Template name" value={tplName} onChange={(e) => setTplName(e.target.value)} />
                   <input className="ag-field" placeholder="Subject" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
-                  {tplMode === 'text' && (
-                    <div className="ag-blocks">
-                      {blkRows.map((r, ri) => (
-                        <div className="ag-blk" key={ri}>
-                          <div className="ag-blk-bar">
-                            <button className="ag-blk-ctrl" disabled={ri === 0} onClick={() => moveRow(ri, -1)} aria-label="Move up">↑</button>
-                            <button className="ag-blk-ctrl" disabled={ri === blkRows.length - 1} onClick={() => moveRow(ri, 1)} aria-label="Move down">↓</button>
-                            <span className="ag-blk-sp" />
-                            {r.cols.length < 2
-                              ? <button className="ag-blk-ctrl wide" onClick={() => splitRow(ri)}>⊞ 2 columns</button>
-                              : <button className="ag-blk-ctrl wide" onClick={() => mergeRow(ri)}>⊟ 1 column</button>}
-                            <button className="ag-blk-ctrl" onClick={() => delRow(ri)} aria-label="Delete">✕</button>
-                          </div>
-                          <div className="ag-blk-cols">
-                            {r.cols.map((c, ci) => (
-                              <div className="ag-blk-col" key={ci}>
-                                {r.cols.length > 1 && <div className="ag-blk-collbl">{ci === 0 ? 'Left' : 'Right'}</div>}
-                                <div className="ag-blk-types">
-                                  {(['heading', 'text', 'image', 'logo', 'button', 'divider', 'spacer'] as const).map((tp) => (
-                                    <button key={tp} className={c.type === tp ? 'on' : ''} onClick={() => setColType(ri, ci, tp)}>{TYPE_LABEL[tp]}</button>
-                                  ))}
-                                </div>
-                                {c.type === 'heading' && <input className="ag-blk-in" placeholder="Headline" value={c.text || ''} onChange={(e) => setBlk(ri, ci, { text: e.target.value })} />}
-                                {c.type === 'text' && <textarea className="ag-blk-in ag-blk-ta" placeholder="Write your text… use {{name}} to personalize" value={c.text || ''} onChange={(e) => setBlk(ri, ci, { text: e.target.value })} />}
-                                {(c.type === 'image' || c.type === 'logo') && (c.url
-                                  ? <div className="ag-blk-imgwrap"><img src={c.url} alt="" /><button onClick={() => uploadBlockImage(ri, ci)}>Replace</button></div>
-                                  : <button className="ag-blk-up" disabled={blkImgBusy === `${ri}-${ci}`} onClick={() => uploadBlockImage(ri, ci)}>{blkImgBusy === `${ri}-${ci}` ? 'Uploading…' : (c.type === 'logo' ? '＋ Upload logo' : '＋ Upload image')}</button>)}
-                                {c.type === 'button' && (<><input className="ag-blk-in" placeholder="Button label" value={c.label || ''} onChange={(e) => setBlk(ri, ci, { label: e.target.value })} /><input className="ag-blk-in" placeholder="Link — https://…" value={c.link || ''} onChange={(e) => setBlk(ri, ci, { link: e.target.value })} /></>)}
-                                {c.type === 'divider' && <div className="ag-blk-divline" />}
-                                {c.type === 'spacer' && <div className="ag-blk-note">Adds vertical space.</div>}
-                              </div>
-                            ))}
-                          </div>
+                  <div className="ag-blocks">
+                    {blkRows.map((r, ri) => (
+                      <div className="ag-blk" key={ri}>
+                        <div className="ag-blk-bar">
+                          <button className="ag-blk-ctrl" disabled={ri === 0} onClick={() => moveRow(ri, -1)} aria-label="Move up">↑</button>
+                          <button className="ag-blk-ctrl" disabled={ri === blkRows.length - 1} onClick={() => moveRow(ri, 1)} aria-label="Move down">↓</button>
+                          <span className="ag-blk-sp" />
+                          {r.cols.length < 2 && pendingCol !== ri
+                            ? <button className="ag-blk-ctrl wide" onClick={() => { tap(); setPendingCol(ri); }}>⊞ 2 columns</button>
+                            : <button className="ag-blk-ctrl wide" onClick={() => { if (pendingCol === ri) { tap(); setPendingCol(null); } else mergeRow(ri); }}>⊟ 1 column</button>}
+                          <button className="ag-blk-ctrl" onClick={() => delRow(ri)} aria-label="Delete">✕</button>
                         </div>
-                      ))}
-                      <div className="ag-blk-add">
-                        <span className="ag-blk-add-lbl">＋ Add block</span>
-                        <div className="ag-blk-addchips">
-                          {(['heading', 'text', 'image', 'logo', 'button', 'divider', 'spacer'] as const).map((tp) => (
-                            <button key={tp} onClick={() => addBlock(tp)}>{TYPE_LABEL[tp]}</button>
+                        <div className="ag-blk-cols">
+                          {r.cols.map((c, ci) => (
+                            <div className="ag-blk-col" key={ci}>
+                              <div className="ag-blk-tag">{(r.cols.length > 1 || pendingCol === ri) ? `${ci === 0 ? 'Left' : 'Right'} · ${TYPE_LABEL[c.type]}` : TYPE_LABEL[c.type]}</div>
+                              {c.type === 'heading' && <input className="ag-blk-in" placeholder="Headline" value={c.text || ''} onChange={(e) => setBlk(ri, ci, { text: e.target.value })} />}
+                              {c.type === 'text' && <textarea className="ag-blk-in ag-blk-ta" placeholder="Write your text… use {{name}} to personalize" value={c.text || ''} onChange={(e) => setBlk(ri, ci, { text: e.target.value })} />}
+                              {(c.type === 'image' || c.type === 'logo') && (c.url
+                                ? <div className="ag-blk-imgwrap"><img src={c.url} alt="" /><button onClick={() => uploadBlockImage(ri, ci)}>Replace</button></div>
+                                : <button className="ag-blk-up" disabled={blkImgBusy === `${ri}-${ci}`} onClick={() => uploadBlockImage(ri, ci)}>{blkImgBusy === `${ri}-${ci}` ? 'Uploading…' : (c.type === 'logo' ? '＋ Upload logo' : '＋ Upload image')}</button>)}
+                              {c.type === 'button' && (<><input className="ag-blk-in" placeholder="Button label" value={c.label || ''} onChange={(e) => setBlk(ri, ci, { label: e.target.value })} /><input className="ag-blk-in" placeholder="Link — https://…" value={c.link || ''} onChange={(e) => setBlk(ri, ci, { link: e.target.value })} /></>)}
+                              {c.type === 'divider' && <div className="ag-blk-divline" />}
+                              {c.type === 'spacer' && <div className="ag-blk-note">Adds vertical space.</div>}
+                            </div>
                           ))}
+                          {pendingCol === ri && r.cols.length < 2 && (
+                            <div className="ag-blk-col">
+                              <div className="ag-blk-tag">Right · pick a type</div>
+                              <div className="ag-blk-chooser">
+                                {BLOCK_TYPES.map((tp) => <button key={tp} onClick={() => addColumn(ri, tp)}>{TYPE_LABEL[tp]}</button>)}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  )}
-                  {tplMode === 'flyer' && (
-                    <>
-                      {tplFlyerUrl ? <img className="ag-flyer-img" src={tplFlyerUrl} alt="Flyer" /> : <div className="ag-flyer-drop">Upload a flyer or poster — it becomes the whole email.</div>}
-                      <button className="ag-send-btn ghost" disabled={tplImgBusy} onClick={uploadFlyer}>{tplImgBusy ? 'Uploading…' : tplFlyerUrl ? 'Replace image' : 'Upload image'}</button>
-                      <input className="ag-field" placeholder="Link when tapped (optional) — https://…" value={tplFlyerLink} onChange={(e) => setTplFlyerLink(e.target.value)} />
-                    </>
-                  )}
-                  {tplMode === 'html' && (
-                    <textarea className="ag-field ag-body ag-html-input" placeholder="Paste your email HTML here…" value={tplBody} onChange={(e) => setTplBody(e.target.value)} />
-                  )}
-                  {tplComputed().body && (
+                    ))}
+                    {addOpen ? (
+                      <div className="ag-blk-choosercard">
+                        <div className="ag-blk-chooser-t">What do you want to add?</div>
+                        <div className="ag-blk-chooser">
+                          {BLOCK_TYPES.map((tp) => <button key={tp} onClick={() => { addBlock(tp); setAddOpen(false); }}>{TYPE_LABEL[tp]}</button>)}
+                        </div>
+                        <button className="ag-blk-cancel" onClick={() => { tap(); setAddOpen(false); }}>Cancel</button>
+                      </div>
+                    ) : (
+                      <button className="ag-blk-plus" onClick={() => { tap(); setAddOpen(true); }}>＋ Add block</button>
+                    )}
+                    {blkRows.length === 0 && !addOpen && <div className="ag-blk-empty">Your email is empty — tap ＋ to add your first block.</div>}
+                  </div>
+                  {blkRows.length > 0 && tplComputed().body && (
                     <div className="ag-tpl-preview">
                       <div className="ag-tpl-preview-bar"><span>Preview</span></div>
                       <iframe className="ag-tpl-frame" title="Template preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(tplComputed().body)} />
