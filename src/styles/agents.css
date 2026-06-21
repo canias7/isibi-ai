@@ -302,6 +302,14 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-blk-imgwrap button { position: absolute; top: 8px; right: 8px; background: rgba(0, 0, 0, 0.6); color: #fff; border: none; font: inherit; font-size: var(--fs-label); font-weight: 700; padding: 5px 10px; border-radius: 999px; cursor: pointer; }
 .ag-blk-divline { height: 1px; background: rgba(255, 255, 255, 0.18); margin: 6px 0; }
 .ag-blk-note { color: var(--text-faint); font-size: var(--fs-caption); padding: 4px 2px; }
+.ag-blk-tag { color: var(--text-faint); font-size: var(--fs-label); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.ag-blk-plus { width: 100%; background: var(--glass); border: 1px dashed var(--glass-edge); color: var(--text); font: inherit; font-size: var(--fs-body-s); font-weight: 700; padding: 15px; border-radius: 14px; cursor: pointer; }
+.ag-blk-empty { color: var(--text-dim); font-size: var(--fs-footnote); text-align: center; margin-top: 6px; }
+.ag-blk-choosercard { border: 1px dashed rgba(255, 255, 255, 0.18); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.ag-blk-chooser-t { color: var(--text); font-size: var(--fs-footnote); font-weight: 700; }
+.ag-blk-chooser { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+.ag-blk-chooser button { background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text); font: inherit; font-size: var(--fs-caption); font-weight: 600; padding: 8px 13px; border-radius: 999px; cursor: pointer; }
+.ag-blk-cancel { background: none; border: none; color: var(--text-dim); font: inherit; font-size: var(--fs-footnote); font-weight: 600; cursor: pointer; }
 .ag-blk-add { border: 1px dashed rgba(255, 255, 255, 0.16); border-radius: 14px; padding: 11px; display: flex; flex-direction: column; gap: 9px; align-items: center; }
 .ag-blk-add-lbl { color: var(--text-dim); font-size: var(--fs-footnote); font-weight: 600; }
 .ag-blk-addchips { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
