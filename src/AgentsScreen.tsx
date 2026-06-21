@@ -631,6 +631,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     return 'Untitled template';
   };
   const uploadBlockImage = (ri: number, ci: number) => pickImage(async (b64, ct) => { if (!b64) return; setBlkImgBusy(`${ri}-${ci}`); try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setBlk(ri, ci, { url }); } catch { /* ignore */ } finally { if (mountedRef.current) setBlkImgBusy(''); } });
+  // Fake "from"/subject chrome so the builder reads like a real inbox email — header only; the body stays blank.
+  const mailSubject = (rows: TplRow[]): string => { const t = blocksTitle(rows); return t === 'Untitled template' ? 'Your Coffee, Your Way — Rewards Just for You!' : t; };
   const startManual = () => { tap(); setTplChoose(false); setTplBuild('manual'); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setBlkRows([]); setAddOpen(false); setTplImages([]); setTplErr(''); };
   const openTplEdit = (t: Template) => {
     tap();
@@ -1089,46 +1091,65 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   </div>
                 )
               ) : tplEdit ? (
-                <div className="ag-compose">
-                  <div className="ag-blocks">
-                    {blkRows.map((r, ri) => {
-                      const c = r.cols[0];
-                      return (
-                        <div className="ag-blk" key={ri}>
-                          <div className="ag-blk-bar">
-                            <span className="ag-blk-tag">{TYPE_LABEL[c.type]}</span>
-                            <span className="ag-blk-sp" />
-                            <button className="ag-blk-ctrl" disabled={ri === 0} onClick={() => moveRow(ri, -1)} aria-label="Move up">↑</button>
-                            <button className="ag-blk-ctrl" disabled={ri === blkRows.length - 1} onClick={() => moveRow(ri, 1)} aria-label="Move down">↓</button>
-                            <button className="ag-blk-ctrl" onClick={() => delRow(ri)} aria-label="Delete">✕</button>
-                          </div>
-                          <div className="ag-blk-cols">
-                            <div className="ag-blk-col">
-                              {c.type === 'heading' && <input className="ag-blk-in" placeholder="Headline" value={c.text || ''} onChange={(e) => setBlk(ri, 0, { text: e.target.value })} />}
-                              {c.type === 'text' && <textarea className="ag-blk-in ag-blk-ta" placeholder="Write your text… use {{name}} to personalize" value={c.text || ''} onChange={(e) => setBlk(ri, 0, { text: e.target.value })} />}
-                              {(c.type === 'image' || c.type === 'logo') && (c.url
-                                ? <div className="ag-blk-imgwrap"><img src={c.url} alt="" /><button onClick={() => uploadBlockImage(ri, 0)}>Replace</button></div>
-                                : <button className="ag-blk-up" disabled={blkImgBusy === `${ri}-0`} onClick={() => uploadBlockImage(ri, 0)}>{blkImgBusy === `${ri}-0` ? 'Uploading…' : (c.type === 'logo' ? '＋ Upload logo' : '＋ Upload image')}</button>)}
-                              {c.type === 'button' && (<><input className="ag-blk-in" placeholder="Button label" value={c.label || ''} onChange={(e) => setBlk(ri, 0, { label: e.target.value })} /><input className="ag-blk-in" placeholder="Link — https://…" value={c.link || ''} onChange={(e) => setBlk(ri, 0, { link: e.target.value })} /></>)}
-                              {c.type === 'divider' && <div className="ag-blk-divline" />}
-                              {c.type === 'spacer' && <div className="ag-blk-note">Adds vertical space.</div>}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {addOpen ? (
-                      <div className="ag-blk-choosercard">
-                        <div className="ag-blk-chooser-t">What do you want to add?</div>
-                        <div className="ag-blk-chooser">
-                          {BLOCK_TYPES.map((tp) => <button key={tp} onClick={() => { addBlock(tp); setAddOpen(false); }}>{TYPE_LABEL[tp]}</button>)}
-                        </div>
-                        <button className="ag-blk-cancel" onClick={() => { tap(); setAddOpen(false); }}>Cancel</button>
+                <div className="ag-compose ag-mailwrap">
+                  <div className="ag-mail">
+                    <div className="ag-mail-head">
+                      <div className="ag-mail-subj">
+                        <span className="ag-mail-subj-t">{mailSubject(blkRows)}</span>
+                        <span className="ag-mail-chip">Inbox</span>
+                        <span className="ag-mail-star">☆</span>
                       </div>
-                    ) : (
-                      <button className="ag-blk-plus" onClick={() => { tap(); setAddOpen(true); }}>＋</button>
-                    )}
-                    {blkRows.length === 0 && !addOpen && <div className="ag-blk-empty">Your email is empty — tap ＋ to add your first block.</div>}
+                      <div className="ag-mail-sender">
+                        <span className="ag-mail-av">B</span>
+                        <span className="ag-mail-smain">
+                          <span className="ag-mail-stop"><b className="ag-mail-name">Brew Haven</b><span className="ag-mail-time">7:00 PM</span></span>
+                          <span className="ag-mail-to">to me ⌄</span>
+                        </span>
+                        <span className="ag-mail-sright"><span className="ag-mail-unsub">Unsubscribe</span><span className="ag-mail-dots">⋯</span></span>
+                      </div>
+                    </div>
+                    <div className="ag-mail-body">
+                      {blkRows.map((r, ri) => {
+                        const c = r.cols[0];
+                        return (
+                          <div className="ag-mb" key={ri}>
+                            <div className="ag-mb-ctrl">
+                              <button disabled={ri === 0} onClick={() => moveRow(ri, -1)} aria-label="Move up">↑</button>
+                              <button disabled={ri === blkRows.length - 1} onClick={() => moveRow(ri, 1)} aria-label="Move down">↓</button>
+                              <button onClick={() => delRow(ri)} aria-label="Delete">✕</button>
+                            </div>
+                            {c.type === 'heading' && <input className="ag-mb-h" placeholder="Headline" value={c.text || ''} onChange={(e) => setBlk(ri, 0, { text: e.target.value })} />}
+                            {c.type === 'text' && <textarea className="ag-mb-p" placeholder="Write your text… use {{name}} to personalize" value={c.text || ''} ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; } }} onChange={(e) => setBlk(ri, 0, { text: e.target.value })} />}
+                            {c.type === 'image' && (c.url
+                              ? <div className="ag-mb-imgwrap"><img className="ag-mb-img" src={c.url} alt="" /><button className="ag-mb-replace" onClick={() => uploadBlockImage(ri, 0)}>Replace</button></div>
+                              : <button className="ag-mb-up" disabled={blkImgBusy === `${ri}-0`} onClick={() => uploadBlockImage(ri, 0)}>{blkImgBusy === `${ri}-0` ? 'Uploading…' : '＋ Upload image'}</button>)}
+                            {c.type === 'logo' && (c.url
+                              ? <div className="ag-mb-logowrap"><img className="ag-mb-logo" src={c.url} alt="" /><button className="ag-mb-replace" onClick={() => uploadBlockImage(ri, 0)}>Replace</button></div>
+                              : <button className="ag-mb-up" disabled={blkImgBusy === `${ri}-0`} onClick={() => uploadBlockImage(ri, 0)}>{blkImgBusy === `${ri}-0` ? 'Uploading…' : '＋ Upload logo'}</button>)}
+                            {c.type === 'button' && (
+                              <div className="ag-mb-btnwrap">
+                                <span className="ag-mb-btn"><input className="ag-mb-btnlabel" placeholder="Button label" value={c.label || ''} onChange={(e) => setBlk(ri, 0, { label: e.target.value })} /></span>
+                                <input className="ag-mb-link" placeholder="Link — https://…" value={c.link || ''} onChange={(e) => setBlk(ri, 0, { link: e.target.value })} />
+                              </div>
+                            )}
+                            {c.type === 'divider' && <div className="ag-mb-divline" />}
+                            {c.type === 'spacer' && <div className="ag-mb-spacer" />}
+                          </div>
+                        );
+                      })}
+                      {addOpen ? (
+                        <div className="ag-blk-choosercard">
+                          <div className="ag-blk-chooser-t">What do you want to add?</div>
+                          <div className="ag-blk-chooser">
+                            {BLOCK_TYPES.map((tp) => <button key={tp} onClick={() => { addBlock(tp); setAddOpen(false); }}>{TYPE_LABEL[tp]}</button>)}
+                          </div>
+                          <button className="ag-blk-cancel" onClick={() => { tap(); setAddOpen(false); }}>Cancel</button>
+                        </div>
+                      ) : (
+                        <button className="ag-mb-plus" onClick={() => { tap(); setAddOpen(true); }} aria-label="Add block">＋</button>
+                      )}
+                      {blkRows.length === 0 && !addOpen && <div className="ag-mb-empty">Tap ＋ to add your first block.</div>}
+                    </div>
                   </div>
                   {tplErr && <div className="ag-send-err">{tplErr}</div>}
                   {blkRows.length > 0 && <button className="ag-send-btn" disabled={tplSaving} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save template'}</button>}
