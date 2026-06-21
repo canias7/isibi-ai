@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, generateTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -189,12 +189,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [tplFlyerUrl, setTplFlyerUrl] = useState(''); // flyer mode: uploaded image URL
   const [tplFlyerLink, setTplFlyerLink] = useState('');
   const [tplImgBusy, setTplImgBusy] = useState(false);
-  const [tplPrompt, setTplPrompt] = useState('');
-  const [tplGen, setTplGen] = useState(false);
   const [tplSaving, setTplSaving] = useState(false);
   const [tplErr, setTplErr] = useState('');
-  const [tplGenDesign, setTplGenDesign] = useState(true); // AI generates a designed HTML layout (vs plain text)
-  const [tplImages, setTplImages] = useState<string[]>([]); // photos the AI designer lays into the email
+  const [tplImages, setTplImages] = useState<string[]>([]); // photos the AI chat builder lays into the email
   // New-template flow: choose AI vs manual; AI = Lovable-style chat builder.
   const [tplChoose, setTplChoose] = useState(false);
   const [tplBuild, setTplBuild] = useState<'chat' | 'manual'>('chat');
@@ -603,15 +600,25 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     catch { if (mountedRef.current) setTplErr('Upload failed — try a smaller image.'); }
     finally { if (mountedRef.current) setTplImgBusy(false); }
   });
+  const STARTER_BODY = `Hi {{name}},
+
+Thanks for being here — here's what's new.
+
+[Write your main message here — what you want to say.]
+
+[Add a call to action — e.g. "Shop now" or "Read more".]
+
+Cheers,
+Your name`;
   const openChoice = () => { tap(); setTplChoose(true); };
   const startAI = () => { tap(); setTplChoose(false); setTplBuild('chat'); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setTplImages([]); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('chat'); };
-  const startManual = () => { tap(); setTplChoose(false); setTplBuild('manual'); setTplEdit({}); setTplMode('text'); setTplName(''); setTplSubject(''); setTplBody(''); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplImages([]); setTplErr(''); };
+  const startManual = () => { tap(); setTplChoose(false); setTplBuild('manual'); setTplEdit({}); setTplMode('text'); setTplName(''); setTplSubject(''); setTplBody(STARTER_BODY); setTplFlyerUrl(''); setTplFlyerLink(''); setTplImages([]); setTplErr(''); };
   const openTplEdit = (t: Template) => {
     tap();
     if (t.chat && t.chat.length) {
       setTplBuild('chat'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplImages([]); setChatMsgs(t.chat); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('preview');
     } else {
-      setTplBuild('manual'); setTplEdit({ id: t.id }); setTplMode(t.kind === 'html' ? 'html' : 'text'); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplFlyerUrl(''); setTplFlyerLink(''); setTplPrompt(''); setTplImages([]); setTplErr('');
+      setTplBuild('manual'); setTplEdit({ id: t.id }); setTplMode(t.kind === 'html' ? 'html' : 'text'); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplFlyerUrl(''); setTplFlyerLink(''); setTplImages([]); setTplErr('');
     }
   };
   const sendChat = async () => {
@@ -649,20 +656,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     catch { if (mountedRef.current) setTplErr('Upload failed — try a smaller image.'); }
     finally { if (mountedRef.current) setTplImgBusy(false); }
   });
-  const genTpl = async () => {
-    if (!tplPrompt.trim() || tplGen) return;
-    tap(); setTplGen(true); setTplErr('');
-    try {
-      const r = await generateTemplate(tplPrompt.trim(), tplGenDesign ? 'design' : 'text', tplGenDesign ? tplImages : []);
-      if (!mountedRef.current) return;
-      if (r.error || !r.subject) { setTplErr(r.error === 'ai_unset' ? 'AI writing isn’t set up on the server yet.' : 'Couldn’t generate — try rephrasing your description.'); return; }
-      setTplSubject(r.subject || '');
-      setTplBody(r.body || '');
-      setTplMode(r.kind === 'html' ? 'html' : 'text'); // designed output -> HTML mode (shows preview)
-      if (!tplName.trim()) setTplName((r.subject || 'Template').slice(0, 60));
-    } catch { if (mountedRef.current) setTplErr('Couldn’t generate — try again.'); }
-    finally { if (mountedRef.current) setTplGen(false); }
-  };
   const saveTpl = async () => {
     const built: { body: string; kind: 'text' | 'html' } = tplBuild === 'chat' ? { body: tplBody.trim(), kind: 'html' } : tplComputed();
     if (!tplSubject.trim() || !built.body || tplSaving) return;
@@ -1081,34 +1074,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   <input className="ag-field" placeholder="Template name" value={tplName} onChange={(e) => setTplName(e.target.value)} />
                   <input className="ag-field" placeholder="Subject" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
                   {tplMode === 'text' && (
-                    <>
-                      <div className="ag-ai">
-                        <textarea className="ag-ai-input" placeholder="Describe the email — e.g. “a warm note announcing 20% off summer styles, ends Sunday”" value={tplPrompt}
-                          onChange={(e) => setTplPrompt(e.target.value)} />
-                        <div className="ag-ai-controls">
-                          <div className="ag-ai-toggle">
-                            <button className={tplGenDesign ? 'on' : ''} onClick={() => { tap(); setTplGenDesign(true); }}>Designed</button>
-                            <button className={!tplGenDesign ? 'on' : ''} onClick={() => { tap(); setTplGenDesign(false); }}>Plain</button>
-                          </div>
-                          <button className="ag-ai-btn" disabled={tplGen || !tplPrompt.trim()} onClick={genTpl}>{tplGen ? 'Writing…' : '✨ Generate'}</button>
-                        </div>
-                      </div>
-                      {tplGenDesign ? (
-                        <div className="ag-imgs">
-                          <div className="ag-imgs-head"><span>Photos for the design</span><button disabled={tplImgBusy} onClick={addDesignImage}>{tplImgBusy ? 'Uploading…' : '+ Add photo'}</button></div>
-                          {tplImages.length > 0 && (
-                            <div className="ag-imgs-row">
-                              {tplImages.map((u, i) => (
-                                <div className="ag-imgs-thumb" key={i}><img src={u} alt="" /><button onClick={() => { tap(); setTplImages((xs) => xs.filter((_, j) => j !== i)); }}>×</button></div>
-                              ))}
-                            </div>
-                          )}
-                          <div className="ag-imgs-hint">First photo becomes the hero. No photos? The design uses placeholder boxes.</div>
-                        </div>
-                      ) : (
-                        <textarea className="ag-field ag-body" placeholder="Body — use {{name}} to personalize" value={tplBody} onChange={(e) => setTplBody(e.target.value)} />
-                      )}
-                    </>
+                    <textarea className="ag-field ag-body" placeholder="Write your email — use {{name}} to personalize each one" value={tplBody} onChange={(e) => setTplBody(e.target.value)} />
                   )}
                   {tplMode === 'flyer' && (
                     <>
