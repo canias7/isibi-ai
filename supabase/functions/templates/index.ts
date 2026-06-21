@@ -163,7 +163,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (action === "list") {
-      const r = await fetch(`${SB_URL}/rest/v1/templates?user_id=eq.${uid}&select=id,name,subject,body,kind,chat,updated_at&order=updated_at.desc&limit=100`, { headers: sbHeaders });
+      const r = await fetch(`${SB_URL}/rest/v1/templates?user_id=eq.${uid}&select=id,name,subject,body,kind,chat,blocks,updated_at&order=updated_at.desc&limit=100`, { headers: sbHeaders });
       const templates = await r.json().catch(() => []);
       return json(req, { templates: Array.isArray(templates) ? templates : [] });
     }
@@ -237,6 +237,7 @@ Deno.serve(async (req: Request) => {
       const tbody = String(body?.body || "").slice(0, 50000);
       const kind = String(body?.kind || "text") === "html" ? "html" : "text";
       const chat = Array.isArray(body?.chat) ? (body.chat as unknown[]).slice(-40) : [];
+      const blocks = Array.isArray(body?.blocks) ? body.blocks : [];
       const id = body?.id ? String(body.id) : "";
       if (!subject || !tbody) return json(req, { error: "missing_content" });
 
@@ -244,7 +245,7 @@ Deno.serve(async (req: Request) => {
         const r = await fetch(`${SB_URL}/rest/v1/templates?id=eq.${id}&user_id=eq.${uid}`, {
           method: "PATCH",
           headers: { ...sbHeaders, Prefer: "return=representation" },
-          body: JSON.stringify({ name, subject, body: tbody, kind, chat, updated_at: new Date().toISOString() }),
+          body: JSON.stringify({ name, subject, body: tbody, kind, chat, blocks, updated_at: new Date().toISOString() }),
         });
         const row = (await r.json().catch(() => []))?.[0];
         return row?.id ? json(req, { id: row.id }) : json(req, { error: "not_found" });
@@ -252,7 +253,7 @@ Deno.serve(async (req: Request) => {
       const r = await fetch(`${SB_URL}/rest/v1/templates`, {
         method: "POST",
         headers: { ...sbHeaders, Prefer: "return=representation" },
-        body: JSON.stringify({ user_id: uid, name: name || subject.slice(0, 60), subject, body: tbody, kind, chat }),
+        body: JSON.stringify({ user_id: uid, name: name || subject.slice(0, 60), subject, body: tbody, kind, chat, blocks }),
       });
       const row = (await r.json().catch(() => []))?.[0];
       return row?.id ? json(req, { id: row.id }) : json(req, { error: "save_failed" }, 502);
