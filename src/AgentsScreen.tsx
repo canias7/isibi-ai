@@ -192,7 +192,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [blkRows, setBlkRows] = useState<TplRow[]>([]);      // block-builder rows (manual "Build" mode)
   const [blkImgBusy, setBlkImgBusy] = useState('');          // "ri-ci" of the block whose image is uploading
   const [addOpen, setAddOpen] = useState(false);            // block-type chooser open
-  const [pendingCol, setPendingCol] = useState<number | null>(null); // row whose 2nd column is being chosen
   // New-template flow: choose AI vs manual; AI = Lovable-style chat builder.
   const [tplChoose, setTplChoose] = useState(false);
   const [tplBuild, setTplBuild] = useState<'chat' | 'manual'>('chat');
@@ -623,18 +622,22 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 : { type: 'text', text: '' };
   const addBlock = (type: TplBlock['type']) => { tap(); setBlkRows((rs) => [...rs, { cols: [makeBlock(type)] }]); };
   const setBlk = (ri: number, ci: number, patch: Partial<TplBlock>) => setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: r.cols.map((c, j) => j !== ci ? c : { ...c, ...patch }) }));
-  const addColumn = (ri: number, type: TplBlock['type']) => { tap(); setPendingCol(null); setBlkRows((rs) => rs.map((r, i) => i !== ri || r.cols.length > 1 ? r : { cols: [r.cols[0], makeBlock(type)] })); };
-  const moveRow = (ri: number, dir: number) => { tap(); setPendingCol(null); setBlkRows((rs) => { const j = ri + dir; if (j < 0 || j >= rs.length) return rs; const c = [...rs]; [c[ri], c[j]] = [c[j], c[ri]]; return c; }); };
-  const delRow = (ri: number) => { tap(); setPendingCol(null); setBlkRows((rs) => rs.filter((_, i) => i !== ri)); };
-  const mergeRow = (ri: number) => { tap(); setPendingCol(null); setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: [r.cols[0]] })); };
+  const moveRow = (ri: number, dir: number) => { tap(); setBlkRows((rs) => { const j = ri + dir; if (j < 0 || j >= rs.length) return rs; const c = [...rs]; [c[ri], c[j]] = [c[j], c[ri]]; return c; }); };
+  const delRow = (ri: number) => { tap(); setBlkRows((rs) => rs.filter((_, i) => i !== ri)); };
+  // A label/subject derived from the first heading or text block.
+  const blocksTitle = (rows: TplRow[]): string => {
+    for (const r of rows) for (const c of r.cols) if (c.type === 'heading' && c.text?.trim()) return c.text.trim().slice(0, 60);
+    for (const r of rows) for (const c of r.cols) if (c.type === 'text' && c.text?.trim()) return c.text.trim().split('\n')[0].slice(0, 60);
+    return 'Untitled template';
+  };
   const uploadBlockImage = (ri: number, ci: number) => pickImage(async (b64, ct) => { if (!b64) return; setBlkImgBusy(`${ri}-${ci}`); try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setBlk(ri, ci, { url }); } catch { /* ignore */ } finally { if (mountedRef.current) setBlkImgBusy(''); } });
-  const startManual = () => { tap(); setTplChoose(false); setTplBuild('manual'); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setBlkRows([]); setAddOpen(false); setPendingCol(null); setTplImages([]); setTplErr(''); };
+  const startManual = () => { tap(); setTplChoose(false); setTplBuild('manual'); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setBlkRows([]); setAddOpen(false); setTplImages([]); setTplErr(''); };
   const openTplEdit = (t: Template) => {
     tap();
     if (t.chat && t.chat.length) {
       setTplBuild('chat'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplImages([]); setChatMsgs(t.chat); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('preview');
     } else {
-      setTplBuild('manual'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplImages([]); setTplErr(''); setAddOpen(false); setPendingCol(null); setTplBody('');
+      setTplBuild('manual'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplImages([]); setTplErr(''); setAddOpen(false); setTplBody('');
       setBlkRows(t.blocks && t.blocks.length ? t.blocks : (t.body ? [{ cols: [{ type: 'text', text: t.body }] }] : []));
     }
   };
@@ -674,11 +677,15 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     finally { if (mountedRef.current) setTplImgBusy(false); }
   });
   const saveTpl = async () => {
-    const built: { body: string; kind: 'text' | 'html' } = tplBuild === 'chat' ? { body: tplBody.trim(), kind: 'html' } : tplComputed();
-    if (!tplSubject.trim() || !built.body || tplSaving) return;
+    if (tplSaving) return;
+    const isChat = tplBuild === 'chat';
+    const built: { body: string; kind: 'text' | 'html' } = isChat ? { body: tplBody.trim(), kind: 'html' } : tplComputed();
+    const subject = isChat ? tplSubject.trim() : blocksTitle(blkRows);
+    const name = (isChat ? tplName.trim() : '') || subject;
+    if (!subject || !built.body || (!isChat && blkRows.length === 0)) return;
     tap(); setTplSaving(true); setTplErr(''); setChatErr('');
     try {
-      await saveTemplate({ id: tplEdit?.id, name: tplName.trim() || tplSubject.trim().slice(0, 60), subject: tplSubject.trim(), body: built.body, kind: built.kind, chat: tplBuild === 'chat' ? chatMsgs : undefined, blocks: tplBuild === 'manual' ? blkRows : undefined });
+      await saveTemplate({ id: tplEdit?.id, name, subject, body: built.body, kind: built.kind, chat: isChat ? chatMsgs : undefined, blocks: isChat ? undefined : blkRows });
       if (!mountedRef.current) return;
       setTplEdit(null);
       listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
@@ -1084,42 +1091,32 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               ) : tplEdit ? (
                 <div className="ag-compose">
                   <div className="ag-blocks">
-                    {blkRows.map((r, ri) => (
-                      <div className="ag-blk" key={ri}>
-                        <div className="ag-blk-bar">
-                          <button className="ag-blk-ctrl" disabled={ri === 0} onClick={() => moveRow(ri, -1)} aria-label="Move up">↑</button>
-                          <button className="ag-blk-ctrl" disabled={ri === blkRows.length - 1} onClick={() => moveRow(ri, 1)} aria-label="Move down">↓</button>
-                          <span className="ag-blk-sp" />
-                          {r.cols.length < 2 && pendingCol !== ri
-                            ? <button className="ag-blk-ctrl wide" onClick={() => { tap(); setPendingCol(ri); setAddOpen(false); }}>⊞ 2 columns</button>
-                            : <button className="ag-blk-ctrl wide" onClick={() => { if (pendingCol === ri) { tap(); setPendingCol(null); } else mergeRow(ri); }}>⊟ 1 column</button>}
-                          <button className="ag-blk-ctrl" onClick={() => delRow(ri)} aria-label="Delete">✕</button>
-                        </div>
-                        <div className="ag-blk-cols">
-                          {r.cols.map((c, ci) => (
-                            <div className="ag-blk-col" key={ci}>
-                              <div className="ag-blk-tag">{(r.cols.length > 1 || pendingCol === ri) ? `${ci === 0 ? 'Left' : 'Right'} · ${TYPE_LABEL[c.type]}` : TYPE_LABEL[c.type]}</div>
-                              {c.type === 'heading' && <input className="ag-blk-in" placeholder="Headline" value={c.text || ''} onChange={(e) => setBlk(ri, ci, { text: e.target.value })} />}
-                              {c.type === 'text' && <textarea className="ag-blk-in ag-blk-ta" placeholder="Write your text… use {{name}} to personalize" value={c.text || ''} onChange={(e) => setBlk(ri, ci, { text: e.target.value })} />}
+                    {blkRows.map((r, ri) => {
+                      const c = r.cols[0];
+                      return (
+                        <div className="ag-blk" key={ri}>
+                          <div className="ag-blk-bar">
+                            <span className="ag-blk-tag">{TYPE_LABEL[c.type]}</span>
+                            <span className="ag-blk-sp" />
+                            <button className="ag-blk-ctrl" disabled={ri === 0} onClick={() => moveRow(ri, -1)} aria-label="Move up">↑</button>
+                            <button className="ag-blk-ctrl" disabled={ri === blkRows.length - 1} onClick={() => moveRow(ri, 1)} aria-label="Move down">↓</button>
+                            <button className="ag-blk-ctrl" onClick={() => delRow(ri)} aria-label="Delete">✕</button>
+                          </div>
+                          <div className="ag-blk-cols">
+                            <div className="ag-blk-col">
+                              {c.type === 'heading' && <input className="ag-blk-in" placeholder="Headline" value={c.text || ''} onChange={(e) => setBlk(ri, 0, { text: e.target.value })} />}
+                              {c.type === 'text' && <textarea className="ag-blk-in ag-blk-ta" placeholder="Write your text… use {{name}} to personalize" value={c.text || ''} onChange={(e) => setBlk(ri, 0, { text: e.target.value })} />}
                               {(c.type === 'image' || c.type === 'logo') && (c.url
-                                ? <div className="ag-blk-imgwrap"><img src={c.url} alt="" /><button onClick={() => uploadBlockImage(ri, ci)}>Replace</button></div>
-                                : <button className="ag-blk-up" disabled={blkImgBusy === `${ri}-${ci}`} onClick={() => uploadBlockImage(ri, ci)}>{blkImgBusy === `${ri}-${ci}` ? 'Uploading…' : (c.type === 'logo' ? '＋ Upload logo' : '＋ Upload image')}</button>)}
-                              {c.type === 'button' && (<><input className="ag-blk-in" placeholder="Button label" value={c.label || ''} onChange={(e) => setBlk(ri, ci, { label: e.target.value })} /><input className="ag-blk-in" placeholder="Link — https://…" value={c.link || ''} onChange={(e) => setBlk(ri, ci, { link: e.target.value })} /></>)}
+                                ? <div className="ag-blk-imgwrap"><img src={c.url} alt="" /><button onClick={() => uploadBlockImage(ri, 0)}>Replace</button></div>
+                                : <button className="ag-blk-up" disabled={blkImgBusy === `${ri}-0`} onClick={() => uploadBlockImage(ri, 0)}>{blkImgBusy === `${ri}-0` ? 'Uploading…' : (c.type === 'logo' ? '＋ Upload logo' : '＋ Upload image')}</button>)}
+                              {c.type === 'button' && (<><input className="ag-blk-in" placeholder="Button label" value={c.label || ''} onChange={(e) => setBlk(ri, 0, { label: e.target.value })} /><input className="ag-blk-in" placeholder="Link — https://…" value={c.link || ''} onChange={(e) => setBlk(ri, 0, { link: e.target.value })} /></>)}
                               {c.type === 'divider' && <div className="ag-blk-divline" />}
                               {c.type === 'spacer' && <div className="ag-blk-note">Adds vertical space.</div>}
                             </div>
-                          ))}
-                          {pendingCol === ri && r.cols.length < 2 && (
-                            <div className="ag-blk-col">
-                              <div className="ag-blk-tag">Right · pick a type</div>
-                              <div className="ag-blk-chooser">
-                                {BLOCK_TYPES.map((tp) => <button key={tp} onClick={() => addColumn(ri, tp)}>{TYPE_LABEL[tp]}</button>)}
-                              </div>
-                            </div>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {addOpen ? (
                       <div className="ag-blk-choosercard">
                         <div className="ag-blk-chooser-t">What do you want to add?</div>
@@ -1128,12 +1125,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         </div>
                         <button className="ag-blk-cancel" onClick={() => { tap(); setAddOpen(false); }}>Cancel</button>
                       </div>
-                    ) : pendingCol === null ? (
-                      <button className="ag-blk-plus" onClick={() => { tap(); setAddOpen(true); setPendingCol(null); }}>＋</button>
-                    ) : null}
+                    ) : (
+                      <button className="ag-blk-plus" onClick={() => { tap(); setAddOpen(true); }}>＋</button>
+                    )}
                     {blkRows.length === 0 && !addOpen && <div className="ag-blk-empty">Your email is empty — tap ＋ to add your first block.</div>}
                   </div>
                   {tplErr && <div className="ag-send-err">{tplErr}</div>}
+                  {blkRows.length > 0 && <button className="ag-send-btn" disabled={tplSaving} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save template'}</button>}
                 </div>
               ) : (
                 <>
