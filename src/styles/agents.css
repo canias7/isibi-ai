@@ -375,6 +375,10 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-paper .ag-mail { background: transparent; box-shadow: none; border-radius: 0; }
 .ag-paper .ag-mail-head { padding-left: 4px; padding-right: 4px; }
 .ag-paper .ag-mail-body { padding-left: 4px; padding-right: 4px; }
+/* "Save" lives in the top-right corner of the header (mirrors .ag-corner). */
+.ag-corner-save { position: absolute; top: 9px; right: 14px; background: var(--grad-brand); color: var(--on-brand); border: none; font: inherit; font-size: 14px; font-weight: 700; padding: 7px 18px; border-radius: 999px; cursor: pointer; }
+.ag-corner-save:active { filter: brightness(0.95); }
+.ag-corner-save:disabled { opacity: 0.4; cursor: default; }
 .ag-mailwrap .ag-blk-choosercard { border-color: #d7dce1; background: #f9fafb; }
 .ag-mailwrap .ag-blk-chooser-t { color: #202124; }
 .ag-mailwrap .ag-blk-chooser button { background: #fff; border-color: #d7dce1; color: #202124; }
