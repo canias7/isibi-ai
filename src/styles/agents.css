@@ -266,6 +266,21 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-dns-val button:active { filter: brightness(1.2); }
 .ag-dns-val button.ok { color: #34d399; border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.12); }
 
+/* Send-test composer (verified domain) */
+.ag-dom-test { display: flex; gap: 8px; align-items: stretch; margin-top: 10px; }
+.ag-dom-test .ag-field { flex: 1; }
+.ag-dom-test .ag-send-btn { width: auto; flex-shrink: 0; padding: 12px 16px; }
+.ag-dom-testmsg { margin-top: 8px; font-size: var(--fs-footnote); color: var(--text-dim); text-align: left; }
+.ag-dom-testmsg.ok { color: #34d399; }
+
+/* Suppressed contacts */
+.ag-sup-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.ag-sup { display: flex; align-items: center; gap: 10px; padding: 11px 13px; background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; }
+.ag-sup-email { flex: 1; min-width: 0; color: #fff; font-size: var(--fs-body-s); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-sup .ag-badge { text-transform: capitalize; }
+.ag-sup-x { flex-shrink: 0; background: none; border: none; color: var(--text-dim); font: inherit; font-size: var(--fs-caption); font-weight: 600; cursor: pointer; padding: 4px 6px; }
+.ag-sup-x:active { color: #ff6b6b; }
+
 /* AI "describe -> generate" box (templates) */
 .ag-ai { display: flex; flex-direction: column; gap: 8px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: 14px; padding: 11px 12px; }
 .ag-ai-input { width: 100%; min-height: 60px; resize: none; background: transparent; border: none; outline: none; color: var(--text); font: inherit; font-size: var(--fs-footnote); line-height: 1.5; }

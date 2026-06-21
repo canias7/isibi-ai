@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, listTemplates, saveTemplate, deleteTemplate, generateTemplate, chatTemplate, uploadEmailImage, getBrand, saveBrand, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SesDomain, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, generateTemplate, chatTemplate, uploadEmailImage, getBrand, saveBrand, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -157,7 +157,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campList, setCampList] = useState<Campaign[]>([]);
   const [campBodyKind, setCampBodyKind] = useState<'text' | 'html'>('text'); // 'html' when a designed template is applied
   // Custom sending domains (Amazon SES) + the campaign "From" picker
-  const [campView, setCampView] = useState<'list' | 'domains'>('list');
+  const [campView, setCampView] = useState<'list' | 'domains' | 'suppressions'>('list');
+  const [supList, setSupList] = useState<Suppression[]>([]);
+  const [testTo, setTestTo] = useState('');
+  const [testBusy, setTestBusy] = useState(false);
+  const [testMsg, setTestMsg] = useState('');
   const [sesDomains, setSesDomains] = useState<SesDomain[]>([]);
   const [domNew, setDomNew] = useState('');
   const [domBusy, setDomBusy] = useState(false);
@@ -525,6 +529,23 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const removeDomain = async (domain: string) => {
     tap();
     try { await removeSesDomain(domain); if (campDomain === domain) setCampDomain(''); await loadDomains(); } catch { /* ignore */ }
+  };
+  const loadSuppressions = () => listSuppressions().then((s) => { if (mountedRef.current) setSupList(s); });
+  const removeSup = async (email: string) => {
+    tap();
+    try { await removeSuppression(email); await loadSuppressions(); } catch { /* ignore */ }
+  };
+  const sendTest = async (domain: string) => {
+    const to = testTo.trim();
+    if (!to || testBusy) return;
+    tap(); setTestBusy(true); setTestMsg('');
+    try {
+      const r = await testSesDomain(domain, to);
+      if (!mountedRef.current) return;
+      if (r.ok) { setTestMsg(`Sent to ${to} ✓`); setTestTo(''); }
+      else setTestMsg(r.error === 'domain_not_verified' ? 'Domain isn’t verified yet.' : r.error === 'bad_to' ? 'Enter a valid email.' : 'Couldn’t send — in the SES sandbox the recipient must be a verified address.');
+    } catch { if (mountedRef.current) setTestMsg('Something went wrong — try again.'); }
+    finally { if (mountedRef.current) setTestBusy(false); }
   };
 
   // ---- Templates ----
@@ -908,15 +929,24 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                                 {d.status === 'verified'
                                   ? <div className="ag-dom-ok">✓ Verified — pick this domain under “Send from” when creating a campaign.</div>
                                   : <p className="ag-foot ag-dom-hint">Add these records at your DNS host, then tap Check. DNS can take a few minutes to a few hours to propagate.</p>}
-                                <div className="ag-dns">
-                                  {(d.records || []).map((r, i) => (
-                                    <div className="ag-dns-rec" key={i}>
-                                      <div className="ag-dns-top"><span className="ag-dns-type">{r.type}</span>{r.note && <span className="ag-dns-note">{r.note}</span>}</div>
-                                      <div className="ag-dns-field"><label>Name / Host</label><div className="ag-dns-val"><code>{r.name}</code><button className={copied === r.name ? 'ok' : ''} onClick={() => copyText(r.name)}>{copied === r.name ? 'Copied ✓' : 'Copy'}</button></div></div>
-                                      <div className="ag-dns-field"><label>Value</label><div className="ag-dns-val"><code>{r.value}</code><button className={copied === r.value ? 'ok' : ''} onClick={() => copyText(r.value)}>{copied === r.value ? 'Copied ✓' : 'Copy'}</button></div></div>
-                                    </div>
-                                  ))}
-                                </div>
+                                {d.status !== 'verified' && (
+                                  <div className="ag-dns">
+                                    {(d.records || []).map((r, i) => (
+                                      <div className="ag-dns-rec" key={i}>
+                                        <div className="ag-dns-top"><span className="ag-dns-type">{r.type}</span>{r.note && <span className="ag-dns-note">{r.note}</span>}</div>
+                                        <div className="ag-dns-field"><label>Name / Host</label><div className="ag-dns-val"><code>{r.name}</code><button className={copied === r.name ? 'ok' : ''} onClick={() => copyText(r.name)}>{copied === r.name ? 'Copied ✓' : 'Copy'}</button></div></div>
+                                        <div className="ag-dns-field"><label>Value</label><div className="ag-dns-val"><code>{r.value}</code><button className={copied === r.value ? 'ok' : ''} onClick={() => copyText(r.value)}>{copied === r.value ? 'Copied ✓' : 'Copy'}</button></div></div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                {d.status === 'verified' && (
+                                  <div className="ag-dom-test">
+                                    <input className="ag-field" placeholder="Send a test to you@example.com" autoCapitalize="none" autoCorrect="off" value={testTo} onChange={(e) => { setTestTo(e.target.value); if (testMsg) setTestMsg(''); }} />
+                                    <button className="ag-send-btn" disabled={testBusy || !testTo.trim()} onClick={() => sendTest(d.domain)}>{testBusy ? 'Sending…' : 'Send test'}</button>
+                                  </div>
+                                )}
+                                {d.status === 'verified' && testMsg && <div className={`ag-dom-testmsg${testMsg.startsWith('Sent') ? ' ok' : ''}`}>{testMsg}</div>}
                                 <div className="ag-dom-actions">
                                   {d.status !== 'verified' && <button className="ag-send-btn" onClick={() => checkDomain(d.domain)}>Check verification</button>}
                                   <button className="ag-send-btn ghost" onClick={() => removeDomain(d.domain)}>Remove</button>
@@ -929,10 +959,32 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     </div>
                   )}
                 </div>
+              ) : campView === 'suppressions' ? (
+                <div className="ag-compose">
+                  <div className="ag-dom-head">
+                    <button className="ag-back-link" onClick={() => { tap(); setCampView('list'); }}>‹ Campaigns</button>
+                    <span className="ag-dom-title">Suppressed contacts</span>
+                  </div>
+                  <p className="ag-foot ag-dom-hint">People who unsubscribed, bounced, or complained. They're skipped automatically on every campaign — remove someone to allow sending to them again.</p>
+                  {supList.length === 0 ? (
+                    <div className="ag-empty" style={{ marginTop: 12 }}>No suppressed contacts yet.</div>
+                  ) : (
+                    <div className="ag-sup-list">
+                      {supList.map((s) => (
+                        <div className="ag-sup" key={s.email}>
+                          <span className="ag-sup-email">{s.email}</span>
+                          <span className={`ag-badge${s.reason === 'complaint' ? ' is-bad' : s.reason === 'bounce' ? ' is-wait' : ''}`}><i className="ag-dot" />{s.reason}</span>
+                          <button className="ag-sup-x" onClick={() => removeSup(s.email)}>Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <>
                   <button className="ag-send-btn" onClick={openCampNew}>+ New email campaign</button>
                   <button className="ag-send-btn ghost ag-dom-link" onClick={() => { tap(); setCampView('domains'); loadDomains(); }}>Sending domains{sesDomains.some((d) => d.status === 'verified') ? ` · ${sesDomains.filter((d) => d.status === 'verified').length} verified` : sesDomains.length ? ' · setup' : ''}</button>
+                  <button className="ag-send-btn ghost ag-dom-link" onClick={() => { tap(); setCampView('suppressions'); loadSuppressions(); }}>Suppressed contacts{supList.length ? ` · ${supList.length}` : ''}</button>
                   {campList.length === 0 ? (
                     <div className="ag-empty" style={{ marginTop: 12 }}>No campaigns yet. Write once and send to your whole list — straight from your mailbox.</div>
                   ) : (
