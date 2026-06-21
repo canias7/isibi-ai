@@ -1091,7 +1091,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                           <button className="ag-blk-ctrl" disabled={ri === blkRows.length - 1} onClick={() => moveRow(ri, 1)} aria-label="Move down">↓</button>
                           <span className="ag-blk-sp" />
                           {r.cols.length < 2 && pendingCol !== ri
-                            ? <button className="ag-blk-ctrl wide" onClick={() => { tap(); setPendingCol(ri); }}>⊞ 2 columns</button>
+                            ? <button className="ag-blk-ctrl wide" onClick={() => { tap(); setPendingCol(ri); setAddOpen(false); }}>⊞ 2 columns</button>
                             : <button className="ag-blk-ctrl wide" onClick={() => { if (pendingCol === ri) { tap(); setPendingCol(null); } else mergeRow(ri); }}>⊟ 1 column</button>}
                           <button className="ag-blk-ctrl" onClick={() => delRow(ri)} aria-label="Delete">✕</button>
                         </div>
@@ -1128,17 +1128,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         </div>
                         <button className="ag-blk-cancel" onClick={() => { tap(); setAddOpen(false); }}>Cancel</button>
                       </div>
-                    ) : (
-                      <button className="ag-blk-plus" onClick={() => { tap(); setAddOpen(true); }}>＋</button>
-                    )}
+                    ) : pendingCol === null ? (
+                      <button className="ag-blk-plus" onClick={() => { tap(); setAddOpen(true); setPendingCol(null); }}>＋</button>
+                    ) : null}
                     {blkRows.length === 0 && !addOpen && <div className="ag-blk-empty">Your email is empty — tap ＋ to add your first block.</div>}
                   </div>
-                  {blkRows.length > 0 && tplComputed().body && (
-                    <div className="ag-tpl-preview">
-                      <div className="ag-tpl-preview-bar"><span>Preview</span></div>
-                      <iframe className="ag-tpl-frame" title="Template preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(tplComputed().body)} />
-                    </div>
-                  )}
                   {tplErr && <div className="ag-send-err">{tplErr}</div>}
                 </div>
               ) : (
