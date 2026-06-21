@@ -238,6 +238,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     else if (commsApp && commsApp !== 'telegram' && emailTab === 'compose') setEmailTab(inboxHome ? 'inbox' : 'home');
     else if (commsApp && commsApp !== 'telegram' && emailTab !== 'home' && !inboxHome) setEmailTab('home');
     else if (commsApp) { setCommsApp(null); setInboxHome(false); }
+    else if (tplEdit) setTplEdit(null);
+    else if (tplChoose) setTplChoose(false);
     else if (sendraTab !== 'home') setSendraTab('home');
     else if (agent) setAgent(null);
     else onClose();
@@ -1081,8 +1083,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 )
               ) : tplEdit ? (
                 <div className="ag-compose">
-                  <input className="ag-field" placeholder="Template name" value={tplName} onChange={(e) => setTplName(e.target.value)} />
-                  <input className="ag-field" placeholder="Subject" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
                   <div className="ag-blocks">
                     {blkRows.map((r, ri) => (
                       <div className="ag-blk" key={ri}>
@@ -1129,7 +1129,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         <button className="ag-blk-cancel" onClick={() => { tap(); setAddOpen(false); }}>Cancel</button>
                       </div>
                     ) : (
-                      <button className="ag-blk-plus" onClick={() => { tap(); setAddOpen(true); }}>＋ Add block</button>
+                      <button className="ag-blk-plus" onClick={() => { tap(); setAddOpen(true); }}>＋</button>
                     )}
                     {blkRows.length === 0 && !addOpen && <div className="ag-blk-empty">Your email is empty — tap ＋ to add your first block.</div>}
                   </div>
@@ -1140,11 +1140,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     </div>
                   )}
                   {tplErr && <div className="ag-send-err">{tplErr}</div>}
-                  <button className="ag-send-btn" disabled={tplSaving || !tplSubject.trim() || !tplComputed().body} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save template'}</button>
-                  <div className="ag-sent-actions">
-                    <button className="ag-send-btn ghost" disabled={tplSaving} onClick={() => { tap(); setTplEdit(null); }}>Cancel</button>
-                    {tplEdit.id && <button className="ag-send-btn ghost" disabled={tplSaving} onClick={delTpl}>Delete</button>}
-                  </div>
                 </div>
               ) : (
                 <>
