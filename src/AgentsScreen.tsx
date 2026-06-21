@@ -742,8 +742,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
 
   const sortedMsgs = [...tgMsgs].sort((a, b) => (a.date || 0) - (b.date || 0));
 
+  // The manual template builder turns the whole screen white so it reads like a real email page.
+  const paperMode = !reading && agent !== null && commsApp === null && sendraTab === 'templates' && !tplChoose && !!tplEdit && tplBuild === 'manual';
+
   return (
-    <div className="memg ag" ref={trapRef} tabIndex={-1}>
+    <div className={`memg ag${paperMode ? ' ag-paper' : ''}`} ref={trapRef} tabIndex={-1}>
       <div className="memg-top">
         <button className="memg-back" onClick={back} aria-label={reading || agent ? 'Back' : 'Close'}><IconArrowLeft size={22} /></button>
         <div className="memg-titles">
