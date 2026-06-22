@@ -686,8 +686,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
 
   const sortedMsgs = [...tgMsgs].sort((a, b) => (a.date || 0) - (b.date || 0));
 
+  // The AI template builder gets a Sendra-orange ambient instead of the default amber glow.
+  const builderMode = !reading && agent !== null && commsApp === null && sendraTab === 'templates' && !!tplEdit;
+
   return (
-    <div className="memg ag" ref={trapRef} tabIndex={-1}>
+    <div className={`memg ag${builderMode ? ' ag-builder' : ''}`} ref={trapRef} tabIndex={-1}>
       <div className="memg-top">
         <button className="memg-back" onClick={back} aria-label={reading || agent ? 'Back' : 'Close'}><IconArrowLeft size={22} /></button>
         <div className="memg-titles">

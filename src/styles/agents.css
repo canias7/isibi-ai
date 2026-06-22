@@ -2,6 +2,14 @@
 /* Reuses the .memg overlay shell (fixed full-screen, header, back, dot grid).
    These styles cover the agent list and the Email agent workspace below it. */
 
+/* The AI template builder glows Sendra-orange instead of the default amber chat glow. */
+.memg.ag-builder {
+  background:
+    radial-gradient(620px 480px at 50% 16%, rgba(240, 130, 30, 0.28), transparent 64%),
+    radial-gradient(460px 460px at 50% 62%, rgba(224, 110, 24, 0.14), transparent 72%),
+    #0b0806;
+}
+
 .ag-stage {
   flex: 1;
   overflow-y: auto;
