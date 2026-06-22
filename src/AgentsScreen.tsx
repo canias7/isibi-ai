@@ -119,6 +119,10 @@ const relTime = (t: number) => {
   return `${Math.round(s / 86400)}d ago`;
 };
 const REDUCED_MOTION = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Preview only: show a sample value for the {{name}} merge tag so the email reads
+// naturally ("Hi there,"). The saved/sent body keeps {{name}} — campaigns swap in
+// each recipient's real name (falling back to "there") at send time.
+const fillMergeTags = (html: string) => html.replace(/\{\{\s*name\s*\}\}/gi, 'there');
 // Copy text to the clipboard, with a hidden-textarea fallback for older webviews.
 const copyToClipboard = async (s: string): Promise<boolean> => {
   try { await navigator.clipboard.writeText(s); return true; } catch { /* fall through */ }
@@ -1095,7 +1099,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       <button className="ag-prev-save" disabled={tplSaving || !tplBody.trim() || !tplSubject.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save'}</button>
                     </div>
                     <input className="ag-tpl-title" placeholder="Email title" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
-                    <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(tplBody || '<div style="padding:40px;text-align:center;color:#888;font-family:sans-serif">Nothing yet — chat to build it.</div>')} />
+                    <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(fillMergeTags(tplBody) || '<div style="padding:40px;text-align:center;color:#888;font-family:sans-serif">Nothing yet — chat to build it.</div>')} />
                     {chatErr && <div className="ag-send-err">{chatErr}</div>}
                     {tplEdit.id && <button className="ag-tpl-del" disabled={tplSaving} onClick={delTpl}>Delete template</button>}
                   </div>
