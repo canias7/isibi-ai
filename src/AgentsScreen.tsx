@@ -208,7 +208,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const inboxScrollRef = useRef<HTMLDivElement>(null);
   const tgMsgsRef = useRef<HTMLDivElement>(null);
   const trapRef = useRef<HTMLDivElement>(null);
-  const bodyRef = useRef<HTMLDivElement>(null);             // the free-positioning canvas (mail body)
+  const dragFromRef = useRef<number | null>(null);          // live source index while dragging a block to reorder
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
@@ -594,9 +594,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       if (cols.length <= 1) return blk(cols[0] || { type: 'text', text: '' });
       return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px"><tr>${cols.map((c, i) => `<td valign="top" style="width:50%;padding-${i === 0 ? 'right' : 'left'}:8px">${blk(c)}</td>`).join('')}</tr></table>`;
     };
-    // Email bodies are a single stacked column, so serialize blocks top-to-bottom by their canvas Y.
-    const ordered = [...rows].sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
-    return `<div style="max-width:600px;margin:0 auto;padding:24px;background:#ffffff;font-family:system-ui,Arial,sans-serif">${ordered.map(row).join('')}</div>`;
+    return `<div style="max-width:600px;margin:0 auto;padding:24px;background:#ffffff;font-family:system-ui,Arial,sans-serif">${rows.map(row).join('')}</div>`;
   };
   // The stored body + kind for the active editor mode.
   const tplComputed = (): { body: string; kind: 'text' | 'html' } => ({ body: compileBlocks(blkRows), kind: 'html' });
@@ -624,37 +622,33 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             : type === 'divider' ? { type: 'divider' }
               : type === 'spacer' ? { type: 'spacer' }
                 : { type: 'text', text: '' };
-  const addBlock = (type: TplBlock['type']) => { tap(); setBlkRows((rs) => { const y = rs.length ? rs.reduce((m, r) => Math.max(m, r.y ?? 0), 0) + 76 : 16; return [...rs, { cols: [makeBlock(type)], x: 16, y }]; }); };
+  const addBlock = (type: TplBlock['type']) => { tap(); setBlkRows((rs) => [...rs, { cols: [makeBlock(type)] }]); };
   const setBlk = (ri: number, ci: number, patch: Partial<TplBlock>) => setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: r.cols.map((c, j) => j !== ci ? c : { ...c, ...patch }) }));
   const delRow = (ri: number) => { tap(); setBlkRows((rs) => rs.filter((_, i) => i !== ri)); };
-  // Drag a block freely to any x/y inside the body canvas (touch + mouse via pointer events).
+  // Drag a block by its grip to reorder it in the stack — what you see is the send order.
   const startDrag = (ri: number) => (e: React.PointerEvent) => {
     e.preventDefault(); tap();
-    const canvas = bodyRef.current; if (!canvas) return;
-    const blockEl = (e.currentTarget as HTMLElement).closest('[data-bi]') as HTMLElement | null;
-    const crect = canvas.getBoundingClientRect();
-    const bw = blockEl?.offsetWidth ?? 0;
-    const bh = blockEl?.offsetHeight ?? 0;
-    const row = blkRows[ri];
-    const sx = row?.x ?? 0, sy = row?.y ?? 0;
-    const px0 = e.clientX, py0 = e.clientY;
-    setDragIdx(ri);
+    dragFromRef.current = ri; setDragIdx(ri);
     const ac = new AbortController();
     const move = (ev: PointerEvent) => {
-      const nx = Math.max(0, Math.min(sx + (ev.clientX - px0), crect.width - bw));
-      const ny = Math.max(0, Math.min(sy + (ev.clientY - py0), Math.max(crect.height, bh) - bh));
-      setBlkRows((rs) => rs.map((r, i) => i === ri ? { ...r, x: nx, y: ny } : r));
+      const from = dragFromRef.current; if (from === null) return;
+      const tgt = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest('[data-bi]') as HTMLElement | null;
+      if (!tgt) return;
+      const to = Number(tgt.dataset.bi);
+      if (!Number.isNaN(to) && to !== from) {
+        setBlkRows((rs) => { const c = [...rs]; const [x] = c.splice(from, 1); c.splice(to, 0, x); return c; });
+        dragFromRef.current = to; setDragIdx(to);
+      }
     };
-    const end = () => { setDragIdx(null); ac.abort(); };
+    const end = () => { dragFromRef.current = null; setDragIdx(null); ac.abort(); };
     window.addEventListener('pointermove', move, { signal: ac.signal });
     window.addEventListener('pointerup', end, { signal: ac.signal });
     window.addEventListener('pointercancel', end, { signal: ac.signal });
   };
-  // A label/subject derived from the topmost heading or text block (by canvas Y).
+  // A label/subject derived from the first heading or text block (top of the stack).
   const blocksTitle = (rows: TplRow[]): string => {
-    const ordered = [...rows].sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
-    for (const r of ordered) for (const c of r.cols) if (c.type === 'heading' && c.text?.trim()) return c.text.trim().slice(0, 60);
-    for (const r of ordered) for (const c of r.cols) if (c.type === 'text' && c.text?.trim()) return c.text.trim().split('\n')[0].slice(0, 60);
+    for (const r of rows) for (const c of r.cols) if (c.type === 'heading' && c.text?.trim()) return c.text.trim().slice(0, 60);
+    for (const r of rows) for (const c of r.cols) if (c.type === 'text' && c.text?.trim()) return c.text.trim().split('\n')[0].slice(0, 60);
     return 'Untitled template';
   };
   const uploadBlockImage = (ri: number, ci: number) => pickImage(async (b64, ct) => { if (!b64) return; setBlkImgBusy(`${ri}-${ci}`); try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setBlk(ri, ci, { url }); } catch { /* ignore */ } finally { if (mountedRef.current) setBlkImgBusy(''); } });
@@ -1140,11 +1134,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         <span className="ag-mail-sright"><span className="ag-mail-unsub">Unsubscribe</span><span className="ag-mail-dots">⋯</span></span>
                       </div>
                     </div>
-                    <div className="ag-mail-body" ref={bodyRef} style={{ minHeight: Math.max(460, blkRows.reduce((m, r) => Math.max(m, r.y ?? 0), 0) + 200) }}>
+                    <div className="ag-mail-body">
                       {blkRows.map((r, ri) => {
                         const c = r.cols[0];
                         return (
-                          <div className={`ag-mb${dragIdx === ri ? ' dragging' : ''}`} data-bi={ri} key={ri} style={{ left: r.x ?? 16, top: r.y ?? 16 }}>
+                          <div className={`ag-mb${dragIdx === ri ? ' dragging' : ''}`} data-bi={ri} key={ri}>
                             <div className="ag-mb-ctrl">
                               <button className="ag-mb-grip" style={{ touchAction: 'none' }} onPointerDown={startDrag(ri)} aria-label="Drag to move">⠿</button>
                               <button onClick={() => delRow(ri)} aria-label="Delete">✕</button>
@@ -1180,7 +1174,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         ) : (
                           <>
                             <button className="ag-mb-plus" onClick={() => { tap(); setAddOpen(true); }} aria-label="Add block">＋</button>
-                            {blkRows.length === 0 && <div className="ag-mb-empty">Tap ＋ to add a block, then drag it anywhere.</div>}
+                            {blkRows.length === 0 && <div className="ag-mb-empty">Tap ＋ to add your first block.</div>}
                           </>
                         )}
                       </div>

@@ -333,14 +333,15 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-mail-sright { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .ag-mail-unsub { color: #1a73e8; font-size: 13px; font-weight: 500; }
 .ag-mail-dots { color: #5f6368; font-size: 18px; }
-/* The body is a free canvas — blocks are absolutely positioned and dragged anywhere. */
-.ag-mail-body { position: relative; border-top: 1px solid #e8eaed; padding: 20px 16px 22px; }
+/* The body is a single stacked column — exactly how the email sends. */
+.ag-mail-body { border-top: 1px solid #e8eaed; padding: 20px 16px 22px; }
 
-/* Each block renders like the finished email; drag it by the grip, edit content in place. */
-.ag-mb { position: absolute; width: 72%; min-width: 150px; max-width: 460px; border-radius: 8px; }
-.ag-mb:focus-within { box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.35); }
-.ag-mb.dragging { opacity: 0.96; background: #ffffff; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22); z-index: 5; }
-.ag-mb-addzone { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+/* Each block is a visible, grabbable card; drag the grip to reorder it in the stack, edit in place.
+   (The frame is editor-only; the compiled email renders clean with no borders.) */
+.ag-mb { position: relative; width: 100%; margin: 0 0 12px; background: #ffffff; border: 1px solid #e6e8eb; border-radius: 10px; padding: 4px 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); }
+.ag-mb:focus-within { border-color: #1a73e8; box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.18); }
+.ag-mb.dragging { opacity: 0.97; border-color: #1a73e8; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22); pointer-events: none; z-index: 5; }
+.ag-mb-addzone { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 6px; }
 .ag-mb-ctrl { position: absolute; top: -12px; right: 6px; z-index: 2; display: flex; gap: 2px; padding: 2px; background: #ffffff; border: 1px solid #e3e6ea; border-radius: 999px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14); opacity: 0.85; transition: opacity .12s; }
 .ag-mb:hover .ag-mb-ctrl, .ag-mb:focus-within .ag-mb-ctrl { opacity: 1; }
 .ag-mb-ctrl button { background: none; border: none; color: #5f6368; font: inherit; font-size: 13px; line-height: 1; padding: 5px 8px; border-radius: 999px; cursor: pointer; }
