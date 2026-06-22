@@ -101,6 +101,7 @@ const IMAGE_RULE = " IMAGES (mandatory - the email MUST be visual, never text-on
 const EMAIL_RULES = " RENDERING (must work in every inbox, especially Outlook): build the layout with role=presentation <table> elements, NOT <div> - one outer table (align center, width 100%) wrapping an inner table at max-width 600px. Inline styles only; use a web-safe font stack everywhere (font-family:Arial,Helvetica,sans-serif). Begin the body with a hidden PREHEADER (the inbox preview line, ~50-90 chars summarizing the email): <div style=\"display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#ffffff\">...</div>. Build the call-to-action as a BULLETPROOF button - a table cell with bgcolor + padding wrapping an <a> (never a styled <div>), with an <!--[if mso]> VML roundrect <![endif]--> fallback so Outlook shows it. Give every <img> a short descriptive alt and an explicit width. Keep the whole HTML under ~100KB so Gmail doesn't clip it.";
 const QUALITY_RULES = " COPY QUALITY: subject under ~50 characters, specific and compelling but never clickbait; no ALL-CAPS, no '!!!', avoid spam-trigger words (FREE!!!, $$$, ACT NOW, GUARANTEED); exactly one primary call-to-action; keep a healthy text-to-image balance (never send one big image as the whole email).";
 const LINK_RULE = " LINKS: every button and text link MUST use a real, working https:// URL - the brand's official site or a likely product/landing page. NEVER use href=\"#\", an empty href, or javascript:. If unsure, point all CTAs at the brand's homepage. Open links in a new tab (target=\"_blank\").";
+const SOCIAL_RULE = " SOCIAL ICONS: for a 'Follow us' row, render each platform as its own small <img> (about 32-40px), wrapped in an <a> to the profile URL, and set each icon's alt to the platform name EXACTLY - alt=\"Instagram\", alt=\"Facebook\", alt=\"X\", alt=\"TikTok\", alt=\"YouTube\", or alt=\"LinkedIn\". The server swaps in the correct brand icon for each, so don't worry about the icon source.";
 
 // ---- Image re-hosting: make every <img> actually render in the inbox ----
 const OURS = "/storage/v1/object/public/email-assets/";
@@ -147,6 +148,28 @@ function stockUrls(kw: string, seed: number): string[] {
 function isLogo(tag: string, src: string): boolean {
   return /\blogo\b/i.test(tag) || /logo|clearbit/i.test(src);
 }
+// Social icons need the real brand glyph (a stock photo would be wrong). Detect the
+// platform from the <img> alt/src and swap in a reliable hosted icon.
+const SOCIAL_ICONS: Record<string, string> = {
+  instagram: "https://img.icons8.com/color/96/instagram-new.png",
+  facebook: "https://img.icons8.com/color/96/facebook-new.png",
+  twitter: "https://img.icons8.com/color/96/twitterx.png",
+  tiktok: "https://img.icons8.com/color/96/tiktok--v1.png",
+  youtube: "https://img.icons8.com/color/96/youtube-play.png",
+  linkedin: "https://img.icons8.com/fluency/96/linkedin.png",
+  pinterest: "https://img.icons8.com/color/96/pinterest--v1.png",
+};
+function socialPlatform(tag: string): string {
+  const h = tag.toLowerCase();
+  if (h.includes("instagram")) return "instagram";
+  if (h.includes("facebook")) return "facebook";
+  if (h.includes("tiktok")) return "tiktok";
+  if (h.includes("youtube")) return "youtube";
+  if (h.includes("linkedin")) return "linkedin";
+  if (h.includes("pinterest")) return "pinterest";
+  if (h.includes("twitter") || h.includes("x.com") || /\balt=["']x["']/i.test(tag)) return "twitter";
+  return "";
+}
 function brandName(tag: string, src: string): string {
   const alt = (tag.match(/\balt=["']([^"']*)["']/i)?.[1] || "").replace(/\b(logo|icon|inc|llc|ltd|corp|co|the)\b/gi, "").replace(/[^A-Za-z0-9 &]+/g, " ").trim();
   if (alt) return alt.split(/\s+/).slice(0, 3).join(" ");
@@ -165,16 +188,20 @@ async function rehostImages(html: string, uid: string): Promise<string> {
   const tags = [...new Set(html.match(/<img\b[^>]*>/gi) || [])];
   if (!tags.length) return html;
   const replacements = new Map<string, string>();
-  await Promise.all(tags.slice(0, 6).map(async (tag, i) => {
+  await Promise.all(tags.slice(0, 12).map(async (tag, i) => {
     const src = tag.match(/\bsrc=["']([^"']+)["']/i)?.[1] || "";
     if (src.includes(OURS)) return; // already on our bucket
+    const social = socialPlatform(tag);
     const stockReq = /^stock:/i.test(src.trim()) ? src.trim().slice(6) : ""; // model asked for a stock photo by keyword
-    const logo = isLogo(tag, src);
+    const logo = !social && isLogo(tag, src);
     let url: string | null = null;
-    if (!stockReq && /^https?:\/\//i.test(src)) { const img = await fetchImage(src); if (img) url = await uploadImage(img.buf, img.ct, uid); }
-    if (!url && !logo) {
-      const kw = stockReq ? (stockReq.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").trim().split(/\s+/).filter((w) => w.length > 2).slice(0, 2).join(",") || "business,lifestyle") : altKeyword(tag);
-      for (const c of stockUrls(kw, i)) { const img = await fetchImage(c); if (img) { url = await uploadImage(img.buf, img.ct, uid); if (url) break; } }
+    if (social) { const img = await fetchImage(SOCIAL_ICONS[social] || ""); if (img) url = await uploadImage(img.buf, img.ct, uid); }
+    else {
+      if (!stockReq && /^https?:\/\//i.test(src)) { const img = await fetchImage(src); if (img) url = await uploadImage(img.buf, img.ct, uid); }
+      if (!url && !logo) {
+        const kw = stockReq ? (stockReq.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").trim().split(/\s+/).filter((w) => w.length > 2).slice(0, 2).join(",") || "business,lifestyle") : altKeyword(tag);
+        for (const c of stockUrls(kw, i)) { const img = await fetchImage(c); if (img) { url = await uploadImage(img.buf, img.ct, uid); if (url) break; } }
+      }
     }
     if (url) replacements.set(tag, setSrc(tag, url));
     else if (logo) { const nm = brandName(tag, src); replacements.set(tag, nm ? wordmark(nm) : ""); }
@@ -212,7 +239,7 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
       "Structure top to bottom: a header with the logo (or the business name as a wordmark if no logo); a full-width hero image; a bold headline; one or two short intro paragraphs; then one or more feature/product sections, each with an image, a short title and a line of copy (add a small rounded discount badge like '20% off' ONLY if the description mentions a deal); a single prominent call-to-action button (rounded, brand-color background, white text); and a footer with the business name and address. " +
       "Rules: inline styles ONLY (no style tag, no script tag, no external CSS, no markdown). One centered container, max-width 600px, width 100%, light background, mobile-friendly. Use the brand color for the button, links and accents (fall back to a tasteful blue if none). Every img must be display:block; width:100%; height:auto. " +
       "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). End with the sign-off. Do NOT include an unsubscribe line (the system appends one)." +
-      brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE +
+      brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + SOCIAL_RULE +
       " Respond with ONLY a JSON object with two string keys: subject (short and compelling) and body (the full HTML).")
     : ("You are an expert email copywriter for a small business owner. From the user's short description, write ONE email they can send to their contacts. " +
       "Voice: warm, clear, human; concise and scannable; no corporate fluff, no clickbait. " +
@@ -244,7 +271,7 @@ async function chatDesign(messages: { role: string; content: string }[], current
     "You are Sendra, an expert email designer and copywriter. You build and edit ONE marketing newsletter email as clean, email-client-safe HTML (inline styles only, no style or script tags, no markdown; one centered container max-width 600px, width 100%, mobile-friendly; every img display:block; width:100%; height:auto). " +
     "When creating fresh: logo header (or business-name wordmark), a hero image, bold headline, short intro, optional feature/product sections with images and a small discount badge only if a deal is mentioned, ONE call-to-action button in the brand color, and a footer with the business name and address. " +
     "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one)." +
-    brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + curBlock +
+    brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + SOCIAL_RULE + curBlock +
     " You can also just chat: if the user only asks a question, says hi, or gives feedback that doesn't require changing the email, reply briefly and to the point and DO NOT include subject or body. Only include subject and body when you actually create or change the email." +
     " Respond with ONLY a JSON object: always include a short `reply`; include `subject` and `body` (the full HTML) ONLY when you created or changed the email.";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
