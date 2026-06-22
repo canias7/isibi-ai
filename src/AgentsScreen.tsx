@@ -192,6 +192,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [blkRows, setBlkRows] = useState<TplRow[]>([]);      // block-builder rows (manual "Build" mode)
   const [blkImgBusy, setBlkImgBusy] = useState('');          // "ri-ci" of the block whose image is uploading
   const [addOpen, setAddOpen] = useState(false);            // block-type chooser open
+  const [dragIdx, setDragIdx] = useState<number | null>(null); // block currently being dragged to reorder
   // New-template flow: choose AI vs manual; AI = Lovable-style chat builder.
   const [tplChoose, setTplChoose] = useState(false);
   const [tplBuild, setTplBuild] = useState<'chat' | 'manual'>('chat');
@@ -207,6 +208,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const inboxScrollRef = useRef<HTMLDivElement>(null);
   const tgMsgsRef = useRef<HTMLDivElement>(null);
   const trapRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);             // the free-positioning canvas (mail body)
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
@@ -592,7 +594,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       if (cols.length <= 1) return blk(cols[0] || { type: 'text', text: '' });
       return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px"><tr>${cols.map((c, i) => `<td valign="top" style="width:50%;padding-${i === 0 ? 'right' : 'left'}:8px">${blk(c)}</td>`).join('')}</tr></table>`;
     };
-    return `<div style="max-width:600px;margin:0 auto;padding:24px;background:#ffffff;font-family:system-ui,Arial,sans-serif">${rows.map(row).join('')}</div>`;
+    // Email bodies are a single stacked column, so serialize blocks top-to-bottom by their canvas Y.
+    const ordered = [...rows].sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
+    return `<div style="max-width:600px;margin:0 auto;padding:24px;background:#ffffff;font-family:system-ui,Arial,sans-serif">${ordered.map(row).join('')}</div>`;
   };
   // The stored body + kind for the active editor mode.
   const tplComputed = (): { body: string; kind: 'text' | 'html' } => ({ body: compileBlocks(blkRows), kind: 'html' });
@@ -620,14 +624,37 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             : type === 'divider' ? { type: 'divider' }
               : type === 'spacer' ? { type: 'spacer' }
                 : { type: 'text', text: '' };
-  const addBlock = (type: TplBlock['type']) => { tap(); setBlkRows((rs) => [...rs, { cols: [makeBlock(type)] }]); };
+  const addBlock = (type: TplBlock['type']) => { tap(); setBlkRows((rs) => { const y = rs.length ? rs.reduce((m, r) => Math.max(m, r.y ?? 0), 0) + 76 : 16; return [...rs, { cols: [makeBlock(type)], x: 16, y }]; }); };
   const setBlk = (ri: number, ci: number, patch: Partial<TplBlock>) => setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: r.cols.map((c, j) => j !== ci ? c : { ...c, ...patch }) }));
-  const moveRow = (ri: number, dir: number) => { tap(); setBlkRows((rs) => { const j = ri + dir; if (j < 0 || j >= rs.length) return rs; const c = [...rs]; [c[ri], c[j]] = [c[j], c[ri]]; return c; }); };
   const delRow = (ri: number) => { tap(); setBlkRows((rs) => rs.filter((_, i) => i !== ri)); };
-  // A label/subject derived from the first heading or text block.
+  // Drag a block freely to any x/y inside the body canvas (touch + mouse via pointer events).
+  const startDrag = (ri: number) => (e: React.PointerEvent) => {
+    e.preventDefault(); tap();
+    const canvas = bodyRef.current; if (!canvas) return;
+    const blockEl = (e.currentTarget as HTMLElement).closest('[data-bi]') as HTMLElement | null;
+    const crect = canvas.getBoundingClientRect();
+    const bw = blockEl?.offsetWidth ?? 0;
+    const bh = blockEl?.offsetHeight ?? 0;
+    const row = blkRows[ri];
+    const sx = row?.x ?? 0, sy = row?.y ?? 0;
+    const px0 = e.clientX, py0 = e.clientY;
+    setDragIdx(ri);
+    const ac = new AbortController();
+    const move = (ev: PointerEvent) => {
+      const nx = Math.max(0, Math.min(sx + (ev.clientX - px0), crect.width - bw));
+      const ny = Math.max(0, Math.min(sy + (ev.clientY - py0), Math.max(crect.height, bh) - bh));
+      setBlkRows((rs) => rs.map((r, i) => i === ri ? { ...r, x: nx, y: ny } : r));
+    };
+    const end = () => { setDragIdx(null); ac.abort(); };
+    window.addEventListener('pointermove', move, { signal: ac.signal });
+    window.addEventListener('pointerup', end, { signal: ac.signal });
+    window.addEventListener('pointercancel', end, { signal: ac.signal });
+  };
+  // A label/subject derived from the topmost heading or text block (by canvas Y).
   const blocksTitle = (rows: TplRow[]): string => {
-    for (const r of rows) for (const c of r.cols) if (c.type === 'heading' && c.text?.trim()) return c.text.trim().slice(0, 60);
-    for (const r of rows) for (const c of r.cols) if (c.type === 'text' && c.text?.trim()) return c.text.trim().split('\n')[0].slice(0, 60);
+    const ordered = [...rows].sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
+    for (const r of ordered) for (const c of r.cols) if (c.type === 'heading' && c.text?.trim()) return c.text.trim().slice(0, 60);
+    for (const r of ordered) for (const c of r.cols) if (c.type === 'text' && c.text?.trim()) return c.text.trim().split('\n')[0].slice(0, 60);
     return 'Untitled template';
   };
   const uploadBlockImage = (ri: number, ci: number) => pickImage(async (b64, ct) => { if (!b64) return; setBlkImgBusy(`${ri}-${ci}`); try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setBlk(ri, ci, { url }); } catch { /* ignore */ } finally { if (mountedRef.current) setBlkImgBusy(''); } });
@@ -1113,14 +1140,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         <span className="ag-mail-sright"><span className="ag-mail-unsub">Unsubscribe</span><span className="ag-mail-dots">⋯</span></span>
                       </div>
                     </div>
-                    <div className="ag-mail-body">
+                    <div className="ag-mail-body" ref={bodyRef} style={{ minHeight: Math.max(460, blkRows.reduce((m, r) => Math.max(m, r.y ?? 0), 0) + 200) }}>
                       {blkRows.map((r, ri) => {
                         const c = r.cols[0];
                         return (
-                          <div className="ag-mb" key={ri}>
+                          <div className={`ag-mb${dragIdx === ri ? ' dragging' : ''}`} data-bi={ri} key={ri} style={{ left: r.x ?? 16, top: r.y ?? 16 }}>
                             <div className="ag-mb-ctrl">
-                              <button disabled={ri === 0} onClick={() => moveRow(ri, -1)} aria-label="Move up">↑</button>
-                              <button disabled={ri === blkRows.length - 1} onClick={() => moveRow(ri, 1)} aria-label="Move down">↓</button>
+                              <button className="ag-mb-grip" style={{ touchAction: 'none' }} onPointerDown={startDrag(ri)} aria-label="Drag to move">⠿</button>
                               <button onClick={() => delRow(ri)} aria-label="Delete">✕</button>
                             </div>
                             {c.type === 'heading' && <input className="ag-mb-h" placeholder="Headline" value={c.text || ''} onChange={(e) => setBlk(ri, 0, { text: e.target.value })} />}
@@ -1142,18 +1168,22 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                           </div>
                         );
                       })}
-                      {addOpen ? (
-                        <div className="ag-blk-choosercard">
-                          <div className="ag-blk-chooser-t">What do you want to add?</div>
-                          <div className="ag-blk-chooser">
-                            {BLOCK_TYPES.map((tp) => <button key={tp} onClick={() => { addBlock(tp); setAddOpen(false); }}>{TYPE_LABEL[tp]}</button>)}
+                      <div className="ag-mb-addzone">
+                        {addOpen ? (
+                          <div className="ag-blk-choosercard">
+                            <div className="ag-blk-chooser-t">What do you want to add?</div>
+                            <div className="ag-blk-chooser">
+                              {BLOCK_TYPES.map((tp) => <button key={tp} onClick={() => { addBlock(tp); setAddOpen(false); }}>{TYPE_LABEL[tp]}</button>)}
+                            </div>
+                            <button className="ag-blk-cancel" onClick={() => { tap(); setAddOpen(false); }}>Cancel</button>
                           </div>
-                          <button className="ag-blk-cancel" onClick={() => { tap(); setAddOpen(false); }}>Cancel</button>
-                        </div>
-                      ) : (
-                        <button className="ag-mb-plus" onClick={() => { tap(); setAddOpen(true); }} aria-label="Add block">＋</button>
-                      )}
-                      {blkRows.length === 0 && !addOpen && <div className="ag-mb-empty">Tap ＋ to add your first block.</div>}
+                        ) : (
+                          <>
+                            <button className="ag-mb-plus" onClick={() => { tap(); setAddOpen(true); }} aria-label="Add block">＋</button>
+                            {blkRows.length === 0 && <div className="ag-mb-empty">Tap ＋ to add a block, then drag it anywhere.</div>}
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                   {tplErr && <div className="ag-send-err">{tplErr}</div>}

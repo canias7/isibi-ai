@@ -333,16 +333,21 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-mail-sright { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .ag-mail-unsub { color: #1a73e8; font-size: 13px; font-weight: 500; }
 .ag-mail-dots { color: #5f6368; font-size: 18px; }
-.ag-mail-body { border-top: 1px solid #e8eaed; padding: 20px 16px 22px; }
+/* The body is a free canvas — blocks are absolutely positioned and dragged anywhere. */
+.ag-mail-body { position: relative; border-top: 1px solid #e8eaed; padding: 20px 16px 22px; }
 
-/* Each block renders like the finished email; controls float on top, content edits in place. */
-.ag-mb { position: relative; margin: 0 0 16px; border-radius: 8px; }
+/* Each block renders like the finished email; drag it by the grip, edit content in place. */
+.ag-mb { position: absolute; width: 72%; min-width: 150px; max-width: 460px; border-radius: 8px; }
 .ag-mb:focus-within { box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.35); }
-.ag-mb-ctrl { position: absolute; top: -12px; right: 6px; z-index: 2; display: flex; gap: 2px; padding: 2px; background: #ffffff; border: 1px solid #e3e6ea; border-radius: 999px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14); opacity: 0.6; transition: opacity .12s; }
+.ag-mb.dragging { opacity: 0.96; background: #ffffff; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22); z-index: 5; }
+.ag-mb-addzone { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ag-mb-ctrl { position: absolute; top: -12px; right: 6px; z-index: 2; display: flex; gap: 2px; padding: 2px; background: #ffffff; border: 1px solid #e3e6ea; border-radius: 999px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14); opacity: 0.85; transition: opacity .12s; }
 .ag-mb:hover .ag-mb-ctrl, .ag-mb:focus-within .ag-mb-ctrl { opacity: 1; }
 .ag-mb-ctrl button { background: none; border: none; color: #5f6368; font: inherit; font-size: 13px; line-height: 1; padding: 5px 8px; border-radius: 999px; cursor: pointer; }
 .ag-mb-ctrl button:disabled { opacity: 0.3; }
 .ag-mb-ctrl button:active { background: #f1f3f4; }
+.ag-mb-grip { touch-action: none; cursor: grab; font-weight: 700; }
+.ag-mb-grip:active { cursor: grabbing; }
 .ag-mb-h, .ag-mb-p, .ag-mb-btnlabel, .ag-mb-link { width: 100%; box-sizing: border-box; background: transparent; border: none; outline: none; font-family: -apple-system, "Roboto", "Segoe UI", system-ui, Arial, sans-serif; }
 .ag-mb-h { font-size: 22px; font-weight: 800; color: #111; padding: 6px 4px; }
 .ag-mb-h::placeholder { color: #c2c7cd; }
@@ -372,7 +377,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-paper .memg-sub { color: #5f6368; }
 .ag-paper .memg-back { background: #ffffff; border-color: #dadce0; color: #202124; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); -webkit-backdrop-filter: none; backdrop-filter: none; }
 .ag-paper .memg-back:active { background: #f1f3f4; }
-.ag-paper .ag-mail { background: transparent; box-shadow: none; border-radius: 0; }
+.ag-paper .ag-mail { background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
 .ag-paper .ag-mail-head { padding-left: 4px; padding-right: 4px; }
 .ag-paper .ag-mail-body { padding-left: 4px; padding-right: 4px; }
 /* "Save" lives in the top-right corner of the header (mirrors .ag-corner). */
