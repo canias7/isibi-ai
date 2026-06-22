@@ -142,7 +142,7 @@ async function fetchImage(u: string): Promise<{ buf: Uint8Array; ct: string } | 
 async function uploadImage(buf: Uint8Array, ct: string, uid: string): Promise<string | null> {
   const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : ct.includes("gif") ? "gif" : "jpg";
   const path = `${uid}/ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const up = await fetch(`${SB_URL}/storage/v1/object/email-assets/${path}`, { method: "POST", headers: { authorization: `Bearer ${SB_SERVICE}`, "content-type": ct, "x-upsert": "true" }, body: buf });
+  const up = await fetch(`${SB_URL}/storage/v1/object/email-assets/${path}`, { method: "POST", headers: { authorization: `Bearer ${SB_SERVICE}`, apikey: SB_SERVICE, "content-type": ct, "x-upsert": "true" }, body: buf });
   return up.ok ? `${SB_URL}${OURS}${path}` : null;
 }
 const STOP_WORDS = new Set(["the", "and", "for", "with", "your", "our", "new", "from", "this", "that", "image", "photo", "picture", "logo", "icon"]);
@@ -321,7 +321,7 @@ Deno.serve(async (req: Request) => {
       const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const up = await fetch(`${SB_URL}/storage/v1/object/email-assets/${path}`, {
         method: "POST",
-        headers: { authorization: `Bearer ${SB_SERVICE}`, "content-type": ct, "x-upsert": "true" },
+        headers: { authorization: `Bearer ${SB_SERVICE}`, apikey: SB_SERVICE, "content-type": ct, "x-upsert": "true" },
         body: bytes,
       });
       if (!up.ok) return json(req, { error: "upload_failed" }, 502);
