@@ -363,8 +363,10 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-chatb-undo { background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text); font: inherit; font-size: var(--fs-caption); font-weight: 600; padding: 5px 11px; border-radius: 999px; cursor: pointer; }
 .ag-chatb-undo:disabled { opacity: 0.5; cursor: default; }
 .ag-chatb-thread { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 9px; padding: 4px 2px; }
-.ag-cb-u { align-self: flex-end; max-width: 80%; background: var(--grad-brand); color: var(--on-brand, #fff); font-size: var(--fs-footnote); padding: 8px 12px; border-radius: 14px 14px 4px 14px; }
-.ag-cb-a { align-self: flex-start; max-width: 86%; background: #16181d; border: 1px solid #23262d; color: #dfe1e6; font-size: var(--fs-footnote); padding: 8px 12px; border-radius: 14px 14px 14px 4px; line-height: 1.4; }
+/* Bubbles match the main chat: user = glass pill, assistant = plain text. */
+.ag-cb-u { align-self: flex-end; max-width: 75%; background: var(--bubble-user); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-edge); box-shadow: var(--glass-hi); color: var(--text); font-size: var(--fs-body); line-height: 1.5; padding: 10px 16px; border-radius: var(--r-sheet); white-space: pre-wrap; overflow-wrap: anywhere; }
+.ag-cb-a { align-self: flex-start; max-width: 100%; background: none; border: none; color: var(--text); font-size: var(--fs-body); line-height: 1.6; padding: 2px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ag-cb-img { display: block; max-width: 220px; max-height: 240px; width: auto; border-radius: 12px; }
 .ag-cb-typing { opacity: 0.7; }
 .ag-cb-err { align-self: center; color: #ff6b6b; font-size: var(--fs-caption); }
 /* The rendered email, shown inline in the chat after each design turn */
@@ -382,7 +384,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-chatb-bar { display: flex; align-items: flex-end; gap: 8px; margin-top: 8px; padding: 8px 10px; background: var(--composer); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-edge); box-shadow: var(--glass-hi), var(--glass-shadow); border-radius: var(--r-sheet); }
 .ag-chatb-attach { width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; border: none; background: transparent; color: var(--text); font-size: 18px; cursor: pointer; display: grid; place-items: center; margin: 0 0 2px; }
 .ag-chatb-attach:active { background: var(--fill-2); }
-.ag-chatb-input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: var(--text); font: inherit; font-size: var(--fs-body); line-height: 1.5; padding: 8px 0; }
+.ag-chatb-input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; resize: none; overflow-y: auto; max-height: 140px; color: var(--text); font: inherit; font-size: var(--fs-body); line-height: 1.5; padding: 8px 0; }
 .ag-chatb-input::placeholder { color: var(--text-dim); }
 .ag-chatb-send { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; border: none; background: var(--accent); color: #000; font-size: var(--fs-headline); cursor: pointer; display: grid; place-items: center; }
 .ag-chatb-send:disabled, .ag-chatb-attach:disabled { opacity: 0.4; cursor: default; }
