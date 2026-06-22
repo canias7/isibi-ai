@@ -109,7 +109,7 @@ function parseJson(text: string | null): Record<string, unknown> | null {
 // URLs the model finds with web tools); the server re-hosts every one so they
 // load in the inbox. Never invent URLs; placeholder only when none is found.
 const PLACEHOLDER_IMG = "<div style=\"background:#eeeeee;height:220px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999999;font-family:Arial,sans-serif;font-size:14px\">Image</div>";
-const IMAGE_RULE = " IMAGES (every image MUST render): for every photo slot (hero, product, feature, lifestyle) ALWAYS output a real <img> tag - never a grey placeholder box and never describe a picture in text. Use any provided uploaded image URLs first (first = hero). For the rest, find real photo URLs with web_search/web_fetch (official product/hero shots). Give EVERY <img> a short, specific alt of 1-3 plain words naming the subject (e.g. alt=\"running shoes\", alt=\"coffee cup\", alt=\"city skyline\") - the server uses that alt to GUARANTEE the image loads: it re-hosts the real photo, and if the URL can't be fetched it automatically swaps in a matching stock photo. So a real <img> with a good alt is always visible. For the brand LOGO, PREFER a clean styled text wordmark of the business name (it always renders sharply at any size); only use an <img> logo if you have a real, verified logo URL you actually fetched - never a tiny guessed logo <img> that could 404.";
+const IMAGE_RULE = " IMAGES (mandatory - the email MUST be visual, never text-only): ALWAYS include a full-width hero image at the top, and a photo in EVERY product/feature section. NEVER omit an image and NEVER describe a picture in words. For each <img>, set src to a REAL photo URL if you found one via web_search/web_fetch; OTHERWISE set src=\"stock:KEYWORD\" where KEYWORD is a 1-3 word subject (e.g. <img src=\"stock:running shoes\">, <img src=\"stock:coffee cup\">, <img src=\"stock:city skyline\">). Give every <img> a matching descriptive alt too. The server turns every real URL and every stock:KEYWORD into a re-hosted image that always loads - so every <img> you write WILL render. Use any provided uploaded image URLs first (first = hero). For the brand LOGO, PREFER a clean styled text wordmark of the business name; only use an <img> logo if you have a real, verified logo URL you actually fetched.";
 const EMAIL_RULES = " RENDERING (must work in every inbox, especially Outlook): build the layout with role=presentation <table> elements, NOT <div> - one outer table (align center, width 100%) wrapping an inner table at max-width 600px. Inline styles only; use a web-safe font stack everywhere (font-family:Arial,Helvetica,sans-serif). Begin the body with a hidden PREHEADER (the inbox preview line, ~50-90 chars summarizing the email): <div style=\"display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#ffffff\">...</div>. Build the call-to-action as a BULLETPROOF button - a table cell with bgcolor + padding wrapping an <a> (never a styled <div>), with an <!--[if mso]> VML roundrect <![endif]--> fallback so Outlook shows it. Give every <img> a short descriptive alt and an explicit width. Keep the whole HTML under ~100KB so Gmail doesn't clip it.";
 const QUALITY_RULES = " COPY QUALITY: subject under ~50 characters, specific and compelling but never clickbait; no ALL-CAPS, no '!!!', avoid spam-trigger words (FREE!!!, $$$, ACT NOW, GUARANTEED); exactly one primary call-to-action; keep a healthy text-to-image balance (never send one big image as the whole email).";
 
@@ -185,13 +185,15 @@ async function rehostImages(html: string, uid: string): Promise<string> {
   await Promise.all(tags.slice(0, 6).map(async (tag, i) => {
     const src = tag.match(/\bsrc=["']([^"']+)["']/i)?.[1] || "";
     if (src.includes(OURS)) return; // already on our bucket
+    const stockReq = /^stock:/i.test(src.trim()) ? src.trim().slice(6) : ""; // model asked for a stock photo by keyword
     const logo = isLogo(tag, src);
     let url: string | null = null;
-    // 1) try the model's real URL
-    if (/^https?:\/\//i.test(src)) { const img = await fetchImage(src); if (img) url = await uploadImage(img.buf, img.ct, uid); }
+    // 1) try the model's real URL (skip for stock: requests)
+    if (!stockReq && /^https?:\/\//i.test(src)) { const img = await fetchImage(src); if (img) url = await uploadImage(img.buf, img.ct, uid); }
     // 2) content images get a keyword-matched stock photo; logos do NOT (a random photo would be wrong)
     if (!url && !logo) {
-      for (const c of stockUrls(altKeyword(tag), i)) { const img = await fetchImage(c); if (img) { url = await uploadImage(img.buf, img.ct, uid); if (url) break; } }
+      const kw = stockReq ? (stockReq.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").trim().split(/\s+/).filter((w) => w.length > 2).slice(0, 2).join(",") || "business,lifestyle") : altKeyword(tag);
+      for (const c of stockUrls(kw, i)) { const img = await fetchImage(c); if (img) { url = await uploadImage(img.buf, img.ct, uid); if (url) break; } }
     }
     // Decide the replacement — never leave a broken <img> in the email.
     if (url) replacements.set(tag, setSrc(tag, url));
@@ -245,7 +247,7 @@ async function chatDesign(messages: { role: string; content: string }[], current
     : " There is no email yet - create one from the user's request.";
   const system =
     "You are Sendra, an expert email designer and copywriter. You build and edit ONE marketing newsletter email as clean, email-client-safe HTML (inline styles only, no style or script tags, no markdown; one centered container max-width 600px, width 100%, mobile-friendly; every img display:block; width:100%; height:auto). " +
-    "When creating fresh: logo header (or business-name wordmark), optional hero image, bold headline, short intro, optional feature/product sections with images and a small discount badge only if a deal is mentioned, ONE call-to-action button in the brand color, and a footer with the business name and address. " +
+    "When creating fresh: logo header (or business-name wordmark), a hero image, bold headline, short intro, optional feature/product sections with images and a small discount badge only if a deal is mentioned, ONE call-to-action button in the brand color, and a footer with the business name and address. " +
     "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one). " +
     "You can use web_search to look things up and web_fetch to read any link the user shares (a product or landing page) - pull its real copy and real product image URLs into the email." +
     brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + curBlock +
