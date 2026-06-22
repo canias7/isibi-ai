@@ -2,20 +2,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 // Sendra email templates + brand profile. Body is plain text (kind 'text') or
 // ready HTML (kind 'html'). generate writes copy or a designed layout; chat
-// is the Lovable-style iterative builder; both can use Anthropic's built-in
-// web_search + web_fetch tools to read links / search. upload hosts an image.
+// is the Lovable-style iterative builder. upload hosts an image.
 //
 // App-level outcomes return HTTP 200 { error }; only infra failures stay 5xx.
 
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const MODEL = "claude-sonnet-4-6";  // email building is structured HTML + copy; Sonnet handles it well at ~40% lower cost
-// Built-in Anthropic server-side tools: web_fetch reads any URL the user shares
-// (product/landing page), web_search looks things up. GA on Opus 4.8 (no beta
-// header); Claude runs them and returns the finished answer in one call.
-const WEB_TOOLS = [
-  { type: "web_search_20260209", name: "web_search" },
-  { type: "web_fetch_20260209", name: "web_fetch" },
-];
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SB_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -103,21 +95,14 @@ function parseJson(text: string | null): Record<string, unknown> | null {
   try { return JSON.parse(text.slice(a, z + 1)) as Record<string, unknown>; } catch { return null; }
 }
 
-// mode 'text' -> plain text with {{name}}; mode 'design' -> a rich HTML newsletter
-// using the brand + provided image URLs (first = hero, rest fill feature sections).
-// Shared image policy: use REAL images (provided uploads first, otherwise real
-// URLs the model finds with web tools); the server re-hosts every one so they
-// load in the inbox. Never invent URLs; placeholder only when none is found.
+// mode 'text' -> plain text with {{name}}; mode 'design' -> a rich HTML newsletter.
 const PLACEHOLDER_IMG = "<div style=\"background:#eeeeee;height:220px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999999;font-family:Arial,sans-serif;font-size:14px\">Image</div>";
-const IMAGE_RULE = " IMAGES (mandatory - the email MUST be visual, never text-only): ALWAYS include a full-width hero image at the top, and a photo in EVERY product/feature section. NEVER omit an image and NEVER describe a picture in words. For each <img>, set src to a REAL photo URL if you found one via web_search/web_fetch; OTHERWISE set src=\"stock:KEYWORD\" where KEYWORD is a 1-3 word subject (e.g. <img src=\"stock:running shoes\">, <img src=\"stock:coffee cup\">, <img src=\"stock:city skyline\">). Give every <img> a matching descriptive alt too. The server turns every real URL and every stock:KEYWORD into a re-hosted image that always loads - so every <img> you write WILL render. Use any provided uploaded image URLs first (first = hero). For the brand LOGO, PREFER a clean styled text wordmark of the business name; only use an <img> logo if you have a real, verified logo URL you actually fetched.";
+const IMAGE_RULE = " IMAGES (mandatory - the email MUST be visual, never text-only): ALWAYS include a full-width hero image at the top, and a photo in EVERY product/feature section. NEVER omit an image and NEVER describe a picture in words. For each <img>, set src=\"stock:KEYWORD\" where KEYWORD is a 1-3 word subject (e.g. <img src=\"stock:running shoes\">, <img src=\"stock:coffee cup\">, <img src=\"stock:city skyline\">); or a real https image URL if you genuinely know one. Give every <img> a matching descriptive alt too. The server turns every stock:KEYWORD (and every real URL) into a re-hosted image that always loads - so every <img> you write WILL render. Use any provided uploaded image URLs first (first = hero). For the brand LOGO, PREFER a clean styled text wordmark of the business name; only use an <img> logo if you have a real, verified logo URL.";
 const EMAIL_RULES = " RENDERING (must work in every inbox, especially Outlook): build the layout with role=presentation <table> elements, NOT <div> - one outer table (align center, width 100%) wrapping an inner table at max-width 600px. Inline styles only; use a web-safe font stack everywhere (font-family:Arial,Helvetica,sans-serif). Begin the body with a hidden PREHEADER (the inbox preview line, ~50-90 chars summarizing the email): <div style=\"display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#ffffff\">...</div>. Build the call-to-action as a BULLETPROOF button - a table cell with bgcolor + padding wrapping an <a> (never a styled <div>), with an <!--[if mso]> VML roundrect <![endif]--> fallback so Outlook shows it. Give every <img> a short descriptive alt and an explicit width. Keep the whole HTML under ~100KB so Gmail doesn't clip it.";
 const QUALITY_RULES = " COPY QUALITY: subject under ~50 characters, specific and compelling but never clickbait; no ALL-CAPS, no '!!!', avoid spam-trigger words (FREE!!!, $$$, ACT NOW, GUARANTEED); exactly one primary call-to-action; keep a healthy text-to-image balance (never send one big image as the whole email).";
-const LINK_RULE = " LINKS: every button and text link MUST use a real, working https:// URL - the brand's official site or a specific product/landing page you found via web tools. NEVER use href=\"#\", an empty href, or javascript:. If unsure, point all CTAs at the brand's homepage. Open links in a new tab (target=\"_blank\").";
+const LINK_RULE = " LINKS: every button and text link MUST use a real, working https:// URL - the brand's official site or a likely product/landing page. NEVER use href=\"#\", an empty href, or javascript:. If unsure, point all CTAs at the brand's homepage. Open links in a new tab (target=\"_blank\").";
 
 // ---- Image re-hosting: make every <img> actually render in the inbox ----
-// We try the model's real URL (with a real browser UA so brand CDNs don't block
-// us); if that fails we swap in a keyword-matched stock photo (from the alt) so
-// there's never a broken/grey box. Whatever we get is uploaded to our bucket.
 const OURS = "/storage/v1/object/public/email-assets/";
 const BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 function sniffImage(b: Uint8Array): string | null {
@@ -152,7 +137,6 @@ function altKeyword(tag: string): string {
   const words = (m?.[1] || "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter((w) => w.length > 2 && !STOP_WORDS.has(w)).slice(0, 2);
   return words.join(",") || "business,lifestyle";
 }
-// Keyword-matched real photo (keyless), with a guaranteed-loading final fallback.
 function stockUrls(kw: string, seed: number): string[] {
   return [
     `https://loremflickr.com/1200/675/${encodeURIComponent(kw)}?lock=${seed + 1}`,
@@ -160,8 +144,6 @@ function stockUrls(kw: string, seed: number): string[] {
     `https://picsum.photos/seed/sendra-${seed}/1200/675`, // always returns an image
   ];
 }
-// A logo is small/branded — a random stock photo would be wrong, so on failure we
-// fall back to a text wordmark instead.
 function isLogo(tag: string, src: string): boolean {
   return /\blogo\b/i.test(tag) || /logo|clearbit/i.test(src);
 }
@@ -189,17 +171,14 @@ async function rehostImages(html: string, uid: string): Promise<string> {
     const stockReq = /^stock:/i.test(src.trim()) ? src.trim().slice(6) : ""; // model asked for a stock photo by keyword
     const logo = isLogo(tag, src);
     let url: string | null = null;
-    // 1) try the model's real URL (skip for stock: requests)
     if (!stockReq && /^https?:\/\//i.test(src)) { const img = await fetchImage(src); if (img) url = await uploadImage(img.buf, img.ct, uid); }
-    // 2) content images get a keyword-matched stock photo; logos do NOT (a random photo would be wrong)
     if (!url && !logo) {
       const kw = stockReq ? (stockReq.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").trim().split(/\s+/).filter((w) => w.length > 2).slice(0, 2).join(",") || "business,lifestyle") : altKeyword(tag);
       for (const c of stockUrls(kw, i)) { const img = await fetchImage(c); if (img) { url = await uploadImage(img.buf, img.ct, uid); if (url) break; } }
     }
-    // Decide the replacement — never leave a broken <img> in the email.
     if (url) replacements.set(tag, setSrc(tag, url));
     else if (logo) { const nm = brandName(tag, src); replacements.set(tag, nm ? wordmark(nm) : ""); }
-    else replacements.set(tag, ""); // content image we couldn't source at all (rare): drop it
+    else replacements.set(tag, "");
   }));
   let out = html;
   for (const [oldTag, newTag] of replacements) out = out.split(oldTag).join(newTag);
@@ -232,8 +211,7 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
     ? ("You are an expert email designer and copywriter. Produce ONE marketing newsletter email as clean, email-client-safe HTML. " +
       "Structure top to bottom: a header with the logo (or the business name as a wordmark if no logo); a full-width hero image; a bold headline; one or two short intro paragraphs; then one or more feature/product sections, each with an image, a short title and a line of copy (add a small rounded discount badge like '20% off' ONLY if the description mentions a deal); a single prominent call-to-action button (rounded, brand-color background, white text); and a footer with the business name and address. " +
       "Rules: inline styles ONLY (no style tag, no script tag, no external CSS, no markdown). One centered container, max-width 600px, width 100%, light background, mobile-friendly. Use the brand color for the button, links and accents (fall back to a tasteful blue if none). Every img must be display:block; width:100%; height:auto. " +
-      "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). End with the sign-off. Do NOT include an unsubscribe line (the system appends one). " +
-      "You can use web_search to find details and web_fetch to read any URL in the request (e.g. a product or landing page) - use the page's real copy and real product image URLs in the email." +
+      "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). End with the sign-off. Do NOT include an unsubscribe line (the system appends one)." +
       brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE +
       " Respond with ONLY a JSON object with two string keys: subject (short and compelling) and body (the full HTML).")
     : ("You are an expert email copywriter for a small business owner. From the user's short description, write ONE email they can send to their contacts. " +
@@ -243,11 +221,10 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
       "Keep it under ~180 words with real line breaks between short paragraphs, and end with a simple sign-off. " +
       "Do NOT add an unsubscribe line (the system appends one)." + brandBlock +
       " Respond with ONLY a JSON object with two string keys, subject and body.");
-  const tools = mode === "design" ? WEB_TOOLS : undefined;
-  const max = mode === "design" ? 12000 : 1500;
+  const max = mode === "design" ? 16000 : 1500;
   const msgs = [{ role: "user", content: prompt.slice(0, 2000) }];
-  let raw = await callClaude(system, msgs, max, tools, 48000);
-  if (!raw && tools) raw = await callClaude(system, msgs, max, undefined, 40000); // web tools failed/slow — build without them
+  let raw = await callClaude(system, msgs, max, undefined, 85000);
+  if (!raw) raw = await callClaude(system, msgs, max, undefined, 55000); // one retry on a transient failure
   const o = parseJson(raw);
   if (o && o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 50000) };
   return null;
@@ -266,15 +243,14 @@ async function chatDesign(messages: { role: string; content: string }[], current
   const system =
     "You are Sendra, an expert email designer and copywriter. You build and edit ONE marketing newsletter email as clean, email-client-safe HTML (inline styles only, no style or script tags, no markdown; one centered container max-width 600px, width 100%, mobile-friendly; every img display:block; width:100%; height:auto). " +
     "When creating fresh: logo header (or business-name wordmark), a hero image, bold headline, short intro, optional feature/product sections with images and a small discount badge only if a deal is mentioned, ONE call-to-action button in the brand color, and a footer with the business name and address. " +
-    "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one). " +
-    "You can use web_search to look things up and web_fetch to read any link the user shares (a product or landing page) - pull its real copy and real product image URLs into the email." +
+    "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one)." +
     brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + curBlock +
     " You can also just chat: if the user only asks a question, says hi, or gives feedback that doesn't require changing the email, reply briefly and to the point and DO NOT include subject or body. Only include subject and body when you actually create or change the email." +
     " Respond with ONLY a JSON object: always include a short `reply`; include `subject` and `body` (the full HTML) ONLY when you created or changed the email.";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
   if (!conv.length || conv[0].role !== "user") return null;
-  let raw = await callClaude(system, conv, 12000, WEB_TOOLS, 48000);
-  if (!raw) raw = await callClaude(system, conv, 12000, undefined, 40000); // web tools failed/slow — build without them
+  let raw = await callClaude(system, conv, 16000, undefined, 85000);
+  if (!raw) raw = await callClaude(system, conv, 16000, undefined, 55000); // one retry on a transient failure
   const o = parseJson(raw);
   if (!o) return null;
   const reply = String(o.reply || "").slice(0, 600);
