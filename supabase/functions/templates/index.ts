@@ -109,7 +109,7 @@ function parseJson(text: string | null): Record<string, unknown> | null {
 // URLs the model finds with web tools); the server re-hosts every one so they
 // load in the inbox. Never invent URLs; placeholder only when none is found.
 const PLACEHOLDER_IMG = "<div style=\"background:#eeeeee;height:220px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999999;font-family:Arial,sans-serif;font-size:14px\">Image</div>";
-const IMAGE_RULE = " IMAGES (every image MUST render): for every photo slot (hero, product, feature, lifestyle) ALWAYS output a real <img> tag - never a grey placeholder box and never describe a picture in text. Use any provided uploaded image URLs first (first = hero). For the rest, find real photo URLs with web_search/web_fetch (official product/hero shots). Give EVERY <img> a short, specific alt of 1-3 plain words naming the subject (e.g. alt=\"running shoes\", alt=\"coffee cup\", alt=\"city skyline\") - the server uses that alt to GUARANTEE the image loads: it re-hosts the real photo, and if the URL can't be fetched it automatically swaps in a matching stock photo. So a real <img> with a good alt is always visible. For the brand LOGO in the header, render the business name as a styled text wordmark UNLESS you have a real logo URL (e.g. https://logo.clearbit.com/<brand-domain> or one you fetched).";
+const IMAGE_RULE = " IMAGES (every image MUST render): for every photo slot (hero, product, feature, lifestyle) ALWAYS output a real <img> tag - never a grey placeholder box and never describe a picture in text. Use any provided uploaded image URLs first (first = hero). For the rest, find real photo URLs with web_search/web_fetch (official product/hero shots). Give EVERY <img> a short, specific alt of 1-3 plain words naming the subject (e.g. alt=\"running shoes\", alt=\"coffee cup\", alt=\"city skyline\") - the server uses that alt to GUARANTEE the image loads: it re-hosts the real photo, and if the URL can't be fetched it automatically swaps in a matching stock photo. So a real <img> with a good alt is always visible. For the brand LOGO, PREFER a clean styled text wordmark of the business name (it always renders sharply at any size); only use an <img> logo if you have a real, verified logo URL you actually fetched - never a tiny guessed logo <img> that could 404.";
 const EMAIL_RULES = " RENDERING (must work in every inbox, especially Outlook): build the layout with role=presentation <table> elements, NOT <div> - one outer table (align center, width 100%) wrapping an inner table at max-width 600px. Inline styles only; use a web-safe font stack everywhere (font-family:Arial,Helvetica,sans-serif). Begin the body with a hidden PREHEADER (the inbox preview line, ~50-90 chars summarizing the email): <div style=\"display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#ffffff\">...</div>. Build the call-to-action as a BULLETPROOF button - a table cell with bgcolor + padding wrapping an <a> (never a styled <div>), with an <!--[if mso]> VML roundrect <![endif]--> fallback so Outlook shows it. Give every <img> a short descriptive alt and an explicit width. Keep the whole HTML under ~100KB so Gmail doesn't clip it.";
 const QUALITY_RULES = " COPY QUALITY: subject under ~50 characters, specific and compelling but never clickbait; no ALL-CAPS, no '!!!', avoid spam-trigger words (FREE!!!, $$$, ACT NOW, GUARANTEED); exactly one primary call-to-action; keep a healthy text-to-image balance (never send one big image as the whole email).";
 
@@ -156,7 +156,26 @@ function stockUrls(kw: string, seed: number): string[] {
   return [
     `https://loremflickr.com/1200/675/${encodeURIComponent(kw)}?lock=${seed + 1}`,
     `https://picsum.photos/seed/${encodeURIComponent(kw)}-${seed}/1200/675`,
+    `https://picsum.photos/seed/sendra-${seed}/1200/675`, // always returns an image
   ];
+}
+// A logo is small/branded — a random stock photo would be wrong, so on failure we
+// fall back to a text wordmark instead.
+function isLogo(tag: string, src: string): boolean {
+  return /\blogo\b/i.test(tag) || /logo|clearbit/i.test(src);
+}
+function brandName(tag: string, src: string): string {
+  const alt = (tag.match(/\balt=["']([^"']*)["']/i)?.[1] || "").replace(/\b(logo|icon|inc|llc|ltd|corp|co|the)\b/gi, "").replace(/[^A-Za-z0-9 &]+/g, " ").trim();
+  if (alt) return alt.split(/\s+/).slice(0, 3).join(" ");
+  const dom = src.match(/([a-z0-9-]+)\.(?:com|net|org|io|co|shop|store)/i)?.[1] || "";
+  return dom ? dom.charAt(0).toUpperCase() + dom.slice(1) : "";
+}
+function wordmark(name: string): string {
+  const n = name.replace(/&/g, "&amp;").replace(/</g, "&lt;").slice(0, 40);
+  return `<span style="display:inline-block;font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:800;letter-spacing:.5px;color:inherit">${n}</span>`;
+}
+function setSrc(tag: string, url: string): string {
+  return /\bsrc=/i.test(tag) ? tag.replace(/\bsrc=["'][^"']*["']/i, `src="${url}"`) : tag.replace(/<img\b/i, `<img src="${url}"`);
 }
 async function rehostImages(html: string, uid: string): Promise<string> {
   if (!html) return html;
@@ -166,16 +185,18 @@ async function rehostImages(html: string, uid: string): Promise<string> {
   await Promise.all(tags.slice(0, 6).map(async (tag, i) => {
     const src = tag.match(/\bsrc=["']([^"']+)["']/i)?.[1] || "";
     if (src.includes(OURS)) return; // already on our bucket
-    const candidates: string[] = [];
-    if (/^https?:\/\//i.test(src)) candidates.push(src);
-    candidates.push(...stockUrls(altKeyword(tag), i));
+    const logo = isLogo(tag, src);
     let url: string | null = null;
-    for (const c of candidates) {
-      const img = await fetchImage(c);
-      if (img) { url = await uploadImage(img.buf, img.ct, uid); if (url) break; }
+    // 1) try the model's real URL
+    if (/^https?:\/\//i.test(src)) { const img = await fetchImage(src); if (img) url = await uploadImage(img.buf, img.ct, uid); }
+    // 2) content images get a keyword-matched stock photo; logos do NOT (a random photo would be wrong)
+    if (!url && !logo) {
+      for (const c of stockUrls(altKeyword(tag), i)) { const img = await fetchImage(c); if (img) { url = await uploadImage(img.buf, img.ct, uid); if (url) break; } }
     }
-    if (url) replacements.set(tag, src ? tag.replace(/\bsrc=["'][^"']*["']/i, `src="${url}"`) : tag.replace(/<img\b/i, `<img src="${url}"`));
-    else if (!src) replacements.set(tag, PLACEHOLDER_IMG); // no src and nothing fetched
+    // Decide the replacement — never leave a broken <img> in the email.
+    if (url) replacements.set(tag, setSrc(tag, url));
+    else if (logo) { const nm = brandName(tag, src); replacements.set(tag, nm ? wordmark(nm) : ""); }
+    else replacements.set(tag, ""); // content image we couldn't source at all (rare): drop it
   }));
   let out = html;
   for (const [oldTag, newTag] of replacements) out = out.split(oldTag).join(newTag);
