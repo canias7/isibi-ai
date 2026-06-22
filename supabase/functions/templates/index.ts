@@ -109,40 +109,77 @@ function parseJson(text: string | null): Record<string, unknown> | null {
 // URLs the model finds with web tools); the server re-hosts every one so they
 // load in the inbox. Never invent URLs; placeholder only when none is found.
 const PLACEHOLDER_IMG = "<div style=\"background:#eeeeee;height:220px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999999;font-family:Arial,sans-serif;font-size:14px\">Image</div>";
-const IMAGE_RULE = " IMAGES: use real images for the brand and its products - find them with web_fetch/web_search (official product photos, hero shots, the brand logo) and put their real URLs in the <img> tags; the server re-hosts every image automatically so it loads reliably in the inbox even if the source blocks hotlinking. Use any provided uploaded image URLs first (first = hero). Only use URLs you have actually seen on a page you fetched - NEVER invent or guess an image URL. If you genuinely cannot find a real image for a spot, use a placeholder there instead (a div, background #eeeeee, height about 220px, rounded, centered muted 'Image' label). For the logo, use a real or provided logo URL, otherwise the business name as a styled text wordmark.";
+const IMAGE_RULE = " IMAGES (every image MUST render): for every photo slot (hero, product, feature, lifestyle) ALWAYS output a real <img> tag - never a grey placeholder box and never describe a picture in text. Use any provided uploaded image URLs first (first = hero). For the rest, find real photo URLs with web_search/web_fetch (official product/hero shots). Give EVERY <img> a short, specific alt of 1-3 plain words naming the subject (e.g. alt=\"running shoes\", alt=\"coffee cup\", alt=\"city skyline\") - the server uses that alt to GUARANTEE the image loads: it re-hosts the real photo, and if the URL can't be fetched it automatically swaps in a matching stock photo. So a real <img> with a good alt is always visible. For the brand LOGO in the header, render the business name as a styled text wordmark UNLESS you have a real logo URL (e.g. https://logo.clearbit.com/<brand-domain> or one you fetched).";
 const EMAIL_RULES = " RENDERING (must work in every inbox, especially Outlook): build the layout with role=presentation <table> elements, NOT <div> - one outer table (align center, width 100%) wrapping an inner table at max-width 600px. Inline styles only; use a web-safe font stack everywhere (font-family:Arial,Helvetica,sans-serif). Begin the body with a hidden PREHEADER (the inbox preview line, ~50-90 chars summarizing the email): <div style=\"display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#ffffff\">...</div>. Build the call-to-action as a BULLETPROOF button - a table cell with bgcolor + padding wrapping an <a> (never a styled <div>), with an <!--[if mso]> VML roundrect <![endif]--> fallback so Outlook shows it. Give every <img> a short descriptive alt and an explicit width. Keep the whole HTML under ~100KB so Gmail doesn't clip it.";
 const QUALITY_RULES = " COPY QUALITY: subject under ~50 characters, specific and compelling but never clickbait; no ALL-CAPS, no '!!!', avoid spam-trigger words (FREE!!!, $$$, ACT NOW, GUARANTEED); exactly one primary call-to-action; keep a healthy text-to-image balance (never send one big image as the whole email).";
-// Re-host every external <img> onto our own bucket so brand/product images
-// always load (no hotlink protection, no dead links). A fetch that fails or
-// isn't an image becomes a placeholder rather than a broken-image icon.
+
+// ---- Image re-hosting: make every <img> actually render in the inbox ----
+// We try the model's real URL (with a real browser UA so brand CDNs don't block
+// us); if that fails we swap in a keyword-matched stock photo (from the alt) so
+// there's never a broken/grey box. Whatever we get is uploaded to our bucket.
+const OURS = "/storage/v1/object/public/email-assets/";
+const BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+function sniffImage(b: Uint8Array): string | null {
+  if (b.length < 12) return null;
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return "image/gif";
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
+  return null;
+}
+async function fetchImage(u: string): Promise<{ buf: Uint8Array; ct: string } | null> {
+  try {
+    const r = await fetch(u, { headers: { "user-agent": BROWSER_UA, accept: "image/avif,image/webp,image/png,image/*,*/*;q=0.8" }, redirect: "follow", signal: AbortSignal.timeout(9000) });
+    if (!r.ok) return null;
+    const buf = new Uint8Array(await r.arrayBuffer());
+    if (!buf.length || buf.length > 5 * 1024 * 1024) return null;
+    let ct = (r.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    if (!ct.startsWith("image/")) { const s = sniffImage(buf); if (!s) return null; ct = s; }
+    if (ct === "image/svg+xml") return null; // don't trust remote SVG in email
+    return { buf, ct };
+  } catch { return null; }
+}
+async function uploadImage(buf: Uint8Array, ct: string, uid: string): Promise<string | null> {
+  const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : ct.includes("gif") ? "gif" : "jpg";
+  const path = `${uid}/ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const up = await fetch(`${SB_URL}/storage/v1/object/email-assets/${path}`, { method: "POST", headers: { authorization: `Bearer ${SB_SERVICE}`, "content-type": ct, "x-upsert": "true" }, body: buf });
+  return up.ok ? `${SB_URL}${OURS}${path}` : null;
+}
+const STOP_WORDS = new Set(["the", "and", "for", "with", "your", "our", "new", "from", "this", "that", "image", "photo", "picture", "logo", "icon"]);
+function altKeyword(tag: string): string {
+  const m = tag.match(/\balt=["']([^"']*)["']/i);
+  const words = (m?.[1] || "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter((w) => w.length > 2 && !STOP_WORDS.has(w)).slice(0, 2);
+  return words.join(",") || "business,lifestyle";
+}
+// Keyword-matched real photo (keyless), with a guaranteed-loading final fallback.
+function stockUrls(kw: string, seed: number): string[] {
+  return [
+    `https://loremflickr.com/1200/675/${encodeURIComponent(kw)}?lock=${seed + 1}`,
+    `https://picsum.photos/seed/${encodeURIComponent(kw)}-${seed}/1200/675`,
+  ];
+}
 async function rehostImages(html: string, uid: string): Promise<string> {
   if (!html) return html;
-  const ours = "/storage/v1/object/public/email-assets/";
-  const re = /<img\b[^>]*?\bsrc=["']([^"']+)["'][^>]*?>/gi;
-  const urls = new Set<string>();
-  for (let m; (m = re.exec(html));) { const u = m[1]; if (/^https?:\/\//i.test(u) && !u.includes(ours)) urls.add(u); }
-  if (!urls.size) return html;
-  const map = new Map<string, string | null>();
-  await Promise.all([...urls].slice(0, 6).map(async (u) => {
-    try {
-      const r = await fetch(u, { headers: { "user-agent": "Mozilla/5.0 (compatible; SendraBot/1.0)", accept: "image/*" }, signal: AbortSignal.timeout(8000) });
-      const ct = (r.headers.get("content-type") || "").toLowerCase();
-      if (!r.ok || !ct.startsWith("image/")) { map.set(u, null); return; }
-      const buf = new Uint8Array(await r.arrayBuffer());
-      if (!buf.length || buf.length > 5 * 1024 * 1024) { map.set(u, null); return; }
-      const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : ct.includes("gif") ? "gif" : ct.includes("svg") ? "svg" : "jpg";
-      const path = `${uid}/ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const up = await fetch(`${SB_URL}/storage/v1/object/email-assets/${path}`, { method: "POST", headers: { authorization: `Bearer ${SB_SERVICE}`, "content-type": ct, "x-upsert": "true" }, body: buf });
-      map.set(u, up.ok ? `${SB_URL}${ours}${path}` : null);
-    } catch { map.set(u, null); }
+  const tags = [...new Set(html.match(/<img\b[^>]*>/gi) || [])];
+  if (!tags.length) return html;
+  const replacements = new Map<string, string>();
+  await Promise.all(tags.slice(0, 6).map(async (tag, i) => {
+    const src = tag.match(/\bsrc=["']([^"']+)["']/i)?.[1] || "";
+    if (src.includes(OURS)) return; // already on our bucket
+    const candidates: string[] = [];
+    if (/^https?:\/\//i.test(src)) candidates.push(src);
+    candidates.push(...stockUrls(altKeyword(tag), i));
+    let url: string | null = null;
+    for (const c of candidates) {
+      const img = await fetchImage(c);
+      if (img) { url = await uploadImage(img.buf, img.ct, uid); if (url) break; }
+    }
+    if (url) replacements.set(tag, src ? tag.replace(/\bsrc=["'][^"']*["']/i, `src="${url}"`) : tag.replace(/<img\b/i, `<img src="${url}"`));
+    else if (!src) replacements.set(tag, PLACEHOLDER_IMG); // no src and nothing fetched
   }));
-  return html.replace(re, (tag, src) => {
-    if (!/^https?:\/\//i.test(src) || src.includes(ours)) return tag;
-    const nu = map.get(src);
-    if (nu) return tag.replace(src, nu);
-    if (nu === null) return PLACEHOLDER_IMG;
-    return tag;
-  });
+  let out = html;
+  for (const [oldTag, newTag] of replacements) out = out.split(oldTag).join(newTag);
+  return out;
 }
 async function generate(prompt: string, mode: string, brand: Record<string, string>, images: string[]): Promise<{ subject: string; body: string } | null> {
   if (!ANTHROPIC_KEY) return null;
