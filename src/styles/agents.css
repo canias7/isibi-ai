@@ -361,7 +361,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-mb-link::placeholder { color: #aeb4bb; }
 .ag-mb-divline { height: 1px; background: #e5e7eb; margin: 14px 0; }
 .ag-mb-spacer { height: 26px; border-radius: 6px; background: repeating-linear-gradient(135deg, #f1f3f4, #f1f3f4 6px, #fafbfc 6px, #fafbfc 12px); }
-.ag-mb-plus { display: block; width: 38px; height: 38px; margin: 8px auto 0; background: #1f7a5a; color: #fff; border: none; border-radius: 50%; font-size: 22px; line-height: 1; cursor: pointer; box-shadow: 0 3px 10px rgba(31, 122, 90, 0.4); }
+.ag-mb-plus { display: block; width: 38px; height: 38px; margin: 8px auto 0; background: #202124; color: #fff; border: none; border-radius: 50%; font-size: 22px; line-height: 1; cursor: pointer; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25); }
 .ag-mb-plus:active { filter: brightness(0.95); }
 .ag-mb-empty { color: #80868b; font-size: 13px; text-align: center; padding: 8px 2px 0; }
 
