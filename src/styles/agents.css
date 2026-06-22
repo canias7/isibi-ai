@@ -364,8 +364,8 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-chatb-undo:disabled { opacity: 0.5; cursor: default; }
 .ag-chatb-thread { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 9px; padding: 4px 2px; }
 /* Bubbles match the main chat: user = glass pill, assistant = plain text. */
-.ag-cb-u { align-self: flex-end; max-width: 75%; background: var(--bubble-user); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-edge); box-shadow: var(--glass-hi); color: var(--text); font-size: var(--fs-body); line-height: 1.5; padding: 10px 16px; border-radius: var(--r-sheet); white-space: pre-wrap; overflow-wrap: anywhere; }
-.ag-cb-a { align-self: flex-start; max-width: 100%; background: none; border: none; color: var(--text); font-size: var(--fs-body); line-height: 1.6; padding: 2px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ag-cb-u { align-self: flex-end; max-width: 75%; background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border: 1px solid rgba(255, 255, 255, 0.22); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 4px 14px rgba(0, 0, 0, 0.18); color: var(--text); font-size: var(--fs-body); line-height: 1.5; padding: 10px 16px; border-radius: 20px 20px 5px 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ag-cb-a { align-self: flex-start; max-width: 88%; background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.035)); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20), 0 6px 18px rgba(0, 0, 0, 0.22); color: var(--text); font-size: var(--fs-body); line-height: 1.5; padding: 10px 14px; border-radius: 16px 16px 16px 5px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .ag-cb-img { display: block; max-width: 220px; max-height: 240px; width: auto; border-radius: 12px; }
 .ag-cb-typing { opacity: 0.7; }
 .ag-cb-err { align-self: center; color: #ff6b6b; font-size: var(--fs-caption); }
