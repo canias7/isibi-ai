@@ -244,7 +244,7 @@ export async function testSesDomain(domain: string, to: string): Promise<{ ok?: 
 // (flyer image, pasted design, AI layout) sent as-is.
 export interface ChatMsg { role: 'user' | 'assistant'; content: string }
 export interface TplBlock { type: 'heading' | 'text' | 'image' | 'logo' | 'button' | 'divider' | 'spacer'; text?: string; url?: string; link?: string; label?: string }
-export interface TplRow { cols: TplBlock[]; x?: number; y?: number } // x/y = free position on the builder canvas (px)
+export interface TplRow { cols: TplBlock[] }
 export interface Template { id: string; name: string; subject: string; body: string; kind?: 'text' | 'html'; chat?: ChatMsg[]; blocks?: TplRow[]; updated_at?: string }
 // Lovable-style iterative builder: send the thread + current email HTML, get the
 // updated email + a one-line reply back.
