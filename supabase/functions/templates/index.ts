@@ -72,23 +72,29 @@ function brandLines(b: Record<string, string>): string[] {
 }
 
 // deno-lint-ignore no-explicit-any
-async function callClaude(system: string, messages: { role: string; content: string }[], maxTokens: number, tools?: any[]): Promise<string | null> {
+async function callClaude(system: string, messages: { role: string; content: string }[], maxTokens: number, tools?: any[], timeoutMs = 55000): Promise<string | null> {
   // deno-lint-ignore no-explicit-any
   const reqBody: Record<string, any> = { model: MODEL, max_tokens: maxTokens, system, messages };
   if (tools && tools.length) reqBody.tools = tools;
+  const tag = tools && tools.length ? "withtools" : "plain";
+  const t0 = Date.now();
   let r: Response;
   try {
     r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
       body: JSON.stringify(reqBody),
+      signal: AbortSignal.timeout(timeoutMs), // never hang the function (and thus the UI) on a slow/stuck call
     });
-  } catch {
+  } catch (e) {
+    console.error("anthropic_fetch_failed", tag, Date.now() - t0, String((e as Error)?.name || e));
     return null;
   }
-  if (!r.ok) { try { console.error("anthropic_error", r.status, (await r.text()).slice(0, 400)); } catch { /* ignore */ } return null; }
+  if (!r.ok) { let b = ""; try { b = (await r.text()).slice(0, 400); } catch { /* ignore */ } console.error("anthropic_error", r.status, tag, b); return null; }
   const data = await r.json().catch(() => null) as { content?: { type: string; text?: string }[] } | null;
-  return (data?.content ?? []).filter((x) => x.type === "text").map((x) => x.text ?? "").join("").trim();
+  const text = (data?.content ?? []).filter((x) => x.type === "text").map((x) => x.text ?? "").join("").trim();
+  console.log("anthropic_ok", tag, Date.now() - t0, "chars", text.length);
+  return text;
 }
 function parseJson(text: string | null): Record<string, unknown> | null {
   if (!text) return null;
@@ -117,13 +123,13 @@ async function rehostImages(html: string, uid: string): Promise<string> {
   for (let m; (m = re.exec(html));) { const u = m[1]; if (/^https?:\/\//i.test(u) && !u.includes(ours)) urls.add(u); }
   if (!urls.size) return html;
   const map = new Map<string, string | null>();
-  await Promise.all([...urls].slice(0, 8).map(async (u) => {
+  await Promise.all([...urls].slice(0, 6).map(async (u) => {
     try {
       const r = await fetch(u, { headers: { "user-agent": "Mozilla/5.0 (compatible; SendraBot/1.0)", accept: "image/*" }, signal: AbortSignal.timeout(8000) });
       const ct = (r.headers.get("content-type") || "").toLowerCase();
       if (!r.ok || !ct.startsWith("image/")) { map.set(u, null); return; }
       const buf = new Uint8Array(await r.arrayBuffer());
-      if (!buf.length || buf.length > 10 * 1024 * 1024) { map.set(u, null); return; }
+      if (!buf.length || buf.length > 5 * 1024 * 1024) { map.set(u, null); return; }
       const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : ct.includes("gif") ? "gif" : ct.includes("svg") ? "svg" : "jpg";
       const path = `${uid}/ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const up = await fetch(`${SB_URL}/storage/v1/object/email-assets/${path}`, { method: "POST", headers: { authorization: `Bearer ${SB_SERVICE}`, "content-type": ct, "x-upsert": "true" }, body: buf });
@@ -162,8 +168,8 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
   const tools = mode === "design" ? WEB_TOOLS : undefined;
   const max = mode === "design" ? 12000 : 1500;
   const msgs = [{ role: "user", content: prompt.slice(0, 2000) }];
-  let raw = await callClaude(system, msgs, max, tools);
-  if (!raw && tools) raw = await callClaude(system, msgs, max); // web tools failed — build without them
+  let raw = await callClaude(system, msgs, max, tools, 48000);
+  if (!raw && tools) raw = await callClaude(system, msgs, max, undefined, 40000); // web tools failed/slow — build without them
   const o = parseJson(raw);
   if (o && o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 50000) };
   return null;
@@ -189,8 +195,8 @@ async function chatDesign(messages: { role: string; content: string }[], current
     " Respond with ONLY a JSON object: always include a short `reply`; include `subject` and `body` (the full HTML) ONLY when you created or changed the email.";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
   if (!conv.length || conv[0].role !== "user") return null;
-  let raw = await callClaude(system, conv, 12000, WEB_TOOLS);
-  if (!raw) raw = await callClaude(system, conv, 12000); // web tools failed — build without them
+  let raw = await callClaude(system, conv, 12000, WEB_TOOLS, 48000);
+  if (!raw) raw = await callClaude(system, conv, 12000, undefined, 40000); // web tools failed/slow — build without them
   const o = parseJson(raw);
   if (!o) return null;
   const reply = String(o.reply || "").slice(0, 600);
@@ -269,8 +275,9 @@ Deno.serve(async (req: Request) => {
       const mode = String(body?.mode || "text") === "design" ? "design" : "text";
       const images = Array.isArray(body?.images) ? (body.images as unknown[]).map((x) => String(x)).filter(Boolean).slice(0, 8) : [];
       const out = await generate(prompt, mode, await getBrand(uid), images);
-      if (out && mode === "design") out.body = await rehostImages(out.body, uid);
-      return out ? json(req, { ...out, kind: mode === "design" ? "html" : "text" }) : json(req, { error: "generate_failed" });
+      if (!out) return json(req, { error: "generate_failed" });
+      if (mode === "design" && out.body) { try { out.body = await rehostImages(out.body, uid); } catch (e) { console.error("rehost_failed", String((e as Error)?.message || e)); } }
+      return json(req, { ...out, kind: mode === "design" ? "html" : "text" });
     }
 
     if (action === "chat") {
@@ -280,8 +287,9 @@ Deno.serve(async (req: Request) => {
       const images = Array.isArray(body?.images) ? (body.images as unknown[]).map((x) => String(x)).filter(Boolean).slice(0, 8) : [];
       if (!messages.length) return json(req, { error: "missing_prompt" });
       const out = await chatDesign(messages, current, await getBrand(uid), images);
-      if (out && out.body) out.body = await rehostImages(out.body, uid);
-      return out ? json(req, { ...out, kind: "html" }) : json(req, { error: "generate_failed" });
+      if (!out) return json(req, { error: "generate_failed" });
+      if (out.body) { try { out.body = await rehostImages(out.body, uid); } catch (e) { console.error("rehost_failed", String((e as Error)?.message || e)); } }
+      return json(req, { ...out, kind: "html" });
     }
 
     if (action === "save") {

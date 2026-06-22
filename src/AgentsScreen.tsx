@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck, IconContacts,
-  IconChart, IconDoc, IconChat, IconPlus, IconArrowUp, IconX,
+  IconChart, IconDoc, IconChat, IconPlus, IconArrowUp, IconX, IconCopy,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -118,6 +118,41 @@ const relTime = (t: number) => {
   if (s < 86400) return `${Math.round(s / 3600)}h ago`;
   return `${Math.round(s / 86400)}d ago`;
 };
+const REDUCED_MOTION = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Copy text to the clipboard, with a hidden-textarea fallback for older webviews.
+const copyToClipboard = async (s: string): Promise<boolean> => {
+  try { await navigator.clipboard.writeText(s); return true; } catch { /* fall through */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = s; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand('copy'); document.body.removeChild(ta); return ok;
+  } catch { return false; }
+};
+// While Sendra works, cycle a few honest status words instead of a single "Designing…".
+const BUILD_PHASES = ['Thinking…', 'Designing…', 'Writing the copy…', 'Making it look good…'];
+function BuilderStatus({ withImage }: { withImage?: boolean }) {
+  const [i, setI] = useState(0);
+  useEffect(() => { const id = setInterval(() => setI((n) => n + 1), 2000); return () => clearInterval(id); }, []);
+  const phases = withImage ? ['Looking at your image…', ...BUILD_PHASES] : BUILD_PHASES;
+  return (
+    <div className="ag-cb-a ag-cb-typing">
+      <span className="ag-cb-dots" aria-hidden="true"><i /><i /><i /></span>
+      {phases[Math.min(i, phases.length - 1)]}
+    </div>
+  );
+}
+// Reveal an assistant reply one character at a time (skipped if reduced-motion).
+function Typewriter({ text, on }: { text: string; on: boolean }) {
+  const [n, setN] = useState(on ? 0 : text.length);
+  useEffect(() => {
+    if (!on) { setN(text.length); return; }
+    setN(0); let i = 0;
+    const id = setInterval(() => { i += 2; setN(i); if (i >= text.length) clearInterval(id); }, 18);
+    return () => clearInterval(id);
+  }, [text, on]);
+  return <span>{text.slice(0, n)}</span>;
+}
 
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [agent, setAgent] = useState<AgentId | null>(null);
@@ -204,6 +239,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null); // chat bubble showing "Copied"
+  const [typeIdx, setTypeIdx] = useState<number | null>(null);     // index of the assistant msg to typewriter-reveal
   const [chatErr, setChatErr] = useState('');
   const [chatHistory, setChatHistory] = useState<{ subject: string; body: string }[]>([]); // email state before each turn (Undo)
   const [chatView, setChatView] = useState<'chat' | 'preview' | 'history'>('chat'); // chat thread / email preview / version history
@@ -619,11 +656,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     inp.click();
   };
   // New template -> straight into the AI chat builder.
-  const startAI = () => { tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setTplVersions([]); setPendingImg(null); setChatView('chat'); };
+  const startAI = () => { tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setTplVersions([]); setPendingImg(null); setChatBusy(false); setTplImgBusy(false); setCopiedIdx(null); setTypeIdx(null); setChatView('chat'); };
   const openTplEdit = (t: Template) => {
     tap();
     setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body);
-    setChatMsgs(t.chat && t.chat.length ? t.chat : []); setChatInput(''); setChatErr(''); setChatHistory([]); setPendingImg(null); setChatView('chat');
+    setChatMsgs(t.chat && t.chat.length ? t.chat : []); setChatInput(''); setChatErr(''); setChatHistory([]); setPendingImg(null); setChatBusy(false); setTplImgBusy(false); setCopiedIdx(null); setTypeIdx(null); setChatView('chat');
     setTplVersions(t.body ? [{ label: 'Saved version', subject: t.subject, body: t.body, at: Date.parse(t.updated_at || '') || Date.now() }] : []);
   };
   // One chat turn: send the thread (+ any image) to the AI. It may just reply
@@ -632,7 +669,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     const prev = { subject: tplSubject, body: tplBody }; // snapshot for Undo (only used if the email changes)
     setChatMsgs(next); setChatBusy(true); setChatErr('');
     try {
-      const r = await chatTemplate(next, tplBody, images);
+      // Safety net: never let the UI hang on "Designing…" if the request stalls.
+      const r = await Promise.race([
+        chatTemplate(next, tplBody, images),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 110000)),
+      ]);
       if (!mountedRef.current) return;
       if (r.error) { setChatErr(r.error === 'ai_unset' ? 'AI builder isn’t set up on the server yet.' : 'Couldn’t do that — try again.'); return; }
       if (r.body) { // the email was created or changed
@@ -643,9 +684,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         const label = [...next].reverse().find((m) => m.role === 'user')?.content?.trim() || 'Update';
         setTplVersions((v) => [...v, { label: label.slice(0, 80), subject: r.subject || tplSubject, body: r.body as string, at: Date.now() }].slice(-40));
       }
+      setTypeIdx(next.length); // reveal this new assistant reply letter-by-letter
       setChatMsgs((m) => [...m, { role: 'assistant', content: r.reply || 'Done.' }]);
-    } catch { if (mountedRef.current) setChatErr('Something went wrong — try again.'); }
+    } catch (e) { if (mountedRef.current) setChatErr((e as Error)?.message === 'timeout' ? 'That took too long — try again.' : 'Something went wrong — try again.'); }
     finally { if (mountedRef.current) setChatBusy(false); }
+  };
+  const copyMsg = async (i: number, text: string) => {
+    if (!text) return;
+    if (await copyToClipboard(text)) { tap(); setCopiedIdx(i); setTimeout(() => setCopiedIdx((c) => (c === i ? null : c)), 1500); }
   };
   const sendChat = () => {
     const text = chatInput.trim();
@@ -1081,12 +1127,26 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     )}
                     <div className="ag-chatb-thread" ref={chatThreadRef}>
                       {chatMsgs.map((m, i) => (
-                        <div key={i} className={m.role === 'user' ? 'ag-cb-u' : 'ag-cb-a'}>
-                          {m.img && <img className="ag-cb-img" src={m.img} alt="attachment" />}
-                          {m.content && <span>{m.content}</span>}
-                        </div>
+                        m.role === 'user' ? (
+                          <div key={i} className="ag-cb-u">
+                            {m.img && <img className="ag-cb-img" src={m.img} alt="attachment" />}
+                            {m.content && <span>{m.content}</span>}
+                          </div>
+                        ) : (
+                          <div key={i} className="ag-cb-row">
+                            <div className="ag-cb-a">{m.content ? <Typewriter text={m.content} on={i === typeIdx && !REDUCED_MOTION} /> : null}</div>
+                            {m.content && (
+                              <div className="msg-actions">
+                                <button className="msg-act" aria-label="Copy message" onClick={() => copyMsg(i, m.content)}>
+                                  {copiedIdx === i ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                                  <span className="msg-act-label">{copiedIdx === i ? 'Copied' : 'Copy'}</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )
                       ))}
-                      {chatBusy && <div className="ag-cb-a ag-cb-typing">Designing…</div>}
+                      {chatBusy && <BuilderStatus withImage={!!chatMsgs[chatMsgs.length - 1]?.img} />}
                       {chatErr && <div className="ag-cb-err">{chatErr}</div>}
                     </div>
                     {tplBody.trim() && <button className="ag-chatb-peek" onClick={() => { tap(); setChatView('preview'); }} aria-label="View email preview"><span className="ar">→</span><span className="tx">VIEW</span></button>}
