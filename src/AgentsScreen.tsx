@@ -192,6 +192,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [chatBusy, setChatBusy] = useState(false);
   const [chatErr, setChatErr] = useState('');
   const [chatHistory, setChatHistory] = useState<{ subject: string; body: string }[]>([]); // email state before each turn (Undo)
+  const [chatView, setChatView] = useState<'chat' | 'preview'>('chat'); // chat thread vs the email preview (opens from the right)
 
   const tokensRef = useRef<(string | undefined)[]>([undefined]);
   const pullStart = useRef<number | null>(null);
@@ -581,11 +582,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     inp.click();
   };
   // New template -> straight into the AI chat builder.
-  const startAI = () => { tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); };
+  const startAI = () => { tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('chat'); };
   const openTplEdit = (t: Template) => {
     tap();
     setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body);
-    setChatMsgs(t.chat && t.chat.length ? t.chat : []); setChatInput(''); setChatErr(''); setChatHistory([]);
+    setChatMsgs(t.chat && t.chat.length ? t.chat : []); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('chat');
   };
   // One chat turn: send the thread (+ any image) to the AI. It may just reply
   // (conversational) or also return a new email body, which we then apply.
@@ -988,39 +989,41 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               )
             ) : sendraTab === 'templates' ? (
               tplEdit ? (
-                <div className="ag-chatb">
-                  {chatHistory.length > 0 && (
-                    <div className="ag-chatb-tools"><button className="ag-chatb-undo" onClick={undoChat} disabled={chatBusy}>↩ Undo last change</button></div>
-                  )}
-                  <div className="ag-chatb-thread" ref={chatThreadRef}>
-                    {chatMsgs.map((m, i) => (
-                      <div key={i} className={m.role === 'user' ? 'ag-cb-u' : 'ag-cb-a'}>
-                        {m.img && <img className="ag-cb-img" src={m.img} alt="attachment" />}
-                        {m.content && !m.img && <span>{m.content}</span>}
-                      </div>
-                    ))}
-                    {chatBusy && <div className="ag-cb-a ag-cb-typing">Designing…</div>}
-                    {tplBody.trim() && !chatBusy && (
-                      <div className="ag-cb-render">
-                        <iframe className="ag-cb-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(tplBody)} />
-                        <input className="ag-cb-subj" placeholder="Subject line" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
-                        <div className="ag-cb-render-act">
-                          <button className="ag-send-btn" disabled={tplSaving || !tplSubject.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : tplEdit.id ? 'Update template' : 'Save template'}</button>
-                          {tplEdit.id && <button className="ag-send-btn ghost" disabled={tplSaving} onClick={delTpl}>Delete</button>}
-                        </div>
-                      </div>
+                chatView === 'preview' ? (
+                  <div className="ag-compose ag-tpl-preview">
+                    <div className="ag-tpl-preview-bar"><button onClick={() => { tap(); setChatView('chat'); }}>‹ Chat</button><span>Preview</span></div>
+                    <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(tplBody || '<div style="padding:40px;text-align:center;color:#888;font-family:sans-serif">Nothing yet — chat to build it.</div>')} />
+                    <input className="ag-field" placeholder="Subject" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
+                    {chatErr && <div className="ag-send-err">{chatErr}</div>}
+                    <button className="ag-send-btn" disabled={tplSaving || !tplBody.trim() || !tplSubject.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : tplEdit.id ? 'Update template' : 'Save template'}</button>
+                    {tplEdit.id && <button className="ag-send-btn ghost" disabled={tplSaving} onClick={delTpl}>Delete</button>}
+                  </div>
+                ) : (
+                  <div className="ag-chatb">
+                    {chatHistory.length > 0 && (
+                      <div className="ag-chatb-tools"><button className="ag-chatb-undo" onClick={undoChat} disabled={chatBusy}>↩ Undo last change</button></div>
                     )}
-                    {chatErr && <div className="ag-cb-err">{chatErr}</div>}
+                    <div className="ag-chatb-thread" ref={chatThreadRef}>
+                      {chatMsgs.map((m, i) => (
+                        <div key={i} className={m.role === 'user' ? 'ag-cb-u' : 'ag-cb-a'}>
+                          {m.img && <img className="ag-cb-img" src={m.img} alt="attachment" />}
+                          {m.content && !m.img && <span>{m.content}</span>}
+                        </div>
+                      ))}
+                      {chatBusy && <div className="ag-cb-a ag-cb-typing">Designing…</div>}
+                      {chatErr && <div className="ag-cb-err">{chatErr}</div>}
+                    </div>
+                    {tplBody.trim() && <button className="ag-chatb-peek" onClick={() => { tap(); setChatView('preview'); }} aria-label="View email preview"><span className="ar">→</span><span className="tx">VIEW</span></button>}
+                    <div className="ag-chatb-bar">
+                      <button className="ag-chatb-attach" disabled={tplImgBusy || chatBusy} onClick={attachAndSend} aria-label="Attach an image">{tplImgBusy ? '…' : <IconPlus size={20} />}</button>
+                      <textarea className="ag-chatb-input" placeholder="Message Sendra" rows={1} value={chatInput}
+                        ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 140)}px`; } }}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (chatInput.trim() && !chatBusy) sendChat(); } }} />
+                      <button className="ag-chatb-send" disabled={!chatInput.trim() || chatBusy} onClick={sendChat} aria-label="Send"><IconArrowUp size={20} /></button>
+                    </div>
                   </div>
-                  <div className="ag-chatb-bar">
-                    <button className="ag-chatb-attach" disabled={tplImgBusy || chatBusy} onClick={attachAndSend} aria-label="Attach an image">{tplImgBusy ? '…' : <IconPlus size={20} />}</button>
-                    <textarea className="ag-chatb-input" placeholder="Message Sendra" rows={1} value={chatInput}
-                      ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 140)}px`; } }}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (chatInput.trim() && !chatBusy) sendChat(); } }} />
-                    <button className="ag-chatb-send" disabled={!chatInput.trim() || chatBusy} onClick={sendChat} aria-label="Send"><IconArrowUp size={20} /></button>
-                  </div>
-                </div>
+                )
               ) : (
                 <>
                   <button className="ag-send-btn" onClick={startAI}>+ New template</button>
