@@ -8,7 +8,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // App-level outcomes return HTTP 200 { error }; only infra failures stay 5xx.
 
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
-const MODEL = "claude-opus-4-8";
+const MODEL = "claude-sonnet-4-6";  // email building is structured HTML + copy; Sonnet handles it well at ~40% lower cost
 // Built-in Anthropic server-side tools: web_fetch reads any URL the user shares
 // (product/landing page), web_search looks things up. GA on Opus 4.8 (no beta
 // header); Claude runs them and returns the finished answer in one call.
