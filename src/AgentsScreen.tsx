@@ -106,6 +106,10 @@ type EmailTab = 'home' | 'inbox' | 'compose' | 'contacts';
 type SendState = 'idle' | 'confirm' | 'sending' | 'sent' | 'err';
 type Loadable = 'idle' | 'loading' | 'ok' | 'err';
 
+// Where the in-progress builder session (chat + current email) is autosaved so
+// it survives an app close — restored next time you open Templates (Lovable-style).
+const TPL_DRAFT_KEY = 'sendra_tpl_draft_v1';
+
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [agent, setAgent] = useState<AgentId | null>(null);
   const [commsApp, setCommsApp] = useState<CommsId | null>(null); // null while Sendra shows its home / the app constellation
@@ -202,6 +206,24 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const chatThreadRef = useRef<HTMLDivElement>(null);       // AI builder thread — auto-scrolls to newest render
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
+
+  // Restore an unsaved builder draft on open (survives app close, Lovable-style).
+  useEffect(() => {
+    try {
+      const d = JSON.parse(localStorage.getItem(TPL_DRAFT_KEY) || 'null');
+      if (d && (d.body || (Array.isArray(d.chat) && d.chat.length))) {
+        setTplEdit({ id: d.id || undefined });
+        setTplName(d.name || ''); setTplSubject(d.subject || ''); setTplBody(d.body || '');
+        setChatMsgs(Array.isArray(d.chat) ? d.chat : []); setChatView(d.view === 'preview' ? 'preview' : 'chat');
+      }
+    } catch { /* ignore */ }
+  }, []);
+  // Autosave the active builder session on every change.
+  useEffect(() => {
+    if (!tplEdit) return;
+    try { localStorage.setItem(TPL_DRAFT_KEY, JSON.stringify({ id: tplEdit.id, name: tplName, subject: tplSubject, body: tplBody, chat: chatMsgs, view: chatView })); } catch { /* ignore */ }
+  }, [tplEdit, tplName, tplSubject, tplBody, chatMsgs, chatView]);
+  const clearDraft = () => { try { localStorage.removeItem(TPL_DRAFT_KEY); } catch { /* ignore */ } };
 
   // Which provider the mail workspace is talking to (Composio app id -> our param).
   const mailApp = commsApp === 'm365' ? 'outlook' : 'gmail';
@@ -642,16 +664,18 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     try {
       await saveTemplate({ id: tplEdit?.id, name, subject, body, kind: 'html', chat: chatMsgs });
       if (!mountedRef.current) return;
+      clearDraft();
       setTplEdit(null);
       listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
     } catch { if (mountedRef.current) setChatErr('Couldn’t save — try again.'); }
     finally { if (mountedRef.current) setTplSaving(false); }
   };
   const delTpl = async () => {
-    if (!tplEdit?.id) { setTplEdit(null); return; }
+    if (!tplEdit?.id) { clearDraft(); setTplEdit(null); return; }
     tap();
     await deleteTemplate(tplEdit.id).catch(() => {});
     if (!mountedRef.current) return;
+    clearDraft();
     setTplEdit(null);
     listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
   };
