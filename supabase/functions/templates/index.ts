@@ -112,6 +112,7 @@ const PLACEHOLDER_IMG = "<div style=\"background:#eeeeee;height:220px;border-rad
 const IMAGE_RULE = " IMAGES (mandatory - the email MUST be visual, never text-only): ALWAYS include a full-width hero image at the top, and a photo in EVERY product/feature section. NEVER omit an image and NEVER describe a picture in words. For each <img>, set src to a REAL photo URL if you found one via web_search/web_fetch; OTHERWISE set src=\"stock:KEYWORD\" where KEYWORD is a 1-3 word subject (e.g. <img src=\"stock:running shoes\">, <img src=\"stock:coffee cup\">, <img src=\"stock:city skyline\">). Give every <img> a matching descriptive alt too. The server turns every real URL and every stock:KEYWORD into a re-hosted image that always loads - so every <img> you write WILL render. Use any provided uploaded image URLs first (first = hero). For the brand LOGO, PREFER a clean styled text wordmark of the business name; only use an <img> logo if you have a real, verified logo URL you actually fetched.";
 const EMAIL_RULES = " RENDERING (must work in every inbox, especially Outlook): build the layout with role=presentation <table> elements, NOT <div> - one outer table (align center, width 100%) wrapping an inner table at max-width 600px. Inline styles only; use a web-safe font stack everywhere (font-family:Arial,Helvetica,sans-serif). Begin the body with a hidden PREHEADER (the inbox preview line, ~50-90 chars summarizing the email): <div style=\"display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#ffffff\">...</div>. Build the call-to-action as a BULLETPROOF button - a table cell with bgcolor + padding wrapping an <a> (never a styled <div>), with an <!--[if mso]> VML roundrect <![endif]--> fallback so Outlook shows it. Give every <img> a short descriptive alt and an explicit width. Keep the whole HTML under ~100KB so Gmail doesn't clip it.";
 const QUALITY_RULES = " COPY QUALITY: subject under ~50 characters, specific and compelling but never clickbait; no ALL-CAPS, no '!!!', avoid spam-trigger words (FREE!!!, $$$, ACT NOW, GUARANTEED); exactly one primary call-to-action; keep a healthy text-to-image balance (never send one big image as the whole email).";
+const LINK_RULE = " LINKS: every button and text link MUST use a real, working https:// URL - the brand's official site or a specific product/landing page you found via web tools. NEVER use href=\"#\", an empty href, or javascript:. If unsure, point all CTAs at the brand's homepage. Open links in a new tab (target=\"_blank\").";
 
 // ---- Image re-hosting: make every <img> actually render in the inbox ----
 // We try the model's real URL (with a real browser UA so brand CDNs don't block
@@ -204,6 +205,23 @@ async function rehostImages(html: string, uid: string): Promise<string> {
   for (const [oldTag, newTag] of replacements) out = out.split(oldTag).join(newTag);
   return out;
 }
+// Make every link work: dead/placeholder hrefs (#, empty, javascript:) are pointed
+// at the email's primary real destination, and all links open in a new tab.
+function normalizeLinks(html: string): string {
+  if (!html) return html;
+  const hrefs = [...html.matchAll(/<a\b[^>]*?\bhref=["']([^"']*)["']/gi)].map((m) => m[1]);
+  const ok = (h: string) => /^(https?:\/\/|mailto:|tel:)/i.test(h);
+  const primary = hrefs.find(ok) || "";
+  return html.replace(/<a\b([^>]*)>/gi, (_tag, attrs) => {
+    let a = attrs as string;
+    const m = a.match(/\bhref=["']([^"']*)["']/i);
+    const href = m ? m[1] : "";
+    if ((!href || !ok(href)) && primary) a = m ? a.replace(/\bhref=["'][^"']*["']/i, `href="${primary}"`) : ` href="${primary}"${a}`;
+    if (!/\btarget=/i.test(a)) a += ` target="_blank"`;
+    if (!/\brel=/i.test(a)) a += ` rel="noopener noreferrer"`;
+    return `<a${a}>`;
+  });
+}
 async function generate(prompt: string, mode: string, brand: Record<string, string>, images: string[]): Promise<{ subject: string; body: string } | null> {
   if (!ANTHROPIC_KEY) return null;
   const brandBlock = brandLines(brand).length ? ` Match this brand - ${brandLines(brand).join("; ")}.` : "";
@@ -216,7 +234,7 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
       "Rules: inline styles ONLY (no style tag, no script tag, no external CSS, no markdown). One centered container, max-width 600px, width 100%, light background, mobile-friendly. Use the brand color for the button, links and accents (fall back to a tasteful blue if none). Every img must be display:block; width:100%; height:auto. " +
       "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). End with the sign-off. Do NOT include an unsubscribe line (the system appends one). " +
       "You can use web_search to find details and web_fetch to read any URL in the request (e.g. a product or landing page) - use the page's real copy and real product image URLs in the email." +
-      brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES +
+      brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE +
       " Respond with ONLY a JSON object with two string keys: subject (short and compelling) and body (the full HTML).")
     : ("You are an expert email copywriter for a small business owner. From the user's short description, write ONE email they can send to their contacts. " +
       "Voice: warm, clear, human; concise and scannable; no corporate fluff, no clickbait. " +
@@ -250,7 +268,7 @@ async function chatDesign(messages: { role: string; content: string }[], current
     "When creating fresh: logo header (or business-name wordmark), a hero image, bold headline, short intro, optional feature/product sections with images and a small discount badge only if a deal is mentioned, ONE call-to-action button in the brand color, and a footer with the business name and address. " +
     "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one). " +
     "You can use web_search to look things up and web_fetch to read any link the user shares (a product or landing page) - pull its real copy and real product image URLs into the email." +
-    brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + curBlock +
+    brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + curBlock +
     " You can also just chat: if the user only asks a question, says hi, or gives feedback that doesn't require changing the email, reply briefly and to the point and DO NOT include subject or body. Only include subject and body when you actually create or change the email." +
     " Respond with ONLY a JSON object: always include a short `reply`; include `subject` and `body` (the full HTML) ONLY when you created or changed the email.";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
@@ -336,7 +354,7 @@ Deno.serve(async (req: Request) => {
       const images = Array.isArray(body?.images) ? (body.images as unknown[]).map((x) => String(x)).filter(Boolean).slice(0, 8) : [];
       const out = await generate(prompt, mode, await getBrand(uid), images);
       if (!out) return json(req, { error: "generate_failed" });
-      if (mode === "design" && out.body) { try { out.body = await rehostImages(out.body, uid); } catch (e) { console.error("rehost_failed", String((e as Error)?.message || e)); } }
+      if (mode === "design" && out.body) { try { out.body = await rehostImages(out.body, uid); } catch (e) { console.error("rehost_failed", String((e as Error)?.message || e)); } out.body = normalizeLinks(out.body); }
       return json(req, { ...out, kind: mode === "design" ? "html" : "text" });
     }
 
@@ -348,7 +366,7 @@ Deno.serve(async (req: Request) => {
       if (!messages.length) return json(req, { error: "missing_prompt" });
       const out = await chatDesign(messages, current, await getBrand(uid), images);
       if (!out) return json(req, { error: "generate_failed" });
-      if (out.body) { try { out.body = await rehostImages(out.body, uid); } catch (e) { console.error("rehost_failed", String((e as Error)?.message || e)); } }
+      if (out.body) { try { out.body = await rehostImages(out.body, uid); } catch (e) { console.error("rehost_failed", String((e as Error)?.message || e)); } out.body = normalizeLinks(out.body); }
       return json(req, { ...out, kind: "html" });
     }
 
