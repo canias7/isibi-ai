@@ -376,9 +376,13 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-cb-subj::placeholder { color: var(--text-faint); }
 .ag-cb-render-act { display: flex; gap: 8px; }
 .ag-cb-render-act .ag-send-btn { flex: 1; padding: 11px; }
-.ag-chatb-peek { position: absolute; right: -12px; top: 40%; background: var(--grad-brand); color: #fff; width: 30px; height: 54px; border: none; border-radius: 14px 0 0 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; box-shadow: -4px 6px 18px rgba(247, 90, 87, 0.4); }
-.ag-chatb-peek .ar { font-size: 18px; font-weight: 800; line-height: 1; }
-.ag-chatb-peek .tx { font-size: 7.5px; font-weight: 800; writing-mode: vertical-rl; }
+/* Right-edge tab that opens the email preview (slides in from the right). */
+.ag-chatb-peek { position: absolute; right: 0; top: 42%; z-index: 3; width: 34px; height: 58px; border: 1px solid rgba(255, 255, 255, 0.22); border-right: none; border-radius: 14px 0 0 14px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); box-shadow: -4px 6px 18px rgba(0, 0, 0, 0.28); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; cursor: pointer; }
+.ag-chatb-peek .ar { font-size: 17px; font-weight: 800; line-height: 1; }
+.ag-chatb-peek .tx { font-size: 8px; font-weight: 800; writing-mode: vertical-rl; letter-spacing: .08em; color: var(--text-dim); }
+.ag-tpl-preview { animation: agPrevIn 0.22s ease; }
+@keyframes agPrevIn { from { transform: translateX(36px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ag-tpl-preview { animation: none; } }
 .ag-chatb-atts { display: flex; gap: 6px; padding: 6px 2px; }
 /* Composer styled to match the main chat's .composer (glass card + transparent input + accent send). */
 .ag-chatb-bar { display: flex; align-items: flex-end; gap: 8px; margin-top: 8px; padding: 8px 10px; background: var(--composer); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-edge); box-shadow: var(--glass-hi), var(--glass-shadow); border-radius: var(--r-sheet); }
