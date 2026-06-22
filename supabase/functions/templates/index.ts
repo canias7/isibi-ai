@@ -86,7 +86,7 @@ async function callClaude(system: string, messages: { role: string; content: str
   } catch {
     return null;
   }
-  if (!r.ok) return null;
+  if (!r.ok) { try { console.error("anthropic_error", r.status, (await r.text()).slice(0, 400)); } catch { /* ignore */ } return null; }
   const data = await r.json().catch(() => null) as { content?: { type: string; text?: string }[] } | null;
   return (data?.content ?? []).filter((x) => x.type === "text").map((x) => x.text ?? "").join("").trim();
 }
@@ -159,7 +159,12 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
       "Keep it under ~180 words with real line breaks between short paragraphs, and end with a simple sign-off. " +
       "Do NOT add an unsubscribe line (the system appends one)." + brandBlock +
       " Respond with ONLY a JSON object with two string keys, subject and body.");
-  const o = parseJson(await callClaude(system, [{ role: "user", content: prompt.slice(0, 2000) }], mode === "design" ? 8000 : 1500, mode === "design" ? WEB_TOOLS : undefined));
+  const tools = mode === "design" ? WEB_TOOLS : undefined;
+  const max = mode === "design" ? 12000 : 1500;
+  const msgs = [{ role: "user", content: prompt.slice(0, 2000) }];
+  let raw = await callClaude(system, msgs, max, tools);
+  if (!raw && tools) raw = await callClaude(system, msgs, max); // web tools failed — build without them
+  const o = parseJson(raw);
   if (o && o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 50000) };
   return null;
 }
@@ -183,7 +188,9 @@ async function chatDesign(messages: { role: string; content: string }[], current
     " The reply must be ONE short, friendly sentence describing what you did. Respond with ONLY a JSON object with three string keys: subject, body (the full HTML), and reply.";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
   if (!conv.length || conv[0].role !== "user") return null;
-  const o = parseJson(await callClaude(system, conv, 8000, WEB_TOOLS));
+  let raw = await callClaude(system, conv, 12000, WEB_TOOLS);
+  if (!raw) raw = await callClaude(system, conv, 12000); // web tools failed — build without them
+  const o = parseJson(raw);
   if (o && o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 50000), reply: String(o.reply || "Done.").slice(0, 300) };
   return null;
 }
