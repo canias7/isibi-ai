@@ -280,116 +280,6 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-num-get { flex-shrink: 0; background: var(--grad-brand); color: var(--on-brand); border: none; font: inherit; font-weight: 700; font-size: var(--fs-footnote); padding: 8px 16px; border-radius: var(--r-pill); cursor: pointer; }
 .ag-num-get:disabled { opacity: 0.5; }
 
-/* Template block builder (rows/columns) */
-.ag-blocks { display: flex; flex-direction: column; gap: 10px; }
-.ag-blk { background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; overflow: hidden; }
-.ag-blk-bar { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
-.ag-blk-ctrl { background: none; border: none; color: var(--text-dim); font: inherit; font-size: 14px; padding: 4px 8px; border-radius: 7px; cursor: pointer; }
-.ag-blk-ctrl.wide { font-size: var(--fs-label); font-weight: 700; }
-.ag-blk-ctrl:disabled { opacity: 0.3; }
-.ag-blk-sp { flex: 1; }
-.ag-blk-cols { display: flex; flex-direction: column; gap: 10px; padding: 10px; }
-.ag-blk-col { display: flex; flex-direction: column; gap: 7px; }
-.ag-blk-collbl { color: var(--text-faint); font-size: var(--fs-label); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-.ag-blk-types { display: flex; flex-wrap: wrap; gap: 5px; }
-.ag-blk-types button { background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text-dim); font: inherit; font-size: var(--fs-label); font-weight: 700; padding: 4px 9px; border-radius: 999px; cursor: pointer; }
-.ag-blk-types button.on { background: var(--grad-brand); color: var(--on-brand); border-color: transparent; }
-.ag-blk-in { width: 100%; box-sizing: border-box; background: rgba(0, 0, 0, 0.22); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 9px; color: var(--text); font: inherit; font-size: var(--fs-body-s); padding: 9px 11px; }
-.ag-blk-ta { min-height: 70px; resize: vertical; line-height: 1.5; }
-.ag-blk-up { background: var(--glass); border: 1px dashed var(--glass-edge); color: var(--text-dim); font: inherit; font-size: var(--fs-footnote); font-weight: 600; padding: 18px; border-radius: 10px; cursor: pointer; }
-.ag-blk-imgwrap { position: relative; }
-.ag-blk-imgwrap img { width: 100%; border-radius: 9px; display: block; }
-.ag-blk-imgwrap button { position: absolute; top: 8px; right: 8px; background: rgba(0, 0, 0, 0.6); color: #fff; border: none; font: inherit; font-size: var(--fs-label); font-weight: 700; padding: 5px 10px; border-radius: 999px; cursor: pointer; }
-.ag-blk-divline { height: 1px; background: rgba(255, 255, 255, 0.18); margin: 6px 0; }
-.ag-blk-note { color: var(--text-faint); font-size: var(--fs-caption); padding: 4px 2px; }
-.ag-blk-tag { color: var(--text-faint); font-size: var(--fs-label); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-.ag-blk-plus { width: 100%; background: var(--glass); border: 1px dashed var(--glass-edge); color: var(--text); font: inherit; font-size: var(--fs-body-s); font-weight: 700; padding: 15px; border-radius: 14px; cursor: pointer; }
-.ag-blk-empty { color: var(--text-dim); font-size: var(--fs-footnote); text-align: center; margin-top: 6px; }
-.ag-blk-choosercard { border: 1px dashed rgba(255, 255, 255, 0.18); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
-.ag-blk-chooser-t { color: var(--text); font-size: var(--fs-footnote); font-weight: 700; }
-.ag-blk-chooser { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
-.ag-blk-chooser button { background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text); font: inherit; font-size: var(--fs-caption); font-weight: 600; padding: 8px 13px; border-radius: 999px; cursor: pointer; }
-.ag-blk-cancel { background: none; border: none; color: var(--text-dim); font: inherit; font-size: var(--fs-footnote); font-weight: 600; cursor: pointer; }
-.ag-blk-add { border: 1px dashed rgba(255, 255, 255, 0.16); border-radius: 14px; padding: 11px; display: flex; flex-direction: column; gap: 9px; align-items: center; }
-.ag-blk-add-lbl { color: var(--text-dim); font-size: var(--fs-footnote); font-weight: 600; }
-.ag-blk-addchips { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
-.ag-blk-addchips button { background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text); font: inherit; font-size: var(--fs-caption); font-weight: 600; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
-
-/* --- "Real mail" template builder: a white email-on-paper canvas with Gmail-style chrome --- */
-.ag-mailwrap { gap: 12px; }
-.ag-mail { background: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 12px 34px rgba(0, 0, 0, 0.4); color: #202124; }
-.ag-mail-head { padding: 16px 16px 13px; }
-.ag-mail-subj { display: flex; align-items: flex-start; gap: 8px; }
-.ag-mail-subj-t { flex: 1; min-width: 0; font-size: 19px; line-height: 1.3; font-weight: 400; color: #202124; }
-.ag-mail-chip { flex-shrink: 0; font-size: 11px; font-weight: 600; color: #5f6368; background: #e8eaed; border-radius: 6px; padding: 3px 8px; margin-top: 3px; white-space: nowrap; }
-.ag-mail-star { flex-shrink: 0; color: #dadce0; font-size: 20px; line-height: 1; }
-.ag-mail-sender { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
-.ag-mail-av { flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; background: #a6c1ee; color: #2a4a8a; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; }
-.ag-mail-smain { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.ag-mail-stop { display: flex; align-items: center; gap: 8px; }
-.ag-mail-name { font-weight: 700; font-size: 14px; color: #202124; }
-.ag-mail-time { font-size: 12px; color: #5f6368; }
-.ag-mail-to { font-size: 12px; color: #5f6368; }
-.ag-mail-sright { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.ag-mail-unsub { color: #1a73e8; font-size: 13px; font-weight: 500; }
-.ag-mail-dots { color: #5f6368; font-size: 18px; }
-/* The body is a single stacked column — exactly how the email sends. */
-.ag-mail-body { border-top: 1px solid #e8eaed; padding: 20px 16px 22px; }
-
-/* Each block is a visible, grabbable card; drag the grip to reorder it in the stack, edit in place.
-   (The frame is editor-only; the compiled email renders clean with no borders.) */
-.ag-mb { position: relative; width: 100%; margin: 0 0 12px; background: #ffffff; border: 1px solid #e6e8eb; border-radius: 10px; padding: 4px 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); }
-.ag-mb:focus-within { border-color: #1a73e8; box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.18); }
-.ag-mb.dragging { opacity: 0.97; border-color: #1a73e8; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22); pointer-events: none; z-index: 5; }
-.ag-mb-addzone { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 6px; }
-.ag-mb-ctrl { position: absolute; top: -12px; right: 6px; z-index: 2; display: flex; gap: 2px; padding: 2px; background: #ffffff; border: 1px solid #e3e6ea; border-radius: 999px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14); opacity: 0.85; transition: opacity .12s; }
-.ag-mb:hover .ag-mb-ctrl, .ag-mb:focus-within .ag-mb-ctrl { opacity: 1; }
-.ag-mb-ctrl button { background: none; border: none; color: #5f6368; font: inherit; font-size: 13px; line-height: 1; padding: 5px 8px; border-radius: 999px; cursor: pointer; }
-.ag-mb-ctrl button:disabled { opacity: 0.3; }
-.ag-mb-ctrl button:active { background: #f1f3f4; }
-.ag-mb-grip { touch-action: none; cursor: grab; font-weight: 700; }
-.ag-mb-grip:active { cursor: grabbing; }
-.ag-mb-h, .ag-mb-p, .ag-mb-btnlabel, .ag-mb-link { width: 100%; box-sizing: border-box; background: transparent; border: none; outline: none; font-family: -apple-system, "Roboto", "Segoe UI", system-ui, Arial, sans-serif; }
-.ag-mb-h { font-size: 22px; font-weight: 800; color: #111; padding: 6px 4px; }
-.ag-mb-h::placeholder { color: #c2c7cd; }
-.ag-mb-p { font-size: 15px; line-height: 1.6; color: #444; padding: 6px 4px; resize: none; overflow: hidden; min-height: 2.4em; }
-.ag-mb-p::placeholder { color: #c2c7cd; }
-.ag-mb-imgwrap, .ag-mb-logowrap { position: relative; margin: 4px 0; text-align: center; }
-.ag-mb-img { display: block; width: 100%; border-radius: 8px; }
-.ag-mb-logo { display: inline-block; max-width: 180px; width: auto; height: auto; }
-.ag-mb-replace { position: absolute; top: 8px; right: 8px; background: rgba(0, 0, 0, 0.6); color: #fff; border: none; font: inherit; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px; cursor: pointer; }
-.ag-mb-up { width: 100%; background: #f6f8fa; border: 1px dashed #cfd6dd; color: #5f6368; font: inherit; font-size: 13px; font-weight: 600; padding: 22px; border-radius: 10px; cursor: pointer; }
-.ag-mb-btnwrap { text-align: center; padding: 6px 0; }
-.ag-mb-btn { display: inline-block; background: #1f7a5a; border-radius: 8px; padding: 11px 22px; }
-.ag-mb-btnlabel { width: auto; max-width: 220px; color: #fff; font-size: 15px; font-weight: 700; text-align: center; }
-.ag-mb-btnlabel::placeholder { color: rgba(255, 255, 255, 0.7); }
-.ag-mb-link { display: block; margin: 8px auto 0; max-width: 260px; font-size: 12px; color: #1a73e8; text-align: center; }
-.ag-mb-link::placeholder { color: #aeb4bb; }
-.ag-mb-divline { height: 1px; background: #e5e7eb; margin: 14px 0; }
-.ag-mb-spacer { height: 26px; border-radius: 6px; background: repeating-linear-gradient(135deg, #f1f3f4, #f1f3f4 6px, #fafbfc 6px, #fafbfc 12px); }
-.ag-mb-plus { display: block; width: 38px; height: 38px; margin: 8px auto 0; background: #202124; color: #fff; border: none; border-radius: 50%; font-size: 22px; line-height: 1; cursor: pointer; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25); }
-.ag-mb-plus:active { filter: brightness(0.95); }
-.ag-mb-empty { color: #80868b; font-size: 13px; text-align: center; padding: 8px 2px 0; }
-
-/* Paper mode: the manual builder turns the whole screen white like a real email page. */
-.memg.ag-paper { background: #ffffff; }
-.memg.ag-paper::before { display: none; }
-.ag-paper .memg-title { color: #202124; }
-.ag-paper .memg-sub { color: #5f6368; }
-.ag-paper .memg-back { background: #ffffff; border-color: #dadce0; color: #202124; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); -webkit-backdrop-filter: none; backdrop-filter: none; }
-.ag-paper .memg-back:active { background: #f1f3f4; }
-.ag-paper .ag-mail { background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
-.ag-paper .ag-mail-head { padding-left: 4px; padding-right: 4px; }
-.ag-paper .ag-mail-body { padding-left: 4px; padding-right: 4px; }
-/* "Save" lives in the top-right corner of the header (mirrors .ag-corner). */
-.ag-corner-save { position: absolute; top: 9px; right: 14px; background: var(--grad-brand); color: var(--on-brand); border: none; font: inherit; font-size: 14px; font-weight: 700; padding: 7px 18px; border-radius: 999px; cursor: pointer; }
-.ag-corner-save:active { filter: brightness(0.95); }
-.ag-corner-save:disabled { opacity: 0.4; cursor: default; }
-.ag-mailwrap .ag-blk-choosercard { border-color: #d7dce1; background: #f9fafb; }
-.ag-mailwrap .ag-blk-chooser-t { color: #202124; }
-.ag-mailwrap .ag-blk-chooser button { background: #fff; border-color: #d7dce1; color: #202124; }
-.ag-mailwrap .ag-blk-cancel { color: #5f6368; }
-
 /* Send-test composer (verified domain) */
 .ag-dom-test { display: flex; gap: 8px; align-items: stretch; margin-top: 10px; }
 .ag-dom-test .ag-field { flex: 1; }
@@ -458,13 +348,6 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-imgs-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ag-imgs-thumb button { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; border: none; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 12px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
 .ag-imgs-hint { color: var(--text-dim); font-size: var(--fs-caption); margin-top: 8px; }
-
-/* New-template choice (AI vs manual) */
-.ag-choose { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
-.ag-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 18px; border-radius: 16px; background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text); font: inherit; cursor: pointer; }
-.ag-choice-ic { font-size: 26px; }
-.ag-choice-t { font-size: var(--fs-body); font-weight: 800; }
-.ag-choice-s { color: var(--text-dim); font-size: var(--fs-footnote); line-height: 1.4; }
 
 /* Chat builder (Lovable-style) */
 .ag-chatb { position: relative; display: flex; flex-direction: column; height: 72vh; }

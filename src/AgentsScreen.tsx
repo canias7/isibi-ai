@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type TplRow, type TplBlock, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -187,15 +187,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [tplBody, setTplBody] = useState('');      // current email HTML for the AI chat builder
   const [tplImgBusy, setTplImgBusy] = useState(false);
   const [tplSaving, setTplSaving] = useState(false);
-  const [tplErr, setTplErr] = useState('');
   const [tplImages, setTplImages] = useState<string[]>([]); // photos the AI chat builder lays into the email
-  const [blkRows, setBlkRows] = useState<TplRow[]>([]);      // block-builder rows (manual "Build" mode)
-  const [blkImgBusy, setBlkImgBusy] = useState('');          // "ri-ci" of the block whose image is uploading
-  const [addOpen, setAddOpen] = useState(false);            // block-type chooser open
-  const [dragIdx, setDragIdx] = useState<number | null>(null); // block currently being dragged to reorder
-  // New-template flow: choose AI vs manual; AI = Lovable-style chat builder.
-  const [tplChoose, setTplChoose] = useState(false);
-  const [tplBuild, setTplBuild] = useState<'chat' | 'manual'>('chat');
   const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
@@ -208,7 +200,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const inboxScrollRef = useRef<HTMLDivElement>(null);
   const tgMsgsRef = useRef<HTMLDivElement>(null);
   const trapRef = useRef<HTMLDivElement>(null);
-  const dragFromRef = useRef<number | null>(null);          // live source index while dragging a block to reorder
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
@@ -240,7 +231,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     else if (commsApp && commsApp !== 'telegram' && emailTab !== 'home' && !inboxHome) setEmailTab('home');
     else if (commsApp) { setCommsApp(null); setInboxHome(false); }
     else if (tplEdit) setTplEdit(null);
-    else if (tplChoose) setTplChoose(false);
     else if (sendraTab !== 'home') setSendraTab('home');
     else if (agent) setAgent(null);
     else onClose();
@@ -576,28 +566,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   };
 
   // ---- Templates ----
-  // Compile block-builder rows into one email-client-safe HTML body.
-  const compileBlocks = (rows: TplRow[]): string => {
-    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const blk = (b: TplBlock): string => {
-      if (b.type === 'heading') return `<h2 style="margin:0 0 12px;font-family:system-ui,Arial,sans-serif;font-size:22px;font-weight:700;color:#111">${esc(b.text || '')}</h2>`;
-      if (b.type === 'text') return `<p style="margin:0 0 14px;font-family:system-ui,Arial,sans-serif;font-size:16px;line-height:1.6;color:#333">${esc(b.text || '').replace(/\n/g, '<br>')}</p>`;
-      if (b.type === 'image') { if (!b.url) return ''; const img = `<img src="${b.url}" alt="" style="display:block;width:100%;max-width:100%;height:auto;border:0;border-radius:8px;margin:0 0 14px">`; return b.link ? `<a href="${esc(b.link)}" style="text-decoration:none">${img}</a>` : img; }
-      if (b.type === 'button') return `<div style="margin:0 0 16px;text-align:center"><a href="${esc(b.link || '#')}" style="display:inline-block;background:#e0951f;color:#ffffff;font-family:system-ui,Arial,sans-serif;font-size:15px;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px">${esc(b.label || 'Click here')}</a></div>`;
-      if (b.type === 'divider') return `<hr style="border:0;border-top:1px solid #e5e7eb;margin:18px 0">`;
-      if (b.type === 'logo') { if (!b.url) return ''; return `<div style="text-align:center;margin:0 0 16px"><img src="${b.url}" alt="" style="display:inline-block;max-width:160px;width:auto;height:auto;border:0"></div>`; }
-      if (b.type === 'spacer') return `<div style="height:24px;line-height:24px;font-size:0">&nbsp;</div>`;
-      return '';
-    };
-    const row = (r: TplRow): string => {
-      const cols = (r.cols || []).filter(Boolean);
-      if (cols.length <= 1) return blk(cols[0] || { type: 'text', text: '' });
-      return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px"><tr>${cols.map((c, i) => `<td valign="top" style="width:50%;padding-${i === 0 ? 'right' : 'left'}:8px">${blk(c)}</td>`).join('')}</tr></table>`;
-    };
-    return `<div style="max-width:600px;margin:0 auto;padding:24px;background:#ffffff;font-family:system-ui,Arial,sans-serif">${rows.map(row).join('')}</div>`;
-  };
-  // The stored body + kind for the active editor mode.
-  const tplComputed = (): { body: string; kind: 'text' | 'html' } => ({ body: compileBlocks(blkRows), kind: 'html' });
   // Pick an image from the device and hand back raw base64 + content type.
   const pickImage = (cb: (b64: string, ct: string) => void) => {
     const inp = document.createElement('input');
@@ -610,59 +578,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     };
     inp.click();
   };
-  const openChoice = () => { tap(); setTplChoose(true); };
-  const startAI = () => { tap(); setTplChoose(false); setTplBuild('chat'); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setTplImages([]); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('chat'); };
-  const TYPE_LABEL: Record<TplBlock['type'], string> = { heading: 'Heading', text: 'Text', image: 'Image', logo: 'Logo', button: 'Button', divider: 'Divider', spacer: 'Spacer' };
-  const BLOCK_TYPES = ['heading', 'text', 'image', 'logo', 'button', 'divider', 'spacer'] as const;
-  const makeBlock = (type: TplBlock['type']): TplBlock =>
-    type === 'heading' ? { type, text: 'Your headline' }
-      : type === 'button' ? { type, label: 'Shop now', link: '' }
-        : type === 'image' ? { type, url: '' }
-          : type === 'logo' ? { type, url: '' }
-            : type === 'divider' ? { type: 'divider' }
-              : type === 'spacer' ? { type: 'spacer' }
-                : { type: 'text', text: '' };
-  const addBlock = (type: TplBlock['type']) => { tap(); setBlkRows((rs) => [...rs, { cols: [makeBlock(type)] }]); };
-  const setBlk = (ri: number, ci: number, patch: Partial<TplBlock>) => setBlkRows((rs) => rs.map((r, i) => i !== ri ? r : { cols: r.cols.map((c, j) => j !== ci ? c : { ...c, ...patch }) }));
-  const delRow = (ri: number) => { tap(); setBlkRows((rs) => rs.filter((_, i) => i !== ri)); };
-  // Drag a block by its grip to reorder it in the stack — what you see is the send order.
-  const startDrag = (ri: number) => (e: React.PointerEvent) => {
-    e.preventDefault(); tap();
-    dragFromRef.current = ri; setDragIdx(ri);
-    const ac = new AbortController();
-    const move = (ev: PointerEvent) => {
-      const from = dragFromRef.current; if (from === null) return;
-      const tgt = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest('[data-bi]') as HTMLElement | null;
-      if (!tgt) return;
-      const to = Number(tgt.dataset.bi);
-      if (!Number.isNaN(to) && to !== from) {
-        setBlkRows((rs) => { const c = [...rs]; const [x] = c.splice(from, 1); c.splice(to, 0, x); return c; });
-        dragFromRef.current = to; setDragIdx(to);
-      }
-    };
-    const end = () => { dragFromRef.current = null; setDragIdx(null); ac.abort(); };
-    window.addEventListener('pointermove', move, { signal: ac.signal });
-    window.addEventListener('pointerup', end, { signal: ac.signal });
-    window.addEventListener('pointercancel', end, { signal: ac.signal });
-  };
-  // A label/subject derived from the first heading or text block (top of the stack).
-  const blocksTitle = (rows: TplRow[]): string => {
-    for (const r of rows) for (const c of r.cols) if (c.type === 'heading' && c.text?.trim()) return c.text.trim().slice(0, 60);
-    for (const r of rows) for (const c of r.cols) if (c.type === 'text' && c.text?.trim()) return c.text.trim().split('\n')[0].slice(0, 60);
-    return 'Untitled template';
-  };
-  const uploadBlockImage = (ri: number, ci: number) => pickImage(async (b64, ct) => { if (!b64) return; setBlkImgBusy(`${ri}-${ci}`); try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setBlk(ri, ci, { url }); } catch { /* ignore */ } finally { if (mountedRef.current) setBlkImgBusy(''); } });
-  // Fake "from"/subject chrome so the builder reads like a real inbox email — header only; the body stays blank.
-  const mailSubject = (rows: TplRow[]): string => { const t = blocksTitle(rows); return t === 'Untitled template' ? 'Your Coffee, Your Way — Rewards Just for You!' : t; };
-  const startManual = () => { tap(); setTplChoose(false); setTplBuild('manual'); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setBlkRows([]); setAddOpen(false); setTplImages([]); setTplErr(''); };
+  // New template -> straight into the AI chat builder.
+  const startAI = () => { tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setTplImages([]); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('chat'); };
   const openTplEdit = (t: Template) => {
     tap();
-    if (t.chat && t.chat.length) {
-      setTplBuild('chat'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplImages([]); setChatMsgs(t.chat); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('preview');
-    } else {
-      setTplBuild('manual'); setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplImages([]); setTplErr(''); setAddOpen(false); setTplBody('');
-      setBlkRows(t.blocks && t.blocks.length ? t.blocks : (t.body ? [{ cols: [{ type: 'text', text: t.body }] }] : []));
-    }
+    setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplImages([]);
+    setChatMsgs(t.chat && t.chat.length ? t.chat : []); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('preview');
   };
   const sendChat = async () => {
     const text = chatInput.trim();
@@ -694,25 +615,24 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // Add a photo for the AI designer to lay into the email.
   const addDesignImage = () => pickImage(async (b64, ct) => {
     if (!b64) return;
-    setTplImgBusy(true); setTplErr('');
+    setTplImgBusy(true); setChatErr('');
     try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setTplImages((xs) => [...xs, url]); }
-    catch { if (mountedRef.current) setTplErr('Upload failed — try a smaller image.'); }
+    catch { if (mountedRef.current) setChatErr('Upload failed — try a smaller image.'); }
     finally { if (mountedRef.current) setTplImgBusy(false); }
   });
   const saveTpl = async () => {
     if (tplSaving) return;
-    const isChat = tplBuild === 'chat';
-    const built: { body: string; kind: 'text' | 'html' } = isChat ? { body: tplBody.trim(), kind: 'html' } : tplComputed();
-    const subject = isChat ? tplSubject.trim() : blocksTitle(blkRows);
-    const name = (isChat ? tplName.trim() : '') || subject;
-    if (!subject || !built.body || (!isChat && blkRows.length === 0)) return;
-    tap(); setTplSaving(true); setTplErr(''); setChatErr('');
+    const body = tplBody.trim();
+    const subject = tplSubject.trim();
+    const name = tplName.trim() || subject;
+    if (!subject || !body) return;
+    tap(); setTplSaving(true); setChatErr('');
     try {
-      await saveTemplate({ id: tplEdit?.id, name, subject, body: built.body, kind: built.kind, chat: isChat ? chatMsgs : undefined, blocks: isChat ? undefined : blkRows });
+      await saveTemplate({ id: tplEdit?.id, name, subject, body, kind: 'html', chat: chatMsgs });
       if (!mountedRef.current) return;
       setTplEdit(null);
       listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
-    } catch { if (mountedRef.current) { setTplErr('Couldn’t save — try again.'); setChatErr('Couldn’t save — try again.'); } }
+    } catch { if (mountedRef.current) setChatErr('Couldn’t save — try again.'); }
     finally { if (mountedRef.current) setTplSaving(false); }
   };
   const delTpl = async () => {
@@ -763,20 +683,15 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
 
   const sortedMsgs = [...tgMsgs].sort((a, b) => (a.date || 0) - (b.date || 0));
 
-  // The manual template builder turns the whole screen white so it reads like a real email page.
-  const paperMode = !reading && agent !== null && commsApp === null && sendraTab === 'templates' && !tplChoose && !!tplEdit && tplBuild === 'manual';
-
   return (
-    <div className={`memg ag${paperMode ? ' ag-paper' : ''}`} ref={trapRef} tabIndex={-1}>
+    <div className="memg ag" ref={trapRef} tabIndex={-1}>
       <div className="memg-top">
         <button className="memg-back" onClick={back} aria-label={reading || agent ? 'Back' : 'Close'}><IconArrowLeft size={22} /></button>
         <div className="memg-titles">
           <h1 className="memg-title">{title}</h1>
           <p className="memg-sub">{subtitle}</p>
         </div>
-        {paperMode ? (
-          <button className="ag-corner-save" disabled={tplSaving || blkRows.length === 0} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save'}</button>
-        ) : showRefresh ? (
+        {showRefresh ? (
           <button
             className={`ag-corner${refreshSpin ? ' spinning' : ''}`}
             onClick={doRefresh}
@@ -1058,21 +973,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 </>
               )
             ) : sendraTab === 'templates' ? (
-              tplChoose ? (
-                <div className="ag-choose">
-                  <button className="ag-choice" onClick={startAI}>
-                    <span className="ag-choice-ic">✨</span>
-                    <span className="ag-choice-t">Generate with AI</span>
-                    <span className="ag-choice-s">Describe it in chat — Sendra designs it, you refine by chatting.</span>
-                  </button>
-                  <button className="ag-choice" onClick={startManual}>
-                    <span className="ag-choice-ic">🔧</span>
-                    <span className="ag-choice-t">Build manually</span>
-                    <span className="ag-choice-s">Write, paste your HTML, or upload a flyer yourself.</span>
-                  </button>
-                  <button className="ag-send-btn ghost" onClick={() => { tap(); setTplChoose(false); }}>Cancel</button>
-                </div>
-              ) : (tplEdit && tplBuild === 'chat') ? (
+              tplEdit ? (
                 chatView === 'preview' ? (
                   <div className="ag-compose">
                     <div className="ag-tpl-preview-bar" style={{ borderRadius: '10px 10px 0 0' }}>
@@ -1116,75 +1017,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     </div>
                   </div>
                 )
-              ) : tplEdit ? (
-                <div className="ag-compose ag-mailwrap">
-                  <div className="ag-mail">
-                    <div className="ag-mail-head">
-                      <div className="ag-mail-subj">
-                        <span className="ag-mail-subj-t">{mailSubject(blkRows)}</span>
-                        <span className="ag-mail-chip">Inbox</span>
-                        <span className="ag-mail-star">☆</span>
-                      </div>
-                      <div className="ag-mail-sender">
-                        <span className="ag-mail-av">B</span>
-                        <span className="ag-mail-smain">
-                          <span className="ag-mail-stop"><b className="ag-mail-name">Brew Haven</b><span className="ag-mail-time">7:00 PM</span></span>
-                          <span className="ag-mail-to">to me ⌄</span>
-                        </span>
-                        <span className="ag-mail-sright"><span className="ag-mail-unsub">Unsubscribe</span><span className="ag-mail-dots">⋯</span></span>
-                      </div>
-                    </div>
-                    <div className="ag-mail-body">
-                      {blkRows.map((r, ri) => {
-                        const c = r.cols[0];
-                        return (
-                          <div className={`ag-mb${dragIdx === ri ? ' dragging' : ''}`} data-bi={ri} key={ri}>
-                            <div className="ag-mb-ctrl">
-                              <button className="ag-mb-grip" style={{ touchAction: 'none' }} onPointerDown={startDrag(ri)} aria-label="Drag to move">⠿</button>
-                              <button onClick={() => delRow(ri)} aria-label="Delete">✕</button>
-                            </div>
-                            {c.type === 'heading' && <input className="ag-mb-h" placeholder="Headline" value={c.text || ''} onChange={(e) => setBlk(ri, 0, { text: e.target.value })} />}
-                            {c.type === 'text' && <textarea className="ag-mb-p" placeholder="Write your text… use {{name}} to personalize" value={c.text || ''} ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; } }} onChange={(e) => setBlk(ri, 0, { text: e.target.value })} />}
-                            {c.type === 'image' && (c.url
-                              ? <div className="ag-mb-imgwrap"><img className="ag-mb-img" src={c.url} alt="" /><button className="ag-mb-replace" onClick={() => uploadBlockImage(ri, 0)}>Replace</button></div>
-                              : <button className="ag-mb-up" disabled={blkImgBusy === `${ri}-0`} onClick={() => uploadBlockImage(ri, 0)}>{blkImgBusy === `${ri}-0` ? 'Uploading…' : '＋ Upload image'}</button>)}
-                            {c.type === 'logo' && (c.url
-                              ? <div className="ag-mb-logowrap"><img className="ag-mb-logo" src={c.url} alt="" /><button className="ag-mb-replace" onClick={() => uploadBlockImage(ri, 0)}>Replace</button></div>
-                              : <button className="ag-mb-up" disabled={blkImgBusy === `${ri}-0`} onClick={() => uploadBlockImage(ri, 0)}>{blkImgBusy === `${ri}-0` ? 'Uploading…' : '＋ Upload logo'}</button>)}
-                            {c.type === 'button' && (
-                              <div className="ag-mb-btnwrap">
-                                <span className="ag-mb-btn"><input className="ag-mb-btnlabel" placeholder="Button label" value={c.label || ''} onChange={(e) => setBlk(ri, 0, { label: e.target.value })} /></span>
-                                <input className="ag-mb-link" placeholder="Link — https://…" value={c.link || ''} onChange={(e) => setBlk(ri, 0, { link: e.target.value })} />
-                              </div>
-                            )}
-                            {c.type === 'divider' && <div className="ag-mb-divline" />}
-                            {c.type === 'spacer' && <div className="ag-mb-spacer" />}
-                          </div>
-                        );
-                      })}
-                      <div className="ag-mb-addzone">
-                        {addOpen ? (
-                          <div className="ag-blk-choosercard">
-                            <div className="ag-blk-chooser-t">What do you want to add?</div>
-                            <div className="ag-blk-chooser">
-                              {BLOCK_TYPES.map((tp) => <button key={tp} onClick={() => { addBlock(tp); setAddOpen(false); }}>{TYPE_LABEL[tp]}</button>)}
-                            </div>
-                            <button className="ag-blk-cancel" onClick={() => { tap(); setAddOpen(false); }}>Cancel</button>
-                          </div>
-                        ) : (
-                          <>
-                            <button className="ag-mb-plus" onClick={() => { tap(); setAddOpen(true); }} aria-label="Add block">＋</button>
-                            {blkRows.length === 0 && <div className="ag-mb-empty">Tap ＋ to add your first block.</div>}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  {tplErr && <div className="ag-send-err">{tplErr}</div>}
-                </div>
               ) : (
                 <>
-                  <button className="ag-send-btn" onClick={openChoice}>+ New template</button>
+                  <button className="ag-send-btn" onClick={startAI}>+ New template</button>
                   {tplList.length === 0 ? (
                     <div className="ag-empty" style={{ marginTop: 12 }}>No templates yet. Describe the email you want and let Sendra write it — then reuse it in any campaign.</div>
                   ) : (
