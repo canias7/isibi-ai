@@ -676,7 +676,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       // Safety net: never let the UI hang on "Designing…" if the request stalls.
       const r = await Promise.race([
         chatTemplate(next, tplBody, images),
-        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 110000)),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 150000)),
       ]);
       if (!mountedRef.current) return;
       if (r.error) { setChatErr(r.error === 'ai_unset' ? 'AI builder isn’t set up on the server yet.' : 'Couldn’t do that — try again.'); return; }
