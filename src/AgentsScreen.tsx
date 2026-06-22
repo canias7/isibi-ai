@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck, IconContacts,
-  IconChart, IconDoc, IconChat,
+  IconChart, IconDoc, IconChat, IconPlus, IconArrowUp,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -187,7 +187,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [tplBody, setTplBody] = useState('');      // current email HTML for the AI chat builder
   const [tplImgBusy, setTplImgBusy] = useState(false);
   const [tplSaving, setTplSaving] = useState(false);
-  const [tplImages, setTplImages] = useState<string[]>([]); // photos the AI chat builder lays into the email
   const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
@@ -582,30 +581,36 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     inp.click();
   };
   // New template -> straight into the AI chat builder.
-  const startAI = () => { tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setTplImages([]); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); };
+  const startAI = () => { tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); };
   const openTplEdit = (t: Template) => {
     tap();
-    setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body); setTplImages([]);
+    setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body);
     setChatMsgs(t.chat && t.chat.length ? t.chat : []); setChatInput(''); setChatErr(''); setChatHistory([]);
   };
-  const sendChat = async () => {
-    const text = chatInput.trim();
-    if (!text || chatBusy) return;
-    tap();
-    const next: ChatMsg[] = [...chatMsgs, { role: 'user', content: text }];
-    const prev = { subject: tplSubject, body: tplBody }; // snapshot for Undo
-    setChatMsgs(next); setChatInput(''); setChatBusy(true); setChatErr('');
+  // One chat turn: send the thread (+ any image) to the AI. It may just reply
+  // (conversational) or also return a new email body, which we then apply.
+  const runChat = async (next: ChatMsg[], images: string[]) => {
+    const prev = { subject: tplSubject, body: tplBody }; // snapshot for Undo (only used if the email changes)
+    setChatMsgs(next); setChatBusy(true); setChatErr('');
     try {
-      const r = await chatTemplate(next, tplBody, tplImages);
+      const r = await chatTemplate(next, tplBody, images);
       if (!mountedRef.current) return;
-      if (r.error || !r.body) { setChatErr(r.error === 'ai_unset' ? 'AI builder isn’t set up on the server yet.' : 'Couldn’t build that — try rephrasing.'); return; }
-      setTplBody(r.body); if (r.subject) setTplSubject(r.subject);
-      if (!tplName.trim() && r.subject) setTplName(r.subject.slice(0, 60));
+      if (r.error) { setChatErr(r.error === 'ai_unset' ? 'AI builder isn’t set up on the server yet.' : 'Couldn’t do that — try again.'); return; }
+      if (r.body) { // the email was created or changed
+        setTplBody(r.body);
+        if (r.subject) setTplSubject(r.subject);
+        if (!tplName.trim() && r.subject) setTplName(r.subject.slice(0, 60));
+        setChatHistory((h) => [...h, prev].slice(-20));
+      }
       setChatMsgs((m) => [...m, { role: 'assistant', content: r.reply || 'Done.' }]);
-      setChatHistory((h) => [...h, prev].slice(-20));
-      setTplImages([]);
     } catch { if (mountedRef.current) setChatErr('Something went wrong — try again.'); }
     finally { if (mountedRef.current) setChatBusy(false); }
+  };
+  const sendChat = () => {
+    const text = chatInput.trim();
+    if (!text || chatBusy) return;
+    tap(); setChatInput('');
+    runChat([...chatMsgs, { role: 'user', content: text }], []);
   };
   const undoChat = () => {
     if (!chatHistory.length || chatBusy) return;
@@ -615,12 +620,15 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setChatMsgs((m) => m.slice(0, Math.max(0, m.length - 2)));
     setChatHistory((h) => h.slice(0, -1));
   };
-  // Add a photo for the AI designer to lay into the email.
-  const addDesignImage = () => pickImage(async (b64, ct) => {
-    if (!b64) return;
-    setTplImgBusy(true); setChatErr('');
-    try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setTplImages((xs) => [...xs, url]); }
-    catch { if (mountedRef.current) setChatErr('Upload failed — try a smaller image.'); }
+  // Attaching an image auto-submits it into the chat (shown inline) and runs a turn.
+  const attachAndSend = () => pickImage(async (b64, ct) => {
+    if (!b64 || chatBusy) return;
+    tap(); setTplImgBusy(true); setChatErr('');
+    try {
+      const url = await uploadEmailImage(b64, ct);
+      if (!mountedRef.current) return;
+      await runChat([...chatMsgs, { role: 'user', content: 'Use this image.', img: url }], [url]);
+    } catch { if (mountedRef.current) setChatErr('Upload failed — try a smaller image.'); }
     finally { if (mountedRef.current) setTplImgBusy(false); }
   });
   const saveTpl = async () => {
@@ -985,9 +993,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     <div className="ag-chatb-tools"><button className="ag-chatb-undo" onClick={undoChat} disabled={chatBusy}>↩ Undo last change</button></div>
                   )}
                   <div className="ag-chatb-thread" ref={chatThreadRef}>
-                    <div className="ag-cb-a">Hey! Describe the email you want and I’ll design it on your brand. ✨ Paste a product or page link and I’ll build from it — or ask me to look something up.</div>
                     {chatMsgs.map((m, i) => (
-                      <div key={i} className={m.role === 'user' ? 'ag-cb-u' : 'ag-cb-a'}>{m.content}</div>
+                      <div key={i} className={m.role === 'user' ? 'ag-cb-u' : 'ag-cb-a'}>
+                        {m.img && <img className="ag-cb-img" src={m.img} alt="attachment" />}
+                        {m.content && !m.img && <span>{m.content}</span>}
+                      </div>
                     ))}
                     {chatBusy && <div className="ag-cb-a ag-cb-typing">Designing…</div>}
                     {tplBody.trim() && !chatBusy && (
@@ -1002,17 +1012,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     )}
                     {chatErr && <div className="ag-cb-err">{chatErr}</div>}
                   </div>
-                  {tplImages.length > 0 && (
-                    <div className="ag-chatb-atts">
-                      {tplImages.map((u, i) => (<div className="ag-imgs-thumb" key={i}><img src={u} alt="" /><button onClick={() => { tap(); setTplImages((xs) => xs.filter((_, j) => j !== i)); }}>×</button></div>))}
-                    </div>
-                  )}
                   <div className="ag-chatb-bar">
-                    <button className="ag-chatb-attach" disabled={tplImgBusy} onClick={addDesignImage} aria-label="Attach photo">{tplImgBusy ? '…' : '📎'}</button>
-                    <input className="ag-chatb-input" placeholder="Message Sendra… or paste a link" value={chatInput}
+                    <button className="ag-chatb-attach" disabled={tplImgBusy || chatBusy} onClick={attachAndSend} aria-label="Attach an image">{tplImgBusy ? '…' : <IconPlus size={20} />}</button>
+                    <textarea className="ag-chatb-input" placeholder="Message Sendra" rows={1} value={chatInput}
+                      ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 140)}px`; } }}
                       onChange={(e) => setChatInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' && chatInput.trim() && !chatBusy) sendChat(); }} />
-                    <button className="ag-chatb-send" disabled={!chatInput.trim() || chatBusy} onClick={sendChat}>↑</button>
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (chatInput.trim() && !chatBusy) sendChat(); } }} />
+                    <button className="ag-chatb-send" disabled={!chatInput.trim() || chatBusy} onClick={sendChat} aria-label="Send"><IconArrowUp size={20} /></button>
                   </div>
                 </div>
               ) : (

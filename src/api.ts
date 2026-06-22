@@ -242,7 +242,7 @@ export async function testSesDomain(domain: string, to: string): Promise<{ ok?: 
 // ---- Email templates (reusable, AI-writable, via the `templates` fn) ----
 // kind: 'text' = plain text body (wrapped to HTML on send); 'html' = ready HTML
 // (flyer image, pasted design, AI layout) sent as-is.
-export interface ChatMsg { role: 'user' | 'assistant'; content: string }
+export interface ChatMsg { role: 'user' | 'assistant'; content: string; img?: string } // img: attached image shown inline (display only; backend ignores it)
 export interface TplBlock { type: 'heading' | 'text' | 'image' | 'logo' | 'button' | 'divider' | 'spacer'; text?: string; url?: string; link?: string; label?: string }
 export interface TplRow { cols: TplBlock[] }
 export interface Template { id: string; name: string; subject: string; body: string; kind?: 'text' | 'html'; chat?: ChatMsg[]; blocks?: TplRow[]; updated_at?: string }

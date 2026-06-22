@@ -185,14 +185,19 @@ async function chatDesign(messages: { role: string; content: string }[], current
     "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one). " +
     "You can use web_search to look things up and web_fetch to read any link the user shares (a product or landing page) - pull its real copy and real product image URLs into the email." +
     brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + curBlock +
-    " The reply must be ONE short, friendly sentence describing what you did. Respond with ONLY a JSON object with three string keys: subject, body (the full HTML), and reply.";
+    " You can also just chat: if the user only asks a question, says hi, or gives feedback that doesn't require changing the email, reply briefly and to the point and DO NOT include subject or body. Only include subject and body when you actually create or change the email." +
+    " Respond with ONLY a JSON object: always include a short `reply`; include `subject` and `body` (the full HTML) ONLY when you created or changed the email.";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
   if (!conv.length || conv[0].role !== "user") return null;
   let raw = await callClaude(system, conv, 12000, WEB_TOOLS);
   if (!raw) raw = await callClaude(system, conv, 12000); // web tools failed — build without them
   const o = parseJson(raw);
-  if (o && o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 50000), reply: String(o.reply || "Done.").slice(0, 300) };
-  return null;
+  if (!o) return null;
+  const reply = String(o.reply || "").slice(0, 600);
+  const body = o.body ? String(o.body).slice(0, 50000) : "";
+  const subject = o.subject ? String(o.subject).slice(0, 200) : "";
+  if (!reply && !body) return null;
+  return { subject, body, reply: reply || "Done." };
 }
 
 Deno.serve(async (req: Request) => {
@@ -275,7 +280,7 @@ Deno.serve(async (req: Request) => {
       const images = Array.isArray(body?.images) ? (body.images as unknown[]).map((x) => String(x)).filter(Boolean).slice(0, 8) : [];
       if (!messages.length) return json(req, { error: "missing_prompt" });
       const out = await chatDesign(messages, current, await getBrand(uid), images);
-      if (out) out.body = await rehostImages(out.body, uid);
+      if (out && out.body) out.body = await rehostImages(out.body, uid);
       return out ? json(req, { ...out, kind: "html" }) : json(req, { error: "generate_failed" });
     }
 
