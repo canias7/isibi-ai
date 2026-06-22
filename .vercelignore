@@ -1,0 +1,11 @@
+# The Vercel project only serves the marketing site in /site.
+# Keep the app (Vite/Capacitor/Supabase) out of the upload.
+node_modules
+dist
+android
+ios
+supabase
+src
+public
+.github
+*.md
