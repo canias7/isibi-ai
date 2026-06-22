@@ -116,6 +116,21 @@ async function sendOne(uid: string, app: string, to: string, subject: string, ht
   }
 }
 
+// Plain-text fallback from the HTML body — better deliverability (HTML-only mail
+// scores worse on spam) and a readable version for text-only clients.
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<head[\s\S]*?<\/head>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href, inner) => `${String(inner).replace(/<[^>]+>/g, "").trim()} (${href})`)
+    .replace(/<\/(p|div|tr|h[1-6]|li|ul|ol|table)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&#39;/gi, "'").replace(/&quot;/gi, '"')
+    .replace(/[ \t]{2,}/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 // Send one email from a verified SES domain (custom-domain campaigns). Adds the
 // one-click List-Unsubscribe headers (Gmail/Yahoo bulk requirement); when the
 // `sendra` config set exists, tags the message (uid/campaign) and routes it through
@@ -128,7 +143,7 @@ async function sendOneSes(p: { fromEmail: string; fromName: string | null; to: s
       Destination: { ToAddresses: [p.to] },
       Content: { Simple: {
         Subject: { Data: p.subject, Charset: "UTF-8" },
-        Body: { Html: { Data: p.html, Charset: "UTF-8" } },
+        Body: { Html: { Data: p.html, Charset: "UTF-8" }, Text: { Data: htmlToText(p.html), Charset: "UTF-8" } },
         Headers: [
           { Name: "List-Unsubscribe", Value: `<${p.unsub}>` },
           { Name: "List-Unsubscribe-Post", Value: "List-Unsubscribe=One-Click" },
