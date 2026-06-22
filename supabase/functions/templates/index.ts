@@ -99,21 +99,55 @@ function parseJson(text: string | null): Record<string, unknown> | null {
 
 // mode 'text' -> plain text with {{name}}; mode 'design' -> a rich HTML newsletter
 // using the brand + provided image URLs (first = hero, rest fill feature sections).
-// Shared image policy: never invent or hotlink image URLs (they break in email);
-// only use provided/hosted ones, otherwise render styled placeholder boxes.
-const IMAGE_RULE = " IMAGES: only ever set an <img> src to one of the image URLs explicitly provided in this request (those are hosted and load reliably). NEVER invent image URLs and NEVER hotlink images from third-party, brand, product or CDN sites - they almost always fail to load and show a broken-image icon in the inbox. Wherever you don't have a provided image, render a placeholder instead: a div with background #eeeeee, height about 220px, rounded corners, centered muted 'Image' label. For the logo, use the provided logo URL if given, otherwise the business name as a styled text wordmark (never an invented logo URL). You may still use web_search/web_fetch for real COPY and facts, but never as a source of image URLs.";
+// Shared image policy: use REAL images (provided uploads first, otherwise real
+// URLs the model finds with web tools); the server re-hosts every one so they
+// load in the inbox. Never invent URLs; placeholder only when none is found.
+const PLACEHOLDER_IMG = "<div style=\"background:#eeeeee;height:220px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999999;font-family:Arial,sans-serif;font-size:14px\">Image</div>";
+const IMAGE_RULE = " IMAGES: use real images for the brand and its products - find them with web_fetch/web_search (official product photos, hero shots, the brand logo) and put their real URLs in the <img> tags; the server re-hosts every image automatically so it loads reliably in the inbox even if the source blocks hotlinking. Use any provided uploaded image URLs first (first = hero). Only use URLs you have actually seen on a page you fetched - NEVER invent or guess an image URL. If you genuinely cannot find a real image for a spot, use a placeholder there instead (a div, background #eeeeee, height about 220px, rounded, centered muted 'Image' label). For the logo, use a real or provided logo URL, otherwise the business name as a styled text wordmark.";
+// Re-host every external <img> onto our own bucket so brand/product images
+// always load (no hotlink protection, no dead links). A fetch that fails or
+// isn't an image becomes a placeholder rather than a broken-image icon.
+async function rehostImages(html: string, uid: string): Promise<string> {
+  if (!html) return html;
+  const ours = "/storage/v1/object/public/email-assets/";
+  const re = /<img\b[^>]*?\bsrc=["']([^"']+)["'][^>]*?>/gi;
+  const urls = new Set<string>();
+  for (let m; (m = re.exec(html));) { const u = m[1]; if (/^https?:\/\//i.test(u) && !u.includes(ours)) urls.add(u); }
+  if (!urls.size) return html;
+  const map = new Map<string, string | null>();
+  await Promise.all([...urls].slice(0, 8).map(async (u) => {
+    try {
+      const r = await fetch(u, { headers: { "user-agent": "Mozilla/5.0 (compatible; SendraBot/1.0)", accept: "image/*" }, signal: AbortSignal.timeout(8000) });
+      const ct = (r.headers.get("content-type") || "").toLowerCase();
+      if (!r.ok || !ct.startsWith("image/")) { map.set(u, null); return; }
+      const buf = new Uint8Array(await r.arrayBuffer());
+      if (!buf.length || buf.length > 10 * 1024 * 1024) { map.set(u, null); return; }
+      const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : ct.includes("gif") ? "gif" : ct.includes("svg") ? "svg" : "jpg";
+      const path = `${uid}/ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const up = await fetch(`${SB_URL}/storage/v1/object/email-assets/${path}`, { method: "POST", headers: { authorization: `Bearer ${SB_SERVICE}`, "content-type": ct, "x-upsert": "true" }, body: buf });
+      map.set(u, up.ok ? `${SB_URL}${ours}${path}` : null);
+    } catch { map.set(u, null); }
+  }));
+  return html.replace(re, (tag, src) => {
+    if (!/^https?:\/\//i.test(src) || src.includes(ours)) return tag;
+    const nu = map.get(src);
+    if (nu) return tag.replace(src, nu);
+    if (nu === null) return PLACEHOLDER_IMG;
+    return tag;
+  });
+}
 async function generate(prompt: string, mode: string, brand: Record<string, string>, images: string[]): Promise<{ subject: string; body: string } | null> {
   if (!ANTHROPIC_KEY) return null;
   const brandBlock = brandLines(brand).length ? ` Match this brand - ${brandLines(brand).join("; ")}.` : "";
   const imgBlock = images.length
-    ? ` Use these image URLs in order, first as the full-width hero, the rest in the feature sections: ${images.join(", ")}.`
-    : " No images were provided - use light gray placeholder boxes (a div, background #eeeeee, height about 220px, centered muted 'Image' label) wherever an image would go.";
+    ? ` Use these provided image URLs in order, first as the full-width hero, the rest in the feature sections: ${images.join(", ")}.`
+    : "";
   const system = mode === "design"
     ? ("You are an expert email designer and copywriter. Produce ONE marketing newsletter email as clean, email-client-safe HTML. " +
       "Structure top to bottom: a header with the logo (or the business name as a wordmark if no logo); a full-width hero image; a bold headline; one or two short intro paragraphs; then one or more feature/product sections, each with an image, a short title and a line of copy (add a small rounded discount badge like '20% off' ONLY if the description mentions a deal); a single prominent call-to-action button (rounded, brand-color background, white text); and a footer with the business name and address. " +
       "Rules: inline styles ONLY (no style tag, no script tag, no external CSS, no markdown). One centered container, max-width 600px, width 100%, light background, mobile-friendly. Use the brand color for the button, links and accents (fall back to a tasteful blue if none). Every img must be display:block; width:100%; height:auto. " +
       "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). End with the sign-off. Do NOT include an unsubscribe line (the system appends one). " +
-      "You can use web_search to find details and web_fetch to read any URL in the request (e.g. a product or landing page) - use the page's real copy in the email (text only)." +
+      "You can use web_search to find details and web_fetch to read any URL in the request (e.g. a product or landing page) - use the page's real copy and real product image URLs in the email." +
       brandBlock + imgBlock + IMAGE_RULE +
       " Respond with ONLY a JSON object with two string keys: subject (short and compelling) and body (the full HTML).")
     : ("You are an expert email copywriter for a small business owner. From the user's short description, write ONE email they can send to their contacts. " +
@@ -134,7 +168,7 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
 async function chatDesign(messages: { role: string; content: string }[], current: string, brand: Record<string, string>, images: string[]): Promise<{ subject: string; body: string; reply: string } | null> {
   if (!ANTHROPIC_KEY) return null;
   const brandBlock = brandLines(brand).length ? ` Brand to match - ${brandLines(brand).join("; ")}.` : "";
-  const imgBlock = images.length ? ` Image URLs you may place (first is the hero): ${images.join(", ")}.` : " No images were provided - use light gray placeholder boxes wherever an image would go (do not fetch or invent image URLs).";
+  const imgBlock = images.length ? ` Provided image URLs you may place (first is the hero): ${images.join(", ")}.` : "";
   const curBlock = current.trim()
     ? ` The CURRENT email HTML is between <<< and >>>. Apply the user's latest instruction by editing it and keeping everything else the same. <<<${current.slice(0, 40000)}>>>`
     : " There is no email yet - create one from the user's request.";
@@ -142,7 +176,7 @@ async function chatDesign(messages: { role: string; content: string }[], current
     "You are Sendra, an expert email designer and copywriter. You build and edit ONE marketing newsletter email as clean, email-client-safe HTML (inline styles only, no style or script tags, no markdown; one centered container max-width 600px, width 100%, mobile-friendly; every img display:block; width:100%; height:auto). " +
     "When creating fresh: logo header (or business-name wordmark), optional hero image, bold headline, short intro, optional feature/product sections with images and a small discount badge only if a deal is mentioned, ONE call-to-action button in the brand color, and a footer with the business name and address. " +
     "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one). " +
-    "You can use web_search to look things up and web_fetch to read any link the user shares (a product or landing page) - pull its real copy into the email (text only)." +
+    "You can use web_search to look things up and web_fetch to read any link the user shares (a product or landing page) - pull its real copy and real product image URLs into the email." +
     brandBlock + imgBlock + IMAGE_RULE + curBlock +
     " The reply must be ONE short, friendly sentence describing what you did. Respond with ONLY a JSON object with three string keys: subject, body (the full HTML), and reply.";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
@@ -221,6 +255,7 @@ Deno.serve(async (req: Request) => {
       const mode = String(body?.mode || "text") === "design" ? "design" : "text";
       const images = Array.isArray(body?.images) ? (body.images as unknown[]).map((x) => String(x)).filter(Boolean).slice(0, 8) : [];
       const out = await generate(prompt, mode, await getBrand(uid), images);
+      if (out && mode === "design") out.body = await rehostImages(out.body, uid);
       return out ? json(req, { ...out, kind: mode === "design" ? "html" : "text" }) : json(req, { error: "generate_failed" });
     }
 
@@ -231,6 +266,7 @@ Deno.serve(async (req: Request) => {
       const images = Array.isArray(body?.images) ? (body.images as unknown[]).map((x) => String(x)).filter(Boolean).slice(0, 8) : [];
       if (!messages.length) return json(req, { error: "missing_prompt" });
       const out = await chatDesign(messages, current, await getBrand(uid), images);
+      if (out) out.body = await rehostImages(out.body, uid);
       return out ? json(req, { ...out, kind: "html" }) : json(req, { error: "generate_failed" });
     }
 
