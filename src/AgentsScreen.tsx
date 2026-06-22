@@ -6,7 +6,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, getBrand, saveBrand, type Brand, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
@@ -36,14 +36,13 @@ const COMMS: { id: CommsId; name: string; tagline: string; mail: boolean }[] = [
 ];
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'apps' | 'texts' | 'campaigns' | 'templates' | 'brand' | 'analytics' | 'calendar';
+type SendraTab = 'home' | 'apps' | 'texts' | 'campaigns' | 'templates' | 'analytics' | 'calendar';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
   apps: { t: 'My apps', s: 'The apps Sendra runs' },
   texts: { t: 'Text', s: 'Send an SMS' },
   campaigns: { t: 'Campaigns', s: 'Email & SMS to your lists' },
   templates: { t: 'Templates', s: 'Reusable messages' },
-  brand: { t: 'Brand', s: 'Your logo, colors & voice' },
   analytics: { t: 'Analytics', s: 'Performance across your sends' },
   calendar: { t: 'Calendar', s: 'Scheduled sends & reminders' },
 };
@@ -53,7 +52,6 @@ const HOME_TOOLS: { id: SendraTab | 'inbox'; name: string; desc: string; Icon: I
   { id: 'texts', name: 'Text', desc: 'Send an SMS', Icon: IconChat },
   { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
   { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
-  { id: 'brand', name: 'Brand', desc: 'Logo, color & voice', Icon: IconLayers },
   { id: 'analytics', name: 'Analytics', desc: 'Opens & clicks', Icon: IconChart },
   { id: 'apps', name: 'My apps', desc: '', Icon: IconConnectors },
 ];
@@ -112,10 +110,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [agent, setAgent] = useState<AgentId | null>(null);
   const [commsApp, setCommsApp] = useState<CommsId | null>(null); // null while Sendra shows its home / the app constellation
   const [sendraTab, setSendraTab] = useState<SendraTab>('home'); // Sendra landing: 'home' menu -> 'apps' / scaffolds
-  const [brand, setBrandState] = useState<Brand>({});       // brand profile (logo/color/voice) — grounds every AI email
-  const [brandBusy, setBrandBusy] = useState(false);
-  const [brandSaved, setBrandSaved] = useState(false);
-  const [brandLogoBusy, setBrandLogoBusy] = useState(false);
   const [note, setNote] = useState(''); // transient explainer shown in the P0 scaffolds
   // Mail workspace
   const [emailTab, setEmailTab] = useState<EmailTab>('home');
@@ -353,7 +347,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (sendraTab === 'campaigns') listSesDomains().then((d) => { if (mountedRef.current) setSesDomains(d); });
     if (sendraTab === 'texts') smsStatus().then((s) => { if (mountedRef.current) { setSmsReady(s.ready); setSmsNumber(s.number); } });
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
-    if (sendraTab === 'brand') getBrand().then((b) => { if (mountedRef.current) { setBrandState(b || {}); setBrandSaved(false); } });
   }, [agent, commsApp, sendraTab, campNew]);
 
   // Inbox opened straight from the Sendra home (top-level). Lands on the mail
@@ -585,10 +578,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     };
     inp.click();
   };
-  // Brand profile — Sendra uses this to design every AI email on-brand.
-  const setBrandField = (patch: Partial<Brand>) => { setBrandState((s) => ({ ...s, ...patch })); if (brandSaved) setBrandSaved(false); };
-  const pickBrandLogo = () => pickImage(async (b64, ct) => { if (!b64) return; setBrandLogoBusy(true); try { const url = await uploadEmailImage(b64, ct); if (mountedRef.current) setBrandField({ logo_url: url }); } catch { /* ignore */ } finally { if (mountedRef.current) setBrandLogoBusy(false); } });
-  const saveBrandProfile = async () => { if (brandBusy) return; tap(); setBrandBusy(true); try { await saveBrand(brand); if (mountedRef.current) setBrandSaved(true); } catch { /* ignore */ } finally { if (mountedRef.current) setBrandBusy(false); } };
   // New template -> straight into the AI chat builder.
   const startAI = () => { tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setTplImages([]); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('chat'); };
   const openTplEdit = (t: Template) => {
@@ -1113,22 +1102,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   <p className="ag-foot">Texts send from {smsNumber}. Standard SMS rates apply.</p>
                 </div>
               )
-            ) : sendraTab === 'brand' ? (
-              <div className="ag-compose">
-                <p className="ag-foot" style={{ textAlign: 'left', margin: '0 0 4px' }}>Set this once — Sendra designs every AI email on your brand.</p>
-                <input className="ag-field" placeholder="Business name" value={brand.name || ''} onChange={(e) => setBrandField({ name: e.target.value })} />
-                {brand.logo_url
-                  ? <div className="ag-brand-logo"><img src={brand.logo_url} alt="Brand logo" /><button onClick={pickBrandLogo} disabled={brandLogoBusy}>{brandLogoBusy ? 'Uploading…' : 'Replace logo'}</button></div>
-                  : <button className="ag-send-btn ghost" disabled={brandLogoBusy} onClick={pickBrandLogo}>{brandLogoBusy ? 'Uploading…' : '＋ Upload logo'}</button>}
-                <div className="ag-brand-row">
-                  <input className="ag-field" type="color" aria-label="Brand color" value={/^#[0-9a-fA-F]{6}$/.test(brand.color || '') ? brand.color : '#2563eb'} onChange={(e) => setBrandField({ color: e.target.value })} />
-                  <input className="ag-field" placeholder="Brand color — #2563eb" autoCapitalize="none" autoCorrect="off" value={brand.color || ''} onChange={(e) => setBrandField({ color: e.target.value })} />
-                </div>
-                <textarea className="ag-field ag-body" placeholder="Brand voice / tone — e.g. warm, playful, premium…" value={brand.voice || ''} onChange={(e) => setBrandField({ voice: e.target.value })} />
-                <input className="ag-field" placeholder="Sign-off — e.g. The Brew Haven team" value={brand.signoff || ''} onChange={(e) => setBrandField({ signoff: e.target.value })} />
-                <input className="ag-field" placeholder="Footer address (shown in the email footer)" value={brand.address || ''} onChange={(e) => setBrandField({ address: e.target.value })} />
-                <button className="ag-send-btn" disabled={brandBusy} onClick={saveBrandProfile}>{brandBusy ? 'Saving…' : brandSaved ? 'Saved ✓' : 'Save brand'}</button>
-              </div>
             ) : (
               <div className="ag-empty">Nothing scheduled. Schedule a campaign and it shows up here, alongside reminders.</div>
             )}

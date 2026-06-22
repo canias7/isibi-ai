@@ -280,14 +280,6 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-num-get { flex-shrink: 0; background: var(--grad-brand); color: var(--on-brand); border: none; font: inherit; font-weight: 700; font-size: var(--fs-footnote); padding: 8px 16px; border-radius: var(--r-pill); cursor: pointer; }
 .ag-num-get:disabled { opacity: 0.5; }
 
-/* Brand profile editor */
-.ag-brand-row { display: flex; gap: 8px; align-items: stretch; }
-.ag-brand-row input[type="color"] { width: 52px; flex-shrink: 0; padding: 4px; cursor: pointer; }
-.ag-brand-row input:not([type="color"]) { flex: 1; min-width: 0; }
-.ag-brand-logo { display: flex; align-items: center; gap: 12px; }
-.ag-brand-logo img { max-width: 130px; max-height: 64px; width: auto; border-radius: 8px; background: #fff; padding: 6px; }
-.ag-brand-logo button { flex-shrink: 0; background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text); font: inherit; font-size: var(--fs-footnote); font-weight: 600; padding: 9px 13px; border-radius: var(--r-pill); cursor: pointer; }
-
 /* Send-test composer (verified domain) */
 .ag-dom-test { display: flex; gap: 8px; align-items: stretch; margin-top: 10px; }
 .ag-dom-test .ag-field { flex: 1; }
