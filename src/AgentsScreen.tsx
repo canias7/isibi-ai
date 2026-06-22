@@ -110,6 +110,15 @@ type Loadable = 'idle' | 'loading' | 'ok' | 'err';
 // it survives an app close — restored next time you open Templates (Lovable-style).
 const TPL_DRAFT_KEY = 'sendra_tpl_draft_v1';
 
+// Short relative time for the version-history list (e.g. "just now", "5m", "3h", "2d").
+const relTime = (t: number) => {
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (s < 45) return 'just now';
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
+};
+
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [agent, setAgent] = useState<AgentId | null>(null);
   const [commsApp, setCommsApp] = useState<CommsId | null>(null); // null while Sendra shows its home / the app constellation
@@ -196,7 +205,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [chatBusy, setChatBusy] = useState(false);
   const [chatErr, setChatErr] = useState('');
   const [chatHistory, setChatHistory] = useState<{ subject: string; body: string }[]>([]); // email state before each turn (Undo)
-  const [chatView, setChatView] = useState<'chat' | 'preview'>('chat'); // chat thread vs the email preview (opens from the right)
+  const [chatView, setChatView] = useState<'chat' | 'preview' | 'history'>('chat'); // chat thread / email preview / version history
+  const [tplVersions, setTplVersions] = useState<{ label: string; subject: string; body: string; at: number }[]>([]); // every build/edit, newest last
 
   const tokensRef = useRef<(string | undefined)[]>([undefined]);
   const pullStart = useRef<number | null>(null);
@@ -215,14 +225,15 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         setTplEdit({ id: d.id || undefined });
         setTplName(d.name || ''); setTplSubject(d.subject || ''); setTplBody(d.body || '');
         setChatMsgs(Array.isArray(d.chat) ? d.chat : []); setChatView(d.view === 'preview' ? 'preview' : 'chat');
+        setTplVersions(Array.isArray(d.versions) ? d.versions : []);
       }
     } catch { /* ignore */ }
   }, []);
   // Autosave the active builder session on every change.
   useEffect(() => {
     if (!tplEdit) return;
-    try { localStorage.setItem(TPL_DRAFT_KEY, JSON.stringify({ id: tplEdit.id, name: tplName, subject: tplSubject, body: tplBody, chat: chatMsgs, view: chatView })); } catch { /* ignore */ }
-  }, [tplEdit, tplName, tplSubject, tplBody, chatMsgs, chatView]);
+    try { localStorage.setItem(TPL_DRAFT_KEY, JSON.stringify({ id: tplEdit.id, name: tplName, subject: tplSubject, body: tplBody, chat: chatMsgs, view: chatView === 'history' ? 'chat' : chatView, versions: tplVersions })); } catch { /* ignore */ }
+  }, [tplEdit, tplName, tplSubject, tplBody, chatMsgs, chatView, tplVersions]);
   const clearDraft = () => { try { localStorage.removeItem(TPL_DRAFT_KEY); } catch { /* ignore */ } };
 
   // Which provider the mail workspace is talking to (Composio app id -> our param).
@@ -252,6 +263,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     else if (commsApp && commsApp !== 'telegram' && emailTab === 'compose') setEmailTab(inboxHome ? 'inbox' : 'home');
     else if (commsApp && commsApp !== 'telegram' && emailTab !== 'home' && !inboxHome) setEmailTab('home');
     else if (commsApp) { setCommsApp(null); setInboxHome(false); }
+    else if (tplEdit && chatView === 'history') setChatView('preview');
+    else if (tplEdit && chatView === 'preview') setChatView('chat');
     else if (tplEdit) setTplEdit(null);
     else if (sendraTab !== 'home') setSendraTab('home');
     else if (agent) setAgent(null);
@@ -604,11 +617,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     inp.click();
   };
   // New template -> straight into the AI chat builder.
-  const startAI = () => { tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('chat'); };
+  const startAI = () => { tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setTplVersions([]); setChatView('chat'); };
   const openTplEdit = (t: Template) => {
     tap();
     setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body);
     setChatMsgs(t.chat && t.chat.length ? t.chat : []); setChatInput(''); setChatErr(''); setChatHistory([]); setChatView('chat');
+    setTplVersions(t.body ? [{ label: 'Saved version', subject: t.subject, body: t.body, at: Date.parse(t.updated_at || '') || Date.now() }] : []);
   };
   // One chat turn: send the thread (+ any image) to the AI. It may just reply
   // (conversational) or also return a new email body, which we then apply.
@@ -624,6 +638,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         if (r.subject) setTplSubject(r.subject);
         if (!tplName.trim() && r.subject) setTplName(r.subject.slice(0, 60));
         setChatHistory((h) => [...h, prev].slice(-20));
+        const label = [...next].reverse().find((m) => m.role === 'user')?.content?.trim() || 'Update';
+        setTplVersions((v) => [...v, { label: label.slice(0, 80), subject: r.subject || tplSubject, body: r.body as string, at: Date.now() }].slice(-40));
       }
       setChatMsgs((m) => [...m, { role: 'assistant', content: r.reply || 'Done.' }]);
     } catch { if (mountedRef.current) setChatErr('Something went wrong — try again.'); }
@@ -678,6 +694,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     clearDraft();
     setTplEdit(null);
     listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
+  };
+  // Roll the email back to an earlier build/edit from the history panel.
+  const restoreVersion = (v: { subject: string; body: string }) => {
+    tap();
+    setChatHistory((h) => [...h, { subject: tplSubject, body: tplBody }].slice(-20));
+    setTplSubject(v.subject); setTplBody(v.body);
+    setChatView('preview');
   };
 
   const inMailInbox = !!commsApp && commsApp !== 'telegram' && emailTab === 'inbox' && !reading;
@@ -1015,12 +1038,37 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               tplEdit ? (
                 chatView === 'preview' ? (
                   <div className="ag-compose ag-tpl-preview">
-                    <div className="ag-tpl-preview-bar"><button onClick={() => { tap(); setChatView('chat'); }}>‹ Chat</button><span>Preview</span></div>
+                    <div className="ag-tpl-preview-bar">
+                      <button className="ag-prev-hist" disabled={tplVersions.length === 0} onClick={() => { tap(); setChatView('history'); }}><IconClock size={14} /> History</button>
+                      <button className="ag-prev-save" disabled={tplSaving || !tplBody.trim() || !tplSubject.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save'}</button>
+                    </div>
                     <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(tplBody || '<div style="padding:40px;text-align:center;color:#888;font-family:sans-serif">Nothing yet — chat to build it.</div>')} />
                     <input className="ag-field" placeholder="Subject" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
                     {chatErr && <div className="ag-send-err">{chatErr}</div>}
-                    <button className="ag-send-btn" disabled={tplSaving || !tplBody.trim() || !tplSubject.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : tplEdit.id ? 'Update template' : 'Save template'}</button>
                     {tplEdit.id && <button className="ag-send-btn ghost" disabled={tplSaving} onClick={delTpl}>Delete</button>}
+                  </div>
+                ) : chatView === 'history' ? (
+                  <div className="ag-compose ag-tpl-preview ag-tpl-history">
+                    <div className="ag-tpl-preview-bar">
+                      <span className="ag-prev-title">History</span>
+                      <span className="ag-prev-count">{tplVersions.length} {tplVersions.length === 1 ? 'version' : 'versions'}</span>
+                    </div>
+                    {tplVersions.length === 0 ? (
+                      <div className="ag-empty" style={{ margin: '16px 4px' }}>No versions yet. Each time Sendra builds or edits this email, it’s saved here so you can roll back.</div>
+                    ) : (
+                      <div className="ag-hist-list">
+                        {[...tplVersions].reverse().map((v, i) => (
+                          <button className="ag-hist" key={`${v.at}-${i}`} onClick={() => restoreVersion(v)}>
+                            <span className="ag-hist-rail" aria-hidden="true"><span className="ag-hist-dot" /></span>
+                            <span className="ag-hist-main">
+                              <span className="ag-hist-label">{v.label}</span>
+                              <span className="ag-hist-time">{relTime(v.at)}</span>
+                            </span>
+                            {i === 0 ? <span className="ag-hist-badge">Current</span> : <span className="ag-hist-restore">Restore</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="ag-chatb">
