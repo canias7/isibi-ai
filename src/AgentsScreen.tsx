@@ -1098,8 +1098,18 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         : <span className="ag-prev-hist-spacer" aria-hidden="true" />}
                       <button className="ag-prev-save" disabled={tplSaving || !tplBody.trim() || !tplSubject.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save'}</button>
                     </div>
-                    <input className="ag-tpl-title" placeholder="Email title" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
-                    <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(fillMergeTags(tplBody) || '<div style="padding:40px;text-align:center;color:#888;font-family:sans-serif">Nothing yet — chat to build it.</div>')} />
+                    <div className="ag-mail">
+                      <input className="ag-mail-subject" placeholder="Email subject" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
+                      <div className="ag-mail-from">
+                        <span className="ag-mail-av" aria-hidden="true">{(tplSubject.trim()[0] || 'S').toUpperCase()}</span>
+                        <div className="ag-mail-meta">
+                          <span className="ag-mail-name">Your business <em>&lt;hello@yourdomain.com&gt;</em></span>
+                          <span className="ag-mail-to">to there ▾</span>
+                        </div>
+                        <span className="ag-mail-time">{new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                      </div>
+                      <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(fillMergeTags(tplBody) || '<div style="padding:40px;text-align:center;color:#888;font-family:sans-serif">Nothing yet — chat to build it.</div>')} />
+                    </div>
                     {chatErr && <div className="ag-send-err">{chatErr}</div>}
                     {tplEdit.id && <button className="ag-tpl-del" disabled={tplSaving} onClick={delTpl}>Delete template</button>}
                   </div>
