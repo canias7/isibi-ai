@@ -272,8 +272,8 @@ async function chatDesign(messages: { role: string; content: string }[], current
     "When creating fresh: logo header (or business-name wordmark), a hero image, bold headline, short intro, optional feature/product sections with images and a small discount badge only if a deal is mentioned, ONE call-to-action button in the brand color, and a footer with the business name and address. " +
     "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one)." +
     brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + SOCIAL_RULE + curBlock +
-    " You can also just chat: if the user only asks a question, says hi, or gives feedback that doesn't require changing the email, reply briefly and to the point and DO NOT include subject or body. Only include subject and body when you actually create or change the email." +
-    " Respond with ONLY a JSON object: always include a short `reply`; include `subject` and `body` (the full HTML) ONLY when you created or changed the email.";
+    " When an email already exists, DEFAULT TO EDITING IT: treat almost any message as a change and return the full updated subject + body. This includes 'try again', 'redo', 'again', 'regenerate', 'another version', 'make it different', or any tweak - for 'try again'/'redo'/'another version', produce a genuinely fresh take (vary the copy and layout, keep the same brand/intent). ONLY reply without subject/body when the user is clearly just greeting you or asking a question (e.g. 'hi', 'what subject works best?') - then answer in one short line." +
+    " Respond with ONLY a JSON object: always include a short `reply`; include `subject` and `body` (the full updated HTML) whenever you create or change the email (which is almost always).";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
   if (!conv.length || conv[0].role !== "user") return null;
   let raw = await callClaude(system, conv, 16000, undefined, 85000);
