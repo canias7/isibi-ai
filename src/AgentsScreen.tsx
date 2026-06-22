@@ -1087,15 +1087,17 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             ) : sendraTab === 'templates' ? (
               tplEdit ? (
                 chatView === 'preview' ? (
-                  <div className="ag-compose ag-tpl-preview">
-                    <div className="ag-tpl-preview-bar">
-                      <button className="ag-prev-hist" disabled={tplVersions.length === 0} onClick={() => { tap(); setChatView('history'); }}><IconClock size={14} /> History</button>
+                  <div className="ag-tpl-view">
+                    <div className="ag-prev-top">
+                      {tplVersions.length > 0
+                        ? <button className="ag-prev-hist" onClick={() => { tap(); setChatView('history'); }} aria-label="Version history"><IconClock size={19} /></button>
+                        : <span className="ag-prev-hist-spacer" aria-hidden="true" />}
                       <button className="ag-prev-save" disabled={tplSaving || !tplBody.trim() || !tplSubject.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save'}</button>
                     </div>
+                    <input className="ag-tpl-title" placeholder="Email title" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
                     <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(tplBody || '<div style="padding:40px;text-align:center;color:#888;font-family:sans-serif">Nothing yet — chat to build it.</div>')} />
-                    <input className="ag-field" placeholder="Subject" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
                     {chatErr && <div className="ag-send-err">{chatErr}</div>}
-                    {tplEdit.id && <button className="ag-send-btn ghost" disabled={tplSaving} onClick={delTpl}>Delete</button>}
+                    {tplEdit.id && <button className="ag-tpl-del" disabled={tplSaving} onClick={delTpl}>Delete template</button>}
                   </div>
                 ) : chatView === 'history' ? (
                   <div className="ag-compose ag-tpl-preview ag-tpl-history">
