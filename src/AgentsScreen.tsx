@@ -1099,7 +1099,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       <button className="ag-prev-save" disabled={tplSaving || !tplBody.trim() || !tplSubject.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save'}</button>
                     </div>
                     <div className="ag-mail">
-                      <input className="ag-mail-subject" placeholder="Email subject" value={tplSubject} onChange={(e) => setTplSubject(e.target.value)} />
+                      <textarea className="ag-mail-subject" placeholder="Email subject" rows={1} value={tplSubject}
+                        ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 96)}px`; } }}
+                        onChange={(e) => setTplSubject(e.target.value)} />
                       <div className="ag-mail-from">
                         <span className="ag-mail-av" aria-hidden="true">{(tplSubject.trim()[0] || 'S').toUpperCase()}</span>
                         <div className="ag-mail-meta">
