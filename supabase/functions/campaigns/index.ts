@@ -85,6 +85,34 @@ async function unsubUrl(uid: string, email: string): Promise<string> {
   return `${SB_URL}/functions/v1/unsubscribe?u=${encodeURIComponent(uid)}&e=${encodeURIComponent(email)}&t=${t}`;
 }
 
+// ---- Open/click tracking (our own pixel + link redirect via the `track` fn). Works
+// for mailbox sends too, since it's our infrastructure — not SES open/click tracking. ----
+const TRACK_BASE = `${SB_URL}/functions/v1/track`;
+async function trackToken(cid: string, rid: string): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(SB_SERVICE), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${cid}:${rid}`));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+}
+// Route http(s) links in the body through the click tracker (the unsub link is added
+// after this call, so it's never rewritten). Returns the body with tracked links.
+function withTracking(html: string, cid: string, rid: string, tok: string): string {
+  return html.replace(/href\s*=\s*"(https?:\/\/[^"]+)"/gi, (m, link: string) =>
+    link.startsWith(TRACK_BASE) ? m : `href="${TRACK_BASE}?e=click&c=${cid}&r=${rid}&k=${tok}&u=${encodeURIComponent(link)}"`);
+}
+function openPixel(cid: string, rid: string, tok: string): string {
+  return `<img src="${TRACK_BASE}?e=open&c=${cid}&r=${rid}&k=${tok}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;overflow:hidden" />`;
+}
+
+// PostgREST exact count with an extra filter (opened_at=not.is.null, status=eq.bounced, …).
+async function countFilter(campaignId: string, extra: string): Promise<number> {
+  const r = await fetch(`${SB_URL}/rest/v1/campaign_recipients?campaign_id=eq.${campaignId}&${extra}&select=id`, {
+    headers: { ...sbHeaders, Prefer: "count=exact", Range: "0-0" },
+  });
+  const cr = r.headers.get("content-range") || "";
+  const n = parseInt(cr.split("/")[1] || "0", 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
 // PostgREST exact count via the Content-Range header (cheap — returns one row).
 async function countBy(campaignId: string, status: string): Promise<number> {
   const r = await fetch(`${SB_URL}/rest/v1/campaign_recipients?campaign_id=eq.${campaignId}&status=eq.${status}&select=id`, {
@@ -254,8 +282,9 @@ Deno.serve(async (req: Request) => {
       for (const r of batch) {
         const who = r.name || "there";
         const unsub = await unsubUrl(uid, r.email);
+        const tok = await trackToken(id, r.id);
         const personalized = String(camp.body).replace(/\{\{\s*name\s*\}\}/g, esc(who));
-        const html = `${personalized}<br><br><hr style="border:none;border-top:1px solid #eee"><p style="font-size:12px;color:#888;font-family:system-ui,sans-serif">You're receiving this because you're on a list managed in Sendra. <a href="${unsub}" style="color:#888">Unsubscribe</a>.</p>`;
+        const html = `${withTracking(personalized, id, r.id, tok)}<br><br><hr style="border:none;border-top:1px solid #eee"><p style="font-size:12px;color:#888;font-family:system-ui,sans-serif">You're receiving this because you're on a list managed in Sendra. <a href="${unsub}" style="color:#888">Unsubscribe</a>.</p>${openPixel(id, r.id, tok)}`;
         const res = isSes
           ? await sendOneSes({ fromEmail: camp.from_email, fromName: camp.from_name, to: r.email, subject: camp.subject, html, unsub, uid, campaignId: id, withConfig })
           : await sendOne(uid, camp.app, r.email, camp.subject, html);
@@ -287,6 +316,24 @@ Deno.serve(async (req: Request) => {
       const r = await fetch(`${SB_URL}/rest/v1/campaigns?user_id=eq.${uid}&select=id,name,subject,app,status,total,sent,failed,created_at&order=created_at.desc&limit=50`, { headers: sbHeaders });
       const campaigns = await r.json().catch(() => []);
       return json(req, { campaigns: Array.isArray(campaigns) ? campaigns : [] });
+    }
+
+    // Engagement stats for one campaign (unique opens/clicks via the `track` fn +
+    // delivered/bounced/complained from SES events). Rates are computed client-side.
+    if (action === "stats") {
+      const id = String(body?.id || "");
+      if (!id) return json(req, { error: "missing_id" });
+      const cRes = await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}&user_id=eq.${uid}&select=id,name,subject,app,status,total,sent,failed,send_via,created_at`, { headers: sbHeaders });
+      const camp = (await cRes.json().catch(() => []))?.[0];
+      if (!camp) return json(req, { error: "not_found" });
+      const [delivered, opened, clicked, bounced, complained] = await Promise.all([
+        countFilter(id, "delivered_at=not.is.null"),
+        countFilter(id, "opened_at=not.is.null"),
+        countFilter(id, "clicked_at=not.is.null"),
+        countFilter(id, "status=eq.bounced"),
+        countFilter(id, "status=eq.complained"),
+      ]);
+      return json(req, { campaign: camp, stats: { total: camp.total, sent: camp.sent, failed: camp.failed, delivered, opened, clicked, bounced, complained } });
     }
 
     if (action === "suppressions") {

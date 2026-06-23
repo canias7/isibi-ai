@@ -220,6 +220,14 @@ export async function sendCampaignBatch(id: string): Promise<{ sent: number; fai
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { sent: number; failed: number; remaining: number; done: boolean; error?: string };
 }
+// Per-campaign engagement: unique opens/clicks (our pixel + link tracker) plus
+// delivered/bounced/complained (SES events). Rates are derived in the UI.
+export interface CampaignStats { total: number; sent: number; failed: number; delivered: number; opened: number; clicked: number; bounced: number; complained: number }
+export async function campaignStats(id: string): Promise<{ campaign?: Campaign; stats?: CampaignStats; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'stats', id } });
+  if (error) return { error: error.message || 'Request failed' };
+  return (data || {}) as { campaign?: Campaign; stats?: CampaignStats; error?: string };
+}
 
 // ---- Suppressed contacts (unsubscribes, bounces, complaints — skipped on every send) ----
 export interface Suppression { email: string; reason: string; created_at?: string }

@@ -224,6 +224,14 @@
 button.ag-camp { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 button.ag-camp:active { filter: brightness(1.15); }
 .ag-camp-pill.is-failed { color: #ff6b6b; background: rgba(255, 107, 107, 0.14); }
+.ag-camp-chev { color: #6b7280; font-size: 20px; line-height: 1; flex-shrink: 0; margin-left: 2px; }
+/* Campaign stats */
+.ag-camp-stat-head { margin: 4px 0 12px; }
+.ag-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ag-stat-card { background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 12px 10px; text-align: center; }
+.ag-stat-v { color: #fff; font-weight: 800; font-size: 22px; line-height: 1.1; }
+.ag-stat-k { color: #c7ccd4; font-size: var(--fs-caption); font-weight: 600; margin-top: 3px; }
+.ag-stat-sub { color: #6b7280; font-size: var(--fs-label); margin-top: 2px; }
 
 /* Campaign "From" picker (mailbox vs verified SES domain) */
 .ag-from { display: flex; align-items: center; gap: 10px; }
