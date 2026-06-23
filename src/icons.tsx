@@ -292,6 +292,14 @@ export const IconBolt = ({ size }: { size?: number }) => (
   </Svg>
 );
 
+export const IconGlobe = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <circle cx="12" cy="12" r="9.5" />
+    <path d="M2.5 12h19" />
+    <path d="M12 2.5a14.5 14.5 0 0 1 0 19 14.5 14.5 0 0 1 0-19z" />
+  </Svg>
+);
+
 export const IconBranch = ({ size }: { size?: number }) => (
   <Svg size={size}>
     <circle cx="6" cy="6" r="2.5" />
