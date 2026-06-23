@@ -248,10 +248,10 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
       "Keep it under ~180 words with real line breaks between short paragraphs, and end with a simple sign-off. " +
       "Do NOT add an unsubscribe line (the system appends one)." + brandBlock +
       " Respond with ONLY a JSON object with two string keys, subject and body.");
-  const max = mode === "design" ? 16000 : 1500;
+  const max = mode === "design" ? 12000 : 1500;
   const msgs = [{ role: "user", content: prompt.slice(0, 2000) }];
-  let raw = await callClaude(system, msgs, max, undefined, 85000);
-  if (!raw) raw = await callClaude(system, msgs, max, undefined, 55000); // one retry on a transient failure
+  let raw = await callClaude(system, msgs, max, undefined, 65000);
+  if (!raw) raw = await callClaude(system, msgs, max, undefined, 40000); // one retry on a transient failure
   const o = parseJson(raw);
   if (o && o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 50000) };
   return null;
@@ -265,7 +265,7 @@ async function chatDesign(messages: { role: string; content: string }[], current
   const brandBlock = brandLines(brand).length ? ` Brand to match - ${brandLines(brand).join("; ")}.` : "";
   const imgBlock = images.length ? ` Provided image URLs you may place (first is the hero): ${images.join(", ")}.` : "";
   const curBlock = current.trim()
-    ? ` The CURRENT email HTML is between <<< and >>>. Apply the user's latest instruction by editing it and keeping everything else the same. <<<${current.slice(0, 80000)}>>>`
+    ? ` The CURRENT email HTML is between <<< and >>>. Apply the user's latest instruction by editing it and keeping everything else the same. <<<${current.slice(0, 60000)}>>>`
     : " There is no email yet - create one from the user's request.";
   const system =
     "You are Sendra, an expert email designer and copywriter. You build and edit ONE marketing newsletter email as clean, email-client-safe HTML (inline styles only, no style or script tags, no markdown; one centered container max-width 600px, width 100%, mobile-friendly; every img display:block; width:100%; height:auto). " +
@@ -276,8 +276,8 @@ async function chatDesign(messages: { role: string; content: string }[], current
     " Respond with ONLY a JSON object: always include a short `reply`; include `subject` and `body` (the full updated HTML) whenever you create or change the email (which is almost always).";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
   if (!conv.length || conv[0].role !== "user") return null;
-  let raw = await callClaude(system, conv, 16000, undefined, 85000);
-  if (!raw) raw = await callClaude(system, conv, 16000, undefined, 55000); // one retry on a transient failure
+  let raw = await callClaude(system, conv, 12000, undefined, 65000);
+  if (!raw) raw = await callClaude(system, conv, 12000, undefined, 40000); // one retry on a transient failure
   const o = parseJson(raw);
   if (!o) return null;
   const reply = String(o.reply || "").slice(0, 600);
