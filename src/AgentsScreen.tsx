@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, campaignStats, type CampaignStats, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, cloudflareApply, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, cloudflareApply, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -196,9 +196,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campSubject, setCampSubject] = useState('');
   const [campBody, setCampBody] = useState('');
   const [campRecips, setCampRecips] = useState('');
-  const [campState, setCampState] = useState<'idle' | 'sending' | 'done' | 'err'>('idle');
+  const [campState, setCampState] = useState<'idle' | 'sending' | 'done' | 'scheduled' | 'err'>('idle');
   const [campErr, setCampErr] = useState('');
   const [campProg, setCampProg] = useState({ sent: 0, total: 0, failed: 0 });
+  const [campWhen, setCampWhen] = useState<'now' | 'later'>('now'); // send now vs schedule
+  const [campSchedAt, setCampSchedAt] = useState('');                // datetime-local value
   const [campList, setCampList] = useState<Campaign[]>([]);
   const [campBodyKind, setCampBodyKind] = useState<'text' | 'html'>('text'); // 'html' when a designed template is applied
   // Custom sending domains (Amazon SES) + the campaign "From" picker
@@ -418,7 +420,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // Templates tab) when those tabs open.
   useEffect(() => {
     if (agent !== 'email' || commsApp !== null) return;
-    if (sendraTab === 'campaigns' && !campNew) listCampaigns().then((c) => { if (mountedRef.current) setCampList(c); });
+    if ((sendraTab === 'campaigns' && !campNew) || sendraTab === 'schedule') listCampaigns().then((c) => { if (mountedRef.current) setCampList(c); });
     if (sendraTab === 'campaigns') listSesDomains().then((d) => { if (mountedRef.current) setSesDomains(d); });
     if (sendraTab === 'campaigns') listSenders().then((s) => { if (mountedRef.current) setSenders(s); });
     if (sendraTab === 'texts') smsStatus().then((s) => { if (mountedRef.current) { setSmsReady(s.ready); setSmsNumber(s.number); } });
@@ -642,6 +644,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setCampSubject(''); setCampBody(''); setCampBodyKind('text'); setCampRecips(''); setCampProg({ sent: 0, total: 0, failed: 0 });
     setCampApp(connApps.includes('gmail') ? 'gmail' : 'outlook');
     setCampDomain(''); setCampFromName(''); setCampFromLocal('news');
+    setCampWhen('now'); setCampSchedAt('');
+  };
+  const cancelScheduled = async (id: string) => {
+    tap();
+    try { await unscheduleCampaign(id); const cl = await listCampaigns(); if (mountedRef.current) setCampList(cl); } catch { /* ignore */ }
   };
   const openCampStats = async (c: Campaign) => {
     tap(); setCampView('stats'); setCampStatsBusy(true);
@@ -679,6 +686,15 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const runCampaign = async () => {
     const recipients = parseRecips(campRecips);
     if (!campSubject.trim() || !campBody.trim() || !recipients.length || campState === 'sending') return;
+    // Scheduling: validate the picked time is at least a minute out.
+    let scheduledIso = '';
+    if (campWhen === 'later') {
+      const t = Date.parse(campSchedAt);
+      if (!campSchedAt || !Number.isFinite(t) || t < Date.now() + 60000) {
+        setCampState('err'); setCampErr('Pick a date and time at least a minute from now.'); return;
+      }
+      scheduledIso = new Date(t).toISOString();
+    }
     tap(); setCampState('sending'); setCampErr(''); setCampProg({ sent: 0, total: recipients.length, failed: 0 });
     try {
       const useDomain = !!campDomain && sesDomains.some((d) => d.domain === campDomain && d.status === 'verified');
@@ -688,8 +704,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         body: campBodyKind === 'html' ? campBody : campToHtml(campBody.trim()),
         recipients,
         ...(useDomain ? { send_via: 'ses' as const, from_email: `${(campFromLocal.trim() || 'news')}@${campDomain}`, from_name: campFromName.trim() || undefined } : {}),
+        ...(scheduledIso ? { scheduled_at: scheduledIso } : {}),
       });
       if (!mountedRef.current) return;
+      if (c.scheduled) { setCampState('scheduled'); listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); }); return; }
       if (c.error || !c.id) {
         setCampState('err');
         setCampErr(
@@ -1073,14 +1091,16 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             {note && <div className="ag-note">{note}</div>}
             {sendraTab === 'campaigns' ? (
               campNew ? (
-                campState === 'done' ? (
+                campState === 'done' || campState === 'scheduled' ? (
                   <div className="ag-sent">
                     <span className="ag-sent-ic"><IconCheck size={26} /></span>
-                    <div className="ag-sent-title">Campaign sent</div>
-                    <div className="ag-sent-sub">{campProg.sent} sent{campProg.failed ? `, ${campProg.failed} failed` : ''}.</div>
+                    <div className="ag-sent-title">{campState === 'scheduled' ? 'Campaign scheduled' : 'Campaign sent'}</div>
+                    <div className="ag-sent-sub">{campState === 'scheduled'
+                      ? `Sends ${campSchedAt ? new Date(campSchedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'at the scheduled time'}.`
+                      : `${campProg.sent} sent${campProg.failed ? `, ${campProg.failed} failed` : ''}.`}</div>
                     <div className="ag-sent-actions">
                       <button className="ag-send-btn ghost" onClick={openCampNew}>New campaign</button>
-                      <button className="ag-send-btn" onClick={() => { tap(); setCampNew(false); setCampState('idle'); }}>Done</button>
+                      <button className="ag-send-btn" onClick={() => { tap(); setCampNew(false); setCampState('idle'); if (campState === 'scheduled') setSendraTab('schedule'); }}>Done</button>
                     </div>
                   </div>
                 ) : (
@@ -1144,9 +1164,16 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     )}
                     <textarea className="ag-field ag-camp-recips" placeholder={'Recipients — one per line:\njane@example.com\nJohn Smith <john@example.com>'} value={campRecips}
                       onChange={(e) => { setCampRecips(e.target.value); if (campState === 'err') setCampState('idle'); }} />
+                    <div className="ag-seg ag-when">
+                      <button className={campWhen === 'now' ? 'on' : ''} onClick={() => { tap(); setCampWhen('now'); if (campState === 'err') setCampState('idle'); }}>Send now</button>
+                      <button className={campWhen === 'later' ? 'on' : ''} onClick={() => { tap(); setCampWhen('later'); if (campState === 'err') setCampState('idle'); }}>Schedule</button>
+                    </div>
+                    {campWhen === 'later' && (
+                      <input className="ag-field" type="datetime-local" value={campSchedAt} onChange={(e) => { setCampSchedAt(e.target.value); if (campState === 'err') setCampState('idle'); }} />
+                    )}
                     {campState === 'err' && <div className="ag-send-err">{campErr}</div>}
-                    <button className="ag-send-btn" disabled={campState === 'sending' || !campSubject.trim() || !campBody.trim() || !campRecips.trim()} onClick={runCampaign}>
-                      {campState === 'sending' ? `Sending… ${campProg.sent}/${campProg.total}` : 'Send campaign'}
+                    <button className="ag-send-btn" disabled={campState === 'sending' || !campSubject.trim() || !campBody.trim() || !campRecips.trim() || (campWhen === 'later' && !campSchedAt)} onClick={runCampaign}>
+                      {campState === 'sending' ? (campWhen === 'later' ? 'Scheduling…' : `Sending… ${campProg.sent}/${campProg.total}`) : campWhen === 'later' ? 'Schedule campaign' : 'Send campaign'}
                     </button>
                     <button className="ag-send-btn ghost" disabled={campState === 'sending'} onClick={() => { tap(); setCampNew(false); }}>Cancel</button>
                     <p className="ag-foot">{campDomain ? `Sends from ${(campFromLocal.trim() || 'news')}@${campDomain} (your verified domain)` : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
@@ -1546,7 +1573,24 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             ) : sendraTab === 'settings' ? (
               <div className="ag-empty" style={{ marginTop: 12 }}>Settings are coming soon — set your default sender name, reply-to address, signature and notification preferences here.</div>
             ) : (
-              <div className="ag-empty" style={{ marginTop: 12 }}>Nothing scheduled yet. Schedule a campaign or reminder and it’ll show up here.</div>
+              (() => {
+                const scheduled = campList.filter((c) => c.status === 'scheduled');
+                return scheduled.length === 0 ? (
+                  <div className="ag-empty" style={{ marginTop: 12 }}>Nothing scheduled yet. Create a campaign and choose <b>Schedule</b> to line one up — it’ll send automatically.</div>
+                ) : (
+                  <div className="ag-camp-list">
+                    {scheduled.map((c) => (
+                      <div className="ag-camp" key={c.id}>
+                        <div className="ag-camp-main">
+                          <div className="ag-camp-name">{c.name || c.subject || 'Campaign'}</div>
+                          <div className="ag-camp-sub">{c.scheduled_at ? new Date(c.scheduled_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Pending'} · {c.total} recipient{c.total === 1 ? '' : 's'}</div>
+                        </div>
+                        <button className="ag-sup-x" onClick={() => cancelScheduled(c.id)}>Cancel</button>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()
             )}
           </div>
         )

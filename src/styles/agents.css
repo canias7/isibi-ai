@@ -224,7 +224,9 @@
 button.ag-camp { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 button.ag-camp:active { filter: brightness(1.15); }
 .ag-camp-pill.is-failed { color: #ff6b6b; background: rgba(255, 107, 107, 0.14); }
+.ag-camp-pill.is-scheduled { color: #8b9bff; background: rgba(139, 155, 255, 0.16); }
 .ag-camp-chev { color: #6b7280; font-size: 20px; line-height: 1; flex-shrink: 0; margin-left: 2px; }
+.ag-when { margin-top: 2px; }
 /* Campaign stats */
 .ag-camp-stat-head { margin: 4px 0 12px; }
 .ag-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
