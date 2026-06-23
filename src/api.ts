@@ -350,6 +350,20 @@ export async function chatTemplate(messages: ChatMsg[], body: string, images: st
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { subject?: string; body?: string; reply?: string; error?: string };
 }
+// Async builder: kick off a generation job (returns its id instantly), then poll
+// getTemplateJob until it's done. The server finishes it in the background, so it
+// survives the app being backgrounded or the connection dropping.
+export async function chatTemplateStart(messages: ChatMsg[], body: string, images: string[] = []): Promise<{ job_id?: string; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'chat_async', messages, body, images } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { job_id?: string; error?: string };
+}
+export interface TemplateJob { status: string; subject?: string; body?: string; reply?: string; error?: string }
+export async function getTemplateJob(id: string): Promise<{ job?: TemplateJob; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'job', id } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { job?: TemplateJob; error?: string };
+}
 // Upload an image (raw base64, no data: prefix) to the public email-assets bucket.
 export async function uploadEmailImage(dataB64: string, contentType: string): Promise<string> {
   const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'upload', dataB64, contentType } });

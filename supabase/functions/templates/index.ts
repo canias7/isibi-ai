@@ -287,6 +287,16 @@ async function chatDesign(messages: { role: string; content: string }[], current
   return { subject, body, reply: reply || "Done." };
 }
 
+// Update a builder job row (best-effort; called from the background task).
+async function updateJob(id: string, patch: Record<string, unknown>): Promise<void> {
+  try {
+    await fetch(`${SB_URL}/rest/v1/template_jobs?id=eq.${id}`, {
+      method: "PATCH", headers: sbHeaders,
+      body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }),
+    });
+  } catch { /* best-effort */ }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
@@ -371,6 +381,46 @@ Deno.serve(async (req: Request) => {
       if (!out) return json(req, { error: "generate_failed" });
       if (out.body) { try { out.body = await rehostImages(out.body, uid); } catch (e) { console.error("rehost_failed", String((e as Error)?.message || e)); } out.body = normalizeLinks(out.body); }
       return json(req, { ...out, kind: "html" });
+    }
+
+    // Async builder: create a job, return its id immediately, and finish the work in a
+    // background task — so it keeps running if the app is backgrounded or the connection
+    // drops. The app polls the `job` action until status is done/error.
+    if (action === "chat_async") {
+      if (!ANTHROPIC_KEY) return json(req, { error: "ai_unset" });
+      const messages = Array.isArray(body?.messages) ? (body.messages as { role: string; content: string }[]) : [];
+      const current = String(body?.body || "");
+      const images = Array.isArray(body?.images) ? (body.images as unknown[]).map((x) => String(x)).filter(Boolean).slice(0, 8) : [];
+      if (!messages.length) return json(req, { error: "missing_prompt" });
+      // Tidy this user's jobs older than an hour (keeps the table small) — best-effort.
+      fetch(`${SB_URL}/rest/v1/template_jobs?user_id=eq.${uid}&created_at=lt.${new Date(Date.now() - 3600000).toISOString()}`, { method: "DELETE", headers: sbHeaders }).catch(() => {});
+      const jr = await fetch(`${SB_URL}/rest/v1/template_jobs`, { method: "POST", headers: { ...sbHeaders, Prefer: "return=representation" }, body: JSON.stringify({ user_id: uid, status: "running" }) });
+      const job = (await jr.json().catch(() => []))?.[0];
+      if (!job?.id) return json(req, { error: "job_failed" }, 502);
+      const jobId = job.id as string;
+      const work = (async () => {
+        try {
+          const out = await chatDesign(messages, current, await getBrand(uid), images);
+          if (!out) { await updateJob(jobId, { status: "error", error: "generate_failed" }); return; }
+          let b = out.body;
+          if (b) { try { b = await rehostImages(b, uid); } catch (e) { console.error("rehost_failed", String((e as Error)?.message || e)); } b = normalizeLinks(b); }
+          await updateJob(jobId, { status: "done", subject: out.subject, body: b, reply: out.reply });
+        } catch (e) {
+          await updateJob(jobId, { status: "error", error: String((e as Error)?.message || e).slice(0, 200) });
+        }
+      })();
+      // Keep the instance alive to finish the job even after we respond / the client leaves.
+      try { (globalThis as unknown as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime?.waitUntil(work); } catch { /* runtime without waitUntil */ }
+      return json(req, { job_id: jobId });
+    }
+
+    // Poll a builder job.
+    if (action === "job") {
+      const id = String(body?.id || "");
+      if (!id) return json(req, { error: "missing_id" });
+      const r = await fetch(`${SB_URL}/rest/v1/template_jobs?id=eq.${id}&user_id=eq.${uid}&select=status,subject,body,reply,error`, { headers: sbHeaders });
+      const j = (await r.json().catch(() => []))?.[0];
+      return j ? json(req, { job: j }) : json(req, { error: "not_found" });
     }
 
     if (action === "save") {
