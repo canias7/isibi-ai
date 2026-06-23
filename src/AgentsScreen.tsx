@@ -1531,7 +1531,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 <div className="ag-sent-sub">Your email is on its way.</div>
                 <div className="ag-sent-actions">
                   <button className="ag-send-btn ghost" onClick={openCompose}>New email</button>
-                  <button className="ag-send-btn" onClick={() => { tap(); setEmailTab('home'); }}>Done</button>
+                  <button className="ag-send-btn" onClick={() => { tap(); setReplyThreadId(null); setEmailTab('inbox'); }}>Done</button>
                 </div>
               </div>
             ) : (
