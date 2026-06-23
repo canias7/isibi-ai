@@ -3,7 +3,7 @@ import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck, IconContacts,
   IconChart, IconDoc, IconChat, IconPlus, IconArrowUp, IconX, IconCopy,
-  IconBolt, IconCalendar, IconGlobe,
+  IconBolt, IconCalendar, IconGlobe, IconWebhook, IconSettings,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -37,7 +37,7 @@ const COMMS: { id: CommsId; name: string; tagline: string; mail: boolean }[] = [
 ];
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'apps' | 'texts' | 'campaigns' | 'templates' | 'analytics' | 'domains' | 'triggers' | 'schedule';
+type SendraTab = 'home' | 'apps' | 'texts' | 'campaigns' | 'templates' | 'analytics' | 'domains' | 'triggers' | 'schedule' | 'webhook' | 'settings';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
   apps: { t: 'My apps', s: 'The apps Sendra runs' },
@@ -48,6 +48,8 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   domains: { t: 'Domains', s: 'Send from your own address' },
   triggers: { t: 'Triggers', s: 'Automate sends on events' },
   schedule: { t: 'Schedule', s: 'Scheduled sends & reminders' },
+  webhook: { t: 'Webhooks', s: 'Post events to your systems' },
+  settings: { t: 'Settings', s: 'Sender, reply-to & preferences' },
 };
 // Sendra home menu. 'apps' opens the constellation; the rest are P0 scaffolds.
 const HOME_TOOLS: { id: SendraTab | 'inbox'; name: string; desc: string; Icon: IconCmp }[] = [
@@ -57,9 +59,11 @@ const HOME_TOOLS: { id: SendraTab | 'inbox'; name: string; desc: string; Icon: I
   { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
   { id: 'domains', name: 'Domains', desc: 'Send from your address', Icon: IconGlobe },
   { id: 'triggers', name: 'Triggers', desc: 'Automate on events', Icon: IconBolt },
+  { id: 'webhook', name: 'Webhooks', desc: 'Post events out', Icon: IconWebhook },
   { id: 'schedule', name: 'Schedule', desc: 'Plan sends ahead', Icon: IconCalendar },
   { id: 'analytics', name: 'Analytics', desc: 'Opens & clicks', Icon: IconChart },
   { id: 'apps', name: 'My apps', desc: '', Icon: IconConnectors },
+  { id: 'settings', name: 'Settings', desc: 'Sender & preferences', Icon: IconSettings },
 ];
 
 // The mail workspace's top cards. Inbox / New email / Contacts are live; rest are stubs.
@@ -1280,6 +1284,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               </div>
             ) : sendraTab === 'triggers' ? (
               <div className="ag-empty" style={{ marginTop: 12 }}>Triggers are coming soon — automatically send an email or text when something happens (a new subscriber, a tag, a date). You’ll build them here.</div>
+            ) : sendraTab === 'webhook' ? (
+              <div className="ag-empty" style={{ marginTop: 12 }}>Webhooks are coming soon — get a URL that posts events (opens, clicks, replies, unsubscribes, bounces) to your own systems in real time. You’ll manage endpoints here.</div>
+            ) : sendraTab === 'settings' ? (
+              <div className="ag-empty" style={{ marginTop: 12 }}>Settings are coming soon — set your default sender name, reply-to address, signature and notification preferences here.</div>
             ) : (
               <div className="ag-empty" style={{ marginTop: 12 }}>Nothing scheduled yet. Schedule a campaign or reminder and it’ll show up here.</div>
             )}
