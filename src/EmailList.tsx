@@ -200,7 +200,7 @@ export function ContactsList(
     <div className="gf-contacts gf-gmail">
       {items.map((c, i) => {
         const label = c.name || c.email || c.phone || 'Unknown';
-        const sub = c.email || c.phone || '';
+        const subs = [c.email, c.phone].filter((s): s is string => !!s && s !== label); // show email AND phone
         const email = c.email || '';
         const pickable = !!selectable && !!email;       // only contacts with an email can be selected
         const on = pickable && !!selected?.has(email);
@@ -217,7 +217,7 @@ export function ContactsList(
             <ContactAvatar label={label} photo={c.photo} />
             <div className="gf-main">
               <div className="gf-contact-name">{label}</div>
-              {sub && <div className="gf-contact-sub">{sub}</div>}
+              {subs.map((s, j) => <div className="gf-contact-sub" key={j}>{s}</div>)}
             </div>
             {editable && <span className="gf-contact-edit" aria-hidden="true">›</span>}
           </div>
