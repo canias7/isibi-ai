@@ -239,6 +239,36 @@ export async function testSesDomain(domain: string, to: string): Promise<{ ok?: 
   return (data || {}) as { ok?: boolean; error?: string };
 }
 
+// ---- Outbound webhooks (via the `webhooks` fn) ----
+// Register an HTTPS endpoint; Sendra POSTs signed email events (delivered, bounced,
+// complained, ...) to it in real time. Signature: HMAC-SHA256(secret, `${ts}.${body}`).
+export interface WebhookEndpoint {
+  id: string; url: string; secret: string; events?: string[]; enabled: boolean;
+  description?: string | null; last_status?: number | null; last_event_at?: string | null; created_at?: string;
+}
+export async function listWebhooks(): Promise<WebhookEndpoint[]> {
+  const { data, error } = await supabase.functions.invoke('webhooks', { body: { action: 'list' } });
+  if (error) return [];
+  const e = (data as { endpoints?: WebhookEndpoint[] } | null)?.endpoints;
+  return Array.isArray(e) ? e : [];
+}
+export async function addWebhook(url: string, description?: string): Promise<{ endpoint?: WebhookEndpoint; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('webhooks', { body: { action: 'add', url, description } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { endpoint?: WebhookEndpoint; error?: string };
+}
+export async function removeWebhook(id: string): Promise<void> {
+  await supabase.functions.invoke('webhooks', { body: { action: 'remove', id } });
+}
+export async function toggleWebhook(id: string, enabled: boolean): Promise<void> {
+  await supabase.functions.invoke('webhooks', { body: { action: 'toggle', id, enabled } });
+}
+export async function testWebhook(id: string): Promise<{ ok?: boolean; status?: number; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('webhooks', { body: { action: 'test', id } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { ok?: boolean; status?: number; error?: string };
+}
+
 // ---- Email templates (reusable, AI-writable, via the `templates` fn) ----
 // kind: 'text' = plain text body (wrapped to HTML on send); 'html' = ready HTML
 // (flyer image, pasted design, AI layout) sent as-is.

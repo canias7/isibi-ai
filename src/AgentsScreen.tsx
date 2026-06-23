@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -204,6 +204,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [domErr, setDomErr] = useState('');
   const [domOpen, setDomOpen] = useState<string | null>(null);
   const [copied, setCopied] = useState('');   // last-copied DNS value, for the "Copied" flash
+  // Outbound webhooks
+  const [webhooks, setWebhooks] = useState<WebhookEndpoint[]>([]);
+  const [whNew, setWhNew] = useState('');
+  const [whBusy, setWhBusy] = useState(false);
+  const [whErr, setWhErr] = useState('');
+  const [whOpen, setWhOpen] = useState<string | null>(null);
+  const [whTest, setWhTest] = useState<Record<string, string>>({}); // endpoint id -> last test result message
   const [campDomain, setCampDomain] = useState('');     // '' = send via mailbox; else a verified domain
   const [campFromName, setCampFromName] = useState(''); // display name when sending from a domain
   const [campFromLocal, setCampFromLocal] = useState('news'); // local-part of the From address
@@ -618,6 +625,40 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     finally { if (mountedRef.current) setTestBusy(false); }
   };
 
+  // ---- Webhooks ----
+  const loadWebhooks = () => listWebhooks().then((w) => { if (mountedRef.current) setWebhooks(w); });
+  const addWh = async () => {
+    const url = whNew.trim();
+    if (!url || whBusy) return;
+    tap(); setWhBusy(true); setWhErr('');
+    try {
+      const r = await addWebhook(url);
+      if (!mountedRef.current) return;
+      if (r.error) setWhErr(r.error === 'bad_url' ? 'Enter a valid HTTPS URL (not localhost or a private address).' : 'Couldn’t add the endpoint — try again.');
+      else { setWhNew(''); if (r.endpoint) setWhOpen(r.endpoint.id); await loadWebhooks(); }
+    } catch { if (mountedRef.current) setWhErr('Something went wrong — try again.'); }
+    finally { if (mountedRef.current) setWhBusy(false); }
+  };
+  const removeWh = async (id: string) => {
+    tap();
+    await removeWebhook(id).catch(() => {});
+    if (mountedRef.current) await loadWebhooks();
+  };
+  const toggleWh = async (w: WebhookEndpoint) => {
+    tap();
+    await toggleWebhook(w.id, !w.enabled).catch(() => {});
+    if (mountedRef.current) await loadWebhooks();
+  };
+  const sendWhTest = async (id: string) => {
+    tap(); setWhTest((m) => ({ ...m, [id]: 'Sending…' }));
+    try {
+      const r = await testWebhook(id);
+      if (!mountedRef.current) return;
+      setWhTest((m) => ({ ...m, [id]: r.ok ? `Delivered ✓ (HTTP ${r.status})` : r.status ? `Endpoint returned HTTP ${r.status}` : 'Couldn’t reach the endpoint' }));
+      await loadWebhooks();
+    } catch { if (mountedRef.current) setWhTest((m) => ({ ...m, [id]: 'Something went wrong — try again.' })); }
+  };
+
   // ---- Templates ----
   // Pick an image from the device and hand back raw base64 + content type.
   const pickImage = (cb: (b64: string, ct: string) => void) => {
@@ -835,7 +876,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <div className="ag-stage">
             <div className="ag-grid">
               {HOME_TOOLS.map((t) => (
-                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); setSendraTab(t.id as SendraTab); } }}>
+                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); if (t.id === 'webhook') loadWebhooks(); setSendraTab(t.id as SendraTab); } }}>
                   <span className="ag-act-ic"><t.Icon size={20} /></span>
                   <span className="ag-act-label">{t.name}</span>
                   <span className="ag-act-sub">{t.desc}</span>
@@ -1201,7 +1242,50 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 )}
               </div>
             ) : sendraTab === 'webhook' ? (
-              <div className="ag-empty" style={{ marginTop: 12 }}>Webhooks are coming soon — get a URL that posts events (opens, clicks, replies, unsubscribes, bounces) to your own systems in real time. You’ll manage endpoints here.</div>
+              <div className="ag-compose">
+                <p className="ag-foot">Get email events (delivered, bounced, complained) POSTed to your own HTTPS endpoint in real time — each request signed so you can verify it came from Sendra.</p>
+                <div className="ag-dom-add">
+                  <input className="ag-field" placeholder="https://yourapp.com/webhooks/sendra" autoCapitalize="none" autoCorrect="off" value={whNew} onChange={(e) => { setWhNew(e.target.value); if (whErr) setWhErr(''); }} />
+                  <button className="ag-send-btn" disabled={whBusy || !whNew.trim()} onClick={addWh}>{whBusy ? 'Adding…' : 'Add endpoint'}</button>
+                </div>
+                {whErr && <div className="ag-send-err">{whErr}</div>}
+                {webhooks.length === 0 ? (
+                  <div className="ag-empty" style={{ marginTop: 12 }}>No endpoints yet. Add an HTTPS URL above to start receiving events.</div>
+                ) : (
+                  <div className="ag-dom-list">
+                    {webhooks.map((w) => {
+                      const open = whOpen === w.id;
+                      const ok = w.last_status != null && w.last_status >= 200 && w.last_status < 300;
+                      const badge = !w.enabled ? 'wait' : w.last_status == null ? 'ok' : ok ? 'ok' : 'bad';
+                      return (
+                        <div className={`ag-dom${open ? ' open' : ''}`} key={w.id}>
+                          <button className="ag-dom-row" onClick={() => { tap(); setWhOpen(open ? null : w.id); }}>
+                            <span className="ag-dom-ic">🔗</span>
+                            <span className="ag-dom-info">
+                              <span className="ag-dom-name">{w.url}</span>
+                              <span className="ag-dom-sub">{!w.enabled ? 'Paused' : w.last_event_at ? `Last delivery: HTTP ${w.last_status}` : 'Active — no events yet'}</span>
+                            </span>
+                            <span className={`ag-badge is-${badge}`}><i className="ag-dot" />{!w.enabled ? 'Paused' : w.last_status == null ? 'Active' : ok ? 'OK' : 'Failing'}</span>
+                            <span className="ag-dom-chev">{open ? '▾' : '▸'}</span>
+                          </button>
+                          {open && (
+                            <div className="ag-dom-body">
+                              <div className="ag-dns-field"><label>Signing secret</label><div className="ag-dns-val"><code>{w.secret}</code><button className={copied === w.secret ? 'ok' : ''} onClick={() => copyText(w.secret)}>{copied === w.secret ? 'Copied ✓' : 'Copy'}</button></div></div>
+                              <p className="ag-foot ag-dom-hint">Verify each POST: <code>sendra-signature: v1=&lt;hex&gt;</code> is the HMAC-SHA256 of <code>{'{sendra-timestamp}.{raw body}'}</code> keyed with this secret.</p>
+                              {whTest[w.id] && <div className={`ag-dom-testmsg${whTest[w.id].includes('✓') ? ' ok' : ''}`}>{whTest[w.id]}</div>}
+                              <div className="ag-dom-actions">
+                                <button className="ag-send-btn" onClick={() => sendWhTest(w.id)}>Send test</button>
+                                <button className="ag-send-btn ghost" onClick={() => toggleWh(w)}>{w.enabled ? 'Pause' : 'Resume'}</button>
+                                <button className="ag-send-btn ghost" onClick={() => removeWh(w.id)}>Remove</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             ) : sendraTab === 'settings' ? (
               <div className="ag-empty" style={{ marginTop: 12 }}>Settings are coming soon — set your default sender name, reply-to address, signature and notification preferences here.</div>
             ) : (

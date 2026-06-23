@@ -28,8 +28,11 @@ const aws = new AwsClient({ accessKeyId: AWS_ID, secretAccessKey: AWS_SECRET, re
 const awsSns = new AwsClient({ accessKeyId: AWS_ID, secretAccessKey: AWS_SECRET, region: AWS_REGION, service: "sns" });
 const SES_BASE = `https://email.${AWS_REGION}.amazonaws.com`;
 const CONFIG_SET = "sendra";                 // SES configuration set campaigns send through
-const TOPIC_NAME = "sendra-ses-events";      // SNS topic SES publishes bounce/complaint events to
+const TOPIC_NAME = "sendra-ses-events";      // SNS topic SES publishes events to
 const EVENTS_URL = `${SB_URL}/functions/v1/ses-events`;
+// Event types routed to the topic (and on to user webhooks). No OPEN/CLICK — those
+// require SES open/click tracking, which rewrites links + injects a pixel into the email.
+const EVENT_TYPES = ["SEND", "DELIVERY", "BOUNCE", "COMPLAINT", "DELIVERY_DELAY", "REJECT", "RENDERING_FAILURE"];
 
 const ALLOWED_ORIGINS = new Set([
   "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
@@ -90,9 +93,10 @@ async function ses(method: string, path: string, body?: unknown): Promise<{ ok: 
   return { ok: res.ok, status: res.status, body: j };
 }
 
-// --- Bounce/complaint tracking: SES configuration set -> SNS topic -> ses-events
-// webhook. Best-effort + idempotent. The config set needs only SES perms; the SNS
-// wiring needs the SNS perms on the IAM key. Cached per instance once fully wired.
+// --- Email-event tracking: SES configuration set -> SNS topic -> ses-events
+// webhook (suppressions + user webhook fan-out). Best-effort + idempotent. The config
+// set needs only SES perms; the SNS wiring needs the SNS perms on the IAM key. Cached
+// per instance once fully wired.
 let trackingDone = false;
 async function snsCall(action: string, params: Record<string, string>): Promise<{ ok: boolean; text: string }> {
   const body = new URLSearchParams({ Action: action, Version: "2010-03-31", ...params });
@@ -121,12 +125,20 @@ async function ensureTracking(): Promise<void> {
   await snsCall("SetTopicAttributes", { TopicArn: arn, AttributeName: "Policy", AttributeValue: policy });
   // 4. Subscribe our webhook (idempotent; SNS sends a confirmation the webhook auto-accepts).
   await snsCall("Subscribe", { TopicArn: arn, Protocol: "https", Endpoint: EVENTS_URL, ReturnSubscriptionArn: "true" });
-  // 5. Route BOUNCE + COMPLAINT from the config set to the topic.
+  // 5. Route email events from the config set to the topic. Single destination
+  //    (kept under its original name); if it already exists, update its event set so
+  //    older setups (BOUNCE+COMPLAINT only) get upgraded to the full list.
+  const NAME = "sendra-bounces";
+  const dest = { Enabled: true, MatchingEventTypes: EVENT_TYPES, SnsDestination: { TopicArn: arn } };
   const ed = await ses("POST", `/v2/email/configuration-sets/${CONFIG_SET}/event-destinations`, {
-    EventDestinationName: "sendra-bounces",
-    EventDestination: { Enabled: true, MatchingEventTypes: ["BOUNCE", "COMPLAINT"], SnsDestination: { TopicArn: arn } },
+    EventDestinationName: NAME,
+    EventDestination: dest,
   });
-  if (ed.ok || /AlreadyExists|already exists/i.test(JSON.stringify(ed.body))) trackingDone = true;
+  if (ed.ok) { trackingDone = true; return; }
+  if (/AlreadyExists|already exists/i.test(JSON.stringify(ed.body))) {
+    const up = await ses("PUT", `/v2/email/configuration-sets/${CONFIG_SET}/event-destinations/${NAME}`, { EventDestination: dest });
+    if (up.ok) trackingDone = true;
+  }
 }
 
 // Persist a domain row (upsert on user_id+domain).
