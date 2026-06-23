@@ -12,13 +12,29 @@ CNAMEs** (tokens passed in as the `%dkim1%`…`%dkim3%` variables, per domain) a
 
 ## How it gets live (the external, one-time step)
 
-1. Submit `gofarther.dev.email.json` as a PR to **https://github.com/Domain-Connect/Templates**
-   (`templates/` folder). Provider id is `gofarther.dev`; ownership is confirmed per that
-   repo's process (a DNS TXT challenge on gofarther.dev).
-2. Once merged, DNS providers sync templates on their own schedule (days–weeks, per
+Until this is done, the app falls back to the Cloudflare API-token panel (and copy‑all
+records). Once it's done, the existing **Auto configure** button becomes true
+"click‑Approve" with no token, on every Domain Connect host.
+
+1. **Prereqs on `gofarther.dev`:** the domain must resolve and serve `logoUrl`
+   (`https://gofarther.dev/logo.png`) and a landing page — reviewers and the host UI show
+   these. `redirect_uri` is `https://gofarther.dev/`, already in `syncRedirectDomain`.
+2. **Test in the Online Editor (required — PRs without a test link aren't reviewed):**
+   open https://domainconnect.paulonet.eu/dc/free/templateedit, paste the JSON, fix any
+   syntax flags, and test apply against **both an apex domain and a subdomain**. Copy the
+   shareable result link.
+3. **File the PR** to **https://github.com/Domain-Connect/Templates**: add
+   `gofarther.dev.email.json` at the **repo root** (filename is `providerId.serviceId.json`
+   — ours already matches), and paste the Online Editor link in the PR body. Optional but
+   recommended: run https://github.com/Domain-Connect/dc-template-linter first.
+4. **After merge**, DNS providers sync templates on their own schedule (days–weeks, per
    provider). The button "lights up" for each host as it picks the template up.
-3. Coverage is Domain‑Connect hosts only. Namecheap, Squarespace/Google, Porkbun, etc.
-   fall back to the (now auto‑rechecking, copy‑all) manual flow.
+5. Coverage is Domain‑Connect hosts only (Cloudflare, GoDaddy, IONOS, 123‑reg, one.com, …).
+   Namecheap, Squarespace/Google, Porkbun, etc. fall back to the manual flow.
+
+> The template was schema‑checked against `template.schema`: required top‑level fields are
+> `providerId, providerName, serviceId, serviceName, records` (all present), and the
+> redirect field is `syncRedirectDomain` (singular).
 
 ## How the app uses it
 
