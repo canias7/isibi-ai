@@ -229,6 +229,17 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-from { display: flex; align-items: center; gap: 10px; }
 .ag-from-lbl { color: var(--text-dim); font-size: var(--fs-footnote); font-weight: 600; flex-shrink: 0; }
 .ag-from-sel { flex: 1; -webkit-appearance: none; appearance: none; }
+/* Compose: To row + contacts picker */
+.ag-to-row { display: flex; align-items: center; gap: 8px; }
+.ag-to-row .ag-field { flex: 1; }
+.ag-to-pick { flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--glass-edge); background: var(--glass); color: var(--text); display: grid; place-items: center; cursor: pointer; }
+.ag-to-pick:active { background: var(--glass-strong, #ffffff14); }
+.ag-contact-pop { display: flex; flex-direction: column; max-height: 220px; overflow-y: auto; border: 1px solid var(--glass-edge); border-radius: 12px; background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); }
+.ag-contact-opt { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 9px 12px; background: none; border: none; border-bottom: 1px solid var(--glass-edge); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.ag-contact-opt:last-child { border-bottom: none; }
+.ag-contact-opt:active { background: var(--glass-strong, #ffffff14); }
+.ag-contact-nm { font-size: var(--fs-body-s); font-weight: 600; }
+.ag-contact-em { font-size: var(--fs-footnote); color: var(--text-dim); }
 .ag-from-fields { display: flex; flex-direction: column; gap: 8px; }
 .ag-from-addr { display: flex; align-items: center; gap: 8px; }
 .ag-from-addr .ag-field { flex: 1; }

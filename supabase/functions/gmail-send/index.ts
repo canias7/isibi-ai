@@ -68,6 +68,7 @@ Deno.serve(async (req: Request) => {
   if (!threadId && !EMAIL_RE.test(to)) return json(req, { ok: false, error: "invalid_recipient" }, 400);
   const app = String(payload.app ?? "gmail").toLowerCase();
   const outlook = app === "outlook" || app === "m365";
+  const html = payload.html === true; // send the body as HTML (e.g. a designed template)
 
   try {
     // Outlook execute slugs are double-prefixed; reply keys off the MESSAGE id
@@ -75,13 +76,13 @@ Deno.serve(async (req: Request) => {
     let tool: string;
     const args: Record<string, unknown> = {};
     if (outlook) {
-      if (threadId) { tool = "OUTLOOK_OUTLOOK_REPLY_EMAIL"; args.message_id = threadId; args.comment = body; args.is_html = false; }
-      else { tool = "OUTLOOK_OUTLOOK_SEND_EMAIL"; args.to = to; args.subject = subject; args.body = body; args.is_html = false; }
+      if (threadId) { tool = "OUTLOOK_OUTLOOK_REPLY_EMAIL"; args.message_id = threadId; args.comment = body; args.is_html = html; }
+      else { tool = "OUTLOOK_OUTLOOK_SEND_EMAIL"; args.to = to; args.subject = subject; args.body = body; args.is_html = html; }
       if (cc.length) args.cc_emails = cc;
       if (bcc.length) args.bcc_emails = bcc;
     } else {
-      if (threadId) { tool = "GMAIL_REPLY_TO_THREAD"; args.thread_id = threadId; args.message_body = body; args.is_html = false; if (EMAIL_RE.test(to)) args.recipient_email = to; }
-      else { tool = "GMAIL_SEND_EMAIL"; args.recipient_email = to; args.subject = subject; args.body = body; args.is_html = false; }
+      if (threadId) { tool = "GMAIL_REPLY_TO_THREAD"; args.thread_id = threadId; args.message_body = body; args.is_html = html; if (EMAIL_RE.test(to)) args.recipient_email = to; }
+      else { tool = "GMAIL_SEND_EMAIL"; args.recipient_email = to; args.subject = subject; args.body = body; args.is_html = html; }
       if (cc.length) args.cc = cc;
       if (bcc.length) args.bcc = bcc;
     }

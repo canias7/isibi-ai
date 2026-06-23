@@ -90,7 +90,7 @@ export async function fetchContacts(app = 'gmail'): Promise<ContactItem[]> {
 // Send an email (Composio GMAIL_SEND_EMAIL, server-verified). Returns on success,
 // throws on failure so the composer can show an error.
 const SEND_API = CONNECT_API.replace(/\/gmail-oauth$/, '/gmail-send');
-export async function sendEmail(msg: { to: string; subject: string; body: string; threadId?: string; cc?: string[]; bcc?: string[]; app?: string }): Promise<void> {
+export async function sendEmail(msg: { to: string; subject: string; body: string; threadId?: string; cc?: string[]; bcc?: string[]; app?: string; html?: boolean }): Promise<void> {
   const token = await authToken();
   const res = await fetch(SEND_API, {
     method: 'POST',
