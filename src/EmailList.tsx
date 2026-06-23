@@ -167,6 +167,7 @@ export function EmailList({ items, onOpen, badges }: { items: EmailItem[]; onOpe
 
 // ---- Contacts (gf-contacts card: people / contact-search results) ----
 export interface ContactItem {
+  id?: string;    // set for Sendra address-book contacts (editable); absent for mailbox-pulled ones
   name: string;
   email?: string;
   phone?: string;
@@ -192,8 +193,8 @@ function ContactAvatar({ label, photo }: { label: string; photo?: string }) {
 // Contacts are a Gmail feature, so the card uses the same frosted-white glass as
 // the Gmail email cards (gf-gmail).
 export function ContactsList(
-  { items, selectable, selected, onToggle }:
-  { items: ContactItem[]; selectable?: boolean; selected?: Set<string>; onToggle?: (email: string) => void },
+  { items, selectable, selected, onToggle, onEdit }:
+  { items: ContactItem[]; selectable?: boolean; selected?: Set<string>; onToggle?: (email: string) => void; onEdit?: (c: ContactItem) => void },
 ) {
   return (
     <div className="gf-contacts gf-gmail">
@@ -203,12 +204,14 @@ export function ContactsList(
         const email = c.email || '';
         const pickable = !!selectable && !!email;       // only contacts with an email can be selected
         const on = pickable && !!selected?.has(email);
+        const editable = !selectable && !!onEdit && !!c.id; // own contacts open the editor on tap
+        const click = pickable ? () => onToggle?.(email) : editable ? () => onEdit?.(c) : undefined;
         return (
           <div
-            className={`gf-contact${pickable ? ' gf-pickable' : ''}${on ? ' gf-sel' : ''}`}
-            key={i}
-            role={pickable ? 'button' : undefined}
-            onClick={pickable ? () => onToggle?.(email) : undefined}
+            className={`gf-contact${pickable || editable ? ' gf-pickable' : ''}${on ? ' gf-sel' : ''}`}
+            key={c.id || i}
+            role={click ? 'button' : undefined}
+            onClick={click}
           >
             {selectable && <span className={`gf-check${on ? ' on' : ''}`} aria-hidden="true">{on ? '✓' : ''}</span>}
             <ContactAvatar label={label} photo={c.photo} />
@@ -216,6 +219,7 @@ export function ContactsList(
               <div className="gf-contact-name">{label}</div>
               {sub && <div className="gf-contact-sub">{sub}</div>}
             </div>
+            {editable && <span className="gf-contact-edit" aria-hidden="true">›</span>}
           </div>
         );
       })}

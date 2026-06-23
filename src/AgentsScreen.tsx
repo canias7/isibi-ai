@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -155,6 +155,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [contactSearch, setContactSearch] = useState('');           // filter the contacts list
   const [contactSelMode, setContactSelMode] = useState(false);      // multi-select mode
   const [contactSel, setContactSel] = useState<Set<string>>(new Set()); // selected emails
+  const [savedContacts, setSavedContacts] = useState<SavedContact[]>([]); // Sendra's own address book
+  const [cForm, setCForm] = useState<{ id?: string; name: string; email: string; phone: string } | null>(null); // add/edit overlay
+  const [cFormBusy, setCFormBusy] = useState(false);
+  const [cFormErr, setCFormErr] = useState('');
   // Compose / reply state
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
@@ -276,6 +280,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // newest-first feed with per-row badges; with 1, the existing paged inbox.
   const mailApiApps = ['gmail', 'outlook'].filter((a) => (a === 'gmail' ? connApps.includes('gmail') : connApps.includes('m365') || connApps.includes('outlook')));
   const combinedInbox = mailApiApps.length >= 2;
+  // The general address book: Sendra's own saved contacts (editable) first, then any
+  // mailbox-pulled contacts not already covered (deduped by email). Used by the
+  // Contacts screen and the composer "To" picker so it's never empty.
+  const mergedContacts: ContactItem[] = (() => {
+    const own: ContactItem[] = savedContacts.map((c) => ({ id: c.id, name: c.name, email: c.email || undefined, phone: c.phone || undefined }));
+    const seen = new Set(own.map((c) => (c.email || '').toLowerCase()).filter(Boolean));
+    return [...own, ...contacts.filter((c) => !c.email || !seen.has(c.email.toLowerCase()))];
+  })();
 
   // Back steps one level: reader -> sub-view -> workspace -> deck -> list -> close.
   const back = () => {
@@ -426,6 +438,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     const a: CommsId = !connApps.includes('gmail') && (connApps.includes('m365') || connApps.includes('outlook')) ? 'm365' : 'gmail';
     setCommsApp(a);
     setEmailTab('contacts');
+    loadSaved();
   };
   const toggleContact = (email: string) => setContactSel((s) => {
     const n = new Set(s);
@@ -434,7 +447,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   });
   // Selected contacts -> prefill a new campaign (the bulk-send engine handles the rest).
   const emailSelected = () => {
-    const picked = contacts.filter((c) => c.email && contactSel.has(c.email));
+    const picked = mergedContacts.filter((c) => c.email && contactSel.has(c.email));
     if (!picked.length) return;
     tap();
     const recips = picked.map((c) => (c.name ? `${c.name} <${c.email}>` : c.email)).join('\n');
@@ -443,6 +456,28 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     openCampNew();
     setCampRecips(recips);
     setContactSelMode(false); setContactSel(new Set());
+  };
+  // ---- Sendra address book (own contacts) ----
+  const loadSaved = () => listSavedContacts().then((c) => { if (mountedRef.current) setSavedContacts(c); });
+  const openContactForm = (c?: ContactItem) => { tap(); setCFormErr(''); setCForm({ id: c?.id, name: c?.name || '', email: c?.email || '', phone: c?.phone || '' }); };
+  const saveCForm = async () => {
+    if (!cForm || cFormBusy) return;
+    const name = cForm.name.trim(), email = cForm.email.trim(), phone = cForm.phone.trim();
+    if (!name && !email) return;
+    setCFormBusy(true); setCFormErr('');
+    try {
+      const r = cForm.id ? await updateSavedContact(cForm.id, { name, email, phone }) : await addSavedContact({ name, email, phone });
+      if (!mountedRef.current) return;
+      if (r.error) setCFormErr(r.error === 'bad_email' ? 'Enter a valid email address.' : 'Couldn’t save — try again.');
+      else { setCForm(null); await loadSaved(); }
+    } catch { if (mountedRef.current) setCFormErr('Something went wrong — try again.'); }
+    finally { if (mountedRef.current) setCFormBusy(false); }
+  };
+  const delCForm = async () => {
+    if (!cForm?.id) { setCForm(null); return; }
+    tap();
+    await deleteSavedContact(cForm.id).catch(() => {});
+    if (mountedRef.current) { setCForm(null); await loadSaved(); }
   };
 
   const onPullStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -464,7 +499,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     tap();
     setReplyThreadId(null); setTo(''); setSubject(''); setBodyText(''); setComposeKind('text'); setToPicker(false);
     setSendState('idle'); setSendApp(mailApp); setEmailTab('compose');
-    loadContacts();  // for the To picker
+    loadContacts(); loadSaved();  // mailbox + saved contacts for the To picker
     listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });  // for the body template picker
   };
   const applyComposeTemplate = (t: Template) => {
@@ -839,7 +874,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     : commsApp === null ? SENDRA_META[sendraTab].s
     : commsApp === 'telegram' ? (tgChat ? (tgChat.username ? `@${tgChat.username}` : 'Chat') : `${tgList.length || ''} chats`.trim() || 'Your chats')
     : emailTab === 'inbox' ? 'Newest first'
-    : emailTab === 'contacts' ? (contacts.length ? `${contacts.length} people` : 'Your contacts')
+    : emailTab === 'contacts' ? (mergedContacts.length ? `${mergedContacts.length} people` : 'Your address book')
     : emailTab === 'compose' ? (sendState === 'sent' ? 'Sent' : 'Compose')
     : (mailConnected ? 'Ready' : 'Connect to begin');
 
@@ -1437,40 +1472,54 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         </div>
       ) : emailTab === 'contacts' ? (
         <div className="ag-stage">
-          {!mailConnected ? connectCard('Link this mailbox so the agent can pull your contacts.')
-            : contactsState === 'err' ? (
-              <div className="ag-empty">
-                Couldn’t load contacts.{' '}
-                <button className="ag-retry" onClick={() => { tap(); loadContacts(); }}>Try again</button>
+          {(() => {
+            const q = contactSearch.trim().toLowerCase();
+            const list = q ? mergedContacts.filter((c) => `${c.name || ''} ${c.email || ''} ${c.phone || ''}`.toLowerCase().includes(q)) : mergedContacts;
+            const loading = contactsState === 'loading' && mergedContacts.length === 0;
+            return (
+              <>
+                <div className="ag-contacts-bar">
+                  <input className="ag-field ag-contacts-search" placeholder="Search contacts" autoCapitalize="none" autoCorrect="off" value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} />
+                  <button className="ag-contacts-sel" onClick={() => openContactForm()}>+ Add</button>
+                  {mergedContacts.length > 0 && (
+                    <button className={`ag-contacts-sel${contactSelMode ? ' on' : ''}`} onClick={() => { tap(); setContactSelMode((v) => !v); setContactSel(new Set()); }}>{contactSelMode ? 'Cancel' : 'Select'}</button>
+                  )}
+                </div>
+                {loading ? (
+                  <EmailSkeleton />
+                ) : mergedContacts.length === 0 ? (
+                  <div className="ag-empty">No contacts yet. Tap “+ Add” to create your first one.</div>
+                ) : list.length === 0 ? (
+                  <div className="ag-empty">No matches.</div>
+                ) : (
+                  <ContactsList items={list} selectable={contactSelMode} selected={contactSel} onToggle={toggleContact} onEdit={openContactForm} />
+                )}
+                {contactSelMode && contactSel.size > 0 && (
+                  <button className="ag-send-btn ag-contacts-action" onClick={emailSelected}>
+                    Email {contactSel.size} {contactSel.size === 1 ? 'person' : 'people'} →
+                  </button>
+                )}
+              </>
+            );
+          })()}
+
+          {cForm && (
+            <>
+              <div className="ag-confirm-scrim" onClick={() => { tap(); setCForm(null); }} />
+              <div className="ag-confirm ag-cform" role="dialog" aria-label="Contact">
+                <div className="ag-confirm-title">{cForm.id ? 'Edit contact' : 'New contact'}</div>
+                <input className="ag-field" placeholder="Name" value={cForm.name} onChange={(e) => setCForm({ ...cForm, name: e.target.value })} />
+                <input className="ag-field" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" placeholder="Email" value={cForm.email} onChange={(e) => setCForm({ ...cForm, email: e.target.value })} />
+                <input className="ag-field" type="tel" inputMode="tel" placeholder="Phone (optional)" value={cForm.phone} onChange={(e) => setCForm({ ...cForm, phone: e.target.value })} />
+                {cFormErr && <div className="ag-send-err">{cFormErr}</div>}
+                <div className="ag-cform-actions">
+                  {cForm.id && <button className="ag-send-btn ghost ag-cform-del" onClick={delCForm}>Delete</button>}
+                  <button className="ag-send-btn ghost" onClick={() => { tap(); setCForm(null); }}>Cancel</button>
+                  <button className="ag-send-btn" disabled={cFormBusy || (!cForm.name.trim() && !cForm.email.trim())} onClick={saveCForm}>{cFormBusy ? 'Saving…' : 'Save'}</button>
+                </div>
               </div>
-            ) : contactsState === 'ok' && contacts.length === 0 ? (
-              <div className="ag-empty">No contacts found.</div>
-            ) : contacts.length ? (
-              (() => {
-                const q = contactSearch.trim().toLowerCase();
-                const list = q ? contacts.filter((c) => `${c.name || ''} ${c.email || ''} ${c.phone || ''}`.toLowerCase().includes(q)) : contacts;
-                return (
-                  <>
-                    <div className="ag-contacts-bar">
-                      <input className="ag-field ag-contacts-search" placeholder="Search contacts" autoCapitalize="none" autoCorrect="off" value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} />
-                      <button className={`ag-contacts-sel${contactSelMode ? ' on' : ''}`} onClick={() => { tap(); setContactSelMode((v) => !v); setContactSel(new Set()); }}>{contactSelMode ? 'Cancel' : 'Select'}</button>
-                    </div>
-                    {list.length === 0 ? (
-                      <div className="ag-empty">No matches.</div>
-                    ) : (
-                      <ContactsList items={list} selectable={contactSelMode} selected={contactSel} onToggle={toggleContact} />
-                    )}
-                    {contactSelMode && contactSel.size > 0 && (
-                      <button className="ag-send-btn ag-contacts-action" onClick={emailSelected}>
-                        Email {contactSel.size} {contactSel.size === 1 ? 'person' : 'people'} →
-                      </button>
-                    )}
-                  </>
-                );
-              })()
-            ) : (
-              <EmailSkeleton />
-            )}
+            </>
+          )}
         </div>
       ) : emailTab === 'compose' ? (
         <div className="ag-stage ag-compose">
@@ -1499,15 +1548,15 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   <input
                     className="ag-field" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off"
                     placeholder="To" value={to} onChange={(e) => { setTo(e.target.value); if (!toPicker) setToPicker(true); }}
-                    onFocus={() => { if (contacts.length) setToPicker(true); }}
+                    onFocus={() => { if (mergedContacts.length) setToPicker(true); }}
                   />
-                  {contacts.length > 0 && (
+                  {mergedContacts.length > 0 && (
                     <button className="ag-to-pick" onClick={() => { tap(); setToPicker((v) => !v); }} aria-label="Choose from contacts"><IconContacts size={18} /></button>
                   )}
                 </div>
-                {toPicker && contacts.length > 0 && (() => {
+                {toPicker && mergedContacts.length > 0 && (() => {
                   const q = to.trim().toLowerCase();
-                  const matches = contacts.filter((c) => c.email && (!q || `${c.name} ${c.email}`.toLowerCase().includes(q))).slice(0, 30);
+                  const matches = mergedContacts.filter((c) => c.email && (!q || `${c.name} ${c.email}`.toLowerCase().includes(q))).slice(0, 30);
                   return matches.length ? (
                     <div className="ag-contact-pop">
                       {matches.map((c, i) => (
