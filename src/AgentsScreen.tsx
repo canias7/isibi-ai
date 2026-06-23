@@ -7,9 +7,8 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, tgStatus, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
-import { BrandLogo } from './brandLogos';
 import { SENDRA_LOGO } from './sendraLogo';
 
 // Each agent is a *role* that spans apps (not an app). Only Sendra is live today;
@@ -26,21 +25,14 @@ const AGENTS: AgentDef[] = [
   { id: 'sched', name: 'Scheduler', desc: 'Meetings, reminders & calendar triage', icon: IconClock, live: false },
 ];
 
-// The communication apps Sendra can manage. Only the CONNECTED ones appear in the
-// deck. `mail` apps share the email workspace (inbox/compose/contacts); telegram
-// has its own chat workspace.
+// The communication apps Sendra can manage. `mail` apps (Gmail/Outlook) share the
+// email workspace (inbox/compose/contacts); telegram has its own chat workspace.
 type CommsId = 'gmail' | 'm365' | 'telegram';
-const COMMS: { id: CommsId; name: string; tagline: string; mail: boolean }[] = [
-  { id: 'gmail', name: 'Gmail', tagline: 'Inbox, replies & contacts', mail: true },
-  { id: 'm365', name: 'Outlook', tagline: 'Mail, replies & contacts', mail: true },
-  { id: 'telegram', name: 'Telegram', tagline: 'Chats & quick replies', mail: false },
-];
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'apps' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'settings';
+type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'settings';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
-  apps: { t: 'My apps', s: 'The apps Sendra runs' },
   texts: { t: 'Text', s: 'Send an SMS' },
   campaigns: { t: 'Campaigns', s: 'Email & SMS to your lists' },
   templates: { t: 'Templates', s: 'Reusable messages' },
@@ -49,16 +41,16 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   webhook: { t: 'Webhooks', s: 'Post events to your systems' },
   settings: { t: 'Settings', s: 'Sender, reply-to & preferences' },
 };
-// Sendra home menu. 'apps' opens the constellation; the rest are P0 scaffolds.
-const HOME_TOOLS: { id: SendraTab | 'inbox'; name: string; desc: string; Icon: IconCmp }[] = [
+// Sendra home menu. 'inbox'/'contacts' open the mail workspace; the rest are tabs/scaffolds.
+const HOME_TOOLS: { id: SendraTab | 'inbox' | 'contacts'; name: string; desc: string; Icon: IconCmp }[] = [
   { id: 'inbox', name: 'Inbox', desc: 'All your mail', Icon: IconInbox },
+  { id: 'contacts', name: 'Contacts', desc: 'Your people', Icon: IconContacts },
   { id: 'texts', name: 'Text', desc: 'Send an SMS', Icon: IconChat },
   { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
   { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
   { id: 'domains', name: 'Domains', desc: 'Send from your address', Icon: IconGlobe },
   { id: 'webhook', name: 'Webhooks', desc: 'Post events out', Icon: IconWebhook },
   { id: 'schedule', name: 'Schedule', desc: 'Plan sends ahead', Icon: IconCalendar },
-  { id: 'apps', name: 'My apps', desc: '', Icon: IconConnectors },
   { id: 'settings', name: 'Settings', desc: 'Sender & preferences', Icon: IconSettings },
 ];
 
@@ -81,32 +73,11 @@ const inboxCache: Record<string, EmailItem[]> = {};
 const contactsCache: Record<string, ContactItem[]> = {};
 let tgChatsCache: TgChat[] | null = null;
 
-// Is an app connected? Mail apps come from the chat backend's connected list
-// (passed as connApps); Telegram has its own backend, seeded here from the
-// connectors-screen status cache and refreshed live.
-function cachedConnected(id: string): boolean {
-  try {
-    const a = JSON.parse(localStorage.getItem('gf_connstatus') || '[]');
-    return Array.isArray(a) && a.some((x) => x?.id === id);
-  } catch { return false; }
-}
-
 const fmtTime = (ms: number | null): string => {
   if (!ms) return '';
   try { return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); } catch { return ''; }
 };
 
-// Sendra constellation: a central hub with the connected comms apps as nodes
-// around it. Positions are % within the stage (polar around the hub). Small-N
-// angles are hand-picked so 1-3 apps sit nicely; 4+ spread evenly on the circle.
-const HUB = { x: 50, y: 42 };
-const TREE_RX = 32, TREE_RY = 26;
-const NODE_ANGLES: Record<number, number[]> = { 1: [90], 2: [145, 35], 3: [90, 205, 335] };
-function nodePos(i: number, n: number): { x: number; y: number } {
-  const arr = NODE_ANGLES[n] ?? Array.from({ length: n }, (_, k) => -90 + (k * 360) / n);
-  const a = ((arr[i] ?? 0) * Math.PI) / 180;
-  return { x: HUB.x + TREE_RX * Math.cos(a), y: HUB.y + TREE_RY * Math.sin(a) };
-}
 
 type EmailTab = 'home' | 'inbox' | 'compose' | 'contacts';
 type SendState = 'idle' | 'confirm' | 'sending' | 'sent' | 'err';
@@ -190,7 +161,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [sendApp, setSendApp] = useState<'gmail' | 'outlook'>('gmail'); // which mailbox a send/reply goes through
   const [inboxHome, setInboxHome] = useState(false); // Inbox opened from the Sendra home -> Back returns there, not the app grid
   // Telegram workspace
-  const [tgConnected, setTgConnected] = useState<boolean>(() => cachedConnected('telegram'));
   const [tgList, setTgList] = useState<TgChat[]>(() => tgChatsCache ?? []);
   const [tgListState, setTgListState] = useState<Loadable>(tgChatsCache ? 'ok' : 'idle');
   const [tgChat, setTgChat] = useState<TgChat | null>(null);
@@ -295,14 +265,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const mailApiApps = ['gmail', 'outlook'].filter((a) => (a === 'gmail' ? connApps.includes('gmail') : connApps.includes('m365') || connApps.includes('outlook')));
   const combinedInbox = mailApiApps.length >= 2;
 
-  // The connected comms apps, in COMMS order — the deck.
-  const isCommConnected = useCallback((id: CommsId): boolean => {
-    if (id === 'telegram') return tgConnected;
-    if (id === 'm365') return connApps.includes('m365') || connApps.includes('outlook');
-    return connApps.includes(id);
-  }, [connApps, tgConnected]);
-  const deckApps = COMMS.filter((c) => isCommConnected(c.id));
-
   // Back steps one level: reader -> sub-view -> workspace -> deck -> list -> close.
   const back = () => {
     tap();
@@ -405,11 +367,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       .catch(() => { if (mountedRef.current) setTgMsgsState('err'); });
   }, []);
 
-  // Live-check Telegram's connection when Sendra opens (seeded instantly from cache).
-  useEffect(() => {
-    if (agent !== 'email') return;
-    tgStatus().then((s) => { if (mountedRef.current) setTgConnected(s.connected); }).catch(() => {});
-  }, [agent]);
 
   // Load the active workspace view.
   useEffect(() => {
@@ -447,6 +404,15 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     const a: CommsId = !connApps.includes('gmail') && (connApps.includes('m365') || connApps.includes('outlook')) ? 'm365' : 'gmail';
     setCommsApp(a);
     setEmailTab('inbox');
+  };
+  const openContacts = () => {
+    tap();
+    setNote('');
+    setReading(null);
+    setInboxHome(true);
+    const a: CommsId = !connApps.includes('gmail') && (connApps.includes('m365') || connApps.includes('outlook')) ? 'm365' : 'gmail';
+    setCommsApp(a);
+    setEmailTab('contacts');
   };
 
   const onPullStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -869,51 +835,17 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <div className="ag-stage">
             <div className="ag-grid">
               {HOME_TOOLS.map((t) => (
-                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); setSendraTab(t.id as SendraTab); } }}>
+                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); setSendraTab(t.id as SendraTab); } }}>
                   <span className="ag-act-ic"><t.Icon size={20} /></span>
                   <span className="ag-act-label">{t.name}</span>
-                  <span className="ag-act-sub">{t.id === 'apps' ? (deckApps.length ? deckApps.map((c) => c.name).join(' · ') : 'Connect an app') : t.desc}</span>
+                  <span className="ag-act-sub">{t.desc}</span>
                 </button>
               ))}
             </div>
             <p className="ag-foot">Sendra runs your communication — campaigns, templates and triage across every connected app.</p>
           </div>
-        ) : sendraTab === 'apps' ? (
-          // ---- Sendra constellation: hub + connected comms apps as nodes ----
-          <div className="ag-stage ag-tree-stage">
-          {deckApps.length === 0 ? (
-            connectCard('Link Gmail, Outlook or Telegram so Sendra has something to manage.')
-          ) : (
-            <div className="ag-tree">
-              <svg className="ag-tree-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                {deckApps.map((c, i) => {
-                  const p = nodePos(i, deckApps.length);
-                  return <line key={c.id} x1={HUB.x} y1={HUB.y} x2={p.x} y2={p.y} pathLength={1} className="ag-tree-line" style={{ animationDelay: `${i * 90}ms` }} />;
-                })}
-              </svg>
-              <div className="ag-tree-hub" style={{ left: `${HUB.x}%`, top: `${HUB.y}%` }}>
-                <span className="ag-tree-hub-ic"><img src={SENDRA_LOGO} alt="Sendra" /></span>
-                <span className="ag-tree-hub-name">Sendra</span>
-              </div>
-              {deckApps.map((c, i) => {
-                const p = nodePos(i, deckApps.length);
-                return (
-                  <div
-                    key={c.id}
-                    className="ag-tree-node"
-                    style={{ left: `${p.x}%`, top: `${p.y}%`, animationDelay: `${140 + i * 90}ms` }}
-                  >
-                    <span className="ag-tree-node-ic"><BrandLogo app={c.id} size={34} /></span>
-                    <span className="ag-tree-node-name">{c.name}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          <p className="ag-tree-hint">Sendra runs them all.</p>
-        </div>
         ) : (
-          // ---- Campaigns / Templates / Analytics / Calendar (P0 scaffolds) ----
+          // ---- Campaigns / Templates / Domains / Schedule / Webhooks / Settings ----
           <div className="ag-stage">
             {note && <div className="ag-note">{note}</div>}
             {sendraTab === 'campaigns' ? (
