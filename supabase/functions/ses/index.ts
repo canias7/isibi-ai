@@ -312,6 +312,43 @@ Deno.serve(async (req: Request) => {
       return json(req, result);
     }
 
+    // One-click for Cloudflare without the public template: the user supplies a scoped
+    // API token (used once, never stored), and we write the DKIM/DMARC records via the
+    // Cloudflare API. { domain, token } -> { ok, created, skipped } | { error }.
+    if (action === "cf_apply") {
+      const domain = String(body?.domain || "").trim().toLowerCase();
+      const cfToken = String(body?.token || "").trim();
+      if (!DOMAIN_RE.test(domain)) return json(req, { error: "bad_domain" });
+      if (!cfToken) return json(req, { error: "missing_token" });
+      const dRes = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${domain}&select=records`, { headers: sbHeaders });
+      const row = (await dRes.json().catch(() => []))?.[0];
+      const records = (row?.records || []) as Rec[];
+      if (!records.length) return json(req, { error: "not_found" });
+      // deno-lint-ignore no-explicit-any
+      const cf = (path: string, init?: RequestInit): Promise<Response> =>
+        fetch(`https://api.cloudflare.com/client/v4${path}`, { ...init, headers: { authorization: `Bearer ${cfToken}`, "content-type": "application/json", ...(init?.headers || {}) }, signal: AbortSignal.timeout(10000) });
+      let zoneId = "";
+      try {
+        const zr = await cf(`/zones?name=${encodeURIComponent(domain)}`);
+        const zj = await zr.json().catch(() => ({})) as any;
+        if (!zr.ok || zj?.success !== true) return json(req, { error: "cf_auth" });
+        zoneId = zj?.result?.[0]?.id || "";
+      } catch { return json(req, { error: "cf_failed" }); }
+      if (!zoneId) return json(req, { error: "zone_not_found" });
+      let created = 0, skipped = 0, failed = 0;
+      for (const rec of records) {
+        try {
+          const cr = await cf(`/zones/${zoneId}/dns_records`, { method: "POST", body: JSON.stringify({ type: rec.type, name: rec.name, content: rec.value, ttl: 3600, proxied: false }) });
+          const cj = await cr.json().catch(() => ({})) as any;
+          if (cr.ok && cj?.success === true) created++;
+          else if (/already exists|81053|81057/i.test(JSON.stringify(cj?.errors || ""))) skipped++;
+          else failed++;
+        } catch { failed++; }
+      }
+      if (created + skipped === 0) return json(req, { error: "write_failed" });
+      return json(req, { ok: true, created, skipped, failed });
+    }
+
     // ---- Saved senders (reusable From identities at a verified domain) ----
     if (action === "senders") {
       const r = await fetch(`${SB_URL}/rest/v1/senders?user_id=eq.${uid}&select=id,from_name,from_email&order=created_at.desc`, { headers: sbHeaders });

@@ -269,6 +269,13 @@ export async function domainConnectUrl(domain: string): Promise<{ supported?: bo
   if (error) return { supported: false };
   return (data || {}) as { supported?: boolean; applyUrl?: string; provider?: string; reason?: string };
 }
+// One-click for Cloudflare: the user pastes a scoped API token; the server uses it once
+// (never stored) to write the DKIM/DMARC records into the domain's Cloudflare zone.
+export async function cloudflareApply(domain: string, token: string): Promise<{ ok?: boolean; created?: number; skipped?: number; failed?: number; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'cf_apply', domain, token } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { ok?: boolean; created?: number; skipped?: number; failed?: number; error?: string };
+}
 
 // Saved senders — reusable "From" identities (name + address@verified-domain).
 export interface Sender { id: string; from_name: string; from_email: string }
