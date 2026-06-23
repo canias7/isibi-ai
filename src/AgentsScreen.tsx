@@ -156,6 +156,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
   const [bodyText, setBodyText] = useState('');
+  const [composeKind, setComposeKind] = useState<'text' | 'html'>('text'); // 'html' once a designed template is applied
+  const [toPicker, setToPicker] = useState(false); // contacts dropdown under the To field
   const [replyThreadId, setReplyThreadId] = useState<string | null>(null);
   const [sendState, setSendState] = useState<SendState>('idle');
   const [sendApp, setSendApp] = useState<'gmail' | 'outlook'>('gmail'); // which mailbox a send/reply goes through
@@ -437,7 +439,21 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   };
 
   // Compose helpers
-  const openCompose = () => { tap(); setReplyThreadId(null); setTo(''); setSubject(''); setBodyText(''); setSendState('idle'); setSendApp(mailApp); setEmailTab('compose'); };
+  const openCompose = () => {
+    tap();
+    setReplyThreadId(null); setTo(''); setSubject(''); setBodyText(''); setComposeKind('text'); setToPicker(false);
+    setSendState('idle'); setSendApp(mailApp); setEmailTab('compose');
+    loadContacts();  // for the To picker
+    listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });  // for the body template picker
+  };
+  const applyComposeTemplate = (t: Template) => {
+    tap();
+    if (t.subject) setSubject(t.subject);
+    setBodyText(t.body);
+    setComposeKind(t.kind === 'html' ? 'html' : 'text');
+    setToPicker(false);
+    if (sendState === 'err') setSendState('idle');
+  };
   const openReply = () => {
     if (!reading) return;
     tap();
@@ -455,7 +471,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const doSend = () => {
     tap();
     setSendState('sending');
-    sendEmail({ to: to.trim(), subject: subject.trim(), body: bodyText, threadId: replyThreadId || undefined, app: sendApp })
+    sendEmail({ to: to.trim(), subject: subject.trim(), body: bodyText, threadId: replyThreadId || undefined, app: sendApp, html: composeKind === 'html' })
       .then(() => { if (mountedRef.current) setSendState('sent'); })
       .catch(() => { if (mountedRef.current) setSendState('err'); });
   };
@@ -1429,17 +1445,60 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               </div>
             ) : (
               <>
-                <input
-                  className="ag-field" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off"
-                  placeholder="To" value={to} onChange={(e) => setTo(e.target.value)}
-                />
-                <input className="ag-field" placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
-                <textarea className="ag-field ag-body" placeholder="Write your message…" value={bodyText} onChange={(e) => setBodyText(e.target.value)} />
+                {mailApiApps.length >= 2 && (
+                  <div className="ag-from">
+                    <span className="ag-from-lbl">From</span>
+                    <select className="ag-field ag-from-sel" value={sendApp} onChange={(e) => { tap(); setSendApp(e.target.value as 'gmail' | 'outlook'); }}>
+                      {mailApiApps.map((a) => <option key={a} value={a}>{a === 'outlook' ? 'Outlook' : 'Gmail'}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div className="ag-to-row">
+                  <input
+                    className="ag-field" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off"
+                    placeholder="To" value={to} onChange={(e) => { setTo(e.target.value); if (!toPicker) setToPicker(true); }}
+                    onFocus={() => { if (contacts.length) setToPicker(true); }}
+                  />
+                  {contacts.length > 0 && (
+                    <button className="ag-to-pick" onClick={() => { tap(); setToPicker((v) => !v); }} aria-label="Choose from contacts"><IconContacts size={18} /></button>
+                  )}
+                </div>
+                {toPicker && contacts.length > 0 && (() => {
+                  const q = to.trim().toLowerCase();
+                  const matches = contacts.filter((c) => c.email && (!q || `${c.name} ${c.email}`.toLowerCase().includes(q))).slice(0, 30);
+                  return matches.length ? (
+                    <div className="ag-contact-pop">
+                      {matches.map((c, i) => (
+                        <button className="ag-contact-opt" key={`${c.email}-${i}`} onClick={() => { tap(); setTo(c.email || ''); setToPicker(false); }}>
+                          <span className="ag-contact-nm">{c.name || c.email}</span>
+                          {c.name && <span className="ag-contact-em">{c.email}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
+                <input className="ag-field" placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} onFocus={() => setToPicker(false)} />
+                {tplList.length > 0 && (
+                  <div className="ag-tpl-row">
+                    <span className="ag-tpl-lbl">Template:</span>
+                    {tplList.slice(0, 8).map((t) => (
+                      <button key={t.id} className="ag-tpl-chip" onClick={() => applyComposeTemplate(t)}>{t.name || t.subject}</button>
+                    ))}
+                  </div>
+                )}
+                {composeKind === 'html' ? (
+                  <div className="ag-tpl-preview">
+                    <div className="ag-tpl-preview-bar"><span>Designed template</span><button onClick={() => { tap(); setComposeKind('text'); setBodyText(''); }}>✕ Write plain text</button></div>
+                    <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(fillMergeTags(bodyText))} />
+                  </div>
+                ) : (
+                  <textarea className="ag-field ag-body" placeholder="Write your message…" value={bodyText} onChange={(e) => setBodyText(e.target.value)} onFocus={() => setToPicker(false)} />
+                )}
                 {sendState === 'err' && <div className="ag-send-err">Couldn’t send — check the address and try again.</div>}
                 <button
                   className="ag-send-btn"
                   onClick={() => { tap(); setSendState('confirm'); }}
-                  disabled={!validTo || sendState === 'sending'}
+                  disabled={!validTo || sendState === 'sending' || !bodyText.trim()}
                 >
                   {sendState === 'sending' ? 'Sending…' : replyThreadId ? 'Send reply' : 'Send'}
                 </button>
