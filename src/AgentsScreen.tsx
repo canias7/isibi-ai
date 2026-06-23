@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, cloudflareApply, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, cloudflareApply, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -135,6 +135,14 @@ function Typewriter({ text, on }: { text: string; on: boolean }) {
   return <span>{text.slice(0, n)}</span>;
 }
 
+// A pending AI-builder job, persisted so it survives a full app restart. The server
+// keeps generating regardless; on return we resume polling and apply the result.
+type PendingJob = { jobId: string; editId: string; prev: { subject: string; body: string }; label: string; at: number };
+const JOB_KEY = 'sendra_tpl_job';
+function saveJob(j: PendingJob) { try { localStorage.setItem(JOB_KEY, JSON.stringify(j)); } catch { /* ignore */ } }
+function loadJob(): PendingJob | null { try { const s = localStorage.getItem(JOB_KEY); const j = s ? JSON.parse(s) : null; return j && Date.now() - j.at < 300000 ? j : null; } catch { return null; } }
+function clearJob() { try { localStorage.removeItem(JOB_KEY); } catch { /* ignore */ } }
+
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [agent, setAgent] = useState<AgentId | null>(null);
   const [commsApp, setCommsApp] = useState<CommsId | null>(null); // null while Sendra shows its home / the app constellation
@@ -247,6 +255,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
+  const [chatJobId, setChatJobId] = useState(''); // running AI-builder job (async; survives backgrounding)
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null); // chat bubble showing "Copied"
   const [typeIdx, setTypeIdx] = useState<number | null>(null);     // index of the assistant msg to typewriter-reveal
   const [chatErr, setChatErr] = useState('');
@@ -873,38 +882,75 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     inp.click();
   };
   // New template -> straight into the AI chat builder.
-  const startAI = () => { tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setTplVersions([]); setPendingImg(null); setChatBusy(false); setTplImgBusy(false); setCopiedIdx(null); setTypeIdx(null); setChatView('chat'); };
+  const startAI = () => {
+    tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setTplVersions([]); setPendingImg(null); setChatBusy(false); setTplImgBusy(false); setCopiedIdx(null); setTypeIdx(null); setChatView('chat');
+    const pj = loadJob(); // a generation that was still running when the app last closed
+    if (pj && pj.editId === 'new') { setChatMsgs([{ role: 'user', content: pj.label }]); resumeJob(pj, 1); }
+  };
   const openTplEdit = (t: Template) => {
     tap();
     setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body);
     setChatMsgs(t.chat && t.chat.length ? t.chat : []); setChatInput(''); setChatErr(''); setChatHistory([]); setPendingImg(null); setChatBusy(false); setTplImgBusy(false); setCopiedIdx(null); setTypeIdx(null); setChatView('chat');
     setTplVersions(t.body ? [{ label: 'Saved version', subject: t.subject, body: t.body, at: Date.parse(t.updated_at || '') || Date.now() }] : []);
+    const pj = loadJob();
+    if (pj && pj.editId === t.id) { setChatMsgs([...(t.chat || []), { role: 'user', content: pj.label }]); resumeJob(pj, (t.chat?.length || 0) + 1); }
   };
   // One chat turn: send the thread (+ any image) to the AI. It may just reply
   // (conversational) or also return a new email body, which we then apply.
+  // Poll a running builder job until it finishes. Resilient to transient network
+  // errors and to the app being backgrounded — the timer just resumes on return.
+  const pollJob = async (jobId: string): Promise<TemplateJob | null> => {
+    const deadline = Date.now() + 240000; // give up after ~4 min
+    while (Date.now() < deadline) {
+      if (!mountedRef.current) return null; // editor closed — the persisted job resumes later
+      try { const res = await getTemplateJob(jobId); const job = res.job; if (job && (job.status === 'done' || job.status === 'error')) return job; } catch { /* network blip — keep polling */ }
+      await new Promise((r) => setTimeout(r, 2500));
+    }
+    return null;
+  };
+  const applyJobResult = (job: TemplateJob | null, prev: { subject: string; body: string }, label: string, assistantIdx: number) => {
+    if (!job) { setChatErr('That took too long — try again.'); return; }
+    if (job.status === 'error') { setChatErr(job.error === 'ai_unset' ? 'AI builder isn’t set up on the server yet.' : 'Couldn’t do that — try again.'); return; }
+    if (job.body) { // the email was created or changed
+      setTplBody(job.body);
+      if (job.subject) setTplSubject(job.subject);
+      if (!tplName.trim() && job.subject) setTplName(job.subject.slice(0, 60));
+      setChatHistory((h) => [...h, prev].slice(-20));
+      setTplVersions((v) => [...v, { label: label.slice(0, 80), subject: job.subject || tplSubject, body: job.body as string, at: Date.now() }].slice(-40));
+    }
+    setTypeIdx(assistantIdx); // reveal this new assistant reply letter-by-letter
+    setChatMsgs((m) => [...m, { role: 'assistant', content: job.reply || 'Done.' }]);
+  };
+  // Resume a job left running when the app was closed/backgrounded (server kept going).
+  const resumeJob = (pj: PendingJob, assistantIdx: number) => {
+    setChatErr(''); setChatBusy(true); setChatJobId(pj.jobId);
+    (async () => {
+      const job = await pollJob(pj.jobId);
+      if (!mountedRef.current) return;
+      applyJobResult(job, pj.prev, pj.label, assistantIdx);
+      setChatBusy(false); setChatJobId(''); clearJob();
+    })();
+  };
   const runChat = async (next: ChatMsg[], images: string[]) => {
     const prev = { subject: tplSubject, body: tplBody }; // snapshot for Undo (only used if the email changes)
+    const label = [...next].reverse().find((m) => m.role === 'user')?.content?.trim() || 'Update';
     setChatMsgs(next); setChatBusy(true); setChatErr('');
+    // Start the job — the server finishes it in the background, so it survives the app
+    // being backgrounded or a dropped connection. One silent retry covers a stale-
+    // connection blip right after a previous long request (the case that was erroring).
+    let start: { job_id?: string; error?: string };
     try {
-      // Safety net: never let the UI hang on "Designing…" if the request stalls.
-      const r = await Promise.race([
-        chatTemplate(next, tplBody, images),
-        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 150000)),
-      ]);
-      if (!mountedRef.current) return;
-      if (r.error) { setChatErr(r.error === 'ai_unset' ? 'AI builder isn’t set up on the server yet.' : 'Couldn’t do that — try again.'); return; }
-      if (r.body) { // the email was created or changed
-        setTplBody(r.body);
-        if (r.subject) setTplSubject(r.subject);
-        if (!tplName.trim() && r.subject) setTplName(r.subject.slice(0, 60));
-        setChatHistory((h) => [...h, prev].slice(-20));
-        const label = [...next].reverse().find((m) => m.role === 'user')?.content?.trim() || 'Update';
-        setTplVersions((v) => [...v, { label: label.slice(0, 80), subject: r.subject || tplSubject, body: r.body as string, at: Date.now() }].slice(-40));
-      }
-      setTypeIdx(next.length); // reveal this new assistant reply letter-by-letter
-      setChatMsgs((m) => [...m, { role: 'assistant', content: r.reply || 'Done.' }]);
-    } catch (e) { if (mountedRef.current) setChatErr((e as Error)?.message === 'timeout' ? 'That took too long — try again.' : 'Something went wrong — try again.'); }
-    finally { if (mountedRef.current) setChatBusy(false); }
+      try { start = await chatTemplateStart(next, tplBody, images); }
+      catch { start = await chatTemplateStart(next, tplBody, images); }
+    } catch { if (mountedRef.current) { setChatErr('Couldn’t start — check your connection and try again.'); setChatBusy(false); } clearJob(); return; }
+    if (!mountedRef.current) return;
+    if (start.error || !start.job_id) { setChatErr(start.error === 'ai_unset' ? 'AI builder isn’t set up on the server yet.' : 'Couldn’t start — try again.'); setChatBusy(false); clearJob(); return; }
+    setChatJobId(start.job_id);
+    saveJob({ jobId: start.job_id, editId: tplEdit?.id || 'new', prev, label, at: Date.now() });
+    const job = await pollJob(start.job_id);
+    if (!mountedRef.current) return; // editor left — leave the persisted job to resume on return
+    applyJobResult(job, prev, label, next.length);
+    setChatBusy(false); setChatJobId(''); clearJob();
   };
   const copyMsg = async (i: number, text: string) => {
     if (!text) return;
