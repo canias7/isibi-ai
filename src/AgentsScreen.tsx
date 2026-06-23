@@ -152,6 +152,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [pull, setPull] = useState(0);
   const [contacts, setContacts] = useState<ContactItem[]>([]);
   const [contactsState, setContactsState] = useState<Loadable>('idle');
+  const [contactSearch, setContactSearch] = useState('');           // filter the contacts list
+  const [contactSelMode, setContactSelMode] = useState(false);      // multi-select mode
+  const [contactSel, setContactSel] = useState<Set<string>>(new Set()); // selected emails
   // Compose / reply state
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
@@ -419,9 +422,27 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setNote('');
     setReading(null);
     setInboxHome(true);
+    setContactSearch(''); setContactSelMode(false); setContactSel(new Set());
     const a: CommsId = !connApps.includes('gmail') && (connApps.includes('m365') || connApps.includes('outlook')) ? 'm365' : 'gmail';
     setCommsApp(a);
     setEmailTab('contacts');
+  };
+  const toggleContact = (email: string) => setContactSel((s) => {
+    const n = new Set(s);
+    if (n.has(email)) n.delete(email); else n.add(email);
+    return n;
+  });
+  // Selected contacts -> prefill a new campaign (the bulk-send engine handles the rest).
+  const emailSelected = () => {
+    const picked = contacts.filter((c) => c.email && contactSel.has(c.email));
+    if (!picked.length) return;
+    tap();
+    const recips = picked.map((c) => (c.name ? `${c.name} <${c.email}>` : c.email)).join('\n');
+    setReading(null); setCommsApp(null); setInboxHome(false);
+    setSendraTab('campaigns');
+    openCampNew();
+    setCampRecips(recips);
+    setContactSelMode(false); setContactSel(new Set());
   };
 
   const onPullStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -1425,7 +1446,28 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             ) : contactsState === 'ok' && contacts.length === 0 ? (
               <div className="ag-empty">No contacts found.</div>
             ) : contacts.length ? (
-              <ContactsList items={contacts} />
+              (() => {
+                const q = contactSearch.trim().toLowerCase();
+                const list = q ? contacts.filter((c) => `${c.name || ''} ${c.email || ''} ${c.phone || ''}`.toLowerCase().includes(q)) : contacts;
+                return (
+                  <>
+                    <div className="ag-contacts-bar">
+                      <input className="ag-field ag-contacts-search" placeholder="Search contacts" autoCapitalize="none" autoCorrect="off" value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} />
+                      <button className={`ag-contacts-sel${contactSelMode ? ' on' : ''}`} onClick={() => { tap(); setContactSelMode((v) => !v); setContactSel(new Set()); }}>{contactSelMode ? 'Cancel' : 'Select'}</button>
+                    </div>
+                    {list.length === 0 ? (
+                      <div className="ag-empty">No matches.</div>
+                    ) : (
+                      <ContactsList items={list} selectable={contactSelMode} selected={contactSel} onToggle={toggleContact} />
+                    )}
+                    {contactSelMode && contactSel.size > 0 && (
+                      <button className="ag-send-btn ag-contacts-action" onClick={emailSelected}>
+                        Email {contactSel.size} {contactSel.size === 1 ? 'person' : 'people'} →
+                      </button>
+                    )}
+                  </>
+                );
+              })()
             ) : (
               <EmailSkeleton />
             )}
