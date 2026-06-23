@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck, IconContacts,
-  IconChart, IconDoc, IconChat, IconPlus, IconArrowUp, IconX, IconCopy,
-  IconBolt, IconCalendar, IconGlobe, IconWebhook, IconSettings,
+  IconDoc, IconChat, IconPlus, IconArrowUp, IconX, IconCopy,
+  IconCalendar, IconGlobe, IconWebhook, IconSettings,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -37,16 +37,14 @@ const COMMS: { id: CommsId; name: string; tagline: string; mail: boolean }[] = [
 ];
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'apps' | 'texts' | 'campaigns' | 'templates' | 'analytics' | 'domains' | 'triggers' | 'schedule' | 'webhook' | 'settings';
+type SendraTab = 'home' | 'apps' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'settings';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
   apps: { t: 'My apps', s: 'The apps Sendra runs' },
   texts: { t: 'Text', s: 'Send an SMS' },
   campaigns: { t: 'Campaigns', s: 'Email & SMS to your lists' },
   templates: { t: 'Templates', s: 'Reusable messages' },
-  analytics: { t: 'Analytics', s: 'Performance across your sends' },
   domains: { t: 'Domains', s: 'Send from your own address' },
-  triggers: { t: 'Triggers', s: 'Automate sends on events' },
   schedule: { t: 'Schedule', s: 'Scheduled sends & reminders' },
   webhook: { t: 'Webhooks', s: 'Post events to your systems' },
   settings: { t: 'Settings', s: 'Sender, reply-to & preferences' },
@@ -58,10 +56,8 @@ const HOME_TOOLS: { id: SendraTab | 'inbox'; name: string; desc: string; Icon: I
   { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
   { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
   { id: 'domains', name: 'Domains', desc: 'Send from your address', Icon: IconGlobe },
-  { id: 'triggers', name: 'Triggers', desc: 'Automate on events', Icon: IconBolt },
   { id: 'webhook', name: 'Webhooks', desc: 'Post events out', Icon: IconWebhook },
   { id: 'schedule', name: 'Schedule', desc: 'Plan sends ahead', Icon: IconCalendar },
-  { id: 'analytics', name: 'Analytics', desc: 'Opens & clicks', Icon: IconChart },
   { id: 'apps', name: 'My apps', desc: '', Icon: IconConnectors },
   { id: 'settings', name: 'Settings', desc: 'Sender & preferences', Icon: IconSettings },
 ];
@@ -1156,16 +1152,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   )}
                 </>
               )
-            ) : sendraTab === 'analytics' ? (
-              <>
-                <div className="ag-stats">
-                  <div className="ag-stat"><div className="ag-stat-v">—</div><div className="ag-stat-k">Sent</div></div>
-                  <div className="ag-stat"><div className="ag-stat-v">—</div><div className="ag-stat-k">Delivered</div></div>
-                  <div className="ag-stat"><div className="ag-stat-v">—</div><div className="ag-stat-k">Opened</div></div>
-                  <div className="ag-stat"><div className="ag-stat-v">—</div><div className="ag-stat-k">Clicked</div></div>
-                </div>
-                <div className="ag-empty" style={{ marginTop: 12 }}>Analytics appear once you send a campaign — opens, clicks, replies and deliveries per send.</div>
-              </>
             ) : sendraTab === 'texts' ? (
               smsReady === null ? (
                 <div className="ag-empty" style={{ marginTop: 12 }}>Loading…</div>
@@ -1282,8 +1268,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   </div>
                 )}
               </div>
-            ) : sendraTab === 'triggers' ? (
-              <div className="ag-empty" style={{ marginTop: 12 }}>Triggers are coming soon — automatically send an email or text when something happens (a new subscriber, a tag, a date). You’ll build them here.</div>
             ) : sendraTab === 'webhook' ? (
               <div className="ag-empty" style={{ marginTop: 12 }}>Webhooks are coming soon — get a URL that posts events (opens, clicks, replies, unsubscribes, bounces) to your own systems in real time. You’ll manage endpoints here.</div>
             ) : sendraTab === 'settings' ? (
