@@ -93,6 +93,51 @@ async function ses(method: string, path: string, body?: unknown): Promise<{ ok: 
   return { ok: res.ok, status: res.status, body: j };
 }
 
+// ---- Domain Connect (one-click DNS). Discover the domain's DNS host and, only if our
+// template is actually published there, hand back the "apply" URL. Until our template is
+// synced by a provider this returns supported:false, so the app shows manual records. ----
+const DC_PROVIDER = "gofarther.dev";       // our Domain Connect provider id (template namespace)
+const DC_SERVICE = "email";
+const DC_REDIRECT = "https://gofarther.dev/"; // must be in the template's syncRedirectDomains
+async function dohTxt(name: string): Promise<string> {
+  try {
+    const r = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(name)}&type=TXT`, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return "";
+    const j = await r.json().catch(() => ({})) as any;
+    const ans = (j?.Answer || []).find((a: any) => a?.type === 16);
+    return ans ? String(ans.data || "").replace(/^"|"$/g, "").trim() : "";
+  } catch { return ""; }
+}
+function dkimTokens(records: Rec[]): string[] {
+  return records.filter((r) => r.type === "CNAME" && /\.dkim\.amazonses\.com$/i.test(r.value)).map((r) => r.value.replace(/\.dkim\.amazonses\.com$/i, ""));
+}
+async function domainConnectUrl(domain: string, records: Rec[]): Promise<{ supported: boolean; applyUrl?: string; provider?: string; reason?: string }> {
+  const tokens = dkimTokens(records);
+  if (tokens.length < 3) return { supported: false };
+  const host = await dohTxt(`_domainconnect.${domain}`);
+  if (!host || !/^[a-z0-9.-]+$/i.test(host)) return { supported: false };
+  let s: any;
+  try {
+    const set = await fetch(`https://${host}/v2/${encodeURIComponent(domain)}/settings`, { signal: AbortSignal.timeout(8000) });
+    if (!set.ok) return { supported: false };
+    s = await set.json().catch(() => ({}));
+  } catch { return { supported: false }; }
+  const urlSyncUX = String(s?.urlSyncUX || "");
+  const urlAPI = String(s?.urlAPI || "");
+  const provider = String(s?.providerName || "your DNS host");
+  if (!urlSyncUX) return { supported: false };
+  // Only offer one-click if our template is actually published at this provider.
+  if (urlAPI) {
+    try {
+      const tpl = await fetch(`${urlAPI}/v2/domainTemplates/providers/${DC_PROVIDER}/services/${DC_SERVICE}`, { signal: AbortSignal.timeout(8000) });
+      if (!tpl.ok) return { supported: false, reason: "template_pending", provider };
+    } catch { return { supported: false, reason: "template_pending", provider }; }
+  }
+  const vars = `dkim1=${encodeURIComponent(tokens[0])}&dkim2=${encodeURIComponent(tokens[1])}&dkim3=${encodeURIComponent(tokens[2])}`;
+  const applyUrl = `${urlSyncUX}/v2/domainTemplates/providers/${DC_PROVIDER}/services/${DC_SERVICE}/apply?domain=${encodeURIComponent(domain)}&${vars}&redirect_uri=${encodeURIComponent(DC_REDIRECT)}`;
+  return { supported: true, applyUrl, provider };
+}
+
 // --- Email-event tracking: SES configuration set -> SNS topic -> ses-events
 // webhook (suppressions + user webhook fan-out). Best-effort + idempotent. The config
 // set needs only SES perms; the SNS wiring needs the SNS perms on the IAM key. Cached
@@ -249,6 +294,18 @@ Deno.serve(async (req: Request) => {
     if (action === "setup") {
       await ensureTracking().catch(() => {});
       return json(req, { ok: trackingDone });
+    }
+
+    // One-click (Domain Connect): is this domain's DNS host supported (and our template
+    // live there)? If so, return the apply URL the app opens; else { supported:false }.
+    if (action === "dcurl") {
+      const domain = String(body?.domain || "").trim().toLowerCase();
+      if (!DOMAIN_RE.test(domain)) return json(req, { error: "bad_domain" });
+      const dRes = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${domain}&select=records`, { headers: sbHeaders });
+      const row = (await dRes.json().catch(() => []))?.[0];
+      if (!row) return json(req, { supported: false });
+      const result = await domainConnectUrl(domain, (row.records || []) as Rec[]);
+      return json(req, result);
     }
 
     return json(req, { error: "unknown_action" }, 400);

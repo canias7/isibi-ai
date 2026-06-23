@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -214,6 +214,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [domOpen, setDomOpen] = useState<string | null>(null);
   const [copied, setCopied] = useState('');   // last-copied DNS value, for the "Copied" flash
   const [copiedAll, setCopiedAll] = useState(''); // domain whose full record set was just copied
+  const [dcBusy, setDcBusy] = useState('');       // domain whose one-click is being prepared
+  const [dcMsg, setDcMsg] = useState<Record<string, string>>({}); // per-domain one-click status
   // Outbound webhooks
   const [webhooks, setWebhooks] = useState<WebhookEndpoint[]>([]);
   const [whNew, setWhNew] = useState('');
@@ -691,6 +693,24 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const checkDomain = async (domain: string) => {
     tap();
     try { await checkSesDomain(domain); await loadDomains(); } catch { /* ignore */ }
+  };
+  // One-click: ask the server if this domain's DNS host supports Domain Connect (and our
+  // template is live there). If so, open the authorize page; else fall back to manual.
+  const autoConfigure = async (domain: string) => {
+    tap(); setDcBusy(domain); setDcMsg((m) => ({ ...m, [domain]: '' }));
+    try {
+      const r = await domainConnectUrl(domain);
+      if (!mountedRef.current) return;
+      if (r.supported && r.applyUrl) {
+        window.open(r.applyUrl, '_blank', 'noopener');
+        setDcMsg((m) => ({ ...m, [domain]: `Opened ${r.provider || 'your DNS host'} — authorize there and it’ll verify automatically.` }));
+      } else {
+        setDcMsg((m) => ({ ...m, [domain]: r.reason === 'template_pending'
+          ? 'One-click is still rolling out for your host — add the records below for now.'
+          : 'Your DNS host doesn’t support one-click — add the records below.' }));
+      }
+    } catch { if (mountedRef.current) setDcMsg((m) => ({ ...m, [domain]: 'Couldn’t start one-click — add the records below.' })); }
+    finally { if (mountedRef.current) setDcBusy(''); }
   };
   const copyAllRecords = (domain: string, records: SesDomain['records']) => {
     const text = records.map((r) => `${r.type}\t${r.name}\t${r.value}`).join('\n');
@@ -1304,6 +1324,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                               {d.status === 'verified'
                                 ? <div className="ag-dom-ok">✓ Verified — pick this domain under “Send from” when creating a campaign.</div>
                                 : <p className="ag-foot ag-dom-hint">Add these records at your DNS host — we’ll keep checking automatically, so you don’t have to tap Check. DNS can take a few minutes to a few hours to propagate.</p>}
+                              {d.status !== 'verified' && (
+                                <button className="ag-send-btn ag-dom-auto" disabled={dcBusy === d.domain} onClick={() => autoConfigure(d.domain)}>
+                                  {dcBusy === d.domain ? 'Checking your DNS host…' : '⚡ Auto-configure (1-click)'}
+                                </button>
+                              )}
+                              {d.status !== 'verified' && dcMsg[d.domain] && <div className="ag-dom-testmsg">{dcMsg[d.domain]}</div>}
                               {d.status !== 'verified' && (
                                 <div className="ag-dns">
                                   {(d.records || []).length > 0 && (

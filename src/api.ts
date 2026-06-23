@@ -262,6 +262,13 @@ export async function testSesDomain(domain: string, to: string): Promise<{ ok?: 
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { ok?: boolean; error?: string };
 }
+// One-click DNS (Domain Connect): if the domain's DNS host is supported and our template
+// is live there, returns the apply URL to open; otherwise { supported:false }.
+export async function domainConnectUrl(domain: string): Promise<{ supported?: boolean; applyUrl?: string; provider?: string; reason?: string }> {
+  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'dcurl', domain } });
+  if (error) return { supported: false };
+  return (data || {}) as { supported?: boolean; applyUrl?: string; provider?: string; reason?: string };
+}
 
 // ---- Outbound webhooks (via the `webhooks` fn) ----
 // Register an HTTPS endpoint; Sendra POSTs signed email events (delivered, bounced,
