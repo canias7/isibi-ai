@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -226,6 +226,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campDomain, setCampDomain] = useState('');     // '' = send via mailbox; else a verified domain
   const [campFromName, setCampFromName] = useState(''); // display name when sending from a domain
   const [campFromLocal, setCampFromLocal] = useState('news'); // local-part of the From address
+  const [senders, setSenders] = useState<Sender[]>([]);  // saved From identities
   // Templates (reusable, AI-writable, or bring-your-own)
   const [tplList, setTplList] = useState<Template[]>([]);
   const [tplEdit, setTplEdit] = useState<null | { id?: string }>(null);
@@ -413,6 +414,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (agent !== 'email' || commsApp !== null) return;
     if (sendraTab === 'campaigns' && !campNew) listCampaigns().then((c) => { if (mountedRef.current) setCampList(c); });
     if (sendraTab === 'campaigns') listSesDomains().then((d) => { if (mountedRef.current) setSesDomains(d); });
+    if (sendraTab === 'campaigns') listSenders().then((s) => { if (mountedRef.current) setSenders(s); });
     if (sendraTab === 'texts') smsStatus().then((s) => { if (mountedRef.current) { setSmsReady(s.ready); setSmsNumber(s.number); } });
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
   }, [agent, commsApp, sendraTab, campNew]);
@@ -636,6 +638,28 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setCampDomain(''); setCampFromName(''); setCampFromLocal('news');
   };
   const applyTemplate = (t: Template) => { tap(); setCampSubject(t.subject); setCampBody(t.body); setCampBodyKind(t.kind === 'html' ? 'html' : 'text'); if (campState === 'err') setCampState('idle'); };
+  // ---- Saved senders ----
+  const applySender = (s: Sender) => {
+    const at = s.from_email.indexOf('@');
+    const local = at > 0 ? s.from_email.slice(0, at) : '';
+    const dom = at > 0 ? s.from_email.slice(at + 1) : '';
+    if (!sesDomains.some((d) => d.domain === dom && d.status === 'verified')) return; // domain no longer verified
+    tap();
+    setCampDomain(dom); setCampFromLocal(local); setCampFromName(s.from_name || '');
+    if (campState === 'err') setCampState('idle');
+  };
+  const saveSender = async () => {
+    if (!campDomain) return;
+    const email = `${(campFromLocal.trim() || 'news')}@${campDomain}`;
+    tap();
+    try { await addSender(campFromName.trim(), email); const s = await listSenders(); if (mountedRef.current) setSenders(s); } catch { /* ignore */ }
+  };
+  const removeSenderRow = async (id: string) => {
+    tap();
+    await removeSender(id).catch(() => {});
+    const s = await listSenders().catch(() => [] as Sender[]);
+    if (mountedRef.current) setSenders(s);
+  };
   const runCampaign = async () => {
     const recipients = parseRecips(campRecips);
     if (!campSubject.trim() || !campBody.trim() || !recipients.length || campState === 'sending') return;
@@ -1024,6 +1048,17 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         ))}
                       </div>
                     )}
+                    {senders.length > 0 && (
+                      <div className="ag-tpl-row">
+                        <span className="ag-tpl-lbl">Senders:</span>
+                        {senders.map((s) => (
+                          <span className="ag-sender-chip" key={s.id}>
+                            <button className="ag-sender-pick" onClick={() => applySender(s)}>{s.from_name ? `${s.from_name} · ${s.from_email}` : s.from_email}</button>
+                            <button className="ag-sender-x" onClick={() => removeSenderRow(s.id)} aria-label="Remove sender">✕</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {sesDomains.some((d) => d.status === 'verified') && (
                       <div className="ag-from">
                         <span className="ag-from-lbl">Send from</span>
@@ -1047,6 +1082,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         <div className="ag-from-addr">
                           <input className="ag-field" placeholder="news" value={campFromLocal} onChange={(e) => setCampFromLocal(e.target.value.replace(/[^a-zA-Z0-9._-]/g, ''))} />
                           <span className="ag-from-at">@{campDomain}</span>
+                          <button className="ag-from-save" onClick={saveSender} disabled={!campFromLocal.trim()}>Save</button>
                         </div>
                       </div>
                     )}
