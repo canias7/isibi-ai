@@ -87,6 +87,30 @@ export async function fetchContacts(app = 'gmail'): Promise<ContactItem[]> {
   return Array.isArray(j.items) ? j.items : [];
 }
 
+// ---- Sendra address book (own contacts, via the `address-book` fn) ----
+// App-level contacts the user saves in Sendra (not tied to a mailbox). Shown in the
+// Contacts screen and the composer "To" picker.
+export interface SavedContact { id: string; name: string; email?: string | null; phone?: string | null }
+export async function listSavedContacts(): Promise<SavedContact[]> {
+  const { data, error } = await supabase.functions.invoke('address-book', { body: { action: 'list' } });
+  if (error) return [];
+  const c = (data as { contacts?: SavedContact[] } | null)?.contacts;
+  return Array.isArray(c) ? c : [];
+}
+export async function addSavedContact(c: { name: string; email?: string; phone?: string }): Promise<{ contact?: SavedContact; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('address-book', { body: { action: 'add', ...c } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { contact?: SavedContact; error?: string };
+}
+export async function updateSavedContact(id: string, c: { name: string; email?: string; phone?: string }): Promise<{ contact?: SavedContact; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('address-book', { body: { action: 'update', id, ...c } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { contact?: SavedContact; error?: string };
+}
+export async function deleteSavedContact(id: string): Promise<void> {
+  await supabase.functions.invoke('address-book', { body: { action: 'delete', id } });
+}
+
 // Send an email (Composio GMAIL_SEND_EMAIL, server-verified). Returns on success,
 // throws on failure so the composer can show an error.
 const SEND_API = CONNECT_API.replace(/\/gmail-oauth$/, '/gmail-send');
