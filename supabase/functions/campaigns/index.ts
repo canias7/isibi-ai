@@ -193,6 +193,57 @@ async function sendOneSes(p: { fromEmail: string; fromName: string | null; to: s
   }
 }
 
+// Drain one batch of a campaign's queue. Shared by the `send` action (client-driven)
+// and the scheduled `run_due` cron. Flips draft/scheduled -> sending, sends up to
+// `limit`, updates counts, and marks the campaign sent once the queue is empty.
+// deno-lint-ignore no-explicit-any
+async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; failed: number; remaining: number; done: boolean }> {
+  const id = camp.id as string;
+  const uid = camp.user_id as string;
+  if (camp.status === "draft" || camp.status === "scheduled") {
+    await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "sending", updated_at: new Date().toISOString() }) });
+  }
+  const qRes = await fetch(`${SB_URL}/rest/v1/campaign_recipients?campaign_id=eq.${id}&status=eq.queued&select=id,email,name&order=id.asc&limit=${limit}`, { headers: sbHeaders });
+  const batch = (await qRes.json().catch(() => [])) as { id: string; email: string; name: string | null }[];
+  const isSes = camp.send_via === "ses" && !!camp.from_email;
+  const withConfig = isSes ? await ensureConfigSet() : false;
+  let sent = 0, failed = 0;
+  for (const r of batch) {
+    const who = r.name || "there";
+    const unsub = await unsubUrl(uid, r.email);
+    const tok = await trackToken(id, r.id);
+    const personalized = String(camp.body).replace(/\{\{\s*name\s*\}\}/g, esc(who));
+    const html = `${withTracking(personalized, id, r.id, tok)}<br><br><hr style="border:none;border-top:1px solid #eee"><p style="font-size:12px;color:#888;font-family:system-ui,sans-serif">You're receiving this because you're on a list managed in Sendra. <a href="${unsub}" style="color:#888">Unsubscribe</a>.</p>${openPixel(id, r.id, tok)}`;
+    const res = isSes
+      ? await sendOneSes({ fromEmail: camp.from_email, fromName: camp.from_name, to: r.email, subject: camp.subject, html, unsub, uid, campaignId: id, withConfig })
+      : await sendOne(uid, camp.app, r.email, camp.subject, html);
+    await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, {
+      method: "PATCH", headers: sbHeaders,
+      body: JSON.stringify(res.ok ? { status: "sent", sent_at: new Date().toISOString() } : { status: "failed", error: res.error }),
+    });
+    if (res.ok) sent++; else failed++;
+    await sleep(camp.send_via === "ses" ? 1100 : 700); // throttle — SES sandbox is 1/sec; Gmail likes it slow too
+  }
+  const [totSent, totFailed, remaining] = await Promise.all([countBy(id, "sent"), countBy(id, "failed"), countBy(id, "queued")]);
+  const done = remaining === 0;
+  await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, {
+    method: "PATCH", headers: sbHeaders,
+    body: JSON.stringify({ sent: totSent, failed: totFailed, status: done ? "sent" : "sending", updated_at: new Date().toISOString() }),
+  });
+  return { sent, failed, remaining, done };
+}
+
+// Shared secret the scheduled-send cron presents (mirrors the run-workflows pattern;
+// the value lives in Vault and is read back via a security-definer RPC).
+async function cronSecret(): Promise<string> {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/campaigns_cron_secret`, { method: "POST", headers: sbHeaders, body: "{}" });
+    if (!r.ok) return "";
+    const v = await r.json().catch(() => "");
+    return typeof v === "string" ? v : "";
+  } catch { return ""; }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
@@ -200,11 +251,33 @@ Deno.serve(async (req: Request) => {
 
   const auth = req.headers.get("authorization") || "";
   const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
-  const uid = await verifyUser(token);
-  if (!uid) return json(req, { error: "unauthorized" }, 401);
 
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const action = String(body?.action || "");
+
+  // Scheduled sends: the pg_cron job posts { action: "run_due" } with the cron secret.
+  // Drain every campaign whose scheduled time has arrived (bounded ~40 sends per tick).
+  if (action === "run_due") {
+    const secret = await cronSecret();
+    if (!secret || !token || token !== secret) return json(req, { error: "unauthorized" }, 401);
+    try {
+      const nowIso = new Date().toISOString();
+      const dueRes = await fetch(`${SB_URL}/rest/v1/campaigns?scheduled_at=lte.${encodeURIComponent(nowIso)}&status=in.(scheduled,sending)&select=*&order=scheduled_at.asc&limit=15`, { headers: sbHeaders });
+      const due = (await dueRes.json().catch(() => [])) as Record<string, unknown>[];
+      let budget = 40, processed = 0;
+      for (const camp of (Array.isArray(due) ? due : [])) {
+        if (budget <= 0) break;
+        try { const r = await drainCampaign(camp, Math.min(20, budget)); budget -= (r.sent + r.failed); processed++; } catch { /* skip one bad campaign */ }
+      }
+      return json(req, { ok: true, processed });
+    } catch (e) {
+      console.error("campaigns run_due:", String((e as Error)?.message || e));
+      return json(req, { error: "request_failed" }, 502);
+    }
+  }
+
+  const uid = await verifyUser(token);
+  if (!uid) return json(req, { error: "unauthorized" }, 401);
 
   try {
     if (action === "create") {
@@ -245,10 +318,19 @@ Deno.serve(async (req: Request) => {
       const skipped = clean.length - recips.length;
       if (!recips.length) return json(req, { error: "no_recipients", invalid, skipped });
 
+      // Optional scheduled send: a future ISO timestamp parks the campaign as "scheduled"
+      // and the run_due cron drains it when the time arrives. Otherwise it's a draft.
+      let scheduledAt: string | null = null;
+      const rawSched = body?.scheduled_at ? String(body.scheduled_at) : "";
+      if (rawSched) {
+        const t = Date.parse(rawSched);
+        if (Number.isFinite(t) && t > Date.now() + 30000) scheduledAt = new Date(t).toISOString();
+      }
+
       const cRes = await fetch(`${SB_URL}/rest/v1/campaigns`, {
         method: "POST",
         headers: { ...sbHeaders, Prefer: "return=representation" },
-        body: JSON.stringify({ user_id: uid, app, name, subject, body: html, status: "draft", total: recips.length, send_via: sendVia, from_email: fromEmail, from_name: fromName }),
+        body: JSON.stringify({ user_id: uid, app, name, subject, body: html, status: scheduledAt ? "scheduled" : "draft", total: recips.length, send_via: sendVia, from_email: fromEmail, from_name: fromName, scheduled_at: scheduledAt }),
       });
       const camp = (await cRes.json().catch(() => []))?.[0];
       if (!cRes.ok || !camp?.id) return json(req, { error: "create_failed" }, 502);
@@ -258,7 +340,7 @@ Deno.serve(async (req: Request) => {
         method: "POST", headers: { ...sbHeaders, Prefer: "return=minimal" }, body: JSON.stringify(rows),
       });
       if (!rRes.ok) return json(req, { error: "recipients_failed" }, 502);
-      return json(req, { id: camp.id, queued: recips.length, skipped, invalid });
+      return json(req, { id: camp.id, queued: recips.length, skipped, invalid, scheduled: !!scheduledAt, scheduled_at: scheduledAt });
     }
 
     if (action === "send") {
@@ -269,40 +351,8 @@ Deno.serve(async (req: Request) => {
       const cRes = await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}&user_id=eq.${uid}&select=*`, { headers: sbHeaders });
       const camp = (await cRes.json().catch(() => []))?.[0];
       if (!camp) return json(req, { error: "not_found" });
-      if (camp.status === "draft") {
-        await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "sending", updated_at: new Date().toISOString() }) });
-      }
-
-      const qRes = await fetch(`${SB_URL}/rest/v1/campaign_recipients?campaign_id=eq.${id}&status=eq.queued&select=id,email,name&order=id.asc&limit=${limit}`, { headers: sbHeaders });
-      const batch = (await qRes.json().catch(() => [])) as { id: string; email: string; name: string | null }[];
-
-      const isSes = camp.send_via === "ses" && !!camp.from_email;
-      const withConfig = isSes ? await ensureConfigSet() : false;
-      let sent = 0, failed = 0;
-      for (const r of batch) {
-        const who = r.name || "there";
-        const unsub = await unsubUrl(uid, r.email);
-        const tok = await trackToken(id, r.id);
-        const personalized = String(camp.body).replace(/\{\{\s*name\s*\}\}/g, esc(who));
-        const html = `${withTracking(personalized, id, r.id, tok)}<br><br><hr style="border:none;border-top:1px solid #eee"><p style="font-size:12px;color:#888;font-family:system-ui,sans-serif">You're receiving this because you're on a list managed in Sendra. <a href="${unsub}" style="color:#888">Unsubscribe</a>.</p>${openPixel(id, r.id, tok)}`;
-        const res = isSes
-          ? await sendOneSes({ fromEmail: camp.from_email, fromName: camp.from_name, to: r.email, subject: camp.subject, html, unsub, uid, campaignId: id, withConfig })
-          : await sendOne(uid, camp.app, r.email, camp.subject, html);
-        await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, {
-          method: "PATCH", headers: sbHeaders,
-          body: JSON.stringify(res.ok ? { status: "sent", sent_at: new Date().toISOString() } : { status: "failed", error: res.error }),
-        });
-        if (res.ok) sent++; else failed++;
-        await sleep(camp.send_via === "ses" ? 1100 : 700); // throttle — SES sandbox is 1/sec; Gmail likes it slow too
-      }
-
-      const [totSent, totFailed, remaining] = await Promise.all([countBy(id, "sent"), countBy(id, "failed"), countBy(id, "queued")]);
-      const done = remaining === 0;
-      await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, {
-        method: "PATCH", headers: sbHeaders,
-        body: JSON.stringify({ sent: totSent, failed: totFailed, status: done ? "sent" : "sending", updated_at: new Date().toISOString() }),
-      });
-      return json(req, { sent, failed, remaining, done });
+      const r = await drainCampaign(camp, limit);
+      return json(req, r);
     }
 
     if (action === "get") {
@@ -313,9 +363,20 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "list") {
-      const r = await fetch(`${SB_URL}/rest/v1/campaigns?user_id=eq.${uid}&select=id,name,subject,app,status,total,sent,failed,created_at&order=created_at.desc&limit=50`, { headers: sbHeaders });
+      const r = await fetch(`${SB_URL}/rest/v1/campaigns?user_id=eq.${uid}&select=id,name,subject,app,status,total,sent,failed,scheduled_at,created_at&order=created_at.desc&limit=50`, { headers: sbHeaders });
       const campaigns = await r.json().catch(() => []);
       return json(req, { campaigns: Array.isArray(campaigns) ? campaigns : [] });
+    }
+
+    // Cancel a scheduled send (only while still pending) — back to a draft.
+    if (action === "unschedule") {
+      const id = String(body?.id || "");
+      if (!id) return json(req, { error: "missing_id" });
+      await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}&user_id=eq.${uid}&status=eq.scheduled`, {
+        method: "PATCH", headers: sbHeaders,
+        body: JSON.stringify({ status: "draft", scheduled_at: null, updated_at: new Date().toISOString() }),
+      });
+      return json(req, { ok: true });
     }
 
     // Engagement stats for one campaign (unique opens/clicks via the `track` fn +

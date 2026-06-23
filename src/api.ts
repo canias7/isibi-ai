@@ -203,17 +203,21 @@ export async function releaseSmsNumber(): Promise<void> {
 // ---- Email campaigns (sent through the user's mailbox, via the `campaigns` fn) ----
 // create -> then call sendCampaignBatch(id) repeatedly until { done:true }. App
 // outcomes (no_recipients / missing_content) come back as 200 { error }.
-export interface Campaign { id: string; name: string; subject: string; app: string; status: string; total: number; sent: number; failed: number; created_at: string }
+export interface Campaign { id: string; name: string; subject: string; app: string; status: string; total: number; sent: number; failed: number; scheduled_at?: string | null; created_at: string }
 export async function listCampaigns(): Promise<Campaign[]> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'list' } });
   if (error) return [];
   const c = (data as { campaigns?: Campaign[] } | null)?.campaigns;
   return Array.isArray(c) ? c : [];
 }
-export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[]; send_via?: 'mailbox' | 'ses'; from_email?: string; from_name?: string }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; error?: string }> {
+export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[]; send_via?: 'mailbox' | 'ses'; from_email?: string; from_name?: string; scheduled_at?: string }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string }> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'create', ...p } });
   if (error) throw new Error(error.message || 'Request failed');
-  return (data || {}) as { id?: string; queued?: number; skipped?: number; invalid?: number; error?: string };
+  return (data || {}) as { id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string };
+}
+// Cancel a still-pending scheduled campaign (reverts it to a draft).
+export async function unscheduleCampaign(id: string): Promise<void> {
+  await supabase.functions.invoke('campaigns', { body: { action: 'unschedule', id } });
 }
 export async function sendCampaignBatch(id: string): Promise<{ sent: number; failed: number; remaining: number; done: boolean; error?: string }> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'send', id } });
