@@ -3,6 +3,7 @@ import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck, IconContacts,
   IconChart, IconDoc, IconChat, IconPlus, IconArrowUp, IconX, IconCopy,
+  IconBolt, IconCalendar, IconGlobe,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -36,7 +37,7 @@ const COMMS: { id: CommsId; name: string; tagline: string; mail: boolean }[] = [
 ];
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'apps' | 'texts' | 'campaigns' | 'templates' | 'analytics' | 'calendar';
+type SendraTab = 'home' | 'apps' | 'texts' | 'campaigns' | 'templates' | 'analytics' | 'domains' | 'triggers' | 'schedule';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
   apps: { t: 'My apps', s: 'The apps Sendra runs' },
@@ -44,7 +45,9 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   campaigns: { t: 'Campaigns', s: 'Email & SMS to your lists' },
   templates: { t: 'Templates', s: 'Reusable messages' },
   analytics: { t: 'Analytics', s: 'Performance across your sends' },
-  calendar: { t: 'Calendar', s: 'Scheduled sends & reminders' },
+  domains: { t: 'Domains', s: 'Send from your own address' },
+  triggers: { t: 'Triggers', s: 'Automate sends on events' },
+  schedule: { t: 'Schedule', s: 'Scheduled sends & reminders' },
 };
 // Sendra home menu. 'apps' opens the constellation; the rest are P0 scaffolds.
 const HOME_TOOLS: { id: SendraTab | 'inbox'; name: string; desc: string; Icon: IconCmp }[] = [
@@ -52,6 +55,9 @@ const HOME_TOOLS: { id: SendraTab | 'inbox'; name: string; desc: string; Icon: I
   { id: 'texts', name: 'Text', desc: 'Send an SMS', Icon: IconChat },
   { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
   { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
+  { id: 'domains', name: 'Domains', desc: 'Send from your address', Icon: IconGlobe },
+  { id: 'triggers', name: 'Triggers', desc: 'Automate on events', Icon: IconBolt },
+  { id: 'schedule', name: 'Schedule', desc: 'Plan sends ahead', Icon: IconCalendar },
   { id: 'analytics', name: 'Analytics', desc: 'Opens & clicks', Icon: IconChart },
   { id: 'apps', name: 'My apps', desc: '', Icon: IconConnectors },
 ];
@@ -217,7 +223,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campList, setCampList] = useState<Campaign[]>([]);
   const [campBodyKind, setCampBodyKind] = useState<'text' | 'html'>('text'); // 'html' when a designed template is applied
   // Custom sending domains (Amazon SES) + the campaign "From" picker
-  const [campView, setCampView] = useState<'list' | 'domains' | 'suppressions'>('list');
+  const [campView, setCampView] = useState<'list' | 'suppressions'>('list');
   const [supList, setSupList] = useState<Suppression[]>([]);
   const [testTo, setTestTo] = useState('');
   const [testBusy, setTestBusy] = useState(false);
@@ -759,7 +765,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
 
   const inMailInbox = !!commsApp && commsApp !== 'telegram' && emailTab === 'inbox' && !reading;
   const inTgList = commsApp === 'telegram' && !tgChat;
-  const showRefresh = inMailInbox || inTgList;
   const refreshSpin = refreshing || (inTgList && tgListState === 'loading');
   const doRefresh = () => { tap(); if (inMailInbox) { if (combinedInbox) loadMerged(); else refreshInbox(); } else if (inTgList) loadTgChats(); };
   const goPage = (idx: number) => { if (refreshing) return; tap(); loadPage(idx); };
@@ -807,7 +812,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <h1 className="memg-title">{title}</h1>
           <p className="memg-sub">{subtitle}</p>
         </div>
-        {showRefresh ? (
+        {inMailInbox ? (
+          <button className="ag-corner" onClick={openCompose} aria-label="New email">
+            <IconCompose size={18} />
+          </button>
+        ) : inTgList ? (
           <button
             className={`ag-corner${refreshSpin ? ' spinning' : ''}`}
             onClick={doRefresh}
@@ -860,7 +869,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <div className="ag-stage">
             <div className="ag-grid">
               {HOME_TOOLS.map((t) => (
-                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } setSendraTab(t.id as SendraTab); } }}>
+                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); setSendraTab(t.id as SendraTab); } }}>
                   <span className="ag-act-ic"><t.Icon size={20} /></span>
                   <span className="ag-act-label">{t.name}</span>
                   <span className="ag-act-sub">{t.id === 'apps' ? (deckApps.length ? deckApps.map((c) => c.name).join(' · ') : 'Connect an app') : t.desc}</span>
@@ -976,71 +985,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     <p className="ag-foot">{campDomain ? `Sends from ${(campFromLocal.trim() || 'news')}@${campDomain} (your verified domain)` : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
                   </div>
                 )
-              ) : campView === 'domains' ? (
-                <div className="ag-compose">
-                  <div className="ag-dom-head">
-                    <button className="ag-back-link" onClick={() => { tap(); setCampView('list'); }}>‹ Campaigns</button>
-                    <span className="ag-dom-title">Sending domains</span>
-                  </div>
-                  <p className="ag-foot">Verify a domain you own to send campaigns from your own address (e.g. news@yourbrand.com). Add the records below at your DNS host, then tap Check — verification can take a few minutes to a few hours.</p>
-                  <div className="ag-dom-add">
-                    <input className="ag-field" placeholder="yourbrand.com" autoCapitalize="none" autoCorrect="off" value={domNew} onChange={(e) => { setDomNew(e.target.value); if (domErr) setDomErr(''); }} />
-                    <button className="ag-send-btn" disabled={domBusy || !domNew.trim()} onClick={addDomain}>{domBusy ? 'Adding…' : 'Add domain'}</button>
-                  </div>
-                  {domErr && <div className="ag-send-err">{domErr}</div>}
-                  {sesDomains.length === 0 ? (
-                    <div className="ag-empty" style={{ marginTop: 12 }}>No domains yet. Add one above to send from your own address.</div>
-                  ) : (
-                    <div className="ag-dom-list">
-                      {sesDomains.map((d) => {
-                        const open = domOpen === d.domain;
-                        const badge = d.status === 'verified' ? 'ok' : d.status === 'failed' ? 'bad' : 'wait';
-                        return (
-                          <div className={`ag-dom${open ? ' open' : ''}`} key={d.domain}>
-                            <button className="ag-dom-row" onClick={() => { tap(); setDomOpen(open ? null : d.domain); }}>
-                              <span className="ag-dom-ic">🌐</span>
-                              <span className="ag-dom-info">
-                                <span className="ag-dom-name">{d.domain}</span>
-                                <span className="ag-dom-sub">{d.status === 'verified' ? 'Sending enabled' : d.status === 'failed' ? 'Verification failed' : 'Awaiting DNS records'}</span>
-                              </span>
-                              <span className={`ag-badge is-${badge}`}><i className="ag-dot" />{d.status === 'verified' ? 'Verified' : d.status === 'failed' ? 'Failed' : 'Pending'}</span>
-                              <span className="ag-dom-chev">{open ? '▾' : '▸'}</span>
-                            </button>
-                            {open && (
-                              <div className="ag-dom-body">
-                                {d.status === 'verified'
-                                  ? <div className="ag-dom-ok">✓ Verified — pick this domain under “Send from” when creating a campaign.</div>
-                                  : <p className="ag-foot ag-dom-hint">Add these records at your DNS host, then tap Check. DNS can take a few minutes to a few hours to propagate.</p>}
-                                {d.status !== 'verified' && (
-                                  <div className="ag-dns">
-                                    {(d.records || []).map((r, i) => (
-                                      <div className="ag-dns-rec" key={i}>
-                                        <div className="ag-dns-top"><span className="ag-dns-type">{r.type}</span>{r.note && <span className="ag-dns-note">{r.note}</span>}</div>
-                                        <div className="ag-dns-field"><label>Name / Host</label><div className="ag-dns-val"><code>{r.name}</code><button className={copied === r.name ? 'ok' : ''} onClick={() => copyText(r.name)}>{copied === r.name ? 'Copied ✓' : 'Copy'}</button></div></div>
-                                        <div className="ag-dns-field"><label>Value</label><div className="ag-dns-val"><code>{r.value}</code><button className={copied === r.value ? 'ok' : ''} onClick={() => copyText(r.value)}>{copied === r.value ? 'Copied ✓' : 'Copy'}</button></div></div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                {d.status === 'verified' && (
-                                  <div className="ag-dom-test">
-                                    <input className="ag-field" placeholder="Send a test to you@example.com" autoCapitalize="none" autoCorrect="off" value={testTo} onChange={(e) => { setTestTo(e.target.value); if (testMsg) setTestMsg(''); }} />
-                                    <button className="ag-send-btn" disabled={testBusy || !testTo.trim()} onClick={() => sendTest(d.domain)}>{testBusy ? 'Sending…' : 'Send test'}</button>
-                                  </div>
-                                )}
-                                {d.status === 'verified' && testMsg && <div className={`ag-dom-testmsg${testMsg.startsWith('Sent') ? ' ok' : ''}`}>{testMsg}</div>}
-                                <div className="ag-dom-actions">
-                                  {d.status !== 'verified' && <button className="ag-send-btn" onClick={() => checkDomain(d.domain)}>Check verification</button>}
-                                  <button className="ag-send-btn ghost" onClick={() => removeDomain(d.domain)}>Remove</button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
               ) : campView === 'suppressions' ? (
                 <div className="ag-compose">
                   <div className="ag-dom-head">
@@ -1065,7 +1009,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               ) : (
                 <>
                   <button className="ag-send-btn" onClick={openCampNew}>+ New email campaign</button>
-                  <button className="ag-send-btn ghost ag-dom-link" onClick={() => { tap(); setCampView('domains'); loadDomains(); }}>Sending domains{sesDomains.some((d) => d.status === 'verified') ? ` · ${sesDomains.filter((d) => d.status === 'verified').length} verified` : sesDomains.length ? ' · setup' : ''}</button>
+                  <button className="ag-send-btn ghost ag-dom-link" onClick={() => { tap(); setSendraTab('domains'); loadDomains(); }}>Sending domains{sesDomains.some((d) => d.status === 'verified') ? ` · ${sesDomains.filter((d) => d.status === 'verified').length} verified` : sesDomains.length ? ' · setup' : ''}</button>
                   <button className="ag-send-btn ghost ag-dom-link" onClick={() => { tap(); setCampView('suppressions'); loadSuppressions(); }}>Suppressed contacts{supList.length ? ` · ${supList.length}` : ''}</button>
                   {campList.length === 0 ? (
                     <div className="ag-empty" style={{ marginTop: 12 }}>No campaigns yet. Write once and send to your whole list — straight from your mailbox.</div>
@@ -1273,8 +1217,71 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   <p className="ag-foot">Texts send from {smsNumber}. Standard SMS rates apply.</p>
                 </div>
               )
+            ) : sendraTab === 'domains' ? (
+              <div className="ag-compose">
+                <p className="ag-foot">Verify a domain you own to send campaigns from your own address (e.g. news@yourbrand.com). Add the records below at your DNS host, then tap Check — verification can take a few minutes to a few hours.</p>
+                <div className="ag-dom-add">
+                  <input className="ag-field" placeholder="yourbrand.com" autoCapitalize="none" autoCorrect="off" value={domNew} onChange={(e) => { setDomNew(e.target.value); if (domErr) setDomErr(''); }} />
+                  <button className="ag-send-btn" disabled={domBusy || !domNew.trim()} onClick={addDomain}>{domBusy ? 'Adding…' : 'Add domain'}</button>
+                </div>
+                {domErr && <div className="ag-send-err">{domErr}</div>}
+                {sesDomains.length === 0 ? (
+                  <div className="ag-empty" style={{ marginTop: 12 }}>No domains yet. Add one above to send from your own address.</div>
+                ) : (
+                  <div className="ag-dom-list">
+                    {sesDomains.map((d) => {
+                      const open = domOpen === d.domain;
+                      const badge = d.status === 'verified' ? 'ok' : d.status === 'failed' ? 'bad' : 'wait';
+                      return (
+                        <div className={`ag-dom${open ? ' open' : ''}`} key={d.domain}>
+                          <button className="ag-dom-row" onClick={() => { tap(); setDomOpen(open ? null : d.domain); }}>
+                            <span className="ag-dom-ic">🌐</span>
+                            <span className="ag-dom-info">
+                              <span className="ag-dom-name">{d.domain}</span>
+                              <span className="ag-dom-sub">{d.status === 'verified' ? 'Sending enabled' : d.status === 'failed' ? 'Verification failed' : 'Awaiting DNS records'}</span>
+                            </span>
+                            <span className={`ag-badge is-${badge}`}><i className="ag-dot" />{d.status === 'verified' ? 'Verified' : d.status === 'failed' ? 'Failed' : 'Pending'}</span>
+                            <span className="ag-dom-chev">{open ? '▾' : '▸'}</span>
+                          </button>
+                          {open && (
+                            <div className="ag-dom-body">
+                              {d.status === 'verified'
+                                ? <div className="ag-dom-ok">✓ Verified — pick this domain under “Send from” when creating a campaign.</div>
+                                : <p className="ag-foot ag-dom-hint">Add these records at your DNS host, then tap Check. DNS can take a few minutes to a few hours to propagate.</p>}
+                              {d.status !== 'verified' && (
+                                <div className="ag-dns">
+                                  {(d.records || []).map((r, i) => (
+                                    <div className="ag-dns-rec" key={i}>
+                                      <div className="ag-dns-top"><span className="ag-dns-type">{r.type}</span>{r.note && <span className="ag-dns-note">{r.note}</span>}</div>
+                                      <div className="ag-dns-field"><label>Name / Host</label><div className="ag-dns-val"><code>{r.name}</code><button className={copied === r.name ? 'ok' : ''} onClick={() => copyText(r.name)}>{copied === r.name ? 'Copied ✓' : 'Copy'}</button></div></div>
+                                      <div className="ag-dns-field"><label>Value</label><div className="ag-dns-val"><code>{r.value}</code><button className={copied === r.value ? 'ok' : ''} onClick={() => copyText(r.value)}>{copied === r.value ? 'Copied ✓' : 'Copy'}</button></div></div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {d.status === 'verified' && (
+                                <div className="ag-dom-test">
+                                  <input className="ag-field" placeholder="Send a test to you@example.com" autoCapitalize="none" autoCorrect="off" value={testTo} onChange={(e) => { setTestTo(e.target.value); if (testMsg) setTestMsg(''); }} />
+                                  <button className="ag-send-btn" disabled={testBusy || !testTo.trim()} onClick={() => sendTest(d.domain)}>{testBusy ? 'Sending…' : 'Send test'}</button>
+                                </div>
+                              )}
+                              {d.status === 'verified' && testMsg && <div className={`ag-dom-testmsg${testMsg.startsWith('Sent') ? ' ok' : ''}`}>{testMsg}</div>}
+                              <div className="ag-dom-actions">
+                                {d.status !== 'verified' && <button className="ag-send-btn" onClick={() => checkDomain(d.domain)}>Check verification</button>}
+                                <button className="ag-send-btn ghost" onClick={() => removeDomain(d.domain)}>Remove</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : sendraTab === 'triggers' ? (
+              <div className="ag-empty" style={{ marginTop: 12 }}>Triggers are coming soon — automatically send an email or text when something happens (a new subscriber, a tag, a date). You’ll build them here.</div>
             ) : (
-              <div className="ag-empty">Nothing scheduled. Schedule a campaign and it shows up here, alongside reminders.</div>
+              <div className="ag-empty" style={{ marginTop: 12 }}>Nothing scheduled yet. Schedule a campaign or reminder and it’ll show up here.</div>
             )}
           </div>
         )
