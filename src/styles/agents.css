@@ -265,6 +265,12 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-cform-del { color: #ff6b6b; }
 .ag-dns-copyall { margin-bottom: 10px; }
 .ag-dom-auto { margin: 10px 0 4px; }
+/* Cloudflare one-click token panel */
+.ag-cf { margin: 4px 0 10px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2, rgba(255,255,255,0.03)); display: flex; flex-direction: column; gap: 10px; }
+.ag-cf-steps { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-footnote); color: var(--text-dim); }
+.ag-cf-steps a { color: var(--accent, #6aa9ff); font-weight: 600; }
+.ag-cf-actions { display: flex; gap: 8px; }
+.ag-cf-actions .ag-send-btn { flex: 1; }
 .ag-from-fields { display: flex; flex-direction: column; gap: 8px; }
 .ag-from-addr { display: flex; align-items: center; gap: 8px; }
 .ag-from-addr .ag-field { flex: 1; }
