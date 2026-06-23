@@ -151,7 +151,10 @@ Deno.serve(async (req: Request) => {
     }
 
     // ---- Gmail — GMAIL_FETCH_EMAILS, page-token paging ----
-    const args: Record<string, unknown> = { max_results: max };
+    // verbose:false + include_payload:false -> Composio returns lightweight metadata
+    // (subject/sender/time/labels/snippet) instead of full message bodies. Full bodies
+    // for a whole page overflow the tool's response-size cap and 413 (empty inbox).
+    const args: Record<string, unknown> = { max_results: max, verbose: false, include_payload: false };
     if (pageToken) args.page_token = pageToken;
     const res = await fetch("https://backend.composio.dev/api/v3/tools/execute/GMAIL_FETCH_EMAILS", {
       method: "POST",
@@ -172,7 +175,7 @@ Deno.serve(async (req: Request) => {
       const from = mt ? mt[1].trim() : sender;
       const email = mt ? mt[2].trim() : "";
       const labels: string[] = (m.labelIds as string[]) ?? [];
-      const snippet = stripHtml(String(m.messageText ?? (m.preview as Record<string, unknown>)?.body ?? ""))
+      const snippet = stripHtml(String(m.messageText ?? m.snippet ?? (m.preview as Record<string, unknown>)?.body ?? ""))
         .split(" ").slice(0, 14).join(" ");
       return {
         from: from || email || "Unknown",
