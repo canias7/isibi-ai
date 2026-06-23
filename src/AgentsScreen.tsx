@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, cloudflareApply, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, campaignStats, type CampaignStats, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, cloudflareApply, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplate, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -202,7 +202,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campList, setCampList] = useState<Campaign[]>([]);
   const [campBodyKind, setCampBodyKind] = useState<'text' | 'html'>('text'); // 'html' when a designed template is applied
   // Custom sending domains (Amazon SES) + the campaign "From" picker
-  const [campView, setCampView] = useState<'list' | 'suppressions'>('list');
+  const [campView, setCampView] = useState<'list' | 'suppressions' | 'stats'>('list');
+  const [campStats, setCampStats] = useState<{ campaign: Campaign; stats: CampaignStats } | null>(null);
+  const [campStatsBusy, setCampStatsBusy] = useState(false);
   const [supList, setSupList] = useState<Suppression[]>([]);
   const [testTo, setTestTo] = useState('');
   const [testBusy, setTestBusy] = useState(false);
@@ -640,6 +642,16 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setCampSubject(''); setCampBody(''); setCampBodyKind('text'); setCampRecips(''); setCampProg({ sent: 0, total: 0, failed: 0 });
     setCampApp(connApps.includes('gmail') ? 'gmail' : 'outlook');
     setCampDomain(''); setCampFromName(''); setCampFromLocal('news');
+  };
+  const openCampStats = async (c: Campaign) => {
+    tap(); setCampView('stats'); setCampStatsBusy(true);
+    setCampStats({ campaign: c, stats: { total: c.total, sent: c.sent, failed: c.failed, delivered: 0, opened: 0, clicked: 0, bounced: 0, complained: 0 } });
+    try {
+      const r = await campaignStats(c.id);
+      if (!mountedRef.current) return;
+      if (r.campaign && r.stats) setCampStats({ campaign: r.campaign, stats: r.stats });
+    } catch { /* keep the optimistic values */ }
+    finally { if (mountedRef.current) setCampStatsBusy(false); }
   };
   const applyTemplate = (t: Template) => { tap(); setCampSubject(t.subject); setCampBody(t.body); setCampBodyKind(t.kind === 'html' ? 'html' : 'text'); if (campState === 'err') setCampState('idle'); };
   // ---- Saved senders ----
@@ -1161,6 +1173,43 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     </div>
                   )}
                 </div>
+              ) : campView === 'stats' && campStats ? (
+                <div className="ag-compose">
+                  <div className="ag-dom-head">
+                    <button className="ag-back-link" onClick={() => { tap(); setCampView('list'); }}>‹ Campaigns</button>
+                    <span className="ag-dom-title">Campaign stats</span>
+                  </div>
+                  <div className="ag-camp-stat-head">
+                    <div className="ag-camp-name">{campStats.campaign.name || campStats.campaign.subject || 'Campaign'}</div>
+                    <div className="ag-camp-sub">{campStats.campaign.subject}</div>
+                  </div>
+                  {(() => {
+                    const s = campStats.stats;
+                    const base = s.sent || 1;
+                    const pct = (n: number) => `${Math.round((n / base) * 100)}%`;
+                    const cards = [
+                      { k: 'Sent', v: s.sent, sub: `of ${s.total}` },
+                      { k: 'Opened', v: s.opened, sub: pct(s.opened) },
+                      { k: 'Clicked', v: s.clicked, sub: pct(s.clicked) },
+                      { k: 'Delivered', v: s.delivered, sub: s.delivered ? pct(s.delivered) : '—' },
+                      { k: 'Bounced', v: s.bounced, sub: s.bounced ? pct(s.bounced) : '—' },
+                      { k: 'Complaints', v: s.complained, sub: s.complained ? pct(s.complained) : '—' },
+                    ];
+                    return (
+                      <div className="ag-stat-grid">
+                        {cards.map((c) => (
+                          <div className="ag-stat-card" key={c.k}>
+                            <div className="ag-stat-v">{c.v}</div>
+                            <div className="ag-stat-k">{c.k}</div>
+                            <div className="ag-stat-sub">{c.sub}</div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                  <button className="ag-send-btn ghost" disabled={campStatsBusy} onClick={() => openCampStats(campStats.campaign)}>{campStatsBusy ? 'Refreshing…' : 'Refresh'}</button>
+                  <p className="ag-foot">Opens are approximate — some mail apps (Apple Mail, Gmail's image proxy) pre-load or block the tracking pixel, so treat opens as a trend. Clicks are exact. Delivered/bounced fill in for sends from your verified domain.</p>
+                </div>
               ) : (
                 <>
                   <button className="ag-send-btn" onClick={openCampNew}>+ New email campaign</button>
@@ -1171,7 +1220,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   ) : (
                     <div className="ag-camp-list">
                       {campList.map((c) => (
-                        <div className="ag-camp" key={c.id}>
+                        <button className="ag-camp" key={c.id} onClick={() => openCampStats(c)}>
                           <div className="ag-camp-main">
                             <div className="ag-camp-name">{c.name || c.subject || 'Campaign'}</div>
                             <div className="ag-camp-sub">{c.subject}</div>
@@ -1180,7 +1229,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                             <span className={`ag-camp-pill is-${c.status}`}>{c.status}</span>
                             <span className="ag-camp-count">{c.sent}/{c.total}</span>
                           </div>
-                        </div>
+                          <span className="ag-camp-chev">›</span>
+                        </button>
                       ))}
                     </div>
                   )}

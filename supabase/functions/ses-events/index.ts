@@ -130,6 +130,14 @@ async function handleEvent(p: any) {
     }
   } else if (kind === "Complaint") {
     for (const r of (p?.complaint?.complainedRecipients || [])) if (r?.emailAddress) await suppress(uid, r.emailAddress, "complaint", campaignId);
+  } else if (kind === "Delivery" && campaignId) {
+    // Stamp delivery on the campaign recipient — powers the "delivered" stat.
+    for (const to of (p?.mail?.destination || [])) {
+      const e = String(to || "").trim().toLowerCase();
+      if (e) await fetch(`${SB_URL}/rest/v1/campaign_recipients?user_id=eq.${uid}&campaign_id=eq.${campaignId}&email=eq.${encodeURIComponent(e)}`, {
+        method: "PATCH", headers: sbHeaders, body: JSON.stringify({ delivered_at: new Date().toISOString() }),
+      });
+    }
   }
 
   // 2. Fan-out to the user's registered webhook endpoints.
