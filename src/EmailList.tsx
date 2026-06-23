@@ -191,14 +191,26 @@ function ContactAvatar({ label, photo }: { label: string; photo?: string }) {
 
 // Contacts are a Gmail feature, so the card uses the same frosted-white glass as
 // the Gmail email cards (gf-gmail).
-export function ContactsList({ items }: { items: ContactItem[] }) {
+export function ContactsList(
+  { items, selectable, selected, onToggle }:
+  { items: ContactItem[]; selectable?: boolean; selected?: Set<string>; onToggle?: (email: string) => void },
+) {
   return (
     <div className="gf-contacts gf-gmail">
       {items.map((c, i) => {
         const label = c.name || c.email || c.phone || 'Unknown';
         const sub = c.email || c.phone || '';
+        const email = c.email || '';
+        const pickable = !!selectable && !!email;       // only contacts with an email can be selected
+        const on = pickable && !!selected?.has(email);
         return (
-          <div className="gf-contact" key={i}>
+          <div
+            className={`gf-contact${pickable ? ' gf-pickable' : ''}${on ? ' gf-sel' : ''}`}
+            key={i}
+            role={pickable ? 'button' : undefined}
+            onClick={pickable ? () => onToggle?.(email) : undefined}
+          >
+            {selectable && <span className={`gf-check${on ? ' on' : ''}`} aria-hidden="true">{on ? '✓' : ''}</span>}
             <ContactAvatar label={label} photo={c.photo} />
             <div className="gf-main">
               <div className="gf-contact-name">{label}</div>
