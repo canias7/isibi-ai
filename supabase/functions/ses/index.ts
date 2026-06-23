@@ -114,17 +114,21 @@ function dkimTokens(records: Rec[]): string[] {
 async function domainConnectUrl(domain: string, records: Rec[]): Promise<{ supported: boolean; applyUrl?: string; provider?: string; reason?: string }> {
   const tokens = dkimTokens(records);
   if (tokens.length < 3) return { supported: false };
-  const host = await dohTxt(`_domainconnect.${domain}`);
-  if (!host || !/^[a-z0-9.-]+$/i.test(host)) return { supported: false };
+  // The _domainconnect TXT is the API *base* (host + optional path), e.g.
+  // "api.cloudflare.com/client/v4/dns/domainconnect" — not just a hostname.
+  const base = (await dohTxt(`_domainconnect.${domain}`)).replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  if (!base || /\s/.test(base)) return { supported: false };
+  let settingsUrl: string;
+  try { settingsUrl = new URL(`https://${base}/v2/${encodeURIComponent(domain)}/settings`).toString(); } catch { return { supported: false }; }
   let s: any;
   try {
-    const set = await fetch(`https://${host}/v2/${encodeURIComponent(domain)}/settings`, { signal: AbortSignal.timeout(8000) });
+    const set = await fetch(settingsUrl, { signal: AbortSignal.timeout(8000) });
     if (!set.ok) return { supported: false };
     s = await set.json().catch(() => ({}));
   } catch { return { supported: false }; }
   const urlSyncUX = String(s?.urlSyncUX || "");
   const urlAPI = String(s?.urlAPI || "");
-  const provider = String(s?.providerName || "your DNS host");
+  const provider = String(s?.providerDisplayName || s?.providerName || "your DNS host");
   if (!urlSyncUX) return { supported: false };
   // Only offer one-click if our template is actually published at this provider.
   if (urlAPI) {
