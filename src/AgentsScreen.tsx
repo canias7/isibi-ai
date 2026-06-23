@@ -213,6 +213,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [domErr, setDomErr] = useState('');
   const [domOpen, setDomOpen] = useState<string | null>(null);
   const [copied, setCopied] = useState('');   // last-copied DNS value, for the "Copied" flash
+  const [copiedAll, setCopiedAll] = useState(''); // domain whose full record set was just copied
   // Outbound webhooks
   const [webhooks, setWebhooks] = useState<WebhookEndpoint[]>([]);
   const [whNew, setWhNew] = useState('');
@@ -413,6 +414,22 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (sendraTab === 'texts') smsStatus().then((s) => { if (mountedRef.current) { setSmsReady(s.ready); setSmsNumber(s.number); } });
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
   }, [agent, commsApp, sendraTab, campNew]);
+
+  // Auto-recheck a pending domain so the user doesn't keep tapping "Check": while the
+  // Domains tab is open and a domain is still pending, re-verify every 20s (capped).
+  const domPollRef = useRef(0);
+  useEffect(() => {
+    if (sendraTab !== 'domains') { domPollRef.current = 0; return; }
+    const pending = sesDomains.filter((d) => d.status !== 'verified' && d.status !== 'failed');
+    if (!pending.length || domPollRef.current >= 15) return;
+    const t = setTimeout(async () => {
+      domPollRef.current += 1;
+      await Promise.all(pending.map((d) => checkSesDomain(d.domain).catch(() => {})));
+      const fresh = await listSesDomains().catch(() => null);
+      if (mountedRef.current && fresh) setSesDomains(fresh);
+    }, 20000);
+    return () => clearTimeout(t);
+  }, [sendraTab, sesDomains]);
 
   // Keep the AI builder pinned to its newest message / rendered email.
   useEffect(() => { const el = chatThreadRef.current; if (el) el.scrollTop = el.scrollHeight; }, [chatMsgs, tplBody, chatBusy]);
@@ -674,6 +691,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const checkDomain = async (domain: string) => {
     tap();
     try { await checkSesDomain(domain); await loadDomains(); } catch { /* ignore */ }
+  };
+  const copyAllRecords = (domain: string, records: SesDomain['records']) => {
+    const text = records.map((r) => `${r.type}\t${r.name}\t${r.value}`).join('\n');
+    try { navigator.clipboard?.writeText(text); tap(); setCopiedAll(domain); setTimeout(() => { if (mountedRef.current) setCopiedAll(''); }, 1500); } catch { /* ignore */ }
   };
   const removeDomain = async (domain: string) => {
     tap();
@@ -1282,9 +1303,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                             <div className="ag-dom-body">
                               {d.status === 'verified'
                                 ? <div className="ag-dom-ok">✓ Verified — pick this domain under “Send from” when creating a campaign.</div>
-                                : <p className="ag-foot ag-dom-hint">Add these records at your DNS host, then tap Check. DNS can take a few minutes to a few hours to propagate.</p>}
+                                : <p className="ag-foot ag-dom-hint">Add these records at your DNS host — we’ll keep checking automatically, so you don’t have to tap Check. DNS can take a few minutes to a few hours to propagate.</p>}
                               {d.status !== 'verified' && (
                                 <div className="ag-dns">
+                                  {(d.records || []).length > 0 && (
+                                    <button className={`ag-send-btn ghost ag-dns-copyall${copiedAll === d.domain ? ' ok' : ''}`} onClick={() => copyAllRecords(d.domain, d.records || [])}>
+                                      {copiedAll === d.domain ? 'All records copied ✓' : 'Copy all records'}
+                                    </button>
+                                  )}
                                   {(d.records || []).map((r, i) => (
                                     <div className="ag-dns-rec" key={i}>
                                       <div className="ag-dns-top"><span className="ag-dns-type">{r.type}</span>{r.note && <span className="ag-dns-note">{r.note}</span>}</div>
@@ -1302,7 +1328,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                               )}
                               {d.status === 'verified' && testMsg && <div className={`ag-dom-testmsg${testMsg.startsWith('Sent') ? ' ok' : ''}`}>{testMsg}</div>}
                               <div className="ag-dom-actions">
-                                {d.status !== 'verified' && <button className="ag-send-btn" onClick={() => checkDomain(d.domain)}>Check verification</button>}
+                                {d.status !== 'verified' && <button className="ag-send-btn" onClick={() => checkDomain(d.domain)}>Check now</button>}
                                 <button className="ag-send-btn ghost" onClick={() => removeDomain(d.domain)}>Remove</button>
                               </div>
                             </div>
