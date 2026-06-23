@@ -257,6 +257,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-cform-actions { display: flex; gap: 8px; margin-top: 4px; }
 .ag-cform-actions .ag-send-btn { flex: 1; }
 .ag-cform-del { color: #ff6b6b; }
+.ag-dns-copyall { margin-bottom: 10px; }
 .ag-from-fields { display: flex; flex-direction: column; gap: 8px; }
 .ag-from-addr { display: flex; align-items: center; gap: 8px; }
 .ag-from-addr .ag-field { flex: 1; }
