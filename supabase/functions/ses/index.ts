@@ -312,6 +312,34 @@ Deno.serve(async (req: Request) => {
       return json(req, result);
     }
 
+    // ---- Saved senders (reusable From identities at a verified domain) ----
+    if (action === "senders") {
+      const r = await fetch(`${SB_URL}/rest/v1/senders?user_id=eq.${uid}&select=id,from_name,from_email&order=created_at.desc`, { headers: sbHeaders });
+      const senders = await r.json().catch(() => []);
+      return json(req, { senders: Array.isArray(senders) ? senders : [] });
+    }
+    if (action === "sender_add") {
+      const name = String(body?.name || "").slice(0, 120);
+      const email = String(body?.email || "").trim().toLowerCase();
+      if (!EMAIL_RE.test(email)) return json(req, { error: "bad_email" });
+      const dom = email.split("@")[1];
+      const dRes = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${dom}&status=eq.verified&select=domain`, { headers: sbHeaders });
+      if (!((await dRes.json().catch(() => [])) as unknown[]).length) return json(req, { error: "domain_not_verified" });
+      const r = await fetch(`${SB_URL}/rest/v1/senders?on_conflict=user_id,from_email`, {
+        method: "POST",
+        headers: { ...sbHeaders, Prefer: "resolution=merge-duplicates,return=representation" },
+        body: JSON.stringify({ user_id: uid, from_name: name, from_email: email }),
+      });
+      const row = (await r.json().catch(() => []))?.[0];
+      return row?.id ? json(req, { sender: row }) : json(req, { error: "add_failed" }, 502);
+    }
+    if (action === "sender_remove") {
+      const id = String(body?.id || "");
+      if (!id) return json(req, { error: "missing_id" });
+      await fetch(`${SB_URL}/rest/v1/senders?id=eq.${id}&user_id=eq.${uid}`, { method: "DELETE", headers: sbHeaders });
+      return json(req, { ok: true });
+    }
+
     return json(req, { error: "unknown_action" }, 400);
   } catch (e) {
     console.error("ses error:", action, String((e as Error)?.message || e));

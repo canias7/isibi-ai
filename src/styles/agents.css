@@ -229,6 +229,12 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-from { display: flex; align-items: center; gap: 10px; }
 .ag-from-lbl { color: var(--text-dim); font-size: var(--fs-footnote); font-weight: 600; flex-shrink: 0; }
 .ag-from-sel { flex: 1; -webkit-appearance: none; appearance: none; }
+/* Campaigns: saved senders + save button */
+.ag-sender-chip { display: inline-flex; align-items: center; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: 999px; overflow: hidden; max-width: 230px; }
+.ag-sender-pick { background: none; border: none; color: var(--text); font: inherit; font-size: var(--fs-caption); font-weight: 600; padding: 5px 4px 5px 11px; cursor: pointer; max-width: 185px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-sender-x { background: none; border: none; color: var(--text-dim); font-size: 12px; padding: 5px 9px; cursor: pointer; }
+.ag-from-save { flex-shrink: 0; padding: 0 14px; border-radius: 10px; border: 1px solid var(--glass-edge); background: var(--glass); color: var(--text); font: inherit; font-size: var(--fs-footnote); font-weight: 600; cursor: pointer; }
+.ag-from-save:disabled { opacity: .5; cursor: default; }
 /* Compose: To row + contacts picker */
 .ag-to-row { display: flex; align-items: center; gap: 8px; }
 .ag-to-row .ag-field { flex: 1; }

@@ -270,6 +270,23 @@ export async function domainConnectUrl(domain: string): Promise<{ supported?: bo
   return (data || {}) as { supported?: boolean; applyUrl?: string; provider?: string; reason?: string };
 }
 
+// Saved senders — reusable "From" identities (name + address@verified-domain).
+export interface Sender { id: string; from_name: string; from_email: string }
+export async function listSenders(): Promise<Sender[]> {
+  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'senders' } });
+  if (error) return [];
+  const s = (data as { senders?: Sender[] } | null)?.senders;
+  return Array.isArray(s) ? s : [];
+}
+export async function addSender(name: string, email: string): Promise<{ sender?: Sender; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'sender_add', name, email } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { sender?: Sender; error?: string };
+}
+export async function removeSender(id: string): Promise<void> {
+  await supabase.functions.invoke('ses', { body: { action: 'sender_remove', id } });
+}
+
 // ---- Outbound webhooks (via the `webhooks` fn) ----
 // Register an HTTPS endpoint; Sendra POSTs signed email events (delivered, bounced,
 // complained, ...) to it in real time. Signature: HMAC-SHA256(secret, `${ts}.${body}`).
