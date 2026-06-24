@@ -321,7 +321,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     else if (commsApp) { setCommsApp(null); setInboxHome(false); }
     else if (tplEdit && chatView === 'history') setChatView('preview');
     else if (tplEdit && chatView === 'preview') setChatView('chat');
-    else if (tplEdit) setTplEdit(null);
+    else if (tplEdit) { if (tplBody.trim() && !tplSaving) saveTpl(); else { clearDraft(); setTplEdit(null); } } // leaving the builder saves a built email
+
     else if (sendraTab !== 'home') setSendraTab('home');
     else if (agent) setAgent(null);
     else onClose();
@@ -986,9 +987,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const saveTpl = async () => {
     if (tplSaving) return;
     const body = tplBody.trim();
-    const subject = tplSubject.trim();
+    if (!body) return; // nothing built yet
+    const subject = tplSubject.trim() || tplName.trim() || 'Untitled email'; // never block saving on a missing subject
     const name = tplName.trim() || subject;
-    if (!subject || !body) return;
     tap(); setTplSaving(true); setChatErr('');
     try {
       await saveTemplate({ id: tplEdit?.id, name, subject, body, kind: 'html', chat: chatMsgs });
@@ -1318,7 +1319,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       {tplVersions.length > 0
                         ? <button className="ag-prev-hist" onClick={() => { tap(); setChatView('history'); }} aria-label="Version history"><IconClock size={19} /></button>
                         : <span className="ag-prev-hist-spacer" aria-hidden="true" />}
-                      <button className="ag-prev-save" disabled={tplSaving || !tplBody.trim() || !tplSubject.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save'}</button>
+                      <button className="ag-prev-save" disabled={tplSaving || !tplBody.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save'}</button>
                     </div>
                     <div className="ag-mail">
                       <textarea className="ag-mail-subject" placeholder="Email subject" rows={1} value={tplSubject}
