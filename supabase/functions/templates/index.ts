@@ -68,9 +68,10 @@ async function callClaude(system: string, messages: { role: string; content: str
       continue; // transient network blip — back off + retry
     }
     if (r.ok) {
-      const data = await r.json().catch(() => null) as { content?: { type: string; text?: string }[] } | null;
+      const data = await r.json().catch(() => null) as { content?: { type: string; text?: string }[]; stop_reason?: string } | null;
       const text = (data?.content ?? []).filter((x) => x.type === "text").map((x) => x.text ?? "").join("").trim();
-      console.log("anthropic_ok", tag, Date.now() - t0, "chars", text.length);
+      console.log("anthropic_ok", tag, Date.now() - t0, "chars", text.length, "stop", data?.stop_reason);
+      if (data?.stop_reason === "max_tokens") return null; // truncated mid-email -> fail clean instead of shipping half an email
       return text;
     }
     let b = ""; try { b = (await r.text()).slice(0, 400); } catch { /* ignore */ }
@@ -80,11 +81,13 @@ async function callClaude(system: string, messages: { role: string; content: str
   }
   return null;
 }
-function parseJson(text: string | null): Record<string, unknown> | null {
-  if (!text) return null;
-  const a = text.indexOf("{"), z = text.lastIndexOf("}");
-  if (a < 0 || z <= a) return null;
-  try { return JSON.parse(text.slice(a, z + 1)) as Record<string, unknown>; } catch { return null; }
+// We ask the model for a delimited ===SECTION=== format instead of JSON, so the HTML
+// body (full of quotes and newlines) never has to survive JSON string-escaping - the
+// single biggest source of "generate failed". Pull one section's text out, order-robust.
+function block(text: string | null, name: string): string {
+  if (!text) return "";
+  const m = text.match(new RegExp(`===${name}===\\s*\\n?([\\s\\S]*?)(?=\\n===[A-Z]+===|$)`));
+  return m ? m[1].trim() : "";
 }
 
 // mode 'text' -> plain text with {{name}}; mode 'design' -> a rich HTML newsletter.
@@ -301,22 +304,22 @@ async function generate(prompt: string, mode: string, images: string[]): Promise
     ? ("You are an expert email designer and copywriter. Produce ONE marketing newsletter email as clean, email-client-safe HTML. " +
       "Structure top to bottom: a header with the logo (or the business name as a wordmark if no logo); a full-width hero image; a bold headline; one or two short intro paragraphs; then one or more feature/product sections, each with an image, a short title and a line of copy (add a small rounded discount badge like '20% off' ONLY if the description mentions a deal); a single prominent call-to-action button (rounded, brand-color background, white text); and a footer with the business name and address. " +
       "Rules: inline styles ONLY (no style tag, no script tag, no external CSS, no markdown). One centered container, max-width 600px, width 100%, light background, mobile-friendly. Use the brand color for the button, links and accents (fall back to a tasteful blue if none). Every img must be display:block; width:100%; height:auto. " +
-      "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). End with the sign-off. Do NOT include an unsubscribe line (the system appends one)." +
+      "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). Use NO other merge token - only the literal {{name}}; never {{first_name}}, {{company}}, {{email}} or similar (write any other value as real text). End with the sign-off. Do NOT include an unsubscribe line (the system appends one)." +
       imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + SOCIAL_RULE +
-      " Respond with ONLY a JSON object with two string keys: subject (short and compelling) and body (the full HTML).")
+      " Respond in EXACTLY this delimited format and nothing else - no JSON, no code fences, no preamble. Put the subject after the SUBJECT line and the full HTML after the BODY line:\n===SUBJECT===\n<the subject>\n===BODY===\n<the full email HTML>")
     : ("You are an expert email copywriter for a small business owner. From the user's short description, write ONE email they can send to their contacts. " +
       "Voice: warm, clear, human; concise and scannable; no corporate fluff, no clickbait. " +
       "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). " +
       "Plain text only - no HTML, no markdown, no images, no placeholder brackets other than {{name}}. " +
       "Keep it under ~180 words with real line breaks between short paragraphs, and end with a simple sign-off. " +
       "Do NOT add an unsubscribe line (the system appends one)." +
-      " Respond with ONLY a JSON object with two string keys, subject and body.");
-  const max = mode === "design" ? 12000 : 1500;
+      " Respond in EXACTLY this delimited format and nothing else - no JSON, no code fences:\n===SUBJECT===\n<the subject>\n===BODY===\n<the email text>");
+  const max = mode === "design" ? 16000 : 1500;
   const msgs = [{ role: "user", content: prompt.slice(0, 2000) }];
-  let raw = await callClaude(system, msgs, max, undefined, 65000);
-  if (!raw) raw = await callClaude(system, msgs, max, undefined, 40000); // one retry on a transient failure
-  const o = parseJson(raw);
-  if (o && o.subject && o.body) return { subject: String(o.subject).slice(0, 200), body: String(o.body).slice(0, 50000) };
+  let raw = await callClaude(system, msgs, max, undefined, 120000);
+  if (!raw) raw = await callClaude(system, msgs, max, undefined, 120000); // one retry on a transient failure (same budget, not shorter)
+  const subject = block(raw, "SUBJECT"), body = block(raw, "BODY");
+  if (subject && body) return { subject: subject.slice(0, 200), body: body.slice(0, 50000) };
   return null;
 }
 
@@ -348,19 +351,17 @@ async function chatDesign(messages: { role: string; content: string }[], current
   const system =
     "You are Sendra, an expert email designer and copywriter. You build and edit ONE marketing newsletter email as clean, email-client-safe HTML (inline styles only, no style or script tags, no markdown; one centered container max-width 600px, width 100%, mobile-friendly; every img display:block; width:100%; height:auto). " +
     "When creating fresh: logo header (or business-name wordmark), a hero image, bold headline, short intro, optional feature/product sections with images and a small discount badge only if a deal is mentioned, ONE call-to-action button in the brand color, and a footer with the business name and address. " +
-    "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one)." +
+    "Personalize the greeting with the literal token {{name}}. Use NO other merge token - only the literal {{name}}; never {{first_name}}, {{company}}, {{email}} or similar (write any other value as real text). Do NOT add an unsubscribe line (the system appends one)." +
     imgBlock + siteBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + SOCIAL_RULE + curBlock +
     " When an email already exists: FIRST look at the user's LATEST message on its own. If it is ONLY a greeting, thanks, or acknowledgement with no design request - e.g. 'hi', 'hey', 'hello', 'yo', 'sup', 'thanks', 'ty', 'ok', 'okay', 'cool', 'nice', 'great', 'lol' - then DO NOT change the email at all: reply with one short friendly line and OMIT subject and body entirely (do not re-apply earlier requests). Same if they only ask a question (e.g. 'what subject works best?') - answer briefly with no body. OTHERWISE default to editing: treat the message as a change and return the full updated subject + body. This includes 'try again', 'redo', 'again', 'regenerate', 'another version', 'make it different', or any tweak - for 'try again'/'redo'/'another version', produce a genuinely fresh take (vary the copy and layout, keep the same brand/intent)." +
-    " Respond with ONLY a JSON object: always include a short `reply`; include `subject` and `body` (the full updated HTML) whenever you create or change the email (which is almost always).";
+    " Respond in EXACTLY this delimited format and nothing else - no JSON, no code fences. ALWAYS include the REPLY section with one short friendly line. Include the SUBJECT and BODY sections whenever you create or change the email (which is almost always); omit BOTH (reply only) for a pure greeting/thanks/question:\n===REPLY===\n<one short line>\n===SUBJECT===\n<the subject>\n===BODY===\n<the full email HTML>";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
   if (!conv.length || conv[0].role !== "user") return null;
-  let raw = await callClaude(system, conv, 12000, undefined, 65000);
-  if (!raw) raw = await callClaude(system, conv, 12000, undefined, 40000); // one retry on a transient failure
-  const o = parseJson(raw);
-  if (!o) return null;
-  const reply = String(o.reply || "").slice(0, 600);
-  const body = o.body ? String(o.body).slice(0, 50000) : "";
-  const subject = o.subject ? String(o.subject).slice(0, 200) : "";
+  let raw = await callClaude(system, conv, 16000, undefined, 120000);
+  if (!raw) raw = await callClaude(system, conv, 16000, undefined, 120000); // one retry on a transient failure (same budget, not shorter)
+  const reply = block(raw, "REPLY").slice(0, 600);
+  const body = block(raw, "BODY").slice(0, 50000);
+  const subject = block(raw, "SUBJECT").slice(0, 200);
   if (!reply && !body) return null;
   return { subject, body, reply: reply || "Done." };
 }
