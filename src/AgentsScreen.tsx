@@ -303,13 +303,19 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     try {
       const d = JSON.parse(localStorage.getItem(TPL_DRAFT_KEY) || 'null');
       if (d && (d.body || (Array.isArray(d.chat) && d.chat.length))) {
+        builderGenRef.current++; // a fresh builder session, like every other entry point
         setTplEdit({ id: d.id || undefined });
         setTplName(d.name || ''); setTplSubject(d.subject || ''); setTplBody(d.body || '');
         setChatMsgs(Array.isArray(d.chat) ? d.chat : []); setChatView(d.view === 'preview' ? 'preview' : 'chat');
         setTplVersions(Array.isArray(d.versions) ? d.versions : []);
         setPendingImg(typeof d.pending === 'string' ? d.pending : null);
+        // A generation may still have been running when the app closed — resume it so its
+        // result isn't orphaned and the user can't fire a duplicate over the top of it.
+        const pj = loadJob();
+        if (pj && pj.editId === (d.id || 'new')) resumeJob(pj, Array.isArray(d.chat) ? d.chat.length : 0);
       }
     } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Autosave the active builder session on every change.
   useEffect(() => {
@@ -1111,6 +1117,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (tplSaving) return;
     const body = tplBody.trim();
     if (!body) return; // nothing built yet
+    builderGenRef.current++; // closing this session — drop any in-flight job so it can't re-apply or re-persist a duplicate
     const subject = tplSubject.trim() || tplName.trim() || 'Untitled email'; // never block saving on a missing subject
     const name = tplName.trim() || subject;
     tap(); setTplSaving(true); setChatErr('');
