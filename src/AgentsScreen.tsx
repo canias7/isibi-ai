@@ -924,6 +924,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (l.clicked_at) return { label: 'Clicked', cls: 'sent' };
     if (l.opened_at) return { label: 'Opened', cls: 'sent' };
     if (l.delivered_at) return { label: 'Delivered', cls: 'sent' };
+    if (l.error) return { label: 'Delayed', cls: 'sending' }; // delivery_delayed note, not yet delivered/bounced
     return { label: 'Sent', cls: 'sending' };
   };
   const removeSup = async (email: string) => {
@@ -1423,7 +1424,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     );
                   })()}
                   <button className="ag-send-btn ghost" disabled={campStatsBusy} onClick={() => openCampStats(campStats.campaign)}>{campStatsBusy ? 'Refreshing…' : 'Refresh'}</button>
-                  <p className="ag-foot">Opens are approximate — some mail apps (Apple Mail, Gmail's image proxy) pre-load or block the tracking pixel, so treat opens as a trend. Clicks are exact. Delivered/bounced fill in for sends from your verified domain.</p>
+                  <p className="ag-foot">Opens are approximate — some mail apps (Apple Mail, Gmail's image proxy) pre-load or block the tracking pixel, so treat opens as a trend. Clicks are exact. Delivered/bounced fill in for sends through Sendra’s built-in email or a verified domain.</p>
                 </div>
               ) : (
                 <>
@@ -1766,6 +1767,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                           <div className="ag-camp-main">
                             <div className="ag-camp-name">{l.email}</div>
                             <div className="ag-camp-sub">{l.campaign?.name || l.campaign?.subject || 'Campaign'}{when ? ` · ${new Date(when).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}` : ''}</div>
+                            {l.error && <div className="ag-camp-sub ag-log-reason">{l.error}</div>}
                           </div>
                           <span className={`ag-camp-pill is-${st.cls}`}>{st.label}</span>
                         </div>
@@ -1773,7 +1775,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     })}
                   </div>
                 )}
-                <p className="ag-foot">Every email Sendra sent and what happened to it. Opens are approximate; clicks are exact. Delivered/bounced fill in for sends from your verified domain.</p>
+                <p className="ag-foot">Every email Sendra sent and what happened to it. Opens are approximate; clicks are exact. Delivered/bounced fill in for sends through Sendra’s built-in email or a verified domain.</p>
               </div>
             ) : sendraTab === 'deliver' ? (
               <div className="ag-compose">

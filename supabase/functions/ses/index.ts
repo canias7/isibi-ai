@@ -424,9 +424,12 @@ Deno.serve(async (req: Request) => {
         return { domain: d.domain, status: d.status, dkim, spf, dmarc, score, grade, tips };
       }));
 
+      // delivered/opened/clicked live in timestamps, not status (status stays "sent"),
+      // so count delivered by delivered_at — works for SES and Resend (and is what the
+      // per-campaign stats already do). Counting by status here always read ~0 before.
       const [accepted, delivered, bounced, complained] = await Promise.all([
-        countRecipients(uid, "&status=in.(sent,delivered,opened,clicked,bounced,complained)"),
-        countRecipients(uid, "&status=in.(delivered,opened,clicked)"),
+        countRecipients(uid, "&status=in.(sent,bounced,complained)"),
+        countRecipients(uid, "&delivered_at=not.is.null"),
         countRecipients(uid, "&status=eq.bounced"),
         countRecipients(uid, "&status=eq.complained"),
       ]);
