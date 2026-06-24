@@ -228,6 +228,42 @@ function normalizeLinks(html: string): string {
     return `<a${a}>`;
   });
 }
+// Pull real brand assets from a website the user pasted — name, tagline, brand color,
+// logo and actual photos — so the email uses their real images instead of stock.
+async function scrapeSite(url: string): Promise<{ name: string; description: string; color: string; logo: string; images: string[] } | null> {
+  let u = url.trim();
+  if (!/^https?:\/\//i.test(u)) u = "https://" + u;
+  let base: URL;
+  try { base = new URL(u); } catch { return null; }
+  let html = "";
+  try {
+    const r = await fetch(base.toString(), { headers: { "user-agent": BROWSER_UA, accept: "text/html,application/xhtml+xml,*/*" }, redirect: "follow", signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return null;
+    if (!/text\/html/i.test(r.headers.get("content-type") || "")) return null;
+    html = (await r.text()).slice(0, 800000);
+  } catch { return null; }
+  const meta = (key: string): string => {
+    const a = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${key}["'][^>]*content=["']([^"']+)["']`, "i"));
+    const b = html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]*(?:property|name)=["']${key}["']`, "i"));
+    return (a?.[1] || b?.[1] || "").trim();
+  };
+  const abs = (s: string): string => { try { return new URL(s, base).toString(); } catch { return ""; } };
+  const dec = (s: string): string => s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;|&rsquo;/g, "'").replace(/&mdash;/g, "—").replace(/&ndash;/g, "–").replace(/&nbsp;/g, " ").replace(/&#(\d+);/g, (_, n) => { try { return String.fromCodePoint(+n); } catch { return ""; } }).trim();
+  const name = dec((meta("og:site_name") || meta("og:title") || (html.match(/<title[^>]*>([^<]{0,120})<\/title>/i)?.[1] || "")).trim().slice(0, 120));
+  const description = dec((meta("og:description") || meta("description") || meta("twitter:description")).slice(0, 400));
+  const color = meta("theme-color").slice(0, 20);
+  let logo = abs(html.match(/<link[^>]+rel=["'][^"']*apple-touch-icon[^"']*["'][^>]*href=["']([^"']+)["']/i)?.[1]
+    || html.match(/<link[^>]+href=["']([^"']+)["'][^>]*rel=["'][^"']*apple-touch-icon[^"']*["']/i)?.[1] || "");
+  if (!logo) { const li = (html.match(/<img[^>]*(?:class|alt|src)=["'][^"']*logo[^"']*["'][^>]*>/i)?.[0] || "").match(/\bsrc=["']([^"']+)["']/i)?.[1] || ""; if (li) logo = abs(li); }
+  const seen = new Set<string>();
+  const images: string[] = [];
+  const push = (s: string) => { const a = abs(s); if (a && /^https?:\/\//i.test(a) && !seen.has(a) && !/\.svg(\?|$)/i.test(a) && !/sprite|\bicon\b|favicon|pixel|spacer|1x1|tracking|loader|placeholder/i.test(a)) { seen.add(a); images.push(a); } };
+  const og = meta("og:image") || meta("twitter:image"); if (og) push(og);
+  for (const m of html.matchAll(/<img[^>]+?(?:src|data-src|data-original|data-lazy-src)=["']([^"']+)["']/gi)) { if (images.length >= 8) break; push(m[1]); }
+  for (const m of html.matchAll(/<(?:img|source)[^>]+srcset=["']([^"']+)["']/gi)) { if (images.length >= 8) break; const first = m[1].split(",")[0]?.trim().split(/\s+/)[0]; if (first) push(first); }
+  return { name, description, color, logo, images: images.slice(0, 6) };
+}
+
 async function generate(prompt: string, mode: string, brand: Record<string, string>, images: string[]): Promise<{ subject: string; body: string } | null> {
   if (!ANTHROPIC_KEY) return null;
   const brandBlock = brandLines(brand).length ? ` Match this brand - ${brandLines(brand).join("; ")}.` : "";
@@ -267,11 +303,27 @@ async function chatDesign(messages: { role: string; content: string }[], current
   const curBlock = current.trim()
     ? ` The CURRENT email HTML is between <<< and >>>. Apply the user's latest instruction by editing it and keeping everything else the same. <<<${current.slice(0, 60000)}>>>`
     : " There is no email yet - create one from the user's request.";
+  // If the user pasted a website URL, fetch it and pull real brand assets + images.
+  let siteBlock = "";
+  const lastUser = [...messages].reverse().find((m) => m.role !== "assistant")?.content || "";
+  const urlM = lastUser.match(/\b((?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?)/i);
+  if (urlM) {
+    const site = await scrapeSite(urlM[1]);
+    if (site && (site.images.length || site.name)) {
+      const bits: string[] = [];
+      if (site.name) bits.push(`business name: ${site.name}`);
+      if (site.description) bits.push(`what they do: ${site.description}`);
+      if (site.color) bits.push(`brand color: ${site.color}`);
+      if (site.logo) bits.push(`logo image URL: ${site.logo}`);
+      if (site.images.length) bits.push(`REAL photos from their site - put these EXACT urls in <img src> (first as the hero) and do NOT swap them for stock: ${site.images.join(", ")}`);
+      siteBlock = ` I fetched the website the user gave you. Use this REAL brand info and STRONGLY prefer these REAL images over stock placeholders: ${bits.join("; ")}.`;
+    }
+  }
   const system =
     "You are Sendra, an expert email designer and copywriter. You build and edit ONE marketing newsletter email as clean, email-client-safe HTML (inline styles only, no style or script tags, no markdown; one centered container max-width 600px, width 100%, mobile-friendly; every img display:block; width:100%; height:auto). " +
     "When creating fresh: logo header (or business-name wordmark), a hero image, bold headline, short intro, optional feature/product sections with images and a small discount badge only if a deal is mentioned, ONE call-to-action button in the brand color, and a footer with the business name and address. " +
     "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one)." +
-    brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + SOCIAL_RULE + curBlock +
+    brandBlock + imgBlock + siteBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + SOCIAL_RULE + curBlock +
     " When an email already exists: FIRST look at the user's LATEST message on its own. If it is ONLY a greeting, thanks, or acknowledgement with no design request - e.g. 'hi', 'hey', 'hello', 'yo', 'sup', 'thanks', 'ty', 'ok', 'okay', 'cool', 'nice', 'great', 'lol' - then DO NOT change the email at all: reply with one short friendly line and OMIT subject and body entirely (do not re-apply earlier requests). Same if they only ask a question (e.g. 'what subject works best?') - answer briefly with no body. OTHERWISE default to editing: treat the message as a change and return the full updated subject + body. This includes 'try again', 'redo', 'again', 'regenerate', 'another version', 'make it different', or any tweak - for 'try again'/'redo'/'another version', produce a genuinely fresh take (vary the copy and layout, keep the same brand/intent)." +
     " Respond with ONLY a JSON object: always include a short `reply`; include `subject` and `body` (the full updated HTML) whenever you create or change the email (which is almost always).";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
