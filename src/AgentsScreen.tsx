@@ -3,11 +3,11 @@ import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck, IconContacts,
   IconDoc, IconChat, IconPlus, IconArrowUp, IconX, IconCopy,
-  IconCalendar, IconGlobe, IconWebhook, IconSettings,
+  IconCalendar, IconGlobe, IconWebhook, IconSettings, IconChart,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, cloudflareApply, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, cloudflareApply, getDeliverability, type DomainHealth, type Reputation, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -30,7 +30,7 @@ const AGENTS: AgentDef[] = [
 type CommsId = 'gmail' | 'm365' | 'telegram';
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'logs' | 'settings';
+type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'logs' | 'deliver' | 'settings';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
   texts: { t: 'Text', s: 'Send an SMS' },
@@ -40,6 +40,7 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   schedule: { t: 'Schedule', s: 'Scheduled sends & reminders' },
   webhook: { t: 'Webhooks', s: 'Post events to your systems' },
   logs: { t: 'Logs', s: 'Every email sent & what happened' },
+  deliver: { t: 'Deliverability', s: 'Are your emails landing?' },
   settings: { t: 'Settings', s: 'Sender, reply-to & preferences' },
 };
 // Sendra home menu. 'inbox'/'contacts' open the mail workspace; the rest are tabs/scaffolds.
@@ -49,6 +50,7 @@ const HOME_TOOLS: { id: SendraTab | 'inbox' | 'contacts'; name: string; desc: st
   { id: 'texts', name: 'Text', desc: 'Send an SMS', Icon: IconChat },
   { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
   { id: 'logs', name: 'Logs', desc: 'Every email sent', Icon: IconClock },
+  { id: 'deliver', name: 'Deliverability', desc: 'Are emails landing?', Icon: IconChart },
   { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
   { id: 'domains', name: 'Domains', desc: 'Send from your address', Icon: IconGlobe },
   { id: 'webhook', name: 'Webhooks', desc: 'Post events out', Icon: IconWebhook },
@@ -218,6 +220,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [logsList, setLogsList] = useState<EmailLog[]>([]);
   const [logsQ, setLogsQ] = useState('');
   const [logsBusy, setLogsBusy] = useState(false);
+  // Deliverability insights (Deliverability tab)
+  const [deliv, setDeliv] = useState<{ domains: DomainHealth[]; reputation: Reputation } | null>(null);
+  const [delivBusy, setDelivBusy] = useState(false);
   // Custom sending domains (Amazon SES) + the campaign "From" picker
   const [campView, setCampView] = useState<'list' | 'suppressions' | 'stats'>('list');
   const [campStats, setCampStats] = useState<{ campaign: Campaign; stats: CampaignStats } | null>(null);
@@ -443,6 +448,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (sendraTab === 'texts') smsStatus().then((s) => { if (mountedRef.current) { setSmsReady(s.ready); setSmsNumber(s.number); } });
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
     if (sendraTab === 'logs') { setLogsBusy(true); listLogs('').then((l) => { if (mountedRef.current) { setLogsList(l); setLogsBusy(false); } }).catch(() => { if (mountedRef.current) setLogsBusy(false); }); }
+    if (sendraTab === 'deliver') { setDelivBusy(true); getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); }); }
   }, [agent, commsApp, sendraTab, campNew]);
 
   // Auto-recheck a pending domain so the user doesn't keep tapping "Check": while the
@@ -844,6 +850,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setLogsBusy(true);
     listLogs(q).then((l) => { if (mountedRef.current) { setLogsList(l); setLogsBusy(false); } }).catch(() => { if (mountedRef.current) setLogsBusy(false); });
   };
+  // ---- Deliverability (auth + reputation) ----
+  const loadDeliver = () => {
+    setDelivBusy(true);
+    getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); });
+  };
   // Derive a display status from a recipient row (engagement is in the timestamps).
   const logStatus = (l: EmailLog): { label: string; cls: string } => {
     if (l.status === 'bounced') return { label: 'Bounced', cls: 'failed' };
@@ -1182,7 +1193,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <div className="ag-stage">
             <div className="ag-grid">
               {HOME_TOOLS.map((t) => (
-                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); if (t.id === 'webhook') loadWebhooks(); if (t.id === 'logs') { setLogsQ(''); loadLogs(''); } setSendraTab(t.id as SendraTab); } }}>
+                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); if (t.id === 'webhook') loadWebhooks(); if (t.id === 'logs') { setLogsQ(''); loadLogs(''); } if (t.id === 'deliver') loadDeliver(); setSendraTab(t.id as SendraTab); } }}>
                   <span className="ag-act-ic"><t.Icon size={20} /></span>
                   <span className="ag-act-label">{t.name}</span>
                   <span className="ag-act-sub">{t.desc}</span>
@@ -1658,6 +1669,85 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   </div>
                 )}
                 <p className="ag-foot">Every email Sendra sent and what happened to it. Opens are approximate; clicks are exact. Delivered/bounced fill in for sends from your verified domain.</p>
+              </div>
+            ) : sendraTab === 'deliver' ? (
+              <div className="ag-compose">
+                {delivBusy && !deliv ? (
+                  <div className="ag-empty" style={{ marginTop: 12 }}>Checking your domains…</div>
+                ) : !deliv || deliv.domains.length === 0 ? (
+                  <div className="ag-empty" style={{ marginTop: 12 }}>
+                    No sending domains yet. Verify your domain under <b>Domains</b> to send from your own address — then this page shows your email auth (DKIM, SPF, DMARC) and how your reputation looks.
+                    <div style={{ marginTop: 14 }}>
+                      <button className="ag-send-btn" onClick={() => { tap(); setSendraTab('domains'); loadDomains(); }}>Set up a domain →</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {(() => {
+                      const r = deliv.reputation;
+                      const bPct = r.bounceRate * 100, cPct = r.complaintRate * 100;
+                      const cards = [
+                        { k: 'Sent', v: r.accepted, sub: 'accepted' },
+                        { k: 'Delivered', v: r.delivered, sub: r.accepted ? `${Math.round((r.delivered / r.accepted) * 100)}%` : '—' },
+                        { k: 'Bounced', v: r.bounced, sub: r.accepted ? `${bPct.toFixed(1)}%` : '—' },
+                        { k: 'Complaints', v: r.complained, sub: r.delivered ? `${cPct.toFixed(2)}%` : '—' },
+                      ];
+                      return (
+                        <>
+                          <div className="ag-stat-grid">
+                            {cards.map((c) => (
+                              <div className="ag-stat-card" key={c.k}>
+                                <div className="ag-stat-v">{c.v}</div>
+                                <div className="ag-stat-k">{c.k}</div>
+                                <div className="ag-stat-sub">{c.sub}</div>
+                              </div>
+                            ))}
+                          </div>
+                          {r.accepted > 0 && (bPct >= 2 || cPct >= 0.1) && (
+                            <div className="ag-deliver-warn">
+                              {cPct >= 0.1 ? `Complaint rate ${cPct.toFixed(2)}% — Gmail and Yahoo want this under 0.30%. ` : ''}
+                              {bPct >= 2 ? `Bounce rate ${bPct.toFixed(1)}% — clean your list and only mail people who opted in.` : ''}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                    <div className="ag-deliver-domains">
+                      {deliv.domains.map((d) => {
+                        const checks = [
+                          { label: 'DKIM', ok: d.dkim, note: d.dkim ? 'Signed' : 'Not verified' },
+                          { label: 'DMARC', ok: d.dmarc.found, note: d.dmarc.found ? `Policy: ${d.dmarc.policy || 'none'}` : 'Missing' },
+                          { label: 'SPF', ok: d.spf.found, note: d.spf.found ? (d.spf.ses ? 'Includes SES' : 'Present') : 'Optional' },
+                        ];
+                        const gradeCls = d.grade === 'great' || d.grade === 'good' ? 'sent' : d.grade === 'fair' ? 'sending' : 'failed';
+                        return (
+                          <div className="ag-deliver-card" key={d.domain}>
+                            <div className="ag-deliver-head">
+                              <div className="ag-deliver-dom">{d.domain}</div>
+                              <span className={`ag-camp-pill is-${gradeCls}`}>{d.score}/100</span>
+                            </div>
+                            <div className="ag-deliver-checks">
+                              {checks.map((c) => (
+                                <div className={`ag-deliver-chk${c.ok ? ' ok' : ''}`} key={c.label}>
+                                  <span className="ag-deliver-chk-ic">{c.ok ? '✓' : '!'}</span>
+                                  <span className="ag-deliver-chk-l">{c.label}</span>
+                                  <span className="ag-deliver-chk-n">{c.note}</span>
+                                </div>
+                              ))}
+                            </div>
+                            {d.tips.length > 0 && (
+                              <ul className="ag-deliver-tips">
+                                {d.tips.map((t, i) => <li key={i}>{t}</li>)}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button className="ag-send-btn ghost" disabled={delivBusy} onClick={loadDeliver}>{delivBusy ? 'Refreshing…' : 'Refresh'}</button>
+                    <p className="ag-foot">DKIM, SPF and DMARC are checked live against your DNS. DKIM is the one that must pass — with it, DMARC aligns even without SPF. Rates cover every campaign email you’ve sent.</p>
+                  </>
+                )}
               </div>
             ) : sendraTab === 'webhook' ? (
               <div className="ag-compose">

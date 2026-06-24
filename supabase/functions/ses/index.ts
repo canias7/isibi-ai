@@ -108,6 +108,16 @@ async function dohTxt(name: string): Promise<string> {
     return ans ? String(ans.data || "").replace(/^"|"$/g, "").trim() : "";
   } catch { return ""; }
 }
+// All TXT records at a name (apex SPF, _dmarc, etc.). Long records arrive as
+// 255-char chunks joined by `" "`; we collapse those boundaries back together.
+async function dohTxtAll(name: string): Promise<string[]> {
+  try {
+    const r = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(name)}&type=TXT`, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return [];
+    const j = await r.json().catch(() => ({})) as any;
+    return (j?.Answer || []).filter((a: any) => a?.type === 16).map((a: any) => String(a.data || "").replace(/^"|"$/g, "").replace(/"\s+"/g, "").trim());
+  } catch { return []; }
+}
 function dkimTokens(records: Rec[]): string[] {
   return records.filter((r) => r.type === "CNAME" && /\.dkim\.amazonses\.com$/i.test(r.value)).map((r) => r.value.replace(/\.dkim\.amazonses\.com$/i, ""));
 }
@@ -204,6 +214,18 @@ async function upsertDomain(uid: string, domain: string, status: string, records
   });
 }
 
+// Count this user's campaign recipients matching a PostgREST filter, via the
+// Content-Range header (count=exact) so we never pull the rows themselves.
+async function countRecipients(uid: string, extra: string): Promise<number> {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/campaign_recipients?user_id=eq.${uid}${extra}&select=id`, {
+      headers: { ...sbHeaders, Prefer: "count=exact", Range: "0-0", "Range-Unit": "items" },
+    });
+    const n = (r.headers.get("content-range") || "").split("/")[1];
+    return n && n !== "*" ? (parseInt(n, 10) || 0) : 0;
+  } catch { return 0; }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
@@ -298,6 +320,50 @@ Deno.serve(async (req: Request) => {
     if (action === "setup") {
       await ensureTracking().catch(() => {});
       return json(req, { ok: trackingDone });
+    }
+
+    // Deliverability insights: per-domain auth (DKIM/SPF/DMARC, live from DNS) plus
+    // account reputation (bounce/complaint rates) — the "are my emails landing?" view.
+    if (action === "deliverability") {
+      const r = await fetch(
+        `${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&select=domain,status&order=created_at.desc`,
+        { headers: sbHeaders },
+      );
+      const rows = (await r.json().catch(() => [])) as Array<{ domain: string; status: string }>;
+      const domains = await Promise.all((Array.isArray(rows) ? rows : []).map(async (d) => {
+        const dkim = d.status === "verified";  // Easy DKIM verified == signed + aligned
+        const [apex, dmarcTxt] = await Promise.all([dohTxtAll(d.domain), dohTxtAll(`_dmarc.${d.domain}`)]);
+        const spfVal = apex.find((t) => /^v=spf1/i.test(t)) || "";
+        const spf = { found: !!spfVal, ses: /amazonses\.com/i.test(spfVal) };
+        const dmarcVal = dmarcTxt.find((t) => /^v=DMARC1/i.test(t)) || "";
+        const policy = (dmarcVal.match(/p\s*=\s*(none|quarantine|reject)/i) || [])[1]?.toLowerCase() || null;
+        const dmarc = { found: !!dmarcVal, policy };
+        let score = 0;
+        if (dkim) score += 55;
+        if (dmarc.found) score += 30;
+        if (spf.found) score += 15;
+        const grade = score >= 90 ? "great" : score >= 70 ? "good" : score >= 40 ? "fair" : "poor";
+        const tips: string[] = [];
+        if (!dkim) tips.push("Finish domain verification — add the DKIM records so your mail is signed.");
+        if (!dmarc.found) tips.push(`Add a DMARC record: a TXT at _dmarc.${d.domain} set to "v=DMARC1; p=none;". Gmail and Yahoo expect it from bulk senders.`);
+        else if (dmarc.policy === "none") tips.push("DMARC is in monitor mode (p=none). Once your sends look clean, tighten it to p=quarantine.");
+        if (!spf.found) tips.push("Add an SPF record at your domain. With DKIM it's optional, but it's good hygiene many inboxes look for.");
+        else if (!spf.ses) tips.push('Your SPF doesn’t list Amazon SES. Add "include:amazonses.com" if you want SPF to align too.');
+        return { domain: d.domain, status: d.status, dkim, spf, dmarc, score, grade, tips };
+      }));
+
+      const [accepted, delivered, bounced, complained] = await Promise.all([
+        countRecipients(uid, "&status=in.(sent,delivered,opened,clicked,bounced,complained)"),
+        countRecipients(uid, "&status=in.(delivered,opened,clicked)"),
+        countRecipients(uid, "&status=eq.bounced"),
+        countRecipients(uid, "&status=eq.complained"),
+      ]);
+      const reputation = {
+        accepted, delivered, bounced, complained,
+        bounceRate: accepted ? bounced / accepted : 0,
+        complaintRate: delivered ? complained / delivered : 0,
+      };
+      return json(req, { domains, reputation });
     }
 
     // One-click (Domain Connect): is this domain's DNS host supported (and our template

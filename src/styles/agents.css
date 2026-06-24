@@ -235,6 +235,22 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-stat-k { color: #c7ccd4; font-size: var(--fs-caption); font-weight: 600; margin-top: 3px; }
 .ag-stat-sub { color: #6b7280; font-size: var(--fs-label); margin-top: 2px; }
 
+/* Deliverability tab */
+.ag-deliver-warn { margin-top: 10px; padding: 10px 12px; border-radius: 12px; font-size: var(--fs-footnote); line-height: 1.45; color: #fbbf24; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.22); }
+.ag-deliver-domains { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.ag-deliver-card { background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 12px 12px 4px; }
+.ag-deliver-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ag-deliver-dom { color: #fff; font-weight: 700; font-size: var(--fs-body-s); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-deliver-checks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ag-deliver-chk { display: flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 999px; background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.2); }
+.ag-deliver-chk.ok { background: rgba(52, 211, 153, 0.1); border-color: rgba(52, 211, 153, 0.22); }
+.ag-deliver-chk-ic { width: 15px; height: 15px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; font-size: 10px; font-weight: 900; color: #fff; background: #ff6b6b; }
+.ag-deliver-chk.ok .ag-deliver-chk-ic { background: #34d399; }
+.ag-deliver-chk-l { color: #e5e7eb; font-size: var(--fs-label); font-weight: 700; }
+.ag-deliver-chk-n { color: #8b9099; font-size: var(--fs-label); }
+.ag-deliver-tips { margin: 10px 0 8px; padding-left: 16px; display: flex; flex-direction: column; gap: 5px; }
+.ag-deliver-tips li { color: var(--text-dim); font-size: var(--fs-footnote); line-height: 1.45; }
+
 /* Campaign "From" picker (mailbox vs verified SES domain) */
 .ag-from { display: flex; align-items: center; gap: 10px; }
 .ag-from-lbl { color: var(--text-dim); font-size: var(--fs-footnote); font-weight: 600; flex-shrink: 0; }
