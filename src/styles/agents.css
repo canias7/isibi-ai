@@ -262,6 +262,11 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-contacts-sel { flex-shrink: 0; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--glass-edge); background: var(--glass); color: var(--text); font: inherit; font-size: var(--fs-footnote); font-weight: 600; cursor: pointer; }
 .ag-contacts-sel.on { color: var(--brand); border-color: var(--brand); }
 .ag-contacts-action { position: sticky; bottom: 8px; margin-top: 10px; }
+/* Segment (tag) filter row */
+.ag-seg-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.ag-seg-row::-webkit-scrollbar { display: none; }
+.ag-seg { flex-shrink: 0; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--glass-edge); background: var(--glass); color: var(--text-dim); font: inherit; font-size: var(--fs-footnote); font-weight: 600; cursor: pointer; white-space: nowrap; text-transform: capitalize; }
+.ag-seg.on { color: #fff; background: var(--brand); border-color: var(--brand); }
 .gf-pickable { cursor: pointer; border-radius: 12px; }
 .gf-contact.gf-sel { background: rgba(224, 161, 58, 0.12); }
 .gf-check { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--glass-edge); display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 800; }
@@ -273,6 +278,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-cform-actions { display: flex; gap: 8px; margin-top: 4px; }
 .ag-cform-actions .ag-send-btn { flex: 1; }
 .ag-cform-del { color: #ff6b6b; }
+.ag-cform-hint { font-size: var(--fs-caption, 11px); color: var(--text-dim); margin: -2px 2px 2px; }
 .ag-dns-copyall { margin-bottom: 10px; }
 .ag-dom-auto { margin: 10px 0 4px; }
 /* Cloudflare one-click token panel */

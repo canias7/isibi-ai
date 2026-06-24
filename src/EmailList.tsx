@@ -172,6 +172,7 @@ export interface ContactItem {
   email?: string;
   phone?: string;
   photo?: string; // real profile photo url (default placeholders are dropped server-side)
+  tags?: string[]; // segment labels (Sendra contacts only)
 }
 
 // Real photo if the contact has one, otherwise colored initials (and fall back to
@@ -218,6 +219,11 @@ export function ContactsList(
             <div className="gf-main">
               <div className="gf-contact-name">{label}</div>
               {subs.map((s, j) => <div className="gf-contact-sub" key={j}>{s}</div>)}
+              {!!c.tags?.length && (
+                <div className="gf-contact-tags">
+                  {c.tags.map((t) => <span className="gf-tag" key={t}>{t}</span>)}
+                </div>
+              )}
             </div>
             {editable && <span className="gf-contact-edit" aria-hidden="true">›</span>}
           </div>

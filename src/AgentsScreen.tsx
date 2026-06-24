@@ -166,7 +166,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [contactSelMode, setContactSelMode] = useState(false);      // multi-select mode
   const [contactSel, setContactSel] = useState<Set<string>>(new Set()); // selected emails
   const [savedContacts, setSavedContacts] = useState<SavedContact[]>([]); // Sendra's own address book
-  const [cForm, setCForm] = useState<{ id?: string; name: string; email: string; phone: string } | null>(null); // add/edit overlay
+  const [cForm, setCForm] = useState<{ id?: string; name: string; email: string; phone: string; tags: string } | null>(null); // add/edit overlay
+  const [contactTag, setContactTag] = useState('');                 // active segment filter ('' = all)
   const [cFormBusy, setCFormBusy] = useState(false);
   const [cFormErr, setCFormErr] = useState('');
   // Compose / reply state
@@ -311,7 +312,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // mailbox-pulled contacts not already covered (deduped by email). Used by the
   // Contacts screen and the composer "To" picker so it's never empty.
   const mergedContacts: ContactItem[] = (() => {
-    const own: ContactItem[] = savedContacts.map((c) => ({ id: c.id, name: c.name, email: c.email || undefined, phone: c.phone || undefined }));
+    const own: ContactItem[] = savedContacts.map((c) => ({ id: c.id, name: c.name, email: c.email || undefined, phone: c.phone || undefined, tags: c.tags?.length ? c.tags : undefined }));
     const seen = new Set(own.map((c) => (c.email || '').toLowerCase()).filter(Boolean));
     return [...own, ...contacts.filter((c) => !c.email || !seen.has(c.email.toLowerCase()))];
   })();
@@ -503,16 +504,29 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setCampRecips(recips);
     setContactSelMode(false); setContactSel(new Set());
   };
+  // Whole segment (tag) -> prefill a new campaign with everyone carrying that label.
+  const emailSegment = (tag: string) => {
+    const picked = mergedContacts.filter((c) => c.email && c.tags?.includes(tag));
+    if (!picked.length) return;
+    tap();
+    const recips = picked.map((c) => (c.name ? `${c.name} <${c.email}>` : c.email)).join('\n');
+    setReading(null); setCommsApp(null); setInboxHome(false);
+    setSendraTab('campaigns');
+    openCampNew();
+    setCampRecips(recips);
+    setContactSelMode(false); setContactSel(new Set());
+  };
   // ---- Sendra address book (own contacts) ----
   const loadSaved = () => listSavedContacts().then((c) => { if (mountedRef.current) setSavedContacts(c); });
-  const openContactForm = (c?: ContactItem) => { tap(); setCFormErr(''); setCForm({ id: c?.id, name: c?.name || '', email: c?.email || '', phone: c?.phone || '' }); };
+  const openContactForm = (c?: ContactItem) => { tap(); setCFormErr(''); setCForm({ id: c?.id, name: c?.name || '', email: c?.email || '', phone: c?.phone || '', tags: c?.tags?.join(', ') || '' }); };
   const saveCForm = async () => {
     if (!cForm || cFormBusy) return;
     const name = cForm.name.trim(), email = cForm.email.trim(), phone = cForm.phone.trim();
+    const tags = cForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
     if (!name && !email) return;
     setCFormBusy(true); setCFormErr('');
     try {
-      const r = cForm.id ? await updateSavedContact(cForm.id, { name, email, phone }) : await addSavedContact({ name, email, phone });
+      const r = cForm.id ? await updateSavedContact(cForm.id, { name, email, phone, tags }) : await addSavedContact({ name, email, phone, tags });
       if (!mountedRef.current) return;
       if (r.error) setCFormErr(r.error === 'bad_email' ? 'Enter a valid email address.' : 'Couldn’t save — try again.');
       else { setCForm(null); await loadSaved(); }
@@ -1823,7 +1837,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         <div className="ag-stage">
           {(() => {
             const q = contactSearch.trim().toLowerCase();
-            const list = q ? mergedContacts.filter((c) => `${c.name || ''} ${c.email || ''} ${c.phone || ''}`.toLowerCase().includes(q)) : mergedContacts;
+            const allTags = [...new Set(mergedContacts.flatMap((c) => c.tags || []))].sort();
+            const tag = contactTag && allTags.includes(contactTag) ? contactTag : '';
+            const base = tag ? mergedContacts.filter((c) => c.tags?.includes(tag)) : mergedContacts;
+            const list = q ? base.filter((c) => `${c.name || ''} ${c.email || ''} ${c.phone || ''}`.toLowerCase().includes(q)) : base;
+            const segCount = tag ? base.filter((c) => c.email).length : 0;
             const loading = contactsState === 'loading' && mergedContacts.length === 0;
             return (
               <>
@@ -1834,20 +1852,32 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     <button className={`ag-contacts-sel${contactSelMode ? ' on' : ''}`} onClick={() => { tap(); setContactSelMode((v) => !v); setContactSel(new Set()); }}>{contactSelMode ? 'Cancel' : 'Select'}</button>
                   )}
                 </div>
+                {allTags.length > 0 && (
+                  <div className="ag-seg-row">
+                    <button className={`ag-seg${tag ? '' : ' on'}`} onClick={() => { tap(); setContactTag(''); }}>All</button>
+                    {allTags.map((t) => (
+                      <button key={t} className={`ag-seg${tag === t ? ' on' : ''}`} onClick={() => { tap(); setContactTag(tag === t ? '' : t); }}>{t}</button>
+                    ))}
+                  </div>
+                )}
                 {loading ? (
                   <EmailSkeleton />
                 ) : mergedContacts.length === 0 ? (
                   <div className="ag-empty">No contacts yet. Tap “+ Add” to create your first one.</div>
                 ) : list.length === 0 ? (
-                  <div className="ag-empty">No matches.</div>
+                  <div className="ag-empty">{tag ? 'No one in this segment matches.' : 'No matches.'}</div>
                 ) : (
                   <ContactsList items={list} selectable={contactSelMode} selected={contactSel} onToggle={toggleContact} onEdit={openContactForm} />
                 )}
-                {contactSelMode && contactSel.size > 0 && (
+                {contactSelMode && contactSel.size > 0 ? (
                   <button className="ag-send-btn ag-contacts-action" onClick={emailSelected}>
                     Email {contactSel.size} {contactSel.size === 1 ? 'person' : 'people'} →
                   </button>
-                )}
+                ) : !contactSelMode && tag && segCount > 0 ? (
+                  <button className="ag-send-btn ag-contacts-action" onClick={() => emailSegment(tag)}>
+                    Email “{tag}” — {segCount} {segCount === 1 ? 'person' : 'people'} →
+                  </button>
+                ) : null}
               </>
             );
           })()}
@@ -1860,6 +1890,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 <input className="ag-field" placeholder="Name" value={cForm.name} onChange={(e) => setCForm({ ...cForm, name: e.target.value })} />
                 <input className="ag-field" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" placeholder="Email" value={cForm.email} onChange={(e) => setCForm({ ...cForm, email: e.target.value })} />
                 <input className="ag-field" type="tel" inputMode="tel" placeholder="Phone (optional)" value={cForm.phone} onChange={(e) => setCForm({ ...cForm, phone: e.target.value })} />
+                <input className="ag-field" autoCapitalize="none" placeholder="Segments (e.g. vip, newsletter)" value={cForm.tags} onChange={(e) => setCForm({ ...cForm, tags: e.target.value })} />
+                <div className="ag-cform-hint">Comma-separated labels. Use them to email a whole group at once.</div>
                 {cFormErr && <div className="ag-send-err">{cFormErr}</div>}
                 <div className="ag-cform-actions">
                   {cForm.id && <button className="ag-send-btn ghost ag-cform-del" onClick={delCForm}>Delete</button>}
