@@ -397,6 +397,15 @@ Deno.serve(async (req: Request) => {
       return json(req, { campaign: camp, stats: { total: camp.total, sent: camp.sent, failed: camp.failed, delivered, opened, clicked, bounced, complained } });
     }
 
+    // Per-email activity log — every send across the user's campaigns + its status.
+    if (action === "logs") {
+      const q = String(body?.q || "").trim().slice(0, 120);
+      const emailFilter = q ? `&email=ilike.*${encodeURIComponent(q)}*` : "";
+      const r = await fetch(`${SB_URL}/rest/v1/campaign_recipients?user_id=eq.${uid}&status=neq.queued${emailFilter}&select=email,name,status,sent_at,delivered_at,opened_at,clicked_at,error,campaign:campaigns(name,subject)&order=sent_at.desc.nullslast&limit=100`, { headers: sbHeaders });
+      const logs = await r.json().catch(() => []);
+      return json(req, { logs: Array.isArray(logs) ? logs : [] });
+    }
+
     if (action === "suppressions") {
       const r = await fetch(`${SB_URL}/rest/v1/email_suppressions?user_id=eq.${uid}&select=email,reason,created_at&order=created_at.desc&limit=500`, { headers: sbHeaders });
       const s = await r.json().catch(() => []);

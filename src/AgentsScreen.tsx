@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, cloudflareApply, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, cloudflareApply, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -30,7 +30,7 @@ const AGENTS: AgentDef[] = [
 type CommsId = 'gmail' | 'm365' | 'telegram';
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'settings';
+type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'logs' | 'settings';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
   texts: { t: 'Text', s: 'Send an SMS' },
@@ -39,6 +39,7 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   domains: { t: 'Domains', s: 'Send from your own address' },
   schedule: { t: 'Schedule', s: 'Scheduled sends & reminders' },
   webhook: { t: 'Webhooks', s: 'Post events to your systems' },
+  logs: { t: 'Logs', s: 'Every email sent & what happened' },
   settings: { t: 'Settings', s: 'Sender, reply-to & preferences' },
 };
 // Sendra home menu. 'inbox'/'contacts' open the mail workspace; the rest are tabs/scaffolds.
@@ -47,6 +48,7 @@ const HOME_TOOLS: { id: SendraTab | 'inbox' | 'contacts'; name: string; desc: st
   { id: 'contacts', name: 'Contacts', desc: 'Your people', Icon: IconContacts },
   { id: 'texts', name: 'Text', desc: 'Send an SMS', Icon: IconChat },
   { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
+  { id: 'logs', name: 'Logs', desc: 'Every email sent', Icon: IconClock },
   { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
   { id: 'domains', name: 'Domains', desc: 'Send from your address', Icon: IconGlobe },
   { id: 'webhook', name: 'Webhooks', desc: 'Post events out', Icon: IconWebhook },
@@ -211,6 +213,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campSchedAt, setCampSchedAt] = useState('');                // datetime-local value
   const [campList, setCampList] = useState<Campaign[]>([]);
   const [campBodyKind, setCampBodyKind] = useState<'text' | 'html'>('text'); // 'html' when a designed template is applied
+  // Per-email activity log (Logs tab)
+  const [logsList, setLogsList] = useState<EmailLog[]>([]);
+  const [logsQ, setLogsQ] = useState('');
+  const [logsBusy, setLogsBusy] = useState(false);
   // Custom sending domains (Amazon SES) + the campaign "From" picker
   const [campView, setCampView] = useState<'list' | 'suppressions' | 'stats'>('list');
   const [campStats, setCampStats] = useState<{ campaign: Campaign; stats: CampaignStats } | null>(null);
@@ -435,6 +441,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (sendraTab === 'campaigns') listSenders().then((s) => { if (mountedRef.current) setSenders(s); });
     if (sendraTab === 'texts') smsStatus().then((s) => { if (mountedRef.current) { setSmsReady(s.ready); setSmsNumber(s.number); } });
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
+    if (sendraTab === 'logs') { setLogsBusy(true); listLogs('').then((l) => { if (mountedRef.current) { setLogsList(l); setLogsBusy(false); } }).catch(() => { if (mountedRef.current) setLogsBusy(false); }); }
   }, [agent, commsApp, sendraTab, campNew]);
 
   // Auto-recheck a pending domain so the user doesn't keep tapping "Check": while the
@@ -818,6 +825,21 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     try { await removeSesDomain(domain); if (campDomain === domain) setCampDomain(''); await loadDomains(); } catch { /* ignore */ }
   };
   const loadSuppressions = () => listSuppressions().then((s) => { if (mountedRef.current) setSupList(s); });
+  // ---- Logs (per-email activity) ----
+  const loadLogs = (q = logsQ) => {
+    setLogsBusy(true);
+    listLogs(q).then((l) => { if (mountedRef.current) { setLogsList(l); setLogsBusy(false); } }).catch(() => { if (mountedRef.current) setLogsBusy(false); });
+  };
+  // Derive a display status from a recipient row (engagement is in the timestamps).
+  const logStatus = (l: EmailLog): { label: string; cls: string } => {
+    if (l.status === 'bounced') return { label: 'Bounced', cls: 'failed' };
+    if (l.status === 'complained') return { label: 'Complaint', cls: 'failed' };
+    if (l.status === 'failed') return { label: 'Failed', cls: 'failed' };
+    if (l.clicked_at) return { label: 'Clicked', cls: 'sent' };
+    if (l.opened_at) return { label: 'Opened', cls: 'sent' };
+    if (l.delivered_at) return { label: 'Delivered', cls: 'sent' };
+    return { label: 'Sent', cls: 'sending' };
+  };
   const removeSup = async (email: string) => {
     tap();
     try { await removeSuppression(email); await loadSuppressions(); } catch { /* ignore */ }
@@ -1146,7 +1168,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <div className="ag-stage">
             <div className="ag-grid">
               {HOME_TOOLS.map((t) => (
-                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); if (t.id === 'webhook') loadWebhooks(); setSendraTab(t.id as SendraTab); } }}>
+                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); if (t.id === 'webhook') loadWebhooks(); if (t.id === 'logs') { setLogsQ(''); loadLogs(''); } setSendraTab(t.id as SendraTab); } }}>
                   <span className="ag-act-ic"><t.Icon size={20} /></span>
                   <span className="ag-act-label">{t.name}</span>
                   <span className="ag-act-sub">{t.desc}</span>
@@ -1594,6 +1616,34 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     })}
                   </div>
                 )}
+              </div>
+            ) : sendraTab === 'logs' ? (
+              <div className="ag-compose">
+                <input className="ag-field" placeholder="Search by email…" autoCapitalize="none" autoCorrect="off" value={logsQ}
+                  onChange={(e) => setLogsQ(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') loadLogs(logsQ); }} />
+                {logsBusy && logsList.length === 0 ? (
+                  <div className="ag-empty" style={{ marginTop: 12 }}>Loading…</div>
+                ) : logsList.length === 0 ? (
+                  <div className="ag-empty" style={{ marginTop: 12 }}>{logsQ ? 'No emails match that search.' : 'No sends yet. Once you send a campaign, every email shows up here — delivered, opened, clicked or bounced.'}</div>
+                ) : (
+                  <div className="ag-log-list">
+                    {logsList.map((l, i) => {
+                      const st = logStatus(l);
+                      const when = l.opened_at || l.clicked_at || l.delivered_at || l.sent_at;
+                      return (
+                        <div className="ag-log" key={`${l.email}-${i}`}>
+                          <div className="ag-camp-main">
+                            <div className="ag-camp-name">{l.email}</div>
+                            <div className="ag-camp-sub">{l.campaign?.name || l.campaign?.subject || 'Campaign'}{when ? ` · ${new Date(when).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}` : ''}</div>
+                          </div>
+                          <span className={`ag-camp-pill is-${st.cls}`}>{st.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="ag-foot">Every email Sendra sent and what happened to it. Opens are approximate; clicks are exact. Delivered/bounced fill in for sends from your verified domain.</p>
               </div>
             ) : sendraTab === 'webhook' ? (
               <div className="ag-compose">

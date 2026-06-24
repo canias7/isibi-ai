@@ -232,6 +232,14 @@ export async function campaignStats(id: string): Promise<{ campaign?: Campaign; 
   if (error) return { error: error.message || 'Request failed' };
   return (data || {}) as { campaign?: Campaign; stats?: CampaignStats; error?: string };
 }
+// Per-email activity log — every send across the user's campaigns + its status.
+export interface EmailLog { email: string; name?: string | null; status: string; sent_at?: string | null; delivered_at?: string | null; opened_at?: string | null; clicked_at?: string | null; error?: string | null; campaign?: { name?: string; subject?: string } | null }
+export async function listLogs(q = ''): Promise<EmailLog[]> {
+  const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'logs', q } });
+  if (error) return [];
+  const l = (data as { logs?: EmailLog[] } | null)?.logs;
+  return Array.isArray(l) ? l : [];
+}
 
 // ---- Suppressed contacts (unsubscribes, bounces, complaints — skipped on every send) ----
 export interface Suppression { email: string; reason: string; created_at?: string }
