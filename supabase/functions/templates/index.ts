@@ -86,7 +86,10 @@ async function callClaude(system: string, messages: { role: string; content: str
 // single biggest source of "generate failed". Pull one section's text out, order-robust.
 function block(text: string | null, name: string): string {
   if (!text) return "";
-  const m = text.match(new RegExp(`===${name}===\\s*\\n?([\\s\\S]*?)(?=\\n===[A-Z]+===|$)`));
+  // Anchor the section boundary to the THREE real section names only, so a line of
+  // generated copy that happens to look like a delimiter (e.g. "===SALE===") can't
+  // truncate the body mid-email.
+  const m = text.match(new RegExp(`===${name}===\\s*\\n?([\\s\\S]*?)(?=\\n===(?:SUBJECT|BODY|REPLY)===|$)`));
   return m ? m[1].trim() : "";
 }
 
@@ -242,18 +245,25 @@ async function rehostImages(html: string, uid: string): Promise<string> {
   for (const [oldTag, newTag] of replacements) out = out.split(oldTag).join(newTag);
   return out;
 }
-// Make every link work: dead/placeholder hrefs (#, empty, javascript:) are pointed
-// at the email's primary real destination, and all links open in a new tab.
+// Make every link work: only genuine placeholders (empty, "#...", javascript:/data:/
+// vbscript:) are repointed at the email's primary destination; real and relative links
+// are left untouched. All links open in a new tab.
 function normalizeLinks(html: string): string {
   if (!html) return html;
-  const hrefs = [...html.matchAll(/<a\b[^>]*?\bhref=["']([^"']*)["']/gi)].map((m) => m[1]);
-  const ok = (h: string) => /^(https?:\/\/|mailto:|tel:)/i.test(h);
-  const primary = hrefs.find(ok) || "";
+  const real = (h: string) => /^(https?:\/\/|mailto:|tel:)/i.test(h); // an absolute destination we can send people to
+  const placeholder = (h: string) => !h || /^#/.test(h) || /^\s*(javascript|data|vbscript):/i.test(h); // dead/unsafe — repoint it
+  const hrefs = [...html.matchAll(/<a\b[^>]*?\bhref=["']([^"']*)["']/gi)].map((m) => m[1].trim());
+  // Pick the CTA fallback: prefer a non-social http(s) page link (so a placeholder CTA
+  // doesn't get pointed at a logo's social icon), else any real link.
+  const social = /(facebook|instagram|twitter|x\.com|linkedin|tiktok|youtube|pinterest|t\.me|threads)\./i;
+  const reals = hrefs.filter(real);
+  const primary = reals.find((h) => /^https?:/i.test(h) && !social.test(h)) || reals[0] || "";
   return html.replace(/<a\b([^>]*)>/gi, (_tag, attrs) => {
     let a = attrs as string;
     const m = a.match(/\bhref=["']([^"']*)["']/i);
-    const href = m ? m[1] : "";
-    if ((!href || !ok(href)) && primary) a = m ? a.replace(/\bhref=["'][^"']*["']/i, `href="${primary}"`) : ` href="${primary}"${a}`;
+    const href = (m ? m[1] : "").trim();
+    // Repoint only genuine placeholders; never clobber a real or relative href.
+    if (placeholder(href) && primary) a = m ? a.replace(/\bhref=["'][^"']*["']/i, `href="${primary}"`) : ` href="${primary}"${a}`;
     if (!/\btarget=/i.test(a)) a += ` target="_blank"`;
     if (!/\brel=/i.test(a)) a += ` rel="noopener noreferrer"`;
     return `<a${a}>`;
