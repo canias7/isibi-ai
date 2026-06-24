@@ -46,6 +46,11 @@ function clean(body: Record<string, unknown>) {
   const phone = String(body?.phone ?? "").trim().slice(0, 40);
   return { name, email, phone };
 }
+// Segment labels on a contact — lowercased, trimmed, deduped, capped.
+function parseTags(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.map((t) => String(t).trim().toLowerCase().replace(/\s+/g, " ").slice(0, 40)).filter(Boolean))].slice(0, 20);
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
@@ -61,19 +66,20 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (action === "list") {
-      const r = await fetch(`${SB_URL}/rest/v1/contacts?user_id=eq.${uid}&select=id,name,email,phone&order=name.asc`, { headers: sbHeaders });
+      const r = await fetch(`${SB_URL}/rest/v1/contacts?user_id=eq.${uid}&select=id,name,email,phone,tags&order=name.asc`, { headers: sbHeaders });
       const contacts = await r.json().catch(() => []);
       return json(req, { contacts: Array.isArray(contacts) ? contacts : [] });
     }
 
     if (action === "add") {
       const { name, email, phone } = clean(body);
+      const tags = parseTags(body?.tags);
       if (!name && !email) return json(req, { error: "missing_fields" });
       if (email && !EMAIL_RE.test(email)) return json(req, { error: "bad_email" });
       const r = await fetch(`${SB_URL}/rest/v1/contacts`, {
         method: "POST",
         headers: { ...sbHeaders, Prefer: "return=representation" },
-        body: JSON.stringify({ user_id: uid, name, email: email || null, phone: phone || null }),
+        body: JSON.stringify({ user_id: uid, name, email: email || null, phone: phone || null, tags }),
       });
       const row = (await r.json().catch(() => []))?.[0];
       return row?.id ? json(req, { contact: row }) : json(req, { error: "add_failed" }, 502);
@@ -83,12 +89,13 @@ Deno.serve(async (req: Request) => {
       const id = String(body?.id || "");
       if (!id) return json(req, { error: "missing_id" });
       const { name, email, phone } = clean(body);
+      const tags = parseTags(body?.tags);
       if (!name && !email) return json(req, { error: "missing_fields" });
       if (email && !EMAIL_RE.test(email)) return json(req, { error: "bad_email" });
       const r = await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${id}&user_id=eq.${uid}`, {
         method: "PATCH",
         headers: { ...sbHeaders, Prefer: "return=representation" },
-        body: JSON.stringify({ name, email: email || null, phone: phone || null, updated_at: new Date().toISOString() }),
+        body: JSON.stringify({ name, email: email || null, phone: phone || null, tags, updated_at: new Date().toISOString() }),
       });
       const row = (await r.json().catch(() => []))?.[0];
       return row?.id ? json(req, { contact: row }) : json(req, { error: "not_found" });
