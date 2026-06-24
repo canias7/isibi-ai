@@ -377,8 +377,26 @@ const FRAME_INJECT =
   '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src http: https: data:; style-src \'unsafe-inline\'; font-src http: https: data:; media-src http: https: data:; base-uri \'none\'; form-action \'none\'; upgrade-insecure-requests">' +
   '<meta name="viewport" content="width=device-width,initial-scale=1">' +
   '<base target="_blank"><style>html{margin:0}body{margin:0;padding:12px;word-break:break-word}img{max-width:100%!important;height:auto}</style>';
+// A clicked link with a javascript:/data:/vbscript:/blob: scheme could open an
+// unsandboxed popup (the iframe keeps allow-popups-to-escape-sandbox so normal links
+// open in the real browser) and run there. Neutralize those href schemes — decoding
+// entities/whitespace first so `&#106;avascript:`-style obfuscation can't slip through.
+function dangerScheme(v: string): boolean {
+  const s = v
+    .replace(/&colon;?/gi, ':')
+    .replace(/&#x([0-9a-f]+);?/gi, (_m, h) => { try { return String.fromCharCode(parseInt(h, 16)); } catch { return ''; } })
+    .replace(/&#(\d+);?/g, (_m, d) => { try { return String.fromCharCode(parseInt(d, 10)); } catch { return ''; } })
+    .replace(/[\s-]+/g, '')
+    .toLowerCase();
+  return /^(javascript|data|vbscript|blob):/.test(s);
+}
+function neutralizeHrefs(html: string): string {
+  return html.replace(/(\bhref\s*=\s*)("([^"]*)"|'([^']*)'|([^\s>]+))/gi, (m, pre, _all, dq, sq, uq) =>
+    dangerScheme(dq ?? sq ?? uq ?? '') ? `${pre}"#"` : m);
+}
 // eslint-disable-next-line react-refresh/only-export-components
-export function buildSrcDoc(doc: string): string {
+export function buildSrcDoc(doc0: string): string {
+  const doc = neutralizeHrefs(doc0);
   if (!/<html[\s>]/i.test(doc)) return FRAME_HEAD + doc + FRAME_FOOT;
   if (/<head[\s>]/i.test(doc)) return doc.replace(/<head([^>]*)>/i, (m) => m + FRAME_INJECT);
   return doc.replace(/<html([^>]*)>/i, (m) => m + '<head>' + FRAME_INJECT + '</head>');
