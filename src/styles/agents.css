@@ -251,6 +251,30 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-deliver-tips { margin: 10px 0 8px; padding-left: 16px; display: flex; flex-direction: column; gap: 5px; }
 .ag-deliver-tips li { color: var(--text-dim); font-size: var(--fs-footnote); line-height: 1.45; }
 
+/* Replies tab */
+.ag-reply-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+.ag-reply { background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; overflow: hidden; }
+.ag-reply.unread { border-color: rgba(224, 161, 58, 0.4); }
+.ag-reply-row { display: flex; gap: 10px; align-items: flex-start; width: 100%; padding: 12px; background: none; border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.ag-reply-av { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 14px; }
+.ag-reply-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.ag-reply-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.ag-reply-who { color: #fff; font-weight: 700; font-size: var(--fs-body-s); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-reply.unread .ag-reply-who::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--brand); margin-right: 6px; vertical-align: middle; }
+.ag-reply-when { flex-shrink: 0; color: #6b7280; font-size: var(--fs-label); }
+.ag-reply-subj { color: #c7ccd4; font-size: var(--fs-footnote); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-reply-snip { color: #8b9099; font-size: var(--fs-footnote); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-reply-body { padding: 0 12px 12px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.ag-reply-meta { color: #6b7280; font-size: var(--fs-label); margin: 10px 0 8px; }
+.ag-reply-text { color: #d6dae0; font-size: var(--fs-footnote); line-height: 1.5; white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow-y: auto; }
+.ag-reply-open { margin-top: 12px; text-decoration: none; display: inline-block; }
+/* Domains: reply opt-in */
+.ag-dom-reply { margin-top: 8px; }
+.ag-dom-reply-btn { width: 100%; }
+.ag-reply-setup { display: flex; flex-direction: column; gap: 8px; }
+.ag-reply-mxstatus { font-size: var(--fs-footnote); color: #fbbf24; }
+.ag-reply-mxstatus.ok { color: #34d399; }
+
 /* Campaign "From" picker (mailbox vs verified SES domain) */
 .ag-from { display: flex; align-items: center; gap: 10px; }
 .ag-from-lbl { color: var(--text-dim); font-size: var(--fs-footnote); font-weight: 600; flex-shrink: 0; }

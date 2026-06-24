@@ -30,6 +30,8 @@ const SES_BASE = `https://email.${AWS_REGION}.amazonaws.com`;
 const CONFIG_SET = "sendra";                 // SES configuration set campaigns send through
 const TOPIC_NAME = "sendra-ses-events";      // SNS topic SES publishes events to
 const EVENTS_URL = `${SB_URL}/functions/v1/ses-events`;
+const INBOUND_TOPIC = "sendra-inbound";      // SNS topic for inbound replies (SES receipt rule -> here)
+const INBOUND_URL = `${SB_URL}/functions/v1/ses-inbound`;
 // Event types routed to the topic (and on to user webhooks). No OPEN/CLICK — those
 // require SES open/click tracking, which rewrites links + injects a pixel into the email.
 const EVENT_TYPES = ["SEND", "DELIVERY", "BOUNCE", "COMPLAINT", "DELIVERY_DELAY", "REJECT", "RENDERING_FAILURE"];
@@ -226,6 +228,71 @@ async function countRecipients(uid: string, extra: string): Promise<number> {
   } catch { return 0; }
 }
 
+// ---- Reply handling (inbound). SES receipt rule for reply.<domain> -> SNS -> the
+// ses-inbound webhook. All idempotent + best-effort; gated behind the reply_setup
+// action so nothing activates until the user opts in and points the subdomain's MX. ----
+const MX_TARGET = `inbound-smtp.${AWS_REGION}.amazonaws.com`;
+async function dohMx(name: string): Promise<string[]> {
+  try {
+    const r = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(name)}&type=MX`, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return [];
+    const j = await r.json().catch(() => ({})) as any;
+    return (j?.Answer || []).filter((a: any) => a?.type === 15).map((a: any) => String(a.data || "").trim().toLowerCase());
+  } catch { return []; }
+}
+// SES v1 query API (receipt rules live here, not the v2 REST API used elsewhere).
+async function sesV1(params: Record<string, string>): Promise<{ ok: boolean; text: string }> {
+  const body = new URLSearchParams({ Version: "2010-12-01", ...params });
+  const res = await aws.fetch(`https://email.${AWS_REGION}.amazonaws.com/`, {
+    method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: body.toString(),
+  });
+  return { ok: res.ok, text: await res.text() };
+}
+// SNS topic SES publishes inbound mail to, with a policy allowing the SES service to
+// publish and our ses-inbound webhook subscribed. Returns the topic ARN (or "").
+async function ensureInboundTopic(): Promise<string> {
+  const t = await snsCall("CreateTopic", { Name: INBOUND_TOPIC });
+  const arn = (t.text.match(/<TopicArn>([^<]+)<\/TopicArn>/) || [])[1];
+  if (!arn) return "";
+  const accountId = arn.split(":")[4] || "";
+  const policy = JSON.stringify({
+    Version: "2012-10-17",
+    Statement: [{ Effect: "Allow", Principal: { Service: "ses.amazonaws.com" }, Action: "sns:Publish", Resource: arn, Condition: { StringEquals: { "aws:SourceAccount": accountId } } }],
+  });
+  await snsCall("SetTopicAttributes", { TopicArn: arn, AttributeName: "Policy", AttributeValue: policy });
+  await snsCall("Subscribe", { TopicArn: arn, Protocol: "https", Endpoint: INBOUND_URL, ReturnSubscriptionArn: "true" });
+  return arn;
+}
+// Receipt rule routing reply.<domain> to the inbound topic. Adds our rule to whatever
+// rule set is active (creating + activating "sendra-inbound" only if none is). Idempotent.
+async function ensureInboundRule(domain: string, arn: string): Promise<boolean> {
+  const ruleName = `reply-${domain.replace(/[^a-z0-9]+/gi, "-")}`.slice(0, 64);
+  const desc = await sesV1({ Action: "DescribeActiveReceiptRuleSet" });
+  let setName = (desc.text.match(/<Name>([^<]+)<\/Name>/) || [])[1] || "";
+  if (!setName) {
+    setName = INBOUND_TOPIC;
+    await sesV1({ Action: "CreateReceiptRuleSet", RuleSetName: setName });
+    await sesV1({ Action: "SetActiveReceiptRuleSet", RuleSetName: setName });
+  }
+  const r = await sesV1({
+    Action: "CreateReceiptRule",
+    RuleSetName: setName,
+    "Rule.Name": ruleName,
+    "Rule.Enabled": "true",
+    "Rule.TlsPolicy": "Optional",
+    "Rule.ScanEnabled": "true",
+    "Rule.Recipients.member.1": `reply.${domain}`,
+    "Rule.Actions.member.1.SNSAction.TopicArn": arn,
+    "Rule.Actions.member.1.SNSAction.Encoding": "UTF-8",
+  });
+  return r.ok || /AlreadyExists|already exists/i.test(r.text);
+}
+async function setReplyEnabled(uid: string, domain: string, enabled: boolean): Promise<void> {
+  await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${domain}`, {
+    method: "PATCH", headers: sbHeaders, body: JSON.stringify({ reply_enabled: enabled, updated_at: new Date().toISOString() }),
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
@@ -242,7 +309,7 @@ Deno.serve(async (req: Request) => {
   try {
     if (action === "list") {
       const r = await fetch(
-        `${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&select=id,domain,status,records,verified_at,created_at&order=created_at.desc`,
+        `${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&select=id,domain,status,records,verified_at,created_at,reply_enabled&order=created_at.desc`,
         { headers: sbHeaders },
       );
       const domains = await r.json().catch(() => []);
@@ -364,6 +431,57 @@ Deno.serve(async (req: Request) => {
         complaintRate: delivered ? complained / delivered : 0,
       };
       return json(req, { domains, reputation });
+    }
+
+    // ---- Reply handling (inbound) ----
+    // Turn on replies for a verified domain: wire the SES receipt rule (best-effort) and
+    // hand back the one MX record the user adds to start receiving. { domain } ->
+    // { ok, wired, mx }. `wired:false` just means the AWS rule needs perms/retry — the
+    // MX is still correct, and reply_setup is safe to call again.
+    if (action === "reply_setup") {
+      const domain = String(body?.domain || "").trim().toLowerCase();
+      if (!DOMAIN_RE.test(domain)) return json(req, { error: "bad_domain" });
+      const dRes = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${domain}&status=eq.verified&select=domain`, { headers: sbHeaders });
+      if (!((await dRes.json().catch(() => [])) as unknown[]).length) return json(req, { error: "domain_not_verified" });
+      let wired = false;
+      try {
+        const arn = await ensureInboundTopic();
+        if (arn) wired = await ensureInboundRule(domain, arn);
+      } catch { wired = false; }
+      await setReplyEnabled(uid, domain, true);
+      return json(req, { ok: true, wired, mx: { host: `reply.${domain}`, type: "MX", priority: 10, value: MX_TARGET } });
+    }
+
+    if (action === "reply_disable") {
+      const domain = String(body?.domain || "").trim().toLowerCase();
+      if (!DOMAIN_RE.test(domain)) return json(req, { error: "bad_domain" });
+      await setReplyEnabled(uid, domain, false);
+      return json(req, { ok: true });
+    }
+
+    // Is reply.<domain>'s MX live and pointing at SES yet? { domain } -> { enabled, mxLive, mx }.
+    if (action === "reply_status") {
+      const domain = String(body?.domain || "").trim().toLowerCase();
+      if (!DOMAIN_RE.test(domain)) return json(req, { error: "bad_domain" });
+      const dRes = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${domain}&select=reply_enabled`, { headers: sbHeaders });
+      const row = (await dRes.json().catch(() => []))?.[0] as { reply_enabled?: boolean } | undefined;
+      const mx = await dohMx(`reply.${domain}`);
+      const mxLive = mx.some((m) => m.includes("inbound-smtp") && m.includes("amazonaws.com"));
+      return json(req, { enabled: !!row?.reply_enabled, mxLive, mx: { host: `reply.${domain}`, type: "MX", priority: 10, value: MX_TARGET } });
+    }
+
+    // List inbound replies (newest first), with the campaign they belong to.
+    if (action === "replies") {
+      const r = await fetch(`${SB_URL}/rest/v1/replies?user_id=eq.${uid}&select=id,from_email,from_name,recipient_email,subject,snippet,body_text,read,created_at,campaign:campaigns(name,subject)&order=created_at.desc&limit=100`, { headers: sbHeaders });
+      const replies = await r.json().catch(() => []);
+      return json(req, { replies: Array.isArray(replies) ? replies : [] });
+    }
+
+    if (action === "reply_read") {
+      const id = String(body?.id || "");
+      if (!id) return json(req, { error: "missing_id" });
+      await fetch(`${SB_URL}/rest/v1/replies?id=eq.${id}&user_id=eq.${uid}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ read: true }) });
+      return json(req, { ok: true });
     }
 
     // One-click (Domain Connect): is this domain's DNS host supported (and our template

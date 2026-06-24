@@ -257,7 +257,7 @@ export async function removeSuppression(email: string): Promise<void> {
 // Verify your own domain once (add the DKIM CNAMEs to DNS), then campaigns can be
 // sent From news@yourdomain.com instead of through a connected mailbox.
 export interface SesRecord { type: string; name: string; value: string; note?: string }
-export interface SesDomain { id?: string; domain: string; status: string; records: SesRecord[]; verified_at?: string | null; created_at?: string }
+export interface SesDomain { id?: string; domain: string; status: string; records: SesRecord[]; verified_at?: string | null; created_at?: string; reply_enabled?: boolean }
 export async function listSesDomains(): Promise<SesDomain[]> {
   const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'list' } });
   if (error) return [];
@@ -317,6 +317,47 @@ export async function getDeliverability(): Promise<{ domains: DomainHealth[]; re
   if (error) return { domains: [], reputation: empty };
   const d = (data || {}) as { domains?: DomainHealth[]; reputation?: Reputation };
   return { domains: Array.isArray(d.domains) ? d.domains : [], reputation: d.reputation || empty };
+}
+
+// ---- Reply handling (inbound, via the `ses` fn) ----
+// Staged: enabling a domain wires SES inbound and returns the one MX record to add at
+// reply.<domain>. Replies land in the Replies tab once that MX is live.
+export interface ReplyMx { host: string; type: string; priority: number; value: string }
+export interface InboundReply {
+  id: string;
+  from_email: string;
+  from_name?: string | null;
+  recipient_email?: string | null;
+  subject?: string;
+  snippet?: string;
+  body_text?: string;
+  read?: boolean;
+  created_at: string;
+  campaign?: { name?: string; subject?: string } | null;
+}
+export async function enableReplies(domain: string): Promise<{ ok?: boolean; wired?: boolean; mx?: ReplyMx; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'reply_setup', domain } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { ok?: boolean; wired?: boolean; mx?: ReplyMx; error?: string };
+}
+export async function disableReplies(domain: string): Promise<{ ok?: boolean; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'reply_disable', domain } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { ok?: boolean; error?: string };
+}
+export async function replyStatus(domain: string): Promise<{ enabled?: boolean; mxLive?: boolean; mx?: ReplyMx; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'reply_status', domain } });
+  if (error) return {};
+  return (data || {}) as { enabled?: boolean; mxLive?: boolean; mx?: ReplyMx; error?: string };
+}
+export async function listReplies(): Promise<InboundReply[]> {
+  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'replies' } });
+  if (error) return [];
+  const r = (data as { replies?: InboundReply[] } | null)?.replies;
+  return Array.isArray(r) ? r : [];
+}
+export async function markReplyRead(id: string): Promise<void> {
+  await supabase.functions.invoke('ses', { body: { action: 'reply_read', id } });
 }
 
 // Saved senders — reusable "From" identities (name + address@verified-domain).

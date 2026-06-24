@@ -163,7 +163,7 @@ function htmlToText(html: string): string {
 // one-click List-Unsubscribe headers (Gmail/Yahoo bulk requirement); when the
 // `sendra` config set exists, tags the message (uid/campaign) and routes it through
 // the set so bounces/complaints flow back to the ses-events webhook.
-async function sendOneSes(p: { fromEmail: string; fromName: string | null; to: string; subject: string; html: string; unsub: string; uid: string; campaignId: string; withConfig: boolean }): Promise<{ ok: boolean; error?: string }> {
+async function sendOneSes(p: { fromEmail: string; fromName: string | null; to: string; subject: string; html: string; unsub: string; uid: string; campaignId: string; withConfig: boolean; replyTo?: string }): Promise<{ ok: boolean; error?: string }> {
   try {
     const From = p.fromName ? `${p.fromName} <${p.fromEmail}>` : p.fromEmail;
     const payload: Record<string, unknown> = {
@@ -178,6 +178,9 @@ async function sendOneSes(p: { fromEmail: string; fromName: string | null; to: s
         ],
       } },
     };
+    // When the sending domain has replies enabled, route replies to a tokened address at
+    // reply.<domain> (the ses-inbound webhook matches the token back to this recipient).
+    if (p.replyTo) payload.ReplyToAddresses = [p.replyTo];
     if (p.withConfig) {
       payload.ConfigurationSetName = CONFIG_SET;
       payload.EmailTags = [{ Name: "uid", Value: p.uid }, { Name: "campaign_id", Value: p.campaignId }];
@@ -207,6 +210,14 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
   const batch = (await qRes.json().catch(() => [])) as { id: string; email: string; name: string | null }[];
   const isSes = camp.send_via === "ses" && !!camp.from_email;
   const withConfig = isSes ? await ensureConfigSet() : false;
+  // Reply handling: if the sending domain has it enabled, every send gets a tokened
+  // Reply-To at reply.<domain> so replies thread back via the ses-inbound webhook.
+  const fromDomain = isSes ? String(camp.from_email).split("@")[1] : "";
+  let replyDomain = "";
+  if (isSes && fromDomain) {
+    const rd = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${fromDomain}&select=reply_enabled`, { headers: sbHeaders });
+    if (((await rd.json().catch(() => []))?.[0]?.reply_enabled) === true) replyDomain = fromDomain;
+  }
   let sent = 0, failed = 0;
   for (const r of batch) {
     const who = r.name || "there";
@@ -215,7 +226,7 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
     const personalized = String(camp.body).replace(/\{\{\s*name\s*\}\}/g, esc(who));
     const html = `${withTracking(personalized, id, r.id, tok)}<br><br><hr style="border:none;border-top:1px solid #eee"><p style="font-size:12px;color:#888;font-family:system-ui,sans-serif">You're receiving this because you're on a list managed in Sendra. <a href="${unsub}" style="color:#888">Unsubscribe</a>.</p>${openPixel(id, r.id, tok)}`;
     const res = isSes
-      ? await sendOneSes({ fromEmail: camp.from_email, fromName: camp.from_name, to: r.email, subject: camp.subject, html, unsub, uid, campaignId: id, withConfig })
+      ? await sendOneSes({ fromEmail: camp.from_email, fromName: camp.from_name, to: r.email, subject: camp.subject, html, unsub, uid, campaignId: id, withConfig, replyTo: replyDomain ? `reply+${r.id}@reply.${replyDomain}` : undefined })
       : await sendOne(uid, camp.app, r.email, camp.subject, html);
     await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, {
       method: "PATCH", headers: sbHeaders,

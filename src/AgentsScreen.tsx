@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, cloudflareApply, getDeliverability, type DomainHealth, type Reputation, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, cloudflareApply, getDeliverability, type DomainHealth, type Reputation, enableReplies, disableReplies, replyStatus, listReplies, markReplyRead, type InboundReply, type ReplyMx, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -30,7 +30,7 @@ const AGENTS: AgentDef[] = [
 type CommsId = 'gmail' | 'm365' | 'telegram';
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'logs' | 'deliver' | 'settings';
+type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'logs' | 'deliver' | 'replies' | 'settings';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
   texts: { t: 'Text', s: 'Send an SMS' },
@@ -41,6 +41,7 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   webhook: { t: 'Webhooks', s: 'Post events to your systems' },
   logs: { t: 'Logs', s: 'Every email sent & what happened' },
   deliver: { t: 'Deliverability', s: 'Are your emails landing?' },
+  replies: { t: 'Replies', s: 'When people write back' },
   settings: { t: 'Settings', s: 'Sender, reply-to & preferences' },
 };
 // Sendra home menu. 'inbox'/'contacts' open the mail workspace; the rest are tabs/scaffolds.
@@ -50,6 +51,7 @@ const HOME_TOOLS: { id: SendraTab | 'inbox' | 'contacts'; name: string; desc: st
   { id: 'texts', name: 'Text', desc: 'Send an SMS', Icon: IconChat },
   { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
   { id: 'logs', name: 'Logs', desc: 'Every email sent', Icon: IconClock },
+  { id: 'replies', name: 'Replies', desc: 'When people write back', Icon: IconCompose },
   { id: 'deliver', name: 'Deliverability', desc: 'Are emails landing?', Icon: IconChart },
   { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
   { id: 'domains', name: 'Domains', desc: 'Send from your address', Icon: IconGlobe },
@@ -57,6 +59,12 @@ const HOME_TOOLS: { id: SendraTab | 'inbox' | 'contacts'; name: string; desc: st
   { id: 'schedule', name: 'Schedule', desc: 'Plan sends ahead', Icon: IconCalendar },
   { id: 'settings', name: 'Settings', desc: 'Sender & preferences', Icon: IconSettings },
 ];
+// Stable color from a string (reply avatars).
+const hueFor = (s: string): string => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+  return `hsl(${h} 52% 42%)`;
+};
 
 // The mail workspace's top cards. Inbox / New email / Contacts are live; rest are stubs.
 const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[] = [
@@ -223,6 +231,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // Deliverability insights (Deliverability tab)
   const [deliv, setDeliv] = useState<{ domains: DomainHealth[]; reputation: Reputation } | null>(null);
   const [delivBusy, setDelivBusy] = useState(false);
+  // Inbound replies (Replies tab) + per-domain reply opt-in
+  const [repliesList, setRepliesList] = useState<InboundReply[]>([]);
+  const [repliesBusy, setRepliesBusy] = useState(false);
+  const [openReplyId, setOpenReplyId] = useState<string | null>(null);   // expanded reply id
+  const [replySetup, setReplySetup] = useState<{ domain: string; mx?: ReplyMx; busy?: boolean; enabled?: boolean; mxLive?: boolean } | null>(null); // domain whose reply panel is open
   // Custom sending domains (Amazon SES) + the campaign "From" picker
   const [campView, setCampView] = useState<'list' | 'suppressions' | 'stats'>('list');
   const [campStats, setCampStats] = useState<{ campaign: Campaign; stats: CampaignStats } | null>(null);
@@ -449,6 +462,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
     if (sendraTab === 'logs') { setLogsBusy(true); listLogs('').then((l) => { if (mountedRef.current) { setLogsList(l); setLogsBusy(false); } }).catch(() => { if (mountedRef.current) setLogsBusy(false); }); }
     if (sendraTab === 'deliver') { setDelivBusy(true); getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); }); }
+    if (sendraTab === 'replies') { setRepliesBusy(true); listReplies().then((r) => { if (mountedRef.current) { setRepliesList(r); setRepliesBusy(false); } }).catch(() => { if (mountedRef.current) setRepliesBusy(false); }); }
+    if (sendraTab === 'domains') listSesDomains().then((d) => { if (mountedRef.current) setSesDomains(d); });
   }, [agent, commsApp, sendraTab, campNew]);
 
   // Auto-recheck a pending domain so the user doesn't keep tapping "Check": while the
@@ -855,6 +870,39 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setDelivBusy(true);
     getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); });
   };
+  // ---- Replies (inbound) ----
+  const loadReplies = () => {
+    setRepliesBusy(true);
+    listReplies().then((r) => { if (mountedRef.current) { setRepliesList(r); setRepliesBusy(false); } }).catch(() => { if (mountedRef.current) setRepliesBusy(false); });
+  };
+  const tapReply = (r: InboundReply) => {
+    tap();
+    setOpenReplyId((id) => (id === r.id ? null : r.id));
+    if (!r.read) { markReplyRead(r.id).catch(() => {}); setRepliesList((list) => list.map((x) => x.id === r.id ? { ...x, read: true } : x)); }
+  };
+  // Open the reply opt-in panel for a domain and check whether its MX is live yet.
+  const openReplySetup = (domain: string) => {
+    tap();
+    setReplySetup({ domain, busy: true });
+    replyStatus(domain).then((s) => { if (mountedRef.current) setReplySetup({ domain, mx: s.mx, enabled: s.enabled, mxLive: s.mxLive, busy: false }); })
+      .catch(() => { if (mountedRef.current) setReplySetup({ domain, busy: false }); });
+  };
+  const doEnableReplies = async (domain: string) => {
+    setReplySetup((s) => s && s.domain === domain ? { ...s, busy: true } : s);
+    try {
+      const r = await enableReplies(domain);
+      if (!mountedRef.current) return;
+      setReplySetup({ domain, mx: r.mx, enabled: true, mxLive: false, busy: false });
+      setSesDomains((ds) => ds.map((d) => d.domain === domain ? { ...d, reply_enabled: true } : d));
+    } catch { if (mountedRef.current) setReplySetup((s) => s && s.domain === domain ? { ...s, busy: false } : s); }
+  };
+  const doDisableReplies = async (domain: string) => {
+    setReplySetup((s) => s && s.domain === domain ? { ...s, busy: true } : s);
+    await disableReplies(domain).catch(() => {});
+    if (!mountedRef.current) return;
+    setReplySetup({ domain, enabled: false, busy: false });
+    setSesDomains((ds) => ds.map((d) => d.domain === domain ? { ...d, reply_enabled: false } : d));
+  };
   // Derive a display status from a recipient row (engagement is in the timestamps).
   const logStatus = (l: EmailLog): { label: string; cls: string } => {
     if (l.status === 'bounced') return { label: 'Bounced', cls: 'failed' };
@@ -1193,7 +1241,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <div className="ag-stage">
             <div className="ag-grid">
               {HOME_TOOLS.map((t) => (
-                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); if (t.id === 'webhook') loadWebhooks(); if (t.id === 'logs') { setLogsQ(''); loadLogs(''); } if (t.id === 'deliver') loadDeliver(); setSendraTab(t.id as SendraTab); } }}>
+                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); if (t.id === 'webhook') loadWebhooks(); if (t.id === 'logs') { setLogsQ(''); loadLogs(''); } if (t.id === 'deliver') loadDeliver(); if (t.id === 'replies') { setOpenReplyId(null); loadReplies(); } setSendraTab(t.id as SendraTab); } }}>
                   <span className="ag-act-ic"><t.Icon size={20} /></span>
                   <span className="ag-act-label">{t.name}</span>
                   <span className="ag-act-sub">{t.desc}</span>
@@ -1630,6 +1678,40 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                                 </div>
                               )}
                               {d.status === 'verified' && testMsg && <div className={`ag-dom-testmsg${testMsg.startsWith('Sent') ? ' ok' : ''}`}>{testMsg}</div>}
+                              {d.status === 'verified' && (() => {
+                                const panel = replySetup?.domain === d.domain ? replySetup : null;
+                                const on = panel ? !!panel.enabled : !!d.reply_enabled;
+                                return (
+                                  <div className="ag-dom-reply">
+                                    {!panel ? (
+                                      <button className="ag-send-btn ghost ag-dom-reply-btn" onClick={() => (d.reply_enabled ? openReplySetup(d.domain) : doEnableReplies(d.domain))}>
+                                        {d.reply_enabled ? '↩ Reply settings' : '↩ Enable replies'}
+                                      </button>
+                                    ) : panel.busy && !panel.mx ? (
+                                      <div className="ag-foot ag-dom-hint">Setting up replies…</div>
+                                    ) : on && panel.mx ? (
+                                      <div className="ag-reply-setup">
+                                        <p className="ag-foot ag-dom-hint">Replies are on. Add this one MX record at your DNS host to start receiving them:</p>
+                                        <div className="ag-dns-rec">
+                                          <div className="ag-dns-top"><span className="ag-dns-type">MX</span><span className="ag-dns-note">priority {panel.mx.priority}</span></div>
+                                          <div className="ag-dns-field"><label>Name / Host</label><div className="ag-dns-val"><code>{panel.mx.host}</code><button className={copied === panel.mx.host ? 'ok' : ''} onClick={() => copyText(panel.mx!.host)}>{copied === panel.mx.host ? 'Copied ✓' : 'Copy'}</button></div></div>
+                                          <div className="ag-dns-field"><label>Value</label><div className="ag-dns-val"><code>{panel.mx.value}</code><button className={copied === panel.mx.value ? 'ok' : ''} onClick={() => copyText(panel.mx!.value)}>{copied === panel.mx.value ? 'Copied ✓' : 'Copy'}</button></div></div>
+                                        </div>
+                                        <div className={`ag-reply-mxstatus${panel.mxLive ? ' ok' : ''}`}>{panel.mxLive ? '✓ MX is live — replies will appear in the Replies tab.' : 'Waiting on the MX record. Add it, give DNS a few minutes, then Recheck.'}</div>
+                                        <div className="ag-dom-actions">
+                                          <button className="ag-send-btn ghost" disabled={panel.busy} onClick={() => openReplySetup(d.domain)}>{panel.busy ? 'Checking…' : 'Recheck'}</button>
+                                          <button className="ag-send-btn ghost" disabled={panel.busy} onClick={() => doDisableReplies(d.domain)}>Turn off</button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="ag-dom-actions">
+                                        <button className="ag-send-btn" disabled={panel.busy} onClick={() => doEnableReplies(d.domain)}>{panel.busy ? 'Enabling…' : 'Enable replies'}</button>
+                                        <button className="ag-send-btn ghost" onClick={() => { tap(); setReplySetup(null); }}>Close</button>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                               <div className="ag-dom-actions">
                                 {d.status !== 'verified' && <button className="ag-send-btn" onClick={() => checkDomain(d.domain)}>Check now</button>}
                                 <button className="ag-send-btn ghost" onClick={() => removeDomain(d.domain)}>Remove</button>
@@ -1748,6 +1830,64 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     <p className="ag-foot">DKIM, SPF and DMARC are checked live against your DNS. DKIM is the one that must pass — with it, DMARC aligns even without SPF. Rates cover every campaign email you’ve sent.</p>
                   </>
                 )}
+              </div>
+            ) : sendraTab === 'replies' ? (
+              <div className="ag-compose">
+                {(() => {
+                  const replyDoms = sesDomains.filter((d) => d.status === 'verified');
+                  const anyEnabled = replyDoms.some((d) => d.reply_enabled);
+                  return (
+                    <>
+                      {replyDoms.length === 0 ? (
+                        <div className="ag-empty" style={{ marginTop: 12 }}>
+                          Replies come back through your own domain. Verify a domain under <b>Domains</b> first, then turn on replies there.
+                          <div style={{ marginTop: 14 }}>
+                            <button className="ag-send-btn" onClick={() => { tap(); setSendraTab('domains'); loadDomains(); }}>Set up a domain →</button>
+                          </div>
+                        </div>
+                      ) : !anyEnabled ? (
+                        <div className="ag-empty" style={{ marginTop: 12 }}>
+                          Replies aren’t on yet. Open <b>Domains</b> → your verified domain → <b>Enable replies</b>, then add the one MX record we give you. After that, every reply lands here.
+                          <div style={{ marginTop: 14 }}>
+                            <button className="ag-send-btn" onClick={() => { tap(); setSendraTab('domains'); loadDomains(); }}>Enable replies →</button>
+                          </div>
+                        </div>
+                      ) : repliesBusy && repliesList.length === 0 ? (
+                        <div className="ag-empty" style={{ marginTop: 12 }}>Loading…</div>
+                      ) : repliesList.length === 0 ? (
+                        <div className="ag-empty" style={{ marginTop: 12 }}>No replies yet. When someone replies to one of your campaigns, it shows up here.</div>
+                      ) : (
+                        <div className="ag-reply-list">
+                          {repliesList.map((r) => {
+                            const open = openReplyId === r.id;
+                            const who = r.from_name || r.from_email;
+                            return (
+                              <div className={`ag-reply${r.read ? '' : ' unread'}${open ? ' open' : ''}`} key={r.id}>
+                                <button className="ag-reply-row" onClick={() => tapReply(r)}>
+                                  <span className="ag-reply-av" style={{ background: hueFor(who) }}>{(who[0] || '?').toUpperCase()}</span>
+                                  <span className="ag-reply-info">
+                                    <span className="ag-reply-top"><span className="ag-reply-who">{who}</span><span className="ag-reply-when">{new Date(r.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span></span>
+                                    <span className="ag-reply-subj">{r.subject || '(no subject)'}</span>
+                                    <span className="ag-reply-snip">{r.snippet}</span>
+                                  </span>
+                                </button>
+                                {open && (
+                                  <div className="ag-reply-body">
+                                    <div className="ag-reply-meta">{r.from_email}{r.campaign?.name ? ` · re: ${r.campaign.name}` : ''}</div>
+                                    <div className="ag-reply-text">{r.body_text || r.snippet || '(no text)'}</div>
+                                    <a className="ag-send-btn ghost ag-reply-open" href={`mailto:${r.from_email}?subject=${encodeURIComponent('Re: ' + (r.subject || ''))}`}>Reply in mail app →</a>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {repliesList.length > 0 && <button className="ag-send-btn ghost" disabled={repliesBusy} onClick={loadReplies}>{repliesBusy ? 'Refreshing…' : 'Refresh'}</button>}
+                      <p className="ag-foot">Replies to your campaigns route through reply.&lt;yourdomain&gt; and land here. Open one to read it, then reply from your own mailbox.</p>
+                    </>
+                  );
+                })()}
               </div>
             ) : sendraTab === 'webhook' ? (
               <div className="ag-compose">
