@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 // Public webhook for Resend events (the built-in ESP behind `send_via: "resend"`
-// campaigns). Mirrors ses-events, two jobs:
+// campaigns). Two jobs:
 //   1. List hygiene — on a bounce or complaint, add the recipient to that user's
 //      email_suppressions (future campaigns skip them) and mark the recipient;
 //      stamp delivered_at on delivery (powers the "delivered" stat).
@@ -82,7 +82,7 @@ async function patchRecipient(id: string, patch: Record<string, unknown>) {
   });
 }
 
-// ---- Outbound webhook delivery (signed, best-effort) — identical contract to ses-events ----
+// ---- Outbound webhook delivery (signed, best-effort) — Sendra's standard signed payload ----
 async function sign(secret: string, ts: string, body: string): Promise<string> {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${ts}.${body}`));
@@ -127,7 +127,7 @@ async function forward(uid: string, event: { id: string }) {
   }
 }
 
-// Map a Resend event onto the same stable payload ses-events emits (so registered
+// Map a Resend event onto Sendra's stable webhook payload (so registered
 // webhooks see one consistent shape regardless of which ESP sent the mail).
 // deno-lint-ignore no-explicit-any
 function normalize(type: string, data: any, campaignId: string, email: string): { id: string; type: string; created_at: string; data: Record<string, unknown> } | null {
