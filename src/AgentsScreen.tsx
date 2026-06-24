@@ -756,13 +756,18 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     }
     tap(); setCampState('sending'); setCampErr(''); setCampProg({ sent: 0, total: recipients.length, failed: 0 });
     try {
-      const useDomain = !!campDomain && sesDomains.some((d) => d.domain === campDomain && d.status === 'verified');
+      const useResend = campDomain === '__resend__';
+      const useDomain = !useResend && !!campDomain && sesDomains.some((d) => d.domain === campDomain && d.status === 'verified');
       const c = await createCampaign({
         app: campApp,
         subject: campSubject.trim(),
         body: campBodyKind === 'html' ? campBody : campToHtml(campBody.trim()),
         recipients,
-        ...(useDomain ? { send_via: 'ses' as const, from_email: `${(campFromLocal.trim() || 'news')}@${campDomain}`, from_name: campFromName.trim() || undefined } : {}),
+        ...(useResend
+          ? { send_via: 'resend' as const, from_name: campFromName.trim() || undefined }
+          : useDomain
+            ? { send_via: 'ses' as const, from_email: `${(campFromLocal.trim() || 'news')}@${campDomain}`, from_name: campFromName.trim() || undefined }
+            : {}),
         ...(scheduledIso ? { scheduled_at: scheduledIso } : {}),
       });
       if (!mountedRef.current) return;
@@ -773,8 +778,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           c.error === 'no_recipients' ? `No one to send to${c.invalid ? ` — ${c.invalid} invalid` : ''}${c.skipped ? `, ${c.skipped} unsubscribed` : ''}.`
             : c.error === 'missing_content' ? 'Add a subject and a message.'
               : c.error === 'domain_not_verified' ? 'That domain isn’t verified yet — check its DNS records under Sending domains.'
-                : c.error === 'bad_from' ? 'Enter a valid From address.'
-                  : 'Couldn’t create the campaign — try again.');
+                : c.error === 'resend_unset' ? 'Sendra’s built-in email isn’t set up on the server yet.'
+                  : c.error === 'bad_from' ? 'Enter a valid From address.'
+                    : 'Couldn’t create the campaign — try again.');
         return;
       }
       setCampProg({ sent: 0, total: c.queued ?? recipients.length, failed: 0 });
@@ -1302,24 +1308,28 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         ))}
                       </div>
                     )}
-                    {sesDomains.some((d) => d.status === 'verified') && (
-                      <div className="ag-from">
-                        <span className="ag-from-lbl">Send from</span>
-                        <select className="ag-field ag-from-sel" value={campDomain} onChange={(e) => { tap(); setCampDomain(e.target.value); if (campState === 'err') setCampState('idle'); }}>
-                          <option value="">My mailbox</option>
-                          {sesDomains.filter((d) => d.status === 'verified').map((d) => (
-                            <option key={d.domain} value={d.domain}>{d.domain} (my domain)</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                    <div className="ag-from">
+                      <span className="ag-from-lbl">Send from</span>
+                      <select className="ag-field ag-from-sel" value={campDomain} onChange={(e) => { tap(); setCampDomain(e.target.value); if (campState === 'err') setCampState('idle'); }}>
+                        <option value="__resend__">Sendra (built-in)</option>
+                        <option value="">My mailbox</option>
+                        {sesDomains.filter((d) => d.status === 'verified').map((d) => (
+                          <option key={d.domain} value={d.domain}>{d.domain} (my domain)</option>
+                        ))}
+                      </select>
+                    </div>
                     {!campDomain && mailApiApps.length >= 2 && (
                       <div className="ag-seg">
                         <button className={campApp === 'gmail' ? 'on' : ''} onClick={() => { tap(); setCampApp('gmail'); }}>Gmail</button>
                         <button className={campApp === 'outlook' ? 'on' : ''} onClick={() => { tap(); setCampApp('outlook'); }}>Outlook</button>
                       </div>
                     )}
-                    {campDomain && (
+                    {campDomain === '__resend__' && (
+                      <div className="ag-from-fields">
+                        <input className="ag-field" placeholder="From name (optional, e.g. Acme News)" value={campFromName} onChange={(e) => setCampFromName(e.target.value)} />
+                      </div>
+                    )}
+                    {campDomain && campDomain !== '__resend__' && (
                       <div className="ag-from-fields">
                         <input className="ag-field" placeholder="From name (e.g. Acme News)" value={campFromName} onChange={(e) => setCampFromName(e.target.value)} />
                         <div className="ag-from-addr">
@@ -1354,7 +1364,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       {campState === 'sending' ? (campWhen === 'later' ? 'Scheduling…' : `Sending… ${campProg.sent}/${campProg.total}`) : campWhen === 'later' ? 'Schedule campaign' : 'Send campaign'}
                     </button>
                     <button className="ag-send-btn ghost" disabled={campState === 'sending'} onClick={() => { tap(); setCampNew(false); }}>Cancel</button>
-                    <p className="ag-foot">{campDomain ? `Sends from ${(campFromLocal.trim() || 'news')}@${campDomain} (your verified domain)` : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
+                    <p className="ag-foot">{campDomain === '__resend__' ? 'Sends through Sendra’s built-in email — no setup needed' : campDomain ? `Sends from ${(campFromLocal.trim() || 'news')}@${campDomain} (your verified domain)` : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
                   </div>
                 )
               ) : campView === 'suppressions' ? (

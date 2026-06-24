@@ -1,11 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { AwsClient } from "https://esm.sh/aws4fetch@1.0.20";
 
-// Sendra email campaigns — sent through the user's connected Gmail/Outlook (no
-// ESP). Small lists only: GMAIL caps ~500/day, so we throttle and the client
-// calls `send` repeatedly to drain the queue in batches. Every send is
-// personalized ({{name}}), gets an unsubscribe footer, and skips anyone on the
-// per-user suppression list. Identity is server-verified (Supabase token).
+// Sendra email campaigns. Three send methods (per campaign, via send_via):
+//   "resend"  — Sendra's built-in ESP (zero setup, central verified domain)
+//   "ses"     — the user's own verified SES domain (custom From)
+//   "mailbox" — the user's connected Gmail/Outlook (default; ~500/day cap)
+// The client calls `send` repeatedly to drain the queue in throttled batches. Every
+// send is personalized ({{name}}), gets an unsubscribe footer + open/click tracking,
+// and skips anyone on the per-user suppression list. Identity is server-verified.
 //
 // POST { action, ... } (via supabase.functions.invoke):
 //   create { app, name?, subject, body, recipients:[{email,name?}] }
@@ -24,6 +26,11 @@ const AWS_REGION = Deno.env.get("AWS_SES_REGION") ?? "us-east-1";
 const sbHeaders = { apikey: SB_SERVICE, authorization: `Bearer ${SB_SERVICE}`, "content-type": "application/json" };
 const aws = new AwsClient({ accessKeyId: AWS_ID, secretAccessKey: AWS_SECRET, region: AWS_REGION, service: "ses" });
 const SES_BASE = `https://email.${AWS_REGION}.amazonaws.com`;
+// Built-in ESP (Resend) — the zero-setup sender behind `send_via: "resend"`. One central
+// key + verified domain (RESEND_FROM); users send through it without connecting anything.
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
+const RESEND_FROM = Deno.env.get("RESEND_FROM") || "Sendra <onboarding@resend.dev>";
+const RESEND_API = "https://api.resend.com/emails";
 const CONFIG_SET = "sendra";   // SES configuration set (created by the `ses` fn) — enables bounce/complaint tracking + tags
 let configReady = false;
 async function ensureConfigSet(): Promise<boolean> {
@@ -201,6 +208,41 @@ async function sendOneSes(p: { fromEmail: string; fromName: string | null; to: s
   }
 }
 
+// From address for built-in (Resend) sends: the central verified RESEND_FROM, with an
+// optional per-campaign display name swapped in (the address must stay on the verified domain).
+function resendFrom(name: string | null): string {
+  if (!name) return RESEND_FROM;
+  const m = RESEND_FROM.match(/<([^>]+)>/);
+  return `${name} <${m ? m[1] : RESEND_FROM}>`;
+}
+// Send one email through Sendra's built-in ESP (Resend). Mirrors sendOneSes: adds the
+// one-click List-Unsubscribe headers and returns Resend's message id, which the
+// resend-events webhook maps back to this recipient (delivered/bounce/complaint).
+async function sendOneResend(p: { fromName: string | null; to: string; subject: string; html: string; unsub: string }): Promise<{ ok: boolean; id?: string; error?: string }> {
+  try {
+    const res = await fetch(RESEND_API, {
+      method: "POST",
+      headers: { authorization: `Bearer ${RESEND_API_KEY}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        from: resendFrom(p.fromName),
+        to: [p.to],
+        subject: p.subject,
+        html: p.html,
+        text: htmlToText(p.html),
+        headers: { "List-Unsubscribe": `<${p.unsub}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+      }),
+    });
+    const j = await res.json().catch(() => ({})) as Record<string, unknown>;
+    if (!res.ok || j?.error) {
+      const msg = typeof j?.error === "object" ? JSON.stringify(j.error) : String(j?.error ?? `http_${res.status}`);
+      return { ok: false, error: `resend_${res.status}:${msg}`.slice(0, 200) };
+    }
+    return { ok: true, id: typeof j?.id === "string" ? j.id : undefined };
+  } catch (e) {
+    return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) };
+  }
+}
+
 // Drain one batch of a campaign's queue. Shared by the `send` action (client-driven)
 // and the scheduled `run_due` cron. Flips draft/scheduled -> sending, sends up to
 // `limit`, updates counts, and marks the campaign sent once the queue is empty.
@@ -228,6 +270,7 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
   const qRes = await fetch(`${SB_URL}/rest/v1/campaign_recipients?campaign_id=eq.${id}&status=eq.queued&select=id,email,name&order=id.asc&limit=${limit}`, { headers: sbHeaders });
   const batch = (await qRes.json().catch(() => [])) as { id: string; email: string; name: string | null }[];
   const isSes = camp.send_via === "ses" && !!camp.from_email;
+  const isResend = camp.send_via === "resend";
   const withConfig = isSes ? await ensureConfigSet() : false;
   // Reply handling: if the sending domain has it enabled, every send gets a tokened
   // Reply-To at reply.<domain> so replies thread back via the ses-inbound webhook.
@@ -244,15 +287,17 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
     const tok = await trackToken(id, r.id);
     const personalized = String(camp.body).replace(/\{\{\s*name\s*\}\}/g, esc(who));
     const html = `${withTracking(personalized, id, r.id, tok)}<br><br><hr style="border:none;border-top:1px solid #eee"><p style="font-size:12px;color:#888;font-family:system-ui,sans-serif">You're receiving this because you're on a list managed in Sendra. <a href="${unsub}" style="color:#888">Unsubscribe</a>.</p>${openPixel(id, r.id, tok)}`;
-    const res = isSes
-      ? await sendOneSes({ fromEmail: camp.from_email, fromName: camp.from_name, to: r.email, subject: camp.subject, html, unsub, uid, campaignId: id, withConfig, replyTo: replyDomain ? `reply+${r.id}@reply.${replyDomain}` : undefined })
-      : await sendOne(uid, camp.app, r.email, camp.subject, html);
+    const res: { ok: boolean; id?: string; error?: string } = isResend
+      ? await sendOneResend({ fromName: camp.from_name, to: r.email, subject: camp.subject, html, unsub })
+      : isSes
+        ? await sendOneSes({ fromEmail: camp.from_email, fromName: camp.from_name, to: r.email, subject: camp.subject, html, unsub, uid, campaignId: id, withConfig, replyTo: replyDomain ? `reply+${r.id}@reply.${replyDomain}` : undefined })
+        : await sendOne(uid, camp.app, r.email, camp.subject, html);
     await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, {
       method: "PATCH", headers: sbHeaders,
-      body: JSON.stringify(res.ok ? { status: "sent", sent_at: new Date().toISOString() } : { status: "failed", error: res.error }),
+      body: JSON.stringify(res.ok ? { status: "sent", sent_at: new Date().toISOString(), ...(res.id ? { provider_msg_id: res.id } : {}) } : { status: "failed", error: res.error }),
     });
     if (res.ok) sent++; else failed++;
-    await sleep(camp.send_via === "ses" ? 1100 : 700); // throttle — SES sandbox is 1/sec; Gmail likes it slow too
+    await sleep(isResend ? 600 : camp.send_via === "ses" ? 1100 : 700); // throttle — Resend default 2/sec; SES sandbox 1/sec; Gmail likes it slow too
   }
   const [totSent, totFailed, remaining] = await Promise.all([countBy(id, "sent"), countBy(id, "failed"), countBy(id, "queued")]);
   const done = remaining === 0;
@@ -318,8 +363,9 @@ Deno.serve(async (req: Request) => {
       const raw = Array.isArray(body?.recipients) ? body.recipients as Record<string, unknown>[] : [];
       if (!subject || !html) return json(req, { error: "missing_content" });
 
-      // Sending method: through the user's mailbox (default) or a verified SES domain.
-      const sendVia = String(body?.send_via || "mailbox").toLowerCase() === "ses" ? "ses" : "mailbox";
+      // Sending method: built-in Resend (zero setup), the user's mailbox (default), or a verified SES domain.
+      const rawVia = String(body?.send_via || "mailbox").toLowerCase();
+      const sendVia = rawVia === "ses" ? "ses" : rawVia === "resend" ? "resend" : "mailbox";
       let fromEmail: string | null = null;
       let fromName: string | null = null;
       if (sendVia === "ses") {
@@ -330,6 +376,9 @@ Deno.serve(async (req: Request) => {
         if (!dom) return json(req, { error: "bad_from" });
         const dRes = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${dom}&status=eq.verified&select=domain`, { headers: sbHeaders });
         if (!((await dRes.json().catch(() => [])) as unknown[]).length) return json(req, { error: "domain_not_verified" });
+      } else if (sendVia === "resend") {
+        if (!RESEND_API_KEY) return json(req, { error: "resend_unset" });
+        fromName = body?.from_name ? String(body.from_name).slice(0, 120) : null; // the address comes from the central verified RESEND_FROM
       }
 
       // Dedupe + validate, then drop anyone suppressed for this user.
