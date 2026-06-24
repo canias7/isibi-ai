@@ -463,17 +463,6 @@ export async function generateTemplate(prompt: string, mode: 'text' | 'design' =
   return (data || {}) as { subject?: string; body?: string; kind?: 'text' | 'html'; error?: string };
 }
 
-// ---- Brand profile (feeds the AI template designer) ----
-export interface Brand { name?: string; logo_url?: string; color?: string; voice?: string; signoff?: string; address?: string }
-export async function getBrand(): Promise<Brand> {
-  const { data, error } = await supabase.functions.invoke('templates', { body: { action: 'getBrand' } });
-  if (error) return {};
-  return ((data as { brand?: Brand } | null)?.brand) || {};
-}
-export async function saveBrand(b: Brand): Promise<void> {
-  await supabase.functions.invoke('templates', { body: { action: 'saveBrand', ...b } });
-}
-
 // Fetch one attachment's bytes (base64) or hosted URL — for inline images,
 // preview, and download. `app` routes to the right mailbox provider.
 export async function fetchAttachment(mid: string, aid: string, name = 'file', app?: string): Promise<{ b64?: string; url?: string }> {
