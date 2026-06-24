@@ -297,6 +297,28 @@ export async function cloudflareApply(domain: string, token: string): Promise<{ 
   return (data || {}) as { ok?: boolean; created?: number; skipped?: number; failed?: number; error?: string };
 }
 
+// ---- Deliverability insights (via the `ses` fn) ----
+// Per-domain email auth (DKIM/SPF/DMARC, checked live against DNS) plus account
+// reputation (bounce/complaint rates) — the "are my emails landing?" view.
+export interface DomainHealth {
+  domain: string;
+  status: string;
+  dkim: boolean;
+  spf: { found: boolean; ses: boolean };
+  dmarc: { found: boolean; policy: 'none' | 'quarantine' | 'reject' | null };
+  score: number;
+  grade: 'great' | 'good' | 'fair' | 'poor';
+  tips: string[];
+}
+export interface Reputation { accepted: number; delivered: number; bounced: number; complained: number; bounceRate: number; complaintRate: number }
+export async function getDeliverability(): Promise<{ domains: DomainHealth[]; reputation: Reputation }> {
+  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'deliverability' } });
+  const empty = { accepted: 0, delivered: 0, bounced: 0, complained: 0, bounceRate: 0, complaintRate: 0 };
+  if (error) return { domains: [], reputation: empty };
+  const d = (data || {}) as { domains?: DomainHealth[]; reputation?: Reputation };
+  return { domains: Array.isArray(d.domains) ? d.domains : [], reputation: d.reputation || empty };
+}
+
 // Saved senders — reusable "From" identities (name + address@verified-domain).
 export interface Sender { id: string; from_name: string; from_email: string }
 export async function listSenders(): Promise<Sender[]> {
