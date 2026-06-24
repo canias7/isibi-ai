@@ -3,11 +3,11 @@ import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck, IconContacts,
   IconDoc, IconChat, IconPlus, IconArrowUp, IconX, IconCopy,
-  IconCalendar, IconGlobe, IconWebhook, IconSettings, IconChart,
+  IconCalendar, IconWebhook, IconSettings, IconChart,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, listSesDomains, addSesDomain, checkSesDomain, removeSesDomain, testSesDomain, domainConnectUrl, cloudflareApply, getDeliverability, type DomainHealth, type Reputation, enableReplies, disableReplies, replyStatus, listReplies, markReplyRead, type InboundReply, type ReplyMx, listSenders, addSender, removeSender, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type SesDomain, type WebhookEndpoint, type SavedContact, type Sender, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -30,18 +30,16 @@ const AGENTS: AgentDef[] = [
 type CommsId = 'gmail' | 'm365' | 'telegram';
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'logs' | 'deliver' | 'replies' | 'settings';
+type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'schedule' | 'webhook' | 'logs' | 'deliver' | 'settings';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
   texts: { t: 'Text', s: 'Send an SMS' },
   campaigns: { t: 'Campaigns', s: 'Email & SMS to your lists' },
   templates: { t: 'Templates', s: 'Reusable messages' },
-  domains: { t: 'Domains', s: 'Send from your own address' },
   schedule: { t: 'Schedule', s: 'Scheduled sends & reminders' },
   webhook: { t: 'Webhooks', s: 'Post events to your systems' },
   logs: { t: 'Logs', s: 'Every email sent & what happened' },
   deliver: { t: 'Deliverability', s: 'Are your emails landing?' },
-  replies: { t: 'Replies', s: 'When people write back' },
   settings: { t: 'Settings', s: 'Sender, reply-to & preferences' },
 };
 // Sendra home menu. 'inbox'/'contacts' open the mail workspace; the rest are tabs/scaffolds.
@@ -51,20 +49,12 @@ const HOME_TOOLS: { id: SendraTab | 'inbox' | 'contacts'; name: string; desc: st
   { id: 'texts', name: 'Text', desc: 'Send an SMS', Icon: IconChat },
   { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
   { id: 'logs', name: 'Logs', desc: 'Every email sent', Icon: IconClock },
-  { id: 'replies', name: 'Replies', desc: 'When people write back', Icon: IconCompose },
   { id: 'deliver', name: 'Deliverability', desc: 'Are emails landing?', Icon: IconChart },
   { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
-  { id: 'domains', name: 'Domains', desc: 'Send from your address', Icon: IconGlobe },
   { id: 'webhook', name: 'Webhooks', desc: 'Post events out', Icon: IconWebhook },
   { id: 'schedule', name: 'Schedule', desc: 'Plan sends ahead', Icon: IconCalendar },
   { id: 'settings', name: 'Settings', desc: 'Sender & preferences', Icon: IconSettings },
 ];
-// Stable color from a string (reply avatars).
-const hueFor = (s: string): string => {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
-  return `hsl(${h} 52% 42%)`;
-};
 
 // The mail workspace's top cards. Inbox / New email / Contacts are live; rest are stubs.
 const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[] = [
@@ -229,34 +219,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [logsQ, setLogsQ] = useState('');
   const [logsBusy, setLogsBusy] = useState(false);
   // Deliverability insights (Deliverability tab)
-  const [deliv, setDeliv] = useState<{ domains: DomainHealth[]; reputation: Reputation } | null>(null);
+  const [deliv, setDeliv] = useState<{ reputation: Reputation } | null>(null);
   const [delivBusy, setDelivBusy] = useState(false);
-  // Inbound replies (Replies tab) + per-domain reply opt-in
-  const [repliesList, setRepliesList] = useState<InboundReply[]>([]);
-  const [repliesBusy, setRepliesBusy] = useState(false);
-  const [openReplyId, setOpenReplyId] = useState<string | null>(null);   // expanded reply id
-  const [replySetup, setReplySetup] = useState<{ domain: string; mx?: ReplyMx; busy?: boolean; enabled?: boolean; mxLive?: boolean } | null>(null); // domain whose reply panel is open
-  // Custom sending domains (Amazon SES) + the campaign "From" picker
+  // Campaign views + the campaign "From" picker
   const [campView, setCampView] = useState<'list' | 'suppressions' | 'stats'>('list');
   const [campStats, setCampStats] = useState<{ campaign: Campaign; stats: CampaignStats } | null>(null);
   const [campStatsBusy, setCampStatsBusy] = useState(false);
   const [supList, setSupList] = useState<Suppression[]>([]);
-  const [testTo, setTestTo] = useState('');
-  const [testBusy, setTestBusy] = useState(false);
-  const [testMsg, setTestMsg] = useState('');
-  const [sesDomains, setSesDomains] = useState<SesDomain[]>([]);
-  const [domNew, setDomNew] = useState('');
-  const [domBusy, setDomBusy] = useState(false);
-  const [domErr, setDomErr] = useState('');
-  const [domOpen, setDomOpen] = useState<string | null>(null);
-  const [copied, setCopied] = useState('');   // last-copied DNS value, for the "Copied" flash
-  const [copiedAll, setCopiedAll] = useState(''); // domain whose full record set was just copied
-  const [dcBusy, setDcBusy] = useState('');       // domain whose one-click is being prepared
-  const [dcMsg, setDcMsg] = useState<Record<string, string>>({}); // per-domain one-click status
-  const [cfOpen, setCfOpen] = useState('');       // domain whose Cloudflare token panel is open
-  const [cfToken, setCfToken] = useState('');     // pasted Cloudflare API token (used once, never stored)
-  const [cfBusy, setCfBusy] = useState(false);    // Cloudflare apply in flight
-  const [cfMsg, setCfMsg] = useState<Record<string, string>>({}); // per-domain Cloudflare result
+  const [copied, setCopied] = useState('');   // last-copied value (webhook secret), for the "Copied" flash
   // Outbound webhooks
   const [webhooks, setWebhooks] = useState<WebhookEndpoint[]>([]);
   const [whNew, setWhNew] = useState('');
@@ -264,10 +234,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [whErr, setWhErr] = useState('');
   const [whOpen, setWhOpen] = useState<string | null>(null);
   const [whTest, setWhTest] = useState<Record<string, string>>({}); // endpoint id -> last test result message
-  const [campDomain, setCampDomain] = useState('');     // '' = send via mailbox; else a verified domain
-  const [campFromName, setCampFromName] = useState(''); // display name when sending from a domain
-  const [campFromLocal, setCampFromLocal] = useState('news'); // local-part of the From address
-  const [senders, setSenders] = useState<Sender[]>([]);  // saved From identities
+  const [campDomain, setCampDomain] = useState('__resend__'); // '__resend__' = built-in; '' = send via mailbox
+  const [campFromName, setCampFromName] = useState(''); // display name when sending built-in
   // Templates (reusable, AI-writable, or bring-your-own)
   const [tplList, setTplList] = useState<Template[]>([]);
   const [tplEdit, setTplEdit] = useState<null | { id?: string }>(null);
@@ -280,7 +248,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
-  const [chatJobId, setChatJobId] = useState(''); // running AI-builder job (async; survives backgrounding)
+  const [, setChatJobId] = useState(''); // running AI-builder job id (async; survives backgrounding)
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null); // chat bubble showing "Copied"
   const [typeIdx, setTypeIdx] = useState<number | null>(null);     // index of the assistant msg to typewriter-reveal
   const [chatErr, setChatErr] = useState('');
@@ -463,31 +431,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   useEffect(() => {
     if (agent !== 'email' || commsApp !== null) return;
     if ((sendraTab === 'campaigns' && !campNew) || sendraTab === 'schedule') listCampaigns().then((c) => { if (mountedRef.current) setCampList(c); });
-    if (sendraTab === 'campaigns') listSesDomains().then((d) => { if (mountedRef.current) setSesDomains(d); });
-    if (sendraTab === 'campaigns') listSenders().then((s) => { if (mountedRef.current) setSenders(s); });
     if (sendraTab === 'texts') smsStatus().then((s) => { if (mountedRef.current) { setSmsReady(s.ready); setSmsNumber(s.number); } });
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
     if (sendraTab === 'logs') { setLogsBusy(true); listLogs('').then((l) => { if (mountedRef.current) { setLogsList(l); setLogsBusy(false); } }).catch(() => { if (mountedRef.current) setLogsBusy(false); }); }
     if (sendraTab === 'deliver') { setDelivBusy(true); getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); }); }
-    if (sendraTab === 'replies') { loadDomains(); setRepliesBusy(true); listReplies().then((r) => { if (mountedRef.current) { setRepliesList(r); setRepliesBusy(false); } }).catch(() => { if (mountedRef.current) setRepliesBusy(false); }); }
-    if (sendraTab === 'domains') listSesDomains().then((d) => { if (mountedRef.current) setSesDomains(d); });
   }, [agent, commsApp, sendraTab, campNew]);
-
-  // Auto-recheck a pending domain so the user doesn't keep tapping "Check": while the
-  // Domains tab is open and a domain is still pending, re-verify every 20s (capped).
-  const domPollRef = useRef(0);
-  useEffect(() => {
-    if (sendraTab !== 'domains') { domPollRef.current = 0; return; }
-    const pending = sesDomains.filter((d) => d.status !== 'verified' && d.status !== 'failed');
-    if (!pending.length || domPollRef.current >= 15) return;
-    const t = setTimeout(async () => {
-      domPollRef.current += 1;
-      await Promise.all(pending.map((d) => checkSesDomain(d.domain).catch(() => {})));
-      const fresh = await listSesDomains().catch(() => null);
-      if (mountedRef.current && fresh) setSesDomains(fresh);
-    }, 20000);
-    return () => clearTimeout(t);
-  }, [sendraTab, sesDomains]);
 
   // Keep the AI builder pinned to its newest message / rendered email.
   useEffect(() => { const el = chatThreadRef.current; if (el) el.scrollTop = el.scrollHeight; }, [chatMsgs, tplBody, chatBusy]);
@@ -702,7 +650,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     tap(); setCampNew(true); setCampState('idle'); setCampErr('');
     setCampSubject(''); setCampBody(''); setCampBodyKind('text'); setCampRecips(''); setCampProg({ sent: 0, total: 0, failed: 0 });
     setCampApp(connApps.includes('gmail') ? 'gmail' : 'outlook');
-    setCampDomain(''); setCampFromName(''); setCampFromLocal('news');
+    setCampDomain('__resend__'); setCampFromName('');
     setCampWhen('now'); setCampSchedAt('');
   };
   const cancelScheduled = async (id: string) => {
@@ -720,28 +668,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     finally { if (mountedRef.current) setCampStatsBusy(false); }
   };
   const applyTemplate = (t: Template) => { tap(); setCampSubject(t.subject); setCampBody(t.body); setCampBodyKind(t.kind === 'html' ? 'html' : 'text'); if (campState === 'err') setCampState('idle'); };
-  // ---- Saved senders ----
-  const applySender = (s: Sender) => {
-    const at = s.from_email.indexOf('@');
-    const local = at > 0 ? s.from_email.slice(0, at) : '';
-    const dom = at > 0 ? s.from_email.slice(at + 1) : '';
-    if (!sesDomains.some((d) => d.domain === dom && d.status === 'verified')) return; // domain no longer verified
-    tap();
-    setCampDomain(dom); setCampFromLocal(local); setCampFromName(s.from_name || '');
-    if (campState === 'err') setCampState('idle');
-  };
-  const saveSender = async () => {
-    if (!campDomain) return;
-    const email = `${(campFromLocal.trim() || 'news')}@${campDomain}`;
-    tap();
-    try { await addSender(campFromName.trim(), email); const s = await listSenders(); if (mountedRef.current) setSenders(s); } catch { /* ignore */ }
-  };
-  const removeSenderRow = async (id: string) => {
-    tap();
-    await removeSender(id).catch(() => {});
-    const s = await listSenders().catch(() => [] as Sender[]);
-    if (mountedRef.current) setSenders(s);
-  };
   const runCampaign = async () => {
     const recipients = parseRecips(campRecips);
     if (!campSubject.trim() || !campBody.trim() || !recipients.length || campState === 'sending') return;
@@ -757,17 +683,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     tap(); setCampState('sending'); setCampErr(''); setCampProg({ sent: 0, total: recipients.length, failed: 0 });
     try {
       const useResend = campDomain === '__resend__';
-      const useDomain = !useResend && !!campDomain && sesDomains.some((d) => d.domain === campDomain && d.status === 'verified');
       const c = await createCampaign({
         app: campApp,
         subject: campSubject.trim(),
         body: campBodyKind === 'html' ? campBody : campToHtml(campBody.trim()),
         recipients,
-        ...(useResend
-          ? { send_via: 'resend' as const, from_name: campFromName.trim() || undefined }
-          : useDomain
-            ? { send_via: 'ses' as const, from_email: `${(campFromLocal.trim() || 'news')}@${campDomain}`, from_name: campFromName.trim() || undefined }
-            : {}),
+        ...(useResend ? { send_via: 'resend' as const, from_name: campFromName.trim() || undefined } : {}),
         ...(scheduledIso ? { scheduled_at: scheduledIso } : {}),
       });
       if (!mountedRef.current) return;
@@ -798,80 +719,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     }
   };
 
-  // ---- Sending domains (SES) ----
-  const loadDomains = () => listSesDomains().then((d) => { if (mountedRef.current) setSesDomains(d); });
+  // Copy a value to the clipboard with a brief "Copied" flash (webhook secret).
   const copyText = (s: string) => { try { navigator.clipboard?.writeText(s); tap(); setCopied(s); setTimeout(() => { if (mountedRef.current) setCopied(''); }, 1500); } catch { /* ignore */ } };
-  const addDomain = async () => {
-    const d = domNew.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
-    if (!d || domBusy) return;
-    tap(); setDomBusy(true); setDomErr('');
-    try {
-      const r = await addSesDomain(d);
-      if (!mountedRef.current) return;
-      if (r.error) setDomErr(r.error === 'bad_domain' ? 'That doesn’t look like a valid domain.' : 'Couldn’t add the domain — try again.');
-      else { setDomNew(''); setDomOpen(r.domain || d); await loadDomains(); }
-    } catch { if (mountedRef.current) setDomErr('Something went wrong — try again.'); }
-    finally { if (mountedRef.current) setDomBusy(false); }
-  };
-  const checkDomain = async (domain: string) => {
-    tap();
-    try { await checkSesDomain(domain); await loadDomains(); } catch { /* ignore */ }
-  };
-  // One-click: ask the server if this domain's DNS host supports Domain Connect (and our
-  // template is live there). If so, open the authorize page; else fall back to manual.
-  const autoConfigure = async (domain: string) => {
-    tap(); setDcBusy(domain); setDcMsg((m) => ({ ...m, [domain]: '' }));
-    try {
-      const r = await domainConnectUrl(domain);
-      if (!mountedRef.current) return;
-      if (r.supported && r.applyUrl) {
-        window.open(r.applyUrl, '_blank', 'noopener');
-        setDcMsg((m) => ({ ...m, [domain]: `Opened ${r.provider || 'your DNS host'} — authorize there and it’ll verify automatically.` }));
-      } else if (/cloudflare/i.test(r.provider || '')) {
-        // Cloudflare detected — offer the token flow (writes records via the CF API now).
-        setCfToken(''); setCfMsg((m) => ({ ...m, [domain]: '' })); setCfOpen(domain);
-        setDcMsg((m) => ({ ...m, [domain]: 'Your domain is on Cloudflare — finish in one click below.' }));
-      } else {
-        setDcMsg((m) => ({ ...m, [domain]: r.reason === 'template_pending'
-          ? 'One-click is still rolling out for your host — add the records below for now.'
-          : 'Your DNS host doesn’t support one-click — add the records below.' }));
-      }
-    } catch { if (mountedRef.current) setDcMsg((m) => ({ ...m, [domain]: 'Couldn’t start one-click — add the records below.' })); }
-    finally { if (mountedRef.current) setDcBusy(''); }
-  };
-  const cfApply = async (domain: string) => {
-    const tok = cfToken.trim();
-    if (!tok || cfBusy) return;
-    tap(); setCfBusy(true); setCfMsg((m) => ({ ...m, [domain]: '' }));
-    try {
-      const r = await cloudflareApply(domain, tok);
-      if (!mountedRef.current) return;
-      if (r.ok) {
-        const n = (r.created || 0) + (r.skipped || 0);
-        setCfToken(''); setCfOpen('');
-        setCfMsg((m) => ({ ...m, [domain]: `Added ${n} record${n === 1 ? '' : 's'} to Cloudflare ✓ — checking…` }));
-        await checkDomain(domain);
-      } else {
-        const map: Record<string, string> = {
-          cf_auth: 'That token didn’t work — make sure it has Zone · DNS · Edit and Zone · Read.',
-          zone_not_found: 'This domain isn’t in that Cloudflare account.',
-          missing_token: 'Paste your Cloudflare API token first.',
-          not_found: 'Add the domain first, then try again.',
-          write_failed: 'Couldn’t write the records — check the token’s permissions.',
-        };
-        setCfMsg((m) => ({ ...m, [domain]: map[r.error || ''] || 'Couldn’t apply — add the records below instead.' }));
-      }
-    } catch { if (mountedRef.current) setCfMsg((m) => ({ ...m, [domain]: 'Something went wrong — try again.' })); }
-    finally { if (mountedRef.current) setCfBusy(false); }
-  };
-  const copyAllRecords = (domain: string, records: SesDomain['records']) => {
-    const text = records.map((r) => `${r.type}\t${r.name}\t${r.value}`).join('\n');
-    try { navigator.clipboard?.writeText(text); tap(); setCopiedAll(domain); setTimeout(() => { if (mountedRef.current) setCopiedAll(''); }, 1500); } catch { /* ignore */ }
-  };
-  const removeDomain = async (domain: string) => {
-    tap();
-    try { await removeSesDomain(domain); if (campDomain === domain) setCampDomain(''); await loadDomains(); } catch { /* ignore */ }
-  };
   const loadSuppressions = () => listSuppressions().then((s) => { if (mountedRef.current) setSupList(s); });
   // ---- Logs (per-email activity) ----
   const loadLogs = (q = logsQ) => {
@@ -882,39 +731,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const loadDeliver = () => {
     setDelivBusy(true);
     getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); });
-  };
-  // ---- Replies (inbound) ----
-  const loadReplies = () => {
-    setRepliesBusy(true);
-    listReplies().then((r) => { if (mountedRef.current) { setRepliesList(r); setRepliesBusy(false); } }).catch(() => { if (mountedRef.current) setRepliesBusy(false); });
-  };
-  const tapReply = (r: InboundReply) => {
-    tap();
-    setOpenReplyId((id) => (id === r.id ? null : r.id));
-    if (!r.read) { markReplyRead(r.id).catch(() => {}); setRepliesList((list) => list.map((x) => x.id === r.id ? { ...x, read: true } : x)); }
-  };
-  // Open the reply opt-in panel for a domain and check whether its MX is live yet.
-  const openReplySetup = (domain: string) => {
-    tap();
-    setReplySetup({ domain, busy: true });
-    replyStatus(domain).then((s) => { if (mountedRef.current) setReplySetup({ domain, mx: s.mx, enabled: s.enabled, mxLive: s.mxLive, busy: false }); })
-      .catch(() => { if (mountedRef.current) setReplySetup({ domain, busy: false }); });
-  };
-  const doEnableReplies = async (domain: string) => {
-    setReplySetup((s) => s && s.domain === domain ? { ...s, busy: true } : s);
-    try {
-      const r = await enableReplies(domain);
-      if (!mountedRef.current) return;
-      setReplySetup({ domain, mx: r.mx, enabled: true, mxLive: false, busy: false });
-      setSesDomains((ds) => ds.map((d) => d.domain === domain ? { ...d, reply_enabled: true } : d));
-    } catch { if (mountedRef.current) setReplySetup((s) => s && s.domain === domain ? { ...s, busy: false } : s); }
-  };
-  const doDisableReplies = async (domain: string) => {
-    setReplySetup((s) => s && s.domain === domain ? { ...s, busy: true } : s);
-    await disableReplies(domain).catch(() => {});
-    if (!mountedRef.current) return;
-    setReplySetup({ domain, enabled: false, busy: false });
-    setSesDomains((ds) => ds.map((d) => d.domain === domain ? { ...d, reply_enabled: false } : d));
   };
   // Derive a display status from a recipient row (engagement is in the timestamps).
   const logStatus = (l: EmailLog): { label: string; cls: string } => {
@@ -930,18 +746,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const removeSup = async (email: string) => {
     tap();
     try { await removeSuppression(email); await loadSuppressions(); } catch { /* ignore */ }
-  };
-  const sendTest = async (domain: string) => {
-    const to = testTo.trim();
-    if (!to || testBusy) return;
-    tap(); setTestBusy(true); setTestMsg('');
-    try {
-      const r = await testSesDomain(domain, to);
-      if (!mountedRef.current) return;
-      if (r.ok) { setTestMsg(`Sent to ${to} ✓`); setTestTo(''); }
-      else setTestMsg(r.error === 'domain_not_verified' ? 'Domain isn’t verified yet.' : r.error === 'bad_to' ? 'Enter a valid email.' : 'Couldn’t send — in the SES sandbox the recipient must be a verified address.');
-    } catch { if (mountedRef.current) setTestMsg('Something went wrong — try again.'); }
-    finally { if (mountedRef.current) setTestBusy(false); }
   };
 
   // ---- Webhooks ----
@@ -1261,7 +1065,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <div className="ag-stage">
             <div className="ag-grid">
               {HOME_TOOLS.map((t) => (
-                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); if (t.id === 'webhook') loadWebhooks(); if (t.id === 'logs') { setLogsQ(''); loadLogs(''); } if (t.id === 'deliver') loadDeliver(); if (t.id === 'replies') { setOpenReplyId(null); loadDomains(); loadReplies(); } setSendraTab(t.id as SendraTab); } }}>
+                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'webhook') loadWebhooks(); if (t.id === 'logs') { setLogsQ(''); loadLogs(''); } if (t.id === 'deliver') loadDeliver(); setSendraTab(t.id as SendraTab); } }}>
                   <span className="ag-act-ic"><t.Icon size={20} /></span>
                   <span className="ag-act-label">{t.name}</span>
                   <span className="ag-act-sub">{t.desc}</span>
@@ -1271,7 +1075,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             <p className="ag-foot">Sendra runs your communication — campaigns, templates and triage across every connected app.</p>
           </div>
         ) : (
-          // ---- Campaigns / Templates / Domains / Schedule / Webhooks / Settings ----
+          // ---- Campaigns / Templates / Schedule / Webhooks / Settings ----
           <div className="ag-stage">
             {note && <div className="ag-note">{note}</div>}
             {sendraTab === 'campaigns' ? (
@@ -1298,25 +1102,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         ))}
                       </div>
                     )}
-                    {senders.length > 0 && (
-                      <div className="ag-tpl-row">
-                        <span className="ag-tpl-lbl">Senders:</span>
-                        {senders.map((s) => (
-                          <span className="ag-sender-chip" key={s.id}>
-                            <button className="ag-sender-pick" onClick={() => applySender(s)}>{s.from_name ? `${s.from_name} · ${s.from_email}` : s.from_email}</button>
-                            <button className="ag-sender-x" onClick={() => removeSenderRow(s.id)} aria-label="Remove sender">✕</button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
                     <div className="ag-from">
                       <span className="ag-from-lbl">Send from</span>
                       <select className="ag-field ag-from-sel" value={campDomain} onChange={(e) => { tap(); setCampDomain(e.target.value); if (campState === 'err') setCampState('idle'); }}>
                         <option value="__resend__">Sendra (built-in)</option>
                         <option value="">My mailbox</option>
-                        {sesDomains.filter((d) => d.status === 'verified').map((d) => (
-                          <option key={d.domain} value={d.domain}>{d.domain} (my domain)</option>
-                        ))}
                       </select>
                     </div>
                     {!campDomain && mailApiApps.length >= 2 && (
@@ -1328,16 +1118,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     {campDomain === '__resend__' && (
                       <div className="ag-from-fields">
                         <input className="ag-field" placeholder="From name (optional, e.g. Acme News)" value={campFromName} onChange={(e) => setCampFromName(e.target.value)} />
-                      </div>
-                    )}
-                    {campDomain && campDomain !== '__resend__' && (
-                      <div className="ag-from-fields">
-                        <input className="ag-field" placeholder="From name (e.g. Acme News)" value={campFromName} onChange={(e) => setCampFromName(e.target.value)} />
-                        <div className="ag-from-addr">
-                          <input className="ag-field" placeholder="news" value={campFromLocal} onChange={(e) => setCampFromLocal(e.target.value.replace(/[^a-zA-Z0-9._-]/g, ''))} />
-                          <span className="ag-from-at">@{campDomain}</span>
-                          <button className="ag-from-save" onClick={saveSender} disabled={!campFromLocal.trim()}>Save</button>
-                        </div>
                       </div>
                     )}
                     <input className="ag-field" placeholder="Subject" value={campSubject}
@@ -1365,7 +1145,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       {campState === 'sending' ? (campWhen === 'later' ? 'Scheduling…' : `Sending… ${campProg.sent}/${campProg.total}`) : campWhen === 'later' ? 'Schedule campaign' : 'Send campaign'}
                     </button>
                     <button className="ag-send-btn ghost" disabled={campState === 'sending'} onClick={() => { tap(); setCampNew(false); }}>Cancel</button>
-                    <p className="ag-foot">{campDomain === '__resend__' ? 'Sends through Sendra’s built-in email — no setup needed' : campDomain ? `Sends from ${(campFromLocal.trim() || 'news')}@${campDomain} (your verified domain)` : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
+                    <p className="ag-foot">{campDomain === '__resend__' ? 'Sends through Sendra’s built-in email — no setup needed' : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
                   </div>
                 )
               ) : campView === 'suppressions' ? (
@@ -1429,7 +1209,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               ) : (
                 <>
                   <button className="ag-send-btn" onClick={openCampNew}>+ New email campaign</button>
-                  <button className="ag-send-btn ghost ag-dom-link" onClick={() => { tap(); setSendraTab('domains'); loadDomains(); }}>Sending domains{sesDomains.some((d) => d.status === 'verified') ? ` · ${sesDomains.filter((d) => d.status === 'verified').length} verified` : sesDomains.length ? ' · setup' : ''}</button>
                   <button className="ag-send-btn ghost ag-dom-link" onClick={() => { tap(); setCampView('suppressions'); loadSuppressions(); }}>Suppressed contacts{supList.length ? ` · ${supList.length}` : ''}</button>
                   {campList.length === 0 ? (
                     <div className="ag-empty" style={{ marginTop: 12 }}>No campaigns yet. Write once and send to your whole list — straight from your mailbox.</div>
@@ -1628,126 +1407,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   <p className="ag-foot">Texts send from {smsNumber}. Standard SMS rates apply.</p>
                 </div>
               )
-            ) : sendraTab === 'domains' ? (
-              <div className="ag-compose">
-                <p className="ag-foot">Verify a domain you own to send campaigns from your own address (e.g. news@yourbrand.com). Add the records below at your DNS host, then tap Check — verification can take a few minutes to a few hours.</p>
-                <div className="ag-dom-add">
-                  <input className="ag-field" placeholder="yourbrand.com" autoCapitalize="none" autoCorrect="off" value={domNew} onChange={(e) => { setDomNew(e.target.value); if (domErr) setDomErr(''); }} />
-                  <button className="ag-send-btn" disabled={domBusy || !domNew.trim()} onClick={addDomain}>{domBusy ? 'Adding…' : 'Add domain'}</button>
-                </div>
-                {domErr && <div className="ag-send-err">{domErr}</div>}
-                {sesDomains.length === 0 ? (
-                  <div className="ag-empty" style={{ marginTop: 12 }}>No domains yet. Add one above to send from your own address.</div>
-                ) : (
-                  <div className="ag-dom-list">
-                    {sesDomains.map((d) => {
-                      const open = domOpen === d.domain;
-                      const badge = d.status === 'verified' ? 'ok' : d.status === 'failed' ? 'bad' : 'wait';
-                      return (
-                        <div className={`ag-dom${open ? ' open' : ''}`} key={d.domain}>
-                          <button className="ag-dom-row" onClick={() => { tap(); setDomOpen(open ? null : d.domain); }}>
-                            <span className="ag-dom-ic">🌐</span>
-                            <span className="ag-dom-info">
-                              <span className="ag-dom-name">{d.domain}</span>
-                              <span className="ag-dom-sub">{d.status === 'verified' ? 'Sending enabled' : d.status === 'failed' ? 'Verification failed' : 'Awaiting DNS records'}</span>
-                            </span>
-                            <span className={`ag-badge is-${badge}`}><i className="ag-dot" />{d.status === 'verified' ? 'Verified' : d.status === 'failed' ? 'Failed' : 'Pending'}</span>
-                            <span className="ag-dom-chev">{open ? '▾' : '▸'}</span>
-                          </button>
-                          {open && (
-                            <div className="ag-dom-body">
-                              {d.status === 'verified'
-                                ? <div className="ag-dom-ok">✓ Verified — pick this domain under “Send from” when creating a campaign.</div>
-                                : <p className="ag-foot ag-dom-hint">Add these records at your DNS host — we’ll keep checking automatically, so you don’t have to tap Check. DNS can take a few minutes to a few hours to propagate.</p>}
-                              {d.status !== 'verified' && (
-                                <button className="ag-send-btn ag-dom-auto" disabled={dcBusy === d.domain} onClick={() => autoConfigure(d.domain)}>
-                                  {dcBusy === d.domain ? 'Checking your DNS host…' : '⚡ Auto-configure (1-click)'}
-                                </button>
-                              )}
-                              {d.status !== 'verified' && dcMsg[d.domain] && <div className="ag-dom-testmsg">{dcMsg[d.domain]}</div>}
-                              {d.status !== 'verified' && cfOpen === d.domain && (
-                                <div className="ag-cf">
-                                  <ol className="ag-cf-steps">
-                                    <li><a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noopener">Create a Cloudflare API token ↗</a> — use the “Edit zone DNS” template, pick this domain, then Create.</li>
-                                    <li>Copy the token and paste it below. We use it once to add your records and never store it.</li>
-                                  </ol>
-                                  <input className="ag-field" type="password" placeholder="Paste Cloudflare API token" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={cfToken} onChange={(e) => { setCfToken(e.target.value); if (cfMsg[d.domain]) setCfMsg((m) => ({ ...m, [d.domain]: '' })); }} />
-                                  <div className="ag-cf-actions">
-                                    <button className="ag-send-btn" disabled={cfBusy || !cfToken.trim()} onClick={() => cfApply(d.domain)}>{cfBusy ? 'Adding records…' : 'Add records via Cloudflare'}</button>
-                                    <button className="ag-send-btn ghost" onClick={() => { tap(); setCfOpen(''); setCfToken(''); }}>Cancel</button>
-                                  </div>
-                                </div>
-                              )}
-                              {d.status !== 'verified' && cfMsg[d.domain] && <div className={`ag-dom-testmsg${cfMsg[d.domain].includes('✓') ? ' ok' : ''}`}>{cfMsg[d.domain]}</div>}
-                              {d.status !== 'verified' && (
-                                <div className="ag-dns">
-                                  {(d.records || []).length > 0 && (
-                                    <button className={`ag-send-btn ghost ag-dns-copyall${copiedAll === d.domain ? ' ok' : ''}`} onClick={() => copyAllRecords(d.domain, d.records || [])}>
-                                      {copiedAll === d.domain ? 'All records copied ✓' : 'Copy all records'}
-                                    </button>
-                                  )}
-                                  {(d.records || []).map((r, i) => (
-                                    <div className="ag-dns-rec" key={i}>
-                                      <div className="ag-dns-top"><span className="ag-dns-type">{r.type}</span>{r.note && <span className="ag-dns-note">{r.note}</span>}</div>
-                                      <div className="ag-dns-field"><label>Name / Host</label><div className="ag-dns-val"><code>{r.name}</code><button className={copied === r.name ? 'ok' : ''} onClick={() => copyText(r.name)}>{copied === r.name ? 'Copied ✓' : 'Copy'}</button></div></div>
-                                      <div className="ag-dns-field"><label>Value</label><div className="ag-dns-val"><code>{r.value}</code><button className={copied === r.value ? 'ok' : ''} onClick={() => copyText(r.value)}>{copied === r.value ? 'Copied ✓' : 'Copy'}</button></div></div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                              {d.status === 'verified' && (
-                                <div className="ag-dom-test">
-                                  <input className="ag-field" placeholder="Send a test to you@example.com" autoCapitalize="none" autoCorrect="off" value={testTo} onChange={(e) => { setTestTo(e.target.value); if (testMsg) setTestMsg(''); }} />
-                                  <button className="ag-send-btn" disabled={testBusy || !testTo.trim()} onClick={() => sendTest(d.domain)}>{testBusy ? 'Sending…' : 'Send test'}</button>
-                                </div>
-                              )}
-                              {d.status === 'verified' && testMsg && <div className={`ag-dom-testmsg${testMsg.startsWith('Sent') ? ' ok' : ''}`}>{testMsg}</div>}
-                              {d.status === 'verified' && (() => {
-                                const panel = replySetup?.domain === d.domain ? replySetup : null;
-                                const on = panel ? !!panel.enabled : !!d.reply_enabled;
-                                return (
-                                  <div className="ag-dom-reply">
-                                    {!panel ? (
-                                      <button className="ag-send-btn ghost ag-dom-reply-btn" onClick={() => (d.reply_enabled ? openReplySetup(d.domain) : doEnableReplies(d.domain))}>
-                                        {d.reply_enabled ? '↩ Reply settings' : '↩ Enable replies'}
-                                      </button>
-                                    ) : panel.busy && !panel.mx ? (
-                                      <div className="ag-foot ag-dom-hint">Setting up replies…</div>
-                                    ) : on && panel.mx ? (
-                                      <div className="ag-reply-setup">
-                                        <p className="ag-foot ag-dom-hint">Replies are on. Add this one MX record at your DNS host to start receiving them:</p>
-                                        <div className="ag-dns-rec">
-                                          <div className="ag-dns-top"><span className="ag-dns-type">MX</span><span className="ag-dns-note">priority {panel.mx.priority}</span></div>
-                                          <div className="ag-dns-field"><label>Name / Host</label><div className="ag-dns-val"><code>{panel.mx.host}</code><button className={copied === panel.mx.host ? 'ok' : ''} onClick={() => copyText(panel.mx!.host)}>{copied === panel.mx.host ? 'Copied ✓' : 'Copy'}</button></div></div>
-                                          <div className="ag-dns-field"><label>Value</label><div className="ag-dns-val"><code>{panel.mx.value}</code><button className={copied === panel.mx.value ? 'ok' : ''} onClick={() => copyText(panel.mx!.value)}>{copied === panel.mx.value ? 'Copied ✓' : 'Copy'}</button></div></div>
-                                        </div>
-                                        <div className={`ag-reply-mxstatus${panel.mxLive ? ' ok' : ''}`}>{panel.mxLive ? '✓ MX is live — replies will appear in the Replies tab.' : 'Waiting on the MX record. Add it, give DNS a few minutes, then Recheck.'}</div>
-                                        <div className="ag-dom-actions">
-                                          <button className="ag-send-btn ghost" disabled={panel.busy} onClick={() => openReplySetup(d.domain)}>{panel.busy ? 'Checking…' : 'Recheck'}</button>
-                                          <button className="ag-send-btn ghost" disabled={panel.busy} onClick={() => doDisableReplies(d.domain)}>Turn off</button>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div className="ag-dom-actions">
-                                        <button className="ag-send-btn" disabled={panel.busy} onClick={() => doEnableReplies(d.domain)}>{panel.busy ? 'Enabling…' : 'Enable replies'}</button>
-                                        <button className="ag-send-btn ghost" onClick={() => { tap(); setReplySetup(null); }}>Close</button>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                              <div className="ag-dom-actions">
-                                {d.status !== 'verified' && <button className="ag-send-btn" onClick={() => checkDomain(d.domain)}>Check now</button>}
-                                <button className="ag-send-btn ghost" onClick={() => removeDomain(d.domain)}>Remove</button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
             ) : sendraTab === 'logs' ? (
               <div className="ag-compose">
                 <input className="ag-field" placeholder="Search by email…" autoCapitalize="none" autoCorrect="off" value={logsQ}
@@ -1780,20 +1439,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             ) : sendraTab === 'deliver' ? (
               <div className="ag-compose">
                 {delivBusy && !deliv ? (
-                  <div className="ag-empty" style={{ marginTop: 12 }}>Checking your domains…</div>
-                ) : !deliv || deliv.domains.length === 0 ? (
-                  <div className="ag-empty" style={{ marginTop: 12 }}>
-                    No sending domains yet. Verify your domain under <b>Domains</b> to send from your own address — then this page shows your email auth (DKIM, SPF, DMARC) and how your reputation looks.
-                    <div style={{ marginTop: 14 }}>
-                      <button className="ag-send-btn" onClick={() => { tap(); setSendraTab('domains'); loadDomains(); }}>Set up a domain →</button>
-                    </div>
-                  </div>
-                ) : (
+                  <div className="ag-empty" style={{ marginTop: 12 }}>Checking your delivery…</div>
+                ) : deliv && (deliv.reputation.accepted > 0 || (deliv.reputation.sent30 ?? 0) > 0) ? (
                   <>
                     {(() => {
                       const r = deliv.reputation;
                       const bPct = r.bounceRate * 100, cPct = r.complaintRate * 100;
                       const cards = [
+                        { k: 'Sent (30d)', v: r.sent30 ?? 0, sub: 'last 30 days' },
                         { k: 'Sent', v: r.accepted, sub: 'accepted' },
                         { k: 'Delivered', v: r.delivered, sub: r.accepted ? `${Math.round((r.delivered / r.accepted) * 100)}%` : '—' },
                         { k: 'Bounced', v: r.bounced, sub: r.accepted ? `${bPct.toFixed(1)}%` : '—' },
@@ -1819,100 +1472,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         </>
                       );
                     })()}
-                    <div className="ag-deliver-domains">
-                      {deliv.domains.map((d) => {
-                        const checks = [
-                          { label: 'DKIM', ok: d.dkim, note: d.dkim ? 'Signed' : 'Not verified' },
-                          { label: 'DMARC', ok: d.dmarc.found, note: d.dmarc.found ? `Policy: ${d.dmarc.policy || 'none'}` : 'Missing' },
-                          { label: 'SPF', ok: d.spf.found, note: d.spf.found ? (d.spf.ses ? 'Includes SES' : 'Present') : 'Optional' },
-                        ];
-                        const gradeCls = d.grade === 'great' || d.grade === 'good' ? 'sent' : d.grade === 'fair' ? 'sending' : 'failed';
-                        return (
-                          <div className="ag-deliver-card" key={d.domain}>
-                            <div className="ag-deliver-head">
-                              <div className="ag-deliver-dom">{d.domain}</div>
-                              <span className={`ag-camp-pill is-${gradeCls}`}>{d.score}/100</span>
-                            </div>
-                            <div className="ag-deliver-checks">
-                              {checks.map((c) => (
-                                <div className={`ag-deliver-chk${c.ok ? ' ok' : ''}`} key={c.label}>
-                                  <span className="ag-deliver-chk-ic">{c.ok ? '✓' : '!'}</span>
-                                  <span className="ag-deliver-chk-l">{c.label}</span>
-                                  <span className="ag-deliver-chk-n">{c.note}</span>
-                                </div>
-                              ))}
-                            </div>
-                            {d.tips.length > 0 && (
-                              <ul className="ag-deliver-tips">
-                                {d.tips.map((t, i) => <li key={i}>{t}</li>)}
-                              </ul>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
                     <button className="ag-send-btn ghost" disabled={delivBusy} onClick={loadDeliver}>{delivBusy ? 'Refreshing…' : 'Refresh'}</button>
-                    <p className="ag-foot">DKIM, SPF and DMARC are checked live against your DNS. DKIM is the one that must pass — with it, DMARC aligns even without SPF. Rates cover every campaign email you’ve sent.</p>
+                    <p className="ag-foot">Your delivery, opens, clicks and bounce rates across every campaign email you’ve sent. Opens are approximate; clicks are exact.</p>
                   </>
+                ) : (
+                  <div className="ag-empty" style={{ marginTop: 12 }}>No sends yet. Send a campaign and your delivery, opens, clicks and bounce rates show up here.</div>
                 )}
-              </div>
-            ) : sendraTab === 'replies' ? (
-              <div className="ag-compose">
-                {(() => {
-                  const replyDoms = sesDomains.filter((d) => d.status === 'verified');
-                  const anyEnabled = replyDoms.some((d) => d.reply_enabled);
-                  return (
-                    <>
-                      {replyDoms.length === 0 ? (
-                        <div className="ag-empty" style={{ marginTop: 12 }}>
-                          Replies come back through your own domain. Verify a domain under <b>Domains</b> first, then turn on replies there.
-                          <div style={{ marginTop: 14 }}>
-                            <button className="ag-send-btn" onClick={() => { tap(); setSendraTab('domains'); loadDomains(); }}>Set up a domain →</button>
-                          </div>
-                        </div>
-                      ) : !anyEnabled ? (
-                        <div className="ag-empty" style={{ marginTop: 12 }}>
-                          Replies aren’t on yet. Open <b>Domains</b> → your verified domain → <b>Enable replies</b>, then add the one MX record we give you. After that, every reply lands here.
-                          <div style={{ marginTop: 14 }}>
-                            <button className="ag-send-btn" onClick={() => { tap(); setSendraTab('domains'); loadDomains(); }}>Enable replies →</button>
-                          </div>
-                        </div>
-                      ) : repliesBusy && repliesList.length === 0 ? (
-                        <div className="ag-empty" style={{ marginTop: 12 }}>Loading…</div>
-                      ) : repliesList.length === 0 ? (
-                        <div className="ag-empty" style={{ marginTop: 12 }}>No replies yet. When someone replies to one of your campaigns, it shows up here.</div>
-                      ) : (
-                        <div className="ag-reply-list">
-                          {repliesList.map((r) => {
-                            const open = openReplyId === r.id;
-                            const who = r.from_name || r.from_email;
-                            return (
-                              <div className={`ag-reply${r.read ? '' : ' unread'}${open ? ' open' : ''}`} key={r.id}>
-                                <button className="ag-reply-row" onClick={() => tapReply(r)}>
-                                  <span className="ag-reply-av" style={{ background: hueFor(who) }}>{(who[0] || '?').toUpperCase()}</span>
-                                  <span className="ag-reply-info">
-                                    <span className="ag-reply-top"><span className="ag-reply-who">{who}</span><span className="ag-reply-when">{new Date(r.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span></span>
-                                    <span className="ag-reply-subj">{r.subject || '(no subject)'}</span>
-                                    <span className="ag-reply-snip">{r.snippet}</span>
-                                  </span>
-                                </button>
-                                {open && (
-                                  <div className="ag-reply-body">
-                                    <div className="ag-reply-meta">{r.from_email}{r.campaign?.name ? ` · re: ${r.campaign.name}` : ''}</div>
-                                    <div className="ag-reply-text">{r.body_text || r.snippet || '(no text)'}</div>
-                                    <a className="ag-send-btn ghost ag-reply-open" href={`mailto:${r.from_email}?subject=${encodeURIComponent('Re: ' + (r.subject || ''))}`}>Reply in mail app →</a>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {repliesList.length > 0 && <button className="ag-send-btn ghost" disabled={repliesBusy} onClick={loadReplies}>{repliesBusy ? 'Refreshing…' : 'Refresh'}</button>}
-                      <p className="ag-foot">Replies to your campaigns route through reply.&lt;yourdomain&gt; and land here. Open one to read it, then reply from your own mailbox.</p>
-                    </>
-                  );
-                })()}
               </div>
             ) : sendraTab === 'webhook' ? (
               <div className="ag-compose">

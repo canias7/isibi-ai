@@ -1,9 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { AwsClient } from "https://esm.sh/aws4fetch@1.0.20";
 
-// Sendra email campaigns. Three send methods (per campaign, via send_via):
+// Sendra email campaigns. Two send methods (per campaign, via send_via):
 //   "resend"  — Sendra's built-in ESP (zero setup, central verified domain)
-//   "ses"     — the user's own verified SES domain (custom From)
 //   "mailbox" — the user's connected Gmail/Outlook (default; ~500/day cap)
 // The client calls `send` repeatedly to drain the queue in throttled batches. Every
 // send is personalized ({{name}}), gets an unsubscribe footer + open/click tracking,
@@ -20,32 +18,12 @@ const API_KEY = Deno.env.get("COMPOSIO_API_KEY") ?? "";
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SB_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-const AWS_ID = Deno.env.get("AWS_SES_ACCESS_KEY_ID") ?? "";
-const AWS_SECRET = Deno.env.get("AWS_SES_SECRET_ACCESS_KEY") ?? "";
-const AWS_REGION = Deno.env.get("AWS_SES_REGION") ?? "us-east-1";
 const sbHeaders = { apikey: SB_SERVICE, authorization: `Bearer ${SB_SERVICE}`, "content-type": "application/json" };
-const aws = new AwsClient({ accessKeyId: AWS_ID, secretAccessKey: AWS_SECRET, region: AWS_REGION, service: "ses" });
-const SES_BASE = `https://email.${AWS_REGION}.amazonaws.com`;
 // Built-in ESP (Resend) — the zero-setup sender behind `send_via: "resend"`. One central
 // key + verified domain (RESEND_FROM); users send through it without connecting anything.
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const RESEND_FROM = Deno.env.get("RESEND_FROM") || "Sendra <onboarding@resend.dev>";
 const RESEND_API = "https://api.resend.com/emails";
-const CONFIG_SET = "sendra";   // SES configuration set (created by the `ses` fn) — enables bounce/complaint tracking + tags
-let configReady = false;
-async function ensureConfigSet(): Promise<boolean> {
-  if (configReady) return true;
-  try {
-    const get = await aws.fetch(`${SES_BASE}/v2/email/configuration-sets/${CONFIG_SET}`, { method: "GET" });
-    if (get.ok) { configReady = true; return true; }
-    const mk = await aws.fetch(`${SES_BASE}/v2/email/configuration-sets`, {
-      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ConfigurationSetName: CONFIG_SET }),
-    });
-    if (mk.ok) { configReady = true; return true; }
-    if (/AlreadyExists|already exists/i.test(await mk.text())) { configReady = true; return true; }
-  } catch { /* sends just go out without the config set / tags */ }
-  return false;
-}
 
 const ALLOWED_ORIGINS = new Set([
   "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
@@ -81,7 +59,6 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // fragment-truncation of the trailing ownership filter). UUIDs and hostnames only.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function vId(v: unknown): string { const s = String(v ?? "").trim(); return UUID_RE.test(s) ? s : ""; }
-function vHost(v: string): string { return /^[a-z0-9.-]{1,253}$/i.test(v) ? v : ""; }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function esc(s: string): string { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
@@ -135,6 +112,16 @@ async function countBy(campaignId: string, status: string): Promise<number> {
   return Number.isFinite(n) ? n : 0;
 }
 
+// User-wide recipient count with an extra filter (moved here from the deleted `ses` fn).
+async function countUser(uid: string, extra: string): Promise<number> {
+  const r = await fetch(`${SB_URL}/rest/v1/campaign_recipients?user_id=eq.${uid}${extra}&select=id`, {
+    headers: { ...sbHeaders, Prefer: "count=exact", Range: "0-0" },
+  });
+  const cr = r.headers.get("content-range") || "";
+  const n = parseInt(cr.split("/")[1] || "0", 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
 // Send one email through the user's connected mailbox (Composio).
 async function sendOne(uid: string, app: string, to: string, subject: string, html: string): Promise<{ ok: boolean; error?: string }> {
   const outlook = app === "outlook" || app === "m365";
@@ -171,43 +158,6 @@ function htmlToText(html: string): string {
     .replace(/[ \t]{2,}/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-// Send one email from a verified SES domain (custom-domain campaigns). Adds the
-// one-click List-Unsubscribe headers (Gmail/Yahoo bulk requirement); when the
-// `sendra` config set exists, tags the message (uid/campaign) and routes it through
-// the set so bounces/complaints flow back to the ses-events webhook.
-async function sendOneSes(p: { fromEmail: string; fromName: string | null; to: string; subject: string; html: string; unsub: string; uid: string; campaignId: string; withConfig: boolean; replyTo?: string }): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const From = p.fromName ? `${p.fromName} <${p.fromEmail}>` : p.fromEmail;
-    const payload: Record<string, unknown> = {
-      FromEmailAddress: From,
-      Destination: { ToAddresses: [p.to] },
-      Content: { Simple: {
-        Subject: { Data: p.subject, Charset: "UTF-8" },
-        Body: { Html: { Data: p.html, Charset: "UTF-8" }, Text: { Data: htmlToText(p.html), Charset: "UTF-8" } },
-        Headers: [
-          { Name: "List-Unsubscribe", Value: `<${p.unsub}>` },
-          { Name: "List-Unsubscribe-Post", Value: "List-Unsubscribe=One-Click" },
-        ],
-      } },
-    };
-    // When the sending domain has replies enabled, route replies to a tokened address at
-    // reply.<domain> (the ses-inbound webhook matches the token back to this recipient).
-    if (p.replyTo) payload.ReplyToAddresses = [p.replyTo];
-    if (p.withConfig) {
-      payload.ConfigurationSetName = CONFIG_SET;
-      payload.EmailTags = [{ Name: "uid", Value: p.uid }, { Name: "campaign_id", Value: p.campaignId }];
-    }
-    const res = await aws.fetch(`${SES_BASE}/v2/email/outbound-emails`, {
-      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload),
-    });
-    if (res.ok) return { ok: true };
-    const t = await res.text();
-    return { ok: false, error: `ses_${res.status}:${t}`.slice(0, 200) };
-  } catch (e) {
-    return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) };
-  }
-}
-
 // From address for built-in (Resend) sends: the central verified RESEND_FROM, with an
 // optional per-campaign display name swapped in (the address must stay on the verified domain).
 function resendFrom(name: string | null): string {
@@ -215,8 +165,8 @@ function resendFrom(name: string | null): string {
   const m = RESEND_FROM.match(/<([^>]+)>/);
   return `${name} <${m ? m[1] : RESEND_FROM}>`;
 }
-// Send one email through Sendra's built-in ESP (Resend). Mirrors sendOneSes: adds the
-// one-click List-Unsubscribe headers and returns Resend's message id, which the
+// Send one email through Sendra's built-in ESP (Resend). Adds the one-click
+// List-Unsubscribe headers and returns Resend's message id, which the
 // resend-events webhook maps back to this recipient (delivered/bounce/complaint).
 async function sendOneResend(p: { fromName: string | null; to: string; subject: string; html: string; unsub: string }): Promise<{ ok: boolean; id?: string; error?: string }> {
   try {
@@ -269,17 +219,7 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
   }
   const qRes = await fetch(`${SB_URL}/rest/v1/campaign_recipients?campaign_id=eq.${id}&status=eq.queued&select=id,email,name&order=id.asc&limit=${limit}`, { headers: sbHeaders });
   const batch = (await qRes.json().catch(() => [])) as { id: string; email: string; name: string | null }[];
-  const isSes = camp.send_via === "ses" && !!camp.from_email;
   const isResend = camp.send_via === "resend";
-  const withConfig = isSes ? await ensureConfigSet() : false;
-  // Reply handling: if the sending domain has it enabled, every send gets a tokened
-  // Reply-To at reply.<domain> so replies thread back via the ses-inbound webhook.
-  const fromDomain = isSes ? vHost(String(camp.from_email).split("@")[1] || "") : "";
-  let replyDomain = "";
-  if (isSes && fromDomain) {
-    const rd = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${fromDomain}&select=reply_enabled`, { headers: sbHeaders });
-    if (((await rd.json().catch(() => []))?.[0]?.reply_enabled) === true) replyDomain = fromDomain;
-  }
   let sent = 0, failed = 0;
   for (const r of batch) {
     const who = r.name || "there";
@@ -289,15 +229,13 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
     const html = `${withTracking(personalized, id, r.id, tok)}<br><br><hr style="border:none;border-top:1px solid #eee"><p style="font-size:12px;color:#888;font-family:system-ui,sans-serif">You're receiving this because you're on a list managed in Sendra. <a href="${unsub}" style="color:#888">Unsubscribe</a>.</p>${openPixel(id, r.id, tok)}`;
     const res: { ok: boolean; id?: string; error?: string } = isResend
       ? await sendOneResend({ fromName: camp.from_name, to: r.email, subject: camp.subject, html, unsub })
-      : isSes
-        ? await sendOneSes({ fromEmail: camp.from_email, fromName: camp.from_name, to: r.email, subject: camp.subject, html, unsub, uid, campaignId: id, withConfig, replyTo: replyDomain ? `reply+${r.id}@reply.${replyDomain}` : undefined })
-        : await sendOne(uid, camp.app, r.email, camp.subject, html);
+      : await sendOne(uid, camp.app, r.email, camp.subject, html);
     await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, {
       method: "PATCH", headers: sbHeaders,
       body: JSON.stringify(res.ok ? { status: "sent", sent_at: new Date().toISOString(), ...(res.id ? { provider_msg_id: res.id } : {}) } : { status: "failed", error: res.error }),
     });
     if (res.ok) sent++; else failed++;
-    await sleep(isResend ? 600 : camp.send_via === "ses" ? 1100 : 700); // throttle — Resend default 2/sec; SES sandbox 1/sec; Gmail likes it slow too
+    await sleep(isResend ? 600 : 700); // throttle — Resend default 2/sec; Gmail likes it slow too
   }
   const [totSent, totFailed, remaining] = await Promise.all([countBy(id, "sent"), countBy(id, "failed"), countBy(id, "queued")]);
   const done = remaining === 0;
@@ -363,20 +301,11 @@ Deno.serve(async (req: Request) => {
       const raw = Array.isArray(body?.recipients) ? body.recipients as Record<string, unknown>[] : [];
       if (!subject || !html) return json(req, { error: "missing_content" });
 
-      // Sending method: built-in Resend (zero setup), the user's mailbox (default), or a verified SES domain.
-      const rawVia = String(body?.send_via || "mailbox").toLowerCase();
-      const sendVia = rawVia === "ses" ? "ses" : rawVia === "resend" ? "resend" : "mailbox";
-      let fromEmail: string | null = null;
+      // Sending method: built-in Resend (zero setup) or the user's mailbox (default).
+      const sendVia = String(body?.send_via || "mailbox").toLowerCase() === "resend" ? "resend" : "mailbox";
+      const fromEmail: string | null = null;
       let fromName: string | null = null;
-      if (sendVia === "ses") {
-        fromEmail = String(body?.from_email || "").trim().toLowerCase();
-        fromName = body?.from_name ? String(body.from_name).slice(0, 120) : null;
-        if (!EMAIL_RE.test(fromEmail)) return json(req, { error: "bad_from" });
-        const dom = vHost(fromEmail.split("@")[1] || "");  // EMAIL_RE allows PostgREST metachars in the domain — re-validate before interpolating
-        if (!dom) return json(req, { error: "bad_from" });
-        const dRes = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${dom}&status=eq.verified&select=domain`, { headers: sbHeaders });
-        if (!((await dRes.json().catch(() => [])) as unknown[]).length) return json(req, { error: "domain_not_verified" });
-      } else if (sendVia === "resend") {
+      if (sendVia === "resend") {
         if (!RESEND_API_KEY) return json(req, { error: "resend_unset" });
         fromName = body?.from_name ? String(body.from_name).slice(0, 120) : null; // the address comes from the central verified RESEND_FROM
       }
@@ -460,8 +389,27 @@ Deno.serve(async (req: Request) => {
       return json(req, { ok: true });
     }
 
+    // Sender-agnostic deliverability: 30-day volume + delivered/bounce/complaint rates,
+    // computed from the user's campaign_recipients (delivered counted by delivered_at,
+    // since status stays "sent"). Powers the Deliverability tab now that SES is gone.
+    if (action === "deliverability") {
+      const since30 = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
+      const [accepted, delivered, bounced, complained, sent30] = await Promise.all([
+        countUser(uid, "&status=in.(sent,bounced,complained)"),
+        countUser(uid, "&delivered_at=not.is.null"),
+        countUser(uid, "&status=eq.bounced"),
+        countUser(uid, "&status=eq.complained"),
+        countUser(uid, `&sent_at=gte.${encodeURIComponent(since30)}`),
+      ]);
+      return json(req, { reputation: {
+        accepted, delivered, bounced, complained, sent30,
+        bounceRate: accepted ? bounced / accepted : 0,
+        complaintRate: delivered ? complained / delivered : 0,
+      } });
+    }
+
     // Engagement stats for one campaign (unique opens/clicks via the `track` fn +
-    // delivered/bounced/complained from SES events). Rates are computed client-side.
+    // delivered/bounced/complained from provider webhooks). Rates are computed client-side.
     if (action === "stats") {
       const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });

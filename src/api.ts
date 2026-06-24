@@ -210,7 +210,7 @@ export async function listCampaigns(): Promise<Campaign[]> {
   const c = (data as { campaigns?: Campaign[] } | null)?.campaigns;
   return Array.isArray(c) ? c : [];
 }
-export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[]; send_via?: 'mailbox' | 'ses' | 'resend'; from_email?: string; from_name?: string; scheduled_at?: string }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string }> {
+export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[]; send_via?: 'mailbox' | 'resend'; from_name?: string; scheduled_at?: string }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string }> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'create', ...p } });
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string };
@@ -253,128 +253,16 @@ export async function removeSuppression(email: string): Promise<void> {
   await supabase.functions.invoke('campaigns', { body: { action: 'unsuppress', email } });
 }
 
-// ---- Custom sending domains (Amazon SES, via the `ses` fn) ----
-// Verify your own domain once (add the DKIM CNAMEs to DNS), then campaigns can be
-// sent From news@yourdomain.com instead of through a connected mailbox.
-export interface SesRecord { type: string; name: string; value: string; note?: string }
-export interface SesDomain { id?: string; domain: string; status: string; records: SesRecord[]; verified_at?: string | null; created_at?: string; reply_enabled?: boolean }
-export async function listSesDomains(): Promise<SesDomain[]> {
-  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'list' } });
-  if (error) return [];
-  const d = (data as { domains?: SesDomain[] } | null)?.domains;
-  return Array.isArray(d) ? d : [];
-}
-export async function addSesDomain(domain: string): Promise<{ domain?: string; status?: string; records?: SesRecord[]; error?: string }> {
-  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'add', domain } });
-  if (error) throw new Error(error.message || 'Request failed');
-  return (data || {}) as { domain?: string; status?: string; records?: SesRecord[]; error?: string };
-}
-export async function checkSesDomain(domain: string): Promise<{ domain?: string; status?: string; verified?: boolean; records?: SesRecord[]; error?: string }> {
-  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'status', domain } });
-  if (error) throw new Error(error.message || 'Request failed');
-  return (data || {}) as { domain?: string; status?: string; verified?: boolean; records?: SesRecord[]; error?: string };
-}
-export async function removeSesDomain(domain: string): Promise<void> {
-  await supabase.functions.invoke('ses', { body: { action: 'remove', domain } });
-}
-export async function testSesDomain(domain: string, to: string): Promise<{ ok?: boolean; error?: string }> {
-  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'test', domain, to } });
-  if (error) throw new Error(error.message || 'Request failed');
-  return (data || {}) as { ok?: boolean; error?: string };
-}
-// One-click DNS (Domain Connect): if the domain's DNS host is supported and our template
-// is live there, returns the apply URL to open; otherwise { supported:false }.
-export async function domainConnectUrl(domain: string): Promise<{ supported?: boolean; applyUrl?: string; provider?: string; reason?: string }> {
-  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'dcurl', domain } });
-  if (error) return { supported: false };
-  return (data || {}) as { supported?: boolean; applyUrl?: string; provider?: string; reason?: string };
-}
-// One-click for Cloudflare: the user pastes a scoped API token; the server uses it once
-// (never stored) to write the DKIM/DMARC records into the domain's Cloudflare zone.
-export async function cloudflareApply(domain: string, token: string): Promise<{ ok?: boolean; created?: number; skipped?: number; failed?: number; error?: string }> {
-  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'cf_apply', domain, token } });
-  if (error) throw new Error(error.message || 'Request failed');
-  return (data || {}) as { ok?: boolean; created?: number; skipped?: number; failed?: number; error?: string };
-}
-
-// ---- Deliverability insights (via the `ses` fn) ----
-// Per-domain email auth (DKIM/SPF/DMARC, checked live against DNS) plus account
-// reputation (bounce/complaint rates) — the "are my emails landing?" view.
-export interface DomainHealth {
-  domain: string;
-  status: string;
-  dkim: boolean;
-  spf: { found: boolean; ses: boolean };
-  dmarc: { found: boolean; policy: 'none' | 'quarantine' | 'reject' | null };
-  score: number;
-  grade: 'great' | 'good' | 'fair' | 'poor';
-  tips: string[];
-}
-export interface Reputation { accepted: number; delivered: number; bounced: number; complained: number; bounceRate: number; complaintRate: number }
-export async function getDeliverability(): Promise<{ domains: DomainHealth[]; reputation: Reputation }> {
-  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'deliverability' } });
-  const empty = { accepted: 0, delivered: 0, bounced: 0, complained: 0, bounceRate: 0, complaintRate: 0 };
-  if (error) return { domains: [], reputation: empty };
-  const d = (data || {}) as { domains?: DomainHealth[]; reputation?: Reputation };
-  return { domains: Array.isArray(d.domains) ? d.domains : [], reputation: d.reputation || empty };
-}
-
-// ---- Reply handling (inbound, via the `ses` fn) ----
-// Staged: enabling a domain wires SES inbound and returns the one MX record to add at
-// reply.<domain>. Replies land in the Replies tab once that MX is live.
-export interface ReplyMx { host: string; type: string; priority: number; value: string }
-export interface InboundReply {
-  id: string;
-  from_email: string;
-  from_name?: string | null;
-  recipient_email?: string | null;
-  subject?: string;
-  snippet?: string;
-  body_text?: string;
-  read?: boolean;
-  created_at: string;
-  campaign?: { name?: string; subject?: string } | null;
-}
-export async function enableReplies(domain: string): Promise<{ ok?: boolean; wired?: boolean; mx?: ReplyMx; error?: string }> {
-  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'reply_setup', domain } });
-  if (error) throw new Error(error.message || 'Request failed');
-  return (data || {}) as { ok?: boolean; wired?: boolean; mx?: ReplyMx; error?: string };
-}
-export async function disableReplies(domain: string): Promise<{ ok?: boolean; error?: string }> {
-  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'reply_disable', domain } });
-  if (error) throw new Error(error.message || 'Request failed');
-  return (data || {}) as { ok?: boolean; error?: string };
-}
-export async function replyStatus(domain: string): Promise<{ enabled?: boolean; mxLive?: boolean; mx?: ReplyMx; error?: string }> {
-  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'reply_status', domain } });
-  if (error) return {};
-  return (data || {}) as { enabled?: boolean; mxLive?: boolean; mx?: ReplyMx; error?: string };
-}
-export async function listReplies(): Promise<InboundReply[]> {
-  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'replies' } });
-  if (error) return [];
-  const r = (data as { replies?: InboundReply[] } | null)?.replies;
-  return Array.isArray(r) ? r : [];
-}
-export async function markReplyRead(id: string): Promise<void> {
-  await supabase.functions.invoke('ses', { body: { action: 'reply_read', id } });
-}
-
-// Saved senders — reusable "From" identities (name + address@verified-domain).
-export interface Sender { id: string; from_name: string; from_email: string }
-export async function listSenders(): Promise<Sender[]> {
-  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'senders' } });
-  if (error) return [];
-  const s = (data as { senders?: Sender[] } | null)?.senders;
-  return Array.isArray(s) ? s : [];
-}
-export async function addSender(name: string, email: string): Promise<{ sender?: Sender; error?: string }> {
-  const { data, error } = await supabase.functions.invoke('ses', { body: { action: 'sender_add', name, email } });
-  if (error) throw new Error(error.message || 'Request failed');
-  return (data || {}) as { sender?: Sender; error?: string };
-}
-export async function removeSender(id: string): Promise<void> {
-  await supabase.functions.invoke('ses', { body: { action: 'sender_remove', id } });
+// ---- Deliverability insights (via the `campaigns` fn) ----
+// Account reputation (bounce/complaint rates, recent send volume) — the "are my
+// emails landing?" view.
+export interface Reputation { accepted: number; delivered: number; bounced: number; complained: number; bounceRate: number; complaintRate: number; sent30?: number }
+export async function getDeliverability(): Promise<{ reputation: Reputation }> {
+  const empty = { accepted: 0, delivered: 0, bounced: 0, complained: 0, bounceRate: 0, complaintRate: 0, sent30: 0 };
+  const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'deliverability' } });
+  if (error) return { reputation: empty };
+  const d = (data || {}) as { reputation?: Reputation };
+  return { reputation: d.reputation || empty };
 }
 
 // ---- Outbound webhooks (via the `webhooks` fn) ----
