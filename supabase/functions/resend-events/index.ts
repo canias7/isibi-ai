@@ -148,6 +148,24 @@ function normalize(type: string, data: any, campaignId: string, email: string): 
   return { id: crypto.randomUUID(), type, created_at: data?.created_at || new Date().toISOString(), data: out };
 }
 
+// Short human reason from a Resend event so the user sees WHY, not just "bounced".
+// Resend's nested shape varies, so pull defensively and fall back to a label.
+// deno-lint-ignore no-explicit-any
+function bounceReason(data: any): string {
+  const b = data?.bounce || {};
+  return ([b.type, b.subType, b.message || b.reason].filter(Boolean).join(" — ") || "Bounced").slice(0, 300);
+}
+// deno-lint-ignore no-explicit-any
+function complaintReason(data: any): string {
+  const c = data?.complaint || {};
+  return String(c.type || c.feedbackType || "Marked as spam").slice(0, 300);
+}
+// deno-lint-ignore no-explicit-any
+function delayReason(data: any): string {
+  const d = data?.delivery_delayed || data?.delivery || {};
+  return String(d.message || d.reason || d.type || "temporary delivery delay").slice(0, 250);
+}
+
 // deno-lint-ignore no-explicit-any
 async function handleEvent(evt: any) {
   const type = String(evt?.type || "");
@@ -160,15 +178,18 @@ async function handleEvent(evt: any) {
   const row = (await r.json().catch(() => []))?.[0] as { id: string; user_id: string; campaign_id: string; email: string } | undefined;
   if (!row) return;
 
-  // 1. List hygiene.
+  // 1. List hygiene + a human reason on the recipient row.
   if (type === "email.delivered") {
-    await patchRecipient(row.id, { delivered_at: new Date().toISOString() });
+    await patchRecipient(row.id, { delivered_at: new Date().toISOString(), error: null }); // clear any earlier delay note
   } else if (type === "email.bounced") {
     await suppress(row.user_id, row.email, "bounce");
-    await patchRecipient(row.id, { status: "bounced" });
+    await patchRecipient(row.id, { status: "bounced", error: bounceReason(data) });
   } else if (type === "email.complained") {
     await suppress(row.user_id, row.email, "complaint");
-    await patchRecipient(row.id, { status: "complained" });
+    await patchRecipient(row.id, { status: "complained", error: complaintReason(data) });
+  } else if (type === "email.delivery_delayed") {
+    // Transient — the message may still arrive, so don't change status; just note why.
+    await patchRecipient(row.id, { error: `Delayed — ${delayReason(data)}`.slice(0, 300) });
   }
 
   // 2. Fan-out to the user's registered webhook endpoints.
