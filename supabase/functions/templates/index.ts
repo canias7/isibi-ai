@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// Sendra email templates + brand profile. Body is plain text (kind 'text') or
+// Sendra email templates. Body is plain text (kind 'text') or
 // ready HTML (kind 'html'). generate writes copy or a designed layout; chat
 // is the Lovable-style iterative builder. upload hosts an image.
 //
@@ -40,27 +40,6 @@ async function verifyUser(token: string | null): Promise<string | null> {
   } catch {
     return null;
   }
-}
-
-async function getBrand(uid: string): Promise<Record<string, string>> {
-  try {
-    const r = await fetch(`${SB_URL}/rest/v1/brand_profiles?user_id=eq.${uid}&select=name,logo_url,color,voice,signoff,address`, { headers: sbHeaders });
-    const row = (await r.json().catch(() => []))?.[0];
-    return (row && typeof row === "object") ? row : {};
-  } catch {
-    return {};
-  }
-}
-
-function brandLines(b: Record<string, string>): string[] {
-  const parts: string[] = [];
-  if (b.name) parts.push(`business name: ${b.name}`);
-  if (b.voice) parts.push(`voice/tone: ${b.voice}`);
-  if (b.signoff) parts.push(`sign off with: ${b.signoff}`);
-  if (b.color) parts.push(`brand color (hex): ${b.color}`);
-  if (b.logo_url) parts.push(`logo image URL: ${b.logo_url}`);
-  if (b.address) parts.push(`footer address: ${b.address}`);
-  return parts;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -313,9 +292,8 @@ async function scrapeSite(url: string): Promise<{ name: string; description: str
   return { name, description, color, logo, images: images.slice(0, 6) };
 }
 
-async function generate(prompt: string, mode: string, brand: Record<string, string>, images: string[]): Promise<{ subject: string; body: string } | null> {
+async function generate(prompt: string, mode: string, images: string[]): Promise<{ subject: string; body: string } | null> {
   if (!ANTHROPIC_KEY) return null;
-  const brandBlock = brandLines(brand).length ? ` Match this brand - ${brandLines(brand).join("; ")}.` : "";
   const imgBlock = images.length
     ? ` Use these provided image URLs in order, first as the full-width hero, the rest in the feature sections: ${images.join(", ")}.`
     : "";
@@ -324,14 +302,14 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
       "Structure top to bottom: a header with the logo (or the business name as a wordmark if no logo); a full-width hero image; a bold headline; one or two short intro paragraphs; then one or more feature/product sections, each with an image, a short title and a line of copy (add a small rounded discount badge like '20% off' ONLY if the description mentions a deal); a single prominent call-to-action button (rounded, brand-color background, white text); and a footer with the business name and address. " +
       "Rules: inline styles ONLY (no style tag, no script tag, no external CSS, no markdown). One centered container, max-width 600px, width 100%, light background, mobile-friendly. Use the brand color for the button, links and accents (fall back to a tasteful blue if none). Every img must be display:block; width:100%; height:auto. " +
       "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). End with the sign-off. Do NOT include an unsubscribe line (the system appends one)." +
-      brandBlock + imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + SOCIAL_RULE +
+      imgBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + SOCIAL_RULE +
       " Respond with ONLY a JSON object with two string keys: subject (short and compelling) and body (the full HTML).")
     : ("You are an expert email copywriter for a small business owner. From the user's short description, write ONE email they can send to their contacts. " +
       "Voice: warm, clear, human; concise and scannable; no corporate fluff, no clickbait. " +
       "Personalize the greeting with the literal token {{name}} (for example: 'Hi {{name}},'). " +
       "Plain text only - no HTML, no markdown, no images, no placeholder brackets other than {{name}}. " +
       "Keep it under ~180 words with real line breaks between short paragraphs, and end with a simple sign-off. " +
-      "Do NOT add an unsubscribe line (the system appends one)." + brandBlock +
+      "Do NOT add an unsubscribe line (the system appends one)." +
       " Respond with ONLY a JSON object with two string keys, subject and body.");
   const max = mode === "design" ? 12000 : 1500;
   const msgs = [{ role: "user", content: prompt.slice(0, 2000) }];
@@ -345,9 +323,8 @@ async function generate(prompt: string, mode: string, brand: Record<string, stri
 // Lovable-style iterative builder: given the conversation + the CURRENT email
 // HTML, create it (first turn) or edit it (later turns), and return the full
 // updated email plus a one-line reply. Brand + image URLs ground the design.
-async function chatDesign(messages: { role: string; content: string }[], current: string, brand: Record<string, string>, images: string[]): Promise<{ subject: string; body: string; reply: string } | null> {
+async function chatDesign(messages: { role: string; content: string }[], current: string, images: string[]): Promise<{ subject: string; body: string; reply: string } | null> {
   if (!ANTHROPIC_KEY) return null;
-  const brandBlock = brandLines(brand).length ? ` Brand to match - ${brandLines(brand).join("; ")}.` : "";
   const imgBlock = images.length ? ` Provided image URLs you may place (first is the hero): ${images.join(", ")}.` : "";
   const curBlock = current.trim()
     ? ` The CURRENT email HTML is between <<< and >>>. Apply the user's latest instruction by editing it and keeping everything else the same. <<<${current.slice(0, 60000)}>>>`
@@ -372,7 +349,7 @@ async function chatDesign(messages: { role: string; content: string }[], current
     "You are Sendra, an expert email designer and copywriter. You build and edit ONE marketing newsletter email as clean, email-client-safe HTML (inline styles only, no style or script tags, no markdown; one centered container max-width 600px, width 100%, mobile-friendly; every img display:block; width:100%; height:auto). " +
     "When creating fresh: logo header (or business-name wordmark), a hero image, bold headline, short intro, optional feature/product sections with images and a small discount badge only if a deal is mentioned, ONE call-to-action button in the brand color, and a footer with the business name and address. " +
     "Personalize the greeting with the literal token {{name}}. Do NOT add an unsubscribe line (the system appends one)." +
-    brandBlock + imgBlock + siteBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + SOCIAL_RULE + curBlock +
+    imgBlock + siteBlock + IMAGE_RULE + EMAIL_RULES + QUALITY_RULES + LINK_RULE + SOCIAL_RULE + curBlock +
     " When an email already exists: FIRST look at the user's LATEST message on its own. If it is ONLY a greeting, thanks, or acknowledgement with no design request - e.g. 'hi', 'hey', 'hello', 'yo', 'sup', 'thanks', 'ty', 'ok', 'okay', 'cool', 'nice', 'great', 'lol' - then DO NOT change the email at all: reply with one short friendly line and OMIT subject and body entirely (do not re-apply earlier requests). Same if they only ask a question (e.g. 'what subject works best?') - answer briefly with no body. OTHERWISE default to editing: treat the message as a change and return the full updated subject + body. This includes 'try again', 'redo', 'again', 'regenerate', 'another version', 'make it different', or any tweak - for 'try again'/'redo'/'another version', produce a genuinely fresh take (vary the copy and layout, keep the same brand/intent)." +
     " Respond with ONLY a JSON object: always include a short `reply`; include `subject` and `body` (the full updated HTML) whenever you create or change the email (which is almost always).";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
@@ -417,29 +394,6 @@ Deno.serve(async (req: Request) => {
       return json(req, { templates: Array.isArray(templates) ? templates : [] });
     }
 
-    if (action === "getBrand") {
-      return json(req, { brand: await getBrand(uid) });
-    }
-
-    if (action === "saveBrand") {
-      const row = {
-        user_id: uid,
-        name: String(body?.name || "").slice(0, 200),
-        logo_url: String(body?.logo_url || "").slice(0, 1000),
-        color: String(body?.color || "").slice(0, 20),
-        voice: String(body?.voice || "").slice(0, 500),
-        signoff: String(body?.signoff || "").slice(0, 300),
-        address: String(body?.address || "").slice(0, 300),
-        updated_at: new Date().toISOString(),
-      };
-      const r = await fetch(`${SB_URL}/rest/v1/brand_profiles?on_conflict=user_id`, {
-        method: "POST",
-        headers: { ...sbHeaders, Prefer: "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify(row),
-      });
-      return r.ok ? json(req, { ok: true }) : json(req, { error: "save_failed" }, 502);
-    }
-
     // Upload an image (base64) to the public email-assets bucket, return its URL.
     if (action === "upload") {
       const dataB64 = String(body?.dataB64 || "");
@@ -466,7 +420,7 @@ Deno.serve(async (req: Request) => {
       if (!prompt) return json(req, { error: "missing_prompt" });
       const mode = String(body?.mode || "text") === "design" ? "design" : "text";
       const images = Array.isArray(body?.images) ? (body.images as unknown[]).map((x) => String(x)).filter(Boolean).slice(0, 8) : [];
-      const out = await generate(prompt, mode, await getBrand(uid), images);
+      const out = await generate(prompt, mode, images);
       if (!out) return json(req, { error: "generate_failed" });
       if (mode === "design" && out.body) { try { out.body = await rehostImages(out.body, uid); } catch (e) { console.error("rehost_failed", String((e as Error)?.message || e)); } out.body = normalizeLinks(out.body); }
       return json(req, { ...out, kind: mode === "design" ? "html" : "text" });
@@ -478,7 +432,7 @@ Deno.serve(async (req: Request) => {
       const current = String(body?.body || "");
       const images = Array.isArray(body?.images) ? (body.images as unknown[]).map((x) => String(x)).filter(Boolean).slice(0, 8) : [];
       if (!messages.length) return json(req, { error: "missing_prompt" });
-      const out = await chatDesign(messages, current, await getBrand(uid), images);
+      const out = await chatDesign(messages, current, images);
       if (!out) return json(req, { error: "generate_failed" });
       if (out.body) { try { out.body = await rehostImages(out.body, uid); } catch (e) { console.error("rehost_failed", String((e as Error)?.message || e)); } out.body = normalizeLinks(out.body); }
       return json(req, { ...out, kind: "html" });
@@ -503,7 +457,7 @@ Deno.serve(async (req: Request) => {
       const jobId = job.id as string;
       const work = (async () => {
         try {
-          const out = await chatDesign(messages, current, await getBrand(uid), images);
+          const out = await chatDesign(messages, current, images);
           if (!out) { await updateJob(jobId, { status: "error", error: "generate_failed" }); return; }
           let b = out.body;
           if (b) { try { b = await rehostImages(b, uid); } catch (e) { console.error("rehost_failed", String((e as Error)?.message || e)); } b = normalizeLinks(b); }
