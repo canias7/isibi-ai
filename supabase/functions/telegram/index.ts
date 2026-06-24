@@ -169,7 +169,7 @@ Deno.serve(async (req: Request) => {
     // ---- sign-in flow (no stored session yet) ----
     if (action === "start") {
       const phone = String(body?.phone || "").trim();
-      if (!phone) return J({ error: "missing phone" }, 400);
+      if (!/^\+[1-9]\d{6,14}$/.test(phone)) return J({ error: "bad_phone" }, 400); // E.164 — stops pinging arbitrary/garbage numbers
       const client = await newClient();
       try {
         const sent = await client.invoke({
@@ -285,7 +285,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "send") {
-      const text = String(body?.text || "");
+      const text = String(body?.text || "").slice(0, 4096); // Telegram's per-message cap
       if (body?.chatId === undefined || body?.chatId === null || !text) return J({ error: "missing params" }, 400);
       const client = await newClient(sessionStr);
       try {

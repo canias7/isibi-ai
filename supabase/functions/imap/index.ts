@@ -95,6 +95,33 @@ async function dec(stored: string): Promise<string> {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function domainOf(email: string): string { const i = email.lastIndexOf("@"); return i === -1 ? "" : email.slice(i + 1).toLowerCase(); }
 
+// SSRF guard for user-supplied mail-server hosts. Block IP-literals in private/loopback/
+// link-local/CGNAT/metadata ranges, and (best-effort, if the runtime allows DNS) hostnames
+// that resolve into them — so a user can't point us at 169.254.169.254 / 127.0.0.1 / 10.x.
+function privateIp(ip: string): boolean {
+  ip = ip.toLowerCase();
+  if (ip === "::1" || ip.startsWith("fc") || ip.startsWith("fd") || ip.startsWith("fe80") || ip.startsWith("::ffff:")) return true;
+  if (/^(10|127|0)\./.test(ip)) return true;
+  if (/^192\.168\./.test(ip)) return true;
+  if (/^169\.254\./.test(ip)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return true;
+  if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(ip)) return true; // CGNAT 100.64/10
+  return false;
+}
+async function safeHost(host: string): Promise<boolean> {
+  const h = host.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  if (!h || h.length > 253 || /\s/.test(h)) return false;
+  if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal") || h === "metadata.google.internal") return false;
+  if (/^[\d.]+$/.test(h) || h.includes(":")) return !privateIp(h);   // IP literal
+  if (!/^[a-z0-9.-]+$/.test(h)) return false;                          // plausible hostname only
+  if (privateIp(h)) return false;
+  try {
+    const ips = [...await Deno.resolveDns(h, "A").catch(() => []), ...await Deno.resolveDns(h, "AAAA").catch(() => [])];
+    if (ips.some((ip) => privateIp(ip))) return false;                 // any private resolution → reject (rebinding)
+  } catch { /* resolveDns unavailable in this runtime — literal checks above still apply */ }
+  return true;
+}
+
 interface Acct { email: string; provider: string | null; imap_host: string; imap_port: number; smtp_host: string; smtp_port: number; enc_password: string }
 async function getAcct(uid: string, email?: string): Promise<Acct | null> {
   const q = email ? `&email=eq.${encodeURIComponent(email)}` : "&order=created_at.asc&limit=1";
@@ -143,6 +170,9 @@ Deno.serve(async (req: Request) => {
       if (!imap_host || !smtp_host) return json(req, { error: "need_servers" }, 400);
       const imap_port = Number(body?.imapPort || preset?.imap_port || 993);
       const smtp_port = Number(body?.smtpPort || preset?.smtp_port || 465);
+      // Only standard secure ports (no port 25 / arbitrary plaintext), and only public hosts.
+      if (![993, 143].includes(imap_port) || ![465, 587].includes(smtp_port)) return json(req, { error: "bad_port" }, 400);
+      if (!(await safeHost(imap_host)) || !(await safeHost(smtp_host))) return json(req, { error: "bad_host" }, 400);
       const provider = String(body?.provider || preset?.provider || "other"); // tile id, so per-tile status matches
 
       // Verify the credentials by actually logging in over IMAP.

@@ -58,9 +58,9 @@ Deno.serve(async (req: Request) => {
   if (!uid) return json(req, { ok: false, error: "unauthorized" }, 401);
 
   const payload = await req.json().catch(() => ({})) as Record<string, unknown>;
-  const to = String(payload.to ?? "").trim();
-  const subject = String(payload.subject ?? "");
-  const body = String(payload.body ?? "");
+  const to = String(payload.to ?? "").trim().replace(/[\r\n]/g, "");
+  const subject = String(payload.subject ?? "").replace(/[\r\n]+/g, " ").slice(0, 2000); // strip CRLF (header injection) + cap
+  const body = String(payload.body ?? "").slice(0, 500000);                              // cap body size (abuse/DoS)
   const threadId = String(payload.threadId ?? "").trim();
   const cc = Array.isArray(payload.cc) ? (payload.cc as string[]).filter((s) => EMAIL_RE.test(String(s).trim())) : [];
   const bcc = Array.isArray(payload.bcc) ? (payload.bcc as string[]).filter((s) => EMAIL_RE.test(String(s).trim())) : [];
