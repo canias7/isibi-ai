@@ -210,7 +210,7 @@ export async function listCampaigns(): Promise<Campaign[]> {
   const c = (data as { campaigns?: Campaign[] } | null)?.campaigns;
   return Array.isArray(c) ? c : [];
 }
-export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[]; send_via?: 'mailbox' | 'resend'; from_name?: string; scheduled_at?: string }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string }> {
+export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[]; send_via?: 'mailbox' | 'resend'; from_email?: string; from_name?: string; scheduled_at?: string }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string }> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'create', ...p } });
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string };
@@ -263,6 +263,32 @@ export async function getDeliverability(): Promise<{ reputation: Reputation }> {
   if (error) return { reputation: empty };
   const d = (data || {}) as { reputation?: Reputation };
   return { reputation: d.reputation || empty };
+}
+
+// ---- Custom sending domains (Resend, via the `resend` fn) ----
+// Add a domain you own, drop the DNS records Resend returns into your DNS host,
+// then Verify. Once verified, campaigns can send From news@yourdomain.com
+// (send_via: 'resend' + from_email) instead of through a connected mailbox.
+export interface DnsRecord { record?: string; type: string; name: string; value: string; ttl?: string; status?: string; priority?: number }
+export interface SendingDomain { domain: string; status: string; records: DnsRecord[]; verified_at?: string | null }
+export async function listDomains(): Promise<SendingDomain[]> {
+  const { data, error } = await supabase.functions.invoke('resend', { body: { action: 'domains' } });
+  if (error) return [];
+  const d = (data as { domains?: SendingDomain[] } | null)?.domains;
+  return Array.isArray(d) ? d : [];
+}
+export async function addDomain(domain: string): Promise<{ domain?: string; status?: string; records?: DnsRecord[]; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('resend', { body: { action: 'domain_add', domain } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { domain?: string; status?: string; records?: DnsRecord[]; error?: string };
+}
+export async function verifyDomain(domain: string): Promise<{ domain?: string; status?: string; records?: DnsRecord[]; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('resend', { body: { action: 'domain_verify', domain } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { domain?: string; status?: string; records?: DnsRecord[]; error?: string };
+}
+export async function removeDomain(domain: string): Promise<void> {
+  await supabase.functions.invoke('resend', { body: { action: 'domain_remove', domain } });
 }
 
 // ---- Outbound webhooks (via the `webhooks` fn) ----

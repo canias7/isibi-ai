@@ -11,6 +11,10 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 //   test   { to? }                              -> sends a test email (defaults to the caller's own email)
 //   send   { to, subject, html?, text?, from?, replyTo?, headers? } -> { ok, id }
 //   batch  { subject, html?, text?, from?, replyTo?, recipients:[{to, html?, text?, headers?}] } -> { ok, sent, ids }
+//   domains                       -> { domains:[{domain,status,records,verified_at}] }   (the user's custom domains)
+//   domain_add    { domain }      -> { domain, status, records }   (creates it in Resend, returns DNS records)
+//   domain_verify { domain }      -> { domain, status, records }   (re-checks DNS, flips to verified)
+//   domain_remove { domain }      -> { ok }
 //
 // Secrets: RESEND_API_KEY, RESEND_FROM (e.g. "Sendra <hello@mail.gofarther.app>").
 // Before a domain is verified in Resend, leave RESEND_FROM unset — it defaults to
@@ -23,7 +27,13 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? Deno.env.get("RESEND-AP
 const RESEND_FROM = Deno.env.get("RESEND_FROM") || "Sendra <onboarding@resend.dev>";
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const SB_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const sbHeaders = { apikey: SB_SERVICE, authorization: `Bearer ${SB_SERVICE}`, "content-type": "application/json" };
 const RESEND_API = "https://api.resend.com/emails";
+const RESEND_DOMAINS = "https://api.resend.com/domains";
+// Strict hostname — only [a-z0-9.-], so a value that matches is safe to interpolate
+// into a PostgREST filter (no injection / fragment-truncation).
+const HOST_RE = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
 
 const ALLOWED_ORIGINS = new Set([
   "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
@@ -74,6 +84,32 @@ async function resendSend(payload: Record<string, unknown>): Promise<{ ok: boole
     return { ok: false, error: msg.slice(0, 200) };
   }
   return { ok: true, id: typeof j?.id === "string" ? j.id : undefined };
+}
+
+// ---- Custom sending domains (Resend Domains API). Each user's domain is created in the
+// platform's single Resend account; only a *verified* one can be used as a From address. ----
+// deno-lint-ignore no-explicit-any
+async function resendApi(method: string, path: string, body?: Record<string, unknown>): Promise<{ ok: boolean; status: number; j: any }> {
+  const r = await fetch(`${RESEND_DOMAINS}${path}`, {
+    method,
+    headers: { authorization: `Bearer ${RESEND_API_KEY}`, "content-type": "application/json" },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const j = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, j };
+}
+function mapStatus(s: string): string { return s === "verified" ? "verified" : (s === "failed" ? "failed" : "pending"); }
+// deno-lint-ignore no-explicit-any
+function normalizeRecords(records: any): Record<string, unknown>[] {
+  if (!Array.isArray(records)) return [];
+  return records.map((r) => ({
+    record: r?.record, type: r?.type, name: r?.name, value: r?.value, ttl: r?.ttl, status: r?.status,
+    ...(r?.priority != null ? { priority: r.priority } : {}),
+  }));
+}
+async function getDomainRow(uid: string, domain: string): Promise<{ resend_id?: string; status?: string } | undefined> {
+  const r = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${domain}&select=resend_id,status&limit=1`, { headers: sbHeaders });
+  return (await r.json().catch(() => []))?.[0];
 }
 
 Deno.serve(async (req: Request) => {
@@ -153,6 +189,56 @@ Deno.serve(async (req: Request) => {
       }
       const data = (j?.data as Record<string, unknown>[]) ?? [];
       return json(req, { ok: true, sent: valid.length, ids: data.map((d) => d?.id).filter(Boolean) });
+    }
+
+    // ---- Custom sending domains ----
+    if (action === "domains") {
+      const r = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${user.id}&select=domain,status,records,verified_at,created_at&order=created_at.desc`, { headers: sbHeaders });
+      const domains = await r.json().catch(() => []);
+      return json(req, { domains: Array.isArray(domains) ? domains : [] });
+    }
+    if (action === "domain_add") {
+      const domain = String(body?.domain || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+      if (!HOST_RE.test(domain)) return json(req, { error: "bad_domain" }, 400);
+      // Don't let an account claim a domain another account already verified.
+      const ex = await fetch(`${SB_URL}/rest/v1/sending_domains?domain=eq.${domain}&status=eq.verified&select=user_id`, { headers: sbHeaders });
+      const exRows = (await ex.json().catch(() => [])) as { user_id: string }[];
+      if (Array.isArray(exRows) && exRows.some((x) => x.user_id !== user.id)) return json(req, { error: "domain_taken" }, 409);
+      const { ok, j } = await resendApi("POST", "", { name: domain });
+      if (!ok || !j?.id) return json(req, { error: "resend_failed", detail: String(j?.message ?? j?.name ?? "error").slice(0, 200) }, 502);
+      const status = mapStatus(String(j.status || "pending"));
+      const records = normalizeRecords(j.records);
+      await fetch(`${SB_URL}/rest/v1/sending_domains?on_conflict=user_id,domain`, {
+        method: "POST",
+        headers: { ...sbHeaders, Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({ user_id: user.id, domain, resend_id: j.id, status, records }),
+      });
+      return json(req, { domain, status, records });
+    }
+    if (action === "domain_verify") {
+      const domain = String(body?.domain || "").trim().toLowerCase();
+      if (!HOST_RE.test(domain)) return json(req, { error: "bad_domain" }, 400);
+      const row = await getDomainRow(user.id, domain);
+      if (!row?.resend_id) return json(req, { error: "not_found" }, 404);
+      const rid = encodeURIComponent(row.resend_id);
+      await resendApi("POST", `/${rid}/verify`);            // trigger a re-check
+      const { ok, j } = await resendApi("GET", `/${rid}`);  // read fresh status + records
+      if (!ok) return json(req, { error: "resend_failed" }, 502);
+      const status = mapStatus(String(j.status || "pending"));
+      const records = normalizeRecords(j.records);
+      await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${user.id}&domain=eq.${domain}`, {
+        method: "PATCH", headers: sbHeaders,
+        body: JSON.stringify({ status, records, ...(status === "verified" ? { verified_at: new Date().toISOString() } : {}) }),
+      });
+      return json(req, { domain, status, records });
+    }
+    if (action === "domain_remove") {
+      const domain = String(body?.domain || "").trim().toLowerCase();
+      if (!HOST_RE.test(domain)) return json(req, { error: "bad_domain" }, 400);
+      const row = await getDomainRow(user.id, domain);
+      if (row?.resend_id) { try { await resendApi("DELETE", `/${encodeURIComponent(row.resend_id)}`); } catch { /* ignore */ } }
+      await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${user.id}&domain=eq.${domain}`, { method: "DELETE", headers: sbHeaders });
+      return json(req, { ok: true });
     }
 
     return json(req, { error: "unknown_action" }, 400);
