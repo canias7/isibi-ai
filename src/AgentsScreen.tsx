@@ -296,6 +296,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const chatThreadRef = useRef<HTMLDivElement>(null);       // AI builder thread — auto-scrolls to newest render
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
+  const builderGenRef = useRef(0); // bumped on every AI-builder session change; an in-flight job whose gen no longer matches is dropped (never applied/saved to the wrong template)
 
   // Restore an unsaved builder draft on open (survives app close, Lovable-style).
   useEffect(() => {
@@ -346,7 +347,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     else if (commsApp) { setCommsApp(null); setInboxHome(false); }
     else if (tplEdit && chatView === 'history') setChatView('preview');
     else if (tplEdit && chatView === 'preview') setChatView('chat');
-    else if (tplEdit) { if (tplBody.trim() && !tplSaving) saveTpl(); else { clearDraft(); setTplEdit(null); } } // leaving the builder saves a built email
+    else if (tplEdit) { builderGenRef.current++; if (tplBody.trim() && !tplSaving) saveTpl(); else { clearDraft(); setTplEdit(null); } } // leaving the builder saves a built email + invalidates any in-flight job
 
     else if (sendraTab !== 'home') setSendraTab('home');
     else if (agent) setAgent(null);
@@ -979,12 +980,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   };
   // New template -> straight into the AI chat builder.
   const startAI = () => {
-    tap(); setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setTplVersions([]); setPendingImg(null); setChatBusy(false); setTplImgBusy(false); setCopiedIdx(null); setTypeIdx(null); setChatView('chat');
+    tap(); builderGenRef.current++; setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setTplVersions([]); setPendingImg(null); setChatBusy(false); setTplImgBusy(false); setCopiedIdx(null); setTypeIdx(null); setChatView('chat');
     const pj = loadJob(); // a generation that was still running when the app last closed
     if (pj && pj.editId === 'new') { setChatMsgs([{ role: 'user', content: pj.label }]); resumeJob(pj, 1); }
   };
   const openTplEdit = (t: Template) => {
-    tap();
+    tap(); builderGenRef.current++;
     setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body);
     setChatMsgs(t.chat && t.chat.length ? t.chat : []); setChatInput(''); setChatErr(''); setChatHistory([]); setPendingImg(null); setChatBusy(false); setTplImgBusy(false); setCopiedIdx(null); setTypeIdx(null); setChatView('chat');
     setTplVersions(t.body ? [{ label: 'Saved version', subject: t.subject, body: t.body, at: Date.parse(t.updated_at || '') || Date.now() }] : []);
@@ -1034,10 +1035,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   };
   // Resume a job left running when the app was closed/backgrounded (server kept going).
   const resumeJob = (pj: PendingJob, assistantIdx: number) => {
+    const myGen = builderGenRef.current; // the session we're resuming into
     setChatErr(''); setChatBusy(true); setChatJobId(pj.jobId);
     (async () => {
       const job = await pollJob(pj.jobId);
       if (!mountedRef.current) return;
+      if (builderGenRef.current !== myGen) { clearJob(); return; } // builder switched/closed — drop it
       applyJobResult(job, pj.prev, pj.label, assistantIdx);
       setChatBusy(false); setChatJobId(''); clearJob();
       if (job && job.status !== 'error' && job.body) {
@@ -1047,6 +1050,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     })();
   };
   const runChat = async (next: ChatMsg[], images: string[]) => {
+    const myGen = builderGenRef.current; // this builder session; if it changes mid-job we drop the result
     const prev = { subject: tplSubject, body: tplBody }; // snapshot for Undo (only used if the email changes)
     const label = [...next].reverse().find((m) => m.role === 'user')?.content?.trim() || 'Update';
     setChatMsgs(next); setChatBusy(true); setChatErr('');
@@ -1058,12 +1062,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       try { start = await chatTemplateStart(next, tplBody, images); }
       catch { start = await chatTemplateStart(next, tplBody, images); }
     } catch { if (mountedRef.current) { setChatErr('Couldn’t start — check your connection and try again.'); setChatBusy(false); } clearJob(); return; }
-    if (!mountedRef.current) return;
+    if (!mountedRef.current || builderGenRef.current !== myGen) return;
     if (start.error || !start.job_id) { setChatErr(start.error === 'ai_unset' ? 'AI builder isn’t set up on the server yet.' : 'Couldn’t start — try again.'); setChatBusy(false); clearJob(); return; }
     setChatJobId(start.job_id);
     saveJob({ jobId: start.job_id, editId: tplEdit?.id || 'new', prev, label, at: Date.now() });
     const job = await pollJob(start.job_id);
     if (!mountedRef.current) return; // editor left — leave the persisted job to resume on return
+    if (builderGenRef.current !== myGen) { clearJob(); return; } // switched/closed builder — don't apply to the wrong template
     applyJobResult(job, prev, label, next.length);
     setChatBusy(false); setChatJobId(''); clearJob();
     if (job && job.status !== 'error' && job.body) {
@@ -1119,6 +1124,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     finally { if (mountedRef.current) setTplSaving(false); }
   };
   const delTpl = async () => {
+    builderGenRef.current++;
     if (!tplEdit?.id) { clearDraft(); setTplEdit(null); return; }
     tap();
     await deleteTemplate(tplEdit.id).catch(() => {});
