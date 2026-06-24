@@ -900,6 +900,21 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // (conversational) or also return a new email body, which we then apply.
   // Poll a running builder job until it finishes. Resilient to transient network
   // errors and to the app being backgrounded — the timer just resumes on return.
+  // Auto-save the built template the moment it's generated, so it lands in the list
+  // without an explicit Save. The first build creates the row; we hold its id so later
+  // edits update the same template instead of duplicating it.
+  const persistTemplate = async (body: string, subject: string, chat: ChatMsg[]) => {
+    const b = (body || '').trim();
+    if (!b) return;
+    const subj = (subject || '').trim() || 'Untitled email';
+    const name = (tplName || '').trim() || subj;
+    try {
+      const r = await saveTemplate({ id: tplEdit?.id, name, subject: subj, body: b, kind: 'html', chat: chat.slice(-40) });
+      if (!mountedRef.current) return;
+      if (r?.id && !tplEdit?.id) setTplEdit({ id: r.id });
+      listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
+    } catch { /* non-fatal — explicit Save / save-on-exit still cover it */ }
+  };
   const pollJob = async (jobId: string): Promise<TemplateJob | null> => {
     const deadline = Date.now() + 240000; // give up after ~4 min
     while (Date.now() < deadline) {
@@ -930,6 +945,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       if (!mountedRef.current) return;
       applyJobResult(job, pj.prev, pj.label, assistantIdx);
       setChatBusy(false); setChatJobId(''); clearJob();
+      if (job && job.status !== 'error' && job.body) {
+        const chat: ChatMsg[] = [{ role: 'user', content: pj.label }, { role: 'assistant', content: job.reply || 'Done.' }];
+        persistTemplate(job.body, job.subject || pj.prev.subject, chat);
+      }
     })();
   };
   const runChat = async (next: ChatMsg[], images: string[]) => {
@@ -952,6 +971,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (!mountedRef.current) return; // editor left — leave the persisted job to resume on return
     applyJobResult(job, prev, label, next.length);
     setChatBusy(false); setChatJobId(''); clearJob();
+    if (job && job.status !== 'error' && job.body) {
+      const chat: ChatMsg[] = [...next, { role: 'assistant', content: job.reply || 'Done.' }];
+      persistTemplate(job.body, job.subject || tplSubject, chat);
+    }
   };
   const copyMsg = async (i: number, text: string) => {
     if (!text) return;
