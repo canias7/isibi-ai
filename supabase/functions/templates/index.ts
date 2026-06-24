@@ -69,24 +69,37 @@ async function callClaude(system: string, messages: { role: string; content: str
   const reqBody: Record<string, any> = { model: MODEL, max_tokens: maxTokens, system, messages };
   if (tools && tools.length) reqBody.tools = tools;
   const tag = tools && tools.length ? "withtools" : "plain";
-  const t0 = Date.now();
-  let r: Response;
-  try {
-    r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify(reqBody),
-      signal: AbortSignal.timeout(timeoutMs), // never hang the function (and thus the UI) on a slow/stuck call
-    });
-  } catch (e) {
-    console.error("anthropic_fetch_failed", tag, Date.now() - t0, String((e as Error)?.name || e));
-    return null;
+  // Retry transient Anthropic errors (overload / rate-limit / 5xx / network blip) with a
+  // short backoff so a brief hiccup self-heals instead of surfacing as a failed build.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await new Promise((res) => setTimeout(res, attempt === 1 ? 800 : 2500));
+    const t0 = Date.now();
+    let r: Response;
+    try {
+      r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify(reqBody),
+        signal: AbortSignal.timeout(timeoutMs), // never hang the function (and thus the UI) on a slow/stuck call
+      });
+    } catch (e) {
+      const name = String((e as Error)?.name || e);
+      console.error("anthropic_fetch_failed", tag, Date.now() - t0, name);
+      if (name === "TimeoutError" || name === "AbortError") return null; // genuinely slow/stuck — retrying won't help
+      continue; // transient network blip — back off + retry
+    }
+    if (r.ok) {
+      const data = await r.json().catch(() => null) as { content?: { type: string; text?: string }[] } | null;
+      const text = (data?.content ?? []).filter((x) => x.type === "text").map((x) => x.text ?? "").join("").trim();
+      console.log("anthropic_ok", tag, Date.now() - t0, "chars", text.length);
+      return text;
+    }
+    let b = ""; try { b = (await r.text()).slice(0, 400); } catch { /* ignore */ }
+    console.error("anthropic_error", r.status, tag, b);
+    if (r.status === 429 || r.status === 529 || r.status >= 500) continue; // overloaded/rate-limited — back off + retry
+    return null; // 4xx (bad request / auth) — won't get better on retry
   }
-  if (!r.ok) { let b = ""; try { b = (await r.text()).slice(0, 400); } catch { /* ignore */ } console.error("anthropic_error", r.status, tag, b); return null; }
-  const data = await r.json().catch(() => null) as { content?: { type: string; text?: string }[] } | null;
-  const text = (data?.content ?? []).filter((x) => x.type === "text").map((x) => x.text ?? "").join("").trim();
-  console.log("anthropic_ok", tag, Date.now() - t0, "chars", text.length);
-  return text;
+  return null;
 }
 function parseJson(text: string | null): Record<string, unknown> | null {
   if (!text) return null;
