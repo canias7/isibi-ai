@@ -21,7 +21,7 @@ const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const sbHeaders = { apikey: SB_SERVICE, authorization: `Bearer ${SB_SERVICE}`, "content-type": "application/json" };
 // Built-in ESP (Resend) — the zero-setup sender behind `send_via: "resend"`. One central
 // key + verified domain (RESEND_FROM); users send through it without connecting anything.
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? Deno.env.get("RESEND-API-KEY") ?? ""; // secret is named with hyphens
 const RESEND_FROM = Deno.env.get("RESEND_FROM") || "Sendra <onboarding@resend.dev>";
 const RESEND_API = "https://api.resend.com/emails";
 
@@ -184,8 +184,9 @@ async function sendOneResend(p: { fromName: string | null; to: string; subject: 
     });
     const j = await res.json().catch(() => ({})) as Record<string, unknown>;
     if (!res.ok || j?.error) {
-      const msg = typeof j?.error === "object" ? JSON.stringify(j.error) : String(j?.error ?? `http_${res.status}`);
-      return { ok: false, error: `resend_${res.status}:${msg}`.slice(0, 200) };
+      // Resend puts the human reason in `message` (e.g. "domain is not verified"); surface it.
+      const msg = j?.message ?? (typeof j?.error === "object" ? JSON.stringify(j.error) : j?.error) ?? `http_${res.status}`;
+      return { ok: false, error: `resend_${res.status}:${String(msg)}`.slice(0, 200) };
     }
     return { ok: true, id: typeof j?.id === "string" ? j.id : undefined };
   } catch (e) {

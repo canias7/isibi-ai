@@ -17,7 +17,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // onboarding@resend.dev, which can only send to YOUR Resend account email (great
 // for the `test` action). Verify a domain, then set RESEND_FROM to send to anyone.
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
+// The project secret is named RESEND-API-KEY (hyphens); fall back to it so a plain
+// Deno.env lookup doesn't come back empty (which surfaced as a Resend 401).
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? Deno.env.get("RESEND-API-KEY") ?? "";
 const RESEND_FROM = Deno.env.get("RESEND_FROM") || "Sendra <onboarding@resend.dev>";
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
