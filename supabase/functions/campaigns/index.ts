@@ -59,6 +59,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // fragment-truncation of the trailing ownership filter). UUIDs and hostnames only.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function vId(v: unknown): string { const s = String(v ?? "").trim(); return UUID_RE.test(s) ? s : ""; }
+function vHost(v: string): string { return /^[a-z0-9.-]{1,253}$/i.test(v) ? v : ""; } // safe to interpolate into a PostgREST filter
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function esc(s: string): string { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
@@ -168,13 +169,15 @@ function resendFrom(name: string | null): string {
 // Send one email through Sendra's built-in ESP (Resend). Adds the one-click
 // List-Unsubscribe headers and returns Resend's message id, which the
 // resend-events webhook maps back to this recipient (delivered/bounce/complaint).
-async function sendOneResend(p: { fromName: string | null; to: string; subject: string; html: string; unsub: string }): Promise<{ ok: boolean; id?: string; error?: string }> {
+async function sendOneResend(p: { fromEmail?: string | null; fromName: string | null; to: string; subject: string; html: string; unsub: string }): Promise<{ ok: boolean; id?: string; error?: string }> {
   try {
+    // A verified custom domain From (validated at create time) wins; else the central RESEND_FROM.
+    const from = p.fromEmail ? (p.fromName ? `${p.fromName} <${p.fromEmail}>` : p.fromEmail) : resendFrom(p.fromName);
     const res = await fetch(RESEND_API, {
       method: "POST",
       headers: { authorization: `Bearer ${RESEND_API_KEY}`, "content-type": "application/json" },
       body: JSON.stringify({
-        from: resendFrom(p.fromName),
+        from,
         to: [p.to],
         subject: p.subject,
         html: p.html,
@@ -229,7 +232,7 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
     const personalized = String(camp.body).replace(/\{\{\s*name\s*\}\}/g, esc(who));
     const html = `${withTracking(personalized, id, r.id, tok)}<br><br><hr style="border:none;border-top:1px solid #eee"><p style="font-size:12px;color:#888;font-family:system-ui,sans-serif">You're receiving this because you're on a list managed in Sendra. <a href="${unsub}" style="color:#888">Unsubscribe</a>.</p>${openPixel(id, r.id, tok)}`;
     const res: { ok: boolean; id?: string; error?: string } = isResend
-      ? await sendOneResend({ fromName: camp.from_name, to: r.email, subject: camp.subject, html, unsub })
+      ? await sendOneResend({ fromEmail: camp.from_email, fromName: camp.from_name, to: r.email, subject: camp.subject, html, unsub })
       : await sendOne(uid, camp.app, r.email, camp.subject, html);
     await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, {
       method: "PATCH", headers: sbHeaders,
@@ -304,11 +307,21 @@ Deno.serve(async (req: Request) => {
 
       // Sending method: built-in Resend (zero setup) or the user's mailbox (default).
       const sendVia = String(body?.send_via || "mailbox").toLowerCase() === "resend" ? "resend" : "mailbox";
-      const fromEmail: string | null = null;
+      let fromEmail: string | null = null;
       let fromName: string | null = null;
       if (sendVia === "resend") {
         if (!RESEND_API_KEY) return json(req, { error: "resend_unset" });
-        fromName = body?.from_name ? String(body.from_name).slice(0, 120) : null; // the address comes from the central verified RESEND_FROM
+        fromName = body?.from_name ? String(body.from_name).slice(0, 120) : null;
+        // Optional custom From on one of the user's OWN verified domains; else the central RESEND_FROM.
+        const rawFrom = String(body?.from_email || "").trim().toLowerCase();
+        if (rawFrom) {
+          if (!EMAIL_RE.test(rawFrom)) return json(req, { error: "bad_from" });
+          const dom = vHost(rawFrom.split("@")[1] || "");  // re-validate before interpolating
+          if (!dom) return json(req, { error: "bad_from" });
+          const dRes = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${dom}&status=eq.verified&select=domain`, { headers: sbHeaders });
+          if (!((await dRes.json().catch(() => [])) as unknown[]).length) return json(req, { error: "domain_not_verified" });
+          fromEmail = rawFrom;
+        }
       }
 
       // Dedupe + validate, then drop anyone suppressed for this user.

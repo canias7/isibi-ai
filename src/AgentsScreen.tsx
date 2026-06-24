@@ -3,11 +3,11 @@ import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck, IconContacts,
   IconDoc, IconChat, IconPlus, IconArrowUp, IconX, IconCopy,
-  IconCalendar, IconWebhook, IconSettings, IconChart,
+  IconCalendar, IconWebhook, IconSettings, IconChart, IconGlobe,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type SavedContact, type Suppression, type Template, type ChatMsg, listDomains, addDomain as addDomainApi, verifyDomain, removeDomain as removeDomainApi, type SendingDomain } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -30,12 +30,13 @@ const AGENTS: AgentDef[] = [
 type CommsId = 'gmail' | 'm365' | 'telegram';
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'schedule' | 'webhook' | 'logs' | 'deliver' | 'settings';
+type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'logs' | 'deliver' | 'settings';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
   texts: { t: 'Text', s: 'Send an SMS' },
   campaigns: { t: 'Campaigns', s: 'Email & SMS to your lists' },
   templates: { t: 'Templates', s: 'Reusable messages' },
+  domains: { t: 'Domains', s: 'Send from your own address' },
   schedule: { t: 'Schedule', s: 'Scheduled sends & reminders' },
   webhook: { t: 'Webhooks', s: 'Post events to your systems' },
   logs: { t: 'Logs', s: 'Every email sent & what happened' },
@@ -50,6 +51,7 @@ const HOME_TOOLS: { id: SendraTab | 'inbox' | 'contacts'; name: string; desc: st
   { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
   { id: 'logs', name: 'Logs', desc: 'Every email sent', Icon: IconClock },
   { id: 'deliver', name: 'Deliverability', desc: 'Are emails landing?', Icon: IconChart },
+  { id: 'domains', name: 'Domains', desc: 'Send from your address', Icon: IconGlobe },
   { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
   { id: 'webhook', name: 'Webhooks', desc: 'Post events out', Icon: IconWebhook },
   { id: 'schedule', name: 'Schedule', desc: 'Plan sends ahead', Icon: IconCalendar },
@@ -234,8 +236,17 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [whErr, setWhErr] = useState('');
   const [whOpen, setWhOpen] = useState<string | null>(null);
   const [whTest, setWhTest] = useState<Record<string, string>>({}); // endpoint id -> last test result message
-  const [campDomain, setCampDomain] = useState('__resend__'); // '__resend__' = built-in; '' = send via mailbox
-  const [campFromName, setCampFromName] = useState(''); // display name when sending built-in
+  const [campDomain, setCampDomain] = useState('__resend__'); // '__resend__' = built-in; '' = mailbox; else a verified domain
+  const [campFromName, setCampFromName] = useState(''); // display name when sending built-in or from a domain
+  const [campFromLocal, setCampFromLocal] = useState('news'); // local-part of the From address when sending from a domain
+  // Custom sending domains (Resend) — the Domains tab + the composer's verified-domain options
+  const [domains, setDomains] = useState<SendingDomain[]>([]);
+  const [domNew, setDomNew] = useState('');     // the "add a domain" input
+  const [domBusy, setDomBusy] = useState(false); // add in flight
+  const [domErr, setDomErr] = useState('');      // add error message
+  const [domOpen, setDomOpen] = useState<string | null>(null); // which domain's DNS records are expanded
+  const [domVerifying, setDomVerifying] = useState('');  // domain currently being re-verified
+  const domPollRef = useRef(0); // background re-verify ticks while a domain is pending (capped)
   // Templates (reusable, AI-writable, or bring-your-own)
   const [tplList, setTplList] = useState<Template[]>([]);
   const [tplEdit, setTplEdit] = useState<null | { id?: string }>(null);
@@ -435,7 +446,23 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
     if (sendraTab === 'logs') { setLogsBusy(true); listLogs('').then((l) => { if (mountedRef.current) { setLogsList(l); setLogsBusy(false); } }).catch(() => { if (mountedRef.current) setLogsBusy(false); }); }
     if (sendraTab === 'deliver') { setDelivBusy(true); getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); }); }
+    // Verified domains feed the composer's "Send from" picker; the Domains tab needs the full list.
+    if (sendraTab === 'campaigns' || sendraTab === 'domains') listDomains().then((d) => { if (mountedRef.current) setDomains(d); });
   }, [agent, commsApp, sendraTab, campNew]);
+
+  // While the Domains tab is open and a domain is still pending, re-check DNS in the
+  // background every 20s (capped) so a freshly-added domain flips to verified on its own.
+  useEffect(() => {
+    if (agent !== 'email' || commsApp !== null || sendraTab !== 'domains') { domPollRef.current = 0; return; }
+    const pending = domains.some((d) => d.status !== 'verified' && d.status !== 'failed');
+    if (!pending || domPollRef.current > 15) return;
+    const id = setTimeout(async () => {
+      domPollRef.current += 1;
+      const fresh = await listDomains().catch(() => null);
+      if (mountedRef.current && fresh) setDomains(fresh);
+    }, 20000);
+    return () => clearTimeout(id);
+  }, [agent, commsApp, sendraTab, domains]);
 
   // Keep the AI builder pinned to its newest message / rendered email.
   useEffect(() => { const el = chatThreadRef.current; if (el) el.scrollTop = el.scrollHeight; }, [chatMsgs, tplBody, chatBusy]);
@@ -650,7 +677,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     tap(); setCampNew(true); setCampState('idle'); setCampErr('');
     setCampSubject(''); setCampBody(''); setCampBodyKind('text'); setCampRecips(''); setCampProg({ sent: 0, total: 0, failed: 0 });
     setCampApp(connApps.includes('gmail') ? 'gmail' : 'outlook');
-    setCampDomain('__resend__'); setCampFromName('');
+    setCampDomain('__resend__'); setCampFromName(''); setCampFromLocal('news');
     setCampWhen('now'); setCampSchedAt('');
   };
   const cancelScheduled = async (id: string) => {
@@ -682,13 +709,23 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     }
     tap(); setCampState('sending'); setCampErr(''); setCampProg({ sent: 0, total: recipients.length, failed: 0 });
     try {
+      // Three send paths:
+      //  __resend__              -> Sendra's built-in central sender (send_via resend, no from_email)
+      //  a verified custom domain -> send_via resend + from_email local@domain (your address)
+      //  ''                       -> the connected mailbox (no send_via)
       const useResend = campDomain === '__resend__';
+      const useDomain = !useResend && !!campDomain && domains.some((d) => d.domain === campDomain && d.status === 'verified');
+      const sendCfg = useResend
+        ? { send_via: 'resend' as const, from_name: campFromName.trim() || undefined }
+        : useDomain
+          ? { send_via: 'resend' as const, from_email: `${(campFromLocal.trim() || 'news')}@${campDomain}`, from_name: campFromName.trim() || undefined }
+          : {};
       const c = await createCampaign({
         app: campApp,
         subject: campSubject.trim(),
         body: campBodyKind === 'html' ? campBody : campToHtml(campBody.trim()),
         recipients,
-        ...(useResend ? { send_via: 'resend' as const, from_name: campFromName.trim() || undefined } : {}),
+        ...sendCfg,
         ...(scheduledIso ? { scheduled_at: scheduledIso } : {}),
       });
       if (!mountedRef.current) return;
@@ -719,8 +756,41 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     }
   };
 
-  // Copy a value to the clipboard with a brief "Copied" flash (webhook secret).
+  // Copy a value to the clipboard with a brief "Copied" flash (webhook secret + DNS records).
   const copyText = (s: string) => { try { navigator.clipboard?.writeText(s); tap(); setCopied(s); setTimeout(() => { if (mountedRef.current) setCopied(''); }, 1500); } catch { /* ignore */ } };
+
+  // ---- Custom sending domains (Resend) ----
+  // Add the domain in Resend (it returns the DNS records to publish), then Verify
+  // re-checks DNS. Once verified it shows up under the composer's "Send from".
+  const loadDomains = () => listDomains().then((d) => { if (mountedRef.current) setDomains(d); });
+  const addDomain = async () => {
+    const d = domNew.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (!d || domBusy) return;
+    tap(); setDomBusy(true); setDomErr('');
+    try {
+      const r = await addDomainApi(d);
+      if (!mountedRef.current) return;
+      if (r.error) setDomErr(r.error === 'domain_taken' ? 'That domain is already in use.' : r.error === 'bad_domain' ? 'That doesn’t look like a valid domain.' : 'Couldn’t add the domain — try again.');
+      else { setDomNew(''); setDomOpen(r.domain || d); domPollRef.current = 0; await loadDomains(); }
+    } catch { if (mountedRef.current) setDomErr('Something went wrong — try again.'); }
+    finally { if (mountedRef.current) setDomBusy(false); }
+  };
+  const verifyDom = async (domain: string) => {
+    tap(); setDomVerifying(domain);
+    try {
+      const r = await verifyDomain(domain);
+      if (!mountedRef.current) return;
+      // Reflect the fresh status/records immediately, then reload for good measure.
+      if (r.status) setDomains((ds) => ds.map((d) => d.domain === domain ? { ...d, status: r.status!, records: r.records ?? d.records } : d));
+      await loadDomains();
+    } catch { /* ignore */ }
+    finally { if (mountedRef.current) setDomVerifying(''); }
+  };
+  const removeDom = async (domain: string) => {
+    tap();
+    try { await removeDomainApi(domain); if (campDomain === domain) setCampDomain('__resend__'); await loadDomains(); } catch { /* ignore */ }
+  };
+
   const loadSuppressions = () => listSuppressions().then((s) => { if (mountedRef.current) setSupList(s); });
   // ---- Logs (per-email activity) ----
   const loadLogs = (q = logsQ) => {
@@ -1065,7 +1135,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <div className="ag-stage">
             <div className="ag-grid">
               {HOME_TOOLS.map((t) => (
-                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'webhook') loadWebhooks(); if (t.id === 'logs') { setLogsQ(''); loadLogs(''); } if (t.id === 'deliver') loadDeliver(); setSendraTab(t.id as SendraTab); } }}>
+                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'webhook') loadWebhooks(); if (t.id === 'logs') { setLogsQ(''); loadLogs(''); } if (t.id === 'deliver') loadDeliver(); if (t.id === 'domains') { setDomNew(''); setDomErr(''); domPollRef.current = 0; loadDomains(); } setSendraTab(t.id as SendraTab); } }}>
                   <span className="ag-act-ic"><t.Icon size={20} /></span>
                   <span className="ag-act-label">{t.name}</span>
                   <span className="ag-act-sub">{t.desc}</span>
@@ -1107,6 +1177,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       <select className="ag-field ag-from-sel" value={campDomain} onChange={(e) => { tap(); setCampDomain(e.target.value); if (campState === 'err') setCampState('idle'); }}>
                         <option value="__resend__">Sendra (built-in)</option>
                         <option value="">My mailbox</option>
+                        {domains.filter((d) => d.status === 'verified').map((d) => (
+                          <option key={d.domain} value={d.domain}>{d.domain}</option>
+                        ))}
                       </select>
                     </div>
                     {!campDomain && mailApiApps.length >= 2 && (
@@ -1118,6 +1191,15 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     {campDomain === '__resend__' && (
                       <div className="ag-from-fields">
                         <input className="ag-field" placeholder="From name (optional, e.g. Acme News)" value={campFromName} onChange={(e) => setCampFromName(e.target.value)} />
+                      </div>
+                    )}
+                    {campDomain && campDomain !== '__resend__' && (
+                      <div className="ag-from-fields">
+                        <input className="ag-field" placeholder="From name (e.g. Acme News)" value={campFromName} onChange={(e) => setCampFromName(e.target.value)} />
+                        <div className="ag-from-addr">
+                          <input className="ag-field" placeholder="news" autoCapitalize="none" autoCorrect="off" value={campFromLocal} onChange={(e) => setCampFromLocal(e.target.value.replace(/[^a-zA-Z0-9._-]/g, ''))} />
+                          <span className="ag-from-at">@{campDomain}</span>
+                        </div>
                       </div>
                     )}
                     <input className="ag-field" placeholder="Subject" value={campSubject}
@@ -1145,7 +1227,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       {campState === 'sending' ? (campWhen === 'later' ? 'Scheduling…' : `Sending… ${campProg.sent}/${campProg.total}`) : campWhen === 'later' ? 'Schedule campaign' : 'Send campaign'}
                     </button>
                     <button className="ag-send-btn ghost" disabled={campState === 'sending'} onClick={() => { tap(); setCampNew(false); }}>Cancel</button>
-                    <p className="ag-foot">{campDomain === '__resend__' ? 'Sends through Sendra’s built-in email — no setup needed' : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
+                    <p className="ag-foot">{campDomain === '__resend__' ? 'Sends through Sendra’s built-in email — no setup needed' : campDomain ? `Sends from ${(campFromLocal.trim() || 'news')}@${campDomain} (your verified domain)` : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
                   </div>
                 )
               ) : campView === 'suppressions' ? (
@@ -1407,6 +1489,61 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   <p className="ag-foot">Texts send from {smsNumber}. Standard SMS rates apply.</p>
                 </div>
               )
+            ) : sendraTab === 'domains' ? (
+              <div className="ag-compose">
+                <p className="ag-foot">Add a domain you own to send campaigns from your own address (e.g. news@yourbrand.com). Add the DNS records below at your DNS host, then tap Verify — it can take a few minutes to a few hours for DNS to propagate.</p>
+                <div className="ag-dom-add">
+                  <input className="ag-field" placeholder="yourbrand.com" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={domNew} onChange={(e) => { setDomNew(e.target.value); if (domErr) setDomErr(''); }} onKeyDown={(e) => { if (e.key === 'Enter') addDomain(); }} />
+                  <button className="ag-send-btn" disabled={domBusy || !domNew.trim()} onClick={addDomain}>{domBusy ? 'Adding…' : 'Add domain'}</button>
+                </div>
+                {domErr && <div className="ag-send-err">{domErr}</div>}
+                {domains.length === 0 ? (
+                  <div className="ag-empty" style={{ marginTop: 12 }}>Add your own domain to send campaigns from your address (e.g. news@yourbrand.com).</div>
+                ) : (
+                  <div className="ag-dom-list">
+                    {domains.map((d) => {
+                      const open = domOpen === d.domain;
+                      const verified = d.status === 'verified';
+                      const badge = verified ? 'ok' : d.status === 'failed' ? 'bad' : 'wait';
+                      return (
+                        <div className={`ag-dom${open ? ' open' : ''}`} key={d.domain}>
+                          <button className="ag-dom-row" onClick={() => { tap(); setDomOpen(open ? null : d.domain); }}>
+                            <span className="ag-dom-ic"><IconGlobe size={18} /></span>
+                            <span className="ag-dom-info">
+                              <span className="ag-dom-name">{d.domain}</span>
+                              <span className="ag-dom-sub">{verified ? 'Sending enabled' : d.status === 'failed' ? 'Verification failed' : 'Awaiting DNS records'}</span>
+                            </span>
+                            <span className={`ag-badge is-${badge}`}><i className="ag-dot" />{verified ? 'Verified' : d.status === 'failed' ? 'Failed' : 'Pending'}</span>
+                            <span className="ag-dom-chev">{open ? '▾' : '▸'}</span>
+                          </button>
+                          {open && (
+                            <div className="ag-dom-body">
+                              {verified
+                                ? <div className="ag-dom-ok">✓ Verified — pick this domain under “Send from” when creating a campaign.</div>
+                                : <p className="ag-foot ag-dom-hint">Add these records at your DNS host, then tap Verify. DNS can take a few minutes to a few hours to propagate.</p>}
+                              {!verified && (d.records || []).length > 0 && (
+                                <div className="ag-dns">
+                                  {(d.records || []).map((r, i) => (
+                                    <div className="ag-dns-rec" key={i}>
+                                      <div className="ag-dns-top"><span className="ag-dns-type">{r.type}</span>{r.priority != null && <span className="ag-dns-note">priority {r.priority}</span>}</div>
+                                      <div className="ag-dns-field"><label>Name / Host</label><div className="ag-dns-val"><code>{r.name}</code><button className={copied === r.name ? 'ok' : ''} onClick={() => copyText(r.name)}>{copied === r.name ? 'Copied ✓' : 'Copy'}</button></div></div>
+                                      <div className="ag-dns-field"><label>Value</label><div className="ag-dns-val"><code>{r.value}</code><button className={copied === r.value ? 'ok' : ''} onClick={() => copyText(r.value)}>{copied === r.value ? 'Copied ✓' : 'Copy'}</button></div></div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="ag-dom-actions">
+                                {!verified && <button className="ag-send-btn" disabled={domVerifying === d.domain} onClick={() => verifyDom(d.domain)}>{domVerifying === d.domain ? 'Verifying…' : 'Verify'}</button>}
+                                <button className="ag-send-btn ghost" onClick={() => removeDom(d.domain)}>Remove</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             ) : sendraTab === 'logs' ? (
               <div className="ag-compose">
                 <input className="ag-field" placeholder="Search by email…" autoCapitalize="none" autoCorrect="off" value={logsQ}
