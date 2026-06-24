@@ -210,7 +210,7 @@ export async function listCampaigns(): Promise<Campaign[]> {
   const c = (data as { campaigns?: Campaign[] } | null)?.campaigns;
   return Array.isArray(c) ? c : [];
 }
-export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[]; send_via?: 'mailbox' | 'ses'; from_email?: string; from_name?: string; scheduled_at?: string }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string }> {
+export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[]; send_via?: 'mailbox' | 'ses' | 'resend'; from_email?: string; from_name?: string; scheduled_at?: string }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string }> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'create', ...p } });
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string };
