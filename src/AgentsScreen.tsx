@@ -462,7 +462,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
     if (sendraTab === 'logs') { setLogsBusy(true); listLogs('').then((l) => { if (mountedRef.current) { setLogsList(l); setLogsBusy(false); } }).catch(() => { if (mountedRef.current) setLogsBusy(false); }); }
     if (sendraTab === 'deliver') { setDelivBusy(true); getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); }); }
-    if (sendraTab === 'replies') { setRepliesBusy(true); listReplies().then((r) => { if (mountedRef.current) { setRepliesList(r); setRepliesBusy(false); } }).catch(() => { if (mountedRef.current) setRepliesBusy(false); }); }
+    if (sendraTab === 'replies') { loadDomains(); setRepliesBusy(true); listReplies().then((r) => { if (mountedRef.current) { setRepliesList(r); setRepliesBusy(false); } }).catch(() => { if (mountedRef.current) setRepliesBusy(false); }); }
     if (sendraTab === 'domains') listSesDomains().then((d) => { if (mountedRef.current) setSesDomains(d); });
   }, [agent, commsApp, sendraTab, campNew]);
 
@@ -1207,7 +1207,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             subject: reading.subject, time: reading.time, unread: reading.unread,
             draft: reading.draft, body: reading.snippet || '',
           }} />
-          {mailConnected && reading.threadId ? (
+          {mailConnected && (reading.threadId || reading.email) ? (
             <button className="ag-send-btn ag-reply-btn" onClick={openReply}>Reply</button>
           ) : null}
         </div>
@@ -1241,7 +1241,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           <div className="ag-stage">
             <div className="ag-grid">
               {HOME_TOOLS.map((t) => (
-                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); if (t.id === 'webhook') loadWebhooks(); if (t.id === 'logs') { setLogsQ(''); loadLogs(''); } if (t.id === 'deliver') loadDeliver(); if (t.id === 'replies') { setOpenReplyId(null); loadReplies(); } setSendraTab(t.id as SendraTab); } }}>
+                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'domains') loadDomains(); if (t.id === 'webhook') loadWebhooks(); if (t.id === 'logs') { setLogsQ(''); loadLogs(''); } if (t.id === 'deliver') loadDeliver(); if (t.id === 'replies') { setOpenReplyId(null); loadDomains(); loadReplies(); } setSendraTab(t.id as SendraTab); } }}>
                   <span className="ag-act-ic"><t.Icon size={20} /></span>
                   <span className="ag-act-label">{t.name}</span>
                   <span className="ag-act-sub">{t.desc}</span>
@@ -2226,22 +2226,28 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         <div className="ag-stage">
           {!mailConnected && connectCard('Link this mailbox so the agent can read, draft and send.')}
           <div className="ag-grid">
-            {EMAIL_ACTIONS.map((act) => (
-              <button
-                key={act.id}
-                className="ag-act"
-                onClick={() => {
-                  tap();
-                  if (act.id === 'inbox') setEmailTab('inbox');
-                  else if (act.id === 'new') openCompose();
-                  else if (act.id === 'contacts') setEmailTab('contacts');
-                }}
-              >
-                <span className="ag-act-ic"><act.icon size={20} /></span>
-                <span className="ag-act-label">{act.label}</span>
-                <span className="ag-act-sub">{act.sub}</span>
-              </button>
-            ))}
+            {EMAIL_ACTIONS.map((act) => {
+              const soon = act.id === 'sequence';   // drip sequences aren't built yet
+              return (
+                <button
+                  key={act.id}
+                  className="ag-act"
+                  disabled={soon}
+                  onClick={() => {
+                    if (soon) return;
+                    tap();
+                    if (act.id === 'inbox') setEmailTab('inbox');
+                    else if (act.id === 'new') openCompose();
+                    else if (act.id === 'contacts') setEmailTab('contacts');
+                    else if (act.id === 'broadcast') { setCommsApp(null); setInboxHome(false); setSendraTab('campaigns'); openCampNew(); }
+                  }}
+                >
+                  <span className="ag-act-ic"><act.icon size={20} /></span>
+                  <span className="ag-act-label">{act.label}</span>
+                  <span className="ag-act-sub">{soon ? 'Soon' : act.sub}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

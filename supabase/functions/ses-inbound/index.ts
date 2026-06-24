@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createPublicKey, createVerify } from "node:crypto";
 
 // Public webhook for INBOUND email (campaign replies), delivered via SNS from an SES
 // receipt rule (wired by the `ses` fn's reply_setup action). Flow:
@@ -17,6 +18,42 @@ const sbHeaders = { apikey: SB_SERVICE, authorization: `Bearer ${SB_SERVICE}`, "
 const TOPIC_NAME = "sendra-inbound";
 
 const isAwsHttps = (u: string) => /^https:\/\/sns\.[a-z0-9-]+\.amazonaws\.com\//.test(u);
+
+// Cryptographically verify an SNS message (rebuild canonical string, fetch AWS-hosted
+// signing cert, RSA-verify Signature). Fail-closed — blocks forged inbound-reply posts.
+const certCache = new Map<string, string>();
+// deno-lint-ignore no-explicit-any
+async function verifySns(msg: any): Promise<boolean> {
+  try {
+    const certUrl = String(msg?.SigningCertURL || msg?.SigningCertUrl || "");
+    if (!isAwsHttps(certUrl)) return false;
+    const sig = String(msg?.Signature || "");
+    if (!sig) return false;
+    const type = String(msg?.Type || "");
+    const keys = type === "SubscriptionConfirmation" || type === "UnsubscribeConfirmation"
+      ? ["Message", "MessageId", "SubscribeURL", "Timestamp", "Token", "TopicArn", "Type"]
+      : (msg?.Subject !== undefined && msg?.Subject !== null
+          ? ["Message", "MessageId", "Subject", "Timestamp", "TopicArn", "Type"]
+          : ["Message", "MessageId", "Timestamp", "TopicArn", "Type"]);
+    let canonical = "";
+    for (const k of keys) { if (msg[k] === undefined || msg[k] === null) continue; canonical += `${k}\n${msg[k]}\n`; }
+    let pem = certCache.get(certUrl);
+    if (!pem) {
+      const r = await fetch(certUrl, { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) return false;
+      pem = await r.text();
+      if (certCache.size > 8) certCache.clear();
+      certCache.set(certUrl, pem);
+    }
+    const algo = String(msg?.SignatureVersion || "1") === "2" ? "RSA-SHA256" : "RSA-SHA1";
+    const v = createVerify(algo);
+    v.update(canonical, "utf8");
+    v.end();
+    return v.verify(createPublicKey(pem), sig, "base64");
+  } catch {
+    return false;
+  }
+}
 
 // "Display Name <addr@x>" or "addr@x" -> { name, email }
 function parseAddr(s: string): { name: string | null; email: string } {
@@ -100,10 +137,10 @@ Deno.serve(async (req: Request) => {
   let msg: any;
   try { msg = JSON.parse(raw); } catch { return new Response("bad request", { status: 400 }); }
 
-  // Only accept messages from our inbound topic + an AWS signing host.
+  // Only accept messages from our inbound topic, then cryptographically verify the SNS
+  // signature (blocks forged inbound replies).
   if (!String(msg?.TopicArn || "").endsWith(`:${TOPIC_NAME}`)) return new Response("ignored", { status: 200 });
-  const certUrl = String(msg?.SigningCertURL || msg?.SigningCertUrl || "");
-  if (certUrl && !isAwsHttps(certUrl)) return new Response("ignored", { status: 200 });
+  if (!(await verifySns(msg))) return new Response("ignored", { status: 200 });
 
   const type = msg?.Type || req.headers.get("x-amz-sns-message-type") || "";
   if (type === "SubscriptionConfirmation") {

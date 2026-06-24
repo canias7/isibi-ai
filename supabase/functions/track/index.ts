@@ -22,8 +22,15 @@ async function token(cid: string, rid: string): Promise<string> {
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${cid}:${rid}`));
   return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
 }
+// Constant-time string compare (don't leak the token via timing).
+function ctEq(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
 async function valid(cid: string, rid: string, k: string): Promise<boolean> {
-  return UUID_RE.test(cid) && UUID_RE.test(rid) && !!k && k === (await token(cid, rid));
+  return UUID_RE.test(cid) && UUID_RE.test(rid) && !!k && ctEq(k, await token(cid, rid));
 }
 async function rpc(fn: string, args: Record<string, unknown>): Promise<void> {
   try { await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, { method: "POST", headers: sbHeaders, body: JSON.stringify(args) }); }

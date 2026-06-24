@@ -43,6 +43,11 @@ async function verifyUser(token: string | null): Promise<string | null> {
   }
 }
 
+// Validate a body-supplied id before interpolating into a PostgREST URL (a `#` would
+// truncate the trailing &user_id ownership filter; `&` could inject filters).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function vId(v: unknown): string { const s = String(v ?? "").trim(); return UUID_RE.test(s) ? s : ""; }
+
 // Reject non-HTTPS and obvious internal/private targets (basic SSRF guard at save time).
 function badUrl(raw: string): boolean {
   let u: URL;
@@ -88,6 +93,7 @@ async function deliver(url: string, secret: string, event: { id: string }): Prom
         "sendra-signature": `v1=${signature}`,
       },
       body: bodyStr,
+      redirect: "manual",   // don't follow a 3xx to an internal host (SSRF)
       signal: AbortSignal.timeout(8000),
     });
     return res.status;
@@ -128,14 +134,14 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "remove") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
       await fetch(`${SB_URL}/rest/v1/webhook_endpoints?id=eq.${id}&user_id=eq.${uid}`, { method: "DELETE", headers: sbHeaders });
       return json(req, { ok: true });
     }
 
     if (action === "toggle") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
       await fetch(`${SB_URL}/rest/v1/webhook_endpoints?id=eq.${id}&user_id=eq.${uid}`, {
         method: "PATCH", headers: sbHeaders, body: JSON.stringify({ enabled: body?.enabled === true }),
@@ -144,7 +150,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "rotate") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
       const secret = newSecret();
       const r = await fetch(`${SB_URL}/rest/v1/webhook_endpoints?id=eq.${id}&user_id=eq.${uid}`, {
@@ -155,7 +161,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "test") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
       const r = await fetch(`${SB_URL}/rest/v1/webhook_endpoints?id=eq.${id}&user_id=eq.${uid}&select=url,secret`, { headers: sbHeaders });
       const ep = (await r.json().catch(() => []))?.[0];
@@ -167,7 +173,7 @@ Deno.serve(async (req: Request) => {
         data: { message: "This is a test event from Sendra. Your endpoint is reachable." },
       };
       const status = await deliver(ep.url, ep.secret, event);
-      await fetch(`${SB_URL}/rest/v1/webhook_endpoints?id=eq.${id}`, {
+      await fetch(`${SB_URL}/rest/v1/webhook_endpoints?id=eq.${id}&user_id=eq.${uid}`, {   // scope the write-back to the owner
         method: "PATCH", headers: sbHeaders, body: JSON.stringify({ last_status: status, last_event_at: new Date().toISOString() }),
       });
       return json(req, { ok: status >= 200 && status < 300, status });

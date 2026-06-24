@@ -127,10 +127,42 @@ function sniffImage(b: Uint8Array): string | null {
   if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
   return null;
 }
+// SSRF guard: block localhost / private / link-local / cloud-metadata targets.
+function privateHost(h: string): boolean {
+  h = h.toLowerCase().replace(/^\[|\]$/g, "");
+  if (!h || h === "localhost" || h.endsWith(".local") || h.endsWith(".internal")) return true;
+  if (h === "169.254.169.254" || h === "metadata.google.internal") return true;
+  if (/^(10|127|0)\./.test(h)) return true;
+  if (/^192\.168\./.test(h)) return true;
+  if (/^169\.254\./.test(h)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+  if (h === "::1" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80") || h.startsWith("::ffff:")) return true;
+  return false;
+}
+// Fetch a user-supplied URL with SSRF protection: only public http(s) hosts, and
+// redirects are followed manually so each hop is re-validated (a public host can't 302
+// us to an internal address).
+async function safeFetch(raw: string, headers: Record<string, string>, timeoutMs: number, maxHops = 3): Promise<Response | null> {
+  let url = raw;
+  for (let i = 0; i <= maxHops; i++) {
+    let u: URL;
+    try { u = new URL(url); } catch { return null; }
+    if ((u.protocol !== "https:" && u.protocol !== "http:") || privateHost(u.hostname)) return null;
+    const res = await fetch(u.toString(), { headers, redirect: "manual", signal: AbortSignal.timeout(timeoutMs) });
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get("location");
+      if (!loc) return res;
+      try { url = new URL(loc, u).toString(); } catch { return null; }
+      continue;
+    }
+    return res;
+  }
+  return null;
+}
 async function fetchImage(u: string): Promise<{ buf: Uint8Array; ct: string } | null> {
   try {
-    const r = await fetch(u, { headers: { "user-agent": BROWSER_UA, accept: "image/avif,image/webp,image/png,image/*,*/*;q=0.8" }, redirect: "follow", signal: AbortSignal.timeout(9000) });
-    if (!r.ok) return null;
+    const r = await safeFetch(u, { "user-agent": BROWSER_UA, accept: "image/avif,image/webp,image/png,image/*,*/*;q=0.8" }, 9000);
+    if (!r || !r.ok) return null;
     const buf = new Uint8Array(await r.arrayBuffer());
     if (!buf.length || buf.length > 5 * 1024 * 1024) return null;
     let ct = (r.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
@@ -145,6 +177,10 @@ async function uploadImage(buf: Uint8Array, ct: string, uid: string): Promise<st
   const up = await fetch(`${SB_URL}/storage/v1/object/email-assets/${path}`, { method: "POST", headers: { authorization: `Bearer ${SB_SERVICE}`, apikey: SB_SERVICE, "content-type": ct, "x-upsert": "true" }, body: buf });
   return up.ok ? `${SB_URL}${OURS}${path}` : null;
 }
+// Validate a body-supplied id before interpolating into a PostgREST URL (a `#` would
+// truncate the trailing &user_id ownership filter; `&` could inject filters).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function vId(v: unknown): string { const s = String(v ?? "").trim(); return UUID_RE.test(s) ? s : ""; }
 const STOP_WORDS = new Set(["the", "and", "for", "with", "your", "our", "new", "from", "this", "that", "image", "photo", "picture", "logo", "icon"]);
 function altKeyword(tag: string): string {
   const m = tag.match(/\balt=["']([^"']*)["']/i);
@@ -250,8 +286,8 @@ async function scrapeSite(url: string): Promise<{ name: string; description: str
   try { base = new URL(u); } catch { return null; }
   let html = "";
   try {
-    const r = await fetch(base.toString(), { headers: { "user-agent": BROWSER_UA, accept: "text/html,application/xhtml+xml,*/*" }, redirect: "follow", signal: AbortSignal.timeout(8000) });
-    if (!r.ok) return null;
+    const r = await safeFetch(base.toString(), { "user-agent": BROWSER_UA, accept: "text/html,application/xhtml+xml,*/*" }, 8000);
+    if (!r || !r.ok) return null;
     if (!/text\/html/i.test(r.headers.get("content-type") || "")) return null;
     html = (await r.text()).slice(0, 800000);
   } catch { return null; }
@@ -459,6 +495,8 @@ Deno.serve(async (req: Request) => {
       if (!messages.length) return json(req, { error: "missing_prompt" });
       // Tidy this user's jobs older than an hour (keeps the table small) — best-effort.
       fetch(`${SB_URL}/rest/v1/template_jobs?user_id=eq.${uid}&created_at=lt.${new Date(Date.now() - 3600000).toISOString()}`, { method: "DELETE", headers: sbHeaders }).catch(() => {});
+      // Fail jobs stuck "running" >5 min (the isolate died before updateJob ran) so the client stops polling a ghost.
+      fetch(`${SB_URL}/rest/v1/template_jobs?user_id=eq.${uid}&status=eq.running&created_at=lt.${new Date(Date.now() - 300000).toISOString()}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "error", error: "stalled" }) }).catch(() => {});
       const jr = await fetch(`${SB_URL}/rest/v1/template_jobs`, { method: "POST", headers: { ...sbHeaders, Prefer: "return=representation" }, body: JSON.stringify({ user_id: uid, status: "running" }) });
       const job = (await jr.json().catch(() => []))?.[0];
       if (!job?.id) return json(req, { error: "job_failed" }, 502);
@@ -481,7 +519,7 @@ Deno.serve(async (req: Request) => {
 
     // Poll a builder job.
     if (action === "job") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
       const r = await fetch(`${SB_URL}/rest/v1/template_jobs?id=eq.${id}&user_id=eq.${uid}&select=status,subject,body,reply,error`, { headers: sbHeaders });
       const j = (await r.json().catch(() => []))?.[0];
@@ -495,7 +533,7 @@ Deno.serve(async (req: Request) => {
       const kind = String(body?.kind || "text") === "html" ? "html" : "text";
       const chat = Array.isArray(body?.chat) ? (body.chat as unknown[]).slice(-40) : [];
       const blocks = Array.isArray(body?.blocks) ? body.blocks : [];
-      const id = body?.id ? String(body.id) : "";
+      const id = vId(body?.id);   // "" => create a new template; valid uuid => update that one
       if (!subject || !tbody) return json(req, { error: "missing_content" });
 
       if (id) {
@@ -517,7 +555,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "delete") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
       await fetch(`${SB_URL}/rest/v1/templates?id=eq.${id}&user_id=eq.${uid}`, { method: "DELETE", headers: sbHeaders });
       return json(req, { ok: true });

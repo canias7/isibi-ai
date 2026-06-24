@@ -68,6 +68,11 @@ async function verifyUser(token: string | null): Promise<string | null> {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // A plausible registrable domain (labels of letters/digits/hyphens, a real TLD).
 const DOMAIN_RE = /^(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$/;
+// Validate a body-supplied id before interpolating it into a PostgREST URL (a `#` would
+// otherwise truncate the trailing &user_id ownership filter; `&` could add filters).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function vId(v: unknown): string { const s = String(v ?? "").trim(); return UUID_RE.test(s) ? s : ""; }
+function vHost(v: string): string { return /^[a-z0-9.-]{1,253}$/i.test(v) ? v : ""; }
 
 type Rec = { type: string; name: string; value: string; note?: string };
 function buildRecords(domain: string, tokens: string[]): Rec[] {
@@ -478,7 +483,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "reply_read") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
       await fetch(`${SB_URL}/rest/v1/replies?id=eq.${id}&user_id=eq.${uid}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ read: true }) });
       return json(req, { ok: true });
@@ -543,7 +548,8 @@ Deno.serve(async (req: Request) => {
       const name = String(body?.name || "").slice(0, 120);
       const email = String(body?.email || "").trim().toLowerCase();
       if (!EMAIL_RE.test(email)) return json(req, { error: "bad_email" });
-      const dom = email.split("@")[1];
+      const dom = vHost(email.split("@")[1] || "");  // EMAIL_RE allows PostgREST metachars in the domain
+      if (!dom) return json(req, { error: "bad_email" });
       const dRes = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${dom}&status=eq.verified&select=domain`, { headers: sbHeaders });
       if (!((await dRes.json().catch(() => [])) as unknown[]).length) return json(req, { error: "domain_not_verified" });
       const r = await fetch(`${SB_URL}/rest/v1/senders?on_conflict=user_id,from_email`, {
@@ -555,7 +561,7 @@ Deno.serve(async (req: Request) => {
       return row?.id ? json(req, { sender: row }) : json(req, { error: "add_failed" }, 502);
     }
     if (action === "sender_remove") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
       await fetch(`${SB_URL}/rest/v1/senders?id=eq.${id}&user_id=eq.${uid}`, { method: "DELETE", headers: sbHeaders });
       return json(req, { ok: true });

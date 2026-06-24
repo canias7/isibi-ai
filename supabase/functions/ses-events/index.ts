@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createPublicKey, createVerify } from "node:crypto";
 
 // Public webhook for SES events, delivered via SNS (the `ses` function wires the
 // topic + subscription + config-set event destination). Two jobs:
@@ -9,15 +10,53 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 //      receiver can verify it came from Sendra.
 //
 // Security: this endpoint is unauthenticated (SNS can't send a JWT), so we gate on
-// the topic ARN (which embeds the AWS account id) + an amazonaws.com SigningCertURL,
-// and only ever ADD suppressions (fail-safe). Cryptographic SNS signature
-// verification is a planned hardening follow-up.
+// the topic ARN (which embeds the AWS account id) and then cryptographically verify the
+// SNS signature (see verifySns) — fail-closed, so forged bounce/complaint posts can't
+// suppress arbitrary addresses. We also only ever ADD suppressions (fail-safe).
 
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SB_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const sbHeaders = { apikey: SB_SERVICE, authorization: `Bearer ${SB_SERVICE}`, "content-type": "application/json" };
 
 const isAwsHttps = (u: string) => /^https:\/\/sns\.[a-z0-9-]+\.amazonaws\.com\//.test(u);
+
+// Cryptographically verify an SNS message: rebuild the documented canonical string,
+// fetch the (AWS-hosted) signing cert, and RSA-verify the Signature. Fail-closed — an
+// attacker can't forge a valid signature, so this blocks spoofed bounce/complaint/reply
+// posts. Certs are cached per URL.
+const certCache = new Map<string, string>();
+// deno-lint-ignore no-explicit-any
+async function verifySns(msg: any): Promise<boolean> {
+  try {
+    const certUrl = String(msg?.SigningCertURL || msg?.SigningCertUrl || "");
+    if (!isAwsHttps(certUrl)) return false;
+    const sig = String(msg?.Signature || "");
+    if (!sig) return false;
+    const type = String(msg?.Type || "");
+    const keys = type === "SubscriptionConfirmation" || type === "UnsubscribeConfirmation"
+      ? ["Message", "MessageId", "SubscribeURL", "Timestamp", "Token", "TopicArn", "Type"]
+      : (msg?.Subject !== undefined && msg?.Subject !== null
+          ? ["Message", "MessageId", "Subject", "Timestamp", "TopicArn", "Type"]
+          : ["Message", "MessageId", "Timestamp", "TopicArn", "Type"]);
+    let canonical = "";
+    for (const k of keys) { if (msg[k] === undefined || msg[k] === null) continue; canonical += `${k}\n${msg[k]}\n`; }
+    let pem = certCache.get(certUrl);
+    if (!pem) {
+      const r = await fetch(certUrl, { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) return false;
+      pem = await r.text();
+      if (certCache.size > 8) certCache.clear();
+      certCache.set(certUrl, pem);
+    }
+    const algo = String(msg?.SignatureVersion || "1") === "2" ? "RSA-SHA256" : "RSA-SHA1";
+    const v = createVerify(algo);
+    v.update(canonical, "utf8");
+    v.end();
+    return v.verify(createPublicKey(pem), sig, "base64");
+  } catch {
+    return false;
+  }
+}
 
 async function suppress(uid: string, email: string, reason: string, campaignId?: string) {
   const e = email.trim().toLowerCase();
@@ -152,10 +191,10 @@ Deno.serve(async (req: Request) => {
   let msg: any;
   try { msg = JSON.parse(raw); } catch { return new Response("bad request", { status: 400 }); }
 
-  // Only accept messages from our topic + an AWS signing host.
+  // Only accept messages from our topic, then cryptographically verify the SNS signature
+  // (blocks forged bounce/complaint events that could suppress arbitrary addresses).
   if (!String(msg?.TopicArn || "").endsWith(`:${"sendra-ses-events"}`)) return new Response("ignored", { status: 200 });
-  const certUrl = String(msg?.SigningCertURL || msg?.SigningCertUrl || "");
-  if (certUrl && !isAwsHttps(certUrl)) return new Response("ignored", { status: 200 });
+  if (!(await verifySns(msg))) return new Response("ignored", { status: 200 });
 
   const type = msg?.Type || req.headers.get("x-amz-sns-message-type") || "";
   if (type === "SubscriptionConfirmation") {

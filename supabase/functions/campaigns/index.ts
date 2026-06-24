@@ -70,6 +70,11 @@ async function verifyUser(token: string | null): Promise<string | null> {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Guards for any value interpolated into a PostgREST URL (prevents filter injection /
+// fragment-truncation of the trailing ownership filter). UUIDs and hostnames only.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function vId(v: unknown): string { const s = String(v ?? "").trim(); return UUID_RE.test(s) ? s : ""; }
+function vHost(v: string): string { return /^[a-z0-9.-]{1,253}$/i.test(v) ? v : ""; }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function esc(s: string): string { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
@@ -203,6 +208,20 @@ async function sendOneSes(p: { fromEmail: string; fromName: string | null; to: s
 async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; failed: number; remaining: number; done: boolean }> {
   const id = camp.id as string;
   const uid = camp.user_id as string;
+  // Single-flight: atomically claim this campaign before draining so two overlapping
+  // ticks (cron can run >60s) or a client+cron race never send the same batch twice.
+  // The lock auto-expires (2 min) so a crashed worker can't wedge the campaign.
+  const nowIso = new Date().toISOString();
+  const lockRes = await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}&or=(locked_until.is.null,locked_until.lt.${nowIso})`, {
+    method: "PATCH",
+    headers: { ...sbHeaders, Prefer: "return=representation" },
+    body: JSON.stringify({ locked_until: new Date(Date.now() + 120000).toISOString() }),
+  });
+  const lockRows = await lockRes.json().catch(() => []);
+  if (!Array.isArray(lockRows) || lockRows.length === 0) {
+    const remaining = await countBy(id, "queued");   // another worker holds it — don't double-send
+    return { sent: 0, failed: 0, remaining, done: remaining === 0 };
+  }
   if (camp.status === "draft" || camp.status === "scheduled") {
     await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "sending", updated_at: new Date().toISOString() }) });
   }
@@ -212,7 +231,7 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
   const withConfig = isSes ? await ensureConfigSet() : false;
   // Reply handling: if the sending domain has it enabled, every send gets a tokened
   // Reply-To at reply.<domain> so replies thread back via the ses-inbound webhook.
-  const fromDomain = isSes ? String(camp.from_email).split("@")[1] : "";
+  const fromDomain = isSes ? vHost(String(camp.from_email).split("@")[1] || "") : "";
   let replyDomain = "";
   if (isSes && fromDomain) {
     const rd = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${fromDomain}&select=reply_enabled`, { headers: sbHeaders });
@@ -239,7 +258,7 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
   const done = remaining === 0;
   await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, {
     method: "PATCH", headers: sbHeaders,
-    body: JSON.stringify({ sent: totSent, failed: totFailed, status: done ? "sent" : "sending", updated_at: new Date().toISOString() }),
+    body: JSON.stringify({ sent: totSent, failed: totFailed, status: done ? "sent" : "sending", locked_until: null, updated_at: new Date().toISOString() }),
   });
   return { sent, failed, remaining, done };
 }
@@ -307,7 +326,8 @@ Deno.serve(async (req: Request) => {
         fromEmail = String(body?.from_email || "").trim().toLowerCase();
         fromName = body?.from_name ? String(body.from_name).slice(0, 120) : null;
         if (!EMAIL_RE.test(fromEmail)) return json(req, { error: "bad_from" });
-        const dom = fromEmail.split("@")[1];
+        const dom = vHost(fromEmail.split("@")[1] || "");  // EMAIL_RE allows PostgREST metachars in the domain — re-validate before interpolating
+        if (!dom) return json(req, { error: "bad_from" });
         const dRes = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${dom}&status=eq.verified&select=domain`, { headers: sbHeaders });
         if (!((await dRes.json().catch(() => [])) as unknown[]).length) return json(req, { error: "domain_not_verified" });
       }
@@ -355,7 +375,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "send") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
       const limit = Math.min(Math.max(Number(body?.limit || 20), 1), 30);
       if (!id) return json(req, { error: "missing_id" }, 400);
 
@@ -367,7 +387,8 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "get") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
+      if (!id) return json(req, { error: "not_found" });
       const r = await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}&user_id=eq.${uid}&select=*`, { headers: sbHeaders });
       const camp = (await r.json().catch(() => []))?.[0];
       return camp ? json(req, { campaign: camp }) : json(req, { error: "not_found" });
@@ -381,7 +402,7 @@ Deno.serve(async (req: Request) => {
 
     // Cancel a scheduled send (only while still pending) — back to a draft.
     if (action === "unschedule") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
       await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}&user_id=eq.${uid}&status=eq.scheduled`, {
         method: "PATCH", headers: sbHeaders,
@@ -393,7 +414,7 @@ Deno.serve(async (req: Request) => {
     // Engagement stats for one campaign (unique opens/clicks via the `track` fn +
     // delivered/bounced/complained from SES events). Rates are computed client-side.
     if (action === "stats") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
       const cRes = await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}&user_id=eq.${uid}&select=id,name,subject,app,status,total,sent,failed,send_via,created_at`, { headers: sbHeaders });
       const camp = (await cRes.json().catch(() => []))?.[0];

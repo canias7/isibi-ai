@@ -17,6 +17,14 @@ async function unsubToken(uid: string, email: string): Promise<string> {
   return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
 }
 
+// Constant-time string compare (don't leak the token via timing).
+function ctEq(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+
 function page(title: string, msg: string): Response {
   const html = `<!doctype html><html><head><meta charset="utf8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title}</title></head>
@@ -37,8 +45,7 @@ Deno.serve(async (req: Request) => {
   if (!uid || !email || !t) return page("Invalid link", "This unsubscribe link is missing information.");
 
   const expected = await unsubToken(uid, email);
-  // Constant-ish comparison; tokens are equal length hex.
-  if (t.length !== expected.length || t !== expected) {
+  if (!ctEq(t, expected)) {
     return page("Invalid link", "This unsubscribe link couldn't be verified.");
   }
 

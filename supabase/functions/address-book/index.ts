@@ -40,6 +40,10 @@ async function verifyUser(token: string | null): Promise<string | null> {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Validate a body-supplied id before interpolating into a PostgREST URL (a `#` would
+// truncate the trailing &user_id ownership filter; `&` could inject filters).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function vId(v: unknown): string { const s = String(v ?? "").trim(); return UUID_RE.test(s) ? s : ""; }
 function clean(body: Record<string, unknown>) {
   const name = String(body?.name ?? "").trim().slice(0, 120);
   const email = String(body?.email ?? "").trim().toLowerCase().slice(0, 200);
@@ -86,7 +90,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "update") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
       const { name, email, phone } = clean(body);
       const tags = parseTags(body?.tags);
@@ -102,7 +106,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "delete") {
-      const id = String(body?.id || "");
+      const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
       await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${id}&user_id=eq.${uid}`, { method: "DELETE", headers: sbHeaders });
       return json(req, { ok: true });
