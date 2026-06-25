@@ -1523,7 +1523,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               )
             ) : sendraTab === 'domains' ? (
               <div className="ag-compose">
-                <p className="ag-foot">Add a domain you own to send campaigns from your own address (e.g. news@yourbrand.com). Add the DNS records below at your DNS host, then tap Verify — it can take a few minutes to a few hours for DNS to propagate.</p>
+                <p className="ag-foot">Add a domain you own to send from your own address (e.g. news@yourbrand.com). If it’s on Cloudflare we set it up in one click; otherwise the built-in sender works with zero setup.</p>
                 <div className="ag-dom-add">
                   <input className="ag-field" placeholder="yourbrand.com" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={domNew} onChange={(e) => { setDomNew(e.target.value); if (domErr) setDomErr(''); }} onKeyDown={(e) => { if (e.key === 'Enter') addDomain(); }} />
                   <button className="ag-send-btn" disabled={domBusy || !domNew.trim()} onClick={addDomain}>{domBusy ? 'Adding…' : 'Add domain'}</button>
@@ -1552,7 +1552,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                             <div className="ag-dom-body">
                               {verified
                                 ? <div className="ag-dom-ok">✓ Verified — pick this domain under “Send from” when creating a campaign.</div>
-                                : <p className="ag-foot ag-dom-hint">Add these records at your DNS host, then tap Verify. DNS can take a few minutes to a few hours to propagate.</p>}
+                                : <p className="ag-foot ag-dom-hint">If your domain’s DNS is on Cloudflare, connect it in one click below — we add the records and verify for you. Not on Cloudflare? Just use Sendra’s built-in sender (zero setup) under “Send from”.</p>}
                               {!verified && (
                                 <button className="ag-send-btn ag-dom-auto" onClick={() => { tap(); if (cfOpen === d.domain) { setCfOpen(''); setCfToken(''); } else { setCfOpen(d.domain); setCfToken(''); setCfMsg((m) => ({ ...m, [d.domain]: '' })); } }}>
                                   ⚡ Auto-configure (Cloudflare)
@@ -1572,17 +1572,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                                 </div>
                               )}
                               {!verified && cfMsg[d.domain] && <div className={`ag-dom-testmsg${cfMsg[d.domain].includes('✓') ? ' ok' : ''}`}>{cfMsg[d.domain]}</div>}
-                              {!verified && (d.records || []).length > 0 && (
-                                <div className="ag-dns">
-                                  {(d.records || []).map((r, i) => (
-                                    <div className="ag-dns-rec" key={i}>
-                                      <div className="ag-dns-top"><span className="ag-dns-type">{r.type}</span>{r.priority != null && <span className="ag-dns-note">priority {r.priority}</span>}</div>
-                                      <div className="ag-dns-field"><label>Name / Host</label><div className="ag-dns-val"><code>{r.name}</code><button className={copied === r.name ? 'ok' : ''} onClick={() => copyText(r.name)}>{copied === r.name ? 'Copied ✓' : 'Copy'}</button></div></div>
-                                      <div className="ag-dns-field"><label>Value</label><div className="ag-dns-val"><code>{r.value}</code><button className={copied === r.value ? 'ok' : ''} onClick={() => copyText(r.value)}>{copied === r.value ? 'Copied ✓' : 'Copy'}</button></div></div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
                               <div className="ag-dom-actions">
                                 {!verified && <button className="ag-send-btn" disabled={domVerifying === d.domain} onClick={() => verifyDom(d.domain)}>{domVerifying === d.domain ? 'Verifying…' : 'Verify'}</button>}
                                 <button className="ag-send-btn ghost" onClick={() => removeDom(d.domain)}>Remove</button>
