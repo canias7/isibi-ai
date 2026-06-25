@@ -205,14 +205,23 @@ Deno.serve(async (req: Request) => {
       const ex = await fetch(`${SB_URL}/rest/v1/sending_domains?domain=eq.${domain}&status=eq.verified&select=user_id`, { headers: sbHeaders });
       const exRows = (await ex.json().catch(() => [])) as { user_id: string }[];
       if (Array.isArray(exRows) && exRows.some((x) => x.user_id !== user.id)) return json(req, { error: "domain_taken" }, 409);
-      const { ok, j } = await resendApi("POST", "", { name: domain });
-      if (!ok || !j?.id) return json(req, { error: "resend_failed", detail: String(j?.message ?? j?.name ?? "error").slice(0, 200) }, 502);
-      const status = mapStatus(String(j.status || "pending"));
-      const records = normalizeRecords(j.records);
+      // Create it in Resend. If it already exists in our Resend account (e.g. the shared
+      // sending domain), look it up and reuse it instead of failing.
+      // deno-lint-ignore no-explicit-any
+      let dom: any = (await resendApi("POST", "", { name: domain })).j;
+      if (!dom?.id) {
+        const list = await resendApi("GET", "");
+        // deno-lint-ignore no-explicit-any
+        const found = Array.isArray(list.j?.data) ? list.j.data.find((d: any) => String(d?.name || "").toLowerCase() === domain) : null;
+        if (found?.id) { const got = await resendApi("GET", `/${encodeURIComponent(found.id)}`); dom = got.ok ? got.j : found; }
+      }
+      if (!dom?.id) return json(req, { error: "resend_failed" }, 502);
+      const status = mapStatus(String(dom.status || "pending"));
+      const records = normalizeRecords(dom.records);
       await fetch(`${SB_URL}/rest/v1/sending_domains?on_conflict=user_id,domain`, {
         method: "POST",
         headers: { ...sbHeaders, Prefer: "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify({ user_id: user.id, domain, resend_id: j.id, status, records }),
+        body: JSON.stringify({ user_id: user.id, domain, resend_id: dom.id, status, records, ...(status === "verified" ? { verified_at: new Date().toISOString() } : {}) }),
       });
       return json(req, { domain, status, records });
     }
