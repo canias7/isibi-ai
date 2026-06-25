@@ -207,15 +207,19 @@ Deno.serve(async (req: Request) => {
       if (Array.isArray(exRows) && exRows.some((x) => x.user_id !== user.id)) return json(req, { error: "domain_taken" }, 409);
       // Create it in Resend. If it already exists in our Resend account (e.g. the shared
       // sending domain), look it up and reuse it instead of failing.
+      const created = await resendApi("POST", "", { name: domain });
       // deno-lint-ignore no-explicit-any
-      let dom: any = (await resendApi("POST", "", { name: domain })).j;
+      let dom: any = created.j;
       if (!dom?.id) {
         const list = await resendApi("GET", "");
         // deno-lint-ignore no-explicit-any
         const found = Array.isArray(list.j?.data) ? list.j.data.find((d: any) => String(d?.name || "").toLowerCase() === domain) : null;
         if (found?.id) { const got = await resendApi("GET", `/${encodeURIComponent(found.id)}`); dom = got.ok ? got.j : found; }
       }
-      if (!dom?.id) return json(req, { error: "resend_failed" }, 502);
+      if (!dom?.id) {
+        console.error("domain_add failed:", domain, "status", created.status, JSON.stringify(created.j).slice(0, 400));
+        return json(req, { error: "resend_failed", detail: String(created.j?.message ?? created.j?.name ?? "error").slice(0, 200) }, 502);
+      }
       const status = mapStatus(String(dom.status || "pending"));
       const records = normalizeRecords(dom.records);
       await fetch(`${SB_URL}/rest/v1/sending_domains?on_conflict=user_id,domain`, {
