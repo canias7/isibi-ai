@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type SavedContact, type Suppression, type Template, type ChatMsg, listDomains, addDomain as addDomainApi, verifyDomain, removeDomain as removeDomainApi, type SendingDomain } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type SavedContact, type Suppression, type Template, type ChatMsg, listDomains, addDomain as addDomainApi, verifyDomain, removeDomain as removeDomainApi, cloudflareApply, type SendingDomain } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 
@@ -246,6 +246,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [domErr, setDomErr] = useState('');      // add error message
   const [domOpen, setDomOpen] = useState<string | null>(null); // which domain's DNS records are expanded
   const [domVerifying, setDomVerifying] = useState('');  // domain currently being re-verified
+  const [cfOpen, setCfOpen] = useState('');       // domain whose Cloudflare token panel is open ('' = none)
+  const [cfToken, setCfToken] = useState('');     // pasted Cloudflare API token (used once, never stored)
+  const [cfBusy, setCfBusy] = useState(false);    // Cloudflare apply in flight
+  const [cfMsg, setCfMsg] = useState<Record<string, string>>({}); // per-domain Cloudflare result
   const domPollRef = useRef(0); // background re-verify ticks while a domain is pending (capped)
   // Templates (reusable, AI-writable, or bring-your-own)
   const [tplList, setTplList] = useState<Template[]>([]);
@@ -789,6 +793,34 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const removeDom = async (domain: string) => {
     tap();
     try { await removeDomainApi(domain); if (campDomain === domain) setCampDomain('__resend__'); await loadDomains(); } catch { /* ignore */ }
+  };
+  // 1-click DNS: the user pastes a scoped Cloudflare API token; the server uses it once
+  // (never stored) to write the records into the domain's zone, then we re-verify.
+  const cfApply = async (domain: string) => {
+    const tok = cfToken.trim();
+    if (!tok || cfBusy) return;
+    tap(); setCfBusy(true); setCfMsg((m) => ({ ...m, [domain]: '' }));
+    try {
+      const r = await cloudflareApply(domain, tok);
+      if (!mountedRef.current) return;
+      if (r.ok) {
+        const n = (r.created || 0) + (r.skipped || 0);
+        setCfToken(''); setCfOpen('');  // token is transient — never persisted; clear it after the call
+        setCfMsg((m) => ({ ...m, [domain]: `Added ${n} record${n === 1 ? '' : 's'} ✓ — verifying…` }));
+        await verifyDom(domain);
+      } else {
+        const map: Record<string, string> = {
+          cf_auth: 'That token didn’t work — make sure it has Zone · DNS · Edit (and Zone · Read).',
+          zone_not_found: 'This domain isn’t in that Cloudflare account.',
+          missing_token: 'Paste your Cloudflare API token first.',
+          write_failed: 'Couldn’t write the records — check the token’s permissions.',
+          bad_domain: 'That doesn’t look like a valid domain.',
+          not_found: 'Add the domain first, then try again.',
+        };
+        setCfMsg((m) => ({ ...m, [domain]: map[r.error || ''] || 'Couldn’t apply — add the records below instead.' }));
+      }
+    } catch { if (mountedRef.current) setCfMsg((m) => ({ ...m, [domain]: 'Something went wrong — try again.' })); }
+    finally { if (mountedRef.current) setCfBusy(false); }
   };
 
   const loadSuppressions = () => listSuppressions().then((s) => { if (mountedRef.current) setSupList(s); });
@@ -1521,6 +1553,25 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                               {verified
                                 ? <div className="ag-dom-ok">✓ Verified — pick this domain under “Send from” when creating a campaign.</div>
                                 : <p className="ag-foot ag-dom-hint">Add these records at your DNS host, then tap Verify. DNS can take a few minutes to a few hours to propagate.</p>}
+                              {!verified && (
+                                <button className="ag-send-btn ag-dom-auto" onClick={() => { tap(); if (cfOpen === d.domain) { setCfOpen(''); setCfToken(''); } else { setCfOpen(d.domain); setCfToken(''); setCfMsg((m) => ({ ...m, [d.domain]: '' })); } }}>
+                                  ⚡ Auto-configure (Cloudflare)
+                                </button>
+                              )}
+                              {!verified && cfOpen === d.domain && (
+                                <div className="ag-cf">
+                                  <ol className="ag-cf-steps">
+                                    <li><a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noopener">Create a Cloudflare API token ↗</a> — use the “Edit zone DNS” template, pick this domain, then Create.</li>
+                                    <li>Copy the token and paste it below. We use it once to add your records and never store it.</li>
+                                  </ol>
+                                  <input className="ag-field" type="password" placeholder="Paste Cloudflare API token" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={cfToken} onChange={(e) => { setCfToken(e.target.value); if (cfMsg[d.domain]) setCfMsg((m) => ({ ...m, [d.domain]: '' })); }} />
+                                  <div className="ag-cf-actions">
+                                    <button className="ag-send-btn" disabled={cfBusy || !cfToken.trim()} onClick={() => cfApply(d.domain)}>{cfBusy ? 'Adding records…' : 'Add records via Cloudflare'}</button>
+                                    <button className="ag-send-btn ghost" onClick={() => { tap(); setCfOpen(''); setCfToken(''); }}>Cancel</button>
+                                  </div>
+                                </div>
+                              )}
+                              {!verified && cfMsg[d.domain] && <div className={`ag-dom-testmsg${cfMsg[d.domain].includes('✓') ? ' ok' : ''}`}>{cfMsg[d.domain]}</div>}
                               {!verified && (d.records || []).length > 0 && (
                                 <div className="ag-dns">
                                   {(d.records || []).map((r, i) => (

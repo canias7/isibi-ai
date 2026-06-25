@@ -15,6 +15,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 //   domain_add    { domain }      -> { domain, status, records }   (creates it in Resend, returns DNS records)
 //   domain_verify { domain }      -> { domain, status, records }   (re-checks DNS, flips to verified)
 //   domain_remove { domain }      -> { ok }
+//   cf_apply { domain, token }    -> { ok, created, skipped }   (writes the DNS records via the Cloudflare API; token used once, never stored)
 //
 // Secrets: RESEND_API_KEY, RESEND_FROM (e.g. "Sendra <hello@mail.gofarther.app>").
 // Before a domain is verified in Resend, leave RESEND_FROM unset — it defaults to
@@ -239,6 +240,47 @@ Deno.serve(async (req: Request) => {
       if (row?.resend_id) { try { await resendApi("DELETE", `/${encodeURIComponent(row.resend_id)}`); } catch { /* ignore */ } }
       await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${user.id}&domain=eq.${domain}`, { method: "DELETE", headers: sbHeaders });
       return json(req, { ok: true });
+    }
+
+    // One-click auto-configure for Cloudflare: the user supplies a scoped API token
+    // (used ONCE here, never stored or logged), and we write the domain's Resend DNS
+    // records straight into their Cloudflare zone. { domain, token } -> { ok, created, skipped }.
+    if (action === "cf_apply") {
+      const domain = String(body?.domain || "").trim().toLowerCase();
+      const cfToken = String(body?.token || "").trim();
+      if (!HOST_RE.test(domain)) return json(req, { error: "bad_domain" }, 400);
+      if (!cfToken) return json(req, { error: "missing_token" }, 400);
+      const dRes = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${user.id}&domain=eq.${domain}&select=records`, { headers: sbHeaders });
+      const row = (await dRes.json().catch(() => []))?.[0] as { records?: Array<{ type: string; name: string; value: string; priority?: number }> } | undefined;
+      const records = row?.records || [];
+      if (!records.length) return json(req, { error: "not_found" }, 404);
+      const cf = (path: string, init?: RequestInit): Promise<Response> =>
+        fetch(`https://api.cloudflare.com/client/v4${path}`, { ...init, headers: { authorization: `Bearer ${cfToken}`, "content-type": "application/json", ...(init?.headers || {}) }, signal: AbortSignal.timeout(10000) });
+      let zoneId = "";
+      try {
+        const zr = await cf(`/zones?name=${encodeURIComponent(domain)}`);
+        // deno-lint-ignore no-explicit-any
+        const zj = await zr.json().catch(() => ({})) as any;
+        if (!zr.ok || zj?.success !== true) return json(req, { error: "cf_auth" }, 502);
+        zoneId = zj?.result?.[0]?.id || "";
+      } catch { return json(req, { error: "cf_failed" }, 502); }
+      if (!zoneId) return json(req, { error: "zone_not_found" }, 404);
+      let created = 0, skipped = 0, failed = 0;
+      for (const rec of records) {
+        try {
+          const cr = await cf(`/zones/${zoneId}/dns_records`, {
+            method: "POST",
+            body: JSON.stringify({ type: rec.type, name: rec.name, content: rec.value, ttl: 3600, proxied: false, ...(rec.type === "MX" && rec.priority != null ? { priority: rec.priority } : {}) }),
+          });
+          // deno-lint-ignore no-explicit-any
+          const cj = await cr.json().catch(() => ({})) as any;
+          if (cr.ok && cj?.success === true) created++;
+          else if (/already exists|81053|81057|81058/i.test(JSON.stringify(cj?.errors || ""))) skipped++;
+          else failed++;
+        } catch { failed++; }
+      }
+      if (created + skipped === 0) return json(req, { error: "write_failed" }, 502);
+      return json(req, { ok: true, created, skipped, failed });
     }
 
     return json(req, { error: "unknown_action" }, 400);
