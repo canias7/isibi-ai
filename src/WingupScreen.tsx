@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import {
@@ -9,6 +9,10 @@ import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
 import { CONNECTORS } from './connectorData';
 import { WINGUP_LOGO } from './wingupLogo';
+import {
+  wingupAccount, wingupMedia, wingupInsights, wingupPublish, isPostableImage,
+  type IgAccount, type IgMedia, type IgInsight,
+} from './wingup';
 
 // Wingup — the social media agent. The landing is a warm, light "what should we
 // post?" screen (an approved mockup): a chatbox hero pushed into the lower third
@@ -21,8 +25,9 @@ import { WINGUP_LOGO } from './wingupLogo';
 // focus trap, animated close) but paints its OWN warm light theme via .wingup-*
 // in agents.css, since the rest of the app is dark.
 //
-// AI generation and social publishing are STUBBED for now — see generateContent
-// and publishPost below for the // TODO hooks where the real wiring lands.
+// Publishing to Instagram is LIVE (see runPublish → src/wingup.ts → the `wingup`
+// Edge Function → Composio). AI copy/image generation is still STUBBED — see
+// generateContent below for the // TODO hook where that wiring lands.
 
 // The screen's views. 'landing' is the chatbox home; 'compose' is the live flow;
 // the rest are "coming soon" placeholders that mirror the workspace cards.
@@ -117,12 +122,6 @@ async function generateContent(prompt: string, tone: string): Promise<Generated>
   return { caption, imageUrl: mockImage(prompt) };
 }
 
-// Publish the post to each selected platform. STUBBED: simulates a network call.
-// TODO: wire Composio per-platform create-post. Stubbed for now.
-async function publishPost(_post: { caption: string; image: string; platforms: string[] }): Promise<void> {
-  await new Promise((r) => setTimeout(r, 1000)); // simulate per-platform publish
-}
-
 export default function WingupScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [view, setView] = useState<View>('landing');
   // ---- Compose flow: compose → generate → review → post ----
@@ -136,6 +135,14 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const [attachOpen, setAttachOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false); // the Wingup Library picker sheet
   const [attachment, setAttachment] = useState<string | null>(null); // data URL of the picked image
+  const [publishErr, setPublishErr] = useState(''); // a failed publish, shown on the review step
+  // ---- Live Instagram reads (account header, Gallery, Insights) ----
+  const igConnected = connApps.includes('instagram');
+  const [account, setAccount] = useState<IgAccount | null>(null);
+  const [media, setMedia] = useState<IgMedia[] | null>(null);
+  const [mediaErr, setMediaErr] = useState('');
+  const [insights, setInsights] = useState<IgInsight[] | null>(null);
+  const [insightsErr, setInsightsErr] = useState('');
 
   const trapRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLTextAreaElement>(null);
@@ -150,6 +157,30 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     () => CONNECTORS.filter((c) => SOCIAL_IDS.includes(c.id) && connApps.includes(c.id)),
     [connApps],
   );
+
+  // Load the connected IG profile once (for the "Posting as @x" line). Silent on
+  // failure — the header just omits the handle.
+  useEffect(() => {
+    if (!igConnected) return;
+    let live = true;
+    wingupAccount().then((a) => { if (live) setAccount(a); }).catch(() => {});
+    return () => { live = false; };
+  }, [igConnected]);
+
+  // Lazy-load Gallery media + Insights the first time each view is opened.
+  useEffect(() => {
+    if (!igConnected) return;
+    if (view === 'gallery' && media === null) {
+      wingupMedia()
+        .then((m) => setMedia(m.data))
+        .catch((e) => setMediaErr(e instanceof Error ? e.message : 'Couldn’t load your media.'));
+    }
+    if (view === 'insights' && insights === null) {
+      wingupInsights()
+        .then((r) => setInsights(r.data))
+        .catch((e) => setInsightsErr(e instanceof Error ? e.message : 'Couldn’t load insights.'));
+    }
+  }, [view, igConnected, media, insights]);
 
   // Run the (stubbed) generator and advance to the result step.
   const runGenerate = async () => {
@@ -281,20 +312,40 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     });
   };
 
-  // Publish to every selected platform (stubbed), then show the success state.
+  // The image we'd actually post: the user's attached/library photo if there is
+  // one, otherwise the generated preview. (The stubbed generator returns an SVG,
+  // which Instagram can't ingest — isPostableImage gates on that.)
+  const postImage = attachment || imageUrl;
+
+  // Publish for real. Instagram is wired end-to-end (src/wingup.ts → the `wingup`
+  // function → Composio); any other selected platform isn't connected here yet.
   const runPublish = async () => {
     if (!selected.size) return;
+    if (!isPostableImage(postImage)) {
+      setPublishErr('Add a photo to post — AI image generation is coming soon.');
+      return;
+    }
+    if (!selected.has('instagram')) {
+      setPublishErr('Only Instagram is wired for posting right now.');
+      return;
+    }
     void tap();
+    setPublishErr('');
     setStep('posting');
-    await publishPost({ caption, image: imageUrl, platforms: [...selected] });
-    setStep('done');
+    try {
+      await wingupPublish({ caption, image: postImage });
+      setStep('done');
+    } catch (e) {
+      setPublishErr(e instanceof Error ? e.message : 'Posting failed. Please try again.');
+      setStep('result');
+    }
   };
 
   // Reset everything and return to a fresh landing chatbox.
   const startAnother = () => {
     void tap();
     setPrompt(''); setTone(''); setCaption(''); setImageUrl(''); setSelected(new Set());
-    setAttachment(null); setAttachOpen(false); setLibraryOpen(false);
+    setAttachment(null); setAttachOpen(false); setLibraryOpen(false); setPublishErr('');
     setStep('compose');
     setView('landing');
   };
@@ -327,8 +378,11 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
       return (
         <div className="wingup-form">
           <div className="wingup-preview">
-            <img className="wingup-img" src={imageUrl} alt="Generated post preview" />
+            <img className="wingup-img" src={postImage} alt="Post preview" />
           </div>
+          {!isPostableImage(postImage) && (
+            <p className="wingup-note">Preview only — attach a photo (the + in the chatbox) to publish. AI image generation is coming soon.</p>
+          )}
 
           <label className="wingup-lbl" htmlFor="wingup-caption">Caption</label>
           <textarea
@@ -343,7 +397,9 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
 
           {/* Target platforms: chips for the user's connected social accounts. */}
           <div className="wingup-targets">
-            <span className="wingup-lbl">Post to</span>
+            <span className="wingup-lbl">
+              Post to{account?.username ? <span className="wingup-as"> · as @{account.username}</span> : null}
+            </span>
             {socials.length === 0 ? (
               <p className="wingup-note">Connect a social account in Connectors to post.</p>
             ) : (
@@ -363,6 +419,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
             )}
           </div>
 
+          {publishErr && <p className="wingup-err" role="alert">{publishErr}</p>}
           <button className="wingup-btn" disabled={!selected.size} onClick={() => void runPublish()}>Post now</button>
         </div>
       );
@@ -618,6 +675,55 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     </div>
   );
 
+  // ---- Gallery: the connected account's real recent posts ----
+  const renderGallery = () => {
+    if (!igConnected) return renderConnectPrompt('🖼️', 'Your media', 'Connect Instagram to see your posts here.');
+    if (mediaErr) return renderConnectPrompt('🖼️', 'Your media', mediaErr);
+    if (media === null) return <div className="wingup-loading"><span className="route-spin" aria-hidden="true" /><p className="wingup-loading-msg">Loading your posts…</p></div>;
+    if (media.length === 0) return renderConnectPrompt('🖼️', 'No posts yet', 'Posts you publish with Wingup will show up here.');
+    return (
+      <div className="wingup-gallery">
+        {media.map((m) => (
+          <a className="wingup-gallery-item" key={m.id} href={m.permalink} target="_blank" rel="noreferrer">
+            <img src={m.thumbnail_url || m.media_url} alt={m.caption ? String(m.caption).slice(0, 60) : 'Instagram post'} loading="lazy" />
+          </a>
+        ))}
+      </div>
+    );
+  };
+
+  // ---- Insights: real account metrics (reach, follower count, …) ----
+  const renderInsights = () => {
+    if (!igConnected) return renderConnectPrompt('📊', 'Insights', 'Connect Instagram to see your performance.');
+    if (insightsErr) return renderConnectPrompt('📊', 'Insights', insightsErr);
+    if (insights === null) return <div className="wingup-loading"><span className="route-spin" aria-hidden="true" /><p className="wingup-loading-msg">Loading insights…</p></div>;
+    if (insights.length === 0) return renderConnectPrompt('📊', 'Insights', 'No insights available yet.');
+    const latest = (it: IgInsight): string => {
+      const vals = Array.isArray(it.values) ? it.values : [];
+      const v = vals.length ? vals[vals.length - 1]?.value : null;
+      return typeof v === 'number' ? v.toLocaleString() : (v != null ? String(v) : '—');
+    };
+    return (
+      <div className="wingup-stats">
+        {insights.map((it) => (
+          <div className="wingup-stat" key={it.id || it.name}>
+            <div className="wingup-stat-v">{latest(it)}</div>
+            <div className="wingup-stat-l">{it.title || it.name}</div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // A small "connect / empty" message reused by the read views.
+  const renderConnectPrompt = (emoji: string, title: string, sub: string) => (
+    <div className="wingup-empty">
+      <span className="wingup-empty-ic" aria-hidden="true">{emoji}</span>
+      <div className="wingup-empty-title">{title}</div>
+      <div className="wingup-empty-sub">{sub}</div>
+    </div>
+  );
+
   // ---- A "coming soon" placeholder for a workspace view ----
   const renderPlaceholder = (id: Exclude<View, 'landing' | 'compose'>) => {
     const p = PLACEHOLDERS[id];
@@ -658,7 +764,13 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
 
       {view === 'landing' && renderLanding()}
       {view === 'compose' && <div className="wingup-stage">{renderCompose()}</div>}
-      {view !== 'landing' && view !== 'compose' && <div className="wingup-stage">{renderPlaceholder(view)}</div>}
+      {view !== 'landing' && view !== 'compose' && (
+        <div className="wingup-stage">
+          {view === 'gallery' ? renderGallery()
+            : view === 'insights' ? renderInsights()
+            : renderPlaceholder(view)}
+        </div>
+      )}
 
       {libraryOpen && renderLibrary()}
     </div>
