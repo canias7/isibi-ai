@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
-  IconConnectors, IconClock, IconBank, IconInbox, IconRefresh, IconCheck, IconContacts,
+  IconConnectors, IconClock, IconInbox, IconRefresh, IconCheck, IconContacts,
   IconDoc, IconChat, IconPlus, IconArrowUp, IconX, IconCopy,
   IconCalendar, IconWebhook, IconSettings, IconChart, IconGlobe,
 } from './icons';
@@ -9,21 +9,11 @@ import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
 import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type SavedContact, type Suppression, type Template, type ChatMsg, listDomains, addDomain as addDomainApi, verifyDomain, removeDomain as removeDomainApi, cloudflareApply, type SendingDomain } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
-import { SENDRA_LOGO } from './sendraLogo';
 
-// Each agent is a *role* that spans apps (not an app). Only Sendra is live today;
-// the rest are shown as "soon" so the roadmap is visible without faking capability.
-// Tapping Sendra opens a swipeable deck of the user's connected communication apps
-// (Gmail, Outlook, Telegram); picking one opens its workspace.
+// Sendra is the comms agent (Gmail, Outlook & Telegram in one place). The app's
+// home screen picks the agent, so this screen opens straight into Sendra's workspace.
 type AgentId = 'email';
 type IconCmp = typeof IconCompose;
-type AgentDef = { id: string; name: string; desc: string; icon: IconCmp; live: boolean };
-
-const AGENTS: AgentDef[] = [
-  { id: 'email', name: 'Sendra', desc: 'Your comms agent — Gmail, Outlook & Telegram in one place', icon: IconCompose, live: true },
-  { id: 'books', name: 'Bookkeeper', desc: 'Invoices, payments & reconciliation', icon: IconBank, live: false },
-  { id: 'sched', name: 'Scheduler', desc: 'Meetings, reminders & calendar triage', icon: IconClock, live: false },
-];
 
 // The communication apps Sendra can manage. `mail` apps (Gmail/Outlook) share the
 // email workspace (inbox/compose/contacts); telegram has its own chat workspace.
@@ -148,7 +138,7 @@ function loadJob(): PendingJob | null { try { const s = localStorage.getItem(JOB
 function clearJob() { try { localStorage.removeItem(JOB_KEY); } catch { /* ignore */ } }
 
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
-  const [agent, setAgent] = useState<AgentId | null>(null);
+  const [agent] = useState<AgentId | null>('email'); // home already chose the agent; open straight into Sendra
   const [commsApp, setCommsApp] = useState<CommsId | null>(null); // null while Sendra shows its home / the app constellation
   const [sendraTab, setSendraTab] = useState<SendraTab>('home'); // Sendra landing: 'home' menu -> 'apps' / scaffolds
   const [note, setNote] = useState(''); // transient explainer shown in the P0 scaffolds
@@ -339,7 +329,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     else if (tplEdit) { builderGenRef.current++; if (tplBody.trim() && !tplSaving) saveTpl(); else { clearDraft(); setTplEdit(null); } } // leaving the builder saves a built email + invalidates any in-flight job
 
     else if (sendraTab !== 'home') setSendraTab('home');
-    else if (agent) setAgent(null);
     else onClose();
   };
   useFocusTrap(true, trapRef, back);
@@ -1081,7 +1070,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
 
   // ---- header titles ----
   const title = reading ? 'Email'
-    : agent === null ? 'Agents'
     : commsApp === null ? SENDRA_META[sendraTab].t
     : commsApp === 'telegram' ? (tgChat ? tgChat.title : 'Telegram')
     : emailTab === 'inbox' ? 'Inbox'
@@ -1089,7 +1077,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     : emailTab === 'compose' ? (replyThreadId ? 'Reply' : 'New email')
     : (commsApp === 'm365' ? 'Outlook' : 'Gmail');
   const subtitle = reading ? (reading.from || reading.email || 'Message')
-    : agent === null ? 'Your AI specialists — each one handles a job'
     : commsApp === null ? SENDRA_META[sendraTab].s
     : commsApp === 'telegram' ? (tgChat ? (tgChat.username ? `@${tgChat.username}` : 'Chat') : `${tgList.length || ''} chats`.trim() || 'Your chats')
     : emailTab === 'inbox' ? 'Newest first'
@@ -1105,7 +1092,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   return (
     <div className={`memg ag${builderMode ? ' ag-builder' : ''}`} ref={trapRef} tabIndex={-1}>
       <div className="memg-top">
-        <button className="memg-back" onClick={back} aria-label={reading || agent ? 'Back' : 'Close'}><IconArrowLeft size={22} /></button>
+        <button className="memg-back" onClick={back} aria-label={(reading || commsApp || sendraTab !== 'home') ? 'Back' : 'Close'}><IconArrowLeft size={22} /></button>
         <div className="memg-titles">
           <h1 className="memg-title">{title}</h1>
           <p className="memg-sub">{subtitle}</p>
@@ -1137,30 +1124,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             <button className="ag-send-btn ag-reply-btn" onClick={openReply}>Reply</button>
           ) : null}
         </div>
-      ) : agent === null ? (
-        <div className="ag-stage">
-          <div className="ag-list">
-            {AGENTS.map((a) => (
-              <button
-                key={a.id}
-                className={`ag-card${a.live ? '' : ' soon'}`}
-                disabled={!a.live}
-                onClick={() => { if (a.live) { tap(); setCommsApp(null); setSendraTab('home'); setAgent(a.id as AgentId); } }}
-              >
-                {a.id === 'email'
-                  ? <span className="ag-ic ag-ic-logo"><img src={SENDRA_LOGO} alt="" /></span>
-                  : <span className="ag-ic"><a.icon size={22} /></span>}
-                <span className="ag-meta">
-                  <span className="ag-name">{a.name}</span>
-                  <span className="ag-desc">{a.desc}</span>
-                </span>
-                {a.live ? <span className="ag-chev" aria-hidden="true">›</span> : <span className="ag-soon">Soon</span>}
-              </button>
-            ))}
-          </div>
-          <p className="ag-foot">More agents on the way — each a specialist that works across your connected apps.</p>
-        </div>
-
       ) : commsApp === null ? (
         sendraTab === 'home' ? (
           // ---- Sendra home: the tool menu (Campaigns, Templates, Analytics, Calendar, My apps) ----
