@@ -10,9 +10,11 @@ import { tap } from './haptics';
 import { CONNECTORS } from './connectorData';
 import { WINGUP_LOGO } from './wingupLogo';
 import {
-  wingupAccount, wingupMedia, wingupInsights, wingupPublish, isPostableImage,
-  type IgAccount, type IgMedia, type IgInsight,
+  wingupAccount, wingupMedia, wingupInsights, wingupPublish, wingupPublishCarousel,
+  isPostableImage, type IgAccount, type IgMedia, type IgInsight,
 } from './wingup';
+
+const MAX_ATTACH = 10; // Instagram allows up to 10 photos in a carousel
 
 // Wingup — the social media agent. The landing is a warm, light "what should we
 // post?" screen (an approved mockup): a chatbox hero pushed into the lower third
@@ -131,10 +133,10 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const [caption, setCaption] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set()); // chosen platform ids
-  // ---- Chatbox attach: the + menu (camera / library) + the picked image ----
+  // ---- Chatbox attach: the + menu (camera / library) + the picked photos ----
   const [attachOpen, setAttachOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false); // the Wingup Library picker sheet
-  const [attachment, setAttachment] = useState<string | null>(null); // data URL of the picked image
+  const [attachments, setAttachments] = useState<string[]>([]); // picked photos: 1 = single post, 2–10 = carousel
   const [publishErr, setPublishErr] = useState(''); // a failed publish, shown on the review step
   // ---- Live Instagram reads (account header, Gallery, Insights) ----
   const igConnected = connApps.includes('instagram');
@@ -206,23 +208,27 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   // When it isn't (an OTA update to an older native build, or the web), we fall back
   // to a hidden <input type=file>, which opens the picker inside the WebView using
   // the camera/photo permissions already in Info.plist.
-  // TODO: pass `attachment` into the compose/generation flow once generation is wired.
+  // Picked photos feed straight into the compose/publish flow: one = a single
+  // post, two-or-more = a carousel (capped at MAX_ATTACH).
+  const addAttachment = (url: string) => setAttachments((a) => (a.length >= MAX_ATTACH ? a : [...a, url]));
+  const removeAttachment = (i: number) => setAttachments((a) => a.filter((_, idx) => idx !== i));
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const onPickFile = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
     e.target.value = ''; // reset so re-picking the same file still fires onChange
-    if (!file) return;  // cancelled — no-op
-    const reader = new FileReader();
-    reader.onload = () => { if (typeof reader.result === 'string') setAttachment(reader.result); };
-    reader.readAsDataURL(file);
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => { if (typeof reader.result === 'string') addAttachment(reader.result); };
+      reader.readAsDataURL(file);
+    });
   };
   // Returns true if the native picker handled it; false → caller uses the input fallback.
   const pickNative = async (source: CameraSource): Promise<boolean> => {
     if (!Capacitor.isPluginAvailable('Camera')) return false;
     try {
       const photo = await Camera.getPhoto({ quality: 90, allowEditing: false, resultType: CameraResultType.DataUrl, source });
-      if (photo.dataUrl) setAttachment(photo.dataUrl);
+      if (photo.dataUrl) addAttachment(photo.dataUrl);
     } catch { /* cancelled — no-op */ }
     return true;
   };
@@ -243,11 +249,11 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     setLibraryOpen(true);
   };
 
-  // Choose an item from the Wingup Library → it becomes the pending attachment
-  // (the same state Camera/Photos set), then the picker closes.
+  // Choose an item from the Wingup Library → add it to the pending photos (the
+  // same state Camera/Photos feed), then close the picker.
   const pickLibraryItem = (url: string) => {
     void tap();
-    setAttachment(url);
+    addAttachment(url);
     setLibraryOpen(false);
   };
 
@@ -312,10 +318,11 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     });
   };
 
-  // The image we'd actually post: the user's attached/library photo if there is
-  // one, otherwise the generated preview. (The stubbed generator returns an SVG,
+  // The image we'd actually post: the first attached/library photo if any,
+  // otherwise the generated preview. (The stubbed generator returns an SVG,
   // which Instagram can't ingest — isPostableImage gates on that.)
-  const postImage = attachment || imageUrl;
+  const postImage = attachments[0] || imageUrl;
+  const isCarousel = attachments.length >= 2; // 2–10 photos post as a carousel
 
   // Publish for real. Instagram is wired end-to-end (src/wingup.ts → the `wingup`
   // function → Composio); any other selected platform isn't connected here yet.
@@ -333,7 +340,8 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     setPublishErr('');
     setStep('posting');
     try {
-      await wingupPublish({ caption, image: postImage });
+      if (isCarousel) await wingupPublishCarousel({ caption, images: attachments });
+      else await wingupPublish({ caption, image: postImage });
       setStep('done');
     } catch (e) {
       setPublishErr(e instanceof Error ? e.message : 'Posting failed. Please try again.');
@@ -345,7 +353,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const startAnother = () => {
     void tap();
     setPrompt(''); setTone(''); setCaption(''); setImageUrl(''); setSelected(new Set());
-    setAttachment(null); setAttachOpen(false); setLibraryOpen(false); setPublishErr('');
+    setAttachments([]); setAttachOpen(false); setLibraryOpen(false); setPublishErr('');
     setStep('compose');
     setView('landing');
   };
@@ -378,8 +386,17 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
       return (
         <div className="wingup-form">
           <div className="wingup-preview">
-            <img className="wingup-img" src={postImage} alt="Post preview" />
+            {isCarousel ? (
+              <div className="wingup-preview-strip">
+                {attachments.map((src, i) => (
+                  <img className="wingup-img" key={`${src}-${i}`} src={src} alt={`Slide ${i + 1}`} />
+                ))}
+              </div>
+            ) : (
+              <img className="wingup-img" src={postImage} alt="Post preview" />
+            )}
           </div>
+          {isCarousel && <p className="wingup-note">Carousel · {attachments.length} photos</p>}
           {!isPostableImage(postImage) && (
             <p className="wingup-note">Preview only — attach a photo (the + in the chatbox) to publish. AI image generation is coming soon.</p>
           )}
@@ -533,23 +550,28 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
               </div>
             )}
 
-            {/* Hidden pickers — Camera (capture) + Photo Library. They open the
-                native picker inside the WebView, so they work via OTA. */}
+            {/* Hidden pickers — Camera (capture) + Photo Library (multi-select for
+                carousels). They open the native picker inside the WebView (OTA-safe). */}
             <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onPickFile} />
-            <input ref={photoInputRef} type="file" accept="image/*" hidden onChange={onPickFile} />
+            <input ref={photoInputRef} type="file" accept="image/*" multiple hidden onChange={onPickFile} />
 
-            {/* Picked-image preview — a small thumbnail with a × to clear it. */}
-            {attachment && (
-              <div className="wingup-attachment">
-                <img className="wingup-attachment-img" src={attachment} alt="Attached" />
-                <button
-                  type="button"
-                  className="wingup-attachment-x"
-                  onClick={() => { void tap(); setAttachment(null); }}
-                  aria-label="Remove attachment"
-                >
-                  <IconX size={13} />
-                </button>
+            {/* Picked photos — a thumbnail row (each removable). 2+ = a carousel. */}
+            {attachments.length > 0 && (
+              <div className="wingup-attachments">
+                {attachments.map((src, i) => (
+                  <div className="wingup-attachment" key={`${src}-${i}`}>
+                    <img className="wingup-attachment-img" src={src} alt={`Attached ${i + 1}`} />
+                    <button
+                      type="button"
+                      className="wingup-attachment-x"
+                      onClick={() => { void tap(); removeAttachment(i); }}
+                      aria-label={`Remove photo ${i + 1}`}
+                    >
+                      <IconX size={13} />
+                    </button>
+                  </div>
+                ))}
+                {attachments.length >= 2 && <span className="wingup-attach-count">{attachments.length} · carousel</span>}
               </div>
             )}
 
