@@ -142,6 +142,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const trapRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLTextAreaElement>(null);
   const workspaceRef = useRef<HTMLElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null); // the landing scroll container — moved only by the arrows, not free scroll
   // ---- Hero carousel: the swipeable media strip + its active card / dots ----
   const caroRef = useRef<HTMLDivElement>(null);
   const [activeShot, setActiveShot] = useState(0);
@@ -350,7 +351,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   // ---- The landing: heading + media carousel, then the hero chatbox in the
   // lower third, then the workspace grid below the fold ----
   const renderLanding = () => (
-    <div className="wingup-scroll">
+    <div className="wingup-scroll" ref={scrollRef}>
       <section className="wingup-hero">
         <div className="wingup-hero-top">
           <h2 className="wingup-h1">What should we post?</h2>
@@ -442,6 +443,15 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
       </section>
 
       <section className="wingup-workspace" ref={workspaceRef}>
+        {/* The only way back up — free scroll is off; the arrows drive it. */}
+        <button
+          type="button"
+          className="wingup-upcue"
+          onClick={() => { void tap(); scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          aria-label="Back to the top"
+        >
+          <span className="wingup-chev" aria-hidden="true">⌄</span>
+        </button>
         <h3 className="wingup-sec-h">Your workspace</h3>
         <div className="wingup-grid">
           {CARDS.map((c) => (
