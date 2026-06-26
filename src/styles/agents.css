@@ -992,6 +992,11 @@ button.ag-camp:active { filter: brightness(1.15); }
 .wingup-attachment-x:active { transform: scale(0.9); }
 .wingup-attachment-x:focus-visible { outline: 2px solid var(--wg-amber); outline-offset: 2px; }
 
+/* A wrapping row of picked photos above the chatbox (2+ build a carousel). */
+.wingup-attachments { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 6px 6px 8px; margin: 0; }
+.wingup-attachments .wingup-attachment { margin: 0; flex: 0 0 auto; }
+.wingup-attach-count { font-size: var(--fs-caption); font-weight: 700; color: #FFE0B8; background: rgba(255, 255, 255, 0.14); border-radius: 999px; padding: 4px 10px; }
+
 @keyframes wgAttachIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
   .wingup-attach-menu { animation: none; }
@@ -1171,6 +1176,9 @@ button.ag-camp:active { filter: brightness(1.15); }
   background: var(--wg-card);
 }
 .wingup-img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
+/* Carousel review — a horizontal snap-scrolling strip of slides. */
+.wingup-preview-strip { display: flex; gap: 8px; padding: 8px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+.wingup-preview-strip .wingup-img { flex: 0 0 80%; width: 80%; border-radius: 14px; scroll-snap-align: center; }
 
 /* Target-platform picker: connected social accounts as multi-select chips. */
 .wingup-targets { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
