@@ -752,3 +752,251 @@ button.ag-camp:active { filter: brightness(1.15); }
 }
 .ag-tg-sendbtn:active { filter: brightness(0.95); }
 .ag-tg-sendbtn:disabled { opacity: 0.45; cursor: default; }
+
+/* ---- Wingup (social media agent) ---------------------------------------- */
+/* Wingup paints its OWN warm, light theme (an approved mockup) inside the shared
+   .memg overlay shell — the rest of the app is dark, so everything here is scoped
+   under .wingup and overrides the dark surface, the black ambient and the .ag-*
+   look. Palette tokens are local so the whole screen reads from one place. */
+.wingup {
+  --wg-bg: #FFFBF4;        /* cream page */
+  --wg-ink: #2A2118;       /* primary text */
+  --wg-muted: #A2937E;     /* secondary text */
+  --wg-amber: #F59E0B;
+  --wg-amber2: #FB923C;
+  --wg-coral: #FB7185;
+  --wg-card: #ffffff;      /* chatbox / workspace cards */
+  --wg-chip: #FFF3E0;      /* chip fill */
+  --wg-chip-ink: #C77A20;  /* chip text */
+  --wg-grad: linear-gradient(135deg, var(--wg-amber), var(--wg-coral));
+  --wg-send-grad: linear-gradient(135deg, var(--wg-amber), var(--wg-amber2));
+  background: var(--wg-bg);
+  color: var(--wg-ink);
+  color-scheme: light;
+}
+/* Drop the dark shell's amber-on-black wash + the faint white dot grid. */
+.wingup::before { display: none; }
+
+/* Warm, blurred orbs — Wingup's light version of the app's .live-bg ambient.
+   Fixed and behind everything (z-index:0), so the scroll content floats over. */
+.wingup .live-bg { background: var(--wg-bg); }
+.wingup .live-bg .orb { filter: blur(64px); opacity: 0.55; animation: none; background: none; }
+.wingup .live-bg .orb1 { width: 300px; height: 300px; inset: auto auto auto auto; top: -90px; left: -70px; background: #FFD9A8; }
+.wingup .live-bg .orb2 { width: 260px; height: 260px; inset: auto -100px auto auto; top: 90px; background: #FFC6C6; }
+.wingup .live-bg .orb3 { width: 300px; height: 300px; inset: auto auto 160px -90px; background: #FFE6B0; }
+
+/* Top bar: back/close (left) + centred Wingup wordmark with the wing. */
+.wingup-top {
+  position: relative; z-index: 2; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 10px 16px 8px;
+}
+.wingup-back {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 12px;
+  border: none; background: rgba(255, 255, 255, 0.75);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(180, 120, 40, 0.14);
+  color: var(--wg-ink); display: grid; place-items: center; cursor: pointer;
+  transition: transform 140ms var(--ease-enter, ease);
+}
+.wingup-back:active { transform: scale(0.94); }
+.wingup-back:focus-visible { outline: 2px solid var(--wg-amber); outline-offset: 2px; }
+.wingup-brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.wingup-brand-mark { width: 24px; height: 24px; border-radius: 7px; flex-shrink: 0; }
+.wingup-brand-name { font-weight: 800; font-size: var(--fs-headline); letter-spacing: -0.02em; }
+.wingup-top-spacer { flex-shrink: 0; width: 38px; height: 38px; }
+
+/* The landing scroller — fills the space under the top bar (the .memg shell is
+   itself overflow:hidden) and is the ONLY thing that scrolls. */
+.wingup-scroll {
+  position: relative; z-index: 1; flex: 1; min-height: 0;
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+}
+
+/* Hero: a flowable lower-third layout — a flex spacer shoves the chatbox down so
+   it sits low on ANY height, with the scroll cue beneath and the grid below the
+   fold. (No hard-coded 844px; the spacer does the work.) */
+.wingup-hero { min-height: 100%; display: flex; flex-direction: column; }
+.wingup-hero-spacer { flex: 1 1 auto; min-height: 56px; }
+.wingup-hero-top { padding: 0 24px 8px; text-align: center; }
+.wingup-hero-logo {
+  display: grid; place-items: center; width: 66px; height: 66px; margin: 0 auto 16px;
+  border-radius: 21px; background: var(--wg-grad);
+  box-shadow: 0 12px 34px rgba(245, 120, 40, 0.38);
+}
+.wingup-hero-logo img { width: 38px; height: 38px; }
+.wingup-h1 { font-size: var(--fs-display); font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+.wingup-hero-sub { color: var(--wg-muted); font-size: var(--fs-body-s); margin: 5px 0 0; }
+
+/* The chatbox — a white rounded card: tappable input + chips row + amber send. */
+.wingup-chatbox {
+  width: 100%; max-width: 360px; margin: 24px auto 0;
+  background: var(--wg-card); border-radius: 23px;
+  border: 1px solid rgba(245, 158, 11, 0.16);
+  box-shadow: 0 20px 54px rgba(170, 110, 40, 0.20);
+  padding: 16px 16px 14px; text-align: left;
+}
+.wingup-chat-input {
+  display: block; width: 100%; box-sizing: border-box;
+  background: transparent; border: none; outline: none; resize: none;
+  color: var(--wg-ink); font: inherit; font-size: var(--fs-body); line-height: 1.45;
+  padding: 2px; max-height: 120px; overflow-y: auto;
+}
+.wingup-chat-input::placeholder { color: #B9AB90; }
+.wingup-chat-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; }
+.wingup-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.wingup-chip {
+  border: none; cursor: pointer; font: inherit;
+  font-size: var(--fs-caption); font-weight: 600;
+  padding: 7px 11px; border-radius: 999px;
+  background: var(--wg-chip); color: var(--wg-chip-ink);
+  transition: transform 140ms var(--ease-enter, ease), filter 140ms ease;
+}
+.wingup-chip:active { transform: scale(0.96); }
+.wingup-chip:focus-visible { outline: 2px solid var(--wg-amber); outline-offset: 2px; }
+.wingup-send {
+  flex-shrink: 0; width: 42px; height: 42px; border-radius: 15px; border: none;
+  background: var(--wg-send-grad); color: #fff;
+  display: grid; place-items: center; cursor: pointer;
+  box-shadow: 0 8px 18px rgba(245, 158, 11, 0.42);
+  transition: transform 140ms var(--ease-enter, ease), filter 140ms ease;
+}
+.wingup-send:active { transform: scale(0.94); }
+.wingup-send:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
+.wingup-send:focus-visible { outline: 2px solid var(--wg-amber); outline-offset: 2px; }
+
+/* Bouncing scroll cue beneath the chatbox. */
+.wingup-scrollcue { margin-top: 40px; text-align: center; }
+.wingup-chev {
+  display: inline-block; font-size: 32px; line-height: 1; color: var(--wg-amber);
+  animation: wgBob 1.4s infinite;
+}
+.wingup-scrollcue-lbl {
+  display: block; margin-top: 4px; font-size: var(--fs-label);
+  color: var(--wg-muted); letter-spacing: 0.16em; text-transform: uppercase;
+}
+@keyframes wgBob { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(9px); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .wingup-chev { animation: none; } }
+
+/* "Your workspace" — a 2-col card grid below the fold. */
+.wingup-workspace { padding: 18px 20px calc(40px + env(safe-area-inset-bottom)); max-width: 560px; margin: 0 auto; }
+.wingup-sec-h {
+  font-size: var(--fs-caption); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.13em; color: var(--wg-muted); margin: 8px 6px 14px;
+}
+.wingup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.wingup-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+  text-align: left; cursor: pointer; font: inherit;
+  background: var(--wg-card); border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: 20px; padding: 17px;
+  box-shadow: 0 8px 24px rgba(170, 110, 40, 0.11);
+  transition: transform 140ms var(--ease-enter, ease);
+}
+.wingup-card:active { transform: scale(0.98); }
+.wingup-card:focus-visible { outline: 2px solid var(--wg-amber); outline-offset: 2px; }
+.wingup-card-ic {
+  width: 46px; height: 46px; border-radius: 15px; margin-bottom: 12px;
+  display: grid; place-items: center; font-size: 22px;
+}
+.wingup-card-ic.tone-home { background: #FFEFD6; }
+.wingup-card-ic.tone-cal { background: #E6F0FF; }
+.wingup-card-ic.tone-camp { background: #FFE3E3; }
+.wingup-card-ic.tone-gal { background: #EAFBEF; }
+.wingup-card-ic.tone-ins { background: #F0E9FF; }
+.wingup-card-ic.tone-meta { background: #E7F0FF; }
+.wingup-card-t { font-weight: 700; font-size: var(--fs-body-s); }
+.wingup-card-d { color: var(--wg-muted); font-size: var(--fs-caption); margin-top: 3px; }
+
+/* The compose-flow / placeholder stage — scrolls under the top bar. */
+.wingup-stage {
+  position: relative; z-index: 1; flex: 1; min-height: 0;
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  display: flex; flex-direction: column;
+  padding: 8px 20px calc(28px + env(safe-area-inset-bottom));
+}
+.wingup-stage > * { width: 100%; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+/* ---- Compose → review → publish (light surfaces) ---- */
+.wingup-form { display: flex; flex-direction: column; gap: 10px; }
+.wingup-lbl { font-size: var(--fs-footnote); font-weight: 700; color: var(--wg-ink); margin: 6px 2px 0; }
+.wingup-opt { font-weight: 500; color: var(--wg-muted); }
+.wingup-field {
+  width: 100%; box-sizing: border-box;
+  background: var(--wg-card); border: 1px solid rgba(245, 158, 11, 0.18);
+  color: var(--wg-ink); font: inherit; font-size: var(--fs-body-s);
+  padding: 12px 14px; border-radius: var(--r-card);
+  box-shadow: 0 6px 18px rgba(170, 110, 40, 0.08);
+}
+.wingup-field::placeholder { color: #B9AB90; }
+.wingup-field:focus { outline: none; border-color: var(--wg-amber); }
+/* Keyboard focus rings: the global touch.css ring is white (invisible on cream),
+   so re-state an amber ring for Wingup's text inputs. */
+.wingup-chat-input:focus-visible,
+.wingup-field:focus-visible { outline: 2px solid var(--wg-amber); outline-offset: 2px; }
+.wingup-body { min-height: 140px; resize: none; line-height: 1.5; }
+.wingup-btn {
+  width: 100%; box-sizing: border-box; border: none; cursor: pointer;
+  background: var(--wg-send-grad); color: #fff;
+  font: inherit; font-size: var(--fs-body-s); font-weight: 700;
+  padding: 14px; border-radius: var(--r-pill);
+  box-shadow: 0 10px 22px rgba(245, 158, 11, 0.32);
+  transition: filter 120ms ease, transform 140ms var(--ease-enter, ease);
+}
+.wingup-btn:active { transform: scale(0.99); filter: brightness(0.97); }
+.wingup-btn:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+.wingup-btn:focus-visible { outline: 2px solid var(--wg-amber); outline-offset: 2px; }
+.wingup-btn.ghost { background: var(--wg-card); color: var(--wg-chip-ink); border: 1px solid rgba(245, 158, 11, 0.28); box-shadow: none; }
+.wingup-foot { color: var(--wg-muted); font-size: var(--fs-footnote); line-height: 1.5; margin: 14px 4px 0; text-align: center; }
+
+/* Generated image preview — a square, rounded card framing the result. */
+.wingup-preview {
+  border-radius: var(--r-card); overflow: hidden;
+  border: 1px solid rgba(245, 158, 11, 0.18);
+  box-shadow: 0 12px 30px rgba(170, 110, 40, 0.16);
+  background: var(--wg-card);
+}
+.wingup-img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
+
+/* Target-platform picker: connected social accounts as multi-select chips. */
+.wingup-targets { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.wingup-targets-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.wingup-target {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px 8px 10px; border-radius: var(--r-pill);
+  border: 1px solid rgba(245, 158, 11, 0.22); background: var(--wg-card);
+  color: var(--wg-ink); font: inherit; font-size: var(--fs-footnote); font-weight: 600;
+  cursor: pointer; transition: transform 140ms var(--ease-enter, ease), border-color 140ms ease, background 140ms ease;
+}
+.wingup-target:active { transform: scale(0.97); }
+.wingup-target.on { border-color: var(--wg-amber); background: #FFF3E0; color: var(--wg-chip-ink); }
+.wingup-target:focus-visible { outline: 2px solid var(--wg-amber); outline-offset: 2px; }
+.wingup-target-logo { width: 20px; height: 20px; border-radius: 5px; flex-shrink: 0; }
+.wingup-note { font-size: var(--fs-footnote); color: var(--wg-muted); line-height: 1.45; margin: 2px; }
+
+/* Generating / posting state — centred spinner + status line. */
+.wingup-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 64px 16px; flex: 1; }
+.wingup-loading .route-spin { border-color: rgba(245, 158, 11, 0.25); border-top-color: var(--wg-amber); }
+.wingup-loading-msg { color: var(--wg-muted); font-size: var(--fs-body-s); }
+
+/* Posted! success state. */
+.wingup-sent { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; padding: 48px 16px; flex: 1; }
+.wingup-sent-ic {
+  width: 56px; height: 56px; border-radius: 50%; margin-bottom: 6px;
+  display: grid; place-items: center; color: #fff; background: var(--wg-grad);
+  box-shadow: 0 10px 26px rgba(245, 120, 40, 0.34);
+}
+.wingup-sent-title { font-size: var(--fs-title); font-weight: 800; letter-spacing: -0.01em; }
+.wingup-sent-sub { color: var(--wg-muted); font-size: var(--fs-body-s); }
+.wingup-sent .wingup-btn { width: auto; margin-top: 18px; padding: 12px 28px; }
+
+/* "Coming soon" placeholder — a clean centred empty state (icon + title + sub). */
+.wingup-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 56px 24px; flex: 1; }
+.wingup-empty-ic {
+  width: 66px; height: 66px; border-radius: 21px; margin-bottom: 6px;
+  display: grid; place-items: center; font-size: 30px;
+  background: var(--wg-grad); color: #fff;
+  box-shadow: 0 12px 30px rgba(245, 120, 40, 0.32);
+}
+.wingup-empty-title { font-size: var(--fs-title); font-weight: 800; letter-spacing: -0.01em; }
+.wingup-empty-sub { font-size: var(--fs-footnote); color: var(--wg-muted); }

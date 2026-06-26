@@ -17,12 +17,14 @@ import { biometryAvailable, biometryStatus, unlock, type BiometryStatus } from '
 import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { SENDRA_LOGO } from './sendraLogo';
+import { WINGUP_LOGO } from './wingupLogo';
 import { FORCE_UPDATE_EVENT, type ForceUpdateMode } from './ota';
 
 // Heavy, on-demand screens are code-split: their JS downloads only when first
 // opened, shrinking the initial bundle and speeding up launch.
 const ConnectorsGraph = lazy(() => import('./ConnectorsGraph'));
 const AgentsScreen = lazy(() => import('./AgentsScreen'));
+const WingupScreen = lazy(() => import('./WingupScreen'));
 
 // Compact fallback for a crashed overlay: the screen closes instead of the
 // whole app white-screening (the root boundary stays as the last resort).
@@ -97,6 +99,7 @@ export default function App() {
 
   const [view, setView] = useState<View>('home');
   const [agentsOpen, setAgentsOpen] = useState(false); // Sendra (Agents) screen
+  const [wingupOpen, setWingupOpen] = useState(false); // Wingup (social media) screen
   const [noteMsg, setNoteMsg] = useState(''); // transient Settings note (e.g. why a toggle didn't stick)
 
   // Face ID / biometric lock (opt-in; native-only; fails open).
@@ -170,6 +173,7 @@ export default function App() {
   const confirmUi = useDismiss(confirmDelete);
   const signOutUi = useDismiss(confirmSignOut);
   const agentsUi = useDismiss(agentsOpen);
+  const wingupUi = useDismiss(wingupOpen);
   // Legal reader: latch the doc so the sheet doesn't blank out during its exit beat.
   const legalUi = useDismiss(!!legalDoc);
   const lastLegal = useRef(legalDoc);
@@ -493,6 +497,13 @@ export default function App() {
                   <span className="agent-card-sub">Email &amp; SMS agent</span>
                 </span>
               </button>
+              <button className="agent-card" onClick={() => { void tap(); void loadConnectors(); setWingupOpen(true); }}>
+                <img className="agent-card-logo" src={WINGUP_LOGO} alt="" aria-hidden />
+                <span className="agent-card-text">
+                  <span className="agent-card-name">Wingup</span>
+                  <span className="agent-card-sub">Social media agent</span>
+                </span>
+              </button>
             </div>
             {brokenApps.length > 0 && !brokenDismissed && (
               <div className="conn-warn" role="status">
@@ -515,6 +526,15 @@ export default function App() {
           <div style={{ display: 'contents' }} className={agentsUi.closing ? 'gf-out' : undefined}>
             <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setAgentsOpen(false); }} />}>
             <AgentsScreen connApps={connApps} onClose={() => setAgentsOpen(false)} />
+            </ErrorBoundary>
+          </div>
+        </Suspense>
+      )}
+      {wingupUi.mounted && (
+        <Suspense fallback={<RouteFallback />}>
+          <div style={{ display: 'contents' }} className={wingupUi.closing ? 'gf-out' : undefined}>
+            <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setWingupOpen(false); }} />}>
+            <WingupScreen connApps={connApps} onClose={() => setWingupOpen(false)} />
             </ErrorBoundary>
           </div>
         </Suspense>

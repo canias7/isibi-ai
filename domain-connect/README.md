@@ -36,6 +36,22 @@ records). Once it's done, the existing **Auto configure** button becomes true
 > `providerId, providerName, serviceId, serviceName, records` (all present), and the
 > redirect field is `syncRedirectDomain` (singular).
 
+## Request signing (`syncPubKeyDomain`)
+
+The reviewer on the upstream PR (Domain‑Connect/Templates #1285) requires request signing
+before merge, so the template declares `syncPubKeyDomain: gofarther.dev`. With it set, a
+host will only apply the records if the request is RSA‑SHA256 signed:
+
+- The public key is published as TXT record(s) at **`_dcpubkeyv1.gofarther.dev`** in the
+  Domain Connect `p=<n>,a=RS256,d=<base64>` chunked format (the base64 is the DER
+  `SubjectPublicKeyInfo`).
+- At apply time the app appends `&key=_dcpubkeyv1` and `&sig=<urlencoded signature>`, where
+  the signature covers the full query string **except** the `sig` and `key` params, with all
+  values URL‑encoded.
+- The matching **private key is NOT in this repo** — it's a server‑side secret, used only
+  once the in‑app one‑click flow is built (that pairs with the SES cutover). Losing it just
+  means regenerating the pair and re‑publishing the one TXT host.
+
 ## How the app uses it
 
 When the user taps **Auto configure**, the app:
