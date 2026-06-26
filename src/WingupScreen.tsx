@@ -133,6 +133,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const [selected, setSelected] = useState<Set<string>>(new Set()); // chosen platform ids
   // ---- Chatbox attach: the + menu (camera / library) + the picked image ----
   const [attachOpen, setAttachOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false); // the Wingup Library picker sheet
   const [attachment, setAttachment] = useState<string | null>(null); // data URL of the picked image
 
   const trapRef = useRef<HTMLDivElement>(null);
@@ -188,11 +189,20 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     }
   };
 
-  // Wingup Library — the user's own generated media. Stubbed: just closes the menu.
-  // TODO: open the user's generated-media library (empty until generation is wired).
+  // Wingup Library — the user's own generated media. Open the picker sheet (and
+  // close the attach menu behind it).
   const pickFromLibrary = () => {
     void tap();
     setAttachOpen(false);
+    setLibraryOpen(true);
+  };
+
+  // Choose an item from the Wingup Library → it becomes the pending attachment
+  // (the same state Camera/Photos set), then the picker closes.
+  const pickLibraryItem = (url: string) => {
+    void tap();
+    setAttachment(url);
+    setLibraryOpen(false);
   };
 
   // Carousel: on swipe, mark the card whose centre is nearest the strip's centre
@@ -231,9 +241,11 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
 
   // Back steps one level: review → compose, compose → landing, a placeholder →
   // landing, and the landing → close the overlay (back to the agent picker).
-  // The open attach menu is a level of its own — Escape/back dismisses it first.
+  // The library picker and the attach menu are levels of their own — Escape/back
+  // dismisses them (picker first, then menu) before navigating views.
   const back = () => {
     void tap();
+    if (libraryOpen) { setLibraryOpen(false); return; }
     if (attachOpen) { setAttachOpen(false); return; }
     if (view === 'compose') {
       if (step === 'result') { setStep('compose'); return; }
@@ -267,7 +279,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const startAnother = () => {
     void tap();
     setPrompt(''); setTone(''); setCaption(''); setImageUrl(''); setSelected(new Set());
-    setAttachment(null); setAttachOpen(false);
+    setAttachment(null); setAttachOpen(false); setLibraryOpen(false);
     setStep('compose');
     setView('landing');
   };
@@ -541,6 +553,51 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     </div>
   );
 
+  // ---- Wingup Library picker — a warm bottom sheet of the user's generated media,
+  // rendered at the overlay root so it covers the full screen. Tapping a thumbnail
+  // sets it as the chatbox attachment. ----
+  const renderLibrary = () => (
+    <div className="wingup-lib" role="dialog" aria-modal="true" aria-label="Wingup Library">
+      <button
+        type="button"
+        className="wingup-lib-backdrop"
+        aria-label="Close library"
+        onClick={() => { void tap(); setLibraryOpen(false); }}
+      />
+      <div className="wingup-lib-sheet">
+        <div className="wingup-lib-head">
+          <div className="wingup-lib-titles">
+            <div className="wingup-lib-title">Wingup Library</div>
+            <div className="wingup-lib-sub">Your generated media</div>
+          </div>
+          <button
+            type="button"
+            className="wingup-lib-x"
+            onClick={() => { void tap(); setLibraryOpen(false); }}
+            aria-label="Close"
+          >
+            <IconX size={18} />
+          </button>
+        </div>
+        {/* TODO: this is the user's real generated/uploaded library once generation is wired. */}
+        <div className="wingup-lib-grid">
+          {SAMPLE_MEDIA.map((m) => (
+            <button
+              type="button"
+              key={m.url}
+              className="wingup-lib-item"
+              onClick={() => pickLibraryItem(m.url)}
+              aria-label={`Attach ${m.caption}`}
+            >
+              <img src={m.url} alt="" aria-hidden loading="lazy" />
+              <span className="wingup-lib-cap">{m.caption}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   // ---- A "coming soon" placeholder for a workspace view ----
   const renderPlaceholder = (id: Exclude<View, 'landing' | 'compose'>) => {
     const p = PLACEHOLDERS[id];
@@ -582,6 +639,8 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
       {view === 'landing' && renderLanding()}
       {view === 'compose' && <div className="wingup-stage">{renderCompose()}</div>}
       {view !== 'landing' && view !== 'compose' && <div className="wingup-stage">{renderPlaceholder(view)}</div>}
+
+      {libraryOpen && renderLibrary()}
     </div>
   );
 }
