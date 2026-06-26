@@ -250,8 +250,8 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
   return { sent, failed, remaining, done };
 }
 
-// Shared secret the scheduled-send cron presents (mirrors the run-workflows pattern;
-// the value lives in Vault and is read back via a security-definer RPC).
+// Shared secret the scheduled-send cron presents (the value lives in Vault and is
+// read back via a security-definer RPC).
 async function cronSecret(): Promise<string> {
   try {
     const r = await fetch(`${SB_URL}/rest/v1/rpc/campaigns_cron_secret`, { method: "POST", headers: sbHeaders, body: "{}" });

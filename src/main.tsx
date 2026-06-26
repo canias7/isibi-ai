@@ -5,13 +5,11 @@ import ErrorBoundary from './ErrorBoundary';
 // Styles, split by feature for maintainability. Import order = cascade order
 // (this is exactly the old single index.css, sliced in place).
 import './styles/base.css';
-import './styles/chat.css';
 import './styles/sidebar.css';
 import './styles/auth.css';
 import './styles/screens.css';
 import './styles/email.css';
 import './styles/agents.css';
-import './styles/call.css';
 import './styles/touch.css'; // global touch feel — must stay LAST so its transitions win
 import { initOta } from './ota';
 

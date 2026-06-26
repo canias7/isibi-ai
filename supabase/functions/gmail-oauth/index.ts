@@ -737,8 +737,8 @@ async function sanitizeEnabled(raw: unknown, toolkit: string): Promise<string[] 
 }
 
 // ---- Connected-apps cache (user_connections) --------------------------------
-// chat and run-workflows read this row instead of asking Composio on every turn
-// / every workflow tick. THIS function is where connections actually change, so
+// The app reads this cached row instead of asking Composio on every load.
+// THIS function is where connections actually change, so
 // it owns the writes: `list` rewrites the row from data it already fetched (the
 // app calls it on launch and on the Connectors screen), and status/disconnect
 // trigger a full refresh — so the cache is fresh the moment the UI knows.
@@ -907,7 +907,7 @@ Deno.serve(async (req: Request) => {
     // The app passes ?exclude=<app ids> for ~15s after a disconnect: Composio's
     // list is eventually consistent and can still report the just-removed account
     // as ACTIVE, which would flicker it back on AND re-pollute the connections
-    // cache that chat/workflows read. We strip those ids here for that window.
+    // cache the app reads. We strip those ids here for that window.
     const excludeIds = (url.searchParams.get("exclude") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
     const excludeSlugs = new Set(excludeIds.map((id) => (TOOLKIT[id] ?? "").toLowerCase()).filter(Boolean));
     try {
