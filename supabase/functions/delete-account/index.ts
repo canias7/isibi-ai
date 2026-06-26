@@ -17,9 +17,7 @@ const COMPOSIO_API_KEY = Deno.env.get("COMPOSIO_API_KEY");
 // table with a user_id column, add it HERE too — "delete my account" must wipe
 // it (ai_usage and app_events were once missed and survived deletion).
 const USER_TABLES = [
-  "conversations", "user_memory", "tool_prefs", "plaid_items", "device_tokens",
-  "tool_data_stash", "tool_usage", "user_reminders", "user_settings",
-  "workflows", "workflow_runs", "user_connections", "ai_usage", "app_events",
+  "plaid_items", "user_settings", "user_connections", "tool_prefs", "ai_usage", "app_events",
 ];
 
 const ALLOWED_ORIGINS = new Set([

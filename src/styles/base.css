@@ -268,6 +268,66 @@ input, textarea { caret-color: var(--brand); }
 .home-continue:active { color: var(--text); }
 .home-continue:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: var(--r-control); }
 
+/* ---- "Select an agent" home ---------------------------------------------- */
+/* The identity lockup wrapper (orb above the heading). */
+.home-hero { display: flex; flex-direction: column; align-items: center; }
+/* The agent picker holds the tappable agent cards (just Sendra for now). */
+.agent-pick { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 360px; }
+.agent-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 16px 18px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sheet);
+  background: #ffffff0a;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-hi);
+  transition: background var(--dur-press) ease, border-color var(--dur-press) ease, transform var(--dur-press) ease;
+}
+.agent-card:active { transform: scale(0.985); background: #ffffff16; border-color: var(--brand); }
+.agent-card:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.agent-card-logo {
+  width: 46px; height: 46px; flex: 0 0 auto;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(248, 81, 78, 0.28);
+}
+.agent-card-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.agent-card-name { font-size: 1.0588rem; font-weight: 700; letter-spacing: -0.01em; }
+.agent-card-sub { font-size: var(--fs-caption); color: var(--text-dim); }
+/* Broken-connectors banner on the home (recovered from the removed chat.css; the
+   .conn-warn-x dismiss button is still styled in touch.css). */
+.conn-warn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 768px;
+  margin: 0 auto 8px;
+  padding: 2px 4px;
+  border-radius: var(--r-row);
+  background: rgba(224, 161, 58, 0.12);
+  border: 1px solid rgba(224, 161, 58, 0.35);
+}
+.conn-warn-main {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--brand);
+  font: inherit;
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  padding: 8px 8px;
+  cursor: pointer;
+}
+
 /* Lazy-route loading scrim — a centered spinner while a screen's chunk downloads. */
 .route-fallback {
   position: fixed;
