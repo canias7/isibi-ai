@@ -92,6 +92,18 @@ export async function wingupPublishCarousel(p: { caption: string; images: string
 }
 
 // ---- Engage ----
+// One comment on a post (Graph-API comment object — fields optional in practice).
+export interface IgComment {
+  id: string;
+  text?: string;
+  username?: string;
+  timestamp?: string;
+  like_count?: number;
+}
+export async function wingupPostComments(igPostId: string): Promise<{ data: IgComment[] }> {
+  const { comments } = await invoke<{ comments: { data?: IgComment[] } }>({ action: 'post_comments', ig_post_id: igPostId });
+  return { data: Array.isArray(comments?.data) ? comments.data : [] };
+}
 export async function wingupReplyComment(igCommentId: string, message: string): Promise<void> {
   await invoke({ action: 'reply_comment', ig_comment_id: igCommentId, message });
 }

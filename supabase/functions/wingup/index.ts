@@ -18,6 +18,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 //   insights           -> account insights (Insights)
 //   publish            -> { caption?, image_url? | image_b64?+content_type? }  single photo post
 //   publish_carousel   -> { caption?, images: [{url?|b64?,content_type?}] }    multi-photo post
+//   post_comments      -> { ig_post_id }  comments on one of your posts
 //   reply_comment      -> { ig_comment_id, message }
 //   conversations      -> DM threads
 //   messages           -> { conversation_id }  messages in a thread
@@ -225,6 +226,13 @@ Deno.serve(async (req: Request) => {
       }
 
       // ---- Engage ----
+      case "post_comments": {
+        const ig_post_id = String(body?.ig_post_id || "");
+        if (!ig_post_id) return json(req, { error: "ig_post_id required" }, 400);
+        const r = await exec("INSTAGRAM_GET_POST_COMMENTS", uid, { ig_post_id });
+        if (!r.successful) return json(req, { error: r.error || "couldn't load comments" }, 502);
+        return json(req, { comments: r.data });
+      }
       case "reply_comment": {
         const ig_comment_id = String(body?.ig_comment_id || "");
         const message = String(body?.message || "");
