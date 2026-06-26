@@ -5,6 +5,9 @@ const config: CapacitorConfig = {
   appName: 'Go Farther',
   webDir: 'dist',
   plugins: {
+    // Camera (@capacitor/camera) powers Wingup's photo/camera picker. Native
+    // plugins only take effect in a fresh native build (cap sync pulls them in) —
+    // OTA can't add them — so changing plugins means cutting a new TestFlight build.
     CapacitorUpdater: {
       // We check for updates ourselves on launch (see src/ota.ts).
       autoUpdate: false,
