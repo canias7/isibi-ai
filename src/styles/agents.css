@@ -752,3 +752,35 @@ button.ag-camp:active { filter: brightness(1.15); }
 }
 .ag-tg-sendbtn:active { filter: brightness(0.95); }
 .ag-tg-sendbtn:disabled { opacity: 0.45; cursor: default; }
+
+/* ---- Wingup (social media agent) ---------------------------------------- */
+/* Reuses the .memg overlay shell + .ag-* compose/button styles; these cover the
+   generated-image preview, labels and the multi-select platform chips. */
+.wingup-lbl { font-size: var(--fs-footnote); font-weight: 700; color: var(--text-dim); margin: 6px 2px 0; }
+.wingup-opt { font-weight: 500; color: var(--text-faint); }
+/* Generated image preview — a square, rounded card framing the result. */
+.wingup-preview {
+  border-radius: var(--r-card); overflow: hidden;
+  border: 1px solid var(--glass-edge); box-shadow: var(--glass-hi), var(--glass-shadow);
+  background: var(--glass);
+}
+.wingup-img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
+/* Target-platform picker: connected social accounts as multi-select chips. */
+.wingup-targets { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.wingup-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.wingup-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px 8px 10px; border-radius: var(--r-pill);
+  border: 1px solid var(--glass-edge); background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  color: var(--text); font: inherit; font-size: var(--fs-footnote); font-weight: 600;
+  cursor: pointer; transition: transform 160ms var(--ease-enter, ease), border-color 160ms ease, background 160ms ease;
+}
+.wingup-chip:active { transform: scale(0.97); }
+.wingup-chip.on { border-color: var(--brand); background: rgba(224, 161, 58, 0.14); color: var(--brand); }
+.wingup-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.wingup-chip-logo { width: 20px; height: 20px; border-radius: 5px; flex-shrink: 0; }
+.wingup-note { font-size: var(--fs-footnote); color: var(--text-dim); line-height: 1.45; margin: 2px; }
+/* Generating / posting state — centred spinner + status line. */
+.wingup-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 60px 16px; flex: 1; }
+.wingup-loading-msg { color: var(--text-dim); font-size: var(--fs-body-s); }
