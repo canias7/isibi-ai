@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import {
   IconArrowLeft, IconArrowUp, IconCheck, IconCompose, IconCalendar,
-  IconWaveform, IconPhotos, IconChart, IconBolt,
+  IconWaveform, IconPhotos, IconChart, IconBolt, IconPlus, IconX,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -37,14 +38,6 @@ const CARDS: { id: View; title: string; sub: string; emoji: string; tone: Tone; 
   { id: 'gallery', title: 'Gallery', sub: 'Your media', emoji: '🖼️', tone: 'gal', Icon: IconPhotos },
   { id: 'insights', title: 'Insights', sub: 'Performance', emoji: '📊', tone: 'ins', Icon: IconChart },
   { id: 'metaads', title: 'Meta Ads', sub: 'FB & IG ads', emoji: '📢', tone: 'meta', Icon: IconBolt },
-];
-
-// The three chatbox "intent" chips. Tapping one focuses the input and seeds it
-// with a starter so the prompt always carries the chosen intent into generation.
-const CHIPS: { label: string; emoji: string; seed: string }[] = [
-  { label: 'Idea', emoji: '✨', seed: '' },
-  { label: 'Image', emoji: '🖼️', seed: 'An eye-catching image post about ' },
-  { label: 'Video', emoji: '🎬', seed: 'A short video post about ' },
 ];
 
 // The hero carousel above the chatbox — a swipeable strip of recent posts/media.
@@ -138,6 +131,9 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const [caption, setCaption] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set()); // chosen platform ids
+  // ---- Chatbox attach: the + menu (camera / library) + the picked image ----
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [attachment, setAttachment] = useState<string | null>(null); // data URL of the picked image
 
   const trapRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLTextAreaElement>(null);
@@ -171,12 +167,32 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     void runGenerate();
   };
 
-  // Tap a chip → seed the prompt with its intent and focus the input. (Idea has
-  // no seed; it just brings focus to the box.)
-  const pickChip = (seed: string) => {
+  // ---- Chatbox attach menu ----
+  // Take a photo with the device camera, or pick one from the library, and stash
+  // it as the pending attachment. The user cancelling rejects the promise — we
+  // swallow that (and any plugin error) so a cancel is a no-op.
+  // TODO: pass `attachment` into the compose/generation flow once generation is wired.
+  const pickFrom = async (source: CameraSource) => {
     void tap();
-    if (seed) setPrompt((p) => (p.trim() ? p : seed));
-    chatRef.current?.focus();
+    setAttachOpen(false);
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source,
+      });
+      if (photo.dataUrl) setAttachment(photo.dataUrl);
+    } catch {
+      /* user cancelled or the camera/photos plugin isn't available — no-op */
+    }
+  };
+
+  // Wingup Library — the user's own generated media. Stubbed: just closes the menu.
+  // TODO: open the user's generated-media library (empty until generation is wired).
+  const pickFromLibrary = () => {
+    void tap();
+    setAttachOpen(false);
   };
 
   // Carousel: on swipe, mark the card whose centre is nearest the strip's centre
@@ -215,8 +231,10 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
 
   // Back steps one level: review → compose, compose → landing, a placeholder →
   // landing, and the landing → close the overlay (back to the agent picker).
+  // The open attach menu is a level of its own — Escape/back dismisses it first.
   const back = () => {
     void tap();
+    if (attachOpen) { setAttachOpen(false); return; }
     if (view === 'compose') {
       if (step === 'result') { setStep('compose'); return; }
       setView('landing');
@@ -249,6 +267,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const startAnother = () => {
     void tap();
     setPrompt(''); setTone(''); setCaption(''); setImageUrl(''); setSelected(new Set());
+    setAttachment(null); setAttachOpen(false);
     setStep('compose');
     setView('landing');
   };
@@ -395,28 +414,79 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
         <div className="wingup-hero-spacer" aria-hidden="true" />
 
         <div className="wingup-hero-bottom">
-          {/* The chatbox — a tappable input + intent chips + an amber send. */}
-          <div className="wingup-chatbox">
-            <textarea
-              ref={chatRef}
-              className="wingup-chat-input"
-              rows={1}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); launchCompose(); }
-              }}
-              placeholder="Describe a post, a campaign, or a vibe…"
-              aria-label="Describe a post, a campaign, or a vibe"
-            />
-            <div className="wingup-chat-row">
-              <div className="wingup-chips">
-                {CHIPS.map((c) => (
-                  <button key={c.label} type="button" className="wingup-chip" onClick={() => pickChip(c.seed)}>
-                    <span aria-hidden="true">{c.emoji}</span> {c.label}
-                  </button>
-                ))}
+          {/* The composer wraps the chatbox so the attach menu can float above it.
+              The chatbox is a single glass-dark row: [+ attach] [input] [send]. */}
+          <div className="wingup-composer">
+            {/* Transparent full-screen backdrop — a tap anywhere outside closes the
+                attach menu. Rendered first so it sits under the popover. */}
+            {attachOpen && (
+              <button
+                type="button"
+                className="wingup-attach-backdrop"
+                aria-label="Close attach menu"
+                onClick={() => { void tap(); setAttachOpen(false); }}
+              />
+            )}
+
+            {/* Attach menu — a light popover above the chatbox with 3 rows. */}
+            {attachOpen && (
+              <div className="wingup-attach-menu" role="menu" aria-label="Attach">
+                <button type="button" className="wingup-attach-row" role="menuitem" onClick={() => void pickFrom(CameraSource.Camera)}>
+                  <span className="wingup-attach-ic ar-cam" aria-hidden="true">📷</span>
+                  <span className="wingup-attach-txt"><span className="wingup-attach-t">Camera</span></span>
+                </button>
+                <button type="button" className="wingup-attach-row" role="menuitem" onClick={() => void pickFrom(CameraSource.Photos)}>
+                  <span className="wingup-attach-ic ar-pho" aria-hidden="true">🖼️</span>
+                  <span className="wingup-attach-txt"><span className="wingup-attach-t">Photo Library</span></span>
+                </button>
+                <button type="button" className="wingup-attach-row" role="menuitem" onClick={pickFromLibrary}>
+                  <span className="wingup-attach-ic ar-wing" aria-hidden="true">🪽</span>
+                  <span className="wingup-attach-txt">
+                    <span className="wingup-attach-t">Wingup Library</span>
+                    <span className="wingup-attach-s">Your generated media</span>
+                  </span>
+                </button>
               </div>
+            )}
+
+            {/* Picked-image preview — a small thumbnail with a × to clear it. */}
+            {attachment && (
+              <div className="wingup-attachment">
+                <img className="wingup-attachment-img" src={attachment} alt="Attached" />
+                <button
+                  type="button"
+                  className="wingup-attachment-x"
+                  onClick={() => { void tap(); setAttachment(null); }}
+                  aria-label="Remove attachment"
+                >
+                  <IconX size={13} />
+                </button>
+              </div>
+            )}
+
+            <div className="wingup-chatbox">
+              <button
+                type="button"
+                className="wingup-attach"
+                onClick={() => { void tap(); setAttachOpen((o) => !o); }}
+                aria-label="Attach a photo"
+                aria-expanded={attachOpen}
+                aria-haspopup="menu"
+              >
+                <IconPlus size={22} />
+              </button>
+              <textarea
+                ref={chatRef}
+                className="wingup-chat-input"
+                rows={1}
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); launchCompose(); }
+                }}
+                placeholder="Describe a post, a campaign, or a vibe…"
+                aria-label="Describe a post, a campaign, or a vibe"
+              />
               <button
                 type="button"
                 className="wingup-send"
