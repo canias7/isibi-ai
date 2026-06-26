@@ -1,5 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   IconArrowLeft, IconArrowUp, IconCheck, IconCompose, IconCalendar,
   IconWaveform, IconPhotos, IconChart, IconBolt, IconPlus, IconX,
@@ -169,25 +168,23 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   };
 
   // ---- Chatbox attach menu ----
-  // Take a photo with the device camera, or pick one from the library, and stash
-  // it as the pending attachment. The user cancelling rejects the promise — we
-  // swallow that (and any plugin error) so a cancel is a no-op.
+  // Camera / Photo Library use hidden <input type=file> elements (rendered below).
+  // These open the native picker INSIDE the iOS/Android WebView, so they work over
+  // OTA with no native plugin or rebuild — the app's Info.plist already carries the
+  // camera + photo-library permission strings the WebView needs.
   // TODO: pass `attachment` into the compose/generation flow once generation is wired.
-  const pickFrom = async (source: CameraSource) => {
-    void tap();
-    setAttachOpen(false);
-    try {
-      const photo = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: false,
-        resultType: CameraResultType.DataUrl,
-        source,
-      });
-      if (photo.dataUrl) setAttachment(photo.dataUrl);
-    } catch {
-      /* user cancelled or the camera/photos plugin isn't available — no-op */
-    }
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const onPickFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // reset so re-picking the same file still fires onChange
+    if (!file) return;  // cancelled — no-op
+    const reader = new FileReader();
+    reader.onload = () => { if (typeof reader.result === 'string') setAttachment(reader.result); };
+    reader.readAsDataURL(file);
   };
+  const openCamera = () => { void tap(); setAttachOpen(false); cameraInputRef.current?.click(); };
+  const openPhotos = () => { void tap(); setAttachOpen(false); photoInputRef.current?.click(); };
 
   // Wingup Library — the user's own generated media. Open the picker sheet (and
   // close the attach menu behind it).
@@ -443,11 +440,11 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
             {/* Attach menu — a light popover above the chatbox with 3 rows. */}
             {attachOpen && (
               <div className="wingup-attach-menu" role="menu" aria-label="Attach">
-                <button type="button" className="wingup-attach-row" role="menuitem" onClick={() => void pickFrom(CameraSource.Camera)}>
+                <button type="button" className="wingup-attach-row" role="menuitem" onClick={openCamera}>
                   <span className="wingup-attach-ic ar-cam" aria-hidden="true">📷</span>
                   <span className="wingup-attach-txt"><span className="wingup-attach-t">Camera</span></span>
                 </button>
-                <button type="button" className="wingup-attach-row" role="menuitem" onClick={() => void pickFrom(CameraSource.Photos)}>
+                <button type="button" className="wingup-attach-row" role="menuitem" onClick={openPhotos}>
                   <span className="wingup-attach-ic ar-pho" aria-hidden="true">🖼️</span>
                   <span className="wingup-attach-txt"><span className="wingup-attach-t">Photo Library</span></span>
                 </button>
@@ -460,6 +457,11 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
                 </button>
               </div>
             )}
+
+            {/* Hidden pickers — Camera (capture) + Photo Library. They open the
+                native picker inside the WebView, so they work via OTA. */}
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onPickFile} />
+            <input ref={photoInputRef} type="file" accept="image/*" hidden onChange={onPickFile} />
 
             {/* Picked-image preview — a small thumbnail with a × to clear it. */}
             {attachment && (
