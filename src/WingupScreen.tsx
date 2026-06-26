@@ -1,4 +1,6 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import {
   IconArrowLeft, IconArrowUp, IconCheck, IconCompose, IconCalendar,
   IconWaveform, IconPhotos, IconChart, IconBolt, IconPlus, IconX,
@@ -168,10 +170,11 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   };
 
   // ---- Chatbox attach menu ----
-  // Camera / Photo Library use hidden <input type=file> elements (rendered below).
-  // These open the native picker INSIDE the iOS/Android WebView, so they work over
-  // OTA with no native plugin or rebuild — the app's Info.plist already carries the
-  // camera + photo-library permission strings the WebView needs.
+  // Camera / Photo Library prefer the native @capacitor/camera picker (straight to
+  // the camera / gallery, no iOS chooser sheet) when it's compiled into the build.
+  // When it isn't (an OTA update to an older native build, or the web), we fall back
+  // to a hidden <input type=file>, which opens the picker inside the WebView using
+  // the camera/photo permissions already in Info.plist.
   // TODO: pass `attachment` into the compose/generation flow once generation is wired.
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -183,8 +186,23 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     reader.onload = () => { if (typeof reader.result === 'string') setAttachment(reader.result); };
     reader.readAsDataURL(file);
   };
-  const openCamera = () => { void tap(); setAttachOpen(false); cameraInputRef.current?.click(); };
-  const openPhotos = () => { void tap(); setAttachOpen(false); photoInputRef.current?.click(); };
+  // Returns true if the native picker handled it; false → caller uses the input fallback.
+  const pickNative = async (source: CameraSource): Promise<boolean> => {
+    if (!Capacitor.isPluginAvailable('Camera')) return false;
+    try {
+      const photo = await Camera.getPhoto({ quality: 90, allowEditing: false, resultType: CameraResultType.DataUrl, source });
+      if (photo.dataUrl) setAttachment(photo.dataUrl);
+    } catch { /* cancelled — no-op */ }
+    return true;
+  };
+  const openCamera = async () => {
+    void tap(); setAttachOpen(false);
+    if (!(await pickNative(CameraSource.Camera))) cameraInputRef.current?.click();
+  };
+  const openPhotos = async () => {
+    void tap(); setAttachOpen(false);
+    if (!(await pickNative(CameraSource.Photos))) photoInputRef.current?.click();
+  };
 
   // Wingup Library — the user's own generated media. Open the picker sheet (and
   // close the attach menu behind it).
@@ -440,11 +458,11 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
             {/* Attach menu — a light popover above the chatbox with 3 rows. */}
             {attachOpen && (
               <div className="wingup-attach-menu" role="menu" aria-label="Attach">
-                <button type="button" className="wingup-attach-row" role="menuitem" onClick={openCamera}>
+                <button type="button" className="wingup-attach-row" role="menuitem" onClick={() => void openCamera()}>
                   <span className="wingup-attach-ic ar-cam" aria-hidden="true">📷</span>
                   <span className="wingup-attach-txt"><span className="wingup-attach-t">Camera</span></span>
                 </button>
-                <button type="button" className="wingup-attach-row" role="menuitem" onClick={openPhotos}>
+                <button type="button" className="wingup-attach-row" role="menuitem" onClick={() => void openPhotos()}>
                   <span className="wingup-attach-ic ar-pho" aria-hidden="true">🖼️</span>
                   <span className="wingup-attach-txt"><span className="wingup-attach-t">Photo Library</span></span>
                 </button>
