@@ -126,6 +126,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
 
   const trapRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLTextAreaElement>(null);
+  const workspaceRef = useRef<HTMLElement>(null);
 
   // The user's connected social platforms, in CONNECTORS order, with name + logo.
   const socials = useMemo(
@@ -338,15 +339,20 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
             </div>
           </div>
 
-          {/* Bouncing cue inviting a scroll down to the workspace grid. */}
-          <div className="wingup-scrollcue" aria-hidden="true">
-            <span className="wingup-chev">⌄</span>
+          {/* Static, tappable cue — a tap smooth-scrolls down to the workspace. */}
+          <button
+            type="button"
+            className="wingup-scrollcue"
+            onClick={() => { void tap(); workspaceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+            aria-label="Scroll to your workspace"
+          >
+            <span className="wingup-chev" aria-hidden="true">⌄</span>
             <span className="wingup-scrollcue-lbl">scroll</span>
-          </div>
+          </button>
         </div>
       </section>
 
-      <section className="wingup-workspace">
+      <section className="wingup-workspace" ref={workspaceRef}>
         <h3 className="wingup-sec-h">Your workspace</h3>
         <div className="wingup-grid">
           {CARDS.map((c) => (
