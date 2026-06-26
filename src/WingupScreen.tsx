@@ -47,6 +47,21 @@ const CHIPS: { label: string; emoji: string; seed: string }[] = [
   { label: 'Video', emoji: '🎬', seed: 'A short video post about ' },
 ];
 
+// The hero carousel above the chatbox — a swipeable strip of recent posts/media.
+// TODO: placeholder sample media — swap for the user's generated/uploaded content once generation is wired.
+const SAMPLE_MEDIA: { url: string; caption: string }[] = [
+  { url: 'https://picsum.photos/seed/wingup01/520/620', caption: 'Summer sale — reel' },
+  { url: 'https://picsum.photos/seed/wingup02/520/620', caption: 'Product drop' },
+  { url: 'https://picsum.photos/seed/wingup03/520/620', caption: 'Behind the scenes' },
+  { url: 'https://picsum.photos/seed/wingup04/520/620', caption: 'Customer spotlight' },
+  { url: 'https://picsum.photos/seed/wingup05/520/620', caption: 'New arrivals' },
+  { url: 'https://picsum.photos/seed/wingup06/520/620', caption: 'Weekend vibes' },
+  { url: 'https://picsum.photos/seed/wingup07/520/620', caption: 'Limited edition' },
+  { url: 'https://picsum.photos/seed/wingup08/520/620', caption: 'Team picks' },
+  { url: 'https://picsum.photos/seed/wingup09/520/620', caption: 'How it’s made' },
+  { url: 'https://picsum.photos/seed/wingup10/520/620', caption: 'Coming soon' },
+];
+
 // The placeholder views, by id, for the "coming soon" empty states.
 const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'compose'>, { title: string; emoji: string; Icon: IconCmp }> = {
   calendar: { title: 'Content calendar', emoji: '📅', Icon: IconCalendar },
@@ -127,6 +142,9 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const trapRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLTextAreaElement>(null);
   const workspaceRef = useRef<HTMLElement>(null);
+  // ---- Hero carousel: the swipeable media strip + its active card / dots ----
+  const caroRef = useRef<HTMLDivElement>(null);
+  const [activeShot, setActiveShot] = useState(0);
 
   // The user's connected social platforms, in CONNECTORS order, with name + logo.
   const socials = useMemo(
@@ -158,6 +176,40 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     void tap();
     if (seed) setPrompt((p) => (p.trim() ? p : seed));
     chatRef.current?.focus();
+  };
+
+  // Carousel: on swipe, mark the card whose centre is nearest the strip's centre
+  // as active so the dots follow the user's scroll.
+  const onCaroScroll = () => {
+    const el = caroRef.current;
+    if (!el) return;
+    const mid = el.scrollLeft + el.clientWidth / 2;
+    let best = 0;
+    let bestDist = Infinity;
+    const cards = el.children;
+    for (let i = 0; i < cards.length; i += 1) {
+      const card = cards[i] as HTMLElement;
+      const cardMid = card.offsetLeft + card.offsetWidth / 2;
+      const dist = Math.abs(cardMid - mid);
+      if (dist < bestDist) { bestDist = dist; best = i; }
+    }
+    setActiveShot((cur) => (cur === best ? cur : best));
+  };
+
+  // Carousel: centre the i-th card (tap a dot). A 'smooth' jump unless the user
+  // prefers reduced motion, in which case we snap instantly (no scroll jank).
+  const goShot = (i: number) => {
+    void tap();
+    const el = caroRef.current;
+    const card = el?.children[i] as HTMLElement | undefined;
+    if (!el || !card) return;
+    const reduce = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollTo({
+      left: card.offsetLeft - (el.clientWidth - card.offsetWidth) / 2,
+      behavior: reduce ? 'auto' : 'smooth',
+    });
+    setActiveShot(i);
   };
 
   // Back steps one level: review → compose, compose → landing, a placeholder →
@@ -295,16 +347,53 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     );
   };
 
-  // ---- The landing: hero chatbox in the lower third + workspace grid ----
+  // ---- The landing: heading + media carousel, then the hero chatbox in the
+  // lower third, then the workspace grid below the fold ----
   const renderLanding = () => (
     <div className="wingup-scroll">
       <section className="wingup-hero">
-        <div className="wingup-hero-spacer" aria-hidden="true" />
         <div className="wingup-hero-top">
-          <span className="wingup-hero-logo"><img src={WINGUP_LOGO} alt="" aria-hidden /></span>
           <h2 className="wingup-h1">What should we post?</h2>
           <p className="wingup-hero-sub">Your social media agent</p>
+        </div>
 
+        {/* Media carousel — a swipeable strip of recent/sample posts. The active
+            card is centred with a peek of its neighbors; the dots track it. */}
+        <div
+          className="wingup-caro"
+          ref={caroRef}
+          onScroll={onCaroScroll}
+          role="group"
+          aria-label="Recent media"
+        >
+          {SAMPLE_MEDIA.map((m, i) => (
+            <div className="wingup-shot" key={m.url}>
+              <img src={m.url} alt="" aria-hidden loading="lazy" />
+              <span className="wingup-shot-badge">{i + 1} / {SAMPLE_MEDIA.length}</span>
+              <span className="wingup-shot-play" aria-hidden="true">▶</span>
+              <span className="wingup-shot-cap">{m.caption}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Dots — the centred card's dot is active; tap to centre that card. */}
+        <div className="wingup-dots" role="tablist" aria-label="Media pages">
+          {SAMPLE_MEDIA.map((m, i) => (
+            <button
+              type="button"
+              key={m.url}
+              className={`wingup-dot${i === activeShot ? ' on' : ''}`}
+              onClick={() => goShot(i)}
+              role="tab"
+              aria-selected={i === activeShot}
+              aria-label={`Show ${m.caption}`}
+            />
+          ))}
+        </div>
+
+        <div className="wingup-hero-spacer" aria-hidden="true" />
+
+        <div className="wingup-hero-bottom">
           {/* The chatbox — a tappable input + intent chips + an amber send. */}
           <div className="wingup-chatbox">
             <textarea
