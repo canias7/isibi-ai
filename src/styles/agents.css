@@ -784,3 +784,41 @@ button.ag-camp:active { filter: brightness(1.15); }
 /* Generating / posting state — centred spinner + status line. */
 .wingup-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 60px 16px; flex: 1; }
 .wingup-loading-msg { color: var(--text-dim); font-size: var(--fs-body-s); }
+
+/* The Wingup stage sits between the top bar and the persistent bottom nav; trim
+   its own bottom padding since the nav reserves the safe-area space below. */
+.wingup-stage { display: flex; flex-direction: column; padding-bottom: 16px; }
+.wingup-stage > * { width: 100%; }
+
+/* "Coming soon" sections — a clean centred empty state (icon + title + sub). */
+.wingup-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 48px 24px; flex: 1; }
+.wingup-empty-ic {
+  width: 64px; height: 64px; border-radius: 20px; margin-bottom: 6px;
+  display: grid; place-items: center;
+  background: var(--grad-brand); color: var(--on-brand);
+  box-shadow: 0 8px 22px rgba(224, 161, 58, 0.28);
+}
+.wingup-empty-title { font-size: var(--fs-title); font-weight: 700; letter-spacing: -0.01em; }
+.wingup-empty-sub { font-size: var(--fs-footnote); color: var(--text-dim); }
+
+/* Persistent bottom nav — 6 icon+label sections, fixed within the overlay. */
+.wingup-nav {
+  flex-shrink: 0; z-index: 2;
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  gap: 2px; padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--glass-edge);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+}
+.wingup-nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 6px 2px; border: none; background: none; cursor: pointer;
+  color: var(--text-faint); font: inherit;
+  border-radius: var(--r-row);
+  transition: color 160ms ease, transform 160ms var(--ease-enter, ease);
+}
+.wingup-nav-item:active { transform: scale(0.94); }
+.wingup-nav-item.on { color: var(--brand); }
+.wingup-nav-item:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.wingup-nav-ic { display: grid; place-items: center; }
+.wingup-nav-lbl { font-size: var(--fs-label); font-weight: 700; line-height: 1; }

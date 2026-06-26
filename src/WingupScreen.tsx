@@ -1,17 +1,31 @@
 import { useMemo, useRef, useState } from 'react';
-import { IconArrowLeft, IconCheck } from './icons';
+import { IconArrowLeft, IconCheck, IconCompose, IconCalendar, IconWaveform, IconPhotos, IconChart, IconBolt } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
 import { CONNECTORS } from './connectorData';
 
-// Wingup — the social media agent. A Blaze-style compose → generate → review →
-// publish flow that turns a prompt into a caption + image, then posts it to the
-// user's connected social accounts. Sibling to AgentsScreen: it reuses the same
-// .memg overlay shell, live-bg ambient and .ag-* form/button styles, with a few
-// .wingup-* additions for the image preview and platform chips.
+// Wingup — the social media agent, built as a multi-section SHELL: a persistent
+// bottom nav switches the main content between six sections. Only Home is live
+// today (a Blaze-style compose → generate → review → publish flow); the rest are
+// "coming soon" empty states so the roadmap is visible without faking capability.
+// Sibling to AgentsScreen: it reuses the same .memg overlay shell, live-bg
+// ambient and .ag-* form/button styles, with .wingup-* additions for the nav,
+// image preview, platform chips and empty states.
 //
 // AI generation and social publishing are STUBBED for now — see generateContent
 // and publishPost below for the // TODO hooks where the real wiring lands.
+
+// The bottom-nav sections. 'home' is the live flow; the rest are placeholders.
+type Section = 'home' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
+type IconCmp = typeof IconCompose;
+const NAV: { id: Section; label: string; title: string; Icon: IconCmp }[] = [
+  { id: 'home', label: 'Home', title: 'Wingup', Icon: IconCompose },
+  { id: 'calendar', label: 'Calendar', title: 'Content calendar', Icon: IconCalendar },
+  { id: 'campaigns', label: 'Campaigns', title: 'Campaigns', Icon: IconWaveform },
+  { id: 'gallery', label: 'Gallery', title: 'Your media', Icon: IconPhotos },
+  { id: 'insights', label: 'Insights', title: 'Insights', Icon: IconChart },
+  { id: 'metaads', label: 'Meta Ads', title: 'Meta Ads', Icon: IconBolt },
+];
 
 // The social platforms Wingup can post to, by connector id. We intersect this
 // with the user's connApps so chips only show accounts they've actually linked.
@@ -71,7 +85,20 @@ async function publishPost(_post: { caption: string; image: string; platforms: s
   await new Promise((r) => setTimeout(r, 1000)); // simulate per-platform publish
 }
 
+// A clean, centered empty state for the "coming soon" sections.
+function EmptyState({ Icon, title, sub }: { Icon: IconCmp; title: string; sub: string }) {
+  return (
+    <div className="wingup-empty">
+      <span className="wingup-empty-ic"><Icon size={30} /></span>
+      <div className="wingup-empty-title">{title}</div>
+      <div className="wingup-empty-sub">{sub}</div>
+    </div>
+  );
+}
+
 export default function WingupScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
+  const [section, setSection] = useState<Section>('home');
+  // ---- Home tab: compose → generate → post flow ----
   const [step, setStep] = useState<Step>('compose');
   const [prompt, setPrompt] = useState('');
   const [tone, setTone] = useState('');
@@ -87,11 +114,11 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     [connApps],
   );
 
-  // Back steps one level: result → compose, otherwise close. (Generating/posting
-  // are transient and just fall through to closing the overlay.)
+  // Back steps one level: a Home result → compose, otherwise close. (Generating/
+  // posting are transient and just fall through to closing the overlay.)
   const back = () => {
     tap();
-    if (step === 'result') { setStep('compose'); return; }
+    if (section === 'home' && step === 'result') { setStep('compose'); return; }
     onClose();
   };
   useFocusTrap(true, trapRef, back);
@@ -135,12 +162,121 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   // Human-readable list of where we posted, for the success copy ("X, LinkedIn").
   const postedNames = CONNECTORS.filter((c) => selected.has(c.id)).map((c) => c.name).join(', ');
 
+  // The active section's title + a contextual subtitle (Home's tracks the flow).
+  const meta = NAV.find((n) => n.id === section)!;
   const subtitle =
-    step === 'done' ? 'Posted'
+    section !== 'home' ? 'Coming soon'
+    : step === 'done' ? 'Posted'
     : step === 'posting' ? 'Posting…'
     : step === 'result' ? 'Review & post'
     : step === 'generating' ? 'Generating…'
     : 'Social media agent';
+
+  // ---- Home tab content: the full compose → generate → post flow ----
+  const renderHome = () => {
+    if (step === 'generating' || step === 'posting') {
+      return (
+        <div className="wingup-loading">
+          <span className="route-spin" aria-hidden="true" />
+          <p className="wingup-loading-msg">{step === 'posting' ? 'Posting your update…' : 'Generating your post…'}</p>
+        </div>
+      );
+    }
+    if (step === 'done') {
+      return (
+        <div className="ag-sent">
+          <span className="ag-sent-ic"><IconCheck size={26} /></span>
+          <div className="ag-sent-title">Posted{postedNames ? ` to ${postedNames}` : ''} ✓</div>
+          <div className="ag-sent-sub">Your post is on its way to your followers.</div>
+          <div className="ag-sent-actions">
+            <button className="ag-send-btn" onClick={startAnother}>Start another</button>
+          </div>
+        </div>
+      );
+    }
+    if (step === 'result') {
+      // ---- Review: image preview, editable caption, platforms, publish ----
+      return (
+        <div className="ag-compose">
+          <div className="wingup-preview">
+            <img className="wingup-img" src={imageUrl} alt="Generated post preview" />
+          </div>
+
+          <label className="wingup-lbl" htmlFor="wingup-caption">Caption</label>
+          <textarea
+            id="wingup-caption"
+            className="ag-field ag-body"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            placeholder="Your caption…"
+          />
+
+          <button className="ag-send-btn ghost" onClick={() => void runGenerate()}>Regenerate</button>
+
+          {/* Target platforms: chips for the user's connected social accounts. */}
+          <div className="wingup-targets">
+            <span className="wingup-lbl">Post to</span>
+            {socials.length === 0 ? (
+              <p className="wingup-note">Connect a social account in Connectors to post.</p>
+            ) : (
+              <div className="wingup-chips">
+                {socials.map((c) => (
+                  <button
+                    key={c.id}
+                    className={`wingup-chip${selected.has(c.id) ? ' on' : ''}`}
+                    aria-pressed={selected.has(c.id)}
+                    onClick={() => togglePlatform(c.id)}
+                  >
+                    <img className="wingup-chip-logo" src={c.logo} alt="" aria-hidden />
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button className="ag-send-btn" disabled={!selected.size} onClick={() => void runPublish()}>Post now</button>
+        </div>
+      );
+    }
+    // ---- Compose: prompt + optional tone + Generate ----
+    return (
+      <div className="ag-compose">
+        <label className="wingup-lbl" htmlFor="wingup-prompt">What should we post about?</label>
+        <textarea
+          id="wingup-prompt"
+          className="ag-field ag-body"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="e.g. We just launched our summer collection — bright, breezy, limited run."
+        />
+
+        <label className="wingup-lbl" htmlFor="wingup-tone">Tone / brand voice <span className="wingup-opt">(optional)</span></label>
+        <input
+          id="wingup-tone"
+          className="ag-field"
+          value={tone}
+          onChange={(e) => setTone(e.target.value)}
+          placeholder="e.g. playful, confident, a little cheeky"
+        />
+
+        <button className="ag-send-btn" disabled={!prompt.trim()} onClick={() => void runGenerate()}>✨ Generate</button>
+        <p className="ag-foot">Wingup drafts the copy and a matching image, then posts to your connected social accounts.</p>
+      </div>
+    );
+  };
+
+  // The placeholder sections — clean centered empty states.
+  const renderSection = () => {
+    switch (section) {
+      case 'home': return renderHome();
+      case 'calendar': return <EmptyState Icon={IconCalendar} title="Content calendar" sub="Coming soon" />;
+      case 'campaigns': return <EmptyState Icon={IconWaveform} title="Campaigns" sub="Coming soon" />;
+      case 'gallery': return <EmptyState Icon={IconPhotos} title="Your media" sub="Coming soon" />;
+      case 'insights': return <EmptyState Icon={IconChart} title="Insights" sub="Coming soon" />;
+      case 'metaads': return <EmptyState Icon={IconBolt} title="Meta Ads" sub="Coming soon" />;
+    }
+  };
 
   return (
     <div className="memg wingup" ref={trapRef} tabIndex={-1}>
@@ -153,103 +289,32 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
       </div>
 
       <div className="memg-top">
-        <button className="memg-back" onClick={back} aria-label={step === 'result' ? 'Back' : 'Close'}><IconArrowLeft size={22} /></button>
+        <button className="memg-back" onClick={back} aria-label={section === 'home' && step === 'result' ? 'Back' : 'Close'}><IconArrowLeft size={22} /></button>
         <div className="memg-titles">
-          <h1 className="memg-title">Wingup</h1>
+          <h1 className="memg-title">{meta.title}</h1>
           <p className="memg-sub">{subtitle}</p>
         </div>
         <span style={{ width: 40 }} />
       </div>
 
-      {step === 'generating' || step === 'posting' ? (
-        <div className="ag-stage">
-          <div className="wingup-loading">
-            <span className="route-spin" aria-hidden="true" />
-            <p className="wingup-loading-msg">{step === 'posting' ? 'Posting your update…' : 'Generating your post…'}</p>
-          </div>
-        </div>
-      ) : step === 'done' ? (
-        <div className="ag-stage">
-          <div className="ag-sent">
-            <span className="ag-sent-ic"><IconCheck size={26} /></span>
-            <div className="ag-sent-title">Posted{postedNames ? ` to ${postedNames}` : ''} ✓</div>
-            <div className="ag-sent-sub">Your post is on its way to your followers.</div>
-            <div className="ag-sent-actions">
-              <button className="ag-send-btn" onClick={startAnother}>Start another</button>
-            </div>
-          </div>
-        </div>
-      ) : step === 'result' ? (
-        // ---- Review: image preview, editable caption, platforms, publish ----
-        <div className="ag-stage">
-          <div className="ag-compose">
-            <div className="wingup-preview">
-              <img className="wingup-img" src={imageUrl} alt="Generated post preview" />
-            </div>
+      <div className="ag-stage wingup-stage">
+        {renderSection()}
+      </div>
 
-            <label className="wingup-lbl" htmlFor="wingup-caption">Caption</label>
-            <textarea
-              id="wingup-caption"
-              className="ag-field ag-body"
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="Your caption…"
-            />
-
-            <button className="ag-send-btn ghost" onClick={() => void runGenerate()}>Regenerate</button>
-
-            {/* Target platforms: chips for the user's connected social accounts. */}
-            <div className="wingup-targets">
-              <span className="wingup-lbl">Post to</span>
-              {socials.length === 0 ? (
-                <p className="wingup-note">Connect a social account in Connectors to post.</p>
-              ) : (
-                <div className="wingup-chips">
-                  {socials.map((c) => (
-                    <button
-                      key={c.id}
-                      className={`wingup-chip${selected.has(c.id) ? ' on' : ''}`}
-                      aria-pressed={selected.has(c.id)}
-                      onClick={() => togglePlatform(c.id)}
-                    >
-                      <img className="wingup-chip-logo" src={c.logo} alt="" aria-hidden />
-                      {c.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <button className="ag-send-btn" disabled={!selected.size} onClick={() => void runPublish()}>Post now</button>
-          </div>
-        </div>
-      ) : (
-        // ---- Compose: prompt + optional tone + Generate ----
-        <div className="ag-stage">
-          <div className="ag-compose">
-            <label className="wingup-lbl" htmlFor="wingup-prompt">What should we post about?</label>
-            <textarea
-              id="wingup-prompt"
-              className="ag-field ag-body"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="e.g. We just launched our summer collection — bright, breezy, limited run."
-            />
-
-            <label className="wingup-lbl" htmlFor="wingup-tone">Tone / brand voice <span className="wingup-opt">(optional)</span></label>
-            <input
-              id="wingup-tone"
-              className="ag-field"
-              value={tone}
-              onChange={(e) => setTone(e.target.value)}
-              placeholder="e.g. playful, confident, a little cheeky"
-            />
-
-            <button className="ag-send-btn" disabled={!prompt.trim()} onClick={() => void runGenerate()}>✨ Generate</button>
-            <p className="ag-foot">Wingup drafts the copy and a matching image, then posts to your connected social accounts.</p>
-          </div>
-        </div>
-      )}
+      {/* Persistent bottom nav — switches the main content by section. */}
+      <nav className="wingup-nav" aria-label="Wingup sections">
+        {NAV.map((n) => (
+          <button
+            key={n.id}
+            className={`wingup-nav-item${section === n.id ? ' on' : ''}`}
+            aria-current={section === n.id ? 'page' : undefined}
+            onClick={() => { void tap(); setSection(n.id); }}
+          >
+            <span className="wingup-nav-ic"><n.Icon size={22} /></span>
+            <span className="wingup-nav-lbl">{n.label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
