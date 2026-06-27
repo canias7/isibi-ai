@@ -61,6 +61,18 @@ function bareAddr(s: string): string {
   const m = s.match(/<([^>]+)>/);
   return (m ? m[1] : s).trim().toLowerCase();
 }
+// Strip CR/LF and other control chars from a header value so a crafted From/To/
+// Subject/Reply-To can't inject extra headers (header injection / a hidden Bcc).
+// Bodies are base64-encoded, so they can't inject. charCode-based to avoid any
+// control-char regex.
+function headerSafe(s: string): string {
+  let out = "";
+  for (const ch of String(s ?? "")) {
+    const c = ch.codePointAt(0) ?? 0;
+    out += c < 32 || c === 127 ? " " : ch;
+  }
+  return out.trim();
+}
 function rfc5322Date(d: Date): string {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -71,17 +83,24 @@ function rfc5322Date(d: Date): string {
 interface SendBody { from?: string; to?: string; subject?: string; html?: string; text?: string; reply_to?: string }
 
 function buildMime(b: Required<Pick<SendBody, "from" | "to" | "subject">> & SendBody): { raw: string; id: string; envFrom: string } {
-  const fromDomain = bareAddr(b.from).split("@")[1];
+  // Sanitize every header value first so a crafted From/To/Subject/Reply-To can't
+  // inject extra headers.
+  const from = headerSafe(b.from);
+  const to = headerSafe(b.to);
+  const subject = headerSafe(b.subject);
+  const replyTo = b.reply_to ? headerSafe(b.reply_to) : "";
+  const envFrom = bareAddr(from);
+  const fromDomain = envFrom.split("@")[1] || "localhost";
   const id = `<${crypto.randomUUID()}@${fromDomain}>`;
   const headers = [
-    `From: ${encAddress(b.from)}`,
-    `To: ${encAddress(b.to)}`,
-    `Subject: ${encHeader(b.subject)}`,
+    `From: ${encAddress(from)}`,
+    `To: ${encAddress(to)}`,
+    `Subject: ${encHeader(subject)}`,
     `Date: ${rfc5322Date(new Date())}`,
     `Message-ID: ${id}`,
     `MIME-Version: 1.0`,
   ];
-  if (b.reply_to) headers.push(`Reply-To: ${encAddress(b.reply_to)}`);
+  if (replyTo) headers.push(`Reply-To: ${encAddress(replyTo)}`);
 
   let mimeBody: string;
   if (b.html && b.text) {
@@ -108,7 +127,7 @@ function buildMime(b: Required<Pick<SendBody, "from" | "to" | "subject">> & Send
     mimeBody = `${b64utf8((b.html ?? b.text) as string)}\r\n`;
   }
   // Header block, one blank line, then the body (required by RFC 5322 / 2046).
-  return { raw: `${headers.join("\r\n")}\r\n\r\n${mimeBody}`, id, envFrom: bareAddr(b.from) };
+  return { raw: `${headers.join("\r\n")}\r\n\r\n${mimeBody}`, id, envFrom };
 }
 
 async function inject(raw: string, envFrom: string): Promise<{ ok: boolean; err?: string }> {
