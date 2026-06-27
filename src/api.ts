@@ -209,7 +209,7 @@ export async function listCampaigns(): Promise<Campaign[]> {
   const c = (data as { campaigns?: Campaign[] } | null)?.campaigns;
   return Array.isArray(c) ? c : [];
 }
-export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[]; send_via?: 'mailbox' | 'resend'; from_email?: string; from_name?: string; scheduled_at?: string }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string }> {
+export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[]; send_via?: 'mailbox'; from_email?: string; from_name?: string; scheduled_at?: string }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string }> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'create', ...p } });
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string };
@@ -224,7 +224,7 @@ export async function sendCampaignBatch(id: string): Promise<{ sent: number; fai
   return (data || {}) as { sent: number; failed: number; remaining: number; done: boolean; error?: string };
 }
 // Per-campaign engagement: unique opens/clicks (our pixel + link tracker) plus
-// delivered/bounced/complained (SES events). Rates are derived in the UI.
+// delivered/bounced/complained. Rates are derived in the UI.
 export interface CampaignStats { total: number; sent: number; failed: number; delivered: number; opened: number; clicked: number; bounced: number; complained: number }
 export async function campaignStats(id: string): Promise<{ campaign?: Campaign; stats?: CampaignStats; error?: string }> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'stats', id } });
@@ -262,39 +262,6 @@ export async function getDeliverability(): Promise<{ reputation: Reputation }> {
   if (error) return { reputation: empty };
   const d = (data || {}) as { reputation?: Reputation };
   return { reputation: d.reputation || empty };
-}
-
-// ---- Custom sending domains (Resend, via the `resend` fn) ----
-// Add a domain you own, drop the DNS records Resend returns into your DNS host,
-// then Verify. Once verified, campaigns can send From news@yourdomain.com
-// (send_via: 'resend' + from_email) instead of through a connected mailbox.
-export interface DnsRecord { record?: string; type: string; name: string; value: string; ttl?: string; status?: string; priority?: number }
-export interface SendingDomain { domain: string; status: string; records: DnsRecord[]; verified_at?: string | null }
-export async function listDomains(): Promise<SendingDomain[]> {
-  const { data, error } = await supabase.functions.invoke('resend', { body: { action: 'domains' } });
-  if (error) return [];
-  const d = (data as { domains?: SendingDomain[] } | null)?.domains;
-  return Array.isArray(d) ? d : [];
-}
-export async function addDomain(domain: string): Promise<{ domain?: string; status?: string; records?: DnsRecord[]; error?: string }> {
-  const { data, error } = await supabase.functions.invoke('resend', { body: { action: 'domain_add', domain } });
-  if (error) throw new Error(error.message || 'Request failed');
-  return (data || {}) as { domain?: string; status?: string; records?: DnsRecord[]; error?: string };
-}
-export async function verifyDomain(domain: string): Promise<{ domain?: string; status?: string; records?: DnsRecord[]; error?: string }> {
-  const { data, error } = await supabase.functions.invoke('resend', { body: { action: 'domain_verify', domain } });
-  if (error) throw new Error(error.message || 'Request failed');
-  return (data || {}) as { domain?: string; status?: string; records?: DnsRecord[]; error?: string };
-}
-export async function removeDomain(domain: string): Promise<void> {
-  await supabase.functions.invoke('resend', { body: { action: 'domain_remove', domain } });
-}
-// One-click for Cloudflare: the user pastes a scoped API token; the server uses it once
-// (never stored) to write the DKIM/SPF/DMARC records into the domain's Cloudflare zone.
-export async function cloudflareApply(domain: string, token: string): Promise<{ ok?: boolean; created?: number; skipped?: number; failed?: number; error?: string }> {
-  const { data, error } = await supabase.functions.invoke('resend', { body: { action: 'cf_apply', domain, token } });
-  if (error) throw new Error(error.message || 'Request failed');
-  return (data || {}) as { ok?: boolean; created?: number; skipped?: number; failed?: number; error?: string };
 }
 
 // ---- Outbound webhooks (via the `webhooks` fn) ----

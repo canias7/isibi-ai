@@ -2,9 +2,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 // Sendra outbound webhooks — management API. Users register an HTTPS endpoint and
 // Sendra POSTs signed email events (delivered, bounced, complained, ...) to it in
-// real time. The actual event delivery happens in the `resend-events` function (which
-// receives Resend webhook events and forwards them to here-registered endpoints); this
-// function only manages the endpoints (list/add/remove/toggle/rotate/test).
+// real time. Event ingestion from the self-hosted mail server fans out to these
+// endpoints; this function only manages the endpoints (list/add/remove/toggle/rotate/test).
 //
 // Identity is server-verified (Supabase token); rows are service-role only and every
 // query is scoped by the verified uid. App-level failures return HTTP 200 { error }.

@@ -238,7 +238,6 @@ export const CONNECTORS: Connector[] = [
   { id: 'recallai', name: "Recall.ai", logo: cl('recallai'), color: '#6B7280', desc: "Ai Meeting Assistants", auth: 'apikey' },
   { id: 'dadata_ru', name: "DaData.ru", logo: cl('dadata_ru'), color: '#6B7280', desc: "Developer tools", auth: 'apikey' },
   { id: 'doppler', name: "Doppler", logo: cl('doppler'), color: '#6B7280', desc: "Developer tools", auth: 'apikey' },
-  { id: 'resend', name: "Resend", logo: si('resend'), color: '#000000', desc: "Email", auth: 'apikey' },
   { id: 'raisely', name: "Raisely", logo: cl('raisely'), color: '#6B7280', desc: "Fundraising", auth: 'apikey' },
   { id: 'bugsnag', name: "Bugsnag", logo: cl('bugsnag'), color: '#6B7280', desc: "Developer tools", auth: 'apikey' },
   { id: 'deployhq', name: "DeployHQ", logo: cl('deployhq'), color: '#6B7280', desc: "Developer tools", auth: 'apikey' },

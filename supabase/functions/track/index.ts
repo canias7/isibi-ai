@@ -4,7 +4,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // pixel (opens) and rewrites links through here (clicks); both carry a short HMAC
 // token bound to campaign+recipient so stats can't be trivially forged. No JWT —
 // mail clients load these unauthenticated — so we gate logging on the token and only
-// ever bump counters. Works for mailbox AND SES sends (it's our own pixel/links).
+// ever bump counters. Works for mailbox AND self-hosted domain sends (our own pixel/links).
 //
 //   GET ?e=open&c=<campaign>&r=<recipient>&k=<token>            -> 1×1 GIF
 //   GET ?e=click&c=<campaign>&r=<recipient>&k=<token>&u=<url>   -> 302 to <url>

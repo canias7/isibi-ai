@@ -146,10 +146,9 @@ Then in the app:
 
 ## 7. After it's live
 
-- **Domain Connect (step 3):** now you can ship a *new* template under gofarther.dev with
-  the per-customer DKIM as a variable + the `_spf.gofarther.dev` include — the records it
-  applies finally point at real infra. (The old `domain-connect/gofarther.dev.email.json`
-  is the SES-era one; the self-hosted model needs a new one.)
+- **Domain Connect (step 3):** flip `DOMAIN_CONNECT.live = true` in `src/domainConnect.ts`
+  once `domain-connect/gofarther.dev.sender.json` is merged upstream — the records it applies
+  (DKIM + the `_spf.gofarther.dev` include + DMARC) now point at real, live infra.
 - **Bounces/complaints → suppression:** add a small parser that reads Postfix's bounce log
   (Ubuntu 24.04 logs to journald: `journalctl -t postfix/bounce`) and POSTs failures into
   `email_suppressions`. `send` already refuses suppressed recipients.
