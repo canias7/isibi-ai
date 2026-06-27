@@ -393,6 +393,18 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-dom-testmsg { margin-top: 8px; font-size: var(--fs-footnote); color: var(--text-dim); text-align: left; }
 .ag-dom-testmsg.ok { color: #34d399; }
 
+/* DNS records to publish (DKIM / SPF / DMARC), each line tap-to-copy */
+.ag-dom-recs { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.ag-dom-rec { border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; overflow: hidden; background: rgba(255, 255, 255, 0.03); }
+.ag-dom-rec-head { display: flex; align-items: center; justify-content: space-between; padding: 7px 11px; background: rgba(255, 255, 255, 0.04); }
+.ag-dom-rec-purpose { font-weight: 700; font-size: var(--fs-caption); color: #fff; letter-spacing: 0.02em; }
+.ag-dom-rec-type { font-size: var(--fs-caption); color: var(--text-faint); }
+.ag-dom-rec-line { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 11px; background: none; border: none; border-top: 1px solid rgba(255, 255, 255, 0.05); font: inherit; text-align: left; cursor: pointer; }
+.ag-dom-rec-k { flex-shrink: 0; width: 42px; color: var(--text-faint); font-size: var(--fs-caption); }
+.ag-dom-rec-line code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #cfd4dc; font-size: var(--fs-caption); }
+.ag-dom-rec-copy { flex-shrink: 0; display: inline-flex; align-items: center; color: var(--accent, #6aa9ff); font-size: var(--fs-caption); font-weight: 600; }
+.ag-dom-checks { text-align: left; margin: 8px 0 0; }
+
 /* Suppressed contacts */
 .ag-sup-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .ag-sup { display: flex; align-items: center; gap: 10px; padding: 11px 13px; background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; }
