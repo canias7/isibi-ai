@@ -275,7 +275,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-reply-mxstatus { font-size: var(--fs-footnote); color: #fbbf24; }
 .ag-reply-mxstatus.ok { color: #34d399; }
 
-/* Campaign "From" picker (mailbox vs verified SES domain) */
+/* Campaign "From" picker (mailbox vs verified self-hosted domain) */
 .ag-from { display: flex; align-items: center; gap: 10px; }
 .ag-from-lbl { color: var(--text-dim); font-size: var(--fs-footnote); font-weight: 600; flex-shrink: 0; }
 .ag-from-sel { flex: 1; -webkit-appearance: none; appearance: none; }
@@ -332,7 +332,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-from-addr .ag-field { flex: 1; }
 .ag-from-at { color: var(--text-dim); font-size: var(--fs-footnote); white-space: nowrap; }
 
-/* Sending domains (SES) manager */
+/* Sending domains manager */
 .ag-dom-link { margin-top: 8px; }
 .ag-dom-head { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
 .ag-back-link { background: none; border: none; color: var(--brand); font: inherit; font-size: var(--fs-footnote); font-weight: 700; cursor: pointer; padding: 0; }
