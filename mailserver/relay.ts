@@ -105,9 +105,10 @@ function buildMime(b: Required<Pick<SendBody, "from" | "to" | "subject">> & Send
     const isHtml = !!b.html;
     headers.push(`Content-Type: text/${isHtml ? "html" : "plain"}; charset=UTF-8`);
     headers.push(`Content-Transfer-Encoding: base64`);
-    mimeBody = `\r\n${b64utf8((b.html ?? b.text) as string)}\r\n`;
+    mimeBody = `${b64utf8((b.html ?? b.text) as string)}\r\n`;
   }
-  return { raw: `${headers.join("\r\n")}\r\n${mimeBody}`, id, envFrom: bareAddr(b.from) };
+  // Header block, one blank line, then the body (required by RFC 5322 / 2046).
+  return { raw: `${headers.join("\r\n")}\r\n\r\n${mimeBody}`, id, envFrom: bareAddr(b.from) };
 }
 
 async function inject(raw: string, envFrom: string): Promise<{ ok: boolean; err?: string }> {
