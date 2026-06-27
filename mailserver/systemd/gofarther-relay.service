@@ -1,0 +1,19 @@
+[Unit]
+Description=Go Farther mail relay (HTTP -> Postfix via sendmail)
+After=network.target postfix.service
+Wants=postfix.service
+
+[Service]
+Type=simple
+User=gofarther
+EnvironmentFile=/etc/gofarther/mailer.env
+ExecStart=/usr/local/bin/deno run --allow-net --allow-env --allow-run=/usr/sbin/sendmail /opt/gofarther/relay.ts
+Restart=always
+RestartSec=3
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
