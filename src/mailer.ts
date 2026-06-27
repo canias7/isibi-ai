@@ -60,7 +60,9 @@ export async function mailerRemoveDomain(domain: string): Promise<void> {
   await invoke({ action: 'domain_remove', domain });
 }
 
-// Send from a verified domain. (Returns the message id once the mail server is wired.)
-export async function mailerSend(p: { from_domain: string; to: string; subject: string; html?: string; text?: string }): Promise<{ id?: string | null }> {
+// Send from a verified domain. `from` can be a full address ("Acme <hi@acme.com>"),
+// a bare address ("hi@acme.com"), or just the domain ("acme.com" → no-reply@acme.com).
+// The domain must be one the user has added and verified. Returns the message id.
+export async function mailerSend(p: { from: string; to: string; subject: string; html?: string; text?: string; reply_to?: string }): Promise<{ id?: string | null }> {
   return invoke({ action: 'send', ...p });
 }

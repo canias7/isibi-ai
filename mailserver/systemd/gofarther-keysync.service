@@ -1,0 +1,10 @@
+[Unit]
+Description=Go Farther DKIM key sync (pull verified domains -> OpenDKIM)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+EnvironmentFile=/etc/gofarther/mailer.env
+ExecStart=/usr/local/bin/deno run --allow-net --allow-env --allow-read --allow-write --allow-run=chown,chmod,systemctl /opt/gofarther/keysync.ts

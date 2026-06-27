@@ -1,0 +1,8 @@
+# Caddy fronts the relay with automatic HTTPS (Let's Encrypt) so the RELAY_TOKEN
+# only ever travels encrypted. Requires: relay.gofarther.dev A -> this box, and
+# ports 80 + 443 open. Caddy renews the cert on its own.
+#
+# Installed to /etc/caddy/Caddyfile by install.sh (it substitutes the real host).
+relay.gofarther.dev {
+	reverse_proxy 127.0.0.1:8025
+}
