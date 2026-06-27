@@ -25,6 +25,7 @@ id -u gofarther >/dev/null 2>&1 || useradd --system --no-create-home --shell /us
 install -d -m 755 /opt/gofarther
 install -m 755 "$DIR/relay.ts" /opt/gofarther/relay.ts
 install -m 755 "$DIR/keysync.ts" /opt/gofarther/keysync.ts
+install -m 755 "$DIR/bounce-watch.ts" /opt/gofarther/bounce-watch.ts
 install -d -m 750 /etc/gofarther
 
 echo "==> 3/8 env file"
@@ -79,11 +80,13 @@ echo "==> 7/8 systemd units"
 install -m 644 "$DIR/systemd/gofarther-relay.service"   /etc/systemd/system/
 install -m 644 "$DIR/systemd/gofarther-keysync.service" /etc/systemd/system/
 install -m 644 "$DIR/systemd/gofarther-keysync.timer"   /etc/systemd/system/
+install -m 644 "$DIR/systemd/gofarther-bounce-watch.service" /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now opendkim postfix
 systemctl restart opendkim
 systemctl enable --now gofarther-relay.service
 systemctl enable --now gofarther-keysync.timer
+systemctl enable --now gofarther-bounce-watch.service
 
 echo "==> 8/8 first key sync"
 systemctl start gofarther-keysync.service || true

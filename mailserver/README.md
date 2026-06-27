@@ -8,7 +8,8 @@ this owns **signing + delivery**.
 |---|---|
 | `relay.ts` | HTTPS JSON API (`POST /send`) the edge function calls; builds MIME → Postfix → OpenDKIM signs. Auth: `RELAY_TOKEN`. |
 | `keysync.ts` | Timer job: pulls verified domains' DKIM keys from `mailer` `keysync_export` → writes OpenDKIM tables → reloads. |
-| `systemd/` | `gofarther-relay.service`, `gofarther-keysync.service` + `.timer`. |
+| `bounce-watch.ts` | Tails the Postfix journal and POSTs bounces to the `mail-events` function → suppressions. |
+| `systemd/` | `gofarther-relay.service`, `gofarther-keysync.service` + `.timer`, `gofarther-bounce-watch.service`. |
 | `Caddyfile` | Auto-TLS reverse proxy for `relay.gofarther.dev` → the relay on localhost. |
 | `mailer.env.example` | Config for both services (copy to `/etc/gofarther/mailer.env`). |
 | `install.sh` | Idempotent installer (Deno, user, services, OpenDKIM tables, Postfix milter, Caddy). |
