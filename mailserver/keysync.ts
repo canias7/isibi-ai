@@ -59,7 +59,7 @@ async function main() {
   let changed = false;
 
   for (const k of keys) {
-    if (!/^[a-z0-9.-]+$/i.test(k.domain) || !/^[a-z0-9_]+$/i.test(k.selector)) {
+    if (!/^[a-z0-9.-]+$/i.test(k.domain) || k.domain.includes("..") || !/^[a-z0-9_]+$/i.test(k.selector)) {
       console.error("skipping malformed row:", k.domain, k.selector);
       continue;
     }
