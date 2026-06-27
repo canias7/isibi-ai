@@ -1,4 +1,21 @@
-# Domain Connect template (one-click domain setup)
+# Domain Connect templates (one-click domain setup)
+
+There are **two** templates here:
+
+- **`gofarther.dev.sender.json`** — the current **self-hosted sender** (the `mailer`
+  function + `mailserver/`). Records: one **DKIM** TXT (`s1._domainkey`, key passed in as
+  `%dkimp%`), an **SPF include** of `_spf.gofarther.dev` (via `SPFM` so it merges with any
+  existing SPF), and a **DMARC** policy. This is what the in-app "Auto-configure (one-click)"
+  uses. It stays gated (`DOMAIN_CONNECT.live = false` in `src/domainConnect.ts`) until it's
+  merged upstream **and** the production box is live — see `mailserver/PRODUCTION-SETUP.md`.
+- **`gofarther.dev.email.json`** — the **older SES** template (3 Easy-DKIM CNAMEs). Kept for
+  reference; superseded by the self-hosted one above.
+
+Both are filed the same way (Online Editor test link → PR to Domain-Connect/Templates → providers
+sync on their own schedule). The filing notes below were written for the SES template but apply
+to the self-hosted one too (swap the filename + variables).
+
+---
 
 `gofarther.dev.email.json` is our [Domain Connect](https://www.domainconnect.org/)
 template. It's what makes the **"Auto configure"** one-click work: when a user's domain

@@ -7,8 +7,10 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type SavedContact, type Suppression, type Template, type ChatMsg, listDomains, addDomain as addDomainApi, verifyDomain, removeDomain as removeDomainApi, cloudflareApply, type SendingDomain } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
+import { mailerListDomains, mailerAddDomain, mailerDomainRecords, mailerVerifyDomain, mailerRemoveDomain, mailerSend, type SendingDomain, type DnsRecord } from './mailer';
+import { discoverDomainConnect, type DcSupport } from './domainConnect';
 
 // Sendra is the comms agent (Gmail, Outlook & Telegram in one place). The app's
 // home screen picks the agent, so this screen opens straight into Sendra's workspace.
@@ -229,17 +231,21 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campDomain, setCampDomain] = useState('__resend__'); // '__resend__' = built-in; '' = mailbox; else a verified domain
   const [campFromName, setCampFromName] = useState(''); // display name when sending built-in or from a domain
   const [campFromLocal, setCampFromLocal] = useState('news'); // local-part of the From address when sending from a domain
-  // Custom sending domains (Resend) — the Domains tab + the composer's verified-domain options
+  // Custom sending domains (self-hosted, via the `mailer` fn) — the Domains tab +
+  // the composer's verified-domain options. Resend remains only as the built-in default.
   const [domains, setDomains] = useState<SendingDomain[]>([]);
   const [domNew, setDomNew] = useState('');     // the "add a domain" input
   const [domBusy, setDomBusy] = useState(false); // add in flight
   const [domErr, setDomErr] = useState('');      // add error message
-  const [domOpen, setDomOpen] = useState<string | null>(null); // which domain's DNS records are expanded
+  const [domOpen, setDomOpen] = useState<string | null>(null); // which domain's records are expanded
   const [domVerifying, setDomVerifying] = useState('');  // domain currently being re-verified
-  const [cfOpen, setCfOpen] = useState('');       // domain whose Cloudflare token panel is open ('' = none)
-  const [cfToken, setCfToken] = useState('');     // pasted Cloudflare API token (used once, never stored)
-  const [cfBusy, setCfBusy] = useState(false);    // Cloudflare apply in flight
-  const [cfMsg, setCfMsg] = useState<Record<string, string>>({}); // per-domain Cloudflare result
+  const [domRecords, setDomRecords] = useState<Record<string, DnsRecord[]>>({}); // per-domain DNS records
+  const [domChecks, setDomChecks] = useState<Record<string, { dkim: boolean; spf: boolean }>>({}); // last verify detail
+  const [dcInfo, setDcInfo] = useState<Record<string, DcSupport>>({}); // Domain Connect discovery per domain
+  const [dcBusy, setDcBusy] = useState('');     // domain whose auto-configure is running
+  const [testTo, setTestTo] = useState<Record<string, string>>({});   // per-domain test recipient
+  const [testBusy, setTestBusy] = useState('');  // domain whose test send is in flight
+  const [testMsg, setTestMsg] = useState<Record<string, string>>({}); // per-domain test result
   const domPollRef = useRef(0); // background re-verify ticks while a domain is pending (capped)
   // Templates (reusable, AI-writable, or bring-your-own)
   const [tplList, setTplList] = useState<Template[]>([]);
@@ -440,18 +446,18 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (sendraTab === 'logs') { setLogsBusy(true); listLogs('').then((l) => { if (mountedRef.current) { setLogsList(l); setLogsBusy(false); } }).catch(() => { if (mountedRef.current) setLogsBusy(false); }); }
     if (sendraTab === 'deliver') { setDelivBusy(true); getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); }); }
     // Verified domains feed the composer's "Send from" picker; the Domains tab needs the full list.
-    if (sendraTab === 'campaigns' || sendraTab === 'domains') listDomains().then((d) => { if (mountedRef.current) setDomains(d); });
+    if (sendraTab === 'campaigns' || sendraTab === 'domains') mailerListDomains().then((d) => { if (mountedRef.current) setDomains(d); });
   }, [agent, commsApp, sendraTab, campNew]);
 
   // While the Domains tab is open and a domain is still pending, re-check DNS in the
   // background every 20s (capped) so a freshly-added domain flips to verified on its own.
   useEffect(() => {
     if (agent !== 'email' || commsApp !== null || sendraTab !== 'domains') { domPollRef.current = 0; return; }
-    const pending = domains.some((d) => d.status !== 'verified' && d.status !== 'failed');
+    const pending = domains.some((d) => !d.verified);
     if (!pending || domPollRef.current > 15) return;
     const id = setTimeout(async () => {
       domPollRef.current += 1;
-      const fresh = await listDomains().catch(() => null);
+      const fresh = await mailerListDomains().catch(() => null);
       if (mountedRef.current && fresh) setDomains(fresh);
     }, 20000);
     return () => clearTimeout(id);
@@ -702,17 +708,17 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     }
     tap(); setCampState('sending'); setCampErr(''); setCampProg({ sent: 0, total: recipients.length, failed: 0 });
     try {
-      // Three send paths:
-      //  __resend__              -> Sendra's built-in central sender (send_via resend, no from_email)
-      //  a verified custom domain -> send_via resend + from_email local@domain (your address)
+      // Send paths:
+      //  __resend__              -> Sendra's built-in central sender (send_via resend)
       //  ''                       -> the connected mailbox (no send_via)
+      //  a self-hosted domain     -> NOT yet — campaigns go through your own mail server
+      //                              only once it's connected (guarded below; Send is disabled).
       const useResend = campDomain === '__resend__';
-      const useDomain = !useResend && !!campDomain && domains.some((d) => d.domain === campDomain && d.status === 'verified');
+      const isCustomDomain = !useResend && !!campDomain;
+      if (isCustomDomain) { setCampState('err'); setCampErr('Sending campaigns from your own domain turns on once your mail server is connected.'); return; }
       const sendCfg = useResend
         ? { send_via: 'resend' as const, from_name: campFromName.trim() || undefined }
-        : useDomain
-          ? { send_via: 'resend' as const, from_email: `${(campFromLocal.trim() || 'news')}@${campDomain}`, from_name: campFromName.trim() || undefined }
-          : {};
+        : {};
       const c = await createCampaign({
         app: campApp,
         subject: campSubject.trim(),
@@ -752,64 +758,84 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // Copy a value to the clipboard with a brief "Copied" flash (webhook secret + DNS records).
   const copyText = (s: string) => { try { navigator.clipboard?.writeText(s); tap(); setCopied(s); setTimeout(() => { if (mountedRef.current) setCopied(''); }, 1500); } catch { /* ignore */ } };
 
-  // ---- Custom sending domains (Resend) ----
-  // Add the domain in Resend (it returns the DNS records to publish), then Verify
-  // re-checks DNS. Once verified it shows up under the composer's "Send from".
-  const loadDomains = () => listDomains().then((d) => { if (mountedRef.current) setDomains(d); });
+  // ---- Custom sending domains (self-hosted, via the `mailer` fn) ----
+  // Add the domain (we generate its DKIM + return the records to publish), then
+  // Verify re-checks DNS. Once verified it shows up under the composer's "Send from"
+  // and can send a test. Private keys never leave the server.
+  const loadDomains = () => mailerListDomains().then((d) => { if (mountedRef.current) setDomains(d); });
+  // Silent Domain Connect discovery — populates dcInfo so the UI can show whether
+  // the domain's DNS host supports one-click setup (doesn't open anything).
+  const runDiscovery = async (domain: string, records: DnsRecord[]) => {
+    try { const info = await discoverDomainConnect(domain, records); if (mountedRef.current) setDcInfo((m) => ({ ...m, [domain]: info })); } catch { /* ignore */ }
+  };
   const addDomain = async () => {
     const d = domNew.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     if (!d || domBusy) return;
     tap(); setDomBusy(true); setDomErr('');
     try {
-      const r = await addDomainApi(d);
+      const r = await mailerAddDomain(d);
       if (!mountedRef.current) return;
-      if (r.error) setDomErr(r.error === 'domain_taken' ? 'That domain is already in use.' : r.error === 'bad_domain' ? 'That doesn’t look like a valid domain.' : 'Couldn’t add the domain — try again.');
-      else { setDomNew(''); setDomOpen(r.domain || d); domPollRef.current = 0; await loadDomains(); }
-    } catch { if (mountedRef.current) setDomErr('Something went wrong — try again.'); }
+      setDomRecords((m) => ({ ...m, [r.domain]: r.records }));
+      setDomNew(''); setDomOpen(r.domain); domPollRef.current = 0;
+      await loadDomains();
+      runDiscovery(r.domain, r.records);
+    } catch (e) { if (mountedRef.current) setDomErr(e instanceof Error ? e.message : 'Couldn’t add the domain — try again.'); }
     finally { if (mountedRef.current) setDomBusy(false); }
+  };
+  // Lazy-load a domain's records (and discover Domain Connect) when its row expands.
+  const openDom = async (domain: string) => {
+    tap();
+    const next = domOpen === domain ? null : domain;
+    setDomOpen(next);
+    if (!next) return;
+    if (domRecords[domain]) { if (!dcInfo[domain]) runDiscovery(domain, domRecords[domain]); return; }
+    try {
+      const r = await mailerDomainRecords(domain);
+      if (!mountedRef.current) return;
+      setDomRecords((m) => ({ ...m, [domain]: r.records }));
+      runDiscovery(domain, r.records);
+    } catch { /* ignore */ }
   };
   const verifyDom = async (domain: string) => {
     tap(); setDomVerifying(domain);
     try {
-      const r = await verifyDomain(domain);
+      const r = await mailerVerifyDomain(domain);
       if (!mountedRef.current) return;
-      // Reflect the fresh status/records immediately, then reload for good measure.
-      if (r.status) setDomains((ds) => ds.map((d) => d.domain === domain ? { ...d, status: r.status!, records: r.records ?? d.records } : d));
+      setDomChecks((m) => ({ ...m, [domain]: r.checks }));
+      setDomains((ds) => ds.map((d) => d.domain === domain ? { ...d, verified: r.verified } : d));
       await loadDomains();
     } catch { /* ignore */ }
     finally { if (mountedRef.current) setDomVerifying(''); }
   };
   const removeDom = async (domain: string) => {
     tap();
-    try { await removeDomainApi(domain); if (campDomain === domain) setCampDomain('__resend__'); await loadDomains(); } catch { /* ignore */ }
+    try { await mailerRemoveDomain(domain); if (campDomain === domain) setCampDomain('__resend__'); await loadDomains(); } catch { /* ignore */ }
   };
-  // 1-click DNS: the user pastes a scoped Cloudflare API token; the server uses it once
-  // (never stored) to write the records into the domain's zone, then we re-verify.
-  const cfApply = async (domain: string) => {
-    const tok = cfToken.trim();
-    if (!tok || cfBusy) return;
-    tap(); setCfBusy(true); setCfMsg((m) => ({ ...m, [domain]: '' }));
+  // Auto-configure: discover the host and, once our template is live, open the
+  // one-click apply URL. Until then it just reports whether one-click is available.
+  const autoConfigure = async (domain: string) => {
+    const recs = domRecords[domain];
+    if (!recs || dcBusy) return;
+    tap(); setDcBusy(domain);
     try {
-      const r = await cloudflareApply(domain, tok);
+      const info = await discoverDomainConnect(domain, recs);
       if (!mountedRef.current) return;
-      if (r.ok) {
-        const n = (r.created || 0) + (r.skipped || 0);
-        setCfToken(''); setCfOpen('');  // token is transient — never persisted; clear it after the call
-        setCfMsg((m) => ({ ...m, [domain]: `Added ${n} record${n === 1 ? '' : 's'} ✓ — verifying…` }));
-        await verifyDom(domain);
-      } else {
-        const map: Record<string, string> = {
-          cf_auth: 'That token didn’t work — make sure it has Zone · DNS · Edit (and Zone · Read).',
-          zone_not_found: 'This domain isn’t in that Cloudflare account.',
-          missing_token: 'Paste your Cloudflare API token first.',
-          write_failed: 'Couldn’t write the records — check the token’s permissions.',
-          bad_domain: 'That doesn’t look like a valid domain.',
-          not_found: 'Add the domain first, then try again.',
-        };
-        setCfMsg((m) => ({ ...m, [domain]: map[r.error || ''] || 'Couldn’t apply — add the records below instead.' }));
-      }
-    } catch { if (mountedRef.current) setCfMsg((m) => ({ ...m, [domain]: 'Something went wrong — try again.' })); }
-    finally { if (mountedRef.current) setCfBusy(false); }
+      setDcInfo((m) => ({ ...m, [domain]: info }));
+      if (info.applyUrl) window.open(info.applyUrl, '_blank', 'noopener');
+    } catch { /* ignore */ }
+    finally { if (mountedRef.current) setDcBusy(''); }
+  };
+  // Send a quick test from a verified domain to confirm delivery end-to-end.
+  const sendTest = async (domain: string) => {
+    const to = (testTo[domain] || '').trim();
+    if (!to || testBusy) return;
+    tap(); setTestBusy(domain); setTestMsg((m) => ({ ...m, [domain]: '' }));
+    try {
+      const r = await mailerSend({ from: `no-reply@${domain}`, to, subject: `Test from ${domain}`, text: `This is a test email sent from ${domain} via Go Farther.`, html: `<p>This is a test email sent from <b>${domain}</b> via Go Farther.</p>` });
+      if (!mountedRef.current) return;
+      setTestMsg((m) => ({ ...m, [domain]: r.id ? `Sent ✓ (id ${r.id})` : 'Sent ✓' }));
+    } catch (e) { if (mountedRef.current) setTestMsg((m) => ({ ...m, [domain]: e instanceof Error ? e.message : 'Couldn’t send — try again.' })); }
+    finally { if (mountedRef.current) setTestBusy(''); }
   };
 
   const loadSuppressions = () => listSuppressions().then((s) => { if (mountedRef.current) setSupList(s); });
@@ -1172,7 +1198,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       <select className="ag-field ag-from-sel" value={campDomain} onChange={(e) => { tap(); setCampDomain(e.target.value); if (campState === 'err') setCampState('idle'); }}>
                         <option value="__resend__">Sendra (built-in)</option>
                         <option value="">My mailbox</option>
-                        {domains.filter((d) => d.status === 'verified').map((d) => (
+                        {domains.filter((d) => d.verified).map((d) => (
                           <option key={d.domain} value={d.domain}>{d.domain}</option>
                         ))}
                       </select>
@@ -1195,6 +1221,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                           <input className="ag-field" placeholder="news" autoCapitalize="none" autoCorrect="off" value={campFromLocal} onChange={(e) => setCampFromLocal(e.target.value.replace(/[^a-zA-Z0-9._-]/g, ''))} />
                           <span className="ag-from-at">@{campDomain}</span>
                         </div>
+                        <p className="ag-foot ag-dom-hint">⚡ Sending campaigns from your own domain turns on once your mail server is connected. Manage it under Domains.</p>
                       </div>
                     )}
                     <input className="ag-field" placeholder="Subject" value={campSubject}
@@ -1218,11 +1245,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       <input className="ag-field" type="datetime-local" value={campSchedAt} onChange={(e) => { setCampSchedAt(e.target.value); if (campState === 'err') setCampState('idle'); }} />
                     )}
                     {campState === 'err' && <div className="ag-send-err">{campErr}</div>}
-                    <button className="ag-send-btn" disabled={campState === 'sending' || !campSubject.trim() || !campBody.trim() || !campRecips.trim() || (campWhen === 'later' && !campSchedAt)} onClick={runCampaign}>
+                    <button className="ag-send-btn" disabled={campState === 'sending' || !campSubject.trim() || !campBody.trim() || !campRecips.trim() || (campWhen === 'later' && !campSchedAt) || (!!campDomain && campDomain !== '__resend__')} onClick={runCampaign}>
                       {campState === 'sending' ? (campWhen === 'later' ? 'Scheduling…' : `Sending… ${campProg.sent}/${campProg.total}`) : campWhen === 'later' ? 'Schedule campaign' : 'Send campaign'}
                     </button>
                     <button className="ag-send-btn ghost" disabled={campState === 'sending'} onClick={() => { tap(); setCampNew(false); }}>Cancel</button>
-                    <p className="ag-foot">{campDomain === '__resend__' ? 'Sends through Sendra’s built-in email — no setup needed' : campDomain ? `Sends from ${(campFromLocal.trim() || 'news')}@${campDomain} (your verified domain)` : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
+                    <p className="ag-foot">{campDomain === '__resend__' ? 'Sends through Sendra’s built-in email — no setup needed' : campDomain ? `Sending from ${(campFromLocal.trim() || 'news')}@${campDomain} turns on once your mail server is connected` : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
                   </div>
                 )
               ) : campView === 'suppressions' ? (
@@ -1486,55 +1513,71 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               )
             ) : sendraTab === 'domains' ? (
               <div className="ag-compose">
-                <p className="ag-foot">Add a domain you own to send from your own address (e.g. news@yourbrand.com). If it’s on Cloudflare we set it up in one click; otherwise the built-in sender works with zero setup.</p>
+                <p className="ag-foot">Add a domain you own to send from your own address (e.g. news@yourbrand.com). Set it up in one click where your DNS host supports it, or paste the records anywhere else, then Verify.</p>
                 <div className="ag-dom-add">
                   <input className="ag-field" placeholder="yourbrand.com" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={domNew} onChange={(e) => { setDomNew(e.target.value); if (domErr) setDomErr(''); }} onKeyDown={(e) => { if (e.key === 'Enter') addDomain(); }} />
                   <button className="ag-send-btn" disabled={domBusy || !domNew.trim()} onClick={addDomain}>{domBusy ? 'Adding…' : 'Add domain'}</button>
                 </div>
                 {domErr && <div className="ag-send-err">{domErr}</div>}
                 {domains.length === 0 ? (
-                  <div className="ag-empty" style={{ marginTop: 12 }}>Add your own domain to send campaigns from your address (e.g. news@yourbrand.com).</div>
+                  <div className="ag-empty" style={{ marginTop: 12 }}>Add your own domain to send from your address (e.g. news@yourbrand.com).</div>
                 ) : (
                   <div className="ag-dom-list">
                     {domains.map((d) => {
                       const open = domOpen === d.domain;
-                      const verified = d.status === 'verified';
-                      const badge = verified ? 'ok' : d.status === 'failed' ? 'bad' : 'wait';
+                      const verified = d.verified;
+                      const recs = domRecords[d.domain] || [];
+                      const dc = dcInfo[d.domain];
+                      const checks = domChecks[d.domain];
                       return (
                         <div className={`ag-dom${open ? ' open' : ''}`} key={d.domain}>
-                          <button className="ag-dom-row" onClick={() => { tap(); setDomOpen(open ? null : d.domain); }}>
+                          <button className="ag-dom-row" onClick={() => openDom(d.domain)}>
                             <span className="ag-dom-ic"><IconGlobe size={18} /></span>
                             <span className="ag-dom-info">
                               <span className="ag-dom-name">{d.domain}</span>
-                              <span className="ag-dom-sub">{verified ? 'Sending enabled' : d.status === 'failed' ? 'Verification failed' : 'Awaiting DNS records'}</span>
+                              <span className="ag-dom-sub">{verified ? 'Sending enabled' : 'Awaiting DNS records'}</span>
                             </span>
-                            <span className={`ag-badge is-${badge}`}><i className="ag-dot" />{verified ? 'Verified' : d.status === 'failed' ? 'Failed' : 'Pending'}</span>
+                            <span className={`ag-badge is-${verified ? 'ok' : 'wait'}`}><i className="ag-dot" />{verified ? 'Verified' : 'Pending'}</span>
                             <span className="ag-dom-chev">{open ? '▾' : '▸'}</span>
                           </button>
                           {open && (
                             <div className="ag-dom-body">
-                              {verified
-                                ? <div className="ag-dom-ok">✓ Verified — pick this domain under “Send from” when creating a campaign.</div>
-                                : <p className="ag-foot ag-dom-hint">If your domain’s DNS is on Cloudflare, connect it in one click below — we add the records and verify for you. Not on Cloudflare? Just use Sendra’s built-in sender (zero setup) under “Send from”.</p>}
-                              {!verified && (
-                                <button className="ag-send-btn ag-dom-auto" onClick={() => { tap(); if (cfOpen === d.domain) { setCfOpen(''); setCfToken(''); } else { setCfOpen(d.domain); setCfToken(''); setCfMsg((m) => ({ ...m, [d.domain]: '' })); } }}>
-                                  ⚡ Auto-configure (Cloudflare)
-                                </button>
-                              )}
-                              {!verified && cfOpen === d.domain && (
-                                <div className="ag-cf">
-                                  <ol className="ag-cf-steps">
-                                    <li><a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noopener">Create a Cloudflare API token ↗</a> — use the “Edit zone DNS” template, pick this domain, then Create.</li>
-                                    <li>Copy the token and paste it below. We use it once to add your records and never store it.</li>
-                                  </ol>
-                                  <input className="ag-field" type="password" placeholder="Paste Cloudflare API token" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={cfToken} onChange={(e) => { setCfToken(e.target.value); if (cfMsg[d.domain]) setCfMsg((m) => ({ ...m, [d.domain]: '' })); }} />
-                                  <div className="ag-cf-actions">
-                                    <button className="ag-send-btn" disabled={cfBusy || !cfToken.trim()} onClick={() => cfApply(d.domain)}>{cfBusy ? 'Adding records…' : 'Add records via Cloudflare'}</button>
-                                    <button className="ag-send-btn ghost" onClick={() => { tap(); setCfOpen(''); setCfToken(''); }}>Cancel</button>
+                              {verified ? (
+                                <>
+                                  <div className="ag-dom-ok">✓ Verified — send from this domain, and pick it under “Send from” when sending.</div>
+                                  <div className="ag-dom-test">
+                                    <input className="ag-field" placeholder="you@example.com" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={testTo[d.domain] || ''} onChange={(e) => setTestTo((m) => ({ ...m, [d.domain]: e.target.value }))} onKeyDown={(e) => { if (e.key === 'Enter') sendTest(d.domain); }} />
+                                    <button className="ag-send-btn" disabled={testBusy === d.domain || !(testTo[d.domain] || '').trim()} onClick={() => sendTest(d.domain)}>{testBusy === d.domain ? 'Sending…' : 'Send test'}</button>
                                   </div>
-                                </div>
+                                  {testMsg[d.domain] && <div className={`ag-dom-testmsg${testMsg[d.domain].includes('✓') ? ' ok' : ''}`}>{testMsg[d.domain]}</div>}
+                                </>
+                              ) : (
+                                <>
+                                  <button className="ag-send-btn ag-dom-auto" disabled={dcBusy === d.domain || !recs.length} onClick={() => autoConfigure(d.domain)}>
+                                    {dcBusy === d.domain ? 'Checking…' : '⚡ Auto-configure (one-click)'}
+                                  </button>
+                                  {dc && (
+                                    <div className={`ag-dom-testmsg${dc.supported ? ' ok' : ''}`}>
+                                      {dc.applyUrl
+                                        ? `Opening ${dc.host} to authorize…`
+                                        : dc.supported
+                                          ? `✓ ${dc.host} supports one-click — turning on soon. For now add the records below.`
+                                          : 'Your DNS host needs manual setup — add the records below.'}
+                                    </div>
+                                  )}
+                                  <p className="ag-foot ag-dom-hint">Add these TXT records at your DNS host, then tap Verify.</p>
+                                  <div className="ag-dom-recs">
+                                    {recs.map((r) => (
+                                      <div className="ag-dom-rec" key={r.purpose}>
+                                        <div className="ag-dom-rec-head"><span className="ag-dom-rec-purpose">{r.purpose}</span><span className="ag-dom-rec-type">{r.type}</span></div>
+                                        <button className="ag-dom-rec-line" onClick={() => copyText(r.name)}><span className="ag-dom-rec-k">Name</span><code>{r.name}</code><span className="ag-dom-rec-copy">{copied === r.name ? 'Copied' : <IconCopy size={13} />}</span></button>
+                                        <button className="ag-dom-rec-line" onClick={() => copyText(r.value)}><span className="ag-dom-rec-k">Value</span><code>{r.value}</code><span className="ag-dom-rec-copy">{copied === r.value ? 'Copied' : <IconCopy size={13} />}</span></button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {checks && <p className="ag-foot ag-dom-checks">Last check — DKIM {checks.dkim ? '✓' : '✕'} · SPF {checks.spf ? '✓' : '✕'}</p>}
+                                </>
                               )}
-                              {!verified && cfMsg[d.domain] && <div className={`ag-dom-testmsg${cfMsg[d.domain].includes('✓') ? ' ok' : ''}`}>{cfMsg[d.domain]}</div>}
                               <div className="ag-dom-actions">
                                 {!verified && <button className="ag-send-btn" disabled={domVerifying === d.domain} onClick={() => verifyDom(d.domain)}>{domVerifying === d.domain ? 'Verifying…' : 'Verify'}</button>}
                                 <button className="ag-send-btn ghost" onClick={() => removeDom(d.domain)}>Remove</button>
