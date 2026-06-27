@@ -94,12 +94,15 @@ keysync-managed tables, and hooks the Postfix milter. It does **not** touch iden
 
 ## 5. Deploy the updated function + set the shared secret
 
-**First deploy the new `mailer`** (the version with `send` relay + `keysync_export`),
-with **`verify_jwt=false`** — auth is enforced inside the function, and the box's
-keysync uses the relay token, not a Supabase JWT. Deploy via the Supabase MCP
-`deploy_edge_function` (approve the prompt) or `supabase functions deploy mailer
---no-verify-jwt --project-ref lkpfeqrelvziltfwpuxi`. (Merging to `main` does **not**
-deploy it.)
+**Deploy the edge functions** (merging to `main` does **not** deploy them):
+- **`mailer`** and **`mail-events`** with **`verify_jwt=false`** — both authenticate the
+  box with the relay token, not a Supabase JWT.
+- Redeploy **`campaigns`** (it gained the `send_via:"self"` path) and delete the old
+  `resend` / `resend-events` functions.
+
+Via the Supabase MCP `deploy_edge_function` (approve the prompt) or, e.g.,
+`supabase functions deploy mailer mail-events --no-verify-jwt --project-ref lkpfeqrelvziltfwpuxi`
+plus `supabase functions deploy campaigns --project-ref lkpfeqrelvziltfwpuxi`.
 
 Then the shared secret — generate it once on the box, put the **same value** in the app.
 
@@ -149,9 +152,10 @@ Then in the app:
 - **Domain Connect (step 3):** flip `DOMAIN_CONNECT.live = true` in `src/domainConnect.ts`
   once `domain-connect/gofarther.dev.sender.json` is merged upstream — the records it applies
   (DKIM + the `_spf.gofarther.dev` include + DMARC) now point at real, live infra.
-- **Bounces/complaints → suppression:** add a small parser that reads Postfix's bounce log
-  (Ubuntu 24.04 logs to journald: `journalctl -t postfix/bounce`) and POSTs failures into
-  `email_suppressions`. `send` already refuses suppressed recipients.
+- **Bounces → suppression (built):** `bounce-watch` (installed by `install.sh`) tails the
+  Postfix journal and POSTs bounces to the `mail-events` function, which suppresses the
+  address for that user. `send` already refuses suppressed recipients. Just deploy
+  `mail-events` (step 5). Complaints need a feedback-loop mailbox (future).
 - **Warm-up:** ramp volume gradually on a new IP; keep DMARC at `p=none` for customers until
   you're confident, then move to quarantine/reject.
 

@@ -1,0 +1,15 @@
+[Unit]
+Description=Go Farther bounce watcher (Postfix journal -> suppressions)
+After=network-online.target postfix.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+EnvironmentFile=/etc/gofarther/mailer.env
+ExecStart=/usr/local/bin/deno run --allow-run=journalctl --allow-net --allow-env /opt/gofarther/bounce-watch.ts
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

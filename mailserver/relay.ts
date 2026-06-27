@@ -80,7 +80,7 @@ function rfc5322Date(d: Date): string {
   return `${days[d.getUTCDay()]}, ${p(d.getUTCDate())} ${mon[d.getUTCMonth()]} ${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} +0000`;
 }
 
-interface SendBody { from?: string; to?: string; subject?: string; html?: string; text?: string; reply_to?: string }
+interface SendBody { from?: string; to?: string; subject?: string; html?: string; text?: string; reply_to?: string; list_unsubscribe?: string }
 
 function buildMime(b: Required<Pick<SendBody, "from" | "to" | "subject">> & SendBody): { raw: string; id: string; envFrom: string } {
   // Sanitize every header value first so a crafted From/To/Subject/Reply-To can't
@@ -101,6 +101,12 @@ function buildMime(b: Required<Pick<SendBody, "from" | "to" | "subject">> & Send
     `MIME-Version: 1.0`,
   ];
   if (replyTo) headers.push(`Reply-To: ${encAddress(replyTo)}`);
+  // One-click unsubscribe (campaigns) — improves deliverability + required by Gmail/Yahoo bulk rules.
+  const listUnsub = b.list_unsubscribe ? headerSafe(b.list_unsubscribe) : "";
+  if (listUnsub) {
+    headers.push(`List-Unsubscribe: <${listUnsub}>`);
+    headers.push(`List-Unsubscribe-Post: List-Unsubscribe=One-Click`);
+  }
 
   let mimeBody: string;
   if (b.html && b.text) {

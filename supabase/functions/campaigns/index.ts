@@ -19,6 +19,10 @@ const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SB_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const sbHeaders = { apikey: SB_SERVICE, authorization: `Bearer ${SB_SERVICE}`, "content-type": "application/json" };
+// Self-hosted sender relay (the box) — used when a campaign sends from the user's
+// own verified domain (send_via "self"). Same secret as the `mailer` fn.
+const RELAY_URL = (Deno.env.get("MAILER_RELAY_URL") ?? "").replace(/[/]+$/, "");
+const RELAY_TOKEN = Deno.env.get("MAILER_RELAY_TOKEN") ?? "";
 
 const ALLOWED_ORIGINS = new Set([
   "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
@@ -153,6 +157,28 @@ function htmlToText(html: string): string {
     .replace(/[ \t]{2,}/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+// Send one campaign email through the self-hosted mail server's relay (the box;
+// OpenDKIM signs by From domain). Returns the relay's Message-ID (sans brackets) so
+// the bounce ingest can map events back to this recipient.
+async function sendOneSelf(fromEmail: string | null, fromName: string | null, to: string, subject: string, html: string, unsub: string): Promise<{ ok: boolean; id?: string; error?: string }> {
+  if (!RELAY_URL || !RELAY_TOKEN) return { ok: false, error: "mail_server_unset" };
+  try {
+    const from = fromEmail ? (fromName ? `${fromName} <${fromEmail}>` : fromEmail) : "no-reply@gofarther.dev";
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 20000);
+    const res = await fetch(`${RELAY_URL}/send`, {
+      method: "POST", signal: ctrl.signal,
+      headers: { authorization: `Bearer ${RELAY_TOKEN}`, "content-type": "application/json" },
+      body: JSON.stringify({ from, to, subject, html, text: htmlToText(html), list_unsubscribe: unsub }),
+    }).finally(() => clearTimeout(t));
+    const j = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
+    if (!res.ok) return { ok: false, error: `relay_${res.status}:${j?.error ?? ""}`.slice(0, 200) };
+    return { ok: true, id: typeof j?.id === "string" ? j.id.replace(/[<>]/g, "") : undefined };
+  } catch (e) {
+    return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) };
+  }
+}
+
 // Drain one batch of a campaign's queue. Shared by the `send` action (client-driven)
 // and the scheduled `run_due` cron. Flips draft/scheduled -> sending, sends up to
 // `limit`, updates counts, and marks the campaign sent once the queue is empty.
@@ -186,13 +212,15 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
     const tok = await trackToken(id, r.id);
     const personalized = String(camp.body).replace(/\{\{\s*name\s*\}\}/g, esc(who));
     const html = `${withTracking(personalized, id, r.id, tok)}<br><br><hr style="border:none;border-top:1px solid #eee"><p style="font-size:12px;color:#888;font-family:system-ui,sans-serif">You're receiving this because you're on a list managed in Sendra. <a href="${unsub}" style="color:#888">Unsubscribe</a>.</p>${openPixel(id, r.id, tok)}`;
-    const res = await sendOne(uid, camp.app, r.email, camp.subject, html);
+    const res: { ok: boolean; id?: string; error?: string } = camp.send_via === "self"
+      ? await sendOneSelf(camp.from_email, camp.from_name, r.email, camp.subject, html, unsub)
+      : await sendOne(uid, camp.app, r.email, camp.subject, html);
     await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, {
       method: "PATCH", headers: sbHeaders,
-      body: JSON.stringify(res.ok ? { status: "sent", sent_at: new Date().toISOString() } : { status: "failed", error: res.error }),
+      body: JSON.stringify(res.ok ? { status: "sent", sent_at: new Date().toISOString(), ...(res.id ? { provider_msg_id: res.id } : {}) } : { status: "failed", error: res.error }),
     });
     if (res.ok) sent++; else failed++;
-    await sleep(700); // throttle — Gmail/Outlook like it slow
+    await sleep(camp.send_via === "self" ? 500 : 700); // throttle
   }
   const [totSent, totFailed, remaining] = await Promise.all([countBy(id, "sent"), countBy(id, "failed"), countBy(id, "queued")]);
   const done = remaining === 0;
@@ -258,10 +286,22 @@ Deno.serve(async (req: Request) => {
       const raw = Array.isArray(body?.recipients) ? body.recipients as Record<string, unknown>[] : [];
       if (!subject || !html) return json(req, { error: "missing_content" });
 
-      // Campaigns send through the user's connected mailbox.
-      const sendVia = "mailbox";
-      const fromEmail: string | null = null;
-      const fromName: string | null = null;
+      // Sending method: the user's connected mailbox (default) or their own verified
+      // self-hosted domain via the mail server relay (send_via "self").
+      const sendVia = String(body?.send_via || "mailbox").toLowerCase() === "self" ? "self" : "mailbox";
+      let fromEmail: string | null = null;
+      let fromName: string | null = null;
+      if (sendVia === "self") {
+        if (!RELAY_URL || !RELAY_TOKEN) return json(req, { error: "mail_server_unset" });
+        fromName = body?.from_name ? String(body.from_name).slice(0, 120) : null;
+        const rawFrom = String(body?.from_email || "").trim().toLowerCase();
+        if (!rawFrom || !EMAIL_RE.test(rawFrom)) return json(req, { error: "bad_from" });
+        const dom = rawFrom.split("@")[1] || "";
+        if (!/^[a-z0-9.-]+$/.test(dom)) return json(req, { error: "bad_from" });
+        const dRes = await fetch(`${SB_URL}/rest/v1/sending_domains?user_id=eq.${uid}&domain=eq.${dom}&verified=eq.true&select=domain`, { headers: sbHeaders });
+        if (!((await dRes.json().catch(() => [])) as unknown[]).length) return json(req, { error: "domain_not_verified" });
+        fromEmail = rawFrom;
+      }
 
       // Dedupe + validate, then drop anyone suppressed for this user.
       const seen = new Set<string>();

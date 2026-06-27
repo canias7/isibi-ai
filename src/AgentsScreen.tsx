@@ -708,10 +708,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     }
     tap(); setCampState('sending'); setCampErr(''); setCampProg({ sent: 0, total: recipients.length, failed: 0 });
     try {
-      // Campaigns send through the connected mailbox. A self-hosted custom domain
-      // can't send until the mail server is connected (Send is disabled for that case).
-      if (campDomain) { setCampState('err'); setCampErr('Sending campaigns from your own domain turns on once your mail server is connected.'); return; }
-      const sendCfg = {};
+      // Mailbox (campDomain '') or the user's own verified self-hosted domain (send_via 'self').
+      const sendCfg = campDomain
+        ? { send_via: 'self' as const, from_email: `${(campFromLocal.trim() || 'news')}@${campDomain}`, from_name: campFromName.trim() || undefined }
+        : {};
       const c = await createCampaign({
         app: campApp,
         subject: campSubject.trim(),
@@ -729,6 +729,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             : c.error === 'missing_content' ? 'Add a subject and a message.'
               : c.error === 'domain_not_verified' ? 'That domain isn’t verified yet — check its DNS records under Domains.'
                 : c.error === 'bad_from' ? 'Enter a valid From address.'
+                : c.error === 'mail_server_unset' ? 'Your mail server isn’t connected yet — finish setup, then try again.'
                     : 'Couldn’t create the campaign — try again.');
         return;
       }
@@ -1207,7 +1208,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                           <input className="ag-field" placeholder="news" autoCapitalize="none" autoCorrect="off" value={campFromLocal} onChange={(e) => setCampFromLocal(e.target.value.replace(/[^a-zA-Z0-9._-]/g, ''))} />
                           <span className="ag-from-at">@{campDomain}</span>
                         </div>
-                        <p className="ag-foot ag-dom-hint">⚡ Sending campaigns from your own domain turns on once your mail server is connected. Manage it under Domains.</p>
+                        <p className="ag-foot ag-dom-hint">Sends from this address via your verified domain. Manage domains under Domains.</p>
                       </div>
                     )}
                     <input className="ag-field" placeholder="Subject" value={campSubject}
@@ -1231,11 +1232,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       <input className="ag-field" type="datetime-local" value={campSchedAt} onChange={(e) => { setCampSchedAt(e.target.value); if (campState === 'err') setCampState('idle'); }} />
                     )}
                     {campState === 'err' && <div className="ag-send-err">{campErr}</div>}
-                    <button className="ag-send-btn" disabled={campState === 'sending' || !campSubject.trim() || !campBody.trim() || !campRecips.trim() || (campWhen === 'later' && !campSchedAt) || !!campDomain} onClick={runCampaign}>
+                    <button className="ag-send-btn" disabled={campState === 'sending' || !campSubject.trim() || !campBody.trim() || !campRecips.trim() || (campWhen === 'later' && !campSchedAt)} onClick={runCampaign}>
                       {campState === 'sending' ? (campWhen === 'later' ? 'Scheduling…' : `Sending… ${campProg.sent}/${campProg.total}`) : campWhen === 'later' ? 'Schedule campaign' : 'Send campaign'}
                     </button>
                     <button className="ag-send-btn ghost" disabled={campState === 'sending'} onClick={() => { tap(); setCampNew(false); }}>Cancel</button>
-                    <p className="ag-foot">{campDomain ? `Sending from ${(campFromLocal.trim() || 'news')}@${campDomain} turns on once your mail server is connected` : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
+                    <p className="ag-foot">{campDomain ? `Sends from ${(campFromLocal.trim() || 'news')}@${campDomain} (your verified domain)` : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
                   </div>
                 )
               ) : campView === 'suppressions' ? (
