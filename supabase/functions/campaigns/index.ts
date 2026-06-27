@@ -189,7 +189,7 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
     const res = await sendOne(uid, camp.app, r.email, camp.subject, html);
     await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, {
       method: "PATCH", headers: sbHeaders,
-      body: JSON.stringify(res.ok ? { status: "sent", sent_at: new Date().toISOString(), ...(res.id ? { provider_msg_id: res.id } : {}) } : { status: "failed", error: res.error }),
+      body: JSON.stringify(res.ok ? { status: "sent", sent_at: new Date().toISOString() } : { status: "failed", error: res.error }),
     });
     if (res.ok) sent++; else failed++;
     await sleep(700); // throttle — Gmail/Outlook like it slow
