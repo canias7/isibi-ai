@@ -94,15 +94,15 @@ keysync-managed tables, and hooks the Postfix milter. It does **not** touch iden
 
 ## 5. Deploy the updated function + set the shared secret
 
-**Deploy the edge functions** (merging to `main` does **not** deploy them):
-- **`mailer`** and **`mail-events`** with **`verify_jwt=false`** — both authenticate the
-  box with the relay token, not a Supabase JWT.
-- Redeploy **`campaigns`** (it gained the `send_via:"self"` path) and delete the old
-  `resend` / `resend-events` functions.
+**Deploy the edge functions** (merging to `main` does **not** deploy them). `mailer`,
+`mail-events`, and `campaigns` are already deployed and `resend`/`resend-events` already
+deleted — but `campaigns` and `ops-monitor` have since gained the reputation guardrail, so
+**redeploy those two** (all email functions are `verify_jwt=false`):
 
-Via the Supabase MCP `deploy_edge_function` (approve the prompt) or, e.g.,
-`supabase functions deploy mailer mail-events --no-verify-jwt --project-ref lkpfeqrelvziltfwpuxi`
-plus `supabase functions deploy campaigns --project-ref lkpfeqrelvziltfwpuxi`.
+`supabase functions deploy campaigns ops-monitor --no-verify-jwt --project-ref lkpfeqrelvziltfwpuxi`
+
+(Or the Supabase MCP `deploy_edge_function` per function. Re-pushing `mailer`/`mail-events`
+too is harmless if you'd rather just deploy all of them.)
 
 Then the shared secret — generate it once on the box, put the **same value** in the app.
 
