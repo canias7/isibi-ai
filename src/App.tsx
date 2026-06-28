@@ -486,7 +486,6 @@ export default function App() {
           </div>
           <div className="home agents-home">
             <div className="home-hero">
-              <SunOrb size={72} className="home-orb" />
               <h1 className="home-mark">Select an agent</h1>
             </div>
             <div className="agent-pick">
