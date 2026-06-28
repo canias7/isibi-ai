@@ -3,7 +3,7 @@ import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconInbox, IconRefresh, IconCheck, IconContacts,
   IconDoc, IconChat, IconPlus, IconArrowUp, IconX, IconCopy,
-  IconCalendar, IconWebhook, IconSettings, IconChart, IconGlobe,
+  IconCalendar, IconWebhook, IconChart, IconGlobe,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -22,7 +22,7 @@ type IconCmp = typeof IconCompose;
 type CommsId = 'gmail' | 'm365' | 'telegram';
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'logs' | 'deliver' | 'automations' | 'settings';
+type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'logs' | 'deliver' | 'automations';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
   texts: { t: 'Text', s: 'Send an SMS' },
@@ -34,7 +34,6 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   logs: { t: 'Logs', s: 'Every email sent & what happened' },
   deliver: { t: 'Deliverability', s: 'Are your emails landing?' },
   automations: { t: 'Automations', s: 'Drip sequences on autopilot' },
-  settings: { t: 'Settings', s: 'Sender, reply-to & preferences' },
 };
 // Sendra home menu. 'inbox'/'contacts' open the mail workspace; the rest are tabs/scaffolds.
 const HOME_TOOLS: { id: SendraTab | 'inbox' | 'contacts'; name: string; desc: string; Icon: IconCmp }[] = [
@@ -49,10 +48,9 @@ const HOME_TOOLS: { id: SendraTab | 'inbox' | 'contacts'; name: string; desc: st
   { id: 'webhook', name: 'Webhooks', desc: 'Post events out', Icon: IconWebhook },
   { id: 'automations', name: 'Automations', desc: 'Drip sequences', Icon: IconWaveform },
   { id: 'schedule', name: 'Schedule', desc: 'Plan sends ahead', Icon: IconCalendar },
-  { id: 'settings', name: 'Settings', desc: 'Sender & preferences', Icon: IconSettings },
 ];
 
-// The mail workspace's top cards. Inbox / New email / Contacts are live; rest are stubs.
+// The mail workspace's top cards. Sequence opens the Automations tab; Broadcast opens Campaigns.
 const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[] = [
   { id: 'inbox', label: 'Inbox', sub: 'View mail', icon: IconInbox },
   { id: 'new', label: 'New email', sub: 'Single send', icon: IconCompose },
@@ -1887,8 +1885,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   )}
                 </div>
               )
-            ) : sendraTab === 'settings' ? (
-              <div className="ag-empty" style={{ marginTop: 12 }}>Settings are coming soon — set your default sender name, reply-to address, signature and notification preferences here.</div>
             ) : (
               (() => {
                 const scheduled = campList.filter((c) => c.status === 'scheduled');
@@ -2180,24 +2176,22 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           {!mailConnected && connectCard('Link this mailbox so the agent can read, draft and send.')}
           <div className="ag-grid">
             {EMAIL_ACTIONS.map((act) => {
-              const soon = act.id === 'sequence';   // drip sequences aren't built yet
               return (
                 <button
                   key={act.id}
                   className="ag-act"
-                  disabled={soon}
                   onClick={() => {
-                    if (soon) return;
                     tap();
                     if (act.id === 'inbox') setEmailTab('inbox');
                     else if (act.id === 'new') openCompose();
                     else if (act.id === 'contacts') setEmailTab('contacts');
                     else if (act.id === 'broadcast') { setCommsApp(null); setInboxHome(false); setSendraTab('campaigns'); openCampNew(); }
+                    else if (act.id === 'sequence') { setCommsApp(null); setInboxHome(false); setSendraTab('automations'); }
                   }}
                 >
                   <span className="ag-act-ic"><act.icon size={20} /></span>
                   <span className="ag-act-label">{act.label}</span>
-                  <span className="ag-act-sub">{soon ? 'Soon' : act.sub}</span>
+                  <span className="ag-act-sub">{act.sub}</span>
                 </button>
               );
             })}
