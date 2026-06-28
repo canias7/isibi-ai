@@ -60,6 +60,18 @@ const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[]
 ];
 
 const PAGE_SIZE = 20;       // emails per page (kept small — GMAIL_FETCH_EMAILS is slow at high counts)
+
+// Oldest fetched timestamp per mailbox — drives the merged-inbox watermark so a
+// sparse mailbox's old mail isn't shown out of order before un-fetched newer mail.
+function oldestPerApp(items: EmailItem[]): Record<string, number> {
+  const f: Record<string, number> = {};
+  for (const it of items) {
+    const a = it.app; if (!a) continue;
+    const ts = it.ts ?? 0;
+    if (f[a] === undefined || ts < f[a]) f[a] = ts;
+  }
+  return f;
+}
 const PULL_THRESHOLD = 64;  // px of pull-down that triggers a refresh
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -152,6 +164,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [pageIdx, setPageIdx] = useState(0);
   const [nextTok, setNextTok] = useState<string | null>(null);
   const [mergedTok, setMergedTok] = useState<Record<string, string | null>>({}); // combined inbox: each mailbox's next-page token
+  const [frontier, setFrontier] = useState<Record<string, number>>({}); // combined inbox: oldest fetched ts per mailbox (watermark)
   const [reading, setReading] = useState<EmailItem | null>(null);
   const [pull, setPull] = useState(0);
   const [contacts, setContacts] = useState<ContactItem[]>([]);
@@ -380,7 +393,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     fetchInboxMergedPaged(combinedApps().map((a) => ({ app: a })))
       .then(({ items, next }) => {
         if (!mountedRef.current) return;
-        setInbox(items); setInboxState('ok'); inboxCache['all'] = items; setMergedTok(next);
+        setInbox(items); setInboxState('ok'); inboxCache['all'] = items; setMergedTok(next); setFrontier(oldestPerApp(items));
         inboxScrollRef.current?.scrollTo({ top: 0 });
       })
       .catch(() => { if (mountedRef.current && !inboxCache['all']) setInboxState('err'); })
@@ -409,6 +422,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           return out;
         });
         setMergedTok((prev) => ({ ...prev, ...next }));
+        setFrontier((prev) => ({ ...prev, ...oldestPerApp(items) }));
       })
       .catch(() => { /* keep what we have */ })
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
@@ -1143,6 +1157,16 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const goPage = (idx: number) => { if (refreshing) return; tap(); loadPage(idx); };
   const hasPager = pageIdx > 0 || !!nextTok;
   const mergedMore = combinedInbox && Object.values(mergedTok).some(Boolean);
+  // Merged inbox watermark: only show mail newer than the oldest fetched item of any
+  // mailbox that still has more pages — so a sparse mailbox's old mail stays hidden
+  // until "Load older" pages the timeline down to it (no out-of-order, no overflow).
+  const visibleInbox = (() => {
+    if (!combinedInbox) return inbox;
+    const active = combinedApps().filter((a) => mergedTok[a]);
+    if (!active.length) return inbox;
+    const wm = Math.min(...active.map((a) => frontier[a] ?? -Infinity));
+    return wm === -Infinity ? inbox : inbox.filter((it) => (it.ts ?? 0) >= wm);
+  })();
 
   const connectCard = (extra: string) => (
     <div className="ag-connect">
@@ -1993,7 +2017,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             ) : inbox.length ? (
               <>
                 <div className="ag-inbox" key={pageIdx}>
-                  <EmailList items={inbox} onOpen={(it) => { tap(); setReading(it); }} badges={combinedInbox} />
+                  <EmailList items={visibleInbox} onOpen={(it) => { tap(); setReading(it); }} badges={combinedInbox} />
                 </div>
                 {!combinedInbox && hasPager && (
                   <div className="ag-pager">
