@@ -1,11 +1,12 @@
-# The Vercel project only serves the marketing site in /site.
-# Keep the app (Vite/Capacitor/Supabase) out of the upload.
+# Vercel builds the real app (src) into /app and serves the phone-frame site at /.
+# Keep only what the build needs; drop the native shells, backend, and heavy dirs.
 node_modules
 dist
 android
 ios
 supabase
-src
-public
 .github
+release
+electron
+mockups
 *.md

@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "installCommand": "echo skip-install",
-  "buildCommand": "echo skip-build",
-  "outputDirectory": "site",
+  "installCommand": "npm install --no-audit --no-fund",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
   "cleanUrls": true
 }
