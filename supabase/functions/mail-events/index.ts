@@ -131,15 +131,24 @@ Deno.serve(async (req: Request) => {
     const type = String(e?.type ?? "").toLowerCase();
     if (!mid || !type) continue;
 
-    // Map the Message-ID back to the recipient (and thus the sending user).
-    const r = await db(`campaign_recipients?provider_msg_id=eq.${encodeURIComponent(mid)}&select=id,user_id,email,campaign_id&limit=1`);
-    const rows = r.ok ? await r.json() : [];
-    if (!rows.length) continue;
-    const { id, user_id, email, campaign_id } = rows[0] as { id: string; user_id: string; email: string; campaign_id: string };
+    // Map the Message-ID back to the send + user: a campaign recipient OR a
+    // transactional message (mailer.send). Same suppression/webhook logic for both.
+    let kind = "campaign";
+    const cr = await db(`campaign_recipients?provider_msg_id=eq.${encodeURIComponent(mid)}&select=id,user_id,email,campaign_id&limit=1`);
+    let row = (cr.ok ? await cr.json() : [])[0] as { id: string; user_id: string; email: string; campaign_id: string | null } | undefined;
+    if (!row) {
+      const mr = await db(`messages?provider_msg_id=eq.${encodeURIComponent(mid)}&select=id,user_id,to_email&limit=1`);
+      const m = (mr.ok ? await mr.json() : [])[0] as { id: string; user_id: string; to_email: string } | undefined;
+      if (m) { kind = "message"; row = { id: m.id, user_id: m.user_id, email: m.to_email, campaign_id: null }; }
+    }
+    if (!row) continue;
+    const { id, user_id, email, campaign_id } = row;
+    const table = kind === "message" ? "messages" : "campaign_recipients";
+    const stamp = kind === "message" ? { updated_at: new Date().toISOString() } : {};   // messages has updated_at; campaign_recipients doesn't
     processed++;
 
     if (type === "delivered") {
-      await db(`campaign_recipients?id=eq.${id}&delivered_at=is.null`, { method: "PATCH", body: JSON.stringify({ delivered_at: new Date().toISOString() }) });
+      await db(`${table}?id=eq.${id}&delivered_at=is.null`, { method: "PATCH", body: JSON.stringify({ delivered_at: new Date().toISOString(), ...(kind === "message" ? { status: "delivered" } : {}), ...stamp }) });
       bgTasks.push(fanout(user_id, "delivered", { email, campaign_id, recipient_id: id, message_id: mid }));
       continue;
     }
@@ -148,7 +157,7 @@ Deno.serve(async (req: Request) => {
     const detail = String(e?.reason ?? (isComplaint ? "complaint" : "bounce")).slice(0, 300);
 
     if (isComplaint) {
-      await db(`campaign_recipients?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status: "complained", error: detail }) });
+      await db(`${table}?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status: "complained", error: detail, ...stamp }) });
       const s = await db("email_suppressions", { method: "POST", headers: { Prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ user_id, email, reason: "complaint" }) });
       if (s.ok) suppressed++;
       bgTasks.push(fanout(user_id, "complained", { email, campaign_id, recipient_id: id, message_id: mid, reason: detail }));
@@ -158,12 +167,10 @@ Deno.serve(async (req: Request) => {
     // Bounce: only HARD (5.x.x) suppresses. Soft (4.x.x) is transient — record it as
     // soft_bounced (so it isn't counted as a hard bounce) but keep the address sendable.
     const hard = isHardBounce(e);
+    await db(`${table}?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status: hard ? "bounced" : "soft_bounced", error: detail, ...stamp }) });
     if (hard) {
-      await db(`campaign_recipients?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status: "bounced", error: detail }) });
       const s = await db("email_suppressions", { method: "POST", headers: { Prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ user_id, email, reason: "bounce" }) });
       if (s.ok) suppressed++;
-    } else {
-      await db(`campaign_recipients?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status: "soft_bounced", error: detail }) });
     }
     bgTasks.push(fanout(user_id, "bounced", { email, campaign_id, recipient_id: id, message_id: mid, reason: detail, bounce_type: hard ? "hard" : "soft", ...(e?.code ? { code: e.code } : {}) }));
   }
