@@ -23,9 +23,8 @@ type IconCmp = typeof IconCompose;
 type CommsId = 'gmail' | 'm365' | 'telegram';
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'emails' | 'logs' | 'deliver' | 'automations';
+type SendraTab = 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'emails' | 'logs' | 'deliver' | 'automations';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
-  home: { t: 'Sendra', s: 'Your communication hub' },
   texts: { t: 'Text', s: 'Send an SMS' },
   campaigns: { t: 'Campaigns', s: 'Email & SMS to your lists' },
   templates: { t: 'Templates', s: 'Reusable messages' },
@@ -1265,7 +1264,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     || (!!commsApp && commsApp !== 'telegram' && emailTab === 'compose')
     || (sendraTab === 'campaigns' && campNew)
     || (sendraTab === 'templates' && !!tplEdit);
-  const greeting = (() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; })();
   const refreshSpin = refreshing || (inTgList && tgListState === 'loading');
   const doRefresh = () => { tap(); if (inMailInbox) { if (combinedInbox) loadMerged(); else refreshInbox(); } else if (inTgList) loadTgChats(); };
   const goPage = (idx: number) => { if (refreshing) return; tap(); loadPage(idx); };
@@ -1371,23 +1369,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
           ) : null}
         </div>
       ) : commsApp === null ? (
-        sendraTab === 'home' ? (
-          // ---- Sendra home: welcome + drawer launcher (the sidebar is the nav now) ----
-          <div className="ag-stage ag-home">
-            <div className="ag-home-hero">
-              <img className="ag-home-logo" src={SENDRA_LOGO} alt="" aria-hidden />
-              <h2 className="ag-home-greet">{greeting}</h2>
-              <p className="ag-home-sub">Your email &amp; SMS workspace. Open the menu to jump to your inbox, contacts, campaigns and more.</p>
-              <button className="ag-send-btn ag-home-menu" onClick={() => { tap(); setDrawerOpen(true); }}>
-                <span className="ag-home-menu-in">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
-                  Open menu
-                </span>
-              </button>
-            </div>
-          </div>
-        ) : (
-          // ---- Campaigns / Templates / Schedule / Webhooks / Settings ----
+          // ---- Tabs: Emails / Campaigns / Templates / Logs / Deliverability / Domains / Webhooks / Automations / Schedule / Text ----
           <div className="ag-stage">
             {note && <div className="ag-note">{note}</div>}
             {sendraTab === 'campaigns' ? (
@@ -2093,7 +2075,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               })()
             )}
           </div>
-        )
 
       ) : commsApp === 'telegram' ? (
         tgChat ? (
