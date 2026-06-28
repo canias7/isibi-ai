@@ -202,14 +202,14 @@ export async function releaseSmsNumber(): Promise<void> {
 // ---- Email campaigns (sent through the user's mailbox, via the `campaigns` fn) ----
 // create -> then call sendCampaignBatch(id) repeatedly until { done:true }. App
 // outcomes (no_recipients / missing_content) come back as 200 { error }.
-export interface Campaign { id: string; name: string; subject: string; app: string; status: string; total: number; sent: number; failed: number; scheduled_at?: string | null; created_at: string }
+export interface Campaign { id: string; name: string; subject: string; subject_b?: string | null; app: string; status: string; total: number; sent: number; failed: number; scheduled_at?: string | null; created_at: string }
 export async function listCampaigns(): Promise<Campaign[]> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'list' } });
   if (error) return [];
   const c = (data as { campaigns?: Campaign[] } | null)?.campaigns;
   return Array.isArray(c) ? c : [];
 }
-export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[]; send_via?: 'mailbox' | 'self'; from_email?: string; from_name?: string; scheduled_at?: string }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string }> {
+export async function createCampaign(p: { app: string; name?: string; subject: string; body: string; recipients: { email: string; name?: string }[]; send_via?: 'mailbox' | 'self'; from_email?: string; from_name?: string; scheduled_at?: string; subject_b?: string; body_b?: string }): Promise<{ id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string }> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'create', ...p } });
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string };
@@ -226,10 +226,12 @@ export async function sendCampaignBatch(id: string): Promise<{ sent: number; fai
 // Per-campaign engagement: unique opens/clicks (our pixel + link tracker) plus
 // delivered/bounced/complained. Rates are derived in the UI.
 export interface CampaignStats { total: number; sent: number; failed: number; delivered: number; opened: number; clicked: number; bounced: number; complained: number }
-export async function campaignStats(id: string): Promise<{ campaign?: Campaign; stats?: CampaignStats; error?: string }> {
+// A/B variant tallies (present only when the campaign was split into A/B).
+export interface AbVariant { sent: number; opened: number; clicked: number }
+export async function campaignStats(id: string): Promise<{ campaign?: Campaign; stats?: CampaignStats; ab?: { a: AbVariant; b: AbVariant } | null; error?: string }> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'stats', id } });
   if (error) return { error: error.message || 'Request failed' };
-  return (data || {}) as { campaign?: Campaign; stats?: CampaignStats; error?: string };
+  return (data || {}) as { campaign?: Campaign; stats?: CampaignStats; ab?: { a: AbVariant; b: AbVariant } | null; error?: string };
 }
 // Per-email activity log — every send across the user's campaigns + its status.
 export interface EmailLog { email: string; name?: string | null; status: string; sent_at?: string | null; delivered_at?: string | null; opened_at?: string | null; clicked_at?: string | null; error?: string | null; campaign?: { name?: string; subject?: string } | null }

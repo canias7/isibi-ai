@@ -200,6 +200,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campApp, setCampApp] = useState<'gmail' | 'outlook'>('gmail');
   const [campSubject, setCampSubject] = useState('');
   const [campBody, setCampBody] = useState('');
+  const [campAb, setCampAb] = useState(false);          // A/B test toggle
+  const [campSubjectB, setCampSubjectB] = useState(''); // variant B subject
+  const [campBodyB, setCampBodyB] = useState('');       // variant B body (plain text)
   const [campRecips, setCampRecips] = useState('');
   const [campState, setCampState] = useState<'idle' | 'sending' | 'done' | 'scheduled' | 'err' | 'warmup' | 'retry'>('idle');
   const [campErr, setCampErr] = useState('');
@@ -217,7 +220,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [delivBusy, setDelivBusy] = useState(false);
   // Campaign views + the campaign "From" picker
   const [campView, setCampView] = useState<'list' | 'suppressions' | 'stats'>('list');
-  const [campStats, setCampStats] = useState<{ campaign: Campaign; stats: CampaignStats } | null>(null);
+  const [campStats, setCampStats] = useState<{ campaign: Campaign; stats: CampaignStats; ab?: { a: { sent: number; opened: number; clicked: number }; b: { sent: number; opened: number; clicked: number } } | null } | null>(null);
   const [campStatsBusy, setCampStatsBusy] = useState(false);
   const [supList, setSupList] = useState<Suppression[]>([]);
   const [copied, setCopied] = useState('');   // last-copied value (webhook secret), for the "Copied" flash
@@ -675,6 +678,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const openCampNew = () => {
     tap(); setCampNew(true); setCampState('idle'); setCampErr('');
     setCampSubject(''); setCampBody(''); setCampBodyKind('text'); setCampRecips(''); setCampProg({ sent: 0, total: 0, failed: 0 });
+    setCampAb(false); setCampSubjectB(''); setCampBodyB('');
     setCampApp(connApps.includes('gmail') ? 'gmail' : 'outlook');
     setCampDomain(''); setCampFromName(''); setCampFromLocal('news');
     setCampWhen('now'); setCampSchedAt('');
@@ -689,7 +693,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     try {
       const r = await campaignStats(c.id);
       if (!mountedRef.current) return;
-      if (r.campaign && r.stats) setCampStats({ campaign: r.campaign, stats: r.stats });
+      if (r.campaign && r.stats) setCampStats({ campaign: r.campaign, stats: r.stats, ab: r.ab ?? null });
     } catch { /* keep the optimistic values */ }
     finally { if (mountedRef.current) setCampStatsBusy(false); }
   };
@@ -719,6 +723,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         recipients,
         ...sendCfg,
         ...(scheduledIso ? { scheduled_at: scheduledIso } : {}),
+        ...(campAb && campSubjectB.trim() ? { subject_b: campSubjectB.trim() } : {}),
+        ...(campAb && campBodyKind === 'text' && campBodyB.trim() ? { body_b: campToHtml(campBodyB.trim()) } : {}),
       });
       if (!mountedRef.current) return;
       if (c.scheduled) { setCampState('scheduled'); listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); }); return; }
@@ -1235,6 +1241,24 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       <textarea className="ag-field ag-body" placeholder="Write your message… use {{name}} to personalize each email" value={campBody}
                         onChange={(e) => { setCampBody(e.target.value); if (campState === 'err') setCampState('idle'); }} />
                     )}
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#a6a6ae', margin: '2px 0' }}>
+                      <input type="checkbox" checked={campAb} onChange={(e) => { tap(); setCampAb(e.target.checked); if (campState === 'err') setCampState('idle'); }} />
+                      A/B test — try two versions, see which wins
+                    </label>
+                    {campAb && (
+                      <div style={{ borderLeft: '2px solid #F8514E', paddingLeft: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Variant B</div>
+                        <input className="ag-field" placeholder="Variant B subject (blank = same as A)" value={campSubjectB}
+                          onChange={(e) => { setCampSubjectB(e.target.value); if (campState === 'err') setCampState('idle'); }} />
+                        {campBodyKind === 'text' ? (
+                          <textarea className="ag-field ag-body" placeholder="Variant B message (blank = same as A) — {{name}} works too" value={campBodyB}
+                            onChange={(e) => { setCampBodyB(e.target.value); if (campState === 'err') setCampState('idle'); }} />
+                        ) : (
+                          <p className="ag-foot">Using a designed template — A/B applies to the subject line.</p>
+                        )}
+                        <p className="ag-foot">Half your list gets A, half gets B. Compare opens &amp; clicks in the campaign's stats.</p>
+                      </div>
+                    )}
                     <textarea className="ag-field ag-camp-recips" placeholder={'Recipients — one per line:\njane@example.com\nJohn Smith <john@example.com>'} value={campRecips}
                       onChange={(e) => { setCampRecips(e.target.value); if (campState === 'err') setCampState('idle'); }} />
                     <div className="ag-seg ag-when">
@@ -1304,6 +1328,36 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                             <div className="ag-stat-sub">{c.sub}</div>
                           </div>
                         ))}
+                      </div>
+                    );
+                  })()}
+                  {campStats.ab && (() => {
+                    const { a, b } = campStats.ab!;
+                    const rate = (n: number, base: number) => base ? Math.round((n / base) * 100) : 0;
+                    const aOpen = rate(a.opened, a.sent), bOpen = rate(b.opened, b.sent);
+                    const aClick = rate(a.clicked, a.sent), bClick = rate(b.clicked, b.sent);
+                    const winner = (bOpen > aOpen || (bOpen === aOpen && bClick > aClick)) ? 'B' : 'A';
+                    const col = (label: string, v: { sent: number; opened: number; clicked: number }, open: number, click: number, win: boolean) => (
+                      <div style={{ flex: 1, border: `1px solid ${win ? '#F8514E' : '#26262b'}`, borderRadius: 12, padding: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <span style={{ fontWeight: 700, color: '#fff' }}>Variant {label}</span>
+                          {win && <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg,#FF9A4D,#F8514E)', borderRadius: 6, padding: '2px 6px' }}>WINNER</span>}
+                        </div>
+                        <div style={{ fontSize: 13, color: '#a6a6ae', lineHeight: 1.6 }}>
+                          <div>{v.sent} sent</div>
+                          <div>{open}% opened <span style={{ color: '#6b6b73' }}>({v.opened})</span></div>
+                          <div>{click}% clicked <span style={{ color: '#6b6b73' }}>({v.clicked})</span></div>
+                        </div>
+                      </div>
+                    );
+                    return (
+                      <div style={{ marginTop: 4 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', margin: '4px 0 8px' }}>A/B results</div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          {col('A', a, aOpen, aClick, winner === 'A')}
+                          {col('B', b, bOpen, bClick, winner === 'B')}
+                        </div>
+                        <p className="ag-foot">Winner = higher open rate (ties broken by clicks). On small lists treat it as a hint, not gospel.</p>
                       </div>
                     );
                   })()}
