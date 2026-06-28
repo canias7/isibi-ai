@@ -296,6 +296,31 @@ export async function testWebhook(id: string): Promise<{ ok?: boolean; status?: 
   return (data || {}) as { ok?: boolean; status?: number; error?: string };
 }
 
+// ---- Automations (drip sequences, via the `automations` fn) ----
+export interface AutomationStep { delay_days: number; subject: string; body: string }
+export interface Automation {
+  id: string; name: string; trigger_tag: string; send_via: 'mailbox' | 'self'; app: string;
+  from_email?: string | null; from_name?: string | null; steps: AutomationStep[]; enabled: boolean;
+  enrolled?: number; active?: number; done?: number; created_at: string;
+}
+export async function listAutomations(): Promise<Automation[]> {
+  const { data, error } = await supabase.functions.invoke('automations', { body: { action: 'list' } });
+  if (error) return [];
+  const a = (data as { automations?: Automation[] } | null)?.automations;
+  return Array.isArray(a) ? a : [];
+}
+export async function saveAutomation(p: { id?: string; name: string; trigger_tag: string; send_via: 'mailbox' | 'self'; app?: string; from_email?: string; from_name?: string; steps: AutomationStep[] }): Promise<{ automation?: Automation; ok?: boolean; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('automations', { body: { action: p.id ? 'update' : 'create', ...p } });
+  if (error) throw new Error(error.message || 'Request failed');
+  return (data || {}) as { automation?: Automation; ok?: boolean; error?: string };
+}
+export async function toggleAutomation(id: string, enabled: boolean): Promise<void> {
+  await supabase.functions.invoke('automations', { body: { action: 'toggle', id, enabled } });
+}
+export async function removeAutomation(id: string): Promise<void> {
+  await supabase.functions.invoke('automations', { body: { action: 'remove', id } });
+}
+
 // ---- Email templates (reusable, AI-writable, via the `templates` fn) ----
 // kind: 'text' = plain text body (wrapped to HTML on send); 'html' = ready HTML
 // (flyer image, pasted design, AI layout) sent as-is.
