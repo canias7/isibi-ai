@@ -21,7 +21,7 @@ const USER_TABLES = [
 ];
 
 const ALLOWED_ORIGINS = new Set([
-  "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
+  "capacitor://localhost", "https://gofarther.dev", "https://www.gofarther.dev", "ionic://localhost", "http://localhost", "https://localhost",
   "http://localhost:5173", "http://localhost:4173",
 ]);
 function corsFor(req: Request): Record<string, string> {

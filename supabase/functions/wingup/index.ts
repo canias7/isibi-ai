@@ -36,7 +36,7 @@ const COMPOSIO_EXEC = "https://backend.composio.dev/api/v3/tools/execute";
 // CORS allowlist: native app (Capacitor) + local dev. No-Origin (native fetch /
 // curl) is allowed; unknown browser origins are blocked.
 const ALLOWED_ORIGINS = new Set([
-  "capacitor://localhost",
+  "capacitor://localhost", "https://gofarther.dev", "https://www.gofarther.dev",
   "ionic://localhost",
   "http://localhost",
   "https://localhost",
