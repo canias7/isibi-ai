@@ -14,8 +14,10 @@ import type { DnsRecord } from './mailer';
 
 export const DOMAIN_CONNECT = {
   providerId: 'gofarther.dev',
-  serviceId: 'sender',
-  // Flip to true once the template is merged + synced by providers and the
+  // Reuses the already-accepted `gofarther.dev.email` template slot (updated from the
+  // SES records to the self-hosted ones, version 2).
+  serviceId: 'email',
+  // Flip to true once the updated template (v2) is merged + synced by providers and the
   // production mail server (mail.gofarther.dev) is live. See mailserver/PRODUCTION-SETUP.md.
   live: false,
   // Where the host returns the user after they Authorize.
