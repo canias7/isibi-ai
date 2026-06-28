@@ -47,14 +47,24 @@ export async function fetchEmailHtml(
 // renders these with <EmailList>; same card shape the chat pipeline produces.
 // Page through with the returned nextPageToken (Gmail page tokens).
 const INBOX_API = CONNECT_API.replace(/\/gmail-oauth$/, '/inbox');
-export async function fetchInbox(max = 20, pageToken?: string, app = 'gmail'): Promise<{ items: EmailItem[]; nextPageToken: string | null }> {
+export async function fetchInbox(max = 20, pageToken?: string, app = 'gmail', query?: string): Promise<{ items: EmailItem[]; nextPageToken: string | null }> {
   const token = await authToken();
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  const q = `max=${max}&tz=${encodeURIComponent(tz)}&app=${encodeURIComponent(app)}${pageToken ? `&page_token=${encodeURIComponent(pageToken)}` : ''}`;
+  const q = `max=${max}&tz=${encodeURIComponent(tz)}&app=${encodeURIComponent(app)}${pageToken ? `&page_token=${encodeURIComponent(pageToken)}` : ''}${query ? `&q=${encodeURIComponent(query)}` : ''}`;
   const res = await fetch(`${INBOX_API}?${q}`, { headers: { authorization: `Bearer ${token}` } });
   if (!res.ok) throw new Error(`Inbox fetch failed: ${res.status}`);
   const j = await res.json();
   return { items: Array.isArray(j.items) ? j.items : [], nextPageToken: j.nextPageToken ?? null };
+}
+
+// Search the mailbox(es) server-side (Gmail's `query` arg searches the whole
+// mailbox; Outlook widens its fetch + filters). Results are merged newest-first
+// across providers. One provider failing doesn't sink the others.
+export async function searchInbox(apps: string[], query: string, per = 30): Promise<EmailItem[]> {
+  const results = await Promise.all(
+    apps.map((app) => fetchInbox(per, undefined, app, query).then((r) => r.items).catch(() => [] as EmailItem[])),
+  );
+  return results.flat().sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0));
 }
 
 // Combined inbox with paging: fetch one page from each requested mailbox (using

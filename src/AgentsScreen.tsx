@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { mailerListDomains, mailerAddDomain, mailerDomainRecords, mailerVerifyDomain, mailerRemoveDomain, mailerSend, type SendingDomain, type DnsRecord } from './mailer';
 import { discoverDomainConnect, type DcSupport } from './domainConnect';
@@ -187,7 +187,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [cc, setCc] = useState('');           // compose Cc (comma/semicolon separated)
   const [bcc, setBcc] = useState('');         // compose Bcc
   const [showCc, setShowCc] = useState(false); // reveal the Cc/Bcc fields
-  const [inboxQ, setInboxQ] = useState('');   // inbox search filter (client-side over loaded mail)
+  const [inboxQ, setInboxQ] = useState('');   // inbox search box text
+  const [searchResults, setSearchResults] = useState<EmailItem[] | null>(null); // server search hits (null = not searching)
+  const [searchBusy, setSearchBusy] = useState(false); // a server search is in flight
   const [sendState, setSendState] = useState<SendState>('idle');
   const [sendApp, setSendApp] = useState<'gmail' | 'outlook'>('gmail'); // which mailbox a send/reply goes through
   const [inboxHome, setInboxHome] = useState(false); // Inbox opened from the Sendra home -> Back returns there, not the app grid
@@ -483,6 +485,24 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       loadContacts();
     }
   }, [agent, commsApp, emailTab, tgChat, combinedInbox, refreshInbox, loadMerged, loadContacts, loadTgChats, loadTgMsgs]);
+
+  // Debounced server-side inbox search. Typing filters loaded mail instantly
+  // (clientFiltered, above); 400ms after you stop we query the mailbox(es) so a
+  // match that wasn't on the loaded page still shows. Clearing restores the feed.
+  useEffect(() => {
+    if (agent !== 'email' || !commsApp || commsApp === 'telegram' || emailTab !== 'inbox') return;
+    const term = inboxQ.trim();
+    if (term.length < 2) { setSearchResults(null); setSearchBusy(false); return; }
+    let alive = true;
+    setSearchBusy(true);
+    const t = setTimeout(() => {
+      searchInbox(combinedApps(), term)
+        .then((items) => { if (alive && mountedRef.current) setSearchResults(items); })
+        .catch(() => { if (alive && mountedRef.current) setSearchResults([]); })
+        .finally(() => { if (alive && mountedRef.current) setSearchBusy(false); });
+    }, 400);
+    return () => { alive = false; clearTimeout(t); };
+  }, [inboxQ, agent, commsApp, emailTab, combinedApps]);
 
   // Load campaigns (Campaigns tab) and templates (Campaigns builder picker + the
   // Templates tab) when those tabs open.
@@ -1213,9 +1233,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // we scan the whole loaded set (not just the watermarked window) so a match in
   // older mail isn't hidden; clearing it returns to the normal merged view.
   const inboxQuery = inboxQ.trim().toLowerCase();
-  const shownInbox = inboxQuery
+  // Instant feedback over already-loaded mail while the server search runs; once
+  // server hits arrive (searchResults) we show those — a real mailbox-wide
+  // search, not just a filter over the page the client already had.
+  const clientFiltered = inboxQuery
     ? inbox.filter((it) => `${it.from} ${it.email ?? ''} ${it.subject} ${it.snippet ?? ''}`.toLowerCase().includes(inboxQuery))
     : visibleInbox;
+  const shownInbox = inboxQuery ? (searchResults ?? clientFiltered) : visibleInbox;
 
   const connectCard = (extra: string) => (
     <div className="ag-connect">
@@ -2074,7 +2098,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   <input
                     className="ag-field"
                     type="search" inputMode="search" autoCapitalize="none" autoCorrect="off"
-                    placeholder="Search loaded mail…"
+                    placeholder="Search mail…"
                     value={inboxQ}
                     onChange={(e) => setInboxQ(e.target.value)}
                     style={{ width: '100%', paddingRight: 34 }}
@@ -2088,7 +2112,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   )}
                 </div>
                 {shownInbox.length === 0 ? (
-                  <div className="ag-empty">No emails match “{inboxQ.trim()}”.</div>
+                  <div className="ag-empty">{searchBusy ? 'Searching…' : `No emails match “${inboxQ.trim()}”.`}</div>
                 ) : (
                   <div className="ag-inbox" key={pageIdx}>
                     <EmailList items={shownInbox} onOpen={(it) => { tap(); markReadLocal(it); setReading(it); }} badges={combinedInbox} />
