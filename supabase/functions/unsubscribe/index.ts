@@ -37,6 +37,70 @@ function page(title: string, msg: string): Response {
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+async function db(path: string, init?: RequestInit): Promise<Response> {
+  return fetch(`${SB_URL}/rest/v1/${path}`, { ...init, headers: { ...sbHeaders, ...(init?.headers ?? {}) } });
+}
+
+// --- Outbound webhook fanout (unsubscribe) ------------------------------------
+// Notify the user's enabled webhook endpoints that a recipient opted out, signed
+// exactly like the `webhooks` fn's test event. Best-effort + backgrounded.
+function whBadUrl(raw: string): boolean {
+  let u: URL;
+  try { u = new URL(raw); } catch { return true; }
+  if (u.protocol !== "https:") return true;
+  const h = u.hostname.toLowerCase();
+  if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal")) return true;
+  if (h === "169.254.169.254" || h === "metadata.google.internal") return true;
+  if (/^(10|127|0)\./.test(h)) return true;
+  if (/^192\.168\./.test(h)) return true;
+  if (/^169\.254\./.test(h)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+  if (h === "::1" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80")) return true;
+  return false;
+}
+async function whSign(secret: string, ts: string, body: string): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${ts}.${body}`));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function fanout(userId: string, type: string, data: Record<string, unknown>): Promise<void> {
+  if (!UUID_RE.test(userId)) return;
+  let eps: { id: string; url: string; secret: string; events: string[] | null }[] = [];
+  try {
+    const r = await db(`webhook_endpoints?user_id=eq.${userId}&enabled=eq.true&select=id,url,secret,events`);
+    eps = r.ok ? await r.json() : [];
+  } catch { return; }
+  if (!Array.isArray(eps) || !eps.length) return;
+  const event = { id: crypto.randomUUID(), type, created_at: new Date().toISOString(), data };
+  const bodyStr = JSON.stringify(event);
+  const ts = Math.floor(Date.now() / 1000).toString();
+  await Promise.all(eps.map(async (ep) => {
+    if (!ep?.url || whBadUrl(ep.url)) return;
+    if (Array.isArray(ep.events) && ep.events.length && !ep.events.includes(type)) return;
+    let status = 0;
+    try {
+      const signature = await whSign(ep.secret, ts, bodyStr);
+      const res = await fetch(ep.url, {
+        method: "POST",
+        headers: { "content-type": "application/json", "user-agent": "Sendra-Webhooks/1.0", "sendra-id": event.id, "sendra-timestamp": ts, "sendra-signature": `v1=${signature}` },
+        body: bodyStr, redirect: "manual", signal: AbortSignal.timeout(8000),
+      });
+      status = res.status;
+    } catch { status = 0; }
+    const ok = status >= 200 && status < 300;
+    try {
+      await db(`webhook_endpoints?id=eq.${ep.id}`, { method: "PATCH", body: JSON.stringify(ok ? { last_status: status, last_event_at: new Date().toISOString(), failure_count: 0 } : { last_status: status, last_event_at: new Date().toISOString() }) });
+    } catch { /* ignore */ }
+  }));
+}
+function bg(tasks: Promise<unknown>[]): void {
+  if (!tasks.length) return;
+  const all = Promise.allSettled(tasks);
+  const wu = (globalThis as unknown as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime?.waitUntil;
+  if (typeof wu === "function") wu(all); else all.catch(() => {});
+}
+
 Deno.serve(async (req: Request) => {
   const url = new URL(req.url);
   const uid = url.searchParams.get("u") || "";
@@ -56,6 +120,7 @@ Deno.serve(async (req: Request) => {
       headers: { ...sbHeaders, Prefer: "resolution=merge-duplicates,return=minimal" },
       body: JSON.stringify({ user_id: uid, email: email.toLowerCase(), reason: "unsubscribe" }),
     });
+    bg([fanout(uid, "unsubscribed", { email: email.toLowerCase() })]);
   } catch (e) {
     console.error("unsubscribe error:", String((e as Error)?.message || e));
     return page("Something went wrong", "Please try again in a moment.");
