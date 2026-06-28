@@ -138,6 +138,64 @@ async function dnsTxt(name: string): Promise<string[]> {
   } catch { return []; }
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// --- Outbound webhook fanout (sent/failed for transactional sends) ------------
+// Same signing as the `webhooks` fn so receivers verify these like any other event.
+// Best-effort + backgrounded so a send's response never waits on customer endpoints.
+type WhEndpoint = { id: string; url: string; secret: string; events: string[] | null };
+function whBadUrl(raw: string): boolean {
+  let u: URL;
+  try { u = new URL(raw); } catch { return true; }
+  if (u.protocol !== "https:") return true;
+  const h = u.hostname.toLowerCase();
+  if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal")) return true;
+  if (h === "169.254.169.254" || h === "metadata.google.internal") return true;
+  if (/^(10|127|0)\./.test(h)) return true;
+  if (/^192\.168\./.test(h)) return true;
+  if (/^169\.254\./.test(h)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+  if (h === "::1" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80")) return true;
+  return false;
+}
+async function whSign(secret: string, ts: string, body: string): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${ts}.${body}`));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function getEndpoints(uid: string): Promise<WhEndpoint[]> {
+  if (!UUID_RE.test(uid)) return [];
+  try {
+    const r = await db(`webhook_endpoints?user_id=eq.${uid}&enabled=eq.true&select=id,url,secret,events`);
+    const e = r.ok ? await r.json() : [];
+    return Array.isArray(e) ? e : [];
+  } catch { return []; }
+}
+async function deliverEvent(eps: WhEndpoint[], type: string, data: Record<string, unknown>): Promise<void> {
+  if (!eps.length) return;
+  const event = { id: crypto.randomUUID(), type, created_at: new Date().toISOString(), data };
+  const bodyStr = JSON.stringify(event);
+  const ts = Math.floor(Date.now() / 1000).toString();
+  await Promise.all(eps.map(async (ep) => {
+    if (!ep?.url || whBadUrl(ep.url)) return;
+    if (Array.isArray(ep.events) && ep.events.length && !ep.events.includes(type)) return;
+    let status = 0;
+    try {
+      const signature = await whSign(ep.secret, ts, bodyStr);
+      const res = await fetch(ep.url, { method: "POST", headers: { "content-type": "application/json", "user-agent": "Sendra-Webhooks/1.0", "sendra-id": event.id, "sendra-timestamp": ts, "sendra-signature": `v1=${signature}` }, body: bodyStr, redirect: "manual", signal: AbortSignal.timeout(8000) });
+      status = res.status;
+    } catch { status = 0; }
+    const ok = status >= 200 && status < 300;
+    try { await db(`webhook_endpoints?id=eq.${ep.id}`, { method: "PATCH", body: JSON.stringify(ok ? { last_status: status, last_event_at: new Date().toISOString(), failure_count: 0 } : { last_status: status, last_event_at: new Date().toISOString() }) }); } catch { /* ignore */ }
+  }));
+}
+function bg(tasks: Promise<unknown>[]): void {
+  if (!tasks.length) return;
+  const all = Promise.allSettled(tasks);
+  const wu = (globalThis as unknown as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime?.waitUntil;
+  if (typeof wu === "function") wu(all); else all.catch(() => {});
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
@@ -255,6 +313,8 @@ Deno.serve(async (req: Request) => {
           return json(req, { error: "sending isn't live yet — the mail server relay isn't configured" }, 503);
         }
 
+        const eps = await getEndpoints(uid);   // webhook endpoints (empty unless the user set any up)
+
         // Relay to the box; it builds the MIME and injects into Postfix (OpenDKIM signs).
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), 20000);
@@ -270,9 +330,14 @@ Deno.serve(async (req: Request) => {
             }),
           });
           const out = await relayRes.json().catch(() => ({}));
-          if (!relayRes.ok) return json(req, { error: out?.error || "the mail server rejected the message" }, 502);
+          if (!relayRes.ok) {
+            bg([deliverEvent(eps, "failed", { email: to.email, from: from.email, subject, error: String(out?.error || `relay_${relayRes.status}`).slice(0, 300) })]);
+            return json(req, { error: out?.error || "the mail server rejected the message" }, 502);
+          }
+          bg([deliverEvent(eps, "sent", { email: to.email, from: from.email, subject, ...(out?.id ? { message_id: out.id } : {}) })]);
           return json(req, { id: out?.id ?? null });
         } catch (_e) {
+          bg([deliverEvent(eps, "failed", { email: to.email, from: from.email, subject, error: "unreachable" })]);
           return json(req, { error: "couldn't reach the mail server" }, 502);
         } finally {
           clearTimeout(timer);
