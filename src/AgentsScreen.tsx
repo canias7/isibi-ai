@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { mailerListDomains, mailerAddDomain, mailerDomainRecords, mailerVerifyDomain, mailerRemoveDomain, mailerSend, type SendingDomain, type DnsRecord } from './mailer';
 import { discoverDomainConnect, type DcSupport } from './domainConnect';
@@ -22,7 +22,7 @@ type IconCmp = typeof IconCompose;
 type CommsId = 'gmail' | 'm365' | 'telegram';
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'logs' | 'deliver' | 'settings';
+type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'logs' | 'deliver' | 'automations' | 'settings';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
   texts: { t: 'Text', s: 'Send an SMS' },
@@ -33,6 +33,7 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   webhook: { t: 'Webhooks', s: 'Post events to your systems' },
   logs: { t: 'Logs', s: 'Every email sent & what happened' },
   deliver: { t: 'Deliverability', s: 'Are your emails landing?' },
+  automations: { t: 'Automations', s: 'Drip sequences on autopilot' },
   settings: { t: 'Settings', s: 'Sender, reply-to & preferences' },
 };
 // Sendra home menu. 'inbox'/'contacts' open the mail workspace; the rest are tabs/scaffolds.
@@ -46,6 +47,7 @@ const HOME_TOOLS: { id: SendraTab | 'inbox' | 'contacts'; name: string; desc: st
   { id: 'domains', name: 'Domains', desc: 'Send from your address', Icon: IconGlobe },
   { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
   { id: 'webhook', name: 'Webhooks', desc: 'Post events out', Icon: IconWebhook },
+  { id: 'automations', name: 'Automations', desc: 'Drip sequences', Icon: IconWaveform },
   { id: 'schedule', name: 'Schedule', desc: 'Plan sends ahead', Icon: IconCalendar },
   { id: 'settings', name: 'Settings', desc: 'Sender & preferences', Icon: IconSettings },
 ];
@@ -227,6 +229,19 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // Outbound webhooks
   const [webhooks, setWebhooks] = useState<WebhookEndpoint[]>([]);
   const [whNew, setWhNew] = useState('');
+  // Automations (drip sequences)
+  const [autoList, setAutoList] = useState<Automation[]>([]);
+  const [autoNew, setAutoNew] = useState(false);
+  const [autoEditId, setAutoEditId] = useState<string | null>(null);
+  const [autoName, setAutoName] = useState('');
+  const [autoTag, setAutoTag] = useState('');
+  const [autoDomain, setAutoDomain] = useState('');   // '' = mailbox, else a verified domain
+  const [autoApp, setAutoApp] = useState<'gmail' | 'outlook'>('gmail');
+  const [autoFromLocal, setAutoFromLocal] = useState('news');
+  const [autoFromName, setAutoFromName] = useState('');
+  const [autoSteps, setAutoSteps] = useState<AutomationStep[]>([{ delay_days: 0, subject: '', body: '' }]);
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [autoErr, setAutoErr] = useState('');
   const [whBusy, setWhBusy] = useState(false);
   const [whErr, setWhErr] = useState('');
   const [whOpen, setWhOpen] = useState<string | null>(null);
@@ -449,7 +464,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (sendraTab === 'logs') { setLogsBusy(true); listLogs('').then((l) => { if (mountedRef.current) { setLogsList(l); setLogsBusy(false); } }).catch(() => { if (mountedRef.current) setLogsBusy(false); }); }
     if (sendraTab === 'deliver') { setDelivBusy(true); getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); }); }
     // Verified domains feed the composer's "Send from" picker; the Domains tab needs the full list.
-    if (sendraTab === 'campaigns' || sendraTab === 'domains') mailerListDomains().then((d) => { if (mountedRef.current) setDomains(d); });
+    if (sendraTab === 'campaigns' || sendraTab === 'domains' || sendraTab === 'automations') mailerListDomains().then((d) => { if (mountedRef.current) setDomains(d); });
+    if (sendraTab === 'automations') loadAutomations();
   }, [agent, commsApp, sendraTab, campNew]);
 
   // While the Domains tab is open and a domain is still pending, re-check DNS in the
@@ -874,6 +890,44 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   };
 
   // ---- Webhooks ----
+  const loadAutomations = () => listAutomations().then((a) => { if (mountedRef.current) setAutoList(a); });
+  const openAutoNew = () => {
+    tap(); setAutoNew(true); setAutoEditId(null); setAutoErr('');
+    setAutoName(''); setAutoTag(''); setAutoDomain(''); setAutoApp(connApps.includes('gmail') ? 'gmail' : 'outlook');
+    setAutoFromLocal('news'); setAutoFromName(''); setAutoSteps([{ delay_days: 0, subject: '', body: '' }]);
+  };
+  const openAutoEdit = (a: Automation) => {
+    tap(); setAutoNew(true); setAutoEditId(a.id); setAutoErr('');
+    setAutoName(a.name); setAutoTag(a.trigger_tag);
+    setAutoDomain(a.send_via === 'self' && a.from_email ? a.from_email.split('@')[1] : '');
+    setAutoApp(a.app === 'outlook' ? 'outlook' : 'gmail');
+    setAutoFromLocal(a.send_via === 'self' && a.from_email ? a.from_email.split('@')[0] : 'news');
+    setAutoFromName(a.from_name || '');
+    setAutoSteps(a.steps?.length ? a.steps.map((s) => ({ delay_days: s.delay_days, subject: s.subject, body: s.body })) : [{ delay_days: 0, subject: '', body: '' }]);
+  };
+  const setStep = (i: number, patch: Partial<AutomationStep>) => setAutoSteps((arr) => arr.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  const addStep = () => { tap(); setAutoSteps((arr) => [...arr, { delay_days: 3, subject: '', body: '' }]); };
+  const removeStep = (i: number) => { tap(); setAutoSteps((arr) => (arr.length > 1 ? arr.filter((_, j) => j !== i) : arr)); };
+  const saveAuto = async () => {
+    const steps = autoSteps.map((s) => ({ delay_days: Math.max(0, Math.round(Number(s.delay_days) || 0)), subject: s.subject.trim(), body: campToHtml(s.body.trim()) })).filter((s) => s.subject && s.body);
+    if (!autoName.trim() || !autoTag.trim() || !steps.length) { setAutoErr('Add a name, a trigger tag, and at least one step with a subject and message.'); return; }
+    setAutoBusy(true); setAutoErr('');
+    try {
+      const via = autoDomain ? 'self' as const : 'mailbox' as const;
+      const r = await saveAutomation({
+        ...(autoEditId ? { id: autoEditId } : {}),
+        name: autoName.trim(), trigger_tag: autoTag.trim(), send_via: via, app: autoApp,
+        ...(via === 'self' ? { from_email: `${(autoFromLocal.trim() || 'news')}@${autoDomain}`, from_name: autoFromName.trim() || undefined } : {}),
+        steps,
+      });
+      if (!mountedRef.current) return;
+      if (r.error) { setAutoErr(r.error === 'domain_not_verified' ? 'That domain isn’t verified yet — check Domains.' : r.error === 'bad_tag' ? 'Trigger tag: letters, numbers, spaces, - and _ only.' : r.error === 'no_steps' ? 'Add at least one step with a subject and message.' : r.error === 'bad_from' ? 'Pick a valid From address.' : 'Couldn’t save — try again.'); return; }
+      setAutoNew(false); await loadAutomations();
+    } catch { if (mountedRef.current) setAutoErr('Something went wrong — try again.'); }
+    finally { if (mountedRef.current) setAutoBusy(false); }
+  };
+  const toggleAuto = async (a: Automation) => { tap(); await toggleAutomation(a.id, !a.enabled).catch(() => {}); if (mountedRef.current) await loadAutomations(); };
+  const removeAuto = async (id: string) => { tap(); await removeAutomation(id).catch(() => {}); if (mountedRef.current) await loadAutomations(); };
   const loadWebhooks = () => listWebhooks().then((w) => { if (mountedRef.current) setWebhooks(w); });
   const addWh = async () => {
     const url = whNew.trim();
@@ -1761,6 +1815,78 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   </div>
                 )}
               </div>
+            ) : sendraTab === 'automations' ? (
+              autoNew ? (
+                <div className="ag-compose">
+                  <div className="ag-dom-head">
+                    <button className="ag-back-link" onClick={() => { tap(); setAutoNew(false); }}>‹ Automations</button>
+                    <span className="ag-dom-title">{autoEditId ? 'Edit automation' : 'New automation'}</span>
+                  </div>
+                  <input className="ag-field" placeholder="Name (e.g. Welcome series)" value={autoName} onChange={(e) => { setAutoName(e.target.value); if (autoErr) setAutoErr(''); }} />
+                  <input className="ag-field" placeholder="Trigger tag — contacts with this tag get enrolled (e.g. lead)" autoCapitalize="none" autoCorrect="off" value={autoTag} onChange={(e) => { setAutoTag(e.target.value); if (autoErr) setAutoErr(''); }} />
+                  <div className="ag-from">
+                    <span className="ag-from-lbl">Send from</span>
+                    <select className="ag-field ag-from-sel" value={autoDomain} onChange={(e) => { tap(); setAutoDomain(e.target.value); }}>
+                      <option value="">My mailbox</option>
+                      {domains.filter((d) => d.verified).map((d) => (<option key={d.domain} value={d.domain}>{d.domain}</option>))}
+                    </select>
+                  </div>
+                  {autoDomain && (
+                    <div className="ag-from-fields">
+                      <input className="ag-field" placeholder="From name (e.g. Acme)" value={autoFromName} onChange={(e) => setAutoFromName(e.target.value)} />
+                      <div className="ag-from-addr"><input className="ag-field" placeholder="news" autoCapitalize="none" autoCorrect="off" value={autoFromLocal} onChange={(e) => setAutoFromLocal(e.target.value.replace(/[^a-zA-Z0-9._-]/g, ''))} /><span className="ag-from-at">@{autoDomain}</span></div>
+                    </div>
+                  )}
+                  {autoSteps.map((s, i) => (
+                    <div key={i} style={{ border: '1px solid #26262b', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 600, color: '#fff' }}>Step {i + 1}</span>
+                        {autoSteps.length > 1 && <button onClick={() => removeStep(i)} style={{ background: 'none', border: 0, color: '#a6a6ae', cursor: 'pointer', fontSize: 13 }}>Remove</button>}
+                      </div>
+                      <label style={{ fontSize: 13, color: '#a6a6ae', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        Wait <input className="ag-field" type="number" min={0} style={{ width: 72 }} value={s.delay_days} onChange={(e) => setStep(i, { delay_days: Number(e.target.value) })} /> day(s) {i === 0 ? 'after tagging' : 'after the previous step'}
+                      </label>
+                      <input className="ag-field" placeholder="Subject" value={s.subject} onChange={(e) => { setStep(i, { subject: e.target.value }); if (autoErr) setAutoErr(''); }} />
+                      <textarea className="ag-field ag-body" placeholder="Message… use {{name}} to personalize" value={s.body} onChange={(e) => { setStep(i, { body: e.target.value }); if (autoErr) setAutoErr(''); }} />
+                    </div>
+                  ))}
+                  <button className="ag-send-btn ghost" onClick={addStep}>+ Add step</button>
+                  {autoErr && <div className="ag-send-err">{autoErr}</div>}
+                  <button className="ag-send-btn" disabled={autoBusy} onClick={saveAuto}>{autoBusy ? 'Saving…' : autoEditId ? 'Save changes' : 'Create automation'}</button>
+                  <button className="ag-send-btn ghost" disabled={autoBusy} onClick={() => { tap(); setAutoNew(false); }}>Cancel</button>
+                  <p className="ag-foot">Once enabled, any contact tagged “{autoTag.trim() || 'your tag'}” moves through these emails automatically — new contacts with the tag join on their own. Unsubscribes &amp; bounces drop out.</p>
+                </div>
+              ) : (
+                <div className="ag-compose">
+                  <p className="ag-foot">Drip sequences: tag a contact and they automatically receive a series of emails over time. Suppressed and unsubscribed contacts stop automatically.</p>
+                  <button className="ag-send-btn" onClick={openAutoNew}>+ New automation</button>
+                  {autoList.length === 0 ? (
+                    <div className="ag-empty" style={{ marginTop: 12 }}>No automations yet. Create a welcome or follow-up series that runs itself.</div>
+                  ) : (
+                    <div className="ag-dom-list">
+                      {autoList.map((a) => (
+                        <div className="ag-dom open" key={a.id}>
+                          <div className="ag-dom-row" style={{ cursor: 'default' }}>
+                            <span className="ag-dom-ic">⚡</span>
+                            <span className="ag-dom-info">
+                              <span className="ag-dom-name">{a.name}</span>
+                              <span className="ag-dom-sub">tag “{a.trigger_tag}” · {a.steps?.length || 0} step{(a.steps?.length || 0) === 1 ? '' : 's'} · {a.active || 0} active · {a.done || 0} done</span>
+                            </span>
+                            <span className={`ag-badge is-${a.enabled ? 'ok' : 'wait'}`}><i className="ag-dot" />{a.enabled ? 'On' : 'Off'}</span>
+                          </div>
+                          <div className="ag-dom-body">
+                            <div className="ag-dom-actions">
+                              <button className="ag-send-btn" onClick={() => toggleAuto(a)}>{a.enabled ? 'Pause' : 'Enable'}</button>
+                              <button className="ag-send-btn ghost" onClick={() => openAutoEdit(a)}>Edit</button>
+                              <button className="ag-send-btn ghost" onClick={() => removeAuto(a.id)}>Delete</button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
             ) : sendraTab === 'settings' ? (
               <div className="ag-empty" style={{ marginTop: 12 }}>Settings are coming soon — set your default sender name, reply-to address, signature and notification preferences here.</div>
             ) : (
