@@ -315,33 +315,43 @@ Deno.serve(async (req: Request) => {
 
         const eps = await getEndpoints(uid);   // webhook endpoints (empty unless the user set any up)
 
-        // Relay to the box; it builds the MIME and injects into Postfix (OpenDKIM signs).
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 20000);
-        try {
-          const relayRes = await fetch(`${RELAY_URL}/send`, {
-            method: "POST",
-            signal: ctrl.signal,
-            headers: { authorization: `Bearer ${RELAY_TOKEN}`, "content-type": "application/json" },
-            body: JSON.stringify({
-              from: from.display ? `${from.display} <${from.email}>` : from.email,
-              to: to.display ? `${to.display} <${to.email}>` : to.email,
-              subject, html, text, reply_to: replyTo,
-            }),
-          });
-          const out = await relayRes.json().catch(() => ({}));
-          if (!relayRes.ok) {
-            bg([deliverEvent(eps, "failed", { email: to.email, from: from.email, subject, error: String(out?.error || `relay_${relayRes.status}`).slice(0, 300) })]);
-            return json(req, { error: out?.error || "the mail server rejected the message" }, 502);
+        // Relay to the box (builds the MIME, injects into Postfix; OpenDKIM signs).
+        // Short retry on a TRANSIENT failure (box blip / 5xx / network); a 4xx is a
+        // permanent client error and isn't retried.
+        let lastErr = "couldn't reach the mail server";
+        for (let attempt = 0; attempt < 3; attempt++) {
+          if (attempt) await new Promise((r) => setTimeout(r, 400 * attempt));
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 12000);
+          try {
+            const relayRes = await fetch(`${RELAY_URL}/send`, {
+              method: "POST",
+              signal: ctrl.signal,
+              headers: { authorization: `Bearer ${RELAY_TOKEN}`, "content-type": "application/json" },
+              body: JSON.stringify({
+                from: from.display ? `${from.display} <${from.email}>` : from.email,
+                to: to.display ? `${to.display} <${to.email}>` : to.email,
+                subject, html, text, reply_to: replyTo,
+              }),
+            });
+            const out = await relayRes.json().catch(() => ({}));
+            if (relayRes.ok) {
+              bg([deliverEvent(eps, "sent", { email: to.email, from: from.email, subject, ...(out?.id ? { message_id: out.id } : {}) })]);
+              return json(req, { id: out?.id ?? null });
+            }
+            if (relayRes.status >= 400 && relayRes.status < 500) {   // permanent — don't retry
+              bg([deliverEvent(eps, "failed", { email: to.email, from: from.email, subject, error: String(out?.error || `relay_${relayRes.status}`).slice(0, 300) })]);
+              return json(req, { error: out?.error || "the mail server rejected the message" }, 502);
+            }
+            lastErr = String(out?.error || `relay_${relayRes.status}`);   // 5xx — retry
+          } catch (_e) {
+            lastErr = "unreachable";   // network / timeout — retry
+          } finally {
+            clearTimeout(timer);
           }
-          bg([deliverEvent(eps, "sent", { email: to.email, from: from.email, subject, ...(out?.id ? { message_id: out.id } : {}) })]);
-          return json(req, { id: out?.id ?? null });
-        } catch (_e) {
-          bg([deliverEvent(eps, "failed", { email: to.email, from: from.email, subject, error: "unreachable" })]);
-          return json(req, { error: "couldn't reach the mail server" }, 502);
-        } finally {
-          clearTimeout(timer);
         }
+        bg([deliverEvent(eps, "failed", { email: to.email, from: from.email, subject, error: lastErr.slice(0, 300) })]);
+        return json(req, { error: "couldn't reach the mail server" }, 502);
       }
 
       default:

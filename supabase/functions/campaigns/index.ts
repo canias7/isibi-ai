@@ -321,11 +321,25 @@ function bg(tasks: Promise<unknown>[]): Promise<unknown> | void {
   return all;
 }
 
+// --- Durable retry ------------------------------------------------------------
+// For self-hosted sends, a TRANSIENT relay failure (box briefly down, 5xx, network)
+// shouldn't burn the recipient as failed — requeue it and let the next drain / cron
+// tick retry, up to a cap. Permanent failures (4xx, bad address, config) fail at once.
+const MAX_SEND_ATTEMPTS = 8;
+function isTransient(err?: string): boolean {
+  const e = (err || "").toLowerCase();
+  if (!e) return true;
+  if (e.includes("mail_server_unset")) return false;   // config, not transient
+  if (/relay_5\d\d/.test(e) || e.includes("relay_429")) return true;  // server / rate-limit
+  if (/relay_4\d\d/.test(e)) return false;             // client error (bad request/address)
+  return true;                                         // network / timeout / abort → transient
+}
+
 // Drain one batch of a campaign's queue. Shared by the `send` action (client-driven)
 // and the scheduled `run_due` cron. Flips draft/scheduled -> sending, sends up to
 // `limit`, updates counts, and marks the campaign sent once the queue is empty.
 // deno-lint-ignore no-explicit-any
-async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; failed: number; remaining: number; done: boolean; paused?: boolean; warmup?: { day: number; cap: number; used: number } }> {
+async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; failed: number; remaining: number; done: boolean; paused?: boolean; warmup?: { day: number; cap: number; used: number }; retry?: boolean }> {
   const id = camp.id as string;
   const uid = camp.user_id as string;
   // Single-flight: atomically claim this campaign before draining so two overlapping
@@ -368,9 +382,11 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
   if (camp.status === "draft" || camp.status === "scheduled") {
     await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "sending", updated_at: new Date().toISOString() }) });
   }
-  const qRes = await fetch(`${SB_URL}/rest/v1/campaign_recipients?campaign_id=eq.${id}&status=eq.queued&select=id,email,name&order=id.asc&limit=${effLimit}`, { headers: sbHeaders });
-  const batch = (await qRes.json().catch(() => [])) as { id: string; email: string; name: string | null }[];
+  const qRes = await fetch(`${SB_URL}/rest/v1/campaign_recipients?campaign_id=eq.${id}&status=eq.queued&select=id,email,name,attempts&order=id.asc&limit=${effLimit}`, { headers: sbHeaders });
+  const batch = (await qRes.json().catch(() => [])) as { id: string; email: string; name: string | null; attempts: number | null }[];
   let sent = 0, failed = 0;
+  let transientStop = false;               // a transient relay failure requeued a recipient
+  const isSelf = camp.send_via === "self";
   const whEps = await getEndpoints(uid);   // once per batch; empty unless the user set up webhooks
   const whTasks: Promise<unknown>[] = [];
   for (const r of batch) {
@@ -379,16 +395,26 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
     const tok = await trackToken(id, r.id);
     const personalized = String(camp.body).replace(/\{\{\s*name\s*\}\}/g, esc(who));
     const html = `${withTracking(personalized, id, r.id, tok)}<br><br><hr style="border:none;border-top:1px solid #eee"><p style="font-size:12px;color:#888;font-family:system-ui,sans-serif">You're receiving this because you're on a list managed in Sendra. <a href="${unsub}" style="color:#888">Unsubscribe</a>.</p>${openPixel(id, r.id, tok)}`;
-    const res: { ok: boolean; id?: string; error?: string } = camp.send_via === "self"
+    const res: { ok: boolean; id?: string; error?: string } = isSelf
       ? await sendOneSelf(camp.from_email, camp.from_name, r.email, camp.subject, html, unsub)
       : await sendOne(uid, camp.app, r.email, camp.subject, html);
-    await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, {
-      method: "PATCH", headers: sbHeaders,
-      body: JSON.stringify(res.ok ? { status: "sent", sent_at: new Date().toISOString(), ...(res.id ? { provider_msg_id: res.id } : {}) } : { status: "failed", error: res.error }),
-    });
-    if (res.ok) sent++; else failed++;
-    if (whEps.length) whTasks.push(deliverEvent(whEps, res.ok ? "sent" : "failed", { email: r.email, campaign_id: id, recipient_id: r.id, ...(res.id ? { message_id: res.id } : {}), ...(res.ok ? {} : { error: res.error }) }));
-    await sleep(camp.send_via === "self" ? 500 : 700); // throttle
+    if (res.ok) {
+      await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString(), ...(res.id ? { provider_msg_id: res.id } : {}) }) });
+      sent++;
+      if (whEps.length) whTasks.push(deliverEvent(whEps, "sent", { email: r.email, campaign_id: id, recipient_id: r.id, ...(res.id ? { message_id: res.id } : {}) }));
+    } else {
+      const nextAttempts = (r.attempts ?? 0) + 1;
+      if (isSelf && isTransient(res.error) && nextAttempts < MAX_SEND_ATTEMPTS) {
+        // Transient (box down / 5xx / network): keep it queued so the next drain or cron tick retries.
+        await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "queued", attempts: nextAttempts, error: res.error }) });
+        transientStop = true;
+      } else {
+        await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "failed", attempts: nextAttempts, error: res.error }) });
+        failed++;
+        if (whEps.length) whTasks.push(deliverEvent(whEps, "failed", { email: r.email, campaign_id: id, recipient_id: r.id, error: res.error }));
+      }
+    }
+    await sleep(isSelf ? 500 : 700); // throttle
   }
   const [totSent, totFailed, remaining] = await Promise.all([countBy(id, "sent"), countBy(id, "failed"), countBy(id, "queued")]);
   const done = remaining === 0;
@@ -397,7 +423,9 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
     body: JSON.stringify({ sent: totSent, failed: totFailed, status: done ? "sent" : "sending", locked_until: null, updated_at: new Date().toISOString() }),
   });
   const flush = bg(whTasks); if (flush) await flush;   // deliver sent/failed webhooks in the background
-  return { sent, failed, remaining, done };
+  // If the whole pass made no progress because the box was unreachable, tell the client
+  // to stop looping — the campaign stays 'sending' and the run_due cron keeps retrying.
+  return { sent, failed, remaining, done, ...(transientStop && sent === 0 ? { retry: true } : {}) };
 }
 
 // Shared secret the scheduled-send cron presents (the value lives in Vault and is

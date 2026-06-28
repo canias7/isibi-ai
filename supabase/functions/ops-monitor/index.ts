@@ -16,6 +16,9 @@ const ALERT_EMAIL = Deno.env.get("ALERT_EMAIL") || "aniascapital@gmail.com";
 // Estimated AI spend for the current UTC day that trips an alert, in USD.
 const SPEND_ALERT_USD = Number(Deno.env.get("DAILY_SPEND_ALERT_USD")) || 25;
 const ALERT_COOLDOWN_MS = 6 * 3600 * 1000;
+// The shared sending IP to watch on public blocklists (override per box/IP-pool).
+const SENDING_IP = Deno.env.get("MAILER_SENDING_IP") || "86.48.22.231";
+const DNSBLS = ["zen.spamhaus.org", "bl.spamcop.net", "b.barracudacentral.org"];
 
 const sbHeaders = { apikey: SB_KEY, authorization: `Bearer ${SB_KEY}`, "content-type": "application/json" };
 const json = (obj: unknown, status = 200) =>
@@ -112,6 +115,30 @@ async function probeSpend(): Promise<string | null> {
   }
 }
 
+// Blocklist (DNSBL) watch: a self-hosted shared IP getting listed is a deliverability
+// emergency, so check it each tick and alert. Queried over DoH; we ignore Spamhaus's
+// "public resolver" error codes (127.255.255.x) so they don't read as a listing. For
+// authoritative mailbox-provider reputation (Gmail/Microsoft), use Postmaster Tools.
+async function dnsblA(name: string): Promise<string[]> {
+  try {
+    const r = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(name)}&type=A`, { headers: { accept: "application/dns-json" } });
+    const j = await r.json();
+    return (j.Answer ?? []).map((a: { data?: string }) => String(a.data ?? ""));
+  } catch { return []; }
+}
+async function probeBlocklist(): Promise<string | null> {
+  const ip = SENDING_IP.trim();
+  if (!/^\d+\.\d+\.\d+\.\d+$/.test(ip)) return null;
+  const rev = ip.split(".").reverse().join(".");
+  const hits: string[] = [];
+  for (const zone of DNSBLS) {
+    const ans = await dnsblA(`${rev}.${zone}`);
+    const listed = ans.some((a) => /^127\./.test(a) && !/^127\.255\.255\./.test(a));
+    if (listed) hits.push(`${zone} (${ans.join(",")})`);
+  }
+  return hits.length ? `sending IP ${ip} is listed on: ${hits.join("; ")}` : null;
+}
+
 // Email reputation auto-pauses recorded by the campaigns guard (it writes ops_alerts
 // rows but has no mailer). One summary per tick; mark them emailed so we don't repeat.
 async function flushReputationAlerts(): Promise<number> {
@@ -149,6 +176,7 @@ Deno.serve(async (req: Request) => {
   const checks: Record<string, string | null> = {
     connectors: await probeGet("gmail-oauth", "gmail-oauth/x"),
     spend: await probeSpend(),
+    blocklist: await probeBlocklist(),
   };
   let alerts = 0;
   for (const [key, problem] of Object.entries(checks)) {

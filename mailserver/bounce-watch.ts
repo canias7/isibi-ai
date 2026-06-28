@@ -27,7 +27,7 @@ function remember(qid: string, mid: string) {
   if (midByQid.size > 5000) midByQid.delete(midByQid.keys().next().value as string);
 }
 
-async function postEvent(evt: { message_id: string; email: string; type: string; reason?: string }) {
+async function postEvent(evt: { message_id: string; email: string; type: string; reason?: string; code?: string; hard?: boolean }) {
   try {
     const headers: Record<string, string> = { authorization: `Bearer ${RELAY_TOKEN}`, "content-type": "application/json" };
     if (SB_ANON) headers.apikey = SB_ANON;
@@ -43,6 +43,9 @@ async function postEvent(evt: { message_id: string; email: string; type: string;
 const RE_MID = /^([0-9A-F]+):\s+message-id=<([^>]+)>/i;
 // smtp/lmtp logs: <qid>: to=<addr>, ... status=bounced (reason...)
 const RE_BOUNCE = /^([0-9A-F]+):\s+to=<([^>]+)>.*status=bounced(?:\s*\(([^)]*)\))?/i;
+// Postfix logs the enhanced status code as dsn=X.Y.Z. The class digit tells us
+// permanent vs transient: 5.x.x = hard bounce (suppress), 4.x.x = soft (don't).
+const RE_DSN = /\bdsn=((\d)\.\d+\.\d+)/i;
 
 function handle(line: string) {
   const mid = line.match(RE_MID);
@@ -51,7 +54,9 @@ function handle(line: string) {
   if (b) {
     const messageId = midByQid.get(b[1]);
     if (!messageId) return; // never saw the message-id for this queue-id; skip
-    postEvent({ message_id: messageId, email: b[2].toLowerCase(), type: "bounce", reason: (b[3] || "bounced").slice(0, 300) });
+    const dsn = line.match(RE_DSN);
+    const hard = dsn ? dsn[2] === "5" : true; // unknown code -> treat as hard (safe default)
+    postEvent({ message_id: messageId, email: b[2].toLowerCase(), type: "bounce", reason: (b[3] || "bounced").slice(0, 300), code: dsn ? dsn[1] : undefined, hard });
   }
 }
 
