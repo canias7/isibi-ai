@@ -184,6 +184,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [composeKind, setComposeKind] = useState<'text' | 'html'>('text'); // 'html' once a designed template is applied
   const [toPicker, setToPicker] = useState(false); // contacts dropdown under the To field
   const [replyThreadId, setReplyThreadId] = useState<string | null>(null);
+  const [cc, setCc] = useState('');           // compose Cc (comma/semicolon separated)
+  const [bcc, setBcc] = useState('');         // compose Bcc
+  const [showCc, setShowCc] = useState(false); // reveal the Cc/Bcc fields
+  const [inboxQ, setInboxQ] = useState('');   // inbox search filter (client-side over loaded mail)
   const [sendState, setSendState] = useState<SendState>('idle');
   const [sendApp, setSendApp] = useState<'gmail' | 'outlook'>('gmail'); // which mailbox a send/reply goes through
   const [inboxHome, setInboxHome] = useState(false); // Inbox opened from the Sendra home -> Back returns there, not the app grid
@@ -428,6 +432,20 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
   };
 
+  // Opening an email clears its unread dot immediately (optimistic, local). We
+  // keep this client-side only: Composio's Gmail label tools (BATCH_MODIFY /
+  // remove-label) are dead at execute time, so read state can't be persisted to
+  // Gmail — a uniform local update beats a button that silently fails on one
+  // provider. The dot returns only on a hard mailbox reload.
+  const markReadLocal = (it: EmailItem) => {
+    if (!it.unread || !it.id) return;
+    setInbox((prev) => {
+      const out = prev.map((m) => (m.id === it.id ? { ...m, unread: false } : m));
+      inboxCache[combinedInbox ? 'all' : mailApp] = out;
+      return out;
+    });
+  };
+
   const loadContacts = useCallback(() => {
     if (!contactsCache[mailApp]) setContactsState('loading');
     fetchContacts(mailApp)
@@ -591,6 +609,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const openCompose = () => {
     tap();
     setReplyThreadId(null); setTo(''); setSubject(''); setBodyText(''); setComposeKind('text'); setToPicker(false);
+    setCc(''); setBcc(''); setShowCc(false);
     setSendState('idle'); setSendApp(mailApp); setEmailTab('compose');
     loadContacts(); loadSaved();  // mailbox + saved contacts for the To picker
     listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });  // for the body template picker
@@ -611,16 +630,39 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setTo(reading.email || '');
     setSubject(/^re:/i.test(subj) ? subj : `Re: ${subj}`);
     setBodyText('');
+    setCc(''); setBcc(''); setShowCc(false);
     setSendState('idle');
     setSendApp(reading.app === 'outlook' ? 'outlook' : 'gmail'); // reply through the email's own mailbox
     setReading(null);
     setEmailTab('compose');
   };
+  // Forward = a brand-new message (replyThreadId stays null) pre-filled with a
+  // quoted header + the listed snippet. Composio's dedicated forward tools are
+  // dead (OUTLOOK_FORWARD_MESSAGE broken; Gmail has none), so this composes a
+  // fresh send through the existing path — works the same on both mailboxes.
+  const openForward = () => {
+    if (!reading) return;
+    tap();
+    const subj = reading.subject || '';
+    const who = reading.email ? `${reading.from || ''} <${reading.email}>`.trim() : (reading.from || 'Unknown');
+    setReplyThreadId(null);
+    setTo('');
+    setSubject(/^fwd:/i.test(subj) ? subj : `Fwd: ${subj}`);
+    setBodyText(`\n\n---------- Forwarded message ----------\nFrom: ${who}\n${reading.time ? `Date: ${reading.time}\n` : ''}Subject: ${subj}\n\n${reading.snippet || ''}`);
+    setComposeKind('text');
+    setCc(''); setBcc(''); setShowCc(false);
+    setSendState('idle');
+    setSendApp(reading.app === 'outlook' ? 'outlook' : 'gmail');
+    setReading(null);
+    setEmailTab('compose');
+  };
   const validTo = EMAIL_RE.test(to.trim());
+  const splitAddrs = (s: string) => s.split(/[,;]/).map((x) => x.trim()).filter((x) => EMAIL_RE.test(x));
   const doSend = () => {
     tap();
     setSendState('sending');
-    sendEmail({ to: to.trim(), subject: subject.trim(), body: bodyText, threadId: replyThreadId || undefined, app: sendApp, html: composeKind === 'html' })
+    const ccArr = splitAddrs(cc), bccArr = splitAddrs(bcc);
+    sendEmail({ to: to.trim(), subject: subject.trim(), body: bodyText, threadId: replyThreadId || undefined, cc: ccArr.length ? ccArr : undefined, bcc: bccArr.length ? bccArr : undefined, app: sendApp, html: composeKind === 'html' })
       .then(() => { if (mountedRef.current) setSendState('sent'); })
       .catch(() => { if (mountedRef.current) setSendState('err'); });
   };
@@ -1167,6 +1209,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     const wm = Math.min(...active.map((a) => frontier[a] ?? -Infinity));
     return wm === -Infinity ? inbox : inbox.filter((it) => (it.ts ?? 0) >= wm);
   })();
+  // Search filters the loaded mail by sender/subject/snippet. With a query active
+  // we scan the whole loaded set (not just the watermarked window) so a match in
+  // older mail isn't hidden; clearing it returns to the normal merged view.
+  const inboxQuery = inboxQ.trim().toLowerCase();
+  const shownInbox = inboxQuery
+    ? inbox.filter((it) => `${it.from} ${it.email ?? ''} ${it.subject} ${it.snippet ?? ''}`.toLowerCase().includes(inboxQuery))
+    : visibleInbox;
 
   const connectCard = (extra: string) => (
     <div className="ag-connect">
@@ -1230,8 +1279,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             subject: reading.subject, time: reading.time, unread: reading.unread,
             draft: reading.draft, body: reading.snippet || '',
           }} />
-          {mailConnected && (reading.threadId || reading.email) ? (
-            <button className="ag-send-btn ag-reply-btn" onClick={openReply}>Reply</button>
+          {mailConnected ? (
+            <div className="ag-reader-actions" style={{ display: 'flex', gap: 10 }}>
+              {(reading.threadId || reading.email) && (
+                <button className="ag-send-btn ag-reply-btn" style={{ flex: 1 }} onClick={openReply}>Reply</button>
+              )}
+              <button className="ag-send-btn ghost" style={{ flex: 1 }} onClick={openForward}>Forward</button>
+            </div>
           ) : null}
         </div>
       ) : commsApp === null ? (
@@ -2016,17 +2070,38 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               <div className="ag-empty">Inbox is empty.</div>
             ) : inbox.length ? (
               <>
-                <div className="ag-inbox" key={pageIdx}>
-                  <EmailList items={visibleInbox} onOpen={(it) => { tap(); setReading(it); }} badges={combinedInbox} />
+                <div className="ag-inbox-search" style={{ position: 'relative', marginBottom: 8 }}>
+                  <input
+                    className="ag-field"
+                    type="search" inputMode="search" autoCapitalize="none" autoCorrect="off"
+                    placeholder="Search loaded mail…"
+                    value={inboxQ}
+                    onChange={(e) => setInboxQ(e.target.value)}
+                    style={{ width: '100%', paddingRight: 34 }}
+                  />
+                  {inboxQ && (
+                    <button
+                      onClick={() => { tap(); setInboxQ(''); }}
+                      aria-label="Clear search"
+                      style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', fontSize: 16, lineHeight: 1, cursor: 'pointer', color: 'inherit', opacity: 0.6, padding: 4 }}
+                    >✕</button>
+                  )}
                 </div>
-                {!combinedInbox && hasPager && (
+                {shownInbox.length === 0 ? (
+                  <div className="ag-empty">No emails match “{inboxQ.trim()}”.</div>
+                ) : (
+                  <div className="ag-inbox" key={pageIdx}>
+                    <EmailList items={shownInbox} onOpen={(it) => { tap(); markReadLocal(it); setReading(it); }} badges={combinedInbox} />
+                  </div>
+                )}
+                {!inboxQuery && !combinedInbox && hasPager && (
                   <div className="ag-pager">
                     <button onClick={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || refreshing}>‹ Prev</button>
                     <span className="ag-pager-n">Page {pageIdx + 1}</span>
                     <button onClick={() => goPage(pageIdx + 1)} disabled={!nextTok || refreshing}>Next ›</button>
                   </div>
                 )}
-                {mergedMore && (
+                {!inboxQuery && mergedMore && (
                   <div className="ag-pager">
                     <button onClick={loadMoreMerged} disabled={refreshing}>{refreshing ? 'Loading…' : 'Load older'}</button>
                   </div>
@@ -2152,6 +2227,19 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     </div>
                   ) : null;
                 })()}
+                {!showCc ? (
+                  <button
+                    onClick={() => { tap(); setShowCc(true); }}
+                    style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#3A86FF', padding: '2px', fontSize: 13, cursor: 'pointer' }}
+                  >Add Cc / Bcc</button>
+                ) : (
+                  <>
+                    <input className="ag-field" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off"
+                      placeholder="Cc (comma-separated)" value={cc} onChange={(e) => setCc(e.target.value)} onFocus={() => setToPicker(false)} />
+                    <input className="ag-field" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off"
+                      placeholder="Bcc (comma-separated)" value={bcc} onChange={(e) => setBcc(e.target.value)} onFocus={() => setToPicker(false)} />
+                  </>
+                )}
                 <input className="ag-field" placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} onFocus={() => setToPicker(false)} />
                 {tplList.length > 0 && (
                   <div className="ag-tpl-row">
