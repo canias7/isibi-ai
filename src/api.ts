@@ -218,7 +218,7 @@ export async function createCampaign(p: { app: string; name?: string; subject: s
 export async function unscheduleCampaign(id: string): Promise<void> {
   await supabase.functions.invoke('campaigns', { body: { action: 'unschedule', id } });
 }
-export async function sendCampaignBatch(id: string): Promise<{ sent: number; failed: number; remaining: number; done: boolean; error?: string }> {
+export async function sendCampaignBatch(id: string): Promise<{ sent: number; failed: number; remaining: number; done: boolean; paused?: boolean; error?: string }> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'send', id } });
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { sent: number; failed: number; remaining: number; done: boolean; error?: string };

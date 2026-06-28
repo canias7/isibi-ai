@@ -730,6 +730,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               : c.error === 'domain_not_verified' ? 'That domain isn’t verified yet — check its DNS records under Domains.'
                 : c.error === 'bad_from' ? 'Enter a valid From address.'
                 : c.error === 'mail_server_unset' ? 'Your mail server isn’t connected yet — finish setup, then try again.'
+                : c.error === 'reputation_paused' ? 'Sending is paused — your recent bounce or complaint rate is too high. Clean your list, then try again.'
                     : 'Couldn’t create the campaign — try again.');
         return;
       }
@@ -738,6 +739,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       while (!done) {
         const r = await sendCampaignBatch(c.id);
         if (!mountedRef.current) return;
+        if (r.paused) { setCampState('err'); setCampErr('Sending paused — your recent bounce or complaint rate is too high. Clean your list, then try again.'); return; }
         setCampProg((p) => ({ total: p.total, sent: p.sent + r.sent, failed: p.failed + r.failed }));
         done = r.done;
       }

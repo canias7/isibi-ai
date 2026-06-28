@@ -112,6 +112,34 @@ async function probeSpend(): Promise<string | null> {
   }
 }
 
+// Email reputation auto-pauses recorded by the campaigns guard (it writes ops_alerts
+// rows but has no mailer). One summary per tick; mark them emailed so we don't repeat.
+async function flushReputationAlerts(): Promise<number> {
+  try {
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const r = await fetch(`${SB_URL}/rest/v1/ops_alerts?key=like.reputation:*&emailed=eq.false&created_at=gt.${encodeURIComponent(since)}&select=id,message&limit=25`, { headers: sbHeaders });
+    if (!r.ok) return 0;
+    const rows = (await r.json()) as { id: string; message: string }[];
+    if (!Array.isArray(rows) || !rows.length) return 0;
+    if (RESEND_API_KEY && ALERT_EMAIL) {
+      try {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: RESEND_FROM,
+            to: [ALERT_EMAIL],
+            subject: `[Go Farther alert] ${rows.length} sender(s) auto-paused (reputation)`,
+            text: `${rows.map((x) => "• " + x.message).join("\n")}\n\nThese customers were auto-paused to protect the shared sending IP. Review them in the app.`,
+          }),
+        });
+      } catch { /* email is best effort */ }
+    }
+    await fetch(`${SB_URL}/rest/v1/ops_alerts?id=in.(${rows.map((x) => x.id).join(",")})`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ emailed: true }) });
+    return rows.length;
+  } catch { return 0; }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   const bearer = (req.headers.get("authorization") || "").replace(/^bearer\s+/i, "").trim();
@@ -126,5 +154,6 @@ Deno.serve(async (req: Request) => {
   for (const [key, problem] of Object.entries(checks)) {
     if (problem) { alerts++; await alert(key, problem); }
   }
-  return json({ ok: alerts === 0, alerts, checks });
+  const reputationEmailed = await flushReputationAlerts();
+  return json({ ok: alerts === 0, alerts, checks, reputationEmailed });
 });

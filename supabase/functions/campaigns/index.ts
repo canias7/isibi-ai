@@ -179,11 +179,43 @@ async function sendOneSelf(fromEmail: string | null, fromName: string | null, to
   }
 }
 
+// --- Reputation guard ---------------------------------------------------------
+// A self-hosted shared IP has no provider to police bad senders, so we do it: if a
+// customer's RECENT bounce/complaint rate crosses the line we pause them (and alert
+// the operator) rather than let them burn the shared IP's reputation for everyone.
+const REP_WINDOW_DAYS = 30;      // look back this far
+const REP_MIN_SAMPLE = 20;       // ignore tiny volume (rates are noise below this)
+const REP_MAX_BOUNCE = 0.10;     // hard-bounce ceiling (matches SES's pause line)
+const REP_MAX_COMPLAINT = 0.005; // complaint ceiling
+async function reputationBlock(uid: string): Promise<string | null> {
+  const since = new Date(Date.now() - REP_WINDOW_DAYS * 86400 * 1000).toISOString();
+  const w = `&sent_at=gte.${encodeURIComponent(since)}`;
+  const [accepted, bounced, complained] = await Promise.all([
+    countUser(uid, `${w}&status=in.(sent,bounced,complained)`),
+    countUser(uid, `${w}&status=eq.bounced`),
+    countUser(uid, `${w}&status=eq.complained`),
+  ]);
+  if (accepted < REP_MIN_SAMPLE) return null;
+  if (bounced / accepted > REP_MAX_BOUNCE) return `bounce rate ${Math.round((bounced / accepted) * 100)}% (limit ${Math.round(REP_MAX_BOUNCE * 100)}%)`;
+  if (complained / accepted > REP_MAX_COMPLAINT) return `complaint rate ${((complained / accepted) * 100).toFixed(1)}% (limit ${(REP_MAX_COMPLAINT * 100).toFixed(1)}%)`;
+  return null;
+}
+// Record an operator alert (deduped 6h per customer); ops-monitor emails recent ones.
+async function recordReputationAlert(uid: string, detail: string): Promise<void> {
+  const key = `reputation:${uid}`;
+  try {
+    const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+    const r = await fetch(`${SB_URL}/rest/v1/ops_alerts?key=eq.${encodeURIComponent(key)}&created_at=gt.${encodeURIComponent(since)}&select=id&limit=1`, { headers: sbHeaders });
+    if (r.ok && ((await r.json()) as unknown[]).length) return;
+    await fetch(`${SB_URL}/rest/v1/ops_alerts`, { method: "POST", headers: { ...sbHeaders, prefer: "return=minimal" }, body: JSON.stringify({ key, message: `Customer ${uid} auto-paused: ${detail}`, emailed: false }) });
+  } catch { /* best effort */ }
+}
+
 // Drain one batch of a campaign's queue. Shared by the `send` action (client-driven)
 // and the scheduled `run_due` cron. Flips draft/scheduled -> sending, sends up to
 // `limit`, updates counts, and marks the campaign sent once the queue is empty.
 // deno-lint-ignore no-explicit-any
-async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; failed: number; remaining: number; done: boolean }> {
+async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; failed: number; remaining: number; done: boolean; paused?: boolean }> {
   const id = camp.id as string;
   const uid = camp.user_id as string;
   // Single-flight: atomically claim this campaign before draining so two overlapping
@@ -199,6 +231,14 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
   if (!Array.isArray(lockRows) || lockRows.length === 0) {
     const remaining = await countBy(id, "queued");   // another worker holds it — don't double-send
     return { sent: 0, failed: 0, remaining, done: remaining === 0 };
+  }
+  // Reputation guard: pause this customer (don't keep sending) if their recent
+  // bounce/complaint rate is too high — protects the shared sending IP.
+  const repBlock = await reputationBlock(uid);
+  if (repBlock) {
+    await recordReputationAlert(uid, repBlock);
+    await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "paused", locked_until: null, updated_at: new Date().toISOString() }) });
+    return { sent: 0, failed: 0, remaining: await countBy(id, "queued"), done: false, paused: true };
   }
   if (camp.status === "draft" || camp.status === "scheduled") {
     await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "sending", updated_at: new Date().toISOString() }) });
@@ -285,6 +325,11 @@ Deno.serve(async (req: Request) => {
       const name = String(body?.name || subject || "Untitled campaign").slice(0, 120);
       const raw = Array.isArray(body?.recipients) ? body.recipients as Record<string, unknown>[] : [];
       if (!subject || !html) return json(req, { error: "missing_content" });
+
+      // Reputation guard: block new campaigns while this customer is over the
+      // bounce/complaint limit (protects the shared sending IP).
+      const repBlock = await reputationBlock(uid);
+      if (repBlock) { await recordReputationAlert(uid, repBlock); return json(req, { error: "reputation_paused", detail: repBlock }); }
 
       // Sending method: the user's connected mailbox (default) or their own verified
       // self-hosted domain via the mail server relay (send_via "self").
