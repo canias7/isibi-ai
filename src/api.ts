@@ -218,10 +218,10 @@ export async function createCampaign(p: { app: string; name?: string; subject: s
 export async function unscheduleCampaign(id: string): Promise<void> {
   await supabase.functions.invoke('campaigns', { body: { action: 'unschedule', id } });
 }
-export async function sendCampaignBatch(id: string): Promise<{ sent: number; failed: number; remaining: number; done: boolean; paused?: boolean; warmup?: { day: number; cap: number; used: number }; error?: string }> {
+export async function sendCampaignBatch(id: string): Promise<{ sent: number; failed: number; remaining: number; done: boolean; paused?: boolean; warmup?: { day: number; cap: number; used: number }; retry?: boolean; error?: string }> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'send', id } });
   if (error) throw new Error(error.message || 'Request failed');
-  return (data || {}) as { sent: number; failed: number; remaining: number; done: boolean; paused?: boolean; warmup?: { day: number; cap: number; used: number }; error?: string };
+  return (data || {}) as { sent: number; failed: number; remaining: number; done: boolean; paused?: boolean; warmup?: { day: number; cap: number; used: number }; retry?: boolean; error?: string };
 }
 // Per-campaign engagement: unique opens/clicks (our pixel + link tracker) plus
 // delivered/bounced/complained. Rates are derived in the UI.

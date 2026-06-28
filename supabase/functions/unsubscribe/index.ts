@@ -101,6 +101,26 @@ function bg(tasks: Promise<unknown>[]): void {
   if (typeof wu === "function") wu(all); else all.catch(() => {});
 }
 
+function esc(s: string): string { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+// Confirmation page shown on GET. We act only on POST so that inbox link-scanners and
+// prefetchers (which fire GET) can't unsubscribe people by accident; the visible link
+// shows this button, and Gmail/Yahoo one-click (RFC 8058) POSTs straight to the URL.
+function confirmPage(action: string, email: string): Response {
+  const html = `<!doctype html><html><head><meta charset="utf8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Unsubscribe</title></head>
+<body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0b0e;color:#fff;font-family:system-ui,sans-serif">
+<div style="text-align:center;max-width:340px;padding:28px">
+<div style="width:54px;height:54px;border-radius:16px;margin:0 auto 16px;background:linear-gradient(135deg,#FF9A4D,#F8514E)"></div>
+<h1 style="font-size:20px;margin:0 0 8px">Unsubscribe?</h1>
+<p style="color:#a6a6ae;font-size:14px;line-height:1.5;margin:0 0 20px">${esc(email)} will stop receiving these emails.</p>
+<form method="POST" action="${esc(action)}">
+<button type="submit" style="border:0;cursor:pointer;background:linear-gradient(135deg,#FF9A4D,#F8514E);color:#fff;font-size:15px;font-weight:600;padding:12px 28px;border-radius:12px">Unsubscribe</button>
+</form>
+</div></body></html>`;
+  return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+}
+
 Deno.serve(async (req: Request) => {
   const url = new URL(req.url);
   const uid = url.searchParams.get("u") || "";
@@ -112,6 +132,10 @@ Deno.serve(async (req: Request) => {
   if (!ctEq(t, expected)) {
     return page("Invalid link", "This unsubscribe link couldn't be verified.");
   }
+
+  // GET = show a confirm button (don't act); POST = actually unsubscribe (the button,
+  // or a Gmail/Yahoo one-click request).
+  if (req.method !== "POST") return confirmPage(url.pathname + url.search, email);
 
   try {
     // Idempotent: upsert on (user_id, email).

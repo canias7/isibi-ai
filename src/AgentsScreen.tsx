@@ -201,7 +201,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campSubject, setCampSubject] = useState('');
   const [campBody, setCampBody] = useState('');
   const [campRecips, setCampRecips] = useState('');
-  const [campState, setCampState] = useState<'idle' | 'sending' | 'done' | 'scheduled' | 'err' | 'warmup'>('idle');
+  const [campState, setCampState] = useState<'idle' | 'sending' | 'done' | 'scheduled' | 'err' | 'warmup' | 'retry'>('idle');
   const [campErr, setCampErr] = useState('');
   const [campProg, setCampProg] = useState({ sent: 0, total: 0, failed: 0 });
   const [campWhen, setCampWhen] = useState<'now' | 'later'>('now'); // send now vs schedule
@@ -745,6 +745,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         // deliverability. The rest keeps sending automatically (server cron) — stop the
         // client loop and show a reassuring panel rather than spinning.
         if (r.warmup) { setCampState('warmup'); listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); }); return; }
+        // Mail server briefly unreachable: the server keeps retrying (durable queue),
+        // so stop the client loop and reassure rather than spin.
+        if (r.retry) { setCampState('retry'); listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); }); return; }
         done = r.done;
       }
       setCampState('done');
@@ -1170,14 +1173,16 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             {note && <div className="ag-note">{note}</div>}
             {sendraTab === 'campaigns' ? (
               campNew ? (
-                campState === 'done' || campState === 'scheduled' || campState === 'warmup' ? (
+                campState === 'done' || campState === 'scheduled' || campState === 'warmup' || campState === 'retry' ? (
                   <div className="ag-sent">
                     <span className="ag-sent-ic"><IconCheck size={26} /></span>
-                    <div className="ag-sent-title">{campState === 'scheduled' ? 'Campaign scheduled' : campState === 'warmup' ? 'Warming up' : 'Campaign sent'}</div>
+                    <div className="ag-sent-title">{campState === 'scheduled' ? 'Campaign scheduled' : campState === 'warmup' ? 'Warming up' : campState === 'retry' ? 'Sending paused' : 'Campaign sent'}</div>
                     <div className="ag-sent-sub">{campState === 'scheduled'
                       ? `Sends ${campSchedAt ? new Date(campSchedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'at the scheduled time'}.`
                       : campState === 'warmup'
                       ? `${campProg.sent} of ${campProg.total} sent. Your sending domain is new, so we ramp volume up gradually to protect deliverability — the rest will keep sending automatically over the next day or two.`
+                      : campState === 'retry'
+                      ? `${campProg.sent} of ${campProg.total} sent. The mail server is briefly unavailable — the rest will keep sending automatically as soon as it's back.`
                       : `${campProg.sent} sent${campProg.failed ? `, ${campProg.failed} failed` : ''}.`}</div>
                     <div className="ag-sent-actions">
                       <button className="ag-send-btn ghost" onClick={openCampNew}>New campaign</button>

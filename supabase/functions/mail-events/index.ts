@@ -98,7 +98,22 @@ function bg(tasks: Promise<unknown>[]): Promise<unknown> | void {
   return all;
 }
 
-interface Evt { message_id?: string; email?: string; type?: string; reason?: string }
+interface Evt { message_id?: string; email?: string; type?: string; reason?: string; code?: string; hard?: boolean }
+
+// A bounce is HARD (permanent → suppress) only if the enhanced status code is 5.x.x.
+// 4.x.x is transient/soft (mailbox full, greylisted, rate-limited) — don't suppress,
+// or we'd permanently lose addresses over temporary problems. Defaults to hard when
+// the box couldn't classify it (safer than silently never suppressing).
+function isHardBounce(e: Evt): boolean {
+  if (typeof e.hard === "boolean") return e.hard;
+  const code = String(e.code ?? "");
+  if (/^5\./.test(code)) return true;
+  if (/^4\./.test(code)) return false;
+  const reason = String(e.reason ?? "");
+  if (/(^|\s)5\.\d+\.\d+|\b5\d\d\b/.test(reason)) return true;
+  if (/(^|\s)4\.\d+\.\d+|\b4\d\d\b/.test(reason)) return false;
+  return true;
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -130,18 +145,27 @@ Deno.serve(async (req: Request) => {
     }
 
     const isComplaint = type === "complaint" || type === "complained" || type === "abuse";
-    const status = isComplaint ? "complained" : "bounced";
-    const reason = isComplaint ? "complaint" : "bounce";
-    const detail = String(e?.reason ?? reason).slice(0, 300);
-    await db(`campaign_recipients?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status, error: detail }) });
-    // Suppress for this user so future sends skip the address (PK = user_id,email).
-    const s = await db("email_suppressions", {
-      method: "POST",
-      headers: { Prefer: "resolution=merge-duplicates" },
-      body: JSON.stringify({ user_id, email, reason }),
-    });
-    if (s.ok) suppressed++;
-    bgTasks.push(fanout(user_id, status, { email, campaign_id, recipient_id: id, message_id: mid, reason: detail }));
+    const detail = String(e?.reason ?? (isComplaint ? "complaint" : "bounce")).slice(0, 300);
+
+    if (isComplaint) {
+      await db(`campaign_recipients?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status: "complained", error: detail }) });
+      const s = await db("email_suppressions", { method: "POST", headers: { Prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ user_id, email, reason: "complaint" }) });
+      if (s.ok) suppressed++;
+      bgTasks.push(fanout(user_id, "complained", { email, campaign_id, recipient_id: id, message_id: mid, reason: detail }));
+      continue;
+    }
+
+    // Bounce: only HARD (5.x.x) suppresses. Soft (4.x.x) is transient — record it as
+    // soft_bounced (so it isn't counted as a hard bounce) but keep the address sendable.
+    const hard = isHardBounce(e);
+    if (hard) {
+      await db(`campaign_recipients?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status: "bounced", error: detail }) });
+      const s = await db("email_suppressions", { method: "POST", headers: { Prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ user_id, email, reason: "bounce" }) });
+      if (s.ok) suppressed++;
+    } else {
+      await db(`campaign_recipients?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status: "soft_bounced", error: detail }) });
+    }
+    bgTasks.push(fanout(user_id, "bounced", { email, campaign_id, recipient_id: id, message_id: mid, reason: detail, bounce_type: hard ? "hard" : "soft", ...(e?.code ? { code: e.code } : {}) }));
   }
 
   // Fan out to webhooks in the background so the box's POST returns promptly.
