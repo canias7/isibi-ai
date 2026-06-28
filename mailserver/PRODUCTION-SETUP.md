@@ -156,8 +156,15 @@ Then in the app:
   Postfix journal and POSTs bounces to the `mail-events` function, which suppresses the
   address for that user. `send` already refuses suppressed recipients. Just deploy
   `mail-events` (step 5). Complaints need a feedback-loop mailbox (future).
-- **Warm-up:** ramp volume gradually on a new IP; keep DMARC at `p=none` for customers until
-  you're confident, then move to quarantine/reject.
+- **Warm-up (enforced in software):** a new IP has no reputation, so the `campaigns` fn caps
+  self-hosted volume per rolling 24h and ramps the ceiling over the first ~4 weeks
+  (`50 → 100 → 250 → 500 → 1k → 2.5k → 5k → 10k → 25k → uncapped@day28`, by days since the
+  first self-hosted send). Over-cap batches are trimmed and the rest drains automatically via
+  the every-minute `run_due` cron — no babysitting. The clock is derived from the first send
+  (nothing to seed). Mailbox sends (Gmail/Outlook) leave the user's own provider, not our IP,
+  so they're never throttled. Disable once fully warmed with the `MAILER_WARMUP=off` edge
+  secret. Keep DMARC at `p=none` for customers until you're confident, then move to
+  quarantine/reject.
 
 ---
 

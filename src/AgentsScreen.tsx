@@ -201,7 +201,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campSubject, setCampSubject] = useState('');
   const [campBody, setCampBody] = useState('');
   const [campRecips, setCampRecips] = useState('');
-  const [campState, setCampState] = useState<'idle' | 'sending' | 'done' | 'scheduled' | 'err'>('idle');
+  const [campState, setCampState] = useState<'idle' | 'sending' | 'done' | 'scheduled' | 'err' | 'warmup'>('idle');
   const [campErr, setCampErr] = useState('');
   const [campProg, setCampProg] = useState({ sent: 0, total: 0, failed: 0 });
   const [campWhen, setCampWhen] = useState<'now' | 'later'>('now'); // send now vs schedule
@@ -741,6 +741,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         if (!mountedRef.current) return;
         if (r.paused) { setCampState('err'); setCampErr('Sending paused — your recent bounce or complaint rate is too high. Clean your list, then try again.'); return; }
         setCampProg((p) => ({ total: p.total, sent: p.sent + r.sent, failed: p.failed + r.failed }));
+        // Warm-up cap hit for now: a new sending domain ramps volume gradually to protect
+        // deliverability. The rest keeps sending automatically (server cron) — stop the
+        // client loop and show a reassuring panel rather than spinning.
+        if (r.warmup) { setCampState('warmup'); listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); }); return; }
         done = r.done;
       }
       setCampState('done');
@@ -1166,12 +1170,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             {note && <div className="ag-note">{note}</div>}
             {sendraTab === 'campaigns' ? (
               campNew ? (
-                campState === 'done' || campState === 'scheduled' ? (
+                campState === 'done' || campState === 'scheduled' || campState === 'warmup' ? (
                   <div className="ag-sent">
                     <span className="ag-sent-ic"><IconCheck size={26} /></span>
-                    <div className="ag-sent-title">{campState === 'scheduled' ? 'Campaign scheduled' : 'Campaign sent'}</div>
+                    <div className="ag-sent-title">{campState === 'scheduled' ? 'Campaign scheduled' : campState === 'warmup' ? 'Warming up' : 'Campaign sent'}</div>
                     <div className="ag-sent-sub">{campState === 'scheduled'
                       ? `Sends ${campSchedAt ? new Date(campSchedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'at the scheduled time'}.`
+                      : campState === 'warmup'
+                      ? `${campProg.sent} of ${campProg.total} sent. Your sending domain is new, so we ramp volume up gradually to protect deliverability — the rest will keep sending automatically over the next day or two.`
                       : `${campProg.sent} sent${campProg.failed ? `, ${campProg.failed} failed` : ''}.`}</div>
                     <div className="ag-sent-actions">
                       <button className="ag-send-btn ghost" onClick={openCampNew}>New campaign</button>
