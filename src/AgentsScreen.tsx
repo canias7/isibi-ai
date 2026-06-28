@@ -10,7 +10,7 @@ import { tap } from './haptics';
 import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
-import { mailerListDomains, mailerAddDomain, mailerDomainRecords, mailerVerifyDomain, mailerRemoveDomain, mailerSend, type SendingDomain, type DnsRecord } from './mailer';
+import { mailerListDomains, mailerAddDomain, mailerDomainRecords, mailerVerifyDomain, mailerRemoveDomain, mailerSend, mailerMessages, type SendingDomain, type DnsRecord, type Message as SentEmail } from './mailer';
 import { discoverDomainConnect, type DcSupport } from './domainConnect';
 
 // Sendra is the comms agent (Gmail, Outlook & Telegram in one place). The app's
@@ -23,7 +23,7 @@ type IconCmp = typeof IconCompose;
 type CommsId = 'gmail' | 'm365' | 'telegram';
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'logs' | 'deliver' | 'automations';
+type SendraTab = 'home' | 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'emails' | 'logs' | 'deliver' | 'automations';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   home: { t: 'Sendra', s: 'Your communication hub' },
   texts: { t: 'Text', s: 'Send an SMS' },
@@ -32,6 +32,7 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   domains: { t: 'Domains', s: 'Send from your own address' },
   schedule: { t: 'Schedule', s: 'Scheduled sends & reminders' },
   webhook: { t: 'Webhooks', s: 'Post events to your systems' },
+  emails: { t: 'Emails', s: 'Individual emails you’ve sent' },
   logs: { t: 'Logs', s: 'Every email sent & what happened' },
   deliver: { t: 'Deliverability', s: 'Are your emails landing?' },
   automations: { t: 'Automations', s: 'Drip sequences on autopilot' },
@@ -39,6 +40,7 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
 // Sendra home menu. 'inbox'/'contacts' open the mail workspace; the rest are tabs/scaffolds.
 const HOME_TOOLS: { id: SendraTab | 'inbox' | 'contacts'; name: string; desc: string; Icon: IconCmp }[] = [
   { id: 'inbox', name: 'Inbox', desc: 'All your mail', Icon: IconInbox },
+  { id: 'emails', name: 'Emails', desc: 'Sent emails', Icon: IconArrowUp },
   { id: 'contacts', name: 'Contacts', desc: 'Your people', Icon: IconContacts },
   { id: 'texts', name: 'Text', desc: 'Send an SMS', Icon: IconChat },
   { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
@@ -234,6 +236,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campBodyKind, setCampBodyKind] = useState<'text' | 'html'>('text'); // 'html' when a designed template is applied
   // Per-email activity log (Logs tab)
   const [logsList, setLogsList] = useState<EmailLog[]>([]);
+  const [msgList, setMsgList] = useState<SentEmail[]>([]); // Emails tab: individual transactional sends
+  const [msgBusy, setMsgBusy] = useState(false);
   const [logsQ, setLogsQ] = useState('');
   const [logsBusy, setLogsBusy] = useState(false);
   // Deliverability insights (Deliverability tab)
@@ -515,6 +519,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (sendraTab === 'texts') smsStatus().then((s) => { if (mountedRef.current) { setSmsReady(s.ready); setSmsNumber(s.number); } });
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
     if (sendraTab === 'logs') { setLogsBusy(true); listLogs('').then((l) => { if (mountedRef.current) { setLogsList(l); setLogsBusy(false); } }).catch(() => { if (mountedRef.current) setLogsBusy(false); }); }
+    if (sendraTab === 'emails') { setMsgBusy(true); mailerMessages().then((m) => { if (mountedRef.current) { setMsgList(m); setMsgBusy(false); } }).catch(() => { if (mountedRef.current) setMsgBusy(false); }); }
     if (sendraTab === 'deliver') { setDelivBusy(true); getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); }); }
     // Verified domains feed the composer's "Send from" picker; the Domains tab needs the full list.
     if (sendraTab === 'campaigns' || sendraTab === 'domains' || sendraTab === 'automations') mailerListDomains().then((d) => { if (mountedRef.current) setDomains(d); });
@@ -986,6 +991,17 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (l.delivered_at) return { label: 'Delivered', cls: 'sent' };
     if (l.error) return { label: 'Delayed', cls: 'sending' }; // delivery_delayed note, not yet delivered/bounced
     return { label: 'Sent', cls: 'sending' };
+  };
+  // Transactional message status (mailer `messages`) -> pill.
+  const msgStatus = (s: string): { label: string; cls: string } => {
+    switch (s) {
+      case 'delivered': return { label: 'Delivered', cls: 'sent' };
+      case 'bounced': return { label: 'Bounced', cls: 'failed' };
+      case 'soft_bounced': return { label: 'Soft bounce', cls: 'sending' };
+      case 'complained': return { label: 'Complaint', cls: 'failed' };
+      case 'failed': return { label: 'Failed', cls: 'failed' };
+      default: return { label: 'Sent', cls: 'sending' };
+    }
   };
   const removeSup = async (email: string) => {
     tap();
@@ -1840,6 +1856,32 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     })}
                   </div>
                 )}
+              </div>
+            ) : sendraTab === 'emails' ? (
+              <div className="ag-compose">
+                {msgBusy && msgList.length === 0 ? (
+                  <div className="ag-empty" style={{ marginTop: 12 }}>Loading…</div>
+                ) : msgList.length === 0 ? (
+                  <div className="ag-empty" style={{ marginTop: 12 }}>No emails sent yet. Individual emails you send — from the composer or the API — show up here with their delivery status.</div>
+                ) : (
+                  <div className="ag-log-list">
+                    {msgList.map((m) => {
+                      const st = msgStatus(m.status);
+                      const when = m.delivered_at || m.sent_at || m.created_at;
+                      return (
+                        <div className="ag-log" key={m.id}>
+                          <div className="ag-camp-main">
+                            <div className="ag-camp-name">{m.to_email}</div>
+                            <div className="ag-camp-sub">{m.subject || '(no subject)'}{when ? ` · ${new Date(when).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}` : ''}</div>
+                            {m.error && <div className="ag-camp-sub ag-log-reason">{m.error}</div>}
+                          </div>
+                          <span className={`ag-camp-pill is-${st.cls}`}>{st.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="ag-foot">Every individual email you’ve sent through Sendra — from the composer or the API — and where it landed. Campaign sends live under Logs.</p>
               </div>
             ) : sendraTab === 'logs' ? (
               <div className="ag-compose">
