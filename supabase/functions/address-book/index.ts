@@ -55,6 +55,16 @@ function parseTags(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   return [...new Set(v.map((t) => String(t).trim().toLowerCase().replace(/\s+/g, " ").slice(0, 40)).filter(Boolean))].slice(0, 20);
 }
+// True if this user already has a contact with this email (emails are stored
+// lowercased, so an eq match is case-insensitive). `exceptId` skips the row being
+// edited so re-saving a contact unchanged isn't flagged as a duplicate.
+async function emailTaken(uid: string, email: string, exceptId?: string): Promise<boolean> {
+  let q = `${SB_URL}/rest/v1/contacts?user_id=eq.${uid}&email=eq.${encodeURIComponent(email)}&select=id`;
+  if (exceptId) q += `&id=neq.${exceptId}`;
+  const r = await fetch(q, { headers: sbHeaders });
+  const rows = await r.json().catch(() => []);
+  return Array.isArray(rows) && rows.length > 0;
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
@@ -78,15 +88,18 @@ Deno.serve(async (req: Request) => {
     if (action === "add") {
       const { name, email, phone } = clean(body);
       const tags = parseTags(body?.tags);
-      if (!name && !email) return json(req, { error: "missing_fields" });
-      if (email && !EMAIL_RE.test(email)) return json(req, { error: "bad_email" });
+      if (!email) return json(req, { error: "email_required" });
+      if (!EMAIL_RE.test(email)) return json(req, { error: "bad_email" });
+      if (await emailTaken(uid, email)) return json(req, { error: "duplicate_email" });
       const r = await fetch(`${SB_URL}/rest/v1/contacts`, {
         method: "POST",
         headers: { ...sbHeaders, Prefer: "return=representation" },
-        body: JSON.stringify({ user_id: uid, name, email: email || null, phone: phone || null, tags }),
+        body: JSON.stringify({ user_id: uid, name, email, phone: phone || null, tags }),
       });
       const row = (await r.json().catch(() => []))?.[0];
-      return row?.id ? json(req, { contact: row }) : json(req, { error: "add_failed" }, 502);
+      if (row?.id) return json(req, { contact: row });
+      // 409 = the unique index caught a race the check above missed.
+      return r.status === 409 ? json(req, { error: "duplicate_email" }) : json(req, { error: "add_failed" }, 502);
     }
 
     if (action === "update") {
@@ -94,15 +107,17 @@ Deno.serve(async (req: Request) => {
       if (!id) return json(req, { error: "missing_id" });
       const { name, email, phone } = clean(body);
       const tags = parseTags(body?.tags);
-      if (!name && !email) return json(req, { error: "missing_fields" });
-      if (email && !EMAIL_RE.test(email)) return json(req, { error: "bad_email" });
+      if (!email) return json(req, { error: "email_required" });
+      if (!EMAIL_RE.test(email)) return json(req, { error: "bad_email" });
+      if (await emailTaken(uid, email, id)) return json(req, { error: "duplicate_email" });
       const r = await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${id}&user_id=eq.${uid}`, {
         method: "PATCH",
         headers: { ...sbHeaders, Prefer: "return=representation" },
-        body: JSON.stringify({ name, email: email || null, phone: phone || null, tags, updated_at: new Date().toISOString() }),
+        body: JSON.stringify({ name, email, phone: phone || null, tags, updated_at: new Date().toISOString() }),
       });
       const row = (await r.json().catch(() => []))?.[0];
-      return row?.id ? json(req, { contact: row }) : json(req, { error: "not_found" });
+      if (row?.id) return json(req, { contact: row });
+      return r.status === 409 ? json(req, { error: "duplicate_email" }) : json(req, { error: "not_found" });
     }
 
     if (action === "delete") {

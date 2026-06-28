@@ -592,14 +592,23 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const openContactForm = (c?: ContactItem) => { tap(); setCFormErr(''); setCForm({ id: c?.id, name: c?.name || '', email: c?.email || '', phone: c?.phone || '', tags: c?.tags?.join(', ') || '' }); };
   const saveCForm = async () => {
     if (!cForm || cFormBusy) return;
-    const name = cForm.name.trim(), email = cForm.email.trim(), phone = cForm.phone.trim();
+    const name = cForm.name.trim(), email = cForm.email.trim().toLowerCase(), phone = cForm.phone.trim();
     const tags = cForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
-    if (!name && !email) return;
+    if (!EMAIL_RE.test(email)) { setCFormErr('A valid email is required.'); return; }
+    // No two contacts can share an email (checked here for an instant message; the
+    // server + a DB unique index enforce it for real).
+    if (savedContacts.some((c) => (c.email || '').trim().toLowerCase() === email && c.id !== cForm.id)) {
+      setCFormErr('A contact with this email already exists.'); return;
+    }
     setCFormBusy(true); setCFormErr('');
     try {
       const r = cForm.id ? await updateSavedContact(cForm.id, { name, email, phone, tags }) : await addSavedContact({ name, email, phone, tags });
       if (!mountedRef.current) return;
-      if (r.error) setCFormErr(r.error === 'bad_email' ? 'Enter a valid email address.' : 'Couldn’t save — try again.');
+      if (r.error) setCFormErr(
+        r.error === 'duplicate_email' ? 'A contact with this email already exists.'
+        : r.error === 'email_required' ? 'A valid email is required.'
+        : r.error === 'bad_email' ? 'Enter a valid email address.'
+        : 'Couldn’t save — try again.');
       else { setCForm(null); await loadSaved(); }
     } catch { if (mountedRef.current) setCFormErr('Something went wrong — try again.'); }
     finally { if (mountedRef.current) setCFormBusy(false); }
@@ -2190,7 +2199,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               <div className="ag-confirm ag-cform" role="dialog" aria-label="Contact">
                 <div className="ag-confirm-title">{cForm.id ? 'Edit contact' : 'New contact'}</div>
                 <input className="ag-field" placeholder="Name" value={cForm.name} onChange={(e) => setCForm({ ...cForm, name: e.target.value })} />
-                <input className="ag-field" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" placeholder="Email" value={cForm.email} onChange={(e) => setCForm({ ...cForm, email: e.target.value })} />
+                <input className="ag-field" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" placeholder="Email (required)" value={cForm.email} onChange={(e) => setCForm({ ...cForm, email: e.target.value })} />
                 <input className="ag-field" type="tel" inputMode="tel" placeholder="Phone (optional)" value={cForm.phone} onChange={(e) => setCForm({ ...cForm, phone: e.target.value })} />
                 <input className="ag-field" autoCapitalize="none" placeholder="Segments (e.g. vip, newsletter)" value={cForm.tags} onChange={(e) => setCForm({ ...cForm, tags: e.target.value })} />
                 <div className="ag-cform-hint">Comma-separated labels. Use them to email a whole group at once.</div>
@@ -2198,7 +2207,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 <div className="ag-cform-actions">
                   {cForm.id && <button className="ag-send-btn ghost ag-cform-del" onClick={delCForm}>Delete</button>}
                   <button className="ag-send-btn ghost" onClick={() => { tap(); setCForm(null); }}>Cancel</button>
-                  <button className="ag-send-btn" disabled={cFormBusy || (!cForm.name.trim() && !cForm.email.trim())} onClick={saveCForm}>{cFormBusy ? 'Saving…' : 'Save'}</button>
+                  <button className="ag-send-btn" disabled={cFormBusy || !EMAIL_RE.test(cForm.email.trim().toLowerCase())} onClick={saveCForm}>{cFormBusy ? 'Saving…' : 'Save'}</button>
                 </div>
               </div>
             </>
