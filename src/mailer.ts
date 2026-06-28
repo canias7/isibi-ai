@@ -63,6 +63,26 @@ export async function mailerRemoveDomain(domain: string): Promise<void> {
 // Send from a verified domain. `from` can be a full address ("Acme <hi@acme.com>"),
 // a bare address ("hi@acme.com"), or just the domain ("acme.com" → no-reply@acme.com).
 // The domain must be one the user has added and verified. Returns the message id.
-export async function mailerSend(p: { from: string; to: string; subject: string; html?: string; text?: string; reply_to?: string }): Promise<{ id?: string | null }> {
+// `idempotency_key` (optional): a client-chosen key that dedupes retried sends — the
+// same key returns the original result instead of sending twice.
+export async function mailerSend(p: { from: string; to: string; subject: string; html?: string; text?: string; reply_to?: string; idempotency_key?: string }): Promise<{ id?: string | null; idempotent?: boolean }> {
   return invoke({ action: 'send', ...p });
+}
+
+// A transactional send recorded in the message log (mailer.send outcomes + live status).
+export interface Message {
+  id: string;
+  to_email: string;
+  from_email?: string | null;
+  subject?: string | null;
+  status: string;   // sent | delivered | bounced | soft_bounced | complained | failed
+  error?: string | null;
+  provider_msg_id?: string | null;
+  created_at: string;
+  sent_at?: string | null;
+  delivered_at?: string | null;
+}
+export async function mailerMessages(): Promise<Message[]> {
+  const { messages } = await invoke<{ messages: Message[] }>({ action: 'messages' });
+  return Array.isArray(messages) ? messages : [];
 }

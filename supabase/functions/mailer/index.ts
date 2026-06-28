@@ -297,6 +297,7 @@ Deno.serve(async (req: Request) => {
         const text = typeof body?.text === "string" ? body.text : undefined;
         if (!html && !text) return json(req, { error: "provide html or text" }, 400);
         const replyTo = body?.reply_to ? parseAddr(body.reply_to)?.email : undefined;
+        const idem = body?.idempotency_key ? String(body.idempotency_key).slice(0, 255).trim() : null;
 
         // The From domain must be one the user owns AND has verified.
         const r = await db(`sending_domains?user_id=eq.${uid}&domain=eq.${from.domain}&select=verified`);
@@ -312,6 +313,29 @@ Deno.serve(async (req: Request) => {
         if (!RELAY_URL || !RELAY_TOKEN) {
           return json(req, { error: "sending isn't live yet — the mail server relay isn't configured" }, 503);
         }
+
+        // Idempotency: if this key was already used, return the prior result — don't re-send.
+        if (idem) {
+          const ex = await db(`messages?user_id=eq.${uid}&idempotency_key=eq.${encodeURIComponent(idem)}&select=provider_msg_id,status,error&limit=1`);
+          const exRows = ex.ok ? await ex.json() : [];
+          if (exRows.length) {
+            const m = exRows[0];
+            return m.status === "failed"
+              ? json(req, { error: m.error || "previous attempt failed", idempotent: true })
+              : json(req, { id: m.provider_msg_id ?? null, idempotent: true });
+          }
+        }
+        // Record each send outcome in the transactional message log (status updated later
+        // by mail-events when the box reports delivered/bounced/complained).
+        const logMessage = async (status: string, providerMsgId: string | null, errorMsg: string | null) => {
+          try {
+            await db("messages", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({
+              user_id: uid, to_email: to.email, from_email: from.email, subject: subject.slice(0, 300),
+              status, provider_msg_id: providerMsgId, error: errorMsg ? errorMsg.slice(0, 300) : null,
+              idempotency_key: idem, sent_at: status === "sent" ? new Date().toISOString() : null,
+            }) });
+          } catch { /* best effort */ }
+        };
 
         const eps = await getEndpoints(uid);   // webhook endpoints (empty unless the user set any up)
 
@@ -336,11 +360,15 @@ Deno.serve(async (req: Request) => {
             });
             const out = await relayRes.json().catch(() => ({}));
             if (relayRes.ok) {
-              bg([deliverEvent(eps, "sent", { email: to.email, from: from.email, subject, ...(out?.id ? { message_id: out.id } : {}) })]);
+              const mid = out?.id ? String(out.id).replace(/[<>]/g, "") : null;   // store sans <> so mail-events can map box events
+              await logMessage("sent", mid, null);
+              bg([deliverEvent(eps, "sent", { email: to.email, from: from.email, subject, ...(mid ? { message_id: mid } : {}) })]);
               return json(req, { id: out?.id ?? null });
             }
             if (relayRes.status >= 400 && relayRes.status < 500) {   // permanent — don't retry
-              bg([deliverEvent(eps, "failed", { email: to.email, from: from.email, subject, error: String(out?.error || `relay_${relayRes.status}`).slice(0, 300) })]);
+              const errMsg = String(out?.error || `relay_${relayRes.status}`).slice(0, 300);
+              await logMessage("failed", null, errMsg);
+              bg([deliverEvent(eps, "failed", { email: to.email, from: from.email, subject, error: errMsg })]);
               return json(req, { error: out?.error || "the mail server rejected the message" }, 502);
             }
             lastErr = String(out?.error || `relay_${relayRes.status}`);   // 5xx — retry
@@ -350,8 +378,15 @@ Deno.serve(async (req: Request) => {
             clearTimeout(timer);
           }
         }
+        await logMessage("failed", null, lastErr);
         bg([deliverEvent(eps, "failed", { email: to.email, from: from.email, subject, error: lastErr.slice(0, 300) })]);
         return json(req, { error: "couldn't reach the mail server" }, 502);
+      }
+
+      // Transactional activity log — the user's recent mailer.send messages + status.
+      case "messages": {
+        const r = await db(`messages?user_id=eq.${uid}&select=id,to_email,from_email,subject,status,error,provider_msg_id,created_at,sent_at,delivered_at&order=created_at.desc&limit=100`);
+        return json(req, { messages: r.ok ? await r.json() : [] });
       }
 
       default:
