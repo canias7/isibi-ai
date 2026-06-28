@@ -31,6 +31,7 @@ html {
   --brand-soft: #ffd98a;    /* lightest amber, for gradient starts/glows */
   --grad-brand: linear-gradient(160deg, #ffce6f, #e0951f);
   --on-brand: #2a1c05;  /* ink on amber */
+  --brand-rgb: 224, 161, 58;  /* brand as an RGB triple, for rgba() tints (themable per surface) */
   /* Semantics — one color per meaning, app-wide. */
   --success: #46d17f;
   --danger: #ff6b6b;        /* danger TEXT / icons / hairlines */
