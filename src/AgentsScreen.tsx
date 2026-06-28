@@ -157,7 +157,7 @@ function clearJob() { try { localStorage.removeItem(JOB_KEY); } catch { /* ignor
 export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [agent] = useState<AgentId | null>('email'); // home already chose the agent; open straight into Sendra
   const [commsApp, setCommsApp] = useState<CommsId | null>(null); // null while Sendra shows its home / the app constellation
-  const [sendraTab, setSendraTab] = useState<SendraTab>('home'); // Sendra landing: 'home' menu -> 'apps' / scaffolds
+  const [sendraTab, setSendraTab] = useState<SendraTab>('emails'); // Sendra lands on Emails (sent log); the drawer is the nav
   const [drawerOpen, setDrawerOpen] = useState(false); // slide-out tool sidebar (primary nav)
   const [note, setNote] = useState(''); // transient explainer shown in the P0 scaffolds
   // Mail workspace
@@ -376,7 +376,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     else if (tplEdit && chatView === 'preview') setChatView('chat');
     else if (tplEdit) { builderGenRef.current++; if (tplBody.trim() && !tplSaving) saveTpl(); else { clearDraft(); setTplEdit(null); } } // leaving the builder saves a built email + invalidates any in-flight job
 
-    else if (sendraTab !== 'home') setSendraTab('home');
+    else if (sendraTab !== 'emails') setSendraTab('emails');
     else onClose();
   };
   useFocusTrap(true, trapRef, back);
@@ -1756,7 +1756,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   <div className="ag-sent-sub">Your text is on its way.</div>
                   <div className="ag-sent-actions">
                     <button className="ag-send-btn ghost" onClick={() => { tap(); setSmsState('idle'); }}>New text</button>
-                    <button className="ag-send-btn" onClick={() => { tap(); setSendraTab('home'); }}>Done</button>
+                    <button className="ag-send-btn" onClick={() => { tap(); setSendraTab('emails'); }}>Done</button>
                   </div>
                 </div>
               ) : (
