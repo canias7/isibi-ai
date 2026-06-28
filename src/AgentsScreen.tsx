@@ -9,6 +9,7 @@ import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
 import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
+import { SENDRA_LOGO } from './sendraLogo';
 import { mailerListDomains, mailerAddDomain, mailerDomainRecords, mailerVerifyDomain, mailerRemoveDomain, mailerSend, type SendingDomain, type DnsRecord } from './mailer';
 import { discoverDomainConnect, type DcSupport } from './domainConnect';
 
@@ -155,6 +156,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [agent] = useState<AgentId | null>('email'); // home already chose the agent; open straight into Sendra
   const [commsApp, setCommsApp] = useState<CommsId | null>(null); // null while Sendra shows its home / the app constellation
   const [sendraTab, setSendraTab] = useState<SendraTab>('home'); // Sendra landing: 'home' menu -> 'apps' / scaffolds
+  const [drawerOpen, setDrawerOpen] = useState(false); // slide-out tool sidebar (primary nav)
   const [note, setNote] = useState(''); // transient explainer shown in the P0 scaffolds
   // Mail workspace
   const [emailTab, setEmailTab] = useState<EmailTab>('home');
@@ -359,6 +361,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // Back steps one level: reader -> sub-view -> workspace -> deck -> list -> close.
   const back = () => {
     tap();
+    if (drawerOpen) { setDrawerOpen(false); return; } // Esc / hardware-back closes the drawer first
     if (reading) setReading(null);
     else if (tgChat) setTgChat(null);
     else if (sendState === 'confirm') setSendState('idle');
@@ -557,6 +560,23 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setCommsApp(a);
     setEmailTab('contacts');
     loadSaved();
+  };
+  // Drawer navigation: jump straight to a tool (same actions the old home cards
+  // fired) and close the sidebar. Clears any mail/reading state first so switching
+  // sections from inside the inbox lands cleanly.
+  const navTo = (id: SendraTab | 'inbox' | 'contacts') => {
+    setDrawerOpen(false);
+    setReading(null);
+    if (id === 'inbox') { openInbox(); return; }
+    if (id === 'contacts') { openContacts(); return; }
+    tap(); setNote('');
+    if (id === 'texts') { setSmsState('idle'); setSmsErr(''); }
+    if (id === 'webhook') loadWebhooks();
+    if (id === 'logs') { setLogsQ(''); loadLogs(''); }
+    if (id === 'deliver') loadDeliver();
+    if (id === 'domains') { setDomNew(''); setDomErr(''); domPollRef.current = 0; loadDomains(); }
+    setCommsApp(null); setInboxHome(false);
+    setSendraTab(id);
   };
   const toggleContact = (email: string) => setContactSel((s) => {
     const n = new Set(s);
@@ -1223,6 +1243,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
 
   const inMailInbox = !!commsApp && commsApp !== 'telegram' && emailTab === 'inbox' && !reading;
   const inTgList = commsApp === 'telegram' && !tgChat;
+  // In a sub-view (reading/compose/thread/builder) the header shows a Back arrow;
+  // at a top-level destination it shows the hamburger that opens the tool drawer.
+  const deepView = !!reading || !!tgChat
+    || (!!commsApp && commsApp !== 'telegram' && emailTab === 'compose')
+    || (sendraTab === 'campaigns' && campNew)
+    || (sendraTab === 'templates' && !!tplEdit);
+  const greeting = (() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; })();
   const refreshSpin = refreshing || (inTgList && tgListState === 'loading');
   const doRefresh = () => { tap(); if (inMailInbox) { if (combinedInbox) loadMerged(); else refreshInbox(); } else if (inTgList) loadTgChats(); };
   const goPage = (idx: number) => { if (refreshing) return; tap(); loadPage(idx); };
@@ -1284,7 +1311,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   return (
     <div className={`memg ag${builderMode ? ' ag-builder' : ''}`} ref={trapRef} tabIndex={-1}>
       <div className="memg-top">
-        <button className="memg-back" onClick={back} aria-label={(reading || commsApp || sendraTab !== 'home') ? 'Back' : 'Close'}><IconArrowLeft size={22} /></button>
+        {deepView ? (
+          <button className="memg-back" onClick={back} aria-label="Back"><IconArrowLeft size={22} /></button>
+        ) : (
+          <button className="memg-back" onClick={() => { tap(); setDrawerOpen(true); }} aria-label="Open menu">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+        )}
         <div className="memg-titles">
           <h1 className="memg-title">{title}</h1>
           <p className="memg-sub">{subtitle}</p>
@@ -1323,18 +1356,19 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         </div>
       ) : commsApp === null ? (
         sendraTab === 'home' ? (
-          // ---- Sendra home: the tool menu (Campaigns, Templates, Analytics, Calendar, My apps) ----
-          <div className="ag-stage">
-            <div className="ag-grid">
-              {HOME_TOOLS.map((t) => (
-                <button key={t.id} className="ag-act" onClick={() => { if (t.id === 'inbox') openInbox(); else if (t.id === 'contacts') openContacts(); else { tap(); setNote(''); if (t.id === 'texts') { setSmsState('idle'); setSmsErr(''); } if (t.id === 'webhook') loadWebhooks(); if (t.id === 'logs') { setLogsQ(''); loadLogs(''); } if (t.id === 'deliver') loadDeliver(); if (t.id === 'domains') { setDomNew(''); setDomErr(''); domPollRef.current = 0; loadDomains(); } setSendraTab(t.id as SendraTab); } }}>
-                  <span className="ag-act-ic"><t.Icon size={20} /></span>
-                  <span className="ag-act-label">{t.name}</span>
-                  <span className="ag-act-sub">{t.desc}</span>
-                </button>
-              ))}
+          // ---- Sendra home: welcome + drawer launcher (the sidebar is the nav now) ----
+          <div className="ag-stage ag-home">
+            <div className="ag-home-hero">
+              <img className="ag-home-logo" src={SENDRA_LOGO} alt="" aria-hidden />
+              <h2 className="ag-home-greet">{greeting}</h2>
+              <p className="ag-home-sub">Your email &amp; SMS workspace. Open the menu to jump to your inbox, contacts, campaigns and more.</p>
+              <button className="ag-send-btn ag-home-menu" onClick={() => { tap(); setDrawerOpen(true); }}>
+                <span className="ag-home-menu-in">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+                  Open menu
+                </span>
+              </button>
             </div>
-            <p className="ag-foot">Sendra runs your communication — campaigns, templates and triage across every connected app.</p>
           </div>
         ) : (
           // ---- Campaigns / Templates / Schedule / Webhooks / Settings ----
@@ -2341,6 +2375,33 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               );
             })}
           </div>
+        </div>
+      )}
+
+      {drawerOpen && (
+        <div className="ag-drawer-wrap" role="dialog" aria-modal="true" aria-label="Sendra menu">
+          <div className="ag-drawer-scrim" onClick={() => { tap(); setDrawerOpen(false); }} />
+          <nav className="ag-drawer">
+            <div className="ag-drawer-head">
+              <img className="ag-drawer-logo" src={SENDRA_LOGO} alt="" aria-hidden />
+              <span className="ag-drawer-brand">Sendra<span>Email &amp; SMS</span></span>
+              <button className="ag-drawer-x" onClick={() => { tap(); setDrawerOpen(false); }} aria-label="Close menu"><IconX size={18} /></button>
+            </div>
+            <div className="ag-drawer-nav">
+              {HOME_TOOLS.map((t) => {
+                const active = t.id === 'inbox' ? (!!commsApp && commsApp !== 'telegram' && emailTab === 'inbox')
+                  : t.id === 'contacts' ? (!!commsApp && commsApp !== 'telegram' && emailTab === 'contacts')
+                  : (!commsApp && sendraTab === t.id);
+                return (
+                  <button key={t.id} className={`ag-drawer-item${active ? ' on' : ''}`} onClick={() => navTo(t.id)}>
+                    <span className="ag-drawer-ic"><t.Icon size={19} /></span>
+                    <span className="ag-drawer-label">{t.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <button className="ag-drawer-exit" onClick={() => { tap(); onClose(); }}><IconArrowLeft size={16} /> Close Sendra</button>
+          </nav>
         </div>
       )}
     </div>
