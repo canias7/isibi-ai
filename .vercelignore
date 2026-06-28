@@ -1,5 +1,6 @@
-# Vercel builds the real app (src) into /app and serves the phone-frame site at /.
-# Keep only what the build needs; drop the native shells, backend, and heavy dirs.
+# Vercel builds the real app (src -> dist) and serves it at the root.
+# Keep only what the build needs; drop native shells, backend, and heavy dirs.
+# (Don't ignore *.md — src/legalDocs.ts imports legal/PRIVACY.md & TERMS.md.)
 node_modules
 dist
 android
@@ -9,4 +10,3 @@ supabase
 release
 electron
 mockups
-*.md
