@@ -382,8 +382,8 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
   if (camp.status === "draft" || camp.status === "scheduled") {
     await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "sending", updated_at: new Date().toISOString() }) });
   }
-  const qRes = await fetch(`${SB_URL}/rest/v1/campaign_recipients?campaign_id=eq.${id}&status=eq.queued&select=id,email,name,attempts&order=id.asc&limit=${effLimit}`, { headers: sbHeaders });
-  const batch = (await qRes.json().catch(() => [])) as { id: string; email: string; name: string | null; attempts: number | null }[];
+  const qRes = await fetch(`${SB_URL}/rest/v1/campaign_recipients?campaign_id=eq.${id}&status=eq.queued&select=id,email,name,attempts,variant&order=id.asc&limit=${effLimit}`, { headers: sbHeaders });
+  const batch = (await qRes.json().catch(() => [])) as { id: string; email: string; name: string | null; attempts: number | null; variant: string | null }[];
   let sent = 0, failed = 0;
   let transientStop = false;               // a transient relay failure requeued a recipient
   const isSelf = camp.send_via === "self";
@@ -393,11 +393,15 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
     const who = r.name || "there";
     const unsub = await unsubUrl(uid, r.email);
     const tok = await trackToken(id, r.id);
-    const personalized = String(camp.body).replace(/\{\{\s*name\s*\}\}/g, esc(who));
+    // A/B: variant B uses subject_b/body_b when set (otherwise falls back to A's).
+    const useB = r.variant === "B";
+    const rSubject = useB && camp.subject_b ? camp.subject_b : camp.subject;
+    const rBody = useB && camp.body_b ? camp.body_b : camp.body;
+    const personalized = String(rBody).replace(/\{\{\s*name\s*\}\}/g, esc(who));
     const html = `${withTracking(personalized, id, r.id, tok)}<br><br><hr style="border:none;border-top:1px solid #eee"><p style="font-size:12px;color:#888;font-family:system-ui,sans-serif">You're receiving this because you're on a list managed in Sendra. <a href="${unsub}" style="color:#888">Unsubscribe</a>.</p>${openPixel(id, r.id, tok)}`;
     const res: { ok: boolean; id?: string; error?: string } = isSelf
-      ? await sendOneSelf(camp.from_email, camp.from_name, r.email, camp.subject, html, unsub)
-      : await sendOne(uid, camp.app, r.email, camp.subject, html);
+      ? await sendOneSelf(camp.from_email, camp.from_name, r.email, rSubject, html, unsub)
+      : await sendOne(uid, camp.app, r.email, rSubject, html);
     if (res.ok) {
       await fetch(`${SB_URL}/rest/v1/campaign_recipients?id=eq.${r.id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString(), ...(res.id ? { provider_msg_id: res.id } : {}) }) });
       sent++;
@@ -543,15 +547,21 @@ Deno.serve(async (req: Request) => {
         if (Number.isFinite(t) && t > Date.now() + 30000) scheduledAt = new Date(t).toISOString();
       }
 
+      // A/B test (optional): a variant-B subject and/or body. Present => the list is split.
+      const subjectB = body?.subject_b ? String(body.subject_b).trim().slice(0, 300) : "";
+      const bodyB = typeof body?.body_b === "string" ? body.body_b : "";
+      const isAb = !!(subjectB || bodyB);
+
       const cRes = await fetch(`${SB_URL}/rest/v1/campaigns`, {
         method: "POST",
         headers: { ...sbHeaders, Prefer: "return=representation" },
-        body: JSON.stringify({ user_id: uid, app, name, subject, body: html, status: scheduledAt ? "scheduled" : "draft", total: recips.length, send_via: sendVia, from_email: fromEmail, from_name: fromName, scheduled_at: scheduledAt }),
+        body: JSON.stringify({ user_id: uid, app, name, subject, body: html, subject_b: subjectB || null, body_b: bodyB || null, status: scheduledAt ? "scheduled" : "draft", total: recips.length, send_via: sendVia, from_email: fromEmail, from_name: fromName, scheduled_at: scheduledAt }),
       });
       const camp = (await cRes.json().catch(() => []))?.[0];
       if (!cRes.ok || !camp?.id) return json(req, { error: "create_failed" }, 502);
 
-      const rows = recips.map((c) => ({ campaign_id: camp.id, user_id: uid, email: c.email, name: c.name, status: "queued" }));
+      // A/B: split ~50/50 by alternating index. Non-A/B campaigns get variant null.
+      const rows = recips.map((c, i) => ({ campaign_id: camp.id, user_id: uid, email: c.email, name: c.name, status: "queued", variant: isAb ? (i % 2 === 0 ? "A" : "B") : null }));
       const rRes = await fetch(`${SB_URL}/rest/v1/campaign_recipients`, {
         method: "POST", headers: { ...sbHeaders, Prefer: "return=minimal" }, body: JSON.stringify(rows),
       });
@@ -620,7 +630,7 @@ Deno.serve(async (req: Request) => {
     if (action === "stats") {
       const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
-      const cRes = await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}&user_id=eq.${uid}&select=id,name,subject,app,status,total,sent,failed,send_via,created_at`, { headers: sbHeaders });
+      const cRes = await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}&user_id=eq.${uid}&select=id,name,subject,subject_b,app,status,total,sent,failed,send_via,created_at`, { headers: sbHeaders });
       const camp = (await cRes.json().catch(() => []))?.[0];
       if (!camp) return json(req, { error: "not_found" });
       const [delivered, opened, clicked, bounced, complained] = await Promise.all([
@@ -630,7 +640,20 @@ Deno.serve(async (req: Request) => {
         countFilter(id, "status=eq.bounced"),
         countFilter(id, "status=eq.complained"),
       ]);
-      return json(req, { campaign: camp, stats: { total: camp.total, sent: camp.sent, failed: camp.failed, delivered, opened, clicked, bounced, complained } });
+      // A/B breakdown — only when the list was actually split into variants.
+      const bSent = await countFilter(id, "variant=eq.B&sent_at=not.is.null");
+      let ab = null;
+      if (bSent > 0) {
+        const [aSent, aOpen, aClick, bOpen, bClick] = await Promise.all([
+          countFilter(id, "variant=eq.A&sent_at=not.is.null"),
+          countFilter(id, "variant=eq.A&opened_at=not.is.null"),
+          countFilter(id, "variant=eq.A&clicked_at=not.is.null"),
+          countFilter(id, "variant=eq.B&opened_at=not.is.null"),
+          countFilter(id, "variant=eq.B&clicked_at=not.is.null"),
+        ]);
+        ab = { a: { sent: aSent, opened: aOpen, clicked: aClick }, b: { sent: bSent, opened: bOpen, clicked: bClick } };
+      }
+      return json(req, { campaign: camp, stats: { total: camp.total, sent: camp.sent, failed: camp.failed, delivered, opened, clicked, bounced, complained }, ab });
     }
 
     // Per-email activity log — every send across the user's campaigns + its status.
