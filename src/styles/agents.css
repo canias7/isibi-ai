@@ -2,12 +2,24 @@
 /* Reuses the .memg overlay shell (fixed full-screen, header, back, dot grid).
    These styles cover the agent list and the Email agent workspace below it. */
 
-/* The AI template builder glows Sendra-orange instead of the default amber chat glow. */
-.memg.ag-builder {
+/* ============================================================
+   Sendra workspace — "Ember" theme.
+   Entering Sendra recolors the whole workspace to the brand orange
+   (logo gradient #FF9A4D → #FF6F47 → #F8514E) over a warm near-black
+   with a glow up top. Scoped to .memg.ag so the rest of the app keeps
+   its amber identity — every --brand / --grad-brand / --on-brand /
+   --brand-rgb consumer in here then retones automatically. */
+.memg.ag {
+  --brand: #ff6f47;
+  --brand-strong: #f8514e;
+  --brand-soft: #ff9a4d;
+  --grad-brand: linear-gradient(135deg, #ff9a4d, #f8514e);
+  --on-brand: #2a0e06;
+  --brand-rgb: 255, 111, 71;
   background:
-    radial-gradient(620px 480px at 50% 16%, rgba(240, 130, 30, 0.28), transparent 64%),
-    radial-gradient(460px 460px at 50% 62%, rgba(224, 110, 24, 0.14), transparent 72%),
-    #0b0806;
+    radial-gradient(135% 64% at 50% -10%, rgba(255, 111, 71, 0.22), transparent 60%),
+    radial-gradient(95% 55% at 50% 112%, rgba(248, 81, 78, 0.10), transparent 72%),
+    #0b0a09;
 }
 
 .ag-stage {
@@ -60,7 +72,7 @@
   display: flex; align-items: center; gap: 13px;
   padding: 14px; margin-top: 10px;
   border: 1px solid var(--brand); border-radius: var(--r-card);
-  background: rgba(224, 161, 58, 0.08);
+  background: rgba(var(--brand-rgb), 0.08);
 }
 .ag-connect-ic {
   flex-shrink: 0; width: 38px; height: 38px; border-radius: 11px;
@@ -254,7 +266,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 /* Replies tab */
 .ag-reply-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
 .ag-reply { background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; overflow: hidden; }
-.ag-reply.unread { border-color: rgba(224, 161, 58, 0.4); }
+.ag-reply.unread { border-color: rgba(var(--brand-rgb), 0.4); }
 .ag-reply-row { display: flex; gap: 10px; align-items: flex-start; width: 100%; padding: 12px; background: none; border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
 .ag-reply-av { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 14px; }
 .ag-reply-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
@@ -308,7 +320,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-seg { flex-shrink: 0; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--glass-edge); background: var(--glass); color: var(--text-dim); font: inherit; font-size: var(--fs-footnote); font-weight: 600; cursor: pointer; white-space: nowrap; text-transform: capitalize; }
 .ag-seg.on { color: #fff; background: var(--brand); border-color: var(--brand); }
 .gf-pickable { cursor: pointer; border-radius: 12px; }
-.gf-contact.gf-sel { background: rgba(224, 161, 58, 0.12); }
+.gf-contact.gf-sel { background: rgba(var(--brand-rgb), 0.12); }
 .gf-check { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--glass-edge); display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 800; }
 .gf-check.on { background: var(--brand); border-color: var(--brand); }
 .gf-contact-edit { margin-left: auto; color: var(--text-dim); font-size: 20px; padding-left: 8px; }
@@ -362,7 +374,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-dns { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 .ag-dns-rec { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 10px; padding: 10px; }
 .ag-dns-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.ag-dns-type { color: var(--brand); font-size: var(--fs-label); font-weight: 800; letter-spacing: .04em; background: rgba(224, 161, 58, 0.12); padding: 2px 7px; border-radius: 6px; }
+.ag-dns-type { color: var(--brand); font-size: var(--fs-label); font-weight: 800; letter-spacing: .04em; background: rgba(var(--brand-rgb), 0.12); padding: 2px 7px; border-radius: 6px; }
 .ag-dns-note { color: var(--text-dim); font-size: var(--fs-label); }
 .ag-dns-field { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
 .ag-dns-field label { color: var(--text-faint); font-size: var(--fs-label); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
@@ -634,7 +646,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-act-ic {
   width: 38px; height: 38px; border-radius: 11px;
   display: grid; place-items: center;
-  background: rgba(224, 161, 58, 0.12); color: var(--brand);
+  background: rgba(var(--brand-rgb), 0.12); color: var(--brand);
   margin-bottom: 2px;
 }
 .ag-act-label { font-weight: 700; font-size: var(--fs-body-s); }
@@ -651,7 +663,7 @@ button.ag-camp:active { filter: brightness(1.15); }
 
 /* Sendra scaffold helpers: a transient explainer note + analytics stat tiles. */
 .ag-note {
-  background: rgba(224, 161, 58, 0.10); border: 1px solid var(--brand);
+  background: rgba(var(--brand-rgb), 0.10); border: 1px solid var(--brand);
   border-radius: var(--r-card); color: var(--text);
   font-size: var(--fs-footnote); line-height: 1.45; padding: 12px 14px; margin-bottom: 12px;
 }
