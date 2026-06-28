@@ -211,11 +211,62 @@ async function recordReputationAlert(uid: string, detail: string): Promise<void>
   } catch { /* best effort */ }
 }
 
+// --- Warm-up throttle ---------------------------------------------------------
+// A brand-new sending IP has no reputation; blasting full volume on day one gets it
+// throttled or blocked by mailbox providers. So for self-hosted sends (send_via "self"
+// — they all share the box's single IP) we cap volume per rolling 24h and ramp the
+// ceiling over the first weeks. Mailbox sends (Gmail/Outlook) leave the user's own
+// provider, not our IP, so they're never warm-up-limited. Disable with MAILER_WARMUP=off.
+const WARMUP_ON = (Deno.env.get("MAILER_WARMUP") ?? "on").toLowerCase() !== "off";
+// Rolling-24h ceiling for the shared IP, by days since the first self-hosted send.
+function warmupCap(day: number): number | null {
+  if (day <= 1) return 50;
+  if (day <= 3) return 100;
+  if (day <= 5) return 250;
+  if (day <= 7) return 500;
+  if (day <= 10) return 1000;
+  if (day <= 13) return 2500;
+  if (day <= 17) return 5000;
+  if (day <= 21) return 10000;
+  if (day <= 27) return 25000;
+  return null; // day 28+: warmed up — no cap
+}
+// Warm-up "day 0" = the first self-hosted send ever (across all customers; the IP is
+// shared). Derived from the data, so there's nothing to seed or reset — null until the
+// first send goes out.
+async function warmupStartMs(): Promise<number | null> {
+  const r = await fetch(`${SB_URL}/rest/v1/campaign_recipients?status=eq.sent&sent_at=not.is.null&campaigns.send_via=eq.self&select=sent_at,campaigns!inner(send_via)&order=sent_at.asc&limit=1`, { headers: sbHeaders });
+  const rows = (await r.json().catch(() => [])) as { sent_at?: string }[];
+  const t = Array.isArray(rows) && rows[0]?.sent_at ? Date.parse(rows[0].sent_at) : NaN;
+  return Number.isFinite(t) ? t : null;
+}
+// Count self-hosted sends across ALL customers since `sinceIso` (the IP is shared, so
+// the warm-up budget is global, not per-user).
+async function countSelfSince(sinceIso: string): Promise<number> {
+  const r = await fetch(`${SB_URL}/rest/v1/campaign_recipients?status=eq.sent&sent_at=gte.${encodeURIComponent(sinceIso)}&campaigns.send_via=eq.self&select=id,campaigns!inner(send_via)`, {
+    headers: { ...sbHeaders, Prefer: "count=exact", Range: "0-0" },
+  });
+  const cr = r.headers.get("content-range") || "";
+  const n = parseInt(cr.split("/")[1] || "0", 10);
+  return Number.isFinite(n) ? n : 0;
+}
+// Remaining warm-up room for self-hosted sends right now, or null if there's no cap
+// (warmed up, or disabled). `room` = how many more may leave the IP this rolling 24h.
+async function warmupRoom(): Promise<{ cap: number; used: number; room: number; day: number } | null> {
+  if (!WARMUP_ON) return null;
+  const start = await warmupStartMs();
+  const day = start == null ? 0 : Math.floor((Date.now() - start) / 86400000);
+  const cap = warmupCap(day);
+  if (cap == null) return null;
+  const used = await countSelfSince(new Date(Date.now() - 86400 * 1000).toISOString());
+  return { cap, used, room: Math.max(0, cap - used), day };
+}
+
 // Drain one batch of a campaign's queue. Shared by the `send` action (client-driven)
 // and the scheduled `run_due` cron. Flips draft/scheduled -> sending, sends up to
 // `limit`, updates counts, and marks the campaign sent once the queue is empty.
 // deno-lint-ignore no-explicit-any
-async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; failed: number; remaining: number; done: boolean; paused?: boolean }> {
+async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; failed: number; remaining: number; done: boolean; paused?: boolean; warmup?: { day: number; cap: number; used: number } }> {
   const id = camp.id as string;
   const uid = camp.user_id as string;
   // Single-flight: atomically claim this campaign before draining so two overlapping
@@ -240,10 +291,25 @@ async function drainCampaign(camp: any, limit: number): Promise<{ sent: number; 
     await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "paused", locked_until: null, updated_at: new Date().toISOString() }) });
     return { sent: 0, failed: 0, remaining: await countBy(id, "queued"), done: false, paused: true };
   }
+  // Warm-up throttle: self-hosted sends share one new IP, so cap volume per rolling 24h
+  // and ramp it (warmupCap). Trim this batch to the remaining room; if there's none,
+  // leave the campaign 'sending' and stop — the run_due cron resumes it as the window
+  // frees up, so neither the user nor the operator has to babysit the ramp.
+  let effLimit = limit;
+  if (camp.send_via === "self") {
+    const wu = await warmupRoom();
+    if (wu) {
+      if (wu.room <= 0) {
+        await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "sending", locked_until: null, updated_at: new Date().toISOString() }) });
+        return { sent: 0, failed: 0, remaining: await countBy(id, "queued"), done: false, warmup: { day: wu.day, cap: wu.cap, used: wu.used } };
+      }
+      effLimit = Math.min(limit, wu.room);
+    }
+  }
   if (camp.status === "draft" || camp.status === "scheduled") {
     await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify({ status: "sending", updated_at: new Date().toISOString() }) });
   }
-  const qRes = await fetch(`${SB_URL}/rest/v1/campaign_recipients?campaign_id=eq.${id}&status=eq.queued&select=id,email,name&order=id.asc&limit=${limit}`, { headers: sbHeaders });
+  const qRes = await fetch(`${SB_URL}/rest/v1/campaign_recipients?campaign_id=eq.${id}&status=eq.queued&select=id,email,name&order=id.asc&limit=${effLimit}`, { headers: sbHeaders });
   const batch = (await qRes.json().catch(() => [])) as { id: string; email: string; name: string | null }[];
   let sent = 0, failed = 0;
   for (const r of batch) {
@@ -306,6 +372,18 @@ Deno.serve(async (req: Request) => {
       for (const camp of (Array.isArray(due) ? due : [])) {
         if (budget <= 0) break;
         try { const r = await drainCampaign(camp, Math.min(20, budget)); budget -= (r.sent + r.failed); processed++; } catch { /* skip one bad campaign */ }
+      }
+      // Resume in-flight self-hosted campaigns that the warm-up throttle parked: they
+      // have no schedule, so the query above skips them. Drain a little more as the
+      // rolling 24h window frees room. The per-campaign lock prevents double-send with
+      // a concurrent client drain.
+      if (budget > 0) {
+        const inflRes = await fetch(`${SB_URL}/rest/v1/campaigns?status=eq.sending&scheduled_at=is.null&send_via=eq.self&select=*&order=updated_at.asc&limit=15`, { headers: sbHeaders });
+        const infl = (await inflRes.json().catch(() => [])) as Record<string, unknown>[];
+        for (const camp of (Array.isArray(infl) ? infl : [])) {
+          if (budget <= 0) break;
+          try { const r = await drainCampaign(camp, Math.min(20, budget)); budget -= (r.sent + r.failed); processed++; } catch { /* skip one bad campaign */ }
+        }
       }
       return json(req, { ok: true, processed });
     } catch (e) {
