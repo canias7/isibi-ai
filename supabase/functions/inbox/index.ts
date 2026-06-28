@@ -13,7 +13,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
 const ALLOWED_ORIGINS = new Set([
-  "capacitor://localhost",
+  "capacitor://localhost", "https://gofarther.dev", "https://www.gofarther.dev",
   "ionic://localhost",
   "http://localhost",
   "https://localhost",

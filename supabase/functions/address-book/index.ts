@@ -11,7 +11,7 @@ const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const sbHeaders = { apikey: SB_SERVICE, authorization: `Bearer ${SB_SERVICE}`, "content-type": "application/json" };
 
 const ALLOWED_ORIGINS = new Set([
-  "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost",
+  "capacitor://localhost", "https://gofarther.dev", "https://www.gofarther.dev", "ionic://localhost", "http://localhost", "https://localhost",
   "http://localhost:5173", "http://localhost:4173",
 ]);
 function corsFor(req: Request): Record<string, string> {
