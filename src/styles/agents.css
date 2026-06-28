@@ -22,18 +22,6 @@
     #0b0a09;
 }
 
-/* --- Sendra home: welcome + drawer launcher (replaces the old card grid) --- */
-.ag-stage.ag-home { display: flex; }
-.ag-home-hero { margin: auto; text-align: center; max-width: 340px; padding: 24px 8px 40px; }
-.ag-home-logo {
-  width: 64px; height: 64px; border-radius: 18px; display: block; margin: 0 auto 16px;
-  box-shadow: 0 12px 32px rgba(248, 81, 78, 0.32);
-}
-.ag-home-greet { font-size: var(--fs-title); font-weight: 800; letter-spacing: -0.02em; }
-.ag-home-sub { font-size: var(--fs-footnote); color: var(--text-dim); line-height: 1.55; margin: 8px 0 22px; }
-.ag-home-menu { width: auto; padding-left: 22px; padding-right: 22px; margin: 0 auto; }
-.ag-home-menu-in { display: inline-flex; align-items: center; gap: 8px; }
-
 /* --- Slide-out tool drawer (primary navigation) --- */
 .ag-drawer-wrap { position: absolute; inset: 0; z-index: 30; }
 .ag-drawer-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: agScrimIn 0.2s ease; }
