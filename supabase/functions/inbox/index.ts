@@ -95,6 +95,11 @@ Deno.serve(async (req: Request) => {
   const max = Math.min(Math.max(parseInt(url.searchParams.get("max") ?? "20", 10) || 20, 1), 30);
   const pageToken = url.searchParams.get("page_token") || "";
   const app = (url.searchParams.get("app") || "gmail").toLowerCase();
+  // Search query. Gmail runs it server-side (its `query` arg = full Gmail search
+  // syntax over the WHOLE mailbox); Outlook has no reliable Composio search arg,
+  // so we widen the fetch and substring-filter here. Either way the result is a
+  // real mailbox search, not just a filter over the page the client already has.
+  const q = (url.searchParams.get("q") || "").trim().slice(0, 200);
 
   try {
     const dstr = (d: Date, o: Intl.DateTimeFormatOptions) => {
@@ -114,16 +119,17 @@ Deno.serve(async (req: Request) => {
     // carries `value[]` with from.emailAddress.{name,address}, bodyPreview, etc.)
     if (app === "outlook" || app === "m365") {
       const skip = parseInt(pageToken || "0", 10) || 0;
+      const top = q ? 50 : max; // widen for search, then substring-filter the window below
       const res = await fetch("https://backend.composio.dev/api/v3/tools/execute/OUTLOOK_OUTLOOK_LIST_MESSAGES", {
         method: "POST",
         headers: { "x-api-key": API_KEY, "content-type": "application/json" },
-        body: JSON.stringify({ user_id: uid, arguments: { top: max, skip, folder: "inbox" } }),
+        body: JSON.stringify({ user_id: uid, arguments: { top, skip, folder: "inbox" } }),
       });
       const body = await res.json().catch(() => ({}));
       const data = ((body as Record<string, unknown>)?.data ?? body) as Record<string, unknown>;
       const inner = (data?.response_data ?? data?.data ?? data) as Record<string, unknown>;
       const msgs = ((data?.value ?? data?.messages ?? inner?.value ?? inner?.messages) as Record<string, unknown>[]) ?? [];
-      const items = (Array.isArray(msgs) ? msgs : []).map((m) => {
+      let items = (Array.isArray(msgs) ? msgs : []).map((m) => {
         const fe = ((m.from as Record<string, unknown>)?.emailAddress
           ?? (m.sender as Record<string, unknown>)?.emailAddress ?? {}) as Record<string, unknown>;
         const from = String(fe.name ?? "");
@@ -145,8 +151,12 @@ Deno.serve(async (req: Request) => {
           app: "outlook",
         };
       });
-      // Outlook pages by offset; hand the next skip back as an opaque page token.
-      const nextPageToken = items.length >= max ? String(skip + max) : null;
+      if (q) {
+        const ql = q.toLowerCase();
+        items = items.filter((it) => `${it.from} ${it.email} ${it.subject} ${it.snippet}`.toLowerCase().includes(ql));
+      }
+      // Outlook pages by offset; a search returns its matches with no pager.
+      const nextPageToken = q ? null : (msgs.length >= top ? String(skip + top) : null);
       return json(req, { items, nextPageToken });
     }
 
@@ -156,6 +166,7 @@ Deno.serve(async (req: Request) => {
     // for a whole page overflow the tool's response-size cap and 413 (empty inbox).
     const args: Record<string, unknown> = { max_results: max, verbose: false, include_payload: false };
     if (pageToken) args.page_token = pageToken;
+    if (q) args.query = q; // Gmail search syntax — server-side over the whole mailbox
     const res = await fetch("https://backend.composio.dev/api/v3/tools/execute/GMAIL_FETCH_EMAILS", {
       method: "POST",
       headers: { "x-api-key": API_KEY, "content-type": "application/json" },
@@ -166,7 +177,7 @@ Deno.serve(async (req: Request) => {
     const inner = (data?.response_data ?? data?.data ?? data) as Record<string, unknown>;
     const msgs: Record<string, unknown>[] =
       ((data?.messages ?? inner?.messages) as Record<string, unknown>[]) ?? [];
-    const nextPageToken = pickToken(data) ?? pickToken(inner);
+    const nextPageToken = q ? null : (pickToken(data) ?? pickToken(inner));
     // Newest first — Composio's order isn't reliably by date, so sort explicitly.
     const sorted = (Array.isArray(msgs) ? msgs : []).slice().sort((a, b) => tsOf(b) - tsOf(a));
     const items = sorted.map((m) => {
