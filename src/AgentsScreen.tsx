@@ -2231,7 +2231,16 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 {loading ? (
                   <EmailSkeleton />
                 ) : mergedContacts.length === 0 ? (
-                  <div className="ag-empty">No contacts yet. Tap “+ Add” to create your first one.</div>
+                  <div className="ag-contacts-empty">
+                    <div className="ag-ce-cluster" aria-hidden="true">
+                      <span className="ag-ce-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zM5 20a7 7 0 0 1 14 0" /></svg></span>
+                      <span className="ag-ce-av ag-ce-av-mid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zM5 20a7 7 0 0 1 14 0" /></svg></span>
+                      <span className="ag-ce-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zM5 20a7 7 0 0 1 14 0" /></svg></span>
+                    </div>
+                    <div className="ag-ce-title">Your people, in one place</div>
+                    <p className="ag-ce-sub">Keep everyone you email here — tag them into segments and reach a whole group in one send.</p>
+                    <button className="ag-send-btn ag-ce-cta" onClick={() => openContactForm()}>+ Add your first contact</button>
+                  </div>
                 ) : list.length === 0 ? (
                   <div className="ag-empty">{tag ? 'No one in this segment matches.' : 'No matches.'}</div>
                 ) : (
