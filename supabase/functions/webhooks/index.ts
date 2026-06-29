@@ -52,8 +52,9 @@ function vId(v: unknown): string { const s = String(v ?? "").trim(); return UUID
 // clicked, address-book emits contact.*). Stored as a text[] on the row; an EMPTY
 // array means "all events" (the fanout filter treats empty as no filter).
 const KNOWN_EVENTS = [
-  "delivered", "bounced", "complained", "opened", "clicked",
+  "sent", "delivered", "opened", "clicked", "bounced", "complained", "failed",
   "contact.created", "contact.updated", "contact.deleted",
+  "domain.created", "domain.updated", "domain.deleted",
 ];
 // Sanitize an incoming events list to the known set. "all selected" and "none/
 // invalid" both collapse to [] (= all events), so an endpoint can never end up

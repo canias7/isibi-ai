@@ -244,6 +244,7 @@ Deno.serve(async (req: Request) => {
         const row = (await ins.json())[0];
         const keyRes = await db("sending_domain_keys", { method: "POST", body: JSON.stringify({ domain_id: row.id, private_pem: privatePem }) });
         if (!keyRes.ok) { await db(`sending_domains?id=eq.${row.id}`, { method: "DELETE" }); return json(req, { error: "couldn't store the signing key" }, 502); }
+        bg([(async () => deliverEvent(await getEndpoints(uid), "domain.created", { domain }))()]);
         return json(req, { domain, verified: false, records: recordsFor(domain, selector, publicValue) });
       }
 
@@ -270,6 +271,7 @@ Deno.serve(async (req: Request) => {
         const spfOk = spfTxt.some((t) => /v=spf1/i.test(t) && t.toLowerCase().includes(`include:${SPF_INCLUDE}`));
         const verified = dkimOk && spfOk;
         await db(`sending_domains?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ verified, verified_at: verified ? new Date().toISOString() : null }) });
+        bg([(async () => deliverEvent(await getEndpoints(uid), "domain.updated", { domain, verified }))()]);
         return json(req, { domain, verified, checks: { dkim: dkimOk, spf: spfOk } });
       }
 
@@ -282,6 +284,7 @@ Deno.serve(async (req: Request) => {
         const domain = cleanDomain(body?.domain);
         if (!domain) return json(req, { error: "invalid domain" }, 400);
         await db(`sending_domains?user_id=eq.${uid}&domain=eq.${domain}`, { method: "DELETE" });
+        bg([(async () => deliverEvent(await getEndpoints(uid), "domain.deleted", { domain }))()]);
         return json(req, { ok: true });
       }
 
