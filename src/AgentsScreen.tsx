@@ -185,6 +185,57 @@ function WhEventPicker({ value, onToggle }: { value: string[]; onToggle: (id: st
   );
 }
 
+// Emails-page filters. Statuses mirror what individual sends actually report
+// (the `messages` row's status), each with a Resend-style colored dot.
+const MSG_STATUS_OPTS: { id: string; label: string; dot?: string }[] = [
+  { id: 'all', label: 'All statuses' },
+  { id: 'delivered', label: 'Delivered', dot: '#34d399' },
+  { id: 'sent', label: 'Sent', dot: '#fbbf24' },
+  { id: 'soft_bounced', label: 'Soft bounce', dot: '#fbbf24' },
+  { id: 'bounced', label: 'Bounced', dot: '#ff6b6b' },
+  { id: 'complained', label: 'Complaint', dot: '#ff6b6b' },
+  { id: 'failed', label: 'Failed', dot: '#ff6b6b' },
+];
+const MSG_RANGE_OPTS: { id: string; label: string; days: number }[] = [
+  { id: 'today', label: 'Today', days: 1 },
+  { id: '3d', label: 'Last 3 days', days: 3 },
+  { id: '7d', label: 'Last 7 days', days: 7 },
+  { id: '15d', label: 'Last 15 days', days: 15 },
+  { id: '30d', label: 'Last 30 days', days: 30 },
+  { id: 'all', label: 'All time', days: 0 },
+];
+
+// A compact Resend-style single-select dropdown: a trigger showing the current
+// value (with an optional colored dot) that opens a floating menu; the selected
+// row gets a check. A transparent backdrop closes it on an outside tap.
+function FilterMenu({ value, options, onChange, align }: { value: string; options: { id: string; label: string; dot?: string }[]; onChange: (id: string) => void; align?: 'right' }) {
+  const [open, setOpen] = useState(false);
+  const cur = options.find((o) => o.id === value) || options[0];
+  return (
+    <div className="ag-fm">
+      <button type="button" className={`ag-fm-trig${open ? ' open' : ''}`} onClick={() => { tap(); setOpen((o) => !o); }}>
+        {cur.dot && <span className="ag-fm-dot" style={{ background: cur.dot }} />}
+        <span className="ag-fm-cur">{cur.label}</span>
+        <span className="ag-fm-chev">{open ? '▴' : '▾'}</span>
+      </button>
+      {open && (
+        <>
+          <div className="ag-fm-back" onClick={() => setOpen(false)} />
+          <div className={`ag-fm-pop${align === 'right' ? ' right' : ''}`} role="listbox">
+            {options.map((o) => (
+              <button type="button" role="option" aria-selected={o.id === value} key={o.id} className={`ag-fm-opt${o.id === value ? ' on' : ''}`} onClick={() => { tap(); onChange(o.id); setOpen(false); }}>
+                <span className="ag-fm-dot" style={{ background: o.dot || 'transparent' }} />
+                <span className="ag-fm-lbl">{o.label}</span>
+                {o.id === value && <span className="ag-fm-chk"><IconCheck size={14} /></span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // Short relative time for the version-history list (e.g. "just now", "5m", "3h", "2d").
 const relTime = (t: number) => {
   const s = Math.max(0, Math.round((Date.now() - t) / 1000));
@@ -326,7 +377,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [logsList, setLogsList] = useState<EmailLog[]>([]);
   const [msgList, setMsgList] = useState<SentEmail[]>([]); // Emails tab: individual transactional sends
   const [msgBusy, setMsgBusy] = useState(false);
-  const [msgFilter, setMsgFilter] = useState<'all' | 'delivered' | 'sent' | 'bounced' | 'failed'>('all'); // Emails status filter
+  const [msgFilter, setMsgFilter] = useState<string>('all'); // Emails status filter (exact status or 'all')
+  const [msgRange, setMsgRange] = useState<string>('30d');    // Emails date-range filter
   const [msgSearch, setMsgSearch] = useState(''); // Emails recipient/subject search
   const [logsQ, setLogsQ] = useState('');
   const [logsBusy, setLogsBusy] = useState(false);
@@ -1084,14 +1136,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       case 'failed': return { label: 'Failed', cls: 'failed' };
       default: return { label: 'Sent', cls: 'sending' };
     }
-  };
-  // Which filter chip a message status falls under (Bounced folds soft bounces;
-  // Failed folds complaints). 'all' matches everything.
-  const msgBucket = (s: string): 'delivered' | 'sent' | 'bounced' | 'failed' => {
-    if (s === 'delivered') return 'delivered';
-    if (s === 'bounced' || s === 'soft_bounced') return 'bounced';
-    if (s === 'failed' || s === 'complained') return 'failed';
-    return 'sent';
   };
   const removeSup = async (email: string) => {
     tap();
@@ -1974,15 +2018,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   <div className="ag-empty" style={{ marginTop: 12 }}>No emails sent yet. Individual emails you send — from the composer or the API — show up here with their delivery status.</div>
                 ) : (() => {
                   const q = msgSearch.trim().toLowerCase();
-                  const filtered = msgList.filter((m) =>
-                    (msgFilter === 'all' || msgBucket(m.status) === msgFilter) &&
-                    (!q || m.to_email.toLowerCase().includes(q) || (m.subject || '').toLowerCase().includes(q)));
-                  const counts = { all: msgList.length, delivered: 0, sent: 0, bounced: 0, failed: 0 };
-                  msgList.forEach((m) => { counts[msgBucket(m.status)]++; });
-                  const CHIPS: { id: typeof msgFilter; label: string }[] = [
-                    { id: 'all', label: 'All' }, { id: 'delivered', label: 'Delivered' },
-                    { id: 'sent', label: 'Sent' }, { id: 'bounced', label: 'Bounced' }, { id: 'failed', label: 'Failed' },
-                  ];
+                  const rangeDays = (MSG_RANGE_OPTS.find((r) => r.id === msgRange) || MSG_RANGE_OPTS[4]).days;
+                  const cutoff = rangeDays ? Date.now() - rangeDays * 86400000 : 0;
+                  const filtered = msgList.filter((m) => {
+                    if (msgFilter !== 'all' && m.status !== msgFilter) return false;
+                    if (q && !m.to_email.toLowerCase().includes(q) && !(m.subject || '').toLowerCase().includes(q)) return false;
+                    if (cutoff) { const t = Date.parse(m.created_at || m.sent_at || ''); if (t && t < cutoff) return false; }
+                    return true;
+                  });
                   return (
                     <>
                       <div className="ag-em-search">
@@ -1991,11 +2034,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         {msgSearch && <button className="ag-em-clear" onClick={() => setMsgSearch('')} aria-label="Clear"><IconX size={14} /></button>}
                       </div>
                       <div className="ag-em-filters">
-                        {CHIPS.map((c) => (
-                          <button key={c.id} className={`ag-em-chip${msgFilter === c.id ? ' on' : ''}`} onClick={() => { tap(); setMsgFilter(c.id); }}>
-                            {c.label}{counts[c.id] ? <span className="ag-em-cv">{counts[c.id]}</span> : null}
-                          </button>
-                        ))}
+                        <FilterMenu value={msgRange} options={MSG_RANGE_OPTS} onChange={setMsgRange} />
+                        <FilterMenu value={msgFilter} options={MSG_STATUS_OPTS} onChange={setMsgFilter} align="right" />
                       </div>
                       {filtered.length === 0 ? (
                         <div className="ag-empty" style={{ marginTop: 8 }}>No emails match.</div>
