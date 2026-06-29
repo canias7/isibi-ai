@@ -28,6 +28,8 @@
 }
 .gf-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .gf-avatar-mono { color: #fff; font-size: var(--fs-footnote); font-weight: 700; }
+/* Contacts: minimal outline + ring avatar (transparent fill, neutral ring, light initials) */
+.gf-avatar-ring { box-sizing: border-box; background: transparent; border: 1.5px solid rgba(255, 255, 255, 0.18); color: #e8ddd4; font-size: var(--fs-footnote); font-weight: 700; }
 /* unread badge dot on the avatar corner */
 .gf-dot {
   position: absolute; top: -2px; right: -2px;

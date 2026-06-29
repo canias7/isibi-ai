@@ -187,7 +187,7 @@ function ContactAvatar({ label, photo }: { label: string; photo?: string }) {
     );
   }
   return (
-    <span className="gf-avatar gf-avatar-mono" style={{ background: hueColor(label) }}>{initials(label)}</span>
+    <span className="gf-avatar gf-avatar-ring">{initials(label)}</span>
   );
 }
 
