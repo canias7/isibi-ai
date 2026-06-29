@@ -1597,12 +1597,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               tplEdit ? (
                 chatView === 'preview' ? (
                   <div className="ag-tpl-view">
-                    <div className="ag-prev-top">
-                      {tplVersions.length > 0
-                        ? <button className="ag-prev-hist" onClick={() => { tap(); setChatView('history'); }} aria-label="Version history"><IconClock size={19} /></button>
-                        : <span className="ag-prev-hist-spacer" aria-hidden="true" />}
-                      <button className="ag-prev-save" disabled={tplSaving || !tplBody.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save'}</button>
-                    </div>
+                    {tplVersions.length > 0 && (
+                      <div className="ag-prev-top">
+                        <button className="ag-prev-hist" onClick={() => { tap(); setChatView('history'); }} aria-label="Version history"><IconClock size={19} /></button>
+                      </div>
+                    )}
                     <div className="ag-mail">
                       <textarea className="ag-mail-subject" placeholder="Email subject" rows={1} value={tplSubject}
                         ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 96)}px`; } }}
