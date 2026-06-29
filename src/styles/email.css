@@ -67,6 +67,8 @@
   border-radius: var(--r-card);
   overflow: hidden;
 }
+/* Sendra address book: flat transparent rows on the workspace background. */
+.gf-contacts-flat { background: transparent; border: none; border-radius: 0; margin: 2px 0 0; overflow: visible; }
 .gf-contact {
   display: flex;
   align-items: center;
