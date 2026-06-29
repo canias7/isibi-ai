@@ -191,14 +191,14 @@ function ContactAvatar({ label, photo }: { label: string; photo?: string }) {
   );
 }
 
-// Contacts are a Gmail feature, so the card uses the same frosted-white glass as
-// the Gmail email cards (gf-gmail).
+// Sendra's address book — flat, transparent rows on the workspace's (Ember dark)
+// background, so it matches the theme instead of the frosted-white Gmail card.
 export function ContactsList(
   { items, selectable, selected, onToggle, onEdit }:
   { items: ContactItem[]; selectable?: boolean; selected?: Set<string>; onToggle?: (email: string) => void; onEdit?: (c: ContactItem) => void },
 ) {
   return (
-    <div className="gf-contacts gf-gmail">
+    <div className="gf-contacts gf-contacts-flat">
       {items.map((c, i) => {
         const label = c.name || c.email || c.phone || 'Unknown';
         const subs = [c.email, c.phone].filter((s): s is string => !!s && s !== label); // show email AND phone
