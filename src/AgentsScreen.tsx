@@ -1597,12 +1597,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               tplEdit ? (
                 chatView === 'preview' ? (
                   <div className="ag-tpl-view">
-                    <div className="ag-prev-top">
-                      {tplVersions.length > 0
-                        ? <button className="ag-prev-hist" onClick={() => { tap(); setChatView('history'); }} aria-label="Version history"><IconClock size={19} /></button>
-                        : <span className="ag-prev-hist-spacer" aria-hidden="true" />}
-                      <button className="ag-prev-save" disabled={tplSaving || !tplBody.trim()} onClick={saveTpl}>{tplSaving ? 'Saving…' : 'Save'}</button>
-                    </div>
+                    {tplVersions.length > 0 && (
+                      <div className="ag-prev-top">
+                        <button className="ag-prev-hist" onClick={() => { tap(); setChatView('history'); }} aria-label="Version history"><IconClock size={19} /></button>
+                      </div>
+                    )}
                     <div className="ag-mail">
                       <textarea className="ag-mail-subject" placeholder="Email subject" rows={1} value={tplSubject}
                         ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 96)}px`; } }}
@@ -1621,26 +1620,22 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     {tplEdit.id && <button className="ag-tpl-del" disabled={tplSaving} onClick={delTpl}>Delete template</button>}
                   </div>
                 ) : chatView === 'history' ? (
-                  <div className="ag-compose ag-tpl-preview ag-tpl-history">
-                    <div className="ag-tpl-preview-bar">
-                      <span className="ag-prev-title">History</span>
-                      <span className="ag-prev-count">{tplVersions.length} {tplVersions.length === 1 ? 'version' : 'versions'}</span>
-                    </div>
+                  <div className="ag-histwrap">
                     {tplVersions.length === 0 ? (
                       <div className="ag-empty" style={{ margin: '16px 4px' }}>No versions yet. Each time Sendra builds or edits this email, it’s saved here so you can roll back.</div>
                     ) : (
-                      <div className="ag-hist-list">
-                        {[...tplVersions].reverse().map((v, i) => (
-                          <button className="ag-hist" key={`${v.at}-${i}`} onClick={() => restoreVersion(v)}>
-                            <span className="ag-hist-rail" aria-hidden="true"><span className="ag-hist-dot" /></span>
-                            <span className="ag-hist-main">
-                              <span className="ag-hist-label">{v.label}</span>
-                              <span className="ag-hist-time">{relTime(v.at)}</span>
+                      [...tplVersions].reverse().map((v, i) => (
+                        <button className={`ag-histcard${i === 0 ? ' is-current' : ''}`} key={`${v.at}-${i}`} onClick={() => restoreVersion(v)}>
+                          <span className="ag-histcard-accent" aria-hidden="true" />
+                          <span className="ag-histcard-body">
+                            <span className="ag-histcard-top">
+                              <span className="ag-histcard-name">{v.label}</span>
+                              {i === 0 ? <span className="ag-histcard-badge">Current</span> : <span className="ag-histcard-restore">Restore</span>}
                             </span>
-                            {i === 0 ? <span className="ag-hist-badge">Current</span> : <span className="ag-hist-restore">Restore</span>}
-                          </button>
-                        ))}
-                      </div>
+                            <span className="ag-histcard-time">Saved {relTime(v.at)}</span>
+                          </span>
+                        </button>
+                      ))
                     )}
                   </div>
                 ) : (
@@ -1968,7 +1963,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 </div>
                 {whErr && <div className="ag-send-err">{whErr}</div>}
                 {webhooks.length === 0 ? (
-                  <div className="ag-empty" style={{ marginTop: 12 }}>No endpoints yet. Add an HTTPS URL above to start receiving events.</div>
+                  <div className="ag-dom-empty ag-wh-empty">
+                    <div className="ag-dom-empty-ic"><IconWebhook size={32} /></div>
+                    <div className="ag-dom-empty-ttl">No endpoints yet</div>
+                    <p className="ag-ce-sub">Add an HTTPS URL above to start receiving events.</p>
+                  </div>
                 ) : (
                   <div className="ag-dom-list">
                     {webhooks.map((w) => {
