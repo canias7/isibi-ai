@@ -117,6 +117,9 @@ async function fanout(userId: string, type: string, data: Record<string, unknown
     try {
       await fetch(`${SB_URL}/rest/v1/webhook_endpoints?id=eq.${ep.id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify(ok ? { last_status: status, last_event_at: new Date().toISOString(), failure_count: 0 } : { last_status: status, last_event_at: new Date().toISOString() }) });
     } catch { /* ignore */ }
+    try {
+      await fetch(`${SB_URL}/rest/v1/webhook_deliveries`, { method: "POST", headers: { ...sbHeaders, Prefer: "return=minimal" }, body: JSON.stringify({ endpoint_id: ep.id, user_id: userId, event_id: event.id, event_type: type, payload: event, status: ok ? "success" : "pending", attempts: 1, last_status: status, last_error: ok ? null : (status ? `HTTP ${status}` : "unreachable"), next_attempt_at: ok ? new Date().toISOString() : new Date(Date.now() + 60000).toISOString() }) });
+    } catch { /* ignore */ }
   }));
 }
 function bg(task: Promise<unknown>): void {
