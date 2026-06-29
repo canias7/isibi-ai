@@ -362,6 +362,9 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-emd-id button { flex: none; background: none; border: none; color: var(--brand-soft, #ff9a4d); font: inherit; font-size: var(--fs-caption); font-weight: 700; cursor: pointer; }
 .ag-emd-id button.ok { color: #34d399; }
 .ag-emd-sec { font-size: var(--fs-label); text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-faint); font-weight: 700; margin: 0 0 12px; }
+.ag-emd-log { display: inline-flex; align-items: center; gap: 8px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: 8px; padding: 7px 10px; margin-bottom: 20px; }
+.ag-emd-log-method { font-size: 10px; font-weight: 800; letter-spacing: 0.04em; color: #34d399; background: rgba(52, 211, 153, 0.14); padding: 2px 7px; border-radius: 5px; }
+.ag-emd-log-path { font-size: var(--fs-caption); color: var(--text-dim); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .ag-emd-timeline { margin-bottom: 22px; }
 .ag-emd-ev { display: flex; gap: 12px; }
 .ag-emd-rail { position: relative; display: flex; flex-direction: column; align-items: center; flex: none; }
