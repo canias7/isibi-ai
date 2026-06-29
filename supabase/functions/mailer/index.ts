@@ -337,6 +337,7 @@ Deno.serve(async (req: Request) => {
               user_id: uid, to_email: to.email, from_email: from.email, subject: subject.slice(0, 300),
               status, provider_msg_id: providerMsgId, error: errorMsg ? errorMsg.slice(0, 300) : null,
               idempotency_key: idem, sent_at: status === "sent" ? new Date().toISOString() : null,
+              body_html: html ?? null, body_text: text ?? null,
             }) });
           } catch { /* best effort */ }
         };
@@ -391,6 +392,15 @@ Deno.serve(async (req: Request) => {
       case "messages": {
         const r = await db(`messages?user_id=eq.${uid}&select=id,to_email,from_email,subject,status,error,provider_msg_id,created_at,sent_at,delivered_at&order=created_at.desc&limit=100`);
         return json(req, { messages: r.ok ? await r.json() : [] });
+      }
+
+      // One message's full detail incl. the stored body (for the Emails detail view).
+      case "message": {
+        const id = String(body?.id ?? "").trim();
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return json(req, { error: "missing_id" }, 400);
+        const r = await db(`messages?user_id=eq.${uid}&id=eq.${id}&select=id,to_email,from_email,subject,status,error,provider_msg_id,created_at,sent_at,delivered_at,body_html,body_text&limit=1`);
+        const row = r.ok ? (await r.json())?.[0] : null;
+        return row ? json(req, { message: row }) : json(req, { error: "not_found" }, 404);
       }
 
       default:

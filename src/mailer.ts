@@ -81,8 +81,15 @@ export interface Message {
   created_at: string;
   sent_at?: string | null;
   delivered_at?: string | null;
+  body_html?: string | null;   // only present on the single-message detail fetch
+  body_text?: string | null;
 }
 export async function mailerMessages(): Promise<Message[]> {
   const { messages } = await invoke<{ messages: Message[] }>({ action: 'messages' });
   return Array.isArray(messages) ? messages : [];
+}
+// Full detail for one message (incl. stored body) — for the Emails detail view.
+export async function mailerMessage(id: string): Promise<Message | null> {
+  const { message } = await invoke<{ message?: Message }>({ action: 'message', id });
+  return message ?? null;
 }

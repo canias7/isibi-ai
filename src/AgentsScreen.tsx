@@ -10,7 +10,7 @@ import { tap } from './haptics';
 import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, setWebhookEvents, listWebhookDeliveries, type WebhookDelivery, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
-import { mailerListDomains, mailerAddDomain, mailerDomainRecords, mailerVerifyDomain, mailerRemoveDomain, mailerSend, mailerMessages, type SendingDomain, type DnsRecord, type Message as SentEmail } from './mailer';
+import { mailerListDomains, mailerAddDomain, mailerDomainRecords, mailerVerifyDomain, mailerRemoveDomain, mailerSend, mailerMessages, mailerMessage, type SendingDomain, type DnsRecord, type Message as SentEmail } from './mailer';
 import { discoverDomainConnect, type DcSupport } from './domainConnect';
 
 // Sendra is the comms agent (Gmail, Outlook & Telegram in one place). The app's
@@ -391,6 +391,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [msgRange, setMsgRange] = useState<string>('30d');    // Emails date-range filter
   const [msgApiKey, setMsgApiKey] = useState<string>('all');  // Emails API-key filter (placeholder until keys exist)
   const [msgSearch, setMsgSearch] = useState(''); // Emails recipient/subject search
+  const [msgOpen, setMsgOpen] = useState<SentEmail | null>(null); // selected email (detail view)
+  const [msgDetail, setMsgDetail] = useState<SentEmail | null>(null); // fetched detail incl. body
+  const [msgDetailBusy, setMsgDetailBusy] = useState(false);
   const [logsQ, setLogsQ] = useState('');
   const [logsBusy, setLogsBusy] = useState(false);
   // Deliverability insights (Deliverability tab)
@@ -533,6 +536,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     else if (tplEdit && chatView === 'preview') setChatView('chat');
     else if (tplEdit) { builderGenRef.current++; if (tplBody.trim() && !tplSaving) saveTpl(); else { clearDraft(); setTplEdit(null); } } // leaving the builder saves a built email + invalidates any in-flight job
 
+    else if (msgOpen) { setMsgOpen(null); setMsgDetail(null); }
     else if (sendraTab !== 'emails') setSendraTab('emails');
     else onClose();
   };
@@ -1147,6 +1151,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       case 'failed': return { label: 'Failed', cls: 'failed' };
       default: return { label: 'Sent', cls: 'sending' };
     }
+  };
+  // Open an email's detail view; fetch the full row (incl. stored body) in the background.
+  const openMsg = (m: SentEmail) => {
+    tap(); setMsgOpen(m); setMsgDetail(null); setMsgDetailBusy(true);
+    mailerMessage(m.id)
+      .then((d) => { if (mountedRef.current) setMsgDetail(d); })
+      .catch(() => {})
+      .finally(() => { if (mountedRef.current) setMsgDetailBusy(false); });
   };
   const removeSup = async (email: string) => {
     tap();
@@ -2022,6 +2034,56 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 )}
               </div>
             ) : sendraTab === 'emails' ? (
+              msgOpen ? (() => {
+                const m = msgDetail || msgOpen;
+                const st = msgStatus(m.status);
+                const events: { label: string; cls: string; at?: string | null; err?: string | null }[] = [];
+                if (m.sent_at || m.status === 'sent' || m.delivered_at) events.push({ label: 'Sent', cls: 'ok', at: m.sent_at || m.created_at });
+                if (m.delivered_at) events.push({ label: 'Delivered', cls: 'ok', at: m.delivered_at });
+                if (m.status === 'bounced' || m.status === 'soft_bounced') events.push({ label: m.status === 'soft_bounced' ? 'Soft bounce' : 'Bounced', cls: 'bad', at: m.delivered_at || m.created_at, err: m.error });
+                if (m.status === 'complained') events.push({ label: 'Complaint', cls: 'bad', at: m.delivered_at || m.created_at });
+                if (m.status === 'failed') events.push({ label: 'Failed', cls: 'bad', at: m.created_at, err: m.error });
+                if (!events.length) events.push({ label: st.label, cls: st.cls === 'failed' ? 'bad' : 'ok', at: m.created_at });
+                const fmt = (t?: string | null) => (t ? new Date(t).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '');
+                return (
+                  <div className="ag-compose">
+                    <button className="ag-back-link" onClick={() => { tap(); setMsgOpen(null); setMsgDetail(null); }}>‹ Emails</button>
+                    <div className="ag-emd-hd">
+                      <span className="ag-em-ava ag-emd-ava"><IconInbox size={20} /></span>
+                      <span className="ag-emd-hd-meta">
+                        <span className="ag-emd-hd-lbl">Email</span>
+                        <span className="ag-emd-hd-to">{m.to_email}</span>
+                      </span>
+                      <span className={`ag-em-pill is-${st.cls}`}>{st.label}</span>
+                    </div>
+                    <div className="ag-emd-grid">
+                      <div className="ag-emd-cell"><div className="ag-emd-k">From</div><div className="ag-emd-v">{m.from_email || '—'}</div></div>
+                      <div className="ag-emd-cell"><div className="ag-emd-k">To</div><div className="ag-emd-v">{m.to_email}</div></div>
+                      <div className="ag-emd-cell ag-emd-full"><div className="ag-emd-k">Subject</div><div className="ag-emd-v">{m.subject || '(no subject)'}</div></div>
+                      <div className="ag-emd-cell ag-emd-full"><div className="ag-emd-k">Message ID</div><div className="ag-emd-id"><code>{m.id}</code><button className={copied === m.id ? 'ok' : ''} onClick={() => copyText(m.id)}>{copied === m.id ? 'Copied ✓' : 'Copy'}</button></div></div>
+                    </div>
+                    <div className="ag-emd-sec">Email events</div>
+                    <div className="ag-emd-timeline">
+                      {events.map((ev, i) => (
+                        <div className="ag-emd-ev" key={i}>
+                          <span className="ag-emd-rail"><span className={`ag-emd-dot is-${ev.cls}`}>{ev.cls === 'bad' ? '!' : '✓'}</span>{i < events.length - 1 && <span className="ag-emd-line" />}</span>
+                          <span className="ag-emd-ev-body"><span className="ag-emd-ev-name">{ev.label}</span>{ev.at && <span className="ag-emd-ev-time">{fmt(ev.at)}</span>}{ev.err && <span className="ag-emd-ev-time ag-log-reason">{ev.err}</span>}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="ag-emd-sec">Preview</div>
+                    {msgDetailBusy && !msgDetail ? (
+                      <div className="ag-empty">Loading…</div>
+                    ) : msgDetail?.body_html ? (
+                      <iframe className="ag-emd-preview" sandbox="" title="Email preview" srcDoc={msgDetail.body_html} />
+                    ) : msgDetail?.body_text ? (
+                      <pre className="ag-emd-text">{msgDetail.body_text}</pre>
+                    ) : (
+                      <div className="ag-emd-nobody"><div className="ag-emd-nobody-t">No preview for this email</div><div className="ag-emd-nobody-s">It was sent before Sendra started saving message bodies. New sends will show their preview here.</div></div>
+                    )}
+                  </div>
+                );
+              })() : (
               <div className="ag-compose">
                 {msgBusy && msgList.length === 0 ? (
                   <div className="ag-empty" style={{ marginTop: 12 }}>Loading…</div>
@@ -2057,7 +2119,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                             const st = msgStatus(m.status);
                             const when = m.delivered_at || m.sent_at || m.created_at;
                             return (
-                              <div className="ag-em-row" key={m.id}>
+                              <button className="ag-em-row" key={m.id} onClick={() => openMsg(m)}>
                                 <span className="ag-em-ava"><IconInbox size={17} /></span>
                                 <span className="ag-em-meta">
                                   <span className="ag-em-to">{m.to_email}</span>
@@ -2068,7 +2130,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                                   <span className={`ag-em-pill is-${st.cls}`}>{st.label}</span>
                                   {when && <span className="ag-em-when">{relTime(Date.parse(when) || Date.now())}</span>}
                                 </span>
-                              </div>
+                                <span className="ag-em-chev">›</span>
+                              </button>
                             );
                           })}
                         </div>
@@ -2078,6 +2141,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 })()}
                 <p className="ag-foot">Every individual email you’ve sent through Sendra — from the composer or the API — and where it landed. Campaign sends live under Logs.</p>
               </div>
+              )
             ) : sendraTab === 'logs' ? (
               <div className="ag-compose">
                 <input className="ag-field" placeholder="Search by email…" autoCapitalize="none" autoCorrect="off" value={logsQ}
