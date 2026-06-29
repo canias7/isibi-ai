@@ -1,0 +1,13 @@
+{
+  // Cloudflare Workers config for hosting the built web app (gofarther.dev) as
+  // a static SPA. No `main`/Worker script — this is an assets-only deploy, so
+  // `wrangler deploy` just uploads the Vite build output in ./dist. The new
+  // Cloudflare dashboard routes everything through Workers; this explicit config
+  // bypasses the Vite-plugin framework path (which would require Vite 6).
+  "name": "isibi-ai",
+  "compatibility_date": "2026-06-29",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
