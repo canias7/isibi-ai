@@ -189,13 +189,22 @@ function WhEventPicker({ value, onToggle }: { value: string[]; onToggle: (id: st
 // (the `messages` row's status), each with a Resend-style colored dot.
 const MSG_STATUS_OPTS: { id: string; label: string; dot?: string }[] = [
   { id: 'all', label: 'All statuses' },
-  { id: 'delivered', label: 'Delivered', dot: '#34d399' },
-  { id: 'sent', label: 'Sent', dot: '#fbbf24' },
-  { id: 'soft_bounced', label: 'Soft bounce', dot: '#fbbf24' },
   { id: 'bounced', label: 'Bounced', dot: '#ff6b6b' },
-  { id: 'complained', label: 'Complaint', dot: '#ff6b6b' },
+  { id: 'canceled', label: 'Canceled', dot: '#9298a2' },
+  { id: 'clicked', label: 'Clicked', dot: '#8b5cf6' },
+  { id: 'complained', label: 'Complained', dot: '#e0951f' },
+  { id: 'delivered', label: 'Delivered', dot: '#34d399' },
+  { id: 'soft_bounced', label: 'Delivery delayed', dot: '#fbbf24' },
   { id: 'failed', label: 'Failed', dot: '#ff6b6b' },
+  { id: 'opened', label: 'Opened', dot: '#3b82f6' },
+  { id: 'scheduled', label: 'Scheduled', dot: '#9298a2' },
+  { id: 'sent', label: 'Sent', dot: '#9298a2' },
+  { id: 'queued', label: 'Queued', dot: '#9298a2' },
+  { id: 'suppressed', label: 'Suppressed', dot: '#9298a2' },
 ];
+// Placeholder until API keys exist — the menu is here for parity with Resend;
+// once keys are real, populate this and filter by the sending key.
+const MSG_APIKEY_OPTS: { id: string; label: string }[] = [{ id: 'all', label: 'All API keys' }];
 const MSG_RANGE_OPTS: { id: string; label: string; days: number }[] = [
   { id: 'today', label: 'Today', days: 1 },
   { id: '3d', label: 'Last 3 days', days: 3 },
@@ -208,7 +217,7 @@ const MSG_RANGE_OPTS: { id: string; label: string; days: number }[] = [
 // A compact Resend-style single-select dropdown: a trigger showing the current
 // value (with an optional colored dot) that opens a floating menu; the selected
 // row gets a check. A transparent backdrop closes it on an outside tap.
-function FilterMenu({ value, options, onChange, align }: { value: string; options: { id: string; label: string; dot?: string }[]; onChange: (id: string) => void; align?: 'right' }) {
+function FilterMenu({ value, options, onChange, align, hint }: { value: string; options: { id: string; label: string; dot?: string }[]; onChange: (id: string) => void; align?: 'right'; hint?: string }) {
   const [open, setOpen] = useState(false);
   const cur = options.find((o) => o.id === value) || options[0];
   return (
@@ -229,6 +238,7 @@ function FilterMenu({ value, options, onChange, align }: { value: string; option
                 {o.id === value && <span className="ag-fm-chk"><IconCheck size={14} /></span>}
               </button>
             ))}
+            {hint && <div className="ag-fm-hint">{hint}</div>}
           </div>
         </>
       )}
@@ -379,6 +389,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [msgBusy, setMsgBusy] = useState(false);
   const [msgFilter, setMsgFilter] = useState<string>('all'); // Emails status filter (exact status or 'all')
   const [msgRange, setMsgRange] = useState<string>('30d');    // Emails date-range filter
+  const [msgApiKey, setMsgApiKey] = useState<string>('all');  // Emails API-key filter (placeholder until keys exist)
   const [msgSearch, setMsgSearch] = useState(''); // Emails recipient/subject search
   const [logsQ, setLogsQ] = useState('');
   const [logsBusy, setLogsBusy] = useState(false);
@@ -2035,7 +2046,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       </div>
                       <div className="ag-em-filters">
                         <FilterMenu value={msgRange} options={MSG_RANGE_OPTS} onChange={setMsgRange} />
-                        <FilterMenu value={msgFilter} options={MSG_STATUS_OPTS} onChange={setMsgFilter} align="right" />
+                        <FilterMenu value={msgFilter} options={MSG_STATUS_OPTS} onChange={setMsgFilter} />
+                        <FilterMenu value={msgApiKey} options={MSG_APIKEY_OPTS} onChange={setMsgApiKey} align="right" hint="API keys coming soon" />
                       </div>
                       {filtered.length === 0 ? (
                         <div className="ag-empty" style={{ marginTop: 8 }}>No emails match.</div>
