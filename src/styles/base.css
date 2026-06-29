@@ -433,3 +433,29 @@ input, textarea { caret-color: var(--brand); }
 /* Inline brand SVGs (BrandLogo) scale to fill their sized wrapper. */
 .gf-brandsvg svg { width: 100%; height: 100%; display: block; }
 
+/* ---- Desktop (gofarther.dev on wide screens) ----------------------------
+   The app is mobile-first; native builds are always phone-width, so these
+   rules only affect the website on a desktop viewport. They stop the home
+   from looking like a tiny island lost in black and stop the header icons
+   from being flung to opposite edges. */
+@media (min-width: 768px) {
+  /* #2 — group the floating header into a centred band so the connectors
+     button, title, and settings sit together instead of in the far corners.
+     The full-bleed gradient (.topbar::before) is untouched, so the top fade
+     still spans the whole width. */
+  .topbar {
+    padding-left: max(16px, calc((100% - 760px) / 2));
+    padding-right: max(16px, calc((100% - 760px) / 2));
+  }
+
+  /* #1 — pull the warm ambient glow up to the vertical centre so the agent
+     picker sits in a deliberate spotlight rather than floating above an empty
+     black void (by default .orb4 is pinned to the bottom). */
+  .orb4 { top: 15vh; bottom: auto; }
+
+  /* Give the picker a touch more presence and let the wordmark glow warmly so
+     the composition reads as intentional on a large screen. */
+  .agent-pick { max-width: 440px; }
+  .home-mark { text-shadow: 0 0 90px rgba(232, 169, 58, 0.28), 0 0 44px rgba(255, 255, 255, 0.16); }
+}
+
