@@ -461,6 +461,14 @@ button.ag-camp:active { filter: brightness(1.15); }
    already sits above it, so pull the icon up and tighten the subtitle. */
 .ag-wh-empty { padding-top: 40px; }
 .ag-dom-empty .ag-ce-sub { margin: 0; max-width: 320px; }
+/* Webhook event picker: toggle chips grouped by Email / Contacts (ember = on). */
+.ag-wh-events { display: flex; flex-direction: column; gap: 9px; padding: 2px 2px 0; }
+.ag-wh-ev-lbl { font-size: var(--fs-caption); font-weight: 600; color: var(--text-dim); }
+.ag-wh-ev-group { display: flex; flex-direction: column; gap: 6px; }
+.ag-wh-ev-grp { font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
+.ag-wh-ev-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ag-wh-chip { background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text-dim); font: inherit; font-size: var(--fs-caption); font-weight: 600; padding: 6px 12px; border-radius: var(--r-pill); cursor: pointer; }
+.ag-wh-chip.on { background: var(--grad-brand); color: var(--on-brand); border-color: transparent; }
 .ag-dom-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .ag-dom { background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; overflow: hidden; transition: border-color .15s; }
 .ag-dom.open { border-color: rgba(255, 255, 255, 0.16); }

@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, setWebhookEvents, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 import { mailerListDomains, mailerAddDomain, mailerDomainRecords, mailerVerifyDomain, mailerRemoveDomain, mailerSend, mailerMessages, type SendingDomain, type DnsRecord, type Message as SentEmail } from './mailer';
@@ -115,6 +115,28 @@ type Loadable = 'idle' | 'loading' | 'ok' | 'err';
 // Where the in-progress builder session (chat + current email) is autosaved so
 // it survives an app close — restored next time you open Templates (Lovable-style).
 const TPL_DRAFT_KEY = 'sendra_tpl_draft_v1';
+
+// The webhook events an endpoint can subscribe to — only the ones Sendra actually
+// fans out today (mail-events: delivered/bounced/complained, track: opened/clicked,
+// address-book: contact.*). Must mirror KNOWN_EVENTS in the `webhooks` edge fn.
+// An empty subscription on an endpoint means "all events".
+const WH_EVENT_GROUPS: { group: string; events: { id: string; label: string }[] }[] = [
+  { group: 'Email', events: [
+    { id: 'delivered', label: 'Delivered' },
+    { id: 'bounced', label: 'Bounced' },
+    { id: 'complained', label: 'Complained' },
+    { id: 'opened', label: 'Opened' },
+    { id: 'clicked', label: 'Clicked' },
+  ] },
+  { group: 'Contacts', events: [
+    { id: 'contact.created', label: 'Contact created' },
+    { id: 'contact.updated', label: 'Contact updated' },
+    { id: 'contact.deleted', label: 'Contact deleted' },
+  ] },
+];
+const WH_ALL_EVENTS = WH_EVENT_GROUPS.flatMap((g) => g.events.map((e) => e.id));
+// An endpoint's effective subscription: a stored empty array means "all events".
+const whEffective = (events?: string[]): string[] => (events && events.length ? events : WH_ALL_EVENTS);
 
 // Short relative time for the version-history list (e.g. "just now", "5m", "3h", "2d").
 const relTime = (t: number) => {
@@ -288,6 +310,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [whErr, setWhErr] = useState('');
   const [whOpen, setWhOpen] = useState<string | null>(null);
   const [whTest, setWhTest] = useState<Record<string, string>>({}); // endpoint id -> last test result message
+  const [whEvents, setWhEvents] = useState<string[]>(WH_ALL_EVENTS); // events the NEXT added endpoint will subscribe to
   const [campDomain, setCampDomain] = useState(''); // '' = mailbox; else a verified self-hosted domain
   const [campFromName, setCampFromName] = useState(''); // display name when sending built-in or from a domain
   const [campFromLocal, setCampFromLocal] = useState('news'); // local-part of the From address when sending from a domain
@@ -1060,12 +1083,30 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if (!url || whBusy) return;
     tap(); setWhBusy(true); setWhErr('');
     try {
-      const r = await addWebhook(url);
+      // All selected → send [] (= all events); a subset is sent as-is.
+      const events = whEvents.length === WH_ALL_EVENTS.length ? [] : whEvents;
+      const r = await addWebhook(url, events);
       if (!mountedRef.current) return;
       if (r.error) setWhErr(r.error === 'bad_url' ? 'Enter a valid HTTPS URL (not localhost or a private address).' : 'Couldn’t add the endpoint — try again.');
-      else { setWhNew(''); if (r.endpoint) setWhOpen(r.endpoint.id); await loadWebhooks(); }
+      else { setWhNew(''); setWhEvents(WH_ALL_EVENTS); if (r.endpoint) setWhOpen(r.endpoint.id); await loadWebhooks(); }
     } catch { if (mountedRef.current) setWhErr('Something went wrong — try again.'); }
     finally { if (mountedRef.current) setWhBusy(false); }
+  };
+  // Toggle an event in the "add endpoint" form's selection (kept non-empty).
+  const toggleNewWhEvent = (id: string) => {
+    tap();
+    setWhEvents((prev) => (prev.includes(id) ? (prev.length > 1 ? prev.filter((x) => x !== id) : prev) : [...prev, id]));
+  };
+  // Toggle an event on an EXISTING endpoint and persist (optimistic; empty = all).
+  const toggleWhEventFor = async (w: WebhookEndpoint, id: string) => {
+    const cur = whEffective(w.events);
+    const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+    if (next.length === 0) return; // never leave an endpoint subscribed to nothing
+    const stored = next.length === WH_ALL_EVENTS.length ? [] : next;
+    tap();
+    setWebhooks((ws) => ws.map((x) => (x.id === w.id ? { ...x, events: stored } : x))); // optimistic
+    try { await setWebhookEvents(w.id, stored); } catch { /* reload will resync */ }
+    if (mountedRef.current) await loadWebhooks();
   };
   const removeWh = async (id: string) => {
     tap();
@@ -1956,10 +1997,23 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               </div>
             ) : sendraTab === 'webhook' ? (
               <div className="ag-compose">
-                <p className="ag-foot">Get email events (delivered, bounced, complained) POSTed to your own HTTPS endpoint in real time — each request signed so you can verify it came from Sendra.</p>
+                <p className="ag-foot">Get email and contact events POSTed to your own HTTPS endpoint in real time — each request signed so you can verify it came from Sendra.</p>
                 <div className="ag-dom-add">
-                  <input className="ag-field" placeholder="https://yourapp.com/webhooks/sendra" autoCapitalize="none" autoCorrect="off" value={whNew} onChange={(e) => { setWhNew(e.target.value); if (whErr) setWhErr(''); }} />
+                  <input className="ag-field" placeholder="https://yourapp.com/webhooks/sendra" autoCapitalize="none" autoCorrect="off" value={whNew} onChange={(e) => { setWhNew(e.target.value); if (whErr) setWhErr(''); }} onKeyDown={(e) => { if (e.key === 'Enter') addWh(); }} />
                   <button className="ag-send-btn" disabled={whBusy || !whNew.trim()} onClick={addWh}>{whBusy ? 'Adding…' : 'Add endpoint'}</button>
+                </div>
+                <div className="ag-wh-events">
+                  <span className="ag-wh-ev-lbl">Events to send {whEvents.length === WH_ALL_EVENTS.length ? '· All' : `· ${whEvents.length}`}</span>
+                  {WH_EVENT_GROUPS.map((g) => (
+                    <div className="ag-wh-ev-group" key={g.group}>
+                      <span className="ag-wh-ev-grp">{g.group}</span>
+                      <div className="ag-wh-ev-chips">
+                        {g.events.map((ev) => (
+                          <button type="button" key={ev.id} className={`ag-wh-chip${whEvents.includes(ev.id) ? ' on' : ''}`} onClick={() => toggleNewWhEvent(ev.id)}>{ev.label}</button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 {whErr && <div className="ag-send-err">{whErr}</div>}
                 {webhooks.length === 0 ? (
@@ -1988,6 +2042,19 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                           {open && (
                             <div className="ag-dom-body">
                               <div className="ag-dns-field"><label>Signing secret</label><div className="ag-dns-val"><code>{w.secret}</code><button className={copied === w.secret ? 'ok' : ''} onClick={() => copyText(w.secret)}>{copied === w.secret ? 'Copied ✓' : 'Copy'}</button></div></div>
+                              <div className="ag-wh-events">
+                                <span className="ag-wh-ev-lbl">Events {whEffective(w.events).length === WH_ALL_EVENTS.length ? '· All' : `· ${whEffective(w.events).length}`}</span>
+                                {WH_EVENT_GROUPS.map((g) => (
+                                  <div className="ag-wh-ev-group" key={g.group}>
+                                    <span className="ag-wh-ev-grp">{g.group}</span>
+                                    <div className="ag-wh-ev-chips">
+                                      {g.events.map((ev) => (
+                                        <button type="button" key={ev.id} className={`ag-wh-chip${whEffective(w.events).includes(ev.id) ? ' on' : ''}`} onClick={() => toggleWhEventFor(w, ev.id)}>{ev.label}</button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                               <p className="ag-foot ag-dom-hint">Verify each POST: <code>sendra-signature: v1=&lt;hex&gt;</code> is the HMAC-SHA256 of <code>{'{sendra-timestamp}.{raw body}'}</code> keyed with this secret.</p>
                               {whTest[w.id] && <div className={`ag-dom-testmsg${whTest[w.id].includes('✓') ? ' ok' : ''}`}>{whTest[w.id]}</div>}
                               <div className="ag-dom-actions">
