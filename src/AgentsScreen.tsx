@@ -3,7 +3,7 @@ import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconInbox, IconRefresh, IconCheck, IconContacts,
   IconDoc, IconChat, IconPlus, IconArrowUp, IconX, IconCopy,
-  IconCalendar, IconWebhook, IconChart, IconGlobe, IconBolt,
+  IconCalendar, IconWebhook, IconChart, IconGlobe, IconBolt, IconSearch,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -326,6 +326,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [logsList, setLogsList] = useState<EmailLog[]>([]);
   const [msgList, setMsgList] = useState<SentEmail[]>([]); // Emails tab: individual transactional sends
   const [msgBusy, setMsgBusy] = useState(false);
+  const [msgFilter, setMsgFilter] = useState<'all' | 'delivered' | 'sent' | 'bounced' | 'failed'>('all'); // Emails status filter
+  const [msgSearch, setMsgSearch] = useState(''); // Emails recipient/subject search
   const [logsQ, setLogsQ] = useState('');
   const [logsBusy, setLogsBusy] = useState(false);
   // Deliverability insights (Deliverability tab)
@@ -1082,6 +1084,14 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
       case 'failed': return { label: 'Failed', cls: 'failed' };
       default: return { label: 'Sent', cls: 'sending' };
     }
+  };
+  // Which filter chip a message status falls under (Bounced folds soft bounces;
+  // Failed folds complaints). 'all' matches everything.
+  const msgBucket = (s: string): 'delivered' | 'sent' | 'bounced' | 'failed' => {
+    if (s === 'delivered') return 'delivered';
+    if (s === 'bounced' || s === 'soft_bounced') return 'bounced';
+    if (s === 'failed' || s === 'complained') return 'failed';
+    return 'sent';
   };
   const removeSup = async (email: string) => {
     tap();
@@ -1962,24 +1972,58 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                   <div className="ag-empty" style={{ marginTop: 12 }}>Loading…</div>
                 ) : msgList.length === 0 ? (
                   <div className="ag-empty" style={{ marginTop: 12 }}>No emails sent yet. Individual emails you send — from the composer or the API — show up here with their delivery status.</div>
-                ) : (
-                  <div className="ag-log-list">
-                    {msgList.map((m) => {
-                      const st = msgStatus(m.status);
-                      const when = m.delivered_at || m.sent_at || m.created_at;
-                      return (
-                        <div className="ag-log" key={m.id}>
-                          <div className="ag-camp-main">
-                            <div className="ag-camp-name">{m.to_email}</div>
-                            <div className="ag-camp-sub">{m.subject || '(no subject)'}{when ? ` · ${new Date(when).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}` : ''}</div>
-                            {m.error && <div className="ag-camp-sub ag-log-reason">{m.error}</div>}
-                          </div>
-                          <span className={`ag-camp-pill is-${st.cls}`}>{st.label}</span>
+                ) : (() => {
+                  const q = msgSearch.trim().toLowerCase();
+                  const filtered = msgList.filter((m) =>
+                    (msgFilter === 'all' || msgBucket(m.status) === msgFilter) &&
+                    (!q || m.to_email.toLowerCase().includes(q) || (m.subject || '').toLowerCase().includes(q)));
+                  const counts = { all: msgList.length, delivered: 0, sent: 0, bounced: 0, failed: 0 };
+                  msgList.forEach((m) => { counts[msgBucket(m.status)]++; });
+                  const CHIPS: { id: typeof msgFilter; label: string }[] = [
+                    { id: 'all', label: 'All' }, { id: 'delivered', label: 'Delivered' },
+                    { id: 'sent', label: 'Sent' }, { id: 'bounced', label: 'Bounced' }, { id: 'failed', label: 'Failed' },
+                  ];
+                  return (
+                    <>
+                      <div className="ag-em-search">
+                        <IconSearch size={15} />
+                        <input placeholder="Search by recipient or subject" autoCapitalize="none" autoCorrect="off" value={msgSearch} onChange={(e) => setMsgSearch(e.target.value)} />
+                        {msgSearch && <button className="ag-em-clear" onClick={() => setMsgSearch('')} aria-label="Clear"><IconX size={14} /></button>}
+                      </div>
+                      <div className="ag-em-filters">
+                        {CHIPS.map((c) => (
+                          <button key={c.id} className={`ag-em-chip${msgFilter === c.id ? ' on' : ''}`} onClick={() => { tap(); setMsgFilter(c.id); }}>
+                            {c.label}{counts[c.id] ? <span className="ag-em-cv">{counts[c.id]}</span> : null}
+                          </button>
+                        ))}
+                      </div>
+                      {filtered.length === 0 ? (
+                        <div className="ag-empty" style={{ marginTop: 8 }}>No emails match.</div>
+                      ) : (
+                        <div className="ag-em-list">
+                          {filtered.map((m) => {
+                            const st = msgStatus(m.status);
+                            const when = m.delivered_at || m.sent_at || m.created_at;
+                            return (
+                              <div className="ag-em-row" key={m.id}>
+                                <span className="ag-em-ava"><IconInbox size={17} /></span>
+                                <span className="ag-em-meta">
+                                  <span className="ag-em-to">{m.to_email}</span>
+                                  <span className="ag-em-subj">{m.subject || '(no subject)'}</span>
+                                  {m.error && <span className="ag-em-subj ag-log-reason">{m.error}</span>}
+                                </span>
+                                <span className="ag-em-right">
+                                  <span className={`ag-em-pill is-${st.cls}`}>{st.label}</span>
+                                  {when && <span className="ag-em-when">{relTime(Date.parse(when) || Date.now())}</span>}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                      )}
+                    </>
+                  );
+                })()}
                 <p className="ag-foot">Every individual email you’ve sent through Sendra — from the composer or the API — and where it landed. Campaign sends live under Logs.</p>
               </div>
             ) : sendraTab === 'logs' ? (

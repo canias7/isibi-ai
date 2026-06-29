@@ -306,6 +306,31 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-camp-pill.is-failed { color: #ff6b6b; background: rgba(255, 107, 107, 0.14); }
 .ag-camp-pill.is-scheduled { color: #8b9bff; background: rgba(139, 155, 255, 0.16); }
 .ag-camp-chev { color: #6b7280; font-size: 20px; line-height: 1; flex-shrink: 0; margin-left: 2px; }
+
+/* --- Emails page (Resend-style): search + status chips + clean rows --- */
+.ag-em-search { display: flex; align-items: center; gap: 8px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--r-row, 12px); padding: 10px 12px; margin: 12px 0 9px; color: var(--text-faint); }
+.ag-em-search input { flex: 1; min-width: 0; background: none; border: none; color: var(--text); font: inherit; font-size: var(--fs-body-s); outline: none; }
+.ag-em-search input::placeholder { color: var(--text-faint); }
+.ag-em-clear { background: none; border: none; color: var(--text-faint); cursor: pointer; padding: 0; display: grid; place-items: center; }
+.ag-em-filters { display: flex; gap: 7px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; margin-bottom: 6px; scrollbar-width: none; }
+.ag-em-filters::-webkit-scrollbar { display: none; }
+.ag-em-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text-dim); font: inherit; font-size: var(--fs-caption); font-weight: 600; padding: 6px 12px; border-radius: var(--r-pill); cursor: pointer; }
+.ag-em-chip.on { background: rgba(248, 81, 78, 0.14); border-color: rgba(248, 81, 78, 0.32); color: var(--brand-soft, #ff9a4d); }
+.ag-em-cv { font-size: 10px; font-weight: 700; color: var(--text-faint); }
+.ag-em-chip.on .ag-em-cv { color: var(--brand-soft, #ff9a4d); }
+.ag-em-list { display: flex; flex-direction: column; }
+.ag-em-row { display: flex; align-items: center; gap: 11px; padding: 12px 2px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.ag-em-row:last-child { border-bottom: none; }
+.ag-em-ava { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: rgba(248, 81, 78, 0.12); color: var(--brand-soft, #ff9a4d); }
+.ag-em-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ag-em-to { font-size: var(--fs-body-s); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-em-subj { font-size: var(--fs-caption); color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-em-right { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.ag-em-pill { font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: var(--r-pill); }
+.ag-em-pill.is-sent { color: #34d399; background: rgba(52, 211, 153, 0.14); }
+.ag-em-pill.is-sending { color: #fbbf24; background: rgba(251, 191, 36, 0.14); }
+.ag-em-pill.is-failed { color: #ff6b6b; background: rgba(255, 107, 107, 0.14); }
+.ag-em-when { font-size: 10px; color: var(--text-faint); }
 .ag-when { margin-top: 2px; }
 /* Campaign stats */
 .ag-camp-stat-head { margin: 4px 0 12px; }
