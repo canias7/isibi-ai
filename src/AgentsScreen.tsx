@@ -456,7 +456,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [domNew, setDomNew] = useState('');     // the "add a domain" input
   const [domBusy, setDomBusy] = useState(false); // add in flight
   const [domErr, setDomErr] = useState('');      // add error message
-  const [domOpen, setDomOpen] = useState<string | null>(null); // which domain's records are expanded
+  const [domOpen, setDomOpen] = useState<string | null>(null); // domain whose detail page is open
+  const [domRecOpen, setDomRecOpen] = useState<string | null>(null); // expanded DNS record group (DKIM/SPF/DMARC) in the detail
   const [domVerifying, setDomVerifying] = useState('');  // domain currently being re-verified
   const [domRecords, setDomRecords] = useState<Record<string, DnsRecord[]>>({}); // per-domain DNS records
   const [domChecks, setDomChecks] = useState<Record<string, { dkim: boolean; spf: boolean }>>({}); // last verify detail
@@ -555,6 +556,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     else if (tplEdit) { builderGenRef.current++; if (tplBody.trim() && !tplSaving) saveTpl(); else { clearDraft(); setTplEdit(null); } } // leaving the builder saves a built email + invalidates any in-flight job
 
     else if (msgOpen) { setMsgOpen(null); setMsgDetail(null); }
+    else if (domOpen) setDomOpen(null);
     else if (sendraTab !== 'emails') setSendraTab('emails');
     else onClose();
   };
@@ -1084,9 +1086,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // Lazy-load a domain's records (and discover Domain Connect) when its row expands.
   const openDom = async (domain: string) => {
     tap();
-    const next = domOpen === domain ? null : domain;
-    setDomOpen(next);
-    if (!next) return;
+    setDomOpen(domain); setDomRecOpen(null);
     if (domRecords[domain]) { if (!dcInfo[domain]) runDiscovery(domain, domRecords[domain]); return; }
     try {
       const r = await mailerDomainRecords(domain);
@@ -1108,7 +1108,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   };
   const removeDom = async (domain: string) => {
     tap();
-    try { await mailerRemoveDomain(domain); if (campDomain === domain) setCampDomain(''); await loadDomains(); } catch { /* ignore */ }
+    try { await mailerRemoveDomain(domain); if (campDomain === domain) setCampDomain(''); if (domOpen === domain) setDomOpen(null); await loadDomains(); } catch { /* ignore */ }
   };
   // Auto-configure: discover the host and, once our template is live, open the
   // one-click apply URL. Until then it just reports whether one-click is available.
@@ -1956,6 +1956,84 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 </div>
               )
             ) : sendraTab === 'domains' ? (
+              (() => { const sel = domOpen ? domains.find((x) => x.domain === domOpen) : null; return sel; })() ? (() => {
+                const d = domains.find((x) => x.domain === domOpen)!;
+                const verified = d.verified;
+                const recs = domRecords[d.domain] || [];
+                const dc = dcInfo[d.domain];
+                const checks = domChecks[d.domain];
+                const fmt = (t?: string | null) => (t ? new Date(t).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '');
+                const recStatus = (purpose: string): { label: string; cls: 'ok' | 'wait' | 'opt' } => {
+                  if (purpose === 'DMARC') return { label: 'Optional', cls: 'opt' };
+                  if (verified) return { label: 'Verified', cls: 'ok' };
+                  if (checks) return (purpose === 'DKIM' ? checks.dkim : purpose === 'SPF' ? checks.spf : false) ? { label: 'Verified', cls: 'ok' } : { label: 'Pending', cls: 'wait' };
+                  return { label: 'Pending', cls: 'wait' };
+                };
+                return (
+                  <div className="ag-compose">
+                    <button className="ag-back-link" onClick={() => { tap(); setDomOpen(null); }}>‹ Domains</button>
+                    <div className="ag-emd-hd">
+                      <span className="ag-em-ava ag-emd-ava"><IconGlobe size={20} /></span>
+                      <span className="ag-emd-hd-meta"><span className="ag-emd-hd-lbl">Domain</span><span className="ag-emd-hd-to">{d.domain}</span></span>
+                      <span className={`ag-em-pill is-${verified ? 'sent' : 'sending'}`}>{verified ? 'Verified' : 'Pending'}</span>
+                    </div>
+                    <div className="ag-emd-grid">
+                      <div className="ag-emd-cell"><div className="ag-emd-k">Created</div><div className="ag-emd-v">{d.created_at ? fmt(d.created_at) : '—'}</div></div>
+                      <div className="ag-emd-cell"><div className="ag-emd-k">Status</div><div className="ag-emd-v" style={{ color: verified ? '#34d399' : '#fbbf24', fontWeight: 700 }}>{verified ? 'Verified' : 'Pending'}</div></div>
+                    </div>
+                    {verified && <div className="ag-dom-ok">✓ Verified — pick this domain under “Send from” when sending.</div>}
+                    <div className="ag-emd-sec">Domain events</div>
+                    <div className="ag-emd-timeline">
+                      <div className="ag-emd-ev"><span className="ag-emd-rail"><span className="ag-emd-dot is-ok"><IconGlobe size={12} /></span><span className="ag-emd-line" /></span><span className="ag-emd-ev-body"><span className="ag-emd-ev-name">Domain added</span>{d.created_at && <span className="ag-emd-ev-time">{fmt(d.created_at)}</span>}</span></div>
+                      <div className="ag-emd-ev"><span className="ag-emd-rail"><span className={`ag-emd-dot is-${verified ? 'ok' : 'wait'}`}>{verified ? '✓' : '·'}</span></span><span className="ag-emd-ev-body"><span className="ag-emd-ev-name">{verified ? 'Verified' : 'Awaiting verification'}</span>{verified && d.verified_at && <span className="ag-emd-ev-time">{fmt(d.verified_at)}</span>}</span></div>
+                    </div>
+                    <div className="ag-emd-sec">DNS records</div>
+                    {!verified && (
+                      <>
+                        <button className="ag-send-btn ag-dom-auto" disabled={dcBusy === d.domain || !recs.length} onClick={() => autoConfigure(d.domain)}>{dcBusy === d.domain ? 'Checking…' : '⚡ Auto-configure (one-click)'}</button>
+                        {dc && <div className={`ag-dom-testmsg${dc.supported ? ' ok' : ''}`}>{dc.applyUrl ? `Opening ${dc.host} to authorize…` : dc.supported ? `✓ ${dc.host} supports one-click — for now add the records below.` : 'Your DNS host needs manual setup — add the records below.'}</div>}
+                        <p className="ag-foot ag-dom-hint">Add these TXT records at your DNS host, then tap Verify.</p>
+                      </>
+                    )}
+                    <div className="ag-dnr-list">
+                      {recs.map((r) => {
+                        const stt = recStatus(r.purpose);
+                        const open = domRecOpen === r.purpose;
+                        return (
+                          <div className="ag-dnr" key={r.purpose}>
+                            <button className={`ag-dnr-row${open ? ' open' : ''}`} onClick={() => { tap(); setDomRecOpen(open ? null : r.purpose); }}>
+                              <span className="ag-dnr-nm">{r.purpose}</span>
+                              <span className="ag-dnr-ty">{r.type}</span>
+                              <span className={`ag-dnr-st is-${stt.cls}`}>{stt.cls === 'ok' && <IconCheck size={11} />}{stt.label}</span>
+                              <span className="ag-dnr-chev">{open ? '▴' : '▾'}</span>
+                            </button>
+                            {open && (
+                              <div className="ag-dnr-body">
+                                <button className="ag-dnr-line" onClick={() => copyText(r.name)}><span className="ag-dnr-k">Name</span><code>{r.name}</code><span className="ag-dnr-cp">{copied === r.name ? 'Copied' : <IconCopy size={13} />}</span></button>
+                                <button className="ag-dnr-line" onClick={() => copyText(r.value)}><span className="ag-dnr-k">Value</span><code>{r.value}</code><span className="ag-dnr-cp">{copied === r.value ? 'Copied' : <IconCopy size={13} />}</span></button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {verified && (
+                      <>
+                        <div className="ag-emd-sec">Send a test</div>
+                        <div className="ag-dom-test">
+                          <input className="ag-field" placeholder="you@example.com" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={testTo[d.domain] || ''} onChange={(e) => setTestTo((m) => ({ ...m, [d.domain]: e.target.value }))} onKeyDown={(e) => { if (e.key === 'Enter') sendTest(d.domain); }} />
+                          <button className="ag-send-btn" disabled={testBusy === d.domain || !(testTo[d.domain] || '').trim()} onClick={() => sendTest(d.domain)}>{testBusy === d.domain ? 'Sending…' : 'Send test'}</button>
+                        </div>
+                        {testMsg[d.domain] && <div className={`ag-dom-testmsg${testMsg[d.domain].includes('✓') ? ' ok' : ''}`}>{testMsg[d.domain]}</div>}
+                      </>
+                    )}
+                    <div className="ag-dom-actions">
+                      {!verified && <button className="ag-send-btn" disabled={domVerifying === d.domain} onClick={() => verifyDom(d.domain)}>{domVerifying === d.domain ? 'Verifying…' : 'Verify'}</button>}
+                      <button className="ag-send-btn ghost" onClick={() => removeDom(d.domain)}>Remove</button>
+                    </div>
+                  </div>
+                );
+              })() : (
               <div className="ag-compose">
                 {domains.length === 0 ? (
                   <div className="ag-dom-empty">
@@ -1975,74 +2053,22 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     </div>
                     {domErr && <div className="ag-send-err">{domErr}</div>}
                     <div className="ag-dom-list">
-                    {domains.map((d) => {
-                      const open = domOpen === d.domain;
-                      const verified = d.verified;
-                      const recs = domRecords[d.domain] || [];
-                      const dc = dcInfo[d.domain];
-                      const checks = domChecks[d.domain];
-                      return (
-                        <div className={`ag-dom${open ? ' open' : ''}`} key={d.domain}>
-                          <button className="ag-dom-row" onClick={() => openDom(d.domain)}>
-                            <span className="ag-dom-ic"><IconGlobe size={18} /></span>
-                            <span className="ag-dom-info">
-                              <span className="ag-dom-name">{d.domain}</span>
-                              <span className="ag-dom-sub">{verified ? 'Sending enabled' : 'Awaiting DNS records'}</span>
-                            </span>
-                            <span className={`ag-badge is-${verified ? 'ok' : 'wait'}`}><i className="ag-dot" />{verified ? 'Verified' : 'Pending'}</span>
-                            <span className="ag-dom-chev">{open ? '▾' : '▸'}</span>
-                          </button>
-                          {open && (
-                            <div className="ag-dom-body">
-                              {verified ? (
-                                <>
-                                  <div className="ag-dom-ok">✓ Verified — send from this domain, and pick it under “Send from” when sending.</div>
-                                  <div className="ag-dom-test">
-                                    <input className="ag-field" placeholder="you@example.com" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={testTo[d.domain] || ''} onChange={(e) => setTestTo((m) => ({ ...m, [d.domain]: e.target.value }))} onKeyDown={(e) => { if (e.key === 'Enter') sendTest(d.domain); }} />
-                                    <button className="ag-send-btn" disabled={testBusy === d.domain || !(testTo[d.domain] || '').trim()} onClick={() => sendTest(d.domain)}>{testBusy === d.domain ? 'Sending…' : 'Send test'}</button>
-                                  </div>
-                                  {testMsg[d.domain] && <div className={`ag-dom-testmsg${testMsg[d.domain].includes('✓') ? ' ok' : ''}`}>{testMsg[d.domain]}</div>}
-                                </>
-                              ) : (
-                                <>
-                                  <button className="ag-send-btn ag-dom-auto" disabled={dcBusy === d.domain || !recs.length} onClick={() => autoConfigure(d.domain)}>
-                                    {dcBusy === d.domain ? 'Checking…' : '⚡ Auto-configure (one-click)'}
-                                  </button>
-                                  {dc && (
-                                    <div className={`ag-dom-testmsg${dc.supported ? ' ok' : ''}`}>
-                                      {dc.applyUrl
-                                        ? `Opening ${dc.host} to authorize…`
-                                        : dc.supported
-                                          ? `✓ ${dc.host} supports one-click — turning on soon. For now add the records below.`
-                                          : 'Your DNS host needs manual setup — add the records below.'}
-                                    </div>
-                                  )}
-                                  <p className="ag-foot ag-dom-hint">Add these TXT records at your DNS host, then tap Verify.</p>
-                                  <div className="ag-dom-recs">
-                                    {recs.map((r) => (
-                                      <div className="ag-dom-rec" key={r.purpose}>
-                                        <div className="ag-dom-rec-head"><span className="ag-dom-rec-purpose">{r.purpose}</span><span className="ag-dom-rec-type">{r.type}</span></div>
-                                        <button className="ag-dom-rec-line" onClick={() => copyText(r.name)}><span className="ag-dom-rec-k">Name</span><code>{r.name}</code><span className="ag-dom-rec-copy">{copied === r.name ? 'Copied' : <IconCopy size={13} />}</span></button>
-                                        <button className="ag-dom-rec-line" onClick={() => copyText(r.value)}><span className="ag-dom-rec-k">Value</span><code>{r.value}</code><span className="ag-dom-rec-copy">{copied === r.value ? 'Copied' : <IconCopy size={13} />}</span></button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                  {checks && <p className="ag-foot ag-dom-checks">Last check — DKIM {checks.dkim ? '✓' : '✕'} · SPF {checks.spf ? '✓' : '✕'}</p>}
-                                </>
-                              )}
-                              <div className="ag-dom-actions">
-                                {!verified && <button className="ag-send-btn" disabled={domVerifying === d.domain} onClick={() => verifyDom(d.domain)}>{domVerifying === d.domain ? 'Verifying…' : 'Verify'}</button>}
-                                <button className="ag-send-btn ghost" onClick={() => removeDom(d.domain)}>Remove</button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {domains.map((d) => (
+                      <button className="ag-dom ag-dom-row" onClick={() => openDom(d.domain)} key={d.domain}>
+                        <span className="ag-dom-ic"><IconGlobe size={18} /></span>
+                        <span className="ag-dom-info">
+                          <span className="ag-dom-name">{d.domain}</span>
+                          <span className="ag-dom-sub">{d.verified ? 'Sending enabled' : 'Awaiting DNS records'}</span>
+                        </span>
+                        <span className={`ag-badge is-${d.verified ? 'ok' : 'wait'}`}><i className="ag-dot" />{d.verified ? 'Verified' : 'Pending'}</span>
+                        <span className="ag-dom-chev">›</span>
+                      </button>
+                    ))}
                     </div>
                   </>
                 )}
               </div>
+              )
             ) : sendraTab === 'emails' ? (
               msgOpen ? (() => {
                 const m = msgDetail || msgOpen;

@@ -357,6 +357,25 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-lg-method { flex: none; font-size: 11px; font-weight: 700; color: var(--text-dim); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .ag-lg-row .ag-em-when { width: 44px; text-align: right; }
 
+/* --- Domain detail: collapsible DNS record rows --- */
+button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
+.ag-dnr-list { display: flex; flex-direction: column; gap: 9px; margin-bottom: 18px; }
+.ag-dnr-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font: inherit; cursor: pointer; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: 12px; padding: 13px; }
+.ag-dnr-row.open { border-radius: 12px 12px 0 0; border-bottom-color: transparent; }
+.ag-dnr-nm { font-size: var(--fs-body-s); font-weight: 700; color: var(--text); }
+.ag-dnr-ty { font-size: 10px; font-weight: 700; color: var(--text-faint); }
+.ag-dnr-st { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: var(--r-pill); }
+.ag-dnr-st.is-ok { color: #34d399; background: rgba(52, 211, 153, 0.14); }
+.ag-dnr-st.is-wait { color: #e0951f; background: rgba(224, 149, 31, 0.16); }
+.ag-dnr-st.is-opt { color: var(--text-faint); background: rgba(255, 255, 255, 0.06); }
+.ag-dnr-chev { color: var(--text-faint); font-size: 10px; flex: none; }
+.ag-dnr-body { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-edge); border-top: none; border-radius: 0 0 12px 12px; padding: 4px 13px 10px; }
+.ag-dnr-line { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font: inherit; background: none; border: none; cursor: pointer; padding: 8px 0; }
+.ag-dnr-line + .ag-dnr-line { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.ag-dnr-k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); font-weight: 700; width: 42px; flex: none; }
+.ag-dnr-line code { flex: 1; min-width: 0; font-size: var(--fs-caption); color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.ag-dnr-cp { flex: none; color: var(--text-faint); font-size: var(--fs-caption); font-weight: 700; display: grid; place-items: center; }
+
 /* --- Email detail view --- */
 .ag-emd-hd { display: flex; align-items: center; gap: 12px; margin: 12px 0 18px; }
 .ag-emd-ava { width: 46px; height: 46px; border-radius: 12px; }
