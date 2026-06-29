@@ -122,16 +122,23 @@ const TPL_DRAFT_KEY = 'sendra_tpl_draft_v1';
 // An empty subscription on an endpoint means "all events".
 const WH_EVENT_GROUPS: { group: string; events: { id: string; label: string }[] }[] = [
   { group: 'Email', events: [
+    { id: 'sent', label: 'Sent' },
     { id: 'delivered', label: 'Delivered' },
-    { id: 'bounced', label: 'Bounced' },
-    { id: 'complained', label: 'Complained' },
     { id: 'opened', label: 'Opened' },
     { id: 'clicked', label: 'Clicked' },
+    { id: 'bounced', label: 'Bounced' },
+    { id: 'complained', label: 'Complained' },
+    { id: 'failed', label: 'Failed' },
   ] },
   { group: 'Contacts', events: [
     { id: 'contact.created', label: 'Contact created' },
     { id: 'contact.updated', label: 'Contact updated' },
     { id: 'contact.deleted', label: 'Contact deleted' },
+  ] },
+  { group: 'Domains', events: [
+    { id: 'domain.created', label: 'Domain created' },
+    { id: 'domain.updated', label: 'Domain updated' },
+    { id: 'domain.deleted', label: 'Domain deleted' },
   ] },
 ];
 const WH_ALL_EVENTS = WH_EVENT_GROUPS.flatMap((g) => g.events.map((e) => e.id));
@@ -1997,7 +2004,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               </div>
             ) : sendraTab === 'webhook' ? (
               <div className="ag-compose">
-                <p className="ag-foot">Get email and contact events POSTed to your own HTTPS endpoint in real time — each request signed so you can verify it came from Sendra.</p>
+                <p className="ag-foot">Get email, contact and domain events POSTed to your own HTTPS endpoint in real time — each request signed so you can verify it came from Sendra.</p>
                 <div className="ag-dom-add">
                   <input className="ag-field" placeholder="https://yourapp.com/webhooks/sendra" autoCapitalize="none" autoCorrect="off" value={whNew} onChange={(e) => { setWhNew(e.target.value); if (whErr) setWhErr(''); }} onKeyDown={(e) => { if (e.key === 'Enter') addWh(); }} />
                   <button className="ag-send-btn" disabled={whBusy || !whNew.trim()} onClick={addWh}>{whBusy ? 'Adding…' : 'Add endpoint'}</button>
