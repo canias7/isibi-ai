@@ -309,6 +309,18 @@ export async function testWebhook(id: string): Promise<{ ok?: boolean; status?: 
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { ok?: boolean; status?: number; error?: string };
 }
+// A single attempt-tracked delivery row (feeds the "Recent deliveries" log).
+export interface WebhookDelivery {
+  id: string; event_type: string; status: 'success' | 'pending' | 'dead' | string;
+  attempts: number; last_status?: number | null; last_error?: string | null;
+  created_at: string; next_attempt_at?: string | null;
+}
+export async function listWebhookDeliveries(id: string): Promise<WebhookDelivery[]> {
+  const { data, error } = await supabase.functions.invoke('webhooks', { body: { action: 'deliveries', id } });
+  if (error) return [];
+  const d = (data as { deliveries?: WebhookDelivery[] } | null)?.deliveries;
+  return Array.isArray(d) ? d : [];
+}
 
 // ---- Automations (drip sequences, via the `automations` fn) ----
 export interface AutomationStep { delay_days: number; subject: string; body: string }

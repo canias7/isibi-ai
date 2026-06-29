@@ -461,14 +461,71 @@ button.ag-camp:active { filter: brightness(1.15); }
    already sits above it, so pull the icon up and tighten the subtitle. */
 .ag-wh-empty { padding-top: 40px; }
 .ag-dom-empty .ag-ce-sub { margin: 0; max-width: 320px; }
-/* Webhook event picker: toggle chips grouped by Email / Contacts (ember = on). */
-.ag-wh-events { display: flex; flex-direction: column; gap: 9px; padding: 2px 2px 0; }
+/* Add-endpoint bar (sits above the endpoint list). */
+.ag-wh-bar { display: flex; justify-content: flex-end; margin-bottom: 4px; }
+.ag-wh-bar .ag-send-btn, .ag-wh-empty .ag-send-btn { display: inline-flex; align-items: center; gap: 6px; width: auto; }
 .ag-wh-ev-lbl { font-size: var(--fs-caption); font-weight: 600; color: var(--text-dim); }
-.ag-wh-ev-group { display: flex; flex-direction: column; gap: 6px; }
-.ag-wh-ev-grp { font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
-.ag-wh-ev-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.ag-wh-chip { background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text-dim); font: inherit; font-size: var(--fs-caption); font-weight: 600; padding: 6px 12px; border-radius: var(--r-pill); cursor: pointer; }
-.ag-wh-chip.on { background: var(--grad-brand); color: var(--on-brand); border-color: transparent; }
+/* Label + picker rows inside the endpoint editor / add modal. */
+.ag-wh-evrow { display: flex; flex-direction: column; gap: 6px; }
+
+/* Resend-style event picker: a dropdown trigger that expands a grouped multiselect.
+   The panel is in-flow (not absolutely positioned) so the endpoint card's
+   overflow:hidden never clips it; a transparent backdrop catches outside taps. */
+.ag-wh-pick { position: relative; }
+.ag-wh-pick-trig {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
+  background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text);
+  font: inherit; font-size: var(--fs-body-s); font-weight: 600; padding: 11px 13px;
+  border-radius: var(--r-pill); cursor: pointer;
+}
+.ag-wh-pick-trig.open { border-color: rgba(248, 81, 78, 0.5); }
+.ag-wh-pick-chev { color: var(--text-faint); font-size: var(--fs-caption); }
+.ag-wh-pick-back { position: fixed; inset: 0; z-index: 5; }
+.ag-wh-pick-pop {
+  position: relative; z-index: 6; margin-top: 6px; max-height: 260px; overflow-y: auto;
+  background: var(--glass-strong, #1c1d22); border: 1px solid var(--glass-edge); border-radius: 12px;
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-hi), var(--glass-shadow); padding: 6px;
+}
+.ag-wh-pick-grp { display: flex; flex-direction: column; }
+.ag-wh-pick-grp + .ag-wh-pick-grp { margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 4px; }
+.ag-wh-pick-grphd { font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); padding: 6px 8px 3px; }
+.ag-wh-pick-opt {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  background: none; border: none; color: var(--text); font: inherit; font-size: var(--fs-body-s);
+  padding: 8px; border-radius: 9px; cursor: pointer;
+}
+.ag-wh-pick-opt:active { background: rgba(255,255,255,0.04); }
+.ag-wh-pick-box {
+  flex-shrink: 0; width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center;
+  border: 1.5px solid var(--glass-edge); color: var(--on-brand); font-size: 11px; font-weight: 800;
+}
+.ag-wh-pick-opt.on .ag-wh-pick-box { background: var(--grad-brand); border-color: transparent; }
+.ag-wh-pick-lbl { font-weight: 600; }
+.ag-wh-pick-id { margin-left: auto; font-size: var(--fs-label); color: var(--text-faint); }
+
+/* Recent deliveries log (per endpoint). */
+.ag-wh-deliv { display: flex; flex-direction: column; gap: 7px; }
+.ag-wh-deliv-hd { display: flex; align-items: center; justify-content: space-between; }
+.ag-wh-deliv-refresh { background: none; border: none; color: #f8514e; font: inherit; font-size: var(--fs-caption); font-weight: 700; cursor: pointer; }
+.ag-wh-deliv-refresh:disabled { opacity: 0.5; cursor: default; }
+.ag-wh-deliv-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ag-wh-deliv-it { display: flex; align-items: center; gap: 8px; padding: 7px 2px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.ag-wh-deliv-it:last-child { border-bottom: none; }
+.ag-wh-deliv-it .ag-dot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; }
+.ag-wh-deliv-it .ag-dot.is-ok { background: #36c275; }
+.ag-wh-deliv-it .ag-dot.is-bad { background: #f8514e; }
+.ag-wh-deliv-it .ag-dot.is-wait { background: #e0951f; }
+.ag-wh-deliv-ev { font-size: var(--fs-caption); font-weight: 700; color: var(--text); }
+.ag-wh-deliv-meta { font-size: var(--fs-caption); color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-wh-deliv-when { margin-left: auto; flex-shrink: 0; font-size: var(--fs-label); color: var(--text-faint); }
+.ag-wh-deliv-empty { margin: 2px 0 0; }
+
+/* Add-endpoint modal (centered, reuses the confirm-modal shell). */
+.ag-wh-modal { display: flex; flex-direction: column; gap: 8px; }
+.ag-wh-modal-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+.ag-wh-modal-x { background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 2px; display: grid; place-items: center; }
+.ag-wh-modal-lbl { font-size: var(--fs-caption); font-weight: 700; color: var(--text-dim); margin-top: 4px; }
 .ag-dom-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .ag-dom { background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; overflow: hidden; transition: border-color .15s; }
 .ag-dom.open { border-color: rgba(255, 255, 255, 0.16); }
