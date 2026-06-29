@@ -457,6 +457,10 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-dom-empty-ic { width: 70px; height: 70px; border-radius: 50%; display: grid; place-items: center; background: var(--grad-brand); color: var(--on-brand); box-shadow: 0 12px 32px rgba(248, 81, 78, 0.34); }
 .ag-dom-empty-ttl { font-size: var(--fs-title); font-weight: 800; letter-spacing: -0.02em; }
 .ag-dom-empty .ag-dom-add { width: 100%; margin-top: 0; }
+/* Webhooks empty state: same illustrated block as Domains, but the add field
+   already sits above it, so pull the icon up and tighten the subtitle. */
+.ag-wh-empty { padding-top: 40px; }
+.ag-dom-empty .ag-ce-sub { margin: 0; max-width: 320px; }
 .ag-dom-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .ag-dom { background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; overflow: hidden; transition: border-color .15s; }
 .ag-dom.open { border-color: rgba(255, 255, 255, 0.16); }

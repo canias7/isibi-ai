@@ -1963,7 +1963,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 </div>
                 {whErr && <div className="ag-send-err">{whErr}</div>}
                 {webhooks.length === 0 ? (
-                  <div className="ag-empty" style={{ marginTop: 12 }}>No endpoints yet. Add an HTTPS URL above to start receiving events.</div>
+                  <div className="ag-dom-empty ag-wh-empty">
+                    <div className="ag-dom-empty-ic"><IconWebhook size={32} /></div>
+                    <div className="ag-dom-empty-ttl">No endpoints yet</div>
+                    <p className="ag-ce-sub">Add an HTTPS URL above to start receiving events.</p>
+                  </div>
                 ) : (
                   <div className="ag-dom-list">
                     {webhooks.map((w) => {
