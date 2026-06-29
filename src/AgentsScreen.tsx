@@ -2062,6 +2062,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                       <div className="ag-emd-cell ag-emd-full"><div className="ag-emd-k">Subject</div><div className="ag-emd-v">{m.subject || '(no subject)'}</div></div>
                       <div className="ag-emd-cell ag-emd-full"><div className="ag-emd-k">Message ID</div><div className="ag-emd-id"><code>{m.id}</code><button className={copied === m.id ? 'ok' : ''} onClick={() => copyText(m.id)}>{copied === m.id ? 'Copied ✓' : 'Copy'}</button></div></div>
                     </div>
+                    <div className="ag-emd-sec">Log</div>
+                    <div className="ag-emd-log"><span className="ag-emd-log-method">POST</span><code className="ag-emd-log-path">/emails</code></div>
                     <div className="ag-emd-sec">Email events</div>
                     <div className="ag-emd-timeline">
                       {events.map((ev, i) => (
