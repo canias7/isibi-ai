@@ -289,10 +289,14 @@ export async function listWebhooks(): Promise<WebhookEndpoint[]> {
   const e = (data as { endpoints?: WebhookEndpoint[] } | null)?.endpoints;
   return Array.isArray(e) ? e : [];
 }
-export async function addWebhook(url: string, description?: string): Promise<{ endpoint?: WebhookEndpoint; error?: string }> {
-  const { data, error } = await supabase.functions.invoke('webhooks', { body: { action: 'add', url, description } });
+export async function addWebhook(url: string, events?: string[], description?: string): Promise<{ endpoint?: WebhookEndpoint; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('webhooks', { body: { action: 'add', url, events, description } });
   if (error) throw new Error(error.message || 'Request failed');
   return (data || {}) as { endpoint?: WebhookEndpoint; error?: string };
+}
+// Update which events an endpoint receives. Empty array = all events.
+export async function setWebhookEvents(id: string, events: string[]): Promise<void> {
+  await supabase.functions.invoke('webhooks', { body: { action: 'set-events', id, events } });
 }
 export async function removeWebhook(id: string): Promise<void> {
   await supabase.functions.invoke('webhooks', { body: { action: 'remove', id } });

@@ -47,6 +47,23 @@ async function verifyUser(token: string | null): Promise<string | null> {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function vId(v: unknown): string { const s = String(v ?? "").trim(); return UUID_RE.test(s) ? s : ""; }
 
+// The events an endpoint can subscribe to (must match what the senders actually
+// fan out: mail-events emits delivered/bounced/complained, track emits opened/
+// clicked, address-book emits contact.*). Stored as a text[] on the row; an EMPTY
+// array means "all events" (the fanout filter treats empty as no filter).
+const KNOWN_EVENTS = [
+  "delivered", "bounced", "complained", "opened", "clicked",
+  "contact.created", "contact.updated", "contact.deleted",
+];
+// Sanitize an incoming events list to the known set. "all selected" and "none/
+// invalid" both collapse to [] (= all events), so an endpoint can never end up
+// silently subscribed to nothing.
+function cleanEvents(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  const set = [...new Set(v.map((e) => String(e)).filter((e) => KNOWN_EVENTS.includes(e)))];
+  return set.length === 0 || set.length === KNOWN_EVENTS.length ? [] : set;
+}
+
 // Reject non-HTTPS and obvious internal/private targets (basic SSRF guard at save time).
 function badUrl(raw: string): boolean {
   let u: URL;
@@ -124,7 +141,7 @@ Deno.serve(async (req: Request) => {
       const url = String(body?.url || "").trim();
       const description = body?.description ? String(body.description).slice(0, 120) : null;
       if (badUrl(url)) return json(req, { error: "bad_url" });
-      const row = { user_id: uid, url, secret: newSecret(), description };
+      const row = { user_id: uid, url, secret: newSecret(), description, events: cleanEvents(body?.events) };
       const r = await fetch(`${SB_URL}/rest/v1/webhook_endpoints`, {
         method: "POST", headers: { ...sbHeaders, Prefer: "return=representation" }, body: JSON.stringify(row),
       });
@@ -146,6 +163,17 @@ Deno.serve(async (req: Request) => {
         method: "PATCH", headers: sbHeaders, body: JSON.stringify({ enabled: body?.enabled === true }),
       });
       return json(req, { ok: true });
+    }
+
+    if (action === "set-events") {
+      const id = vId(body?.id);
+      if (!id) return json(req, { error: "missing_id" });
+      const events = cleanEvents(body?.events);
+      const r = await fetch(`${SB_URL}/rest/v1/webhook_endpoints?id=eq.${id}&user_id=eq.${uid}`, {
+        method: "PATCH", headers: { ...sbHeaders, Prefer: "return=representation" }, body: JSON.stringify({ events }),
+      });
+      const row = (await r.json().catch(() => []))?.[0];
+      return row?.id ? json(req, { ok: true, events }) : json(req, { error: "not_found" });
     }
 
     if (action === "rotate") {

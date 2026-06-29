@@ -66,6 +66,64 @@ async function emailTaken(uid: string, email: string, exceptId?: string): Promis
   return Array.isArray(rows) && rows.length > 0;
 }
 
+// --- Outbound webhook fanout (contact.created / updated / deleted) -------------
+// Deliver a signed event to the user's enabled webhook endpoints, signed exactly
+// like the `webhooks` / `track` / `mail-events` fns. Best-effort + backgrounded so
+// a contact write never waits on (or fails because of) a customer endpoint.
+function whBadUrl(raw: string): boolean {
+  let u: URL;
+  try { u = new URL(raw); } catch { return true; }
+  if (u.protocol !== "https:") return true;
+  const h = u.hostname.toLowerCase();
+  if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal")) return true;
+  if (h === "169.254.169.254" || h === "metadata.google.internal") return true;
+  if (/^(10|127|0)\./.test(h)) return true;
+  if (/^192\.168\./.test(h)) return true;
+  if (/^169\.254\./.test(h)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+  if (h === "::1" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80")) return true;
+  return false;
+}
+async function whSign(secret: string, ts: string, body: string): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${ts}.${body}`));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function fanout(userId: string, type: string, data: Record<string, unknown>): Promise<void> {
+  if (!UUID_RE.test(userId)) return;
+  let eps: { id: string; url: string; secret: string; events: string[] | null }[] = [];
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/webhook_endpoints?user_id=eq.${userId}&enabled=eq.true&select=id,url,secret,events`, { headers: sbHeaders });
+    eps = r.ok ? await r.json() : [];
+  } catch { return; }
+  if (!Array.isArray(eps) || !eps.length) return;
+  const event = { id: crypto.randomUUID(), type, created_at: new Date().toISOString(), data };
+  const bodyStr = JSON.stringify(event);
+  const ts = Math.floor(Date.now() / 1000).toString();
+  await Promise.all(eps.map(async (ep) => {
+    if (!ep?.url || whBadUrl(ep.url)) return;
+    if (Array.isArray(ep.events) && ep.events.length && !ep.events.includes(type)) return; // empty = all events
+    let status = 0;
+    try {
+      const signature = await whSign(ep.secret, ts, bodyStr);
+      const res = await fetch(ep.url, {
+        method: "POST",
+        headers: { "content-type": "application/json", "user-agent": "Sendra-Webhooks/1.0", "sendra-id": event.id, "sendra-timestamp": ts, "sendra-signature": `v1=${signature}` },
+        body: bodyStr, redirect: "manual", signal: AbortSignal.timeout(8000),
+      });
+      status = res.status;
+    } catch { status = 0; }
+    const ok = status >= 200 && status < 300;
+    try {
+      await fetch(`${SB_URL}/rest/v1/webhook_endpoints?id=eq.${ep.id}`, { method: "PATCH", headers: sbHeaders, body: JSON.stringify(ok ? { last_status: status, last_event_at: new Date().toISOString(), failure_count: 0 } : { last_status: status, last_event_at: new Date().toISOString() }) });
+    } catch { /* ignore */ }
+  }));
+}
+function bg(task: Promise<unknown>): void {
+  const wu = (globalThis as unknown as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime?.waitUntil;
+  if (typeof wu === "function") wu(task.catch(() => {})); else task.catch(() => {});
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
@@ -97,7 +155,10 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({ user_id: uid, name, email, phone: phone || null, tags }),
       });
       const row = (await r.json().catch(() => []))?.[0];
-      if (row?.id) return json(req, { contact: row });
+      if (row?.id) {
+        bg(fanout(uid, "contact.created", { id: row.id, email: row.email, name: row.name }));
+        return json(req, { contact: row });
+      }
       // 409 = the unique index caught a race the check above missed.
       return r.status === 409 ? json(req, { error: "duplicate_email" }) : json(req, { error: "add_failed" }, 502);
     }
@@ -116,7 +177,10 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({ name, email, phone: phone || null, tags, updated_at: new Date().toISOString() }),
       });
       const row = (await r.json().catch(() => []))?.[0];
-      if (row?.id) return json(req, { contact: row });
+      if (row?.id) {
+        bg(fanout(uid, "contact.updated", { id: row.id, email: row.email, name: row.name }));
+        return json(req, { contact: row });
+      }
       return r.status === 409 ? json(req, { error: "duplicate_email" }) : json(req, { error: "not_found" });
     }
 
@@ -124,6 +188,7 @@ Deno.serve(async (req: Request) => {
       const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
       await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${id}&user_id=eq.${uid}`, { method: "DELETE", headers: sbHeaders });
+      bg(fanout(uid, "contact.deleted", { id }));
       return json(req, { ok: true });
     }
 
