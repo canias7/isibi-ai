@@ -43,13 +43,16 @@
 .ag-drawer-x { background: none; border: none; color: var(--text-faint); cursor: pointer; padding: 4px; display: grid; place-items: center; }
 .ag-drawer-nav { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 2px; margin: 6px 0; }
 .ag-drawer-item {
+  position: relative;
   display: flex; align-items: center; gap: 13px; width: 100%; text-align: left;
   background: none; border: none; color: var(--text-dim); font: inherit; cursor: pointer;
   padding: 12px; border-radius: 12px;
 }
 .ag-drawer-item:active { background: var(--fill-2); }
 .ag-drawer-ic { flex-shrink: 0; display: grid; place-items: center; color: var(--text-faint); }
-.ag-drawer-item.on { background: rgba(var(--brand-rgb), 0.14); color: var(--brand); }
+/* Active = a slim orange accent bar on the left + brand-coloured text/icon (no filled pill). */
+.ag-drawer-item.on { color: var(--brand); }
+.ag-drawer-item.on::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--grad-brand); }
 .ag-drawer-item.on .ag-drawer-ic { color: var(--brand); }
 .ag-drawer-label { font-size: var(--fs-body-s); font-weight: 600; }
 .ag-drawer-exit {
