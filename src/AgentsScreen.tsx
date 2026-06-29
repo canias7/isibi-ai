@@ -607,18 +607,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setCampRecips(recips);
     setContactSelMode(false); setContactSel(new Set());
   };
-  // Whole segment (tag) -> prefill a new campaign with everyone carrying that label.
-  const emailSegment = (tag: string) => {
-    const picked = mergedContacts.filter((c) => c.email && c.tags?.includes(tag));
-    if (!picked.length) return;
-    tap();
-    const recips = picked.map((c) => (c.name ? `${c.name} <${c.email}>` : c.email)).join('\n');
-    setReading(null); setCommsApp(null); setInboxHome(false);
-    setSendraTab('campaigns');
-    openCampNew();
-    setCampRecips(recips);
-    setContactSelMode(false); setContactSel(new Set());
-  };
   // ---- Sendra address book (own contacts) ----
   const loadSaved = () => listSavedContacts().then((c) => { if (mountedRef.current) setSavedContacts(c); });
   const openContactForm = (c?: ContactItem) => { tap(); setCFormErr(''); setCTag(''); setCForm({ id: c?.id, name: c?.name || '', email: c?.email || '', phone: c?.phone || '', tags: c?.tags?.join(', ') || '' }); };
@@ -2217,7 +2205,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             const tag = contactTag && allTags.includes(contactTag) ? contactTag : '';
             const base = tag ? mergedContacts.filter((c) => c.tags?.includes(tag)) : mergedContacts;
             const list = q ? base.filter((c) => `${c.name || ''} ${c.email || ''} ${c.phone || ''}`.toLowerCase().includes(q)) : base;
-            const segCount = tag ? base.filter((c) => c.email).length : 0;
             const loading = contactsState === 'loading' && mergedContacts.length === 0;
             return (
               <>
@@ -2260,15 +2247,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 ) : (
                   <ContactsList items={list} selectable={contactSelMode} selected={contactSel} onToggle={toggleContact} onEdit={openContactForm} />
                 )}
-                {contactSelMode && contactSel.size > 0 ? (
+                {contactSelMode && contactSel.size > 0 && (
                   <button className="ag-send-btn ag-contacts-action" onClick={emailSelected}>
                     Email {contactSel.size} {contactSel.size === 1 ? 'person' : 'people'} →
                   </button>
-                ) : !contactSelMode && tag && segCount > 0 ? (
-                  <button className="ag-send-btn ag-contacts-action" onClick={() => emailSegment(tag)}>
-                    Email “{tag}” — {segCount} {segCount === 1 ? 'person' : 'people'} →
-                  </button>
-                ) : null}
+                )}
               </>
             );
           })()}
