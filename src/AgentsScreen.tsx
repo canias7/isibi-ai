@@ -83,6 +83,18 @@ function addTagStr(tags: string, t: string): string {
   if (!tag || cur.includes(tag)) return tags;
   return [...cur, tag].join(', ');
 }
+// First line of a template's HTML body, as plain text — used as the list subtitle
+// (more useful than the subject, which usually duplicates the name).
+function tplSnippet(html?: string): string {
+  if (!html) return '';
+  const text = html
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<(style|script)[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&quot;/gi, '"').replace(/&#\d+;/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+  return text.split(' ').slice(0, 12).join(' ');
+}
 
 // Session caches (in-memory only), keyed by app so re-opening a view is instant
 // and Gmail/Outlook don't share each other's mail.
@@ -1688,15 +1700,20 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                     <div className="ag-empty" style={{ marginTop: 12 }}>No templates yet. Describe the email you want and let Sendra write it — then reuse it in any campaign.</div>
                   ) : (
                     <div className="ag-camp-list">
-                      {tplList.map((t) => (
-                        <button className="ag-camp" key={t.id} onClick={() => openTplEdit(t)}>
-                          <div className="ag-camp-main">
-                            <div className="ag-camp-name">{t.name || t.subject || 'Template'}</div>
-                            <div className="ag-camp-sub">{t.subject}</div>
-                          </div>
-                          <span className="ag-chev" aria-hidden="true">›</span>
-                        </button>
-                      ))}
+                      {tplList.map((t) => {
+                        const nm = t.name || t.subject || 'Template';
+                        const snip = tplSnippet(t.body) || t.subject || '';
+                        return (
+                          <button className="ag-camp" key={t.id} onClick={() => openTplEdit(t)}>
+                            <span className="ag-tpl-ini" aria-hidden="true">{(nm.trim()[0] || 'T').toUpperCase()}</span>
+                            <div className="ag-camp-main">
+                              <div className="ag-camp-name">{nm}</div>
+                              {snip && <div className="ag-camp-sub">{snip}</div>}
+                            </div>
+                            <span className="ag-chev" aria-hidden="true">›</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </>
