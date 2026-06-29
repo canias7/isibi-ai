@@ -2202,7 +2202,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             )}
         </div>
       ) : emailTab === 'contacts' ? (
-        <div className="ag-stage">
+        <div className={`ag-stage${mergedContacts.length === 0 ? ' ag-contacts-stage-empty' : ''}`}>
           {(() => {
             const q = contactSearch.trim().toLowerCase();
             const allTags = [...new Set(mergedContacts.flatMap((c) => c.tags || []))].sort();
@@ -2215,7 +2215,9 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               <>
                 <div className="ag-contacts-bar">
                   <input className="ag-field ag-contacts-search" placeholder="Search contacts" autoCapitalize="none" autoCorrect="off" value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} />
-                  <button className="ag-contacts-sel" onClick={() => openContactForm()}>+ Add</button>
+                  {mergedContacts.length > 0 && (
+                    <button className="ag-contacts-sel" onClick={() => openContactForm()}>+ Add</button>
+                  )}
                   {mergedContacts.length > 0 && (
                     <button className={`ag-contacts-sel${contactSelMode ? ' on' : ''}`} onClick={() => { tap(); setContactSelMode((v) => !v); setContactSel(new Set()); }}>{contactSelMode ? 'Cancel' : 'Select'}</button>
                   )}

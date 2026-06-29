@@ -60,7 +60,14 @@
 .ag-drawer-exit:active { background: var(--glass-strong, var(--fill-2)); }
 
 /* --- Contacts empty state (illustrated) --- */
-.ag-contacts-empty { text-align: center; max-width: 360px; margin: 10px auto 0; padding: 30px 24px 40px; }
+/* When empty the stage becomes a column so the illustration centers in the space
+   below the search field instead of sitting up top. */
+.ag-contacts-stage-empty { display: flex; flex-direction: column; }
+.ag-contacts-empty {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; max-width: 360px; margin: 0 auto; padding: 24px 24px 56px;
+}
 .ag-ce-cluster { display: flex; justify-content: center; margin-bottom: 18px; }
 .ag-ce-av {
   width: 60px; height: 60px; border-radius: 50%; margin: 0 -12px; background: #0b0a09;
