@@ -143,7 +143,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // --- Outbound webhook fanout (sent/failed for transactional sends) ------------
 // Same signing as the `webhooks` fn so receivers verify these like any other event.
 // Best-effort + backgrounded so a send's response never waits on customer endpoints.
-type WhEndpoint = { id: string; url: string; secret: string; events: string[] | null };
+type WhEndpoint = { id: string; url: string; secret: string; events: string[] | null; user_id: string };
 function whBadUrl(raw: string): boolean {
   let u: URL;
   try { u = new URL(raw); } catch { return true; }
@@ -166,7 +166,7 @@ async function whSign(secret: string, ts: string, body: string): Promise<string>
 async function getEndpoints(uid: string): Promise<WhEndpoint[]> {
   if (!UUID_RE.test(uid)) return [];
   try {
-    const r = await db(`webhook_endpoints?user_id=eq.${uid}&enabled=eq.true&select=id,url,secret,events`);
+    const r = await db(`webhook_endpoints?user_id=eq.${uid}&enabled=eq.true&select=id,url,secret,events,user_id`);
     const e = r.ok ? await r.json() : [];
     return Array.isArray(e) ? e : [];
   } catch { return []; }
@@ -187,6 +187,7 @@ async function deliverEvent(eps: WhEndpoint[], type: string, data: Record<string
     } catch { status = 0; }
     const ok = status >= 200 && status < 300;
     try { await db(`webhook_endpoints?id=eq.${ep.id}`, { method: "PATCH", body: JSON.stringify(ok ? { last_status: status, last_event_at: new Date().toISOString(), failure_count: 0 } : { last_status: status, last_event_at: new Date().toISOString() }) }); } catch { /* ignore */ }
+    try { await db(`webhook_deliveries`, { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ endpoint_id: ep.id, user_id: ep.user_id, event_id: event.id, event_type: type, payload: event, status: ok ? "success" : "pending", attempts: 1, last_status: status, last_error: ok ? null : (status ? `HTTP ${status}` : "unreachable"), next_attempt_at: ok ? new Date().toISOString() : new Date(Date.now() + 60000).toISOString() }) }); } catch { /* ignore */ }
   }));
 }
 function bg(tasks: Promise<unknown>[]): void {

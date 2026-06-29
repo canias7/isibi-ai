@@ -86,6 +86,9 @@ async function fanout(userId: string, type: string, data: Record<string, unknown
     try {
       await db(`webhook_endpoints?id=eq.${ep.id}`, { method: "PATCH", body: JSON.stringify(ok ? { last_status: status, last_event_at: new Date().toISOString(), failure_count: 0 } : { last_status: status, last_event_at: new Date().toISOString() }) });
     } catch { /* ignore */ }
+    try {
+      await db(`webhook_deliveries`, { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ endpoint_id: ep.id, user_id: userId, event_id: event.id, event_type: type, payload: event, status: ok ? "success" : "pending", attempts: 1, last_status: status, last_error: ok ? null : (status ? `HTTP ${status}` : "unreachable"), next_attempt_at: ok ? new Date().toISOString() : new Date(Date.now() + 60000).toISOString() }) });
+    } catch { /* ignore */ }
   }));
 }
 // Run background work (webhook delivery) without delaying the response. Uses the edge
