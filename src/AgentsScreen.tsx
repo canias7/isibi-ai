@@ -3,7 +3,7 @@ import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconInbox, IconRefresh, IconCheck, IconContacts,
   IconDoc, IconChat, IconPlus, IconArrowUp, IconX, IconCopy,
-  IconCalendar, IconWebhook, IconChart, IconGlobe,
+  IconCalendar, IconWebhook, IconChart, IconGlobe, IconBolt,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -2196,11 +2196,17 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                 </div>
               ) : (
                 <div className="ag-compose">
-                  <p className="ag-foot">Drip sequences: tag a contact and they automatically receive a series of emails over time. Suppressed and unsubscribed contacts stop automatically.</p>
-                  <button className="ag-send-btn" onClick={openAutoNew}>+ New automation</button>
                   {autoList.length === 0 ? (
-                    <div className="ag-empty" style={{ marginTop: 12 }}>No automations yet. Create a welcome or follow-up series that runs itself.</div>
+                    <div className="ag-dom-empty ag-auto-empty">
+                      <div className="ag-dom-empty-ic"><IconBolt size={32} /></div>
+                      <div className="ag-dom-empty-ttl">No automations yet</div>
+                      <p className="ag-ce-sub">Tag a contact and they’ll move through a series of emails on their own — welcome flows, follow-ups, nudges.</p>
+                      <button className="ag-send-btn" onClick={openAutoNew}><IconPlus size={16} /> New automation</button>
+                    </div>
                   ) : (
+                    <>
+                    <p className="ag-foot">Drip sequences: tag a contact and they automatically receive a series of emails over time. Suppressed and unsubscribed contacts stop automatically.</p>
+                    <button className="ag-send-btn" onClick={openAutoNew}>+ New automation</button>
                     <div className="ag-dom-list">
                       {autoList.map((a) => (
                         <div className="ag-dom open" key={a.id}>
@@ -2222,6 +2228,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         </div>
                       ))}
                     </div>
+                    </>
                   )}
                 </div>
               )

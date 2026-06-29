@@ -463,7 +463,9 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-dom-empty .ag-ce-sub { margin: 0; max-width: 320px; }
 /* Add-endpoint bar (sits above the endpoint list). */
 .ag-wh-bar { display: flex; justify-content: flex-end; margin-bottom: 4px; }
-.ag-wh-bar .ag-send-btn, .ag-wh-empty .ag-send-btn { display: inline-flex; align-items: center; gap: 6px; width: auto; }
+.ag-wh-bar .ag-send-btn, .ag-wh-empty .ag-send-btn, .ag-auto-empty .ag-send-btn { display: inline-flex; align-items: center; gap: 6px; width: auto; }
+/* Automations first-run: illustrated empty state (matches Contacts/Domains/Webhooks). */
+.ag-auto-empty { padding-top: 48px; }
 .ag-wh-ev-lbl { font-size: var(--fs-caption); font-weight: 600; color: var(--text-dim); }
 /* Label + picker rows inside the endpoint editor / add modal. */
 .ag-wh-evrow { display: flex; flex-direction: column; gap: 6px; }
