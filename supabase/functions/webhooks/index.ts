@@ -207,6 +207,14 @@ Deno.serve(async (req: Request) => {
       return json(req, { ok: status >= 200 && status < 300, status });
     }
 
+    if (action === "deliveries") {
+      const id = vId(body?.id);
+      if (!id) return json(req, { error: "missing_id" });
+      const r = await fetch(`${SB_URL}/rest/v1/webhook_deliveries?user_id=eq.${uid}&endpoint_id=eq.${id}&select=id,event_type,status,attempts,last_status,last_error,created_at,next_attempt_at&order=created_at.desc&limit=20`, { headers: sbHeaders });
+      const deliveries = await r.json().catch(() => []);
+      return json(req, { deliveries: Array.isArray(deliveries) ? deliveries : [] });
+    }
+
     return json(req, { error: "unknown_action" }, 400);
   } catch (e) {
     console.error("webhooks error:", action, String((e as Error)?.message || e));
