@@ -1758,16 +1758,24 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               )
             ) : sendraTab === 'domains' ? (
               <div className="ag-compose">
-                <p className="ag-foot">Add a domain you own to send from your own address (e.g. news@yourbrand.com). Set it up in one click where your DNS host supports it, or paste the records anywhere else, then Verify.</p>
-                <div className="ag-dom-add">
-                  <input className="ag-field" placeholder="yourbrand.com" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={domNew} onChange={(e) => { setDomNew(e.target.value); if (domErr) setDomErr(''); }} onKeyDown={(e) => { if (e.key === 'Enter') addDomain(); }} />
-                  <button className="ag-send-btn" disabled={domBusy || !domNew.trim()} onClick={addDomain}>{domBusy ? 'Adding…' : 'Add domain'}</button>
-                </div>
-                {domErr && <div className="ag-send-err">{domErr}</div>}
                 {domains.length === 0 ? (
-                  <div className="ag-empty" style={{ marginTop: 12 }}>Add your own domain to send from your address (e.g. news@yourbrand.com).</div>
+                  <div className="ag-dom-empty">
+                    <div className="ag-dom-empty-ic"><IconGlobe size={32} /></div>
+                    <div className="ag-dom-empty-ttl">Your sending domain</div>
+                    <div className="ag-dom-add">
+                      <input className="ag-field" placeholder="yourbrand.com" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={domNew} onChange={(e) => { setDomNew(e.target.value); if (domErr) setDomErr(''); }} onKeyDown={(e) => { if (e.key === 'Enter') addDomain(); }} />
+                      <button className="ag-send-btn" disabled={domBusy || !domNew.trim()} onClick={addDomain}>{domBusy ? 'Adding…' : 'Add'}</button>
+                    </div>
+                    {domErr && <div className="ag-send-err">{domErr}</div>}
+                  </div>
                 ) : (
-                  <div className="ag-dom-list">
+                  <>
+                    <div className="ag-dom-add">
+                      <input className="ag-field" placeholder="yourbrand.com" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={domNew} onChange={(e) => { setDomNew(e.target.value); if (domErr) setDomErr(''); }} onKeyDown={(e) => { if (e.key === 'Enter') addDomain(); }} />
+                      <button className="ag-send-btn" disabled={domBusy || !domNew.trim()} onClick={addDomain}>{domBusy ? 'Adding…' : 'Add domain'}</button>
+                    </div>
+                    {domErr && <div className="ag-send-err">{domErr}</div>}
+                    <div className="ag-dom-list">
                     {domains.map((d) => {
                       const open = domOpen === d.domain;
                       const verified = d.verified;
@@ -1832,7 +1840,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
                         </div>
                       );
                     })}
-                  </div>
+                    </div>
+                  </>
                 )}
               </div>
             ) : sendraTab === 'emails' ? (
