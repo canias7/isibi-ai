@@ -76,6 +76,13 @@ function oldestPerApp(items: EmailItem[]): Record<string, number> {
 }
 const PULL_THRESHOLD = 64;  // px of pull-down that triggers a refresh
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Append a segment tag to a comma-separated string (lowercased, deduped).
+function addTagStr(tags: string, t: string): string {
+  const cur = tags.split(',').map((x) => x.trim()).filter(Boolean);
+  const tag = t.trim().toLowerCase();
+  if (!tag || cur.includes(tag)) return tags;
+  return [...cur, tag].join(', ');
+}
 
 // Session caches (in-memory only), keyed by app so re-opening a view is instant
 // and Gmail/Outlook don't share each other's mail.
@@ -180,6 +187,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [contactTag, setContactTag] = useState('');                 // active segment filter ('' = all)
   const [cFormBusy, setCFormBusy] = useState(false);
   const [cFormErr, setCFormErr] = useState('');
+  const [cTag, setCTag] = useState(''); // pending segment-chip input in the contact form
   // Compose / reply state
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
@@ -613,7 +621,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   };
   // ---- Sendra address book (own contacts) ----
   const loadSaved = () => listSavedContacts().then((c) => { if (mountedRef.current) setSavedContacts(c); });
-  const openContactForm = (c?: ContactItem) => { tap(); setCFormErr(''); setCForm({ id: c?.id, name: c?.name || '', email: c?.email || '', phone: c?.phone || '', tags: c?.tags?.join(', ') || '' }); };
+  const openContactForm = (c?: ContactItem) => { tap(); setCFormErr(''); setCTag(''); setCForm({ id: c?.id, name: c?.name || '', email: c?.email || '', phone: c?.phone || '', tags: c?.tags?.join(', ') || '' }); };
   const saveCForm = async () => {
     if (!cForm || cFormBusy) return;
     const name = cForm.name.trim(), email = cForm.email.trim().toLowerCase(), phone = cForm.phone.trim();
@@ -2214,7 +2222,11 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             return (
               <>
                 <div className="ag-contacts-bar">
-                  <input className="ag-field ag-contacts-search" placeholder="Search contacts" autoCapitalize="none" autoCorrect="off" value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} />
+                  <div className="ag-search">
+                    <svg className="ag-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+                    <input className="ag-search-in" placeholder="Search contacts" autoCapitalize="none" autoCorrect="off" value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} />
+                    {contactSearch && <button className="ag-search-clear" onClick={() => { tap(); setContactSearch(''); }} aria-label="Clear search">✕</button>}
+                  </div>
                   {mergedContacts.length > 0 && (
                     <button className="ag-contacts-sel" onClick={() => openContactForm()}>+ Add</button>
                   )}
@@ -2265,17 +2277,47 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             <>
               <div className="ag-confirm-scrim" onClick={() => { tap(); setCForm(null); }} />
               <div className="ag-confirm ag-cform" role="dialog" aria-label="Contact">
-                <div className="ag-confirm-title">{cForm.id ? 'Edit contact' : 'New contact'}</div>
-                <input className="ag-field" placeholder="Name" value={cForm.name} onChange={(e) => setCForm({ ...cForm, name: e.target.value })} />
-                <input className="ag-field" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" placeholder="Email (required)" value={cForm.email} onChange={(e) => setCForm({ ...cForm, email: e.target.value })} />
-                <input className="ag-field" type="tel" inputMode="tel" placeholder="Phone (optional)" value={cForm.phone} onChange={(e) => setCForm({ ...cForm, phone: e.target.value })} />
-                <input className="ag-field" autoCapitalize="none" placeholder="Segments (e.g. vip, newsletter)" value={cForm.tags} onChange={(e) => setCForm({ ...cForm, tags: e.target.value })} />
-                <div className="ag-cform-hint">Comma-separated labels. Use them to email a whole group at once.</div>
+                <div className="ag-cf-avatar" aria-hidden="true">
+                  {(() => {
+                    const nm = cForm.name.trim();
+                    const init = nm ? nm.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() : '';
+                    return init ? <span>{init}</span> : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zM5 20a7 7 0 0 1 14 0" /></svg>
+                    );
+                  })()}
+                </div>
+                <div className="ag-cf-title">{cForm.id ? 'Edit contact' : 'New contact'}</div>
+                <div className="ag-cf-card">
+                  <label className="ag-cf-row">
+                    <span className="ag-cf-k">Name</span>
+                    <input className="ag-cf-v" placeholder="Full name" value={cForm.name} onChange={(e) => setCForm({ ...cForm, name: e.target.value })} />
+                  </label>
+                  <label className="ag-cf-row">
+                    <span className="ag-cf-k">Email <span className="ag-cf-req">*</span></span>
+                    <input className="ag-cf-v" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" placeholder="name@email.com" value={cForm.email} onChange={(e) => setCForm({ ...cForm, email: e.target.value })} />
+                  </label>
+                  <label className="ag-cf-row">
+                    <span className="ag-cf-k">Phone</span>
+                    <input className="ag-cf-v" type="tel" inputMode="tel" placeholder="Optional" value={cForm.phone} onChange={(e) => setCForm({ ...cForm, phone: e.target.value })} />
+                  </label>
+                </div>
+                <div className="ag-cf-seg">
+                  {cForm.tags.split(',').map((s) => s.trim()).filter(Boolean).map((t) => (
+                    <button key={t} className="ag-cf-chip" onClick={() => setCForm((f) => f ? { ...f, tags: f.tags.split(',').map((x) => x.trim()).filter(Boolean).filter((x) => x !== t).join(', ') } : f)}>{t} <span className="ag-cf-chip-x">✕</span></button>
+                  ))}
+                  <input
+                    className="ag-cf-chip-in" placeholder="+ segment" autoCapitalize="none" autoCorrect="off" value={cTag}
+                    onChange={(e) => { const v = e.target.value; if (v.endsWith(',')) { setCForm((f) => f ? { ...f, tags: addTagStr(f.tags, v.slice(0, -1)) } : f); setCTag(''); } else setCTag(v); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setCForm((f) => f ? { ...f, tags: addTagStr(f.tags, cTag) } : f); setCTag(''); } }}
+                    onBlur={() => { if (cTag.trim()) { setCForm((f) => f ? { ...f, tags: addTagStr(f.tags, cTag) } : f); setCTag(''); } }}
+                  />
+                </div>
+                <div className="ag-cform-hint">Segments let you email a whole group at once.</div>
                 {cFormErr && <div className="ag-send-err">{cFormErr}</div>}
                 <div className="ag-cform-actions">
                   {cForm.id && <button className="ag-send-btn ghost ag-cform-del" onClick={delCForm}>Delete</button>}
                   <button className="ag-send-btn ghost" onClick={() => { tap(); setCForm(null); }}>Cancel</button>
-                  <button className="ag-send-btn" disabled={cFormBusy || !EMAIL_RE.test(cForm.email.trim().toLowerCase())} onClick={saveCForm}>{cFormBusy ? 'Saving…' : 'Save'}</button>
+                  <button className="ag-send-btn" disabled={cFormBusy || !EMAIL_RE.test(cForm.email.trim().toLowerCase())} onClick={saveCForm}>{cFormBusy ? 'Saving…' : 'Save contact'}</button>
                 </div>
               </div>
             </>
