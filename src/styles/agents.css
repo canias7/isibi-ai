@@ -345,6 +345,18 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-em-row { font: inherit; text-align: left; cursor: pointer; width: 100%; }
 .ag-em-chev { flex: none; color: var(--text-faint); font-size: 18px; line-height: 1; margin-left: 2px; }
 
+/* --- Logs: unified request log rows --- */
+.ag-lg-row { gap: 10px; }
+.ag-lg-ava { width: 34px; height: 34px; border-radius: 9px; }
+.ag-lg-ava.api { background: rgba(248, 81, 78, 0.12); color: var(--brand-soft, #ff9a4d); }
+.ag-lg-ava.campaign { background: rgba(139, 155, 255, 0.14); color: #8b9bff; }
+.ag-lg-endpoint { flex: 1; min-width: 0; font-size: var(--fs-body-s); font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-lg-code { flex: none; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; }
+.ag-lg-code.ok { color: #34d399; background: rgba(52, 211, 153, 0.14); }
+.ag-lg-code.err { color: #ff6b6b; background: rgba(255, 107, 107, 0.14); }
+.ag-lg-method { flex: none; font-size: 11px; font-weight: 700; color: var(--text-dim); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.ag-lg-row .ag-em-when { width: 44px; text-align: right; }
+
 /* --- Email detail view --- */
 .ag-emd-hd { display: flex; align-items: center; gap: 12px; margin: 12px 0 18px; }
 .ag-emd-ava { width: 46px; height: 46px; border-radius: 12px; }

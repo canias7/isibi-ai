@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, listLogs, type EmailLog, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, setWebhookEvents, listWebhookDeliveries, type WebhookDelivery, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, setWebhookEvents, listWebhookDeliveries, type WebhookDelivery, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 import { mailerListDomains, mailerAddDomain, mailerDomainRecords, mailerVerifyDomain, mailerRemoveDomain, mailerSend, mailerMessages, mailerMessage, type SendingDomain, type DnsRecord, type Message as SentEmail } from './mailer';
@@ -214,6 +214,21 @@ const MSG_RANGE_OPTS: { id: string; label: string; days: number }[] = [
   { id: 'all', label: 'All time', days: 0 },
 ];
 
+// Logs page (API request log) filter options.
+const LOG_HTTP_OPTS: { id: string; label: string; dot?: string }[] = [
+  { id: 'all', label: 'All statuses' },
+  { id: 'success', label: 'Successes', dot: '#34d399' },
+  { id: 'error', label: 'Errors', dot: '#ff6b6b' },
+];
+const LOG_SOURCE_OPTS: { id: string; label: string; dot?: string }[] = [
+  { id: 'all', label: 'All sources' },
+  { id: 'campaign', label: 'Campaigns', dot: '#8b9bff' },
+  { id: 'api', label: 'API calls', dot: '#ff9a4d' },
+];
+// One row in the unified request log: a transactional send (/emails) or a
+// campaign send (/campaigns), each modeled as a POST request with an HTTP code.
+type LogEntry = { id: string; endpoint: string; method: string; code: number; at: string; source: 'api' | 'campaign'; q: string };
+
 // A compact Resend-style single-select dropdown: a trigger showing the current
 // value (with an optional colored dot) that opens a floating menu; the selected
 // row gets a check. A transparent backdrop closes it on an outside tap.
@@ -384,7 +399,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [campList, setCampList] = useState<Campaign[]>([]);
   const [campBodyKind, setCampBodyKind] = useState<'text' | 'html'>('text'); // 'html' when a designed template is applied
   // Per-email activity log (Logs tab)
-  const [logsList, setLogsList] = useState<EmailLog[]>([]);
   const [msgList, setMsgList] = useState<SentEmail[]>([]); // Emails tab: individual transactional sends
   const [msgBusy, setMsgBusy] = useState(false);
   const [msgFilter, setMsgFilter] = useState<string>('all'); // Emails status filter (exact status or 'all')
@@ -396,6 +410,10 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   const [msgDetailBusy, setMsgDetailBusy] = useState(false);
   const [logsQ, setLogsQ] = useState('');
   const [logsBusy, setLogsBusy] = useState(false);
+  const [logRange, setLogRange] = useState<string>('30d');   // Logs date-range filter
+  const [logHttp, setLogHttp] = useState<string>('all');     // Logs HTTP-status filter (all | success | error)
+  const [logSource, setLogSource] = useState<string>('all'); // Logs source filter (all | campaign | api)
+  const [logApiKey, setLogApiKey] = useState<string>('all'); // placeholder until API keys exist
   // Deliverability insights (Deliverability tab)
   const [deliv, setDeliv] = useState<{ reputation: Reputation } | null>(null);
   const [delivBusy, setDelivBusy] = useState(false);
@@ -679,7 +697,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     if ((sendraTab === 'campaigns' && !campNew) || sendraTab === 'schedule') listCampaigns().then((c) => { if (mountedRef.current) setCampList(c); });
     if (sendraTab === 'texts') smsStatus().then((s) => { if (mountedRef.current) { setSmsReady(s.ready); setSmsNumber(s.number); } });
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
-    if (sendraTab === 'logs') { setLogsBusy(true); listLogs('').then((l) => { if (mountedRef.current) { setLogsList(l); setLogsBusy(false); } }).catch(() => { if (mountedRef.current) setLogsBusy(false); }); }
+    if (sendraTab === 'logs') loadRequestLogs();
     if (sendraTab === 'emails') { setMsgBusy(true); mailerMessages().then((m) => { if (mountedRef.current) { setMsgList(m); setMsgBusy(false); } }).catch(() => { if (mountedRef.current) setMsgBusy(false); }); }
     if (sendraTab === 'deliver') { setDelivBusy(true); getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); }); }
     // Verified domains feed the composer's "Send from" picker; the Domains tab needs the full list.
@@ -738,7 +756,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     tap(); setNote('');
     if (id === 'texts') { setSmsState('idle'); setSmsErr(''); }
     if (id === 'webhook') loadWebhooks();
-    if (id === 'logs') { setLogsQ(''); loadLogs(''); }
+    if (id === 'logs') { setLogsQ(''); loadRequestLogs(); }
     if (id === 'deliver') loadDeliver();
     if (id === 'domains') { setDomNew(''); setDomErr(''); domPollRef.current = 0; loadDomains(); }
     setCommsApp(null); setInboxHome(false);
@@ -1120,10 +1138,12 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   };
 
   const loadSuppressions = () => listSuppressions().then((s) => { if (mountedRef.current) setSupList(s); });
-  // ---- Logs (per-email activity) ----
-  const loadLogs = (q = logsQ) => {
+  // ---- Logs (API request log) — built from transactional sends + campaign sends ----
+  const loadRequestLogs = () => {
     setLogsBusy(true);
-    listLogs(q).then((l) => { if (mountedRef.current) { setLogsList(l); setLogsBusy(false); } }).catch(() => { if (mountedRef.current) setLogsBusy(false); });
+    Promise.all([mailerMessages().catch(() => []), listCampaigns().catch(() => [])])
+      .then(([m, c]) => { if (mountedRef.current) { setMsgList(m); setCampList(c); } })
+      .finally(() => { if (mountedRef.current) setLogsBusy(false); });
   };
   // ---- Deliverability (auth + reputation) ----
   const loadDeliver = () => {
@@ -1131,16 +1151,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); });
   };
   // Derive a display status from a recipient row (engagement is in the timestamps).
-  const logStatus = (l: EmailLog): { label: string; cls: string } => {
-    if (l.status === 'bounced') return { label: 'Bounced', cls: 'failed' };
-    if (l.status === 'complained') return { label: 'Complaint', cls: 'failed' };
-    if (l.status === 'failed') return { label: 'Failed', cls: 'failed' };
-    if (l.clicked_at) return { label: 'Clicked', cls: 'sent' };
-    if (l.opened_at) return { label: 'Opened', cls: 'sent' };
-    if (l.delivered_at) return { label: 'Delivered', cls: 'sent' };
-    if (l.error) return { label: 'Delayed', cls: 'sending' }; // delivery_delayed note, not yet delivered/bounced
-    return { label: 'Sent', cls: 'sending' };
-  };
   // Transactional message status (mailer `messages`) -> pill.
   const msgStatus = (s: string): { label: string; cls: string } => {
     switch (s) {
@@ -2146,32 +2156,70 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
               )
             ) : sendraTab === 'logs' ? (
               <div className="ag-compose">
-                <input className="ag-field" placeholder="Search by email…" autoCapitalize="none" autoCorrect="off" value={logsQ}
-                  onChange={(e) => setLogsQ(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') loadLogs(logsQ); }} />
-                {logsBusy && logsList.length === 0 ? (
-                  <div className="ag-empty" style={{ marginTop: 12 }}>Loading…</div>
-                ) : logsList.length === 0 ? (
-                  <div className="ag-empty" style={{ marginTop: 12 }}>{logsQ ? 'No emails match that search.' : 'No sends yet. Once you send a campaign, every email shows up here — delivered, opened, clicked or bounced.'}</div>
-                ) : (
-                  <div className="ag-log-list">
-                    {logsList.map((l, i) => {
-                      const st = logStatus(l);
-                      const when = l.opened_at || l.clicked_at || l.delivered_at || l.sent_at;
-                      return (
-                        <div className="ag-log" key={`${l.email}-${i}`}>
-                          <div className="ag-camp-main">
-                            <div className="ag-camp-name">{l.email}</div>
-                            <div className="ag-camp-sub">{l.campaign?.name || l.campaign?.subject || 'Campaign'}{when ? ` · ${new Date(when).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}` : ''}</div>
-                            {l.error && <div className="ag-camp-sub ag-log-reason">{l.error}</div>}
-                          </div>
-                          <span className={`ag-camp-pill is-${st.cls}`}>{st.label}</span>
+                {(() => {
+                  // Build the unified request log from transactional sends (/emails)
+                  // and campaign sends (/campaigns), newest first.
+                  const entries: LogEntry[] = [];
+                  for (const m of msgList) {
+                    entries.push({ id: `m-${m.id}`, endpoint: '/emails', method: 'POST', code: m.status === 'failed' ? 422 : 200, at: m.created_at || m.sent_at || '', source: 'api', q: `${m.to_email} ${m.subject || ''} /emails` });
+                  }
+                  for (const c of campList) {
+                    if (c.status === 'draft') continue;
+                    const code = c.status === 'failed' ? 500 : c.status === 'scheduled' ? 202 : 200;
+                    entries.push({ id: `c-${c.id}`, endpoint: '/campaigns', method: 'POST', code, at: c.scheduled_at || c.created_at || '', source: 'campaign', q: `${c.name || ''} ${c.subject || ''} /campaigns` });
+                  }
+                  entries.sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0));
+                  const q = logsQ.trim().toLowerCase();
+                  const rangeDays = (MSG_RANGE_OPTS.find((r) => r.id === logRange) || MSG_RANGE_OPTS[4]).days;
+                  const cutoff = rangeDays ? Date.now() - rangeDays * 86400000 : 0;
+                  const filtered = entries.filter((e) => {
+                    if (logSource !== 'all' && e.source !== logSource) return false;
+                    if (logHttp === 'success' && e.code >= 400) return false;
+                    if (logHttp === 'error' && e.code < 400) return false;
+                    if (q && !e.q.toLowerCase().includes(q)) return false;
+                    if (cutoff) { const t = Date.parse(e.at); if (t && t < cutoff) return false; }
+                    return true;
+                  });
+                  const hasAny = msgList.length + campList.length > 0;
+                  return (
+                    <>
+                      <div className="ag-em-search">
+                        <IconSearch size={15} />
+                        <input placeholder="Search logs" autoCapitalize="none" autoCorrect="off" value={logsQ} onChange={(e) => setLogsQ(e.target.value)} />
+                        {logsQ && <button className="ag-em-clear" onClick={() => setLogsQ('')} aria-label="Clear"><IconX size={14} /></button>}
+                      </div>
+                      <div className="ag-em-filters">
+                        <FilterMenu value={logRange} options={MSG_RANGE_OPTS} onChange={setLogRange} />
+                        <FilterMenu value={logHttp} options={LOG_HTTP_OPTS} onChange={setLogHttp} />
+                        <FilterMenu value={logSource} options={LOG_SOURCE_OPTS} onChange={setLogSource} />
+                        <FilterMenu value={logApiKey} options={MSG_APIKEY_OPTS} onChange={setLogApiKey} align="right" hint="API keys coming soon" />
+                      </div>
+                      {logsBusy && !hasAny ? (
+                        <div className="ag-empty" style={{ marginTop: 8 }}>Loading…</div>
+                      ) : !hasAny ? (
+                        <div className="ag-empty" style={{ marginTop: 8 }}>No requests yet. Sends through Sendra — campaigns and individual emails — show up here as they happen.</div>
+                      ) : filtered.length === 0 ? (
+                        <div className="ag-empty" style={{ marginTop: 8 }}>No logs match.</div>
+                      ) : (
+                        <div className="ag-em-list">
+                          {filtered.map((e) => {
+                            const ok = e.code < 400;
+                            return (
+                              <div className="ag-em-row ag-lg-row" key={e.id}>
+                                <span className={`ag-em-ava ag-lg-ava ${e.source}`}>{e.source === 'campaign' ? <IconWaveform size={16} /> : <IconInbox size={16} />}</span>
+                                <code className="ag-lg-endpoint">{e.endpoint}</code>
+                                <span className={`ag-lg-code ${ok ? 'ok' : 'err'}`}>{e.code}</span>
+                                <span className="ag-lg-method">{e.method}</span>
+                                {e.at && <span className="ag-em-when">{relTime(Date.parse(e.at) || Date.now())}</span>}
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-                <p className="ag-foot">Every email Sendra sent and what happened to it. Opens are approximate; clicks are exact. Delivered/bounced fill in for sends through Sendra’s built-in email or a verified domain.</p>
+                      )}
+                    </>
+                  );
+                })()}
+                <p className="ag-foot">Every request Sendra processed — campaign sends (/campaigns) and individual emails (/emails) — with its status. Filter by source to see one or the other.</p>
               </div>
             ) : sendraTab === 'deliver' ? (
               <div className="ag-compose">
