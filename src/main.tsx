@@ -36,5 +36,3 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 // Pull any over-the-air web update (native only; no-op in the browser).
 void initOta();
-
-/* cloudflare auto-deploy check: efe2949 */
