@@ -1113,6 +1113,37 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .wingup-brand-name { font-weight: 800; font-size: var(--fs-headline); letter-spacing: -0.02em; }
 .wingup-top-spacer { flex-shrink: 0; width: 38px; height: 38px; }
 
+/* Top-bar video-model picker (landing/compose). A pill that opens a dropdown. */
+.wingup-model { position: relative; flex-shrink: 0; }
+.wingup-model-trig {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255, 255, 255, 0.8); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border: 1px solid rgba(180, 120, 40, 0.18); box-shadow: 0 2px 10px rgba(180, 120, 40, 0.12);
+  color: var(--wg-ink); font: inherit; font-size: var(--fs-caption); font-weight: 700;
+  padding: 8px 12px; border-radius: 999px; cursor: pointer; max-width: 46vw;
+}
+.wingup-model-trig:active { transform: scale(0.96); }
+.wingup-model-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wingup-model-chev { color: var(--wg-muted); font-size: 10px; flex-shrink: 0; }
+.wingup-model-back { position: fixed; inset: 0; z-index: 40; background: transparent; border: none; cursor: default; }
+.wingup-model-pop {
+  position: absolute; z-index: 41; top: calc(100% + 7px); right: 0; min-width: 210px;
+  background: var(--wg-card); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(120, 80, 30, 0.18); padding: 6px;
+  animation: wgModelIn 0.14s var(--ease-enter, ease);
+}
+@keyframes wgModelIn { from { opacity: 0; transform: translateY(-4px); } }
+.wingup-model-head { font-size: var(--fs-label); text-transform: uppercase; letter-spacing: 0.06em; color: var(--wg-muted); font-weight: 800; padding: 6px 9px 5px; }
+.wingup-model-opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; text-align: left; background: none; border: none; color: var(--wg-ink); font: inherit; padding: 8px 9px; border-radius: 10px; cursor: pointer; }
+.wingup-model-opt:active { background: var(--wg-chip); }
+.wingup-model-opt.on { background: var(--wg-chip); color: var(--wg-chip-ink); }
+.wingup-model-opt .ag-emd-dot { display: none; }
+.wingup-model-opt svg { flex-shrink: 0; color: var(--wg-chip-ink); }
+.wingup-model-opt-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.wingup-model-opt-name { font-size: var(--fs-body-s); font-weight: 700; }
+.wingup-model-opt-sub { font-size: var(--fs-caption); color: var(--wg-muted); }
+.wingup-model-opt.on .wingup-model-opt-sub { color: var(--wg-chip-ink); opacity: 0.75; }
+
 /* The landing scroller — fills the space under the top bar (the .memg shell is
    itself overflow:hidden) and is the ONLY thing that scrolls. */
 .wingup-scroll {
