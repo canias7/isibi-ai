@@ -1087,10 +1087,10 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 /* Warm, blurred orbs — Wingup's light version of the app's .live-bg ambient.
    Fixed and behind everything (z-index:0), so the scroll content floats over. */
 .wingup .live-bg { background: var(--wg-bg); }
-.wingup .live-bg .orb { filter: blur(72px); opacity: 0.42; animation: none; background: none; }
-.wingup .live-bg .orb1 { width: 320px; height: 320px; inset: auto auto auto auto; top: -100px; left: -80px; background: #38bdf8; }
-.wingup .live-bg .orb2 { width: 280px; height: 280px; inset: auto -110px auto auto; top: 90px; background: #2563eb; }
-.wingup .live-bg .orb3 { width: 320px; height: 320px; inset: auto auto 150px -90px; background: #0ea5e9; }
+.wingup .live-bg .orb { filter: blur(88px); opacity: 0.16; animation: none; background: none; }
+.wingup .live-bg .orb1 { width: 300px; height: 300px; inset: auto auto auto auto; top: -120px; left: -90px; background: #2b6fb0; }
+.wingup .live-bg .orb2 { width: 240px; height: 240px; inset: auto -130px auto auto; top: 60px; background: #1e3a6b; }
+.wingup .live-bg .orb3 { width: 280px; height: 280px; inset: auto auto 180px -110px; background: #1f5a82; }
 
 /* Top bar: back/close (left) + centred Wingup wordmark with the wing. */
 .wingup-top {
