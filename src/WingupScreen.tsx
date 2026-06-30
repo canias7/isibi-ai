@@ -29,8 +29,34 @@ import {
 // 'gallery' is the generated-media shelf; 'posts' is the full Instagram post
 // history (from the home feed); 'more' is the secondary menu (incl. Insights);
 // the rest are read/placeholder views.
-type View = 'landing' | 'studio' | 'post' | 'more' | 'posts' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
+type View = 'landing' | 'studio' | 'generate' | 'post' | 'more' | 'posts' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
 type IconCmp = typeof IconCompose;
+
+// Studio's cinematic card rows — placeholder grades until the real preview
+// videos land (each tile becomes a looping clip). Rows scroll →, page scrolls ↓.
+const STUDIO_ROWS: string[][] = [
+  [
+    'radial-gradient(ellipse at 30% 25%,rgba(56,189,248,.85),transparent 60%),linear-gradient(150deg,#0b1a2b,#05080f)',
+    'radial-gradient(ellipse at 30% 25%,rgba(37,99,235,.85),transparent 60%),linear-gradient(150deg,#0c1430,#05060a)',
+    'radial-gradient(ellipse at 30% 25%,rgba(14,165,233,.85),transparent 60%),linear-gradient(150deg,#08161f,#05060a)',
+    'radial-gradient(ellipse at 30% 25%,rgba(45,212,191,.75),transparent 60%),linear-gradient(150deg,#06181a,#05060a)',
+    'radial-gradient(ellipse at 30% 25%,rgba(99,102,241,.8),transparent 60%),linear-gradient(150deg,#0e1030,#05060a)',
+  ],
+  [
+    'radial-gradient(ellipse at 30% 25%,rgba(251,146,60,.85),transparent 60%),linear-gradient(150deg,#1c1108,#05060a)',
+    'radial-gradient(ellipse at 30% 25%,rgba(244,63,94,.8),transparent 60%),linear-gradient(150deg,#1d0c12,#05060a)',
+    'radial-gradient(ellipse at 30% 25%,rgba(234,179,8,.8),transparent 60%),linear-gradient(150deg,#1a1505,#05060a)',
+    'radial-gradient(ellipse at 30% 25%,rgba(249,115,22,.8),transparent 60%),linear-gradient(150deg,#190d05,#05060a)',
+    'radial-gradient(ellipse at 30% 25%,rgba(217,70,239,.8),transparent 60%),linear-gradient(150deg,#160c20,#05060a)',
+  ],
+  [
+    'radial-gradient(ellipse at 30% 25%,rgba(217,70,239,.85),transparent 60%),linear-gradient(150deg,#160c20,#05060a)',
+    'radial-gradient(ellipse at 30% 25%,rgba(99,102,241,.85),transparent 60%),linear-gradient(150deg,#0e1030,#05060a)',
+    'radial-gradient(ellipse at 30% 25%,rgba(20,184,166,.8),transparent 60%),linear-gradient(150deg,#06181a,#05060a)',
+    'radial-gradient(ellipse at 30% 25%,rgba(56,189,248,.8),transparent 60%),linear-gradient(150deg,#0b1a2b,#05080f)',
+    'radial-gradient(ellipse at 30% 25%,rgba(251,146,60,.75),transparent 60%),linear-gradient(150deg,#1c1108,#05060a)',
+  ],
+];
 
 // A piece of media the user has generated with Wingup — the Gallery's contents.
 // (Backed by a store once generation is wired; empty until then.)
@@ -38,7 +64,7 @@ type GenKind = 'video' | 'image';
 interface GenItem { id: string; kind: GenKind; url: string; thumb?: string; caption?: string; posted?: boolean }
 
 // The placeholder views, by id, for the "coming soon" empty states.
-const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'studio' | 'post' | 'more' | 'posts'>, { title: string; emoji: string; Icon: IconCmp }> = {
+const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'studio' | 'generate' | 'post' | 'more' | 'posts'>, { title: string; emoji: string; Icon: IconCmp }> = {
   calendar: { title: 'Content calendar', emoji: '📅', Icon: IconCalendar },
   campaigns: { title: 'Campaigns', emoji: '📣', Icon: IconWaveform },
   gallery: { title: 'Your media', emoji: '🖼️', Icon: IconPhotos },
@@ -210,7 +236,8 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   // placeholder → landing, and the landing → close the overlay.
   const back = () => {
     void tap();
-    if (view === 'studio' && step === 'result') { setStep('compose'); return; }
+    if (view === 'generate' && step === 'result') { setStep('compose'); return; }
+    if (view === 'generate') { setView('studio'); return; }
     if (view !== 'landing') { setView('landing'); return; }
     onClose();
   };
@@ -284,12 +311,18 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     setView('landing');
   };
 
-  // The Studio tab — start a fresh generation.
+  // The Studio tab — the cinematic mode browser.
   const openStudio = () => {
+    void tap();
+    setView('studio');
+  };
+
+  // Tapping a Studio card — open a fresh generation flow.
+  const openGenerate = () => {
     void tap();
     setPrompt(''); setTone(''); setCaption(''); setImageUrl('');
     setStep('compose');
-    setView('studio');
+    setView('generate');
   };
 
   // The ＋ button — start a fresh post (publish to socials).
@@ -303,8 +336,29 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   // Human-readable list of where we posted, for the success copy ("X, LinkedIn").
   const postedNames = CONNECTORS.filter((c) => selected.has(c.id)).map((c) => c.name).join(', ');
 
-  // ---- Studio: prompt → generate → save to Gallery ----
-  const renderStudio = () => {
+  // ---- Studio: the cinematic mode browser. Rows scroll →, page scrolls ↓.
+  // Labels/categories are intentionally omitted — each tile becomes a looping
+  // preview video once those land; tapping one opens the generate flow. ----
+  const renderStudio = () => (
+    <div className="wingup-scroll">
+      <div className="wingup-studio">
+        {STUDIO_ROWS.map((row, ri) => (
+          <div className="wingup-srail-wrap" key={ri}>
+            <div className="wingup-srail">
+              {row.map((g, ci) => (
+                <button key={ci} type="button" className="wingup-stile" style={{ background: g }} onClick={openGenerate} aria-label="Open generator">
+                  <span className="wingup-stile-play" aria-hidden="true">▶</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // ---- Generate: prompt → generate → save to Gallery (opened from a Studio card) ----
+  const renderGenerate = () => {
     if (step === 'generating') {
       return (
         <div className="wingup-loading">
@@ -516,7 +570,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
 
   // ---- The "More" tab: secondary destinations. Insights (analytics) lives here
   // now that the 4th tab is Studio; the rest are still placeholders. ----
-  const MORE_ITEMS: { id: Exclude<View, 'landing' | 'studio' | 'post' | 'more' | 'posts' | 'gallery'>; title: string; sub: string; emoji: string }[] = [
+  const MORE_ITEMS: { id: Exclude<View, 'landing' | 'studio' | 'generate' | 'post' | 'more' | 'posts' | 'gallery'>; title: string; sub: string; emoji: string }[] = [
     { id: 'insights', title: 'Insights', sub: 'Reach, followers & performance', emoji: '📊' },
     { id: 'calendar', title: 'Calendar', sub: 'Plan & schedule posts', emoji: '📅' },
     { id: 'campaigns', title: 'Campaigns', sub: 'Themed content pushes', emoji: '📣' },
@@ -639,7 +693,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   );
 
   // ---- A "coming soon" placeholder for a workspace view ----
-  const renderPlaceholder = (id: Exclude<View, 'landing' | 'studio' | 'post' | 'more' | 'posts'>) => {
+  const renderPlaceholder = (id: Exclude<View, 'landing' | 'studio' | 'generate' | 'post' | 'more' | 'posts'>) => {
     const p = PLACEHOLDERS[id];
     return (
       <div className="wingup-empty">
@@ -654,6 +708,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const headerTitle =
     view === 'landing' ? 'Wingup'
     : view === 'studio' ? 'Studio'
+    : view === 'generate' ? 'Generate'
     : view === 'post' ? 'Post'
     : view === 'more' ? 'More'
     : view === 'gallery' ? 'Gallery'
@@ -686,8 +741,9 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
 
       {view === 'landing' && renderHome()}
       {view === 'gallery' && renderGallery()}
+      {view === 'studio' && renderStudio()}
       {view === 'more' && renderMore()}
-      {view === 'studio' && <div className="wingup-stage">{renderStudio()}</div>}
+      {view === 'generate' && <div className="wingup-stage">{renderGenerate()}</div>}
       {view === 'post' && <div className="wingup-stage">{renderPost()}</div>}
       {view === 'posts' && <div className="wingup-stage">{renderPosts()}</div>}
       {view === 'insights' && <div className="wingup-stage">{renderInsights()}</div>}
