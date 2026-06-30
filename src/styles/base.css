@@ -309,6 +309,51 @@ input, textarea { caret-color: var(--brand); }
   .agent-card-logo { width: 56px; height: 56px; }
   .agent-card-name { font-size: 1.22rem; }
 }
+
+/* ---- Logged-out website landing: a chatbox hero + top-right Sign in ---- */
+.landing { position: relative; height: 100vh; display: flex; flex-direction: column; overflow: hidden; color: var(--text); }
+.landing-top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; }
+.landing-brand { font-weight: 800; font-size: 1.15rem; letter-spacing: -0.02em; }
+.landing-signin {
+  border: 1px solid var(--glass-edge); background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  color: var(--text); font: inherit; font-weight: 650; font-size: var(--fs-body-s);
+  padding: 9px 18px; border-radius: 999px; cursor: pointer;
+  transition: background var(--dur-press) ease, border-color var(--dur-press) ease, transform var(--dur-press) ease;
+}
+.landing-signin:hover { background: var(--glass-strong); border-color: rgba(255, 255, 255, 0.22); }
+.landing-signin:active { transform: scale(0.97); }
+.landing-signin:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.landing-hero {
+  position: relative; z-index: 1; flex: 1; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  padding: 0 22px 9vh; text-align: center;
+}
+.landing-h1 { font-size: clamp(1.9rem, 6vw, 3.1rem); font-weight: 800; letter-spacing: -0.03em; margin: 0; text-shadow: 0 0 44px rgba(255, 255, 255, 0.12); }
+.landing-tag { margin: 0; color: var(--text-dim); font-size: clamp(0.95rem, 3.6vw, 1.15rem); }
+.landing-chat {
+  width: 100%; max-width: 640px; margin-top: 14px; display: flex; align-items: center; gap: 8px;
+  background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge); border-radius: 18px; box-shadow: var(--glass-shadow); padding: 8px 8px 8px 18px;
+  transition: border-color var(--dur-press) ease;
+}
+.landing-chat:focus-within { border-color: rgba(224, 161, 58, 0.55); }
+.landing-chat-input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--text); font: inherit; font-size: 1.02rem; padding: 12px 0; }
+.landing-chat-input::placeholder { color: #6f6f77; }
+.landing-chat-send {
+  flex: 0 0 auto; width: 42px; height: 42px; border: 0; border-radius: 12px; cursor: pointer;
+  background: linear-gradient(135deg, #f0c060, #e0a13a); color: #261803; display: grid; place-items: center;
+  transition: opacity var(--dur-press) ease, transform var(--dur-press) ease;
+}
+.landing-chat-send:disabled { opacity: 0.4; cursor: default; }
+.landing-chat-send:not(:disabled):active { transform: scale(0.94); }
+.landing-examples { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; max-width: 620px; margin-top: 4px; }
+.landing-chip {
+  border: 1px solid var(--line-2); background: rgba(255, 255, 255, 0.04); color: var(--text-dim);
+  font: inherit; font-size: var(--fs-caption); padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  transition: background var(--dur-press) ease, color var(--dur-press) ease;
+}
+.landing-chip:hover { background: rgba(255, 255, 255, 0.08); color: var(--text); }
 /* Broken-connectors banner on the home (recovered from the removed chat.css; the
    .conn-warn-x dismiss button is still styled in touch.css). */
 .conn-warn {
