@@ -29,7 +29,7 @@ import {
 // 'gallery' is the generated-media shelf; 'posts' is the full Instagram post
 // history (from the home feed); 'more' is the secondary menu (incl. Insights);
 // the rest are read/placeholder views.
-type View = 'landing' | 'studio' | 'generate' | 'post' | 'more' | 'posts' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
+type View = 'landing' | 'studio' | 'generate' | 'post' | 'avatar' | 'more' | 'posts' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
 type IconCmp = typeof IconCompose;
 
 // Studio is project-based: empty shows just a ＋; with projects it shows their
@@ -40,13 +40,78 @@ const STUDIO_CATEGORIES = [
 ];
 interface Project { id: string; type: string }
 
+// ---- Avatar builder (Higgsfield-style "design a person from scratch") ----
+// A saved avatar: its attribute selections + a skin-tone colour for the card.
+interface Avatar { id: string; name: string; attrs: Record<string, string>; color: string }
+type AttrType = 'chip' | 'face' | 'swatch';
+interface AvatarSection { key: string; label: string; emoji: string; type: AttrType; options: { label: string; color?: string; grad?: string }[] }
+const faceGrad = (a: string, b: string) => `radial-gradient(ellipse at 50% 28%, ${a}, ${b})`;
+// The builder's sections, in order. `face` = portrait tiles, `swatch` = colour
+// dots, `chip` = text pills. Trim/extend freely as the real generator lands.
+const AVATAR_SECTIONS: AvatarSection[] = [
+  { key: 'character', label: 'Character', emoji: '🧑', type: 'face', options: [
+    { label: 'Human', grad: faceGrad('#caa17a', '#241b12') },
+    { label: 'Realistic', grad: faceGrad('#b98e6a', '#1e160f') },
+    { label: 'Anime', grad: faceGrad('#7dd3fc', '#10243b') },
+    { label: '3D', grad: faceGrad('#a78bfa', '#160c20') },
+    { label: 'Elf', grad: faceGrad('#9ae6b4', '#0c1a14') },
+    { label: 'Robot', grad: faceGrad('#94a3b8', '#11151d') },
+  ] },
+  { key: 'gender', label: 'Gender', emoji: '👤', type: 'chip', options: [
+    { label: 'Female' }, { label: 'Male' }, { label: 'Non-binary' }, { label: 'Trans woman' }, { label: 'Trans man' },
+  ] },
+  { key: 'ethnicity', label: 'Ethnicity / origin', emoji: '🌍', type: 'face', options: [
+    { label: 'African', grad: faceGrad('#6b4a32', '#1a1210') },
+    { label: 'Asian', grad: faceGrad('#caa17a', '#241b12') },
+    { label: 'European', grad: faceGrad('#e3c4a3', '#2a2018') },
+    { label: 'Indian', grad: faceGrad('#8a5a44', '#1d130e') },
+    { label: 'Middle Eastern', grad: faceGrad('#c79b78', '#241a12') },
+    { label: 'Latino', grad: faceGrad('#b07a52', '#1f1510') },
+    { label: 'Mixed', grad: faceGrad('#9a6f55', '#1f1510') },
+  ] },
+  { key: 'skin', label: 'Skin tone', emoji: '🎨', type: 'swatch', options: [
+    { label: 'Deep', color: '#3a2a1e' }, { label: 'Brown', color: '#6b4a32' }, { label: 'Tan', color: '#a9794f' },
+    { label: 'Medium', color: '#c79b78' }, { label: 'Light', color: '#e3c4a3' }, { label: 'Fair', color: '#f2dcc4' },
+  ] },
+  { key: 'hairStyle', label: 'Hair', emoji: '💇', type: 'chip', options: [
+    { label: 'Short' }, { label: 'Medium' }, { label: 'Long' }, { label: 'Curly' }, { label: 'Buzz' }, { label: 'Bald' },
+  ] },
+  { key: 'hairColor', label: 'Hair colour', emoji: '🌈', type: 'swatch', options: [
+    { label: 'Black', color: '#1a1a1a' }, { label: 'Brown', color: '#5b3a1e' }, { label: 'Blonde', color: '#d9b06a' },
+    { label: 'Red', color: '#a33a1e' }, { label: 'Gray', color: '#9aa0a6' }, { label: 'Dyed', color: '#3b6fd6' },
+  ] },
+  { key: 'eyes', label: 'Eye colour', emoji: '👁️', type: 'swatch', options: [
+    { label: 'Brown', color: '#6b4a2a' }, { label: 'Blue', color: '#3b6fd6' }, { label: 'Green', color: '#3a8a5a' },
+    { label: 'Hazel', color: '#8a6a3a' }, { label: 'Gray', color: '#8a98a6' }, { label: 'Amber', color: '#c08a3a' },
+  ] },
+  { key: 'age', label: 'Age', emoji: '🎂', type: 'chip', options: [
+    { label: 'Teen' }, { label: 'Adult' }, { label: 'Mature' }, { label: 'Senior' },
+  ] },
+  { key: 'body', label: 'Build', emoji: '🏋️', type: 'chip', options: [
+    { label: 'Slim' }, { label: 'Average' }, { label: 'Athletic' }, { label: 'Curvy' }, { label: 'Plus' },
+  ] },
+  { key: 'vibe', label: 'Style / vibe', emoji: '✨', type: 'chip', options: [
+    { label: 'Casual' }, { label: 'Professional' }, { label: 'Streetwear' }, { label: 'Glam' }, { label: 'Sporty' },
+  ] },
+  { key: 'details', label: 'Skin details', emoji: '🔬', type: 'chip', options: [
+    { label: 'None' }, { label: 'Freckles' }, { label: 'Vitiligo' }, { label: 'Birthmarks' }, { label: 'Wrinkles' },
+  ] },
+];
+const AVATAR_DEFAULTS: Record<string, string> = {
+  character: 'Human', gender: 'Female', ethnicity: 'Asian', skin: 'Tan', hairStyle: 'Medium',
+  hairColor: 'Black', eyes: 'Brown', age: 'Adult', body: 'Average', vibe: 'Casual', details: 'None',
+};
+// Look up the hex for the currently-chosen skin tone (drives the preview/card).
+const skinColorOf = (attrs: Record<string, string>) =>
+  AVATAR_SECTIONS.find((s) => s.key === 'skin')?.options.find((o) => o.label === attrs.skin)?.color || '#a9794f';
+
 // A piece of media the user has generated with Wingup — the Gallery's contents.
 // (Backed by a store once generation is wired; empty until then.)
 type GenKind = 'video' | 'image';
 interface GenItem { id: string; kind: GenKind; url: string; thumb?: string; caption?: string; posted?: boolean }
 
 // The placeholder views, by id, for the "coming soon" empty states.
-const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'studio' | 'generate' | 'post' | 'more' | 'posts'>, { title: string; emoji: string; Icon: IconCmp }> = {
+const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'studio' | 'generate' | 'post' | 'avatar' | 'more' | 'posts'>, { title: string; emoji: string; Icon: IconCmp }> = {
   calendar: { title: 'Content calendar', emoji: '📅', Icon: IconCalendar },
   campaigns: { title: 'Campaigns', emoji: '📣', Icon: IconWaveform },
   gallery: { title: 'Your media', emoji: '🖼️', Icon: IconPhotos },
@@ -217,6 +282,9 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   // ---- Studio: projects + the "new project" category picker ----
   const [projects, setProjects] = useState<Project[]>([]); // empty → Studio shows just a ＋
   const [pickerOpen, setPickerOpen] = useState(false); // the vertical category word-list
+  // ---- Profile: saved avatars + the avatar builder's current draft ----
+  const [avatars, setAvatars] = useState<Avatar[]>([]);
+  const [avatarDraft, setAvatarDraft] = useState<Record<string, string>>(AVATAR_DEFAULTS);
   // ---- Live Instagram reads (account header, Gallery, Insights) ----
   const igConnected = connApps.includes('instagram');
   const [account, setAccount] = useState<IgAccount | null>(null);
@@ -280,6 +348,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     if (view === 'studio' && pickerOpen) { setPickerOpen(false); return; }
     if (view === 'generate' && step === 'result') { setStep('compose'); return; }
     if (view === 'generate') { setView('studio'); return; }
+    if (view === 'avatar') { setView('more'); return; }
     if (view !== 'landing') { setView('landing'); return; }
     onClose();
   };
@@ -371,6 +440,23 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     void tap();
     setProjects((p) => [{ id: `p${p.length + 1}-${type}`, type }, ...p]);
     setPickerOpen(false);
+  };
+
+  // ---- Avatar builder ----
+  const openAvatarBuilder = () => {
+    void tap();
+    setAvatarDraft(AVATAR_DEFAULTS);
+    setView('avatar');
+  };
+  const setAvatarAttr = (key: string, value: string) => {
+    void tap();
+    setAvatarDraft((d) => ({ ...d, [key]: value }));
+  };
+  // Generate (stubbed) → save the avatar to the Profile library, return there.
+  const generateAvatar = () => {
+    void tap();
+    setAvatars((a) => [{ id: `av${a.length + 1}`, name: `Avatar ${a.length + 1}`, attrs: { ...avatarDraft }, color: skinColorOf(avatarDraft) }, ...a]);
+    setView('more');
   };
 
   // Open a project (or a Studio card) into a fresh generation flow.
@@ -639,15 +725,41 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
 
   // ---- The "More" tab: secondary destinations. Insights (analytics) lives here
   // now that the 4th tab is Studio; the rest are still placeholders. ----
-  const MORE_ITEMS: { id: Exclude<View, 'landing' | 'studio' | 'generate' | 'post' | 'more' | 'posts' | 'gallery'>; title: string; sub: string; emoji: string }[] = [
+  const MORE_ITEMS: { id: Exclude<View, 'landing' | 'studio' | 'generate' | 'post' | 'avatar' | 'more' | 'posts' | 'gallery'>; title: string; sub: string; emoji: string }[] = [
     { id: 'insights', title: 'Insights', sub: 'Reach, followers & performance', emoji: '📊' },
     { id: 'calendar', title: 'Calendar', sub: 'Plan & schedule posts', emoji: '📅' },
     { id: 'campaigns', title: 'Campaigns', sub: 'Themed content pushes', emoji: '📣' },
     { id: 'metaads', title: 'Meta Ads', sub: 'Facebook & Instagram ads', emoji: '📢' },
   ];
+  // ---- Profile (the 'more' view): account + Avatars + Products + tools ----
   const renderMore = () => (
     <div className="wingup-scroll">
       <div className="wingup-home">
+        <div className="wingup-acct">
+          <div className="wingup-acct-av" aria-hidden="true"><img src={WINGUP_LOGO} alt="" /></div>
+          <div className="wingup-acct-meta">
+            <div className="n">{account?.username ? `@${account.username}` : 'Your account'}</div>
+            <div className="h">{igConnected ? <><span className="wingup-conn-dot" aria-hidden="true" />Instagram connected</> : 'No account connected'}</div>
+          </div>
+        </div>
+
+        <div className="wingup-sectionh"><span className="wingup-sectionh-t">Avatars</span></div>
+        <div className="wingup-prow">
+          <button type="button" className="wingup-pcreate av" onClick={openAvatarBuilder}>
+            <span className="wingup-pplus">＋</span>Create
+          </button>
+          {avatars.map((a) => (
+            <button key={a.id} type="button" className="wingup-pcard av" style={{ background: `radial-gradient(ellipse at 50% 30%, ${a.color}, #11151d)` }} onClick={openAvatarBuilder}>
+              <span className="wingup-pcard-nm">{a.name}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="wingup-sectionh"><span className="wingup-sectionh-t">Products</span></div>
+        <div className="wingup-prow">
+          <div className="wingup-pcard pr wingup-pcard-soon">Coming soon</div>
+        </div>
+
         <div className="wingup-more-list">
           {MORE_ITEMS.map((m) => (
             <button key={m.id} type="button" className="wingup-more-row" onClick={() => { void tap(); setView(m.id); }}>
@@ -657,6 +769,57 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
             </button>
           ))}
         </div>
+      </div>
+    </div>
+  );
+
+  // ---- Avatar builder: design a person from scratch → Generate → saved to Profile ----
+  const renderAvatar = () => (
+    <div className="wingup-abuild">
+      <div className="wingup-ab-scroll">
+        <div className="wingup-ab-preview" style={{ background: `radial-gradient(ellipse at 50% 32%, ${skinColorOf(avatarDraft)}, #0c0f16)` }}>
+          <span className="wingup-ab-preview-ic" aria-hidden="true">🪽</span>
+          Your avatar appears here
+        </div>
+        <div className="wingup-ab-chips">
+          <span className="wingup-ab-chip">{avatarDraft.gender}</span>
+          <span className="wingup-ab-chip">{avatarDraft.ethnicity}</span>
+          <span className="wingup-ab-chip">{avatarDraft.age}</span>
+          <span className="wingup-ab-chip">{avatarDraft.vibe}</span>
+        </div>
+
+        {AVATAR_SECTIONS.map((sec) => (
+          <div className="wingup-ab-sec" key={sec.key}>
+            <div className="wingup-ab-h">{sec.emoji} {sec.label}</div>
+            {sec.type === 'chip' && (
+              <div className="wingup-ab-chiprow">
+                {sec.options.map((o) => (
+                  <button key={o.label} type="button" className={`wingup-ab-copt${avatarDraft[sec.key] === o.label ? ' on' : ''}`} onClick={() => setAvatarAttr(sec.key, o.label)}>{o.label}</button>
+                ))}
+              </div>
+            )}
+            {sec.type === 'face' && (
+              <div className="wingup-ab-faces">
+                {sec.options.map((o) => (
+                  <button key={o.label} type="button" className={`wingup-ab-face${avatarDraft[sec.key] === o.label ? ' on' : ''}`} style={{ background: o.grad }} onClick={() => setAvatarAttr(sec.key, o.label)}>
+                    {avatarDraft[sec.key] === o.label && <span className="wingup-ab-tick" aria-hidden="true">✓</span>}
+                    <span className="wingup-ab-face-l">{o.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {sec.type === 'swatch' && (
+              <div className="wingup-ab-swrow">
+                {sec.options.map((o) => (
+                  <button key={o.label} type="button" className={`wingup-ab-sw${avatarDraft[sec.key] === o.label ? ' on' : ''}`} style={{ background: o.color }} aria-label={o.label} title={o.label} onClick={() => setAvatarAttr(sec.key, o.label)} />
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="wingup-ab-genbar">
+        <button className="wingup-btn" onClick={generateAvatar}>✨ Generate avatar</button>
       </div>
     </div>
   );
@@ -762,7 +925,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   );
 
   // ---- A "coming soon" placeholder for a workspace view ----
-  const renderPlaceholder = (id: Exclude<View, 'landing' | 'studio' | 'generate' | 'post' | 'more' | 'posts'>) => {
+  const renderPlaceholder = (id: Exclude<View, 'landing' | 'studio' | 'generate' | 'post' | 'avatar' | 'more' | 'posts'>) => {
     const p = PLACEHOLDERS[id];
     return (
       <div className="wingup-empty">
@@ -779,6 +942,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     : view === 'studio' ? 'Studio'
     : view === 'generate' ? 'Generate'
     : view === 'post' ? 'Post'
+    : view === 'avatar' ? 'Create avatar'
     : view === 'more' ? 'Profile'
     : view === 'gallery' ? 'Gallery'
     : view === 'posts' ? 'Your posts'
@@ -818,6 +982,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
       {view === 'gallery' && renderGallery()}
       {view === 'studio' && renderStudio()}
       {view === 'more' && renderMore()}
+      {view === 'avatar' && renderAvatar()}
       {view === 'generate' && <div className="wingup-stage">{renderGenerate()}</div>}
       {view === 'post' && <div className="wingup-stage">{renderPost()}</div>}
       {view === 'posts' && <div className="wingup-stage">{renderPosts()}</div>}
