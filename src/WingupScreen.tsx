@@ -44,7 +44,9 @@ interface Project { id: string; type: string }
 // A saved avatar: its attribute selections + a skin-tone colour for the card.
 interface Avatar { id: string; name: string; attrs: Record<string, string>; color: string }
 type AttrType = 'chip' | 'face' | 'swatch';
-interface AvatarSection { key: string; label: string; emoji: string; type: AttrType; options: { label: string; color?: string; grad?: string }[] }
+// Each option can carry a real thumbnail `img` (shown when present); otherwise it
+// falls back to a portrait tile (skin-tone `grad` + a person silhouette).
+interface AvatarSection { key: string; label: string; emoji: string; type: AttrType; options: { label: string; color?: string; grad?: string; img?: string }[] }
 const faceGrad = (a: string, b: string) => `radial-gradient(ellipse at 50% 28%, ${a}, ${b})`;
 // The builder's sections, in order. `face` = portrait tiles, `swatch` = colour
 // dots, `chip` = text pills. Trim/extend freely as the real generator lands.
@@ -104,6 +106,15 @@ const AVATAR_DEFAULTS: Record<string, string> = {
 // Look up the hex for the currently-chosen skin tone (drives the preview/card).
 const skinColorOf = (attrs: Record<string, string>) =>
   AVATAR_SECTIONS.find((s) => s.key === 'skin')?.options.find((o) => o.label === attrs.skin)?.color || '#a9794f';
+
+// A head-and-shoulders bust used as a portrait placeholder inside avatar tiles,
+// the preview, and Profile cards — until real generated thumbnails replace it.
+const PersonSilhouette = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
+    <circle cx="32" cy="21" r="12.5" />
+    <path d="M32 37C18.7 37 8 45.7 8 56.4V64h48v-7.6C56 45.7 45.3 37 32 37Z" />
+  </svg>
+);
 
 // A piece of media the user has generated with Wingup — the Gallery's contents.
 // (Backed by a store once generation is wired; empty until then.)
@@ -750,6 +761,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
           </button>
           {avatars.map((a) => (
             <button key={a.id} type="button" className="wingup-pcard av" style={{ background: `radial-gradient(ellipse at 50% 30%, ${a.color}, #11151d)` }} onClick={openAvatarBuilder}>
+              <PersonSilhouette className="wingup-pcard-fig" />
               <span className="wingup-pcard-nm">{a.name}</span>
             </button>
           ))}
@@ -778,8 +790,8 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     <div className="wingup-abuild">
       <div className="wingup-ab-scroll">
         <div className="wingup-ab-preview" style={{ background: `radial-gradient(ellipse at 50% 32%, ${skinColorOf(avatarDraft)}, #0c0f16)` }}>
-          <span className="wingup-ab-preview-ic" aria-hidden="true">🪽</span>
-          Your avatar appears here
+          <PersonSilhouette className="wingup-ab-preview-fig" />
+          <span className="wingup-ab-preview-cap">{avatarDraft.gender} · {avatarDraft.ethnicity} · {avatarDraft.age}</span>
         </div>
         <div className="wingup-ab-chips">
           <span className="wingup-ab-chip">{avatarDraft.gender}</span>
@@ -802,6 +814,9 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
               <div className="wingup-ab-faces">
                 {sec.options.map((o) => (
                   <button key={o.label} type="button" className={`wingup-ab-face${avatarDraft[sec.key] === o.label ? ' on' : ''}`} style={{ background: o.grad }} onClick={() => setAvatarAttr(sec.key, o.label)}>
+                    {o.img
+                      ? <img className="wingup-ab-face-img" src={o.img} alt="" aria-hidden="true" />
+                      : <PersonSilhouette className="wingup-ab-face-fig" />}
                     {avatarDraft[sec.key] === o.label && <span className="wingup-ab-tick" aria-hidden="true">✓</span>}
                     <span className="wingup-ab-face-l">{o.label}</span>
                   </button>
