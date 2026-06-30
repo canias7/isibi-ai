@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { Capacitor } from '@capacitor/core';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  IconArrowLeft, IconArrowUp, IconCheck, IconCompose, IconCalendar,
-  IconWaveform, IconPhotos, IconChart, IconBolt, IconPlus, IconX,
+  IconArrowLeft, IconCheck, IconCompose, IconCalendar,
+  IconWaveform, IconPhotos, IconChart, IconBolt,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -14,53 +12,34 @@ import {
   isPostableImage, type IgAccount, type IgMedia, type IgInsight,
 } from './wingup';
 
-const MAX_ATTACH = 10; // Instagram allows up to 10 photos in a carousel
-
-// Wingup — the social media agent. The landing is a warm, light "what should we
-// post?" screen (an approved mockup): a chatbox hero pushed into the lower third
-// over soft amber/coral orbs, with a 2-column "Your workspace" grid revealed on
-// scroll. Tapping into the chatbox (or a chip) and sending drops into the live
-// compose → generate → review → publish flow; the other workspace cards open
-// clean "coming soon" placeholders. Home == the landing/chatbox.
+// Wingup — the social media agent. The landing is the "Your workspace" card grid
+// (a 2-column set of tappable cards) painted over Wingup's dark blue theme. The
+// cards open their views: Gallery and Insights pull the connected Instagram
+// account's real data; the rest are "coming soon" placeholders for now.
 //
 // Sibling to AgentsScreen: it reuses the .memg overlay shell (fixed full-screen,
-// focus trap, animated close) but paints its OWN warm light theme via .wingup-*
-// in agents.css, since the rest of the app is dark.
+// focus trap, animated close) but paints its OWN theme via .wingup-* in
+// agents.css.
 //
-// Publishing to Instagram is LIVE (see runPublish → src/wingup.ts → the `wingup`
-// Edge Function → Composio). AI copy/image generation is still STUBBED — see
-// generateContent below for the // TODO hook where that wiring lands.
+// The compose → generate → review → publish flow still lives below (the
+// 'compose' view) — Instagram publishing is wired end-to-end (see runPublish →
+// src/wingup.ts → the `wingup` Edge Function → Composio) — but its entry point
+// (the old chatbox hero) is dropped for now; the grid is the whole landing.
 
-// The screen's views. 'landing' is the chatbox home; 'compose' is the live flow;
-// the rest are "coming soon" placeholders that mirror the workspace cards.
+// The screen's views. 'landing' is the workspace card grid; 'compose' is the
+// (currently unlinked) post flow; the rest mirror the workspace cards.
 type View = 'landing' | 'compose' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
 type IconCmp = typeof IconCompose;
 
-// The "Your workspace" cards. Home returns to the landing/chatbox; the rest open
-// their placeholder view. `tone` keys the soft icon-tile color (see agents.css).
+// The "Your workspace" cards — each opens its view. `tone` keys the soft icon-tile
+// color (see agents.css).
 type Tone = 'home' | 'cal' | 'camp' | 'gal' | 'ins' | 'meta';
-const CARDS: { id: View; title: string; sub: string; emoji: string; tone: Tone; Icon: IconCmp }[] = [
-  { id: 'landing', title: 'Home', sub: 'Compose & post', emoji: '🏠', tone: 'home', Icon: IconCompose },
+const CARDS: { id: Exclude<View, 'landing' | 'compose'>; title: string; sub: string; emoji: string; tone: Tone; Icon: IconCmp }[] = [
   { id: 'calendar', title: 'Calendar', sub: 'Plan & schedule', emoji: '📅', tone: 'cal', Icon: IconCalendar },
   { id: 'campaigns', title: 'Campaigns', sub: 'Themed pushes', emoji: '📣', tone: 'camp', Icon: IconWaveform },
   { id: 'gallery', title: 'Gallery', sub: 'Your media', emoji: '🖼️', tone: 'gal', Icon: IconPhotos },
   { id: 'insights', title: 'Insights', sub: 'Performance', emoji: '📊', tone: 'ins', Icon: IconChart },
   { id: 'metaads', title: 'Meta Ads', sub: 'FB & IG ads', emoji: '📢', tone: 'meta', Icon: IconBolt },
-];
-
-// The hero carousel above the chatbox — a swipeable strip of recent posts/media.
-// TODO: placeholder sample media — swap for the user's generated/uploaded content once generation is wired.
-const SAMPLE_MEDIA: { url: string; caption: string }[] = [
-  { url: 'https://picsum.photos/seed/wingup01/520/620', caption: 'Summer sale — reel' },
-  { url: 'https://picsum.photos/seed/wingup02/520/620', caption: 'Product drop' },
-  { url: 'https://picsum.photos/seed/wingup03/520/620', caption: 'Behind the scenes' },
-  { url: 'https://picsum.photos/seed/wingup04/520/620', caption: 'Customer spotlight' },
-  { url: 'https://picsum.photos/seed/wingup05/520/620', caption: 'New arrivals' },
-  { url: 'https://picsum.photos/seed/wingup06/520/620', caption: 'Weekend vibes' },
-  { url: 'https://picsum.photos/seed/wingup07/520/620', caption: 'Limited edition' },
-  { url: 'https://picsum.photos/seed/wingup08/520/620', caption: 'Team picks' },
-  { url: 'https://picsum.photos/seed/wingup09/520/620', caption: 'How it’s made' },
-  { url: 'https://picsum.photos/seed/wingup10/520/620', caption: 'Coming soon' },
 ];
 
 // The placeholder views, by id, for the "coming soon" empty states.
@@ -146,9 +125,6 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const [caption, setCaption] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set()); // chosen platform ids
-  // ---- Chatbox attach: the + menu (camera / library) + the picked photos ----
-  const [attachOpen, setAttachOpen] = useState(false);
-  const [libraryOpen, setLibraryOpen] = useState(false); // the Wingup Library picker sheet
   const [attachments, setAttachments] = useState<string[]>([]); // picked photos: 1 = single post, 2–10 = carousel
   const [publishErr, setPublishErr] = useState(''); // a failed publish, shown on the review step
   // ---- Live Instagram reads (account header, Gallery, Insights) ----
@@ -160,12 +136,6 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const [insightsErr, setInsightsErr] = useState('');
 
   const trapRef = useRef<HTMLDivElement>(null);
-  const chatRef = useRef<HTMLTextAreaElement>(null);
-  const workspaceRef = useRef<HTMLElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null); // the landing scroll container — moved only by the arrows, not free scroll
-  // ---- Hero carousel: the swipeable media strip + its active card / dots ----
-  const caroRef = useRef<HTMLDivElement>(null);
-  const [activeShot, setActiveShot] = useState(0);
 
   // The user's connected social platforms, in CONNECTORS order, with name + logo.
   const socials = useMemo(
@@ -208,110 +178,10 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     setStep('result');
   };
 
-  // Enter the compose flow from the landing chatbox and kick off generation.
-  const launchCompose = () => {
-    if (!prompt.trim()) { chatRef.current?.focus(); return; }
-    setView('compose');
-    void runGenerate();
-  };
-
-  // ---- Chatbox attach menu ----
-  // Camera / Photo Library prefer the native @capacitor/camera picker (straight to
-  // the camera / gallery, no iOS chooser sheet) when it's compiled into the build.
-  // When it isn't (an OTA update to an older native build, or the web), we fall back
-  // to a hidden <input type=file>, which opens the picker inside the WebView using
-  // the camera/photo permissions already in Info.plist.
-  // Picked photos feed straight into the compose/publish flow: one = a single
-  // post, two-or-more = a carousel (capped at MAX_ATTACH).
-  const addAttachment = (url: string) => setAttachments((a) => (a.length >= MAX_ATTACH ? a : [...a, url]));
-  const removeAttachment = (i: number) => setAttachments((a) => a.filter((_, idx) => idx !== i));
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const onPickFile = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = ''; // reset so re-picking the same file still fires onChange
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => { if (typeof reader.result === 'string') addAttachment(reader.result); };
-      reader.readAsDataURL(file);
-    });
-  };
-  // Returns true if the native picker handled it; false → caller uses the input fallback.
-  const pickNative = async (source: CameraSource): Promise<boolean> => {
-    if (!Capacitor.isPluginAvailable('Camera')) return false;
-    try {
-      const photo = await Camera.getPhoto({ quality: 90, allowEditing: false, resultType: CameraResultType.DataUrl, source });
-      if (photo.dataUrl) addAttachment(photo.dataUrl);
-    } catch { /* cancelled — no-op */ }
-    return true;
-  };
-  const openCamera = async () => {
-    void tap(); setAttachOpen(false);
-    if (!(await pickNative(CameraSource.Camera))) cameraInputRef.current?.click();
-  };
-  const openPhotos = async () => {
-    void tap(); setAttachOpen(false);
-    if (!(await pickNative(CameraSource.Photos))) photoInputRef.current?.click();
-  };
-
-  // Wingup Library — the user's own generated media. Open the picker sheet (and
-  // close the attach menu behind it).
-  const pickFromLibrary = () => {
-    void tap();
-    setAttachOpen(false);
-    setLibraryOpen(true);
-  };
-
-  // Choose an item from the Wingup Library → add it to the pending photos (the
-  // same state Camera/Photos feed), then close the picker.
-  const pickLibraryItem = (url: string) => {
-    void tap();
-    addAttachment(url);
-    setLibraryOpen(false);
-  };
-
-  // Carousel: on swipe, mark the card whose centre is nearest the strip's centre
-  // as active so the dots follow the user's scroll.
-  const onCaroScroll = () => {
-    const el = caroRef.current;
-    if (!el) return;
-    const mid = el.scrollLeft + el.clientWidth / 2;
-    let best = 0;
-    let bestDist = Infinity;
-    const cards = el.children;
-    for (let i = 0; i < cards.length; i += 1) {
-      const card = cards[i] as HTMLElement;
-      const cardMid = card.offsetLeft + card.offsetWidth / 2;
-      const dist = Math.abs(cardMid - mid);
-      if (dist < bestDist) { bestDist = dist; best = i; }
-    }
-    setActiveShot((cur) => (cur === best ? cur : best));
-  };
-
-  // Carousel: centre the i-th card (tap a dot). A 'smooth' jump unless the user
-  // prefers reduced motion, in which case we snap instantly (no scroll jank).
-  const goShot = (i: number) => {
-    void tap();
-    const el = caroRef.current;
-    const card = el?.children[i] as HTMLElement | undefined;
-    if (!el || !card) return;
-    const reduce = typeof window !== 'undefined'
-      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    el.scrollTo({
-      left: card.offsetLeft - (el.clientWidth - card.offsetWidth) / 2,
-      behavior: reduce ? 'auto' : 'smooth',
-    });
-    setActiveShot(i);
-  };
-
   // Back steps one level: review → compose, compose → landing, a placeholder →
   // landing, and the landing → close the overlay (back to the agent picker).
-  // The library picker and the attach menu are levels of their own — Escape/back
-  // dismisses them (picker first, then menu) before navigating views.
   const back = () => {
     void tap();
-    if (libraryOpen) { setLibraryOpen(false); return; }
-    if (attachOpen) { setAttachOpen(false); return; }
     if (view === 'compose') {
       if (step === 'result') { setStep('compose'); return; }
       setView('landing');
@@ -366,7 +236,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const startAnother = () => {
     void tap();
     setPrompt(''); setTone(''); setCaption(''); setImageUrl(''); setSelected(new Set());
-    setAttachments([]); setAttachOpen(false); setLibraryOpen(false); setPublishErr('');
+    setAttachments([]); setPublishErr('');
     setStep('compose');
     setView('landing');
   };
@@ -481,179 +351,18 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     );
   };
 
-  // ---- The landing: heading + media carousel, then the hero chatbox in the
-  // lower third, then the workspace grid below the fold ----
+  // ---- The landing: the "Your workspace" card grid (the whole home screen). ----
   const renderLanding = () => (
-    <div className="wingup-scroll" ref={scrollRef}>
-      <section className="wingup-hero">
-        <div className="wingup-hero-top">
-          <h2 className="wingup-h1">What should we post?</h2>
-          <p className="wingup-hero-sub">Your social media agent</p>
-        </div>
-
-        {/* Media carousel — a swipeable strip of recent/sample posts. The active
-            card is centred with a peek of its neighbors; the dots track it. */}
-        <div
-          className="wingup-caro"
-          ref={caroRef}
-          onScroll={onCaroScroll}
-          role="group"
-          aria-label="Recent media"
-        >
-          {SAMPLE_MEDIA.map((m, i) => (
-            <div className="wingup-shot" key={m.url}>
-              <img src={m.url} alt="" aria-hidden loading="lazy" />
-              <span className="wingup-shot-badge">{i + 1} / {SAMPLE_MEDIA.length}</span>
-              <span className="wingup-shot-play" aria-hidden="true">▶</span>
-              <span className="wingup-shot-cap">{m.caption}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Dots — the centred card's dot is active; tap to centre that card. */}
-        <div className="wingup-dots" role="tablist" aria-label="Media pages">
-          {SAMPLE_MEDIA.map((m, i) => (
-            <button
-              type="button"
-              key={m.url}
-              className={`wingup-dot${i === activeShot ? ' on' : ''}`}
-              onClick={() => goShot(i)}
-              role="tab"
-              aria-selected={i === activeShot}
-              aria-label={`Show ${m.caption}`}
-            />
-          ))}
-        </div>
-
-        <div className="wingup-hero-spacer" aria-hidden="true" />
-
-        <div className="wingup-hero-bottom">
-          {/* The composer wraps the chatbox so the attach menu can float above it.
-              The chatbox is a single glass-dark row: [+ attach] [input] [send]. */}
-          <div className="wingup-composer">
-            {/* Transparent full-screen backdrop — a tap anywhere outside closes the
-                attach menu. Rendered first so it sits under the popover. */}
-            {attachOpen && (
-              <button
-                type="button"
-                className="wingup-attach-backdrop"
-                aria-label="Close attach menu"
-                onClick={() => { void tap(); setAttachOpen(false); }}
-              />
-            )}
-
-            {/* Attach menu — a light popover above the chatbox with 3 rows. */}
-            {attachOpen && (
-              <div className="wingup-attach-menu" role="menu" aria-label="Attach">
-                <button type="button" className="wingup-attach-row" role="menuitem" onClick={() => void openCamera()}>
-                  <span className="wingup-attach-ic ar-cam" aria-hidden="true">📷</span>
-                  <span className="wingup-attach-txt"><span className="wingup-attach-t">Camera</span></span>
-                </button>
-                <button type="button" className="wingup-attach-row" role="menuitem" onClick={() => void openPhotos()}>
-                  <span className="wingup-attach-ic ar-pho" aria-hidden="true">🖼️</span>
-                  <span className="wingup-attach-txt"><span className="wingup-attach-t">Photo Library</span></span>
-                </button>
-                <button type="button" className="wingup-attach-row" role="menuitem" onClick={pickFromLibrary}>
-                  <span className="wingup-attach-ic ar-wing" aria-hidden="true">🪽</span>
-                  <span className="wingup-attach-txt">
-                    <span className="wingup-attach-t">Wingup Library</span>
-                    <span className="wingup-attach-s">Your generated media</span>
-                  </span>
-                </button>
-              </div>
-            )}
-
-            {/* Hidden pickers — Camera (capture) + Photo Library (multi-select for
-                carousels). They open the native picker inside the WebView (OTA-safe). */}
-            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onPickFile} />
-            <input ref={photoInputRef} type="file" accept="image/*" multiple hidden onChange={onPickFile} />
-
-            {/* Picked photos — a thumbnail row (each removable). 2+ = a carousel. */}
-            {attachments.length > 0 && (
-              <div className="wingup-attachments">
-                {attachments.map((src, i) => (
-                  <div className="wingup-attachment" key={`${src}-${i}`}>
-                    <img className="wingup-attachment-img" src={src} alt={`Attached ${i + 1}`} />
-                    <button
-                      type="button"
-                      className="wingup-attachment-x"
-                      onClick={() => { void tap(); removeAttachment(i); }}
-                      aria-label={`Remove photo ${i + 1}`}
-                    >
-                      <IconX size={13} />
-                    </button>
-                  </div>
-                ))}
-                {attachments.length >= 2 && <span className="wingup-attach-count">{attachments.length} · carousel</span>}
-              </div>
-            )}
-
-            <div className="wingup-chatbox">
-              <button
-                type="button"
-                className="wingup-attach"
-                onClick={() => { void tap(); setAttachOpen((o) => !o); }}
-                aria-label="Attach a photo"
-                aria-expanded={attachOpen}
-                aria-haspopup="menu"
-              >
-                <IconPlus size={22} />
-              </button>
-              <textarea
-                ref={chatRef}
-                className="wingup-chat-input"
-                rows={1}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); launchCompose(); }
-                }}
-                placeholder="Describe a post, a campaign, or a vibe…"
-                aria-label="Describe a post, a campaign, or a vibe"
-              />
-              <button
-                type="button"
-                className="wingup-send"
-                onClick={launchCompose}
-                disabled={!prompt.trim()}
-                aria-label="Start composing"
-              >
-                <IconArrowUp size={20} />
-              </button>
-            </div>
-          </div>
-
-          {/* Static, tappable cue — a tap smooth-scrolls down to the workspace. */}
-          <button
-            type="button"
-            className="wingup-scrollcue"
-            onClick={() => { void tap(); workspaceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
-            aria-label="Scroll to your workspace"
-          >
-            <span className="wingup-chev" aria-hidden="true">⌄</span>
-            <span className="wingup-scrollcue-lbl">scroll</span>
-          </button>
-        </div>
-      </section>
-
-      <section className="wingup-workspace" ref={workspaceRef}>
-        {/* The only way back up — free scroll is off; the arrows drive it. */}
-        <button
-          type="button"
-          className="wingup-upcue"
-          onClick={() => { void tap(); scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }}
-          aria-label="Back to the top"
-        >
-          <span className="wingup-chev" aria-hidden="true">⌄</span>
-        </button>
+    <div className="wingup-scroll">
+      <section className="wingup-workspace">
         <h3 className="wingup-sec-h">Your workspace</h3>
         <div className="wingup-grid">
           {CARDS.map((c) => (
             <button
-              key={c.title}
+              key={c.id}
               type="button"
               className="wingup-card"
-              onClick={() => { void tap(); if (c.id === 'landing') chatRef.current?.focus(); else setView(c.id); }}
+              onClick={() => { void tap(); setView(c.id); }}
             >
               <span className={`wingup-card-ic tone-${c.tone}`} aria-hidden="true">{c.emoji}</span>
               <span className="wingup-card-t">{c.title}</span>
@@ -662,51 +371,6 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
           ))}
         </div>
       </section>
-    </div>
-  );
-
-  // ---- Wingup Library picker — a warm bottom sheet of the user's generated media,
-  // rendered at the overlay root so it covers the full screen. Tapping a thumbnail
-  // sets it as the chatbox attachment. ----
-  const renderLibrary = () => (
-    <div className="wingup-lib" role="dialog" aria-modal="true" aria-label="Wingup Library">
-      <button
-        type="button"
-        className="wingup-lib-backdrop"
-        aria-label="Close library"
-        onClick={() => { void tap(); setLibraryOpen(false); }}
-      />
-      <div className="wingup-lib-sheet">
-        <div className="wingup-lib-head">
-          <div className="wingup-lib-titles">
-            <div className="wingup-lib-title">Wingup Library</div>
-            <div className="wingup-lib-sub">Your generated media</div>
-          </div>
-          <button
-            type="button"
-            className="wingup-lib-x"
-            onClick={() => { void tap(); setLibraryOpen(false); }}
-            aria-label="Close"
-          >
-            <IconX size={18} />
-          </button>
-        </div>
-        {/* TODO: this is the user's real generated/uploaded library once generation is wired. */}
-        <div className="wingup-lib-grid">
-          {SAMPLE_MEDIA.map((m) => (
-            <button
-              type="button"
-              key={m.url}
-              className="wingup-lib-item"
-              onClick={() => pickLibraryItem(m.url)}
-              aria-label={`Attach ${m.caption}`}
-            >
-              <img src={m.url} alt="" aria-hidden loading="lazy" />
-              <span className="wingup-lib-cap">{m.caption}</span>
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 
@@ -829,8 +493,6 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
             : renderPlaceholder(view)}
         </div>
       )}
-
-      {libraryOpen && renderLibrary()}
     </div>
   );
 }

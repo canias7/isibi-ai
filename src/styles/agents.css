@@ -1145,12 +1145,10 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .wingup-model-opt.on .wingup-model-opt-sub { color: var(--wg-chip-ink); opacity: 0.75; }
 
 /* The landing scroller — fills the space under the top bar (the .memg shell is
-   itself overflow:hidden) and is the ONLY thing that scrolls. */
+   itself overflow:hidden) and scrolls the workspace card grid if it overflows. */
 .wingup-scroll {
   position: relative; z-index: 1; flex: 1; min-height: 0;
-  /* Free scroll is OFF — the landing moves only via the arrow buttons
-     (programmatic scroll still works on an overflow:hidden container). */
-  overflow-y: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
 }
 
 /* Hero: a flowable top→bottom layout — heading, then the media carousel + dots,
@@ -1436,7 +1434,7 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .wingup-upcue .wingup-chev { transform: rotate(180deg); }
 .wingup-upcue:active { opacity: 0.7; }
 .wingup-upcue:focus-visible { outline: 2px solid var(--wg-amber); outline-offset: 4px; border-radius: 10px; }
-.wingup-workspace { padding: 6px 20px calc(40px + env(safe-area-inset-bottom)); max-width: 560px; margin: 0 auto; }
+.wingup-workspace { padding: 22px 20px calc(40px + env(safe-area-inset-bottom)); max-width: 560px; margin: 0 auto; }
 .wingup-sec-h {
   font-size: var(--fs-caption); font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.13em; color: var(--wg-muted); margin: 8px 6px 14px;
