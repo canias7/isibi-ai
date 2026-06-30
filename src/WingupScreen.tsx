@@ -12,10 +12,8 @@ import {
   isPostableImage, type IgAccount, type IgMedia, type IgInsight,
 } from './wingup';
 
-// Wingup — the social media agent. The landing is the "Your workspace" card grid
-// (a 2-column set of tappable cards) painted over Wingup's dark blue theme. The
-// cards open their views: Gallery and Insights pull the connected Instagram
-// account's real data; the rest are "coming soon" placeholders for now.
+// Wingup — the social media agent. The landing is intentionally blank for now
+// (no model picker, no cards) painted over Wingup's dark blue theme.
 //
 // Sibling to AgentsScreen: it reuses the .memg overlay shell (fixed full-screen,
 // focus trap, animated close) but paints its OWN theme via .wingup-* in
@@ -23,24 +21,13 @@ import {
 //
 // The compose → generate → review → publish flow still lives below (the
 // 'compose' view) — Instagram publishing is wired end-to-end (see runPublish →
-// src/wingup.ts → the `wingup` Edge Function → Composio) — but its entry point
-// (the old chatbox hero) is dropped for now; the grid is the whole landing.
+// src/wingup.ts → the `wingup` Edge Function → Composio) — but it has no entry
+// point right now; the landing is blank.
 
-// The screen's views. 'landing' is the workspace card grid; 'compose' is the
-// (currently unlinked) post flow; the rest mirror the workspace cards.
+// The screen's views. 'landing' is the (blank) home; 'compose' is the (currently
+// unlinked) post flow; the rest are the read/placeholder views.
 type View = 'landing' | 'compose' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
 type IconCmp = typeof IconCompose;
-
-// The "Your workspace" cards — each opens its view. `tone` keys the soft icon-tile
-// color (see agents.css).
-type Tone = 'home' | 'cal' | 'camp' | 'gal' | 'ins' | 'meta';
-const CARDS: { id: Exclude<View, 'landing' | 'compose'>; title: string; sub: string; emoji: string; tone: Tone; Icon: IconCmp }[] = [
-  { id: 'calendar', title: 'Calendar', sub: 'Plan & schedule', emoji: '📅', tone: 'cal', Icon: IconCalendar },
-  { id: 'campaigns', title: 'Campaigns', sub: 'Themed pushes', emoji: '📣', tone: 'camp', Icon: IconWaveform },
-  { id: 'gallery', title: 'Gallery', sub: 'Your media', emoji: '🖼️', tone: 'gal', Icon: IconPhotos },
-  { id: 'insights', title: 'Insights', sub: 'Performance', emoji: '📊', tone: 'ins', Icon: IconChart },
-  { id: 'metaads', title: 'Meta Ads', sub: 'FB & IG ads', emoji: '📢', tone: 'meta', Icon: IconBolt },
-];
 
 // The placeholder views, by id, for the "coming soon" empty states.
 const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'compose'>, { title: string; emoji: string; Icon: IconCmp }> = {
@@ -54,17 +41,6 @@ const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'compose'>, { title: string
 // The social platforms Wingup can post to, by connector id. We intersect this
 // with the user's connApps so chips only show accounts they've actually linked.
 const SOCIAL_IDS = ['twitter', 'instagram', 'facebook', 'reddit', 'youtube', 'linkedin'];
-
-// Video-generation models the user can pick from (top-bar model picker). `id` is
-// what we'll pass to the generation backend (mapped to the fal model there);
-// `label` is what's shown. Edit freely as models come and go.
-const WG_MODELS: { id: string; label: string; sub: string }[] = [
-  { id: 'seedance', label: 'Seedance 2', sub: 'ByteDance · cinematic' },
-  { id: 'kling', label: 'Kling 2.5', sub: 'Best motion' },
-  { id: 'veo3', label: 'Veo 3', sub: 'Google · with audio' },
-  { id: 'hailuo', label: 'Hailuo 02', sub: 'MiniMax' },
-  { id: 'luma', label: 'Luma Ray 2', sub: 'Fast' },
-];
 
 type Step = 'compose' | 'generating' | 'result' | 'posting' | 'done';
 type Generated = { caption: string; imageUrl: string };
@@ -116,8 +92,6 @@ async function generateContent(prompt: string, tone: string): Promise<Generated>
 
 export default function WingupScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [view, setView] = useState<View>('landing');
-  const [vidModel, setVidModel] = useState<string>(WG_MODELS[0].id); // selected video-generation model
-  const [modelOpen, setModelOpen] = useState(false); // model-picker dropdown open
   // ---- Compose flow: compose → generate → review → post ----
   const [step, setStep] = useState<Step>('compose');
   const [prompt, setPrompt] = useState('');
@@ -351,28 +325,8 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     );
   };
 
-  // ---- The landing: the "Your workspace" card grid (the whole home screen). ----
-  const renderLanding = () => (
-    <div className="wingup-scroll">
-      <section className="wingup-workspace">
-        <h3 className="wingup-sec-h">Your workspace</h3>
-        <div className="wingup-grid">
-          {CARDS.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              className="wingup-card"
-              onClick={() => { void tap(); setView(c.id); }}
-            >
-              <span className={`wingup-card-ic tone-${c.tone}`} aria-hidden="true">{c.emoji}</span>
-              <span className="wingup-card-t">{c.title}</span>
-              <span className="wingup-card-d">{c.sub}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
+  // ---- The landing: intentionally blank for now. ----
+  const renderLanding = () => <div className="wingup-scroll" />;
 
   // ---- Gallery: the connected account's real recent posts ----
   const renderGallery = () => {
@@ -458,30 +412,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
           <img className="wingup-brand-mark" src={WINGUP_LOGO} alt="" aria-hidden />
           <span className="wingup-brand-name">{headerTitle}</span>
         </div>
-        {(view === 'landing' || view === 'compose') ? (
-          <div className="wingup-model">
-            <button className="wingup-model-trig" onClick={() => { void tap(); setModelOpen((o) => !o); }} aria-haspopup="listbox" aria-expanded={modelOpen}>
-              <span className="wingup-model-name">{(WG_MODELS.find((m) => m.id === vidModel) || WG_MODELS[0]).label}</span>
-              <span className="wingup-model-chev">{modelOpen ? '▴' : '▾'}</span>
-            </button>
-            {modelOpen && (
-              <>
-                <button className="wingup-model-back" aria-label="Close" onClick={() => setModelOpen(false)} />
-                <div className="wingup-model-pop" role="listbox">
-                  <div className="wingup-model-head">Video model</div>
-                  {WG_MODELS.map((m) => (
-                    <button type="button" role="option" aria-selected={m.id === vidModel} key={m.id} className={`wingup-model-opt${m.id === vidModel ? ' on' : ''}`} onClick={() => { void tap(); setVidModel(m.id); setModelOpen(false); }}>
-                      <span className="wingup-model-opt-meta"><span className="wingup-model-opt-name">{m.label}</span><span className="wingup-model-opt-sub">{m.sub}</span></span>
-                      {m.id === vidModel && <IconCheck size={15} />}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-          <span className="wingup-top-spacer" aria-hidden="true" />
-        )}
+        <span className="wingup-top-spacer" aria-hidden="true" />
       </div>
 
       {view === 'landing' && renderLanding()}
