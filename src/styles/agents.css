@@ -1667,11 +1667,11 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 
 /* Bottom tab bar + center Create FAB */
 .wingup-tabbar { position: relative; z-index: 3; display: flex; align-items: center; justify-content: space-around;
-  padding: 9px 12px calc(11px + env(safe-area-inset-bottom)); background: rgba(10, 12, 18, 0.92);
+  padding: 9px 12px calc(11px + env(safe-area-inset-bottom)); background: rgba(0, 0, 0, 0.92);
   border-top: 1px solid rgba(255, 255, 255, 0.07); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-.wingup-tb { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; cursor: pointer;
-  font: inherit; color: var(--wg-muted); -webkit-tap-highlight-color: transparent; padding: 4px 8px; }
-.wingup-tb-ic { font-size: 20px; line-height: 1; }
+.wingup-tb { display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: 0; cursor: pointer;
+  font: inherit; color: var(--wg-muted); -webkit-tap-highlight-color: transparent; padding: 4px 8px; transition: color 140ms ease; }
+.wingup-tb-ic { display: grid; place-items: center; line-height: 0; }
 .wingup-tb-lab { font-size: 9.5px; font-weight: 700; }
 .wingup-tb.on { color: #ffffff; }
 .wingup-tb:focus-visible { outline: 2px solid var(--wg-amber); outline-offset: 2px; border-radius: 10px; }
