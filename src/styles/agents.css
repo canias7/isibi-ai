@@ -1066,17 +1066,17 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
    under .wingup and overrides the dark surface, the black ambient and the .ag-*
    look. Palette tokens are local so the whole screen reads from one place. */
 .wingup {
-  --wg-bg: #0a0c12;        /* deep blue-black page */
-  --wg-ink: #eef2f7;       /* primary text (light) */
-  --wg-muted: #8b97a6;     /* secondary text (cool grey) */
-  --wg-amber: #38bdf8;     /* primary accent — light blue (sky) */
-  --wg-amber2: #7dd3fc;    /* lighter blue */
-  --wg-coral: #60a5fa;     /* blue */
-  --wg-card: #141821;      /* chatbox / cards / popovers (dark glass) */
-  --wg-chip: rgba(56, 189, 248, 0.14);  /* chip fill (blue tint) */
-  --wg-chip-ink: #7dd3fc;  /* chip text (light blue) */
-  --wg-grad: linear-gradient(135deg, #7dd3fc, #38bdf8);
-  --wg-send-grad: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  --wg-bg: #000000;        /* pure black page */
+  --wg-ink: #f2f4f7;       /* primary text (light) */
+  --wg-muted: #8e9298;     /* secondary text (neutral grey) */
+  --wg-amber: #ffffff;     /* primary accent — white */
+  --wg-amber2: #e6e8ec;    /* off-white */
+  --wg-coral: #c7ccd2;     /* light grey */
+  --wg-card: #161618;      /* chatbox / cards / popovers (neutral dark) */
+  --wg-chip: rgba(255, 255, 255, 0.10);  /* chip fill (white tint) */
+  --wg-chip-ink: #e6e8ec;  /* chip text (off-white) */
+  --wg-grad: linear-gradient(135deg, #f4f5f7, #ffffff);
+  --wg-send-grad: linear-gradient(135deg, #ffffff, #e6e8ec);
   background: var(--wg-bg);
   color: var(--wg-ink);
   color-scheme: dark;
@@ -1087,10 +1087,8 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 /* Warm, blurred orbs — Wingup's light version of the app's .live-bg ambient.
    Fixed and behind everything (z-index:0), so the scroll content floats over. */
 .wingup .live-bg { background: var(--wg-bg); }
-.wingup .live-bg .orb { filter: blur(88px); opacity: 0.16; animation: none; background: none; }
-.wingup .live-bg .orb1 { width: 300px; height: 300px; inset: auto auto auto auto; top: -120px; left: -90px; background: #2b6fb0; }
-.wingup .live-bg .orb2 { width: 240px; height: 240px; inset: auto -130px auto auto; top: 60px; background: #1e3a6b; }
-.wingup .live-bg .orb3 { width: 280px; height: 280px; inset: auto auto 180px -110px; background: #1f5a82; }
+/* Pure black — no ambient orbs. */
+.wingup .live-bg .orb { display: none; }
 
 /* Top bar: back/close (left) + centred Wingup wordmark with the wing. */
 .wingup-top {
@@ -1102,7 +1100,7 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
   flex-shrink: 0; width: 38px; height: 38px; border-radius: 12px;
   border: none; background: rgba(255, 255, 255, 0.75);
   -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  box-shadow: 0 2px 10px rgba(180, 120, 40, 0.14);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
   color: var(--wg-ink); display: grid; place-items: center; cursor: pointer;
   transition: transform 140ms var(--ease-enter, ease);
 }
@@ -1118,7 +1116,7 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .wingup-model-trig {
   display: flex; align-items: center; gap: 6px;
   background: rgba(255, 255, 255, 0.8); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  border: 1px solid rgba(180, 120, 40, 0.18); box-shadow: 0 2px 10px rgba(180, 120, 40, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
   color: var(--wg-ink); font: inherit; font-size: var(--fs-caption); font-weight: 700;
   padding: 8px 12px; border-radius: 999px; cursor: pointer; max-width: 46vw;
 }
@@ -1129,7 +1127,7 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .wingup-model-pop {
   position: absolute; z-index: 41; top: calc(100% + 7px); right: 0; min-width: 210px;
   background: var(--wg-card); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 14px;
-  box-shadow: 0 14px 34px rgba(120, 80, 30, 0.18); padding: 6px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5); padding: 6px;
   animation: wgModelIn 0.14s var(--ease-enter, ease);
 }
 @keyframes wgModelIn { from { opacity: 0; transform: translateY(-4px); } }
@@ -1576,36 +1574,36 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
    (everything else flows from the --wg-* variables above). Black background with
    light-blue accents, mirroring Sendra's dark/ember treatment. ---- */
 .wingup-back { background: rgba(255, 255, 255, 0.07); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45); }
-.wingup-model-trig { background: rgba(255, 255, 255, 0.06); border-color: rgba(56, 189, 248, 0.28); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45); }
+.wingup-model-trig { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.28); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45); }
 .wingup-model-pop { border-color: rgba(255, 255, 255, 0.10); box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55); }
 .wingup-shot { background: #141821; box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5); }
-.wingup-shot-play { color: #0ea5e9; }
+.wingup-shot-play { color: #cfd3d9; }
 .wingup-dot { background: rgba(255, 255, 255, 0.18); }
 .wingup-chatbox { background: rgba(18, 22, 30, 0.85); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5); }
 .wingup-chat-input { color: #eef2f7; }
 .wingup-chat-input::placeholder { color: #8b97a6; }
 .wingup-attach { color: #bae6fd; }
 .wingup-attach-count { color: #bae6fd; }
-.wingup-send { box-shadow: 0 8px 18px rgba(56, 189, 248, 0.4); }
+.wingup-send { box-shadow: 0 8px 18px rgba(255, 255, 255, 0.16); }
 .wingup-attach-menu { background: var(--wg-card); border-color: rgba(255, 255, 255, 0.08); box-shadow: 0 20px 54px rgba(0, 0, 0, 0.55); }
 .wingup-attach-row:active { background: rgba(255, 255, 255, 0.06); }
 .wingup-attach-t { color: var(--wg-ink); }
 .wingup-attachment-x { background: var(--wg-card); border-color: rgba(255, 255, 255, 0.10); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); }
 .wingup-lib-backdrop { background: rgba(0, 0, 0, 0.55); }
-.wingup-lib-sheet { border-top-color: rgba(56, 189, 248, 0.20); box-shadow: 0 -18px 54px rgba(0, 0, 0, 0.55); }
+.wingup-lib-sheet { border-top-color: rgba(255, 255, 255, 0.20); box-shadow: 0 -18px 54px rgba(0, 0, 0, 0.55); }
 .wingup-lib-x { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); }
 .wingup-lib-item { background: #141821; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45); }
 .wingup-card { border-color: rgba(255, 255, 255, 0.06); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
-.wingup-field { border-color: rgba(56, 189, 248, 0.20); box-shadow: none; }
+.wingup-field { border-color: rgba(255, 255, 255, 0.20); box-shadow: none; }
 .wingup-field::placeholder { color: #6f7b88; }
-.wingup-btn { box-shadow: 0 10px 22px rgba(56, 189, 248, 0.30); }
-.wingup-btn.ghost { border-color: rgba(56, 189, 248, 0.32); }
-.wingup-target { border-color: rgba(56, 189, 248, 0.24); }
-.wingup-target.on { background: rgba(56, 189, 248, 0.16); }
+.wingup-btn { box-shadow: 0 10px 22px rgba(255, 255, 255, 0.16); }
+.wingup-btn.ghost { border-color: rgba(255, 255, 255, 0.16); }
+.wingup-target { border-color: rgba(255, 255, 255, 0.24); }
+.wingup-target.on { background: rgba(255, 255, 255, 0.16); }
 .wingup-err { color: #fca5a5; background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.30); }
-.wingup-loading .route-spin { border-color: rgba(56, 189, 248, 0.25); border-top-color: #38bdf8; }
-.wingup-sent-ic { box-shadow: 0 10px 26px rgba(56, 189, 248, 0.34); }
-.wingup-empty-ic { box-shadow: 0 12px 30px rgba(56, 189, 248, 0.32); }
+.wingup-loading .route-spin { border-color: rgba(255, 255, 255, 0.25); border-top-color: #ffffff; }
+.wingup-sent-ic { box-shadow: 0 10px 26px rgba(255, 255, 255, 0.16); }
+.wingup-empty-ic { box-shadow: 0 12px 30px rgba(255, 255, 255, 0.16); }
 .wingup-gallery-item { background: #141821; }
 .wingup-stat { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.08); box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4); }
 
@@ -1625,16 +1623,16 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 /* Reach hero stat card */
 .wingup-hero-stat {
   background: linear-gradient(135deg, #101a2e, #16233c);
-  border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 22px; padding: 19px;
+  border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 22px; padding: 19px;
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
 }
-.wingup-hero-k { font-size: var(--fs-caption); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #7dd3fc; }
+.wingup-hero-k { font-size: var(--fs-caption); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #e6e8ec; }
 .wingup-hero-big { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; margin-top: 5px; line-height: 1.05; }
 .wingup-hero-sub { color: var(--wg-muted); font-size: var(--fs-footnote); margin-top: 3px; }
 .wingup-up { color: #4ade80; font-weight: 700; }
 .wingup-down { color: #fca5a5; font-weight: 700; }
 .wingup-spark { display: flex; align-items: flex-end; gap: 5px; height: 36px; margin-top: 14px; }
-.wingup-spark i { flex: 1; background: linear-gradient(#38bdf8, #0ea5e9); border-radius: 3px 3px 0 0; display: block; min-height: 4px; }
+.wingup-spark i { flex: 1; background: linear-gradient(#ffffff, #cfd3d9); border-radius: 3px 3px 0 0; display: block; min-height: 4px; }
 .wingup-chips3 { display: flex; gap: 10px; margin-top: 14px; }
 .wingup-chip3 { flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 12px; text-align: center; }
 .wingup-chip3 .v { font-size: var(--fs-body); font-weight: 800; }
@@ -1643,7 +1641,7 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 /* Section header (Recent posts / All →) */
 .wingup-sectionh { display: flex; justify-content: space-between; align-items: baseline; margin: 20px 2px 11px; }
 .wingup-sectionh-t { font-size: var(--fs-caption); font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--wg-ink); }
-.wingup-sectionh-a { background: none; border: 0; cursor: pointer; font: inherit; font-size: var(--fs-footnote); color: #7dd3fc; font-weight: 600; -webkit-tap-highlight-color: transparent; }
+.wingup-sectionh-a { background: none; border: 0; cursor: pointer; font: inherit; font-size: var(--fs-footnote); color: #e6e8ec; font-weight: 600; -webkit-tap-highlight-color: transparent; }
 
 /* Recent posts feed (list rows) */
 .wingup-feed { display: flex; flex-direction: column; }
@@ -1661,7 +1659,7 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .wingup-more-row { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; cursor: pointer; font: inherit;
   background: var(--wg-card); border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 16px; padding: 15px; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4); -webkit-tap-highlight-color: transparent; }
 .wingup-more-row:active { transform: scale(0.99); }
-.wingup-more-ic { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; font-size: 21px; background: rgba(56, 189, 248, 0.14); flex: 0 0 auto; }
+.wingup-more-ic { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; font-size: 21px; background: rgba(255, 255, 255, 0.14); flex: 0 0 auto; }
 .wingup-more-meta { flex: 1; }
 .wingup-more-t { display: block; font-weight: 700; font-size: var(--fs-body-s); }
 .wingup-more-d { display: block; color: var(--wg-muted); font-size: var(--fs-caption); margin-top: 2px; }
@@ -1675,19 +1673,19 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
   font: inherit; color: var(--wg-muted); -webkit-tap-highlight-color: transparent; padding: 4px 8px; }
 .wingup-tb-ic { font-size: 20px; line-height: 1; }
 .wingup-tb-lab { font-size: 9.5px; font-weight: 700; }
-.wingup-tb.on { color: #38bdf8; }
+.wingup-tb.on { color: #ffffff; }
 .wingup-tb:focus-visible { outline: 2px solid var(--wg-amber); outline-offset: 2px; border-radius: 10px; }
-.wingup-fab { width: 54px; height: 54px; border-radius: 50%; border: 0; cursor: pointer; color: #04121c;
-  background: linear-gradient(135deg, #7dd3fc, #38bdf8); display: grid; place-items: center;
-  box-shadow: 0 8px 24px rgba(56, 189, 248, 0.6); margin-top: -26px; -webkit-tap-highlight-color: transparent; }
+.wingup-fab { width: 54px; height: 54px; border-radius: 50%; border: 0; cursor: pointer; color: #0a0a0b;
+  background: linear-gradient(135deg, #e6e8ec, #ffffff); display: grid; place-items: center;
+  box-shadow: 0 8px 24px rgba(255, 255, 255, 0.16); margin-top: -26px; -webkit-tap-highlight-color: transparent; }
 .wingup-fab:active { transform: scale(0.96); }
-.wingup-fab:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 3px; }
+.wingup-fab:focus-visible { outline: 2px solid #e6e8ec; outline-offset: 3px; }
 
 /* ---- Gallery: generated-media shelf (filters + vertical card grid) ---- */
 .wingup-filters { display: flex; gap: 8px; margin: 2px 0 14px; flex-wrap: wrap; }
 .wingup-filt { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 999px;
   padding: 8px 14px; font: inherit; font-size: var(--fs-footnote); font-weight: 700; color: #9aa6b2; cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
-.wingup-filt.on { background: rgba(56, 189, 248, 0.16); border-color: rgba(56, 189, 248, 0.4); color: #7dd3fc; }
+.wingup-filt.on { background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.16); color: #e6e8ec; }
 .wingup-gal-empty { text-align: center; padding: 44px 18px 24px; }
 .wingup-gal-empty .wingup-btn { margin-top: 18px; display: inline-block; width: auto; padding-left: 26px; padding-right: 26px; }
 .wingup-galgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -1712,15 +1710,15 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .wingup-postpick::-webkit-scrollbar { display: none; }
 .wingup-postpick-item { flex: 0 0 84px; height: 112px; border-radius: 14px; overflow: hidden; padding: 0; cursor: pointer;
   background: #141821; border: 2px solid transparent; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); -webkit-tap-highlight-color: transparent; }
-.wingup-postpick-item.on { border-color: #38bdf8; }
+.wingup-postpick-item.on { border-color: #ffffff; }
 .wingup-postpick-img { display: block; width: 100%; height: 100%; background: #1b2334 center / cover no-repeat; }
 
 /* ---- Studio: project-based. Empty → a single ＋. With projects → their cards.
    The ＋ opens a vertical word list of categories to start a new project. ---- */
 .wingup-studio-empty { display: flex; align-items: center; justify-content: center; min-height: 60vh; }
-.wingup-studio-add { width: 76px; height: 76px; border-radius: 50%; border: 0; cursor: pointer; color: #04121c;
-  background: linear-gradient(135deg, #7dd3fc, #38bdf8); display: grid; place-items: center;
-  box-shadow: 0 12px 30px rgba(56, 189, 248, 0.5); -webkit-tap-highlight-color: transparent; }
+.wingup-studio-add { width: 76px; height: 76px; border-radius: 50%; border: 0; cursor: pointer; color: #0a0a0b;
+  background: linear-gradient(135deg, #e6e8ec, #ffffff); display: grid; place-items: center;
+  box-shadow: 0 12px 30px rgba(255, 255, 255, 0.16); -webkit-tap-highlight-color: transparent; }
 .wingup-studio-add:active { transform: scale(0.96); }
 .wingup-proj { padding: 18px 20px calc(28px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: 1fr 1fr; gap: 13px; max-width: 560px; margin: 0 auto; }
 .wingup-proj-card { position: relative; aspect-ratio: 1 / 1; border-radius: 18px; cursor: pointer; padding: 16px; text-align: left;
@@ -1749,14 +1747,14 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 /* ---- Profile: account header + Avatars / Products rails ---- */
 .wingup-acct { display: flex; align-items: center; gap: 13px; padding: 4px 2px 8px; }
 .wingup-acct-av { width: 54px; height: 54px; border-radius: 50%; overflow: hidden; flex: 0 0 auto;
-  background: linear-gradient(135deg, #7dd3fc, #38bdf8); display: grid; place-items: center; box-shadow: 0 6px 16px rgba(56, 189, 248, 0.4); }
+  background: linear-gradient(135deg, #e6e8ec, #ffffff); display: grid; place-items: center; box-shadow: 0 6px 16px rgba(255, 255, 255, 0.16); }
 .wingup-acct-av img { width: 30px; height: 30px; }
 .wingup-acct-meta .n { font-weight: 800; font-size: var(--fs-body); }
 .wingup-acct-meta .h { color: var(--wg-muted); font-size: var(--fs-footnote); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
 .wingup-prow { display: flex; gap: 11px; overflow-x: auto; padding: 2px 0 4px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 .wingup-prow::-webkit-scrollbar { display: none; }
-.wingup-pcreate { flex: 0 0 auto; border-radius: 16px; border: 1.5px dashed rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.06);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #7dd3fc; font-weight: 700; font-size: var(--fs-caption);
+.wingup-pcreate { flex: 0 0 auto; border-radius: 16px; border: 1.5px dashed rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.06);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #e6e8ec; font-weight: 700; font-size: var(--fs-caption);
   cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .wingup-pplus { font-size: 24px; line-height: 1; }
 .wingup-pcreate.av, .wingup-pcard.av { width: 112px; height: 152px; }
@@ -1780,24 +1778,24 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .wingup-ab-preview-cap { position: relative; z-index: 2; margin-bottom: 12px; padding: 5px 12px; border-radius: 999px; background: rgba(0, 0, 0, 0.4);
   color: rgba(255, 255, 255, 0.92); font-size: var(--fs-caption); font-weight: 700; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
 .wingup-ab-chips { display: flex; gap: 7px; flex-wrap: wrap; margin: 11px 0 2px; }
-.wingup-ab-chip { background: rgba(56, 189, 248, 0.14); color: #7dd3fc; font-size: var(--fs-caption); font-weight: 700; padding: 5px 10px; border-radius: 999px; }
+.wingup-ab-chip { background: rgba(255, 255, 255, 0.14); color: #e6e8ec; font-size: var(--fs-caption); font-weight: 700; padding: 5px 10px; border-radius: 999px; }
 .wingup-ab-sec { margin-top: 18px; }
 .wingup-ab-h { font-size: var(--fs-footnote); font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #cdd6e0; margin: 0 2px 11px; }
 .wingup-ab-chiprow { display: flex; gap: 9px; flex-wrap: wrap; }
 .wingup-ab-copt { background: var(--wg-card); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 13px; padding: 12px 15px;
   font: inherit; font-weight: 700; font-size: var(--fs-body-s); color: #cdd6e0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.wingup-ab-copt.on { border-color: #38bdf8; background: rgba(56, 189, 248, 0.14); color: #7dd3fc; }
+.wingup-ab-copt.on { border-color: #ffffff; background: rgba(255, 255, 255, 0.14); color: #e6e8ec; }
 .wingup-ab-faces { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 9px; }
 .wingup-ab-face { position: relative; height: 104px; border-radius: 13px; overflow: hidden; border: 2px solid transparent; padding: 0; cursor: pointer;
   display: flex; align-items: flex-end; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); -webkit-tap-highlight-color: transparent; }
 .wingup-ab-face::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent 55%); }
-.wingup-ab-face.on { border-color: #38bdf8; }
+.wingup-ab-face.on { border-color: #ffffff; }
 .wingup-ab-face-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
 .wingup-ab-face-fig { position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); width: 78%; height: auto; color: #fff; opacity: 0.2; z-index: 1; }
 .wingup-ab-face-l { position: relative; z-index: 2; padding: 7px 9px; color: #fff; font-size: var(--fs-caption); font-weight: 700; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
-.wingup-ab-tick { position: absolute; top: 6px; right: 6px; z-index: 3; width: 18px; height: 18px; border-radius: 50%; background: #38bdf8; color: #04121c; display: grid; place-items: center; font-size: 10px; font-weight: 900; }
+.wingup-ab-tick { position: absolute; top: 6px; right: 6px; z-index: 3; width: 18px; height: 18px; border-radius: 50%; background: #ffffff; color: #0a0a0b; display: grid; place-items: center; font-size: 10px; font-weight: 900; }
 .wingup-ab-swrow { display: flex; gap: 11px; flex-wrap: wrap; }
 .wingup-ab-sw { width: 40px; height: 40px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
-.wingup-ab-sw.on { border-color: #38bdf8; box-shadow: 0 0 0 2px #0a0c12, 0 0 0 4px #38bdf8; }
+.wingup-ab-sw.on { border-color: #ffffff; box-shadow: 0 0 0 2px #000000, 0 0 0 4px #ffffff; }
 .wingup-ab-genbar { padding: 12px 18px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--wg-bg) 32%); }
 .wingup-ab-genbar .wingup-btn { width: 100%; }
