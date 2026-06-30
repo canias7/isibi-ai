@@ -1847,13 +1847,24 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
   /* sidebar carries the brand — drop the duplicate mark in the top bar */
   .wingup-main .wingup-brand-mark { display: none; }
 
-  /* Centre + cap the content of each view so it doesn't stretch edge to edge. */
+  /* Centre + cap each view. Dashboards (.wingup-scroll: Home/Gallery/Studio/
+     Profile) get a wide cap for multi-column grids; forms & lists (.wingup-stage)
+     and the avatar builder stay narrow for readability. */
   .wingup-top,
-  .wingup-scroll,
-  .wingup-stage,
+  .wingup-scroll { padding-left: max(32px, calc((100% - 980px) / 2)); padding-right: max(32px, calc((100% - 980px) / 2)); }
+  .wingup-stage { padding-left: max(32px, calc((100% - 720px) / 2)); padding-right: max(32px, calc((100% - 720px) / 2)); }
   .wingup-abuild .wingup-ab-scroll,
-  .wingup-ab-genbar {
-    padding-left: max(32px, calc((100% - 820px) / 2));
-    padding-right: max(32px, calc((100% - 820px) / 2));
-  }
+  .wingup-ab-genbar { padding-left: max(32px, calc((100% - 760px) / 2)); padding-right: max(32px, calc((100% - 760px) / 2)); }
+
+  /* The inner mobile width caps fight the desktop column — drop them so content
+     fills the centred area. */
+  .wingup-home, .wingup-proj { max-width: none; padding-left: 0; padding-right: 0; }
+
+  /* Per-screen multi-column desktop layouts. */
+  .wingup-feed { display: grid; grid-template-columns: 1fr 1fr; column-gap: 30px; }
+  .wingup-galgrid { grid-template-columns: repeat(4, 1fr); }
+  .wingup-proj { grid-template-columns: repeat(4, 1fr); }
+  .wingup-prow { flex-wrap: wrap; overflow: visible; }
+  .wingup-more-list { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+  .wingup-ab-faces { grid-template-columns: repeat(4, 1fr); }
 }
