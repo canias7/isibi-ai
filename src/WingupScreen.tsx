@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCheck, IconCompose, IconCalendar,
   IconWaveform, IconPhotos, IconChart, IconBolt, IconPlus,
+  IconHome, IconFilm, IconUser,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -1009,19 +1010,19 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
       {showTabs && (
         <nav className="wingup-tabbar" aria-label="Wingup">
           <button type="button" className={`wingup-tb${view === 'landing' ? ' on' : ''}`} onClick={() => { void tap(); setView('landing'); }} aria-current={view === 'landing'}>
-            <span className="wingup-tb-ic" aria-hidden="true">⌂</span><span className="wingup-tb-lab">Home</span>
+            <span className="wingup-tb-ic"><IconHome size={23} /></span><span className="wingup-tb-lab">Home</span>
           </button>
           <button type="button" className={`wingup-tb${view === 'gallery' ? ' on' : ''}`} onClick={() => { void tap(); setView('gallery'); }} aria-current={view === 'gallery'}>
-            <span className="wingup-tb-ic" aria-hidden="true">🪽</span><span className="wingup-tb-lab">Gallery</span>
+            <span className="wingup-tb-ic"><IconPhotos size={23} /></span><span className="wingup-tb-lab">Gallery</span>
           </button>
           <button type="button" className="wingup-fab" onClick={openPost} aria-label="Post to socials">
             <IconPlus size={26} />
           </button>
           <button type="button" className={`wingup-tb${view === 'studio' ? ' on' : ''}`} onClick={openStudio} aria-current={view === 'studio'}>
-            <span className="wingup-tb-ic" aria-hidden="true">🎬</span><span className="wingup-tb-lab">Studio</span>
+            <span className="wingup-tb-ic"><IconFilm size={23} /></span><span className="wingup-tb-lab">Studio</span>
           </button>
           <button type="button" className={`wingup-tb${view === 'more' ? ' on' : ''}`} onClick={() => { void tap(); setView('more'); }} aria-current={view === 'more'}>
-            <span className="wingup-tb-ic" aria-hidden="true">👤</span><span className="wingup-tb-lab">Profile</span>
+            <span className="wingup-tb-ic"><IconUser size={23} /></span><span className="wingup-tb-lab">Profile</span>
           </button>
         </nav>
       )}
