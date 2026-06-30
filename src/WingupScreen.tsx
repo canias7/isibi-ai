@@ -760,7 +760,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
             <span className="wingup-pplus">＋</span>Create
           </button>
           {avatars.map((a) => (
-            <button key={a.id} type="button" className="wingup-pcard av" style={{ background: `radial-gradient(ellipse at 50% 30%, ${a.color}, #11151d)` }} onClick={openAvatarBuilder}>
+            <button key={a.id} type="button" className="wingup-pcard av" style={{ background: `radial-gradient(ellipse at 50% 30%, ${a.color}, #101012)` }} onClick={openAvatarBuilder}>
               <PersonSilhouette className="wingup-pcard-fig" />
               <span className="wingup-pcard-nm">{a.name}</span>
             </button>
@@ -789,7 +789,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const renderAvatar = () => (
     <div className="wingup-abuild">
       <div className="wingup-ab-scroll">
-        <div className="wingup-ab-preview" style={{ background: `radial-gradient(ellipse at 50% 32%, ${skinColorOf(avatarDraft)}, #0c0f16)` }}>
+        <div className="wingup-ab-preview" style={{ background: `radial-gradient(ellipse at 50% 32%, ${skinColorOf(avatarDraft)}, #0a0a0b)` }}>
           <PersonSilhouette className="wingup-ab-preview-fig" />
           <span className="wingup-ab-preview-cap">{avatarDraft.gender} · {avatarDraft.ethnicity} · {avatarDraft.age}</span>
         </div>
