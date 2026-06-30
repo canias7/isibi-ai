@@ -32,25 +32,13 @@ import {
 type View = 'landing' | 'studio' | 'generate' | 'post' | 'more' | 'posts' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
 type IconCmp = typeof IconCompose;
 
-// Studio's rows — each a purpose (Marketing, AI Avatar, …) holding mode cards.
-// Tiles are placeholder gradients until the real preview clips + start/end frames
-// land (the centre card becomes a looping video, the sides become images).
-const grad = (r: number, g: number, b: number) =>
-  `radial-gradient(ellipse at 30% 25%,rgba(${r},${g},${b},.82),transparent 60%),linear-gradient(150deg,#0c1320,#05060a)`;
-const row = (label: string, tones: number[][]) => ({ label, grades: tones.map((t) => grad(t[0], t[1], t[2])) });
-const STUDIO_ROWS: { label: string; grades: string[] }[] = [
-  row('Marketing', [[56, 189, 248], [37, 99, 235], [14, 165, 233], [2, 132, 199]]),
-  row('AI Avatar', [[217, 70, 239], [168, 85, 247], [139, 92, 246], [99, 102, 241]]),
-  row('Cartoon', [[251, 146, 60], [250, 204, 21], [244, 63, 94], [34, 197, 94]]),
-  row('3D', [[45, 212, 191], [20, 184, 166], [56, 189, 248], [148, 163, 184]]),
-  row('Music video', [[236, 72, 153], [217, 70, 239], [99, 102, 241], [59, 130, 246]]),
-  row('Transitions', [[56, 189, 248], [129, 140, 248], [167, 139, 250], [217, 70, 239]]),
-  row('Weather report', [[56, 189, 248], [125, 211, 252], [14, 165, 233], [96, 165, 250]]),
-  row('Quiz / trivia', [[250, 204, 21], [251, 146, 60], [249, 115, 22], [245, 158, 11]]),
-  row('Fitness', [[244, 63, 94], [249, 115, 22], [251, 146, 60], [239, 68, 68]]),
-  row('Documentary', [[161, 138, 116], [120, 113, 108], [56, 189, 248], [202, 138, 4]]),
-  row('Commercial', [[251, 191, 36], [45, 212, 191], [56, 189, 248], [244, 63, 94]]),
+// Studio is project-based: empty shows just a ＋; with projects it shows their
+// cards. Tapping ＋ opens a vertical word list of these categories to start one.
+const STUDIO_CATEGORIES = [
+  'Marketing', 'AI Avatar', 'Cartoon', '3D', 'Music video', 'Transitions',
+  'Weather report', 'Quiz / trivia', 'Fitness', 'Documentary', 'Commercial',
 ];
+interface Project { id: string; type: string }
 
 // A piece of media the user has generated with Wingup — the Gallery's contents.
 // (Backed by a store once generation is wired; empty until then.)
@@ -155,71 +143,6 @@ function reachMetric(insights: IgInsight[] | null): IgInsight | undefined {
   return insights.find((i) => /reach/i.test(`${i.name ?? ''} ${i.title ?? ''}`)) ?? insights[0];
 }
 
-// One Studio row: a center-focus carousel. The centered card grows and is the
-// "video" slot (the only one that would play — one stream at a time); the side
-// cards are smaller "image" slots. Swiping recentres; tapping the centre opens
-// the generator, tapping a side brings it to the centre. (Tiles are placeholder
-// gradients until the real preview clips land.)
-function StudioRow({ label, grades, onPick }: { label: string; grades: string[]; onPick: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(0);
-
-  // Centre the nearest card to the strip's midpoint as the user scrolls.
-  const onScroll = () => {
-    const el = ref.current;
-    if (!el) return;
-    const mid = el.scrollLeft + el.clientWidth / 2;
-    let best = 0;
-    let bestDist = Infinity;
-    for (let i = 0; i < el.children.length; i += 1) {
-      const c = el.children[i] as HTMLElement;
-      const cm = c.offsetLeft + c.offsetWidth / 2;
-      const d = Math.abs(cm - mid);
-      if (d < bestDist) { bestDist = d; best = i; }
-    }
-    setActive((p) => (p === best ? p : best));
-  };
-
-  // Start on the 2nd card so both neighbours are visible (matches the design).
-  useEffect(() => {
-    const el = ref.current;
-    const c = el?.children[1] as HTMLElement | undefined;
-    if (el && c) { el.scrollLeft = c.offsetLeft - (el.clientWidth - c.offsetWidth) / 2; setActive(1); }
-  }, []);
-
-  const go = (i: number) => {
-    void tap();
-    const el = ref.current;
-    const c = el?.children[i] as HTMLElement | undefined;
-    if (!el || !c) return;
-    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    el.scrollTo({ left: c.offsetLeft - (el.clientWidth - c.offsetWidth) / 2, behavior: reduce ? 'auto' : 'smooth' });
-  };
-
-  return (
-    <div className="wingup-srow-wrap">
-      <div className="wingup-srow-head">{label}</div>
-      <div className="wingup-srow" ref={ref} onScroll={onScroll}>
-        {grades.map((g, i) => (
-          <button
-            key={i}
-            type="button"
-            className={`wingup-scard${i === active ? ' is-center' : ''}`}
-            style={{ background: g }}
-            onClick={() => (i === active ? onPick() : go(i))}
-            aria-label={i === active ? 'Open generator' : 'Focus this mode'}
-          >
-            {i === active && <span className="wingup-scard-play" aria-hidden="true">▶</span>}
-          </button>
-        ))}
-      </div>
-      <div className="wingup-sdots" aria-hidden="true">
-        {grades.map((_, i) => <span key={i} className={`wingup-sdot${i === active ? ' on' : ''}`} />)}
-      </div>
-    </div>
-  );
-}
-
 export default function WingupScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [view, setView] = useState<View>('landing');
   // ---- Compose flow: compose → generate → review → post ----
@@ -235,6 +158,9 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const [generated, setGenerated] = useState<GenItem[]>([]);
   const [galFilter, setGalFilter] = useState<'all' | 'video' | 'image'>('all');
   const [postSrc, setPostSrc] = useState(''); // the gallery item chosen to post (＋ flow)
+  // ---- Studio: projects + the "new project" category picker ----
+  const [projects, setProjects] = useState<Project[]>([]); // empty → Studio shows just a ＋
+  const [pickerOpen, setPickerOpen] = useState(false); // the vertical category word-list
   // ---- Live Instagram reads (account header, Gallery, Insights) ----
   const igConnected = connApps.includes('instagram');
   const [account, setAccount] = useState<IgAccount | null>(null);
@@ -295,6 +221,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   // placeholder → landing, and the landing → close the overlay.
   const back = () => {
     void tap();
+    if (view === 'studio' && pickerOpen) { setPickerOpen(false); return; }
     if (view === 'generate' && step === 'result') { setStep('compose'); return; }
     if (view === 'generate') { setView('studio'); return; }
     if (view !== 'landing') { setView('landing'); return; }
@@ -370,13 +297,27 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     setView('landing');
   };
 
-  // The Studio tab — the cinematic mode browser.
+  // The Studio tab — project-based.
   const openStudio = () => {
     void tap();
+    setPickerOpen(false);
     setView('studio');
   };
 
-  // Tapping a Studio card — open a fresh generation flow.
+  // Open the "new project" category picker (the ＋ on Studio).
+  const openPicker = () => {
+    void tap();
+    setPickerOpen(true);
+  };
+
+  // Pick a category from the word list → create a project of that type.
+  const pickProjectType = (type: string) => {
+    void tap();
+    setProjects((p) => [{ id: `p${p.length + 1}-${type}`, type }, ...p]);
+    setPickerOpen(false);
+  };
+
+  // Open a project (or a Studio card) into a fresh generation flow.
   const openGenerate = () => {
     void tap();
     setPrompt(''); setTone(''); setCaption(''); setImageUrl('');
@@ -395,18 +336,45 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   // Human-readable list of where we posted, for the success copy ("X, LinkedIn").
   const postedNames = CONNECTORS.filter((c) => selected.has(c.id)).map((c) => c.name).join(', ');
 
-  // ---- Studio: the cinematic mode browser. Rows scroll →, page scrolls ↓.
-  // Labels/categories are intentionally omitted — each tile becomes a looping
-  // preview video once those land; tapping one opens the generate flow. ----
-  const renderStudio = () => (
-    <div className="wingup-scroll">
-      <div className="wingup-studio">
-        {STUDIO_ROWS.map((r, ri) => (
-          <StudioRow key={ri} label={r.label} grades={r.grades} onPick={openGenerate} />
-        ))}
+  // ---- Studio: project-based. Empty → just a ＋. With projects → their cards.
+  // The ＋ opens a vertical word list of the categories to start a new project. ----
+  const renderStudio = () => {
+    if (pickerOpen) {
+      return (
+        <div className="wingup-scroll">
+          <div className="wingup-picker">
+            {STUDIO_CATEGORIES.map((c) => (
+              <button key={c} type="button" className="wingup-picker-row" onClick={() => pickProjectType(c)}>
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    if (projects.length === 0) {
+      return (
+        <div className="wingup-scroll">
+          <div className="wingup-studio-empty">
+            <button type="button" className="wingup-studio-add" onClick={openPicker} aria-label="New project">
+              <IconPlus size={32} />
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="wingup-scroll">
+        <div className="wingup-proj">
+          {projects.map((p) => (
+            <button key={p.id} type="button" className="wingup-proj-card" onClick={openGenerate}>
+              <span className="wingup-proj-type">{p.type}</span>
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // ---- Generate: prompt → generate → save to Gallery (opened from a Studio card) ----
   const renderGenerate = () => {
@@ -787,8 +755,8 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
           <img className="wingup-brand-mark" src={WINGUP_LOGO} alt="" aria-hidden />
           <span className="wingup-brand-name">{headerTitle}</span>
         </div>
-        {view === 'studio' ? (
-          <button className="wingup-back" onClick={openGenerate} aria-label="New generation">
+        {view === 'studio' && !pickerOpen && projects.length > 0 ? (
+          <button className="wingup-back" onClick={openPicker} aria-label="New project">
             <IconPlus size={20} />
           </button>
         ) : (
