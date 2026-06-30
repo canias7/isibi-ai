@@ -161,6 +161,70 @@ function reachMetric(insights: IgInsight[] | null): IgInsight | undefined {
   return insights.find((i) => /reach/i.test(`${i.name ?? ''} ${i.title ?? ''}`)) ?? insights[0];
 }
 
+// One Studio row: a center-focus carousel. The centered card grows and is the
+// "video" slot (the only one that would play — one stream at a time); the side
+// cards are smaller "image" slots. Swiping recentres; tapping the centre opens
+// the generator, tapping a side brings it to the centre. (Tiles are placeholder
+// gradients until the real preview clips land.)
+function StudioRow({ grades, onPick }: { grades: string[]; onPick: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+
+  // Centre the nearest card to the strip's midpoint as the user scrolls.
+  const onScroll = () => {
+    const el = ref.current;
+    if (!el) return;
+    const mid = el.scrollLeft + el.clientWidth / 2;
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < el.children.length; i += 1) {
+      const c = el.children[i] as HTMLElement;
+      const cm = c.offsetLeft + c.offsetWidth / 2;
+      const d = Math.abs(cm - mid);
+      if (d < bestDist) { bestDist = d; best = i; }
+    }
+    setActive((p) => (p === best ? p : best));
+  };
+
+  // Start on the 2nd card so both neighbours are visible (matches the design).
+  useEffect(() => {
+    const el = ref.current;
+    const c = el?.children[1] as HTMLElement | undefined;
+    if (el && c) { el.scrollLeft = c.offsetLeft - (el.clientWidth - c.offsetWidth) / 2; setActive(1); }
+  }, []);
+
+  const go = (i: number) => {
+    void tap();
+    const el = ref.current;
+    const c = el?.children[i] as HTMLElement | undefined;
+    if (!el || !c) return;
+    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollTo({ left: c.offsetLeft - (el.clientWidth - c.offsetWidth) / 2, behavior: reduce ? 'auto' : 'smooth' });
+  };
+
+  return (
+    <div className="wingup-srow-wrap">
+      <div className="wingup-srow" ref={ref} onScroll={onScroll}>
+        {grades.map((g, i) => (
+          <button
+            key={i}
+            type="button"
+            className={`wingup-scard${i === active ? ' is-center' : ''}`}
+            style={{ background: g }}
+            onClick={() => (i === active ? onPick() : go(i))}
+            aria-label={i === active ? 'Open generator' : 'Focus this mode'}
+          >
+            {i === active && <span className="wingup-scard-play" aria-hidden="true">▶</span>}
+          </button>
+        ))}
+      </div>
+      <div className="wingup-sdots" aria-hidden="true">
+        {grades.map((_, i) => <span key={i} className={`wingup-sdot${i === active ? ' on' : ''}`} />)}
+      </div>
+    </div>
+  );
+}
+
 export default function WingupScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [view, setView] = useState<View>('landing');
   // ---- Compose flow: compose → generate → review → post ----
@@ -343,15 +407,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     <div className="wingup-scroll">
       <div className="wingup-studio">
         {STUDIO_ROWS.map((row, ri) => (
-          <div className="wingup-srail-wrap" key={ri}>
-            <div className="wingup-srail">
-              {row.map((g, ci) => (
-                <button key={ci} type="button" className="wingup-stile" style={{ background: g }} onClick={openGenerate} aria-label="Open generator">
-                  <span className="wingup-stile-play" aria-hidden="true">▶</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <StudioRow key={ri} grades={row} onPick={openGenerate} />
         ))}
       </div>
     </div>

@@ -1715,19 +1715,23 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .wingup-postpick-item.on { border-color: #38bdf8; }
 .wingup-postpick-img { display: block; width: 100%; height: 100%; background: #1b2334 center / cover no-repeat; }
 
-/* ---- Studio: cinematic mode browser (free rows that scroll →, page scrolls ↓).
-   Text-free for now — each tile becomes a looping preview video once they land. ---- */
-.wingup-studio { padding: 16px 0 8px; display: flex; flex-direction: column; gap: 22px; }
-.wingup-srail-wrap { position: relative; }
-.wingup-srail-wrap::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 40px; pointer-events: none;
-  background: linear-gradient(90deg, transparent, var(--wg-bg)); }
-.wingup-srail { display: flex; gap: 11px; padding: 0 18px; overflow-x: auto; overflow-y: hidden;
-  -webkit-overflow-scrolling: touch; scrollbar-width: none; scroll-snap-type: x proximity; }
-.wingup-srail::-webkit-scrollbar { display: none; }
-.wingup-stile { position: relative; flex: 0 0 124px; height: 158px; border-radius: 16px; overflow: hidden; padding: 0; cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.06); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55); scroll-snap-align: start; -webkit-tap-highlight-color: transparent; }
-.wingup-stile:active { transform: scale(0.98); }
-.wingup-stile::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 70% 16%, rgba(255, 255, 255, 0.16), transparent 45%); mix-blend-mode: screen; }
-.wingup-stile::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent 60%); }
-.wingup-stile-play { position: absolute; top: 8px; right: 8px; z-index: 3; width: 22px; height: 22px; border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.6); display: grid; place-items: center; color: #fff; font-size: 9px; }
+/* ---- Studio: center-focus carousels (page scrolls ↓, each row swipes →).
+   The centred card grows and is the "video" slot; sides are smaller "image"
+   slots. Tiles are placeholder gradients until the real preview clips land. ---- */
+.wingup-studio { padding: 18px 0 8px; display: flex; flex-direction: column; gap: 18px; }
+.wingup-srow { display: flex; gap: 14px; align-items: center; overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  /* side padding lets the first/last card reach the centre */
+  padding: 14px calc(50% - 66px); }
+.wingup-srow::-webkit-scrollbar { display: none; }
+.wingup-scard { position: relative; flex: 0 0 132px; height: 198px; border-radius: 18px; overflow: hidden; padding: 0; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.06); scroll-snap-align: center; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  transform: scale(0.84); opacity: 0.72; transition: transform 0.26s var(--ease-enter, ease), opacity 0.26s ease; -webkit-tap-highlight-color: transparent; }
+.wingup-scard::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 70% 16%, rgba(255, 255, 255, 0.16), transparent 45%); mix-blend-mode: screen; }
+.wingup-scard::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent 60%); }
+.wingup-scard.is-center { transform: scale(1.12); opacity: 1; z-index: 2; box-shadow: 0 22px 50px rgba(56, 189, 248, 0.28), 0 18px 40px rgba(0, 0, 0, 0.7); }
+.wingup-scard-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3; width: 46px; height: 46px; border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4); border: 2px solid rgba(255, 255, 255, 0.7); display: grid; place-items: center; color: #fff; font-size: 16px; }
+.wingup-sdots { display: flex; justify-content: center; gap: 6px; margin-top: 4px; }
+.wingup-sdot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 255, 255, 0.25); transition: width 0.2s ease, background 0.2s ease; }
+.wingup-sdot.on { width: 18px; border-radius: 999px; background: #38bdf8; }
