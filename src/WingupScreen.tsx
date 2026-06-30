@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCheck, IconCompose, IconCalendar,
-  IconWaveform, IconPhotos, IconChart, IconBolt,
+  IconWaveform, IconPhotos, IconChart, IconBolt, IconPlus,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
@@ -24,13 +24,13 @@ import {
 // src/wingup.ts → the `wingup` Edge Function → Composio) — but it has no entry
 // point right now; the landing is blank.
 
-// The screen's views. 'landing' is the (blank) home; 'compose' is the (currently
-// unlinked) post flow; the rest are the read/placeholder views.
-type View = 'landing' | 'compose' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
+// The screen's views. 'landing' is the home dashboard; 'compose' is the post
+// flow; 'more' is the secondary menu; the rest are the read/placeholder views.
+type View = 'landing' | 'compose' | 'more' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
 type IconCmp = typeof IconCompose;
 
 // The placeholder views, by id, for the "coming soon" empty states.
-const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'compose'>, { title: string; emoji: string; Icon: IconCmp }> = {
+const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'compose' | 'more'>, { title: string; emoji: string; Icon: IconCmp }> = {
   calendar: { title: 'Content calendar', emoji: '📅', Icon: IconCalendar },
   campaigns: { title: 'Campaigns', emoji: '📣', Icon: IconWaveform },
   gallery: { title: 'Your media', emoji: '🖼️', Icon: IconPhotos },
@@ -90,6 +90,43 @@ async function generateContent(prompt: string, tone: string): Promise<Generated>
   return { caption, imageUrl: mockImage(prompt) };
 }
 
+// A compact relative time ("3h", "2d", "5w") from an ISO timestamp, for the feed.
+function relTime(iso?: string): string {
+  if (!iso) return '';
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return '';
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 3600) return `${Math.max(1, Math.round(s / 60))}m`;
+  if (s < 86400) return `${Math.round(s / 3600)}h`;
+  if (s < 604800) return `${Math.round(s / 86400)}d`;
+  if (s < 2629800) return `${Math.round(s / 604800)}w`;
+  return `${Math.round(s / 2629800)}mo`;
+}
+
+// Friendly label for a Graph-API media_type.
+function mediaTypeLabel(t?: string): string {
+  switch (t) {
+    case 'VIDEO': return 'Video';
+    case 'REEL': return 'Reel';
+    case 'CAROUSEL_ALBUM': return 'Carousel';
+    default: return 'Photo';
+  }
+}
+
+// The numeric series for an insight metric (its values, in order). Empty if none.
+function insightSeries(it?: IgInsight): number[] {
+  if (!it || !Array.isArray(it.values)) return [];
+  return it.values.map((v) => (typeof v.value === 'number' ? v.value : Number(v.value)))
+    .filter((n) => Number.isFinite(n)) as number[];
+}
+
+// Pull the headline "reach" metric from the insights list (name/title contains
+// "reach"), falling back to the first metric so the hero always has something.
+function reachMetric(insights: IgInsight[] | null): IgInsight | undefined {
+  if (!insights || !insights.length) return undefined;
+  return insights.find((i) => /reach/i.test(`${i.name ?? ''} ${i.title ?? ''}`)) ?? insights[0];
+}
+
 export default function WingupScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [view, setView] = useState<View>('landing');
   // ---- Compose flow: compose → generate → review → post ----
@@ -126,15 +163,19 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     return () => { live = false; };
   }, [igConnected]);
 
-  // Lazy-load Gallery media + Insights the first time each view is opened.
+  // Lazy-load media + insights the first time a view that needs them is opened.
+  // The home (landing) shows both (the reach hero + the recent-posts feed), so it
+  // pulls them too — Gallery/Insights then reuse the already-loaded data.
   useEffect(() => {
     if (!igConnected) return;
-    if (view === 'gallery' && media === null) {
+    const needsMedia = view === 'gallery' || view === 'landing';
+    const needsInsights = view === 'insights' || view === 'landing';
+    if (needsMedia && media === null) {
       wingupMedia()
         .then((m) => setMedia(m.data))
         .catch((e) => setMediaErr(e instanceof Error ? e.message : 'Couldn’t load your media.'));
     }
-    if (view === 'insights' && insights === null) {
+    if (needsInsights && insights === null) {
       wingupInsights()
         .then((r) => setInsights(r.data))
         .catch((e) => setInsightsErr(e instanceof Error ? e.message : 'Couldn’t load insights.'));
@@ -206,13 +247,22 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     }
   };
 
-  // Reset everything and return to a fresh landing chatbox.
+  // Reset everything and return to a fresh landing.
   const startAnother = () => {
     void tap();
     setPrompt(''); setTone(''); setCaption(''); setImageUrl(''); setSelected(new Set());
     setAttachments([]); setPublishErr('');
     setStep('compose');
     setView('landing');
+  };
+
+  // The ＋ Create button (bottom-nav FAB): start a fresh compose flow.
+  const openCompose = () => {
+    void tap();
+    setPrompt(''); setTone(''); setCaption(''); setImageUrl(''); setSelected(new Set());
+    setAttachments([]); setPublishErr('');
+    setStep('compose');
+    setView('compose');
   };
 
   // Human-readable list of where we posted, for the success copy ("X, LinkedIn").
@@ -325,8 +375,118 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     );
   };
 
-  // ---- The landing: intentionally blank for now. ----
-  const renderLanding = () => <div className="wingup-scroll" />;
+  // ---- The home dashboard (B3a): reach hero + chips + recent-posts feed. ----
+  const renderHome = () => {
+    if (!igConnected) {
+      return (
+        <div className="wingup-scroll">
+          <div className="wingup-home">
+            <div className="wingup-home-connect">
+              <span className="wingup-empty-ic" aria-hidden="true">🪽</span>
+              <div className="wingup-empty-title">Connect Instagram</div>
+              <div className="wingup-empty-sub">Link your account in Connectors to see your reach, recent posts, and post straight from Wingup.</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const reach = reachMetric(insights);
+    const series = insightSeries(reach);
+    const reachVal = series.length ? series[series.length - 1] : null;
+    const reachLabel = reach?.title || (reach?.name ? reach.name.replace(/_/g, ' ') : 'Reach');
+    const trend = (series.length >= 2 && series[0] > 0)
+      ? Math.round(((series[series.length - 1] - series[0]) / series[0]) * 100)
+      : null;
+    const max = series.length ? Math.max(...series) : 0;
+    const num = (n?: number | null) => (n != null && Number.isFinite(n) ? n.toLocaleString() : '—');
+    const feed = (media ?? []).slice(0, 5);
+
+    return (
+      <div className="wingup-scroll">
+        <div className="wingup-home">
+          {account?.username && (
+            <div className="wingup-conn"><span className="wingup-conn-dot" aria-hidden="true" />Connected · <span className="wingup-conn-h">@{account.username}</span></div>
+          )}
+
+          {/* Reach hero — the headline metric, trend, and a sparkline of its series. */}
+          <div className="wingup-hero-stat">
+            <div className="wingup-hero-k">{reachLabel}{reach?.period ? ` · ${reach.period}` : ''}</div>
+            <div className="wingup-hero-big">{insights === null ? '…' : num(reachVal)}</div>
+            <div className="wingup-hero-sub">
+              {trend != null
+                ? <><span className={trend >= 0 ? 'wingup-up' : 'wingup-down'}>{trend >= 0 ? '▲' : '▼'} {Math.abs(trend)}%</span> vs start of period</>
+                : (insightsErr ? insightsErr : 'Your account at a glance')}
+            </div>
+            {series.length >= 2 && (
+              <div className="wingup-spark" aria-hidden="true">
+                {series.slice(-7).map((v, i) => (
+                  <i key={i} style={{ height: `${Math.max(8, max ? (v / max) * 100 : 8)}%` }} />
+                ))}
+              </div>
+            )}
+            <div className="wingup-chips3">
+              <div className="wingup-chip3"><div className="v">{num(account?.followers_count)}</div><div className="l">Followers</div></div>
+              <div className="wingup-chip3"><div className="v">{num(account?.media_count)}</div><div className="l">Posts</div></div>
+              <div className="wingup-chip3"><div className="v">{num(account?.follows_count)}</div><div className="l">Following</div></div>
+            </div>
+          </div>
+
+          {/* Recent posts feed. */}
+          <div className="wingup-sectionh">
+            <span className="wingup-sectionh-t">Recent posts</span>
+            <button type="button" className="wingup-sectionh-a" onClick={() => { void tap(); setView('gallery'); }}>All →</button>
+          </div>
+          {media === null ? (
+            <div className="wingup-loading"><span className="route-spin" aria-hidden="true" /><p className="wingup-loading-msg">Loading your posts…</p></div>
+          ) : mediaErr ? (
+            <p className="wingup-note">{mediaErr}</p>
+          ) : feed.length === 0 ? (
+            <p className="wingup-note">No posts yet — tap ＋ to make your first one.</p>
+          ) : (
+            <div className="wingup-feed">
+              {feed.map((m) => (
+                <a className="wingup-feed-row" key={m.id} href={m.permalink} target="_blank" rel="noreferrer">
+                  <span className="wingup-feed-th" style={{ backgroundImage: (m.thumbnail_url || m.media_url) ? `url(${m.thumbnail_url || m.media_url})` : undefined }} aria-hidden="true" />
+                  <span className="wingup-feed-meta">
+                    <span className="wingup-feed-cap">{m.caption ? String(m.caption) : mediaTypeLabel(m.media_type)}</span>
+                    <span className="wingup-feed-st">
+                      {m.like_count != null && <span><b>{m.like_count.toLocaleString()}</b> likes</span>}
+                      {m.comments_count != null && <span><b>{m.comments_count.toLocaleString()}</b> comments</span>}
+                      {m.like_count == null && m.comments_count == null && <span>{mediaTypeLabel(m.media_type)}</span>}
+                      {relTime(m.timestamp) && <span>· {relTime(m.timestamp)}</span>}
+                    </span>
+                  </span>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ---- The "More" tab: secondary destinations (still placeholders for now). ----
+  const MORE_ITEMS: { id: Exclude<View, 'landing' | 'compose' | 'more'>; title: string; sub: string; emoji: string }[] = [
+    { id: 'calendar', title: 'Calendar', sub: 'Plan & schedule posts', emoji: '📅' },
+    { id: 'campaigns', title: 'Campaigns', sub: 'Themed content pushes', emoji: '📣' },
+    { id: 'metaads', title: 'Meta Ads', sub: 'Facebook & Instagram ads', emoji: '📢' },
+  ];
+  const renderMore = () => (
+    <div className="wingup-scroll">
+      <div className="wingup-home">
+        <div className="wingup-more-list">
+          {MORE_ITEMS.map((m) => (
+            <button key={m.id} type="button" className="wingup-more-row" onClick={() => { void tap(); setView(m.id); }}>
+              <span className="wingup-more-ic" aria-hidden="true">{m.emoji}</span>
+              <span className="wingup-more-meta"><span className="wingup-more-t">{m.title}</span><span className="wingup-more-d">{m.sub}</span></span>
+              <span className="wingup-more-chev" aria-hidden="true">›</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   // ---- Gallery: the connected account's real recent posts ----
   const renderGallery = () => {
@@ -378,7 +538,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   );
 
   // ---- A "coming soon" placeholder for a workspace view ----
-  const renderPlaceholder = (id: Exclude<View, 'landing' | 'compose'>) => {
+  const renderPlaceholder = (id: Exclude<View, 'landing' | 'compose' | 'more'>) => {
     const p = PLACEHOLDERS[id];
     return (
       <div className="wingup-empty">
@@ -389,15 +549,19 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     );
   };
 
-  // The header title tracks the active view (the landing keeps the bare wordmark).
+  // The header title tracks the active view (the home keeps the bare wordmark).
   const headerTitle =
-    view === 'landing' ? 'Wingup'
-    : view === 'compose' ? 'Wingup'
+    view === 'landing' || view === 'compose' ? 'Wingup'
+    : view === 'more' ? 'More'
     : PLACEHOLDERS[view].title;
+
+  // The bottom tab bar shows on the top-level destinations, not inside a task
+  // (compose) or a placeholder drilled in from More.
+  const showTabs = view === 'landing' || view === 'gallery' || view === 'insights' || view === 'more';
 
   return (
     <div className="memg wingup" ref={trapRef} tabIndex={-1}>
-      {/* Warm ambient orbs — Wingup's own light palette (see .wingup .live-bg). */}
+      {/* Ambient orbs — Wingup's own palette (see .wingup .live-bg). */}
       <div className="live-bg" aria-hidden="true">
         <span className="orb orb1" />
         <span className="orb orb2" />
@@ -415,14 +579,35 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
         <span className="wingup-top-spacer" aria-hidden="true" />
       </div>
 
-      {view === 'landing' && renderLanding()}
+      {view === 'landing' && renderHome()}
+      {view === 'more' && renderMore()}
       {view === 'compose' && <div className="wingup-stage">{renderCompose()}</div>}
-      {view !== 'landing' && view !== 'compose' && (
+      {(view === 'gallery' || view === 'insights' || view === 'calendar' || view === 'campaigns' || view === 'metaads') && (
         <div className="wingup-stage">
           {view === 'gallery' ? renderGallery()
             : view === 'insights' ? renderInsights()
             : renderPlaceholder(view)}
         </div>
+      )}
+
+      {showTabs && (
+        <nav className="wingup-tabbar" aria-label="Wingup">
+          <button type="button" className={`wingup-tb${view === 'landing' ? ' on' : ''}`} onClick={() => { void tap(); setView('landing'); }} aria-current={view === 'landing'}>
+            <span className="wingup-tb-ic" aria-hidden="true">⌂</span><span className="wingup-tb-lab">Home</span>
+          </button>
+          <button type="button" className={`wingup-tb${view === 'gallery' ? ' on' : ''}`} onClick={() => { void tap(); setView('gallery'); }} aria-current={view === 'gallery'}>
+            <span className="wingup-tb-ic" aria-hidden="true">🪽</span><span className="wingup-tb-lab">Library</span>
+          </button>
+          <button type="button" className="wingup-fab" onClick={openCompose} aria-label="Create">
+            <IconPlus size={26} />
+          </button>
+          <button type="button" className={`wingup-tb${view === 'insights' ? ' on' : ''}`} onClick={() => { void tap(); setView('insights'); }} aria-current={view === 'insights'}>
+            <span className="wingup-tb-ic" aria-hidden="true">📊</span><span className="wingup-tb-lab">Insights</span>
+          </button>
+          <button type="button" className={`wingup-tb${view === 'more' ? ' on' : ''}`} onClick={() => { void tap(); setView('more'); }} aria-current={view === 'more'}>
+            <span className="wingup-tb-ic" aria-hidden="true">☰</span><span className="wingup-tb-lab">More</span>
+          </button>
+        </nav>
       )}
     </div>
   );
