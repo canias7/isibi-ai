@@ -23,7 +23,11 @@
 }
 
 /* --- Slide-out tool drawer (primary navigation) --- */
-.ag-drawer-wrap { position: absolute; inset: 0; z-index: 30; }
+/* Content column wrapper — flex child of .memg.ag (mobile: full screen; desktop:
+   the area beside the persistent drawer sidebar). */
+.ag-main { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+.ag-drawer-wrap { position: absolute; inset: 0; z-index: 30; display: none; }
+.ag-drawer-wrap.open { display: block; }
 .ag-drawer-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: agScrimIn 0.2s ease; }
 .ag-drawer {
   position: absolute; top: 0; left: 0; bottom: 0; width: min(80%, 320px);
@@ -61,6 +65,18 @@
   background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text-dim);
 }
 .ag-drawer-exit:active { background: var(--glass-strong, var(--fill-2)); }
+
+/* ===== Sendra desktop shell (>=1024px): the drawer becomes a fixed sidebar =====
+   Selectors are prefixed with .memg.ag so they out-specify .ag-drawer-wrap.open
+   (which would otherwise force display:block when the drawer state is "open"). */
+@media (min-width: 1024px) {
+  .memg.ag { flex-direction: row; }
+  .memg.ag .ag-burger { display: none; }
+  .memg.ag .ag-drawer-wrap { display: flex; position: static; inset: auto; order: -1; flex: 0 0 244px; width: 244px; z-index: 1; }
+  .memg.ag .ag-drawer-scrim { display: none; }
+  .memg.ag .ag-drawer { position: static; width: 100%; box-shadow: none; animation: none; }
+  .memg.ag .ag-drawer-x { display: none; }
+}
 
 /* --- Contacts empty state (illustrated) --- */
 /* When empty the stage becomes a column so the illustration centers in the space
