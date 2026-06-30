@@ -25,12 +25,19 @@ import {
 // point right now; the landing is blank.
 
 // The screen's views. 'landing' is the home dashboard; 'compose' is the post
-// flow; 'more' is the secondary menu; the rest are the read/placeholder views.
-type View = 'landing' | 'compose' | 'more' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
+// flow; 'gallery' is the generated-media shelf; 'posts' is the full Instagram
+// post history (drilled in from the home feed); 'more' is the secondary menu;
+// the rest are read/placeholder views.
+type View = 'landing' | 'compose' | 'more' | 'posts' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
 type IconCmp = typeof IconCompose;
 
+// A piece of media the user has generated with Wingup — the Gallery's contents.
+// (Backed by a store once generation is wired; empty until then.)
+type GenKind = 'video' | 'image';
+interface GenItem { id: string; kind: GenKind; url: string; thumb?: string; caption?: string; posted?: boolean }
+
 // The placeholder views, by id, for the "coming soon" empty states.
-const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'compose' | 'more'>, { title: string; emoji: string; Icon: IconCmp }> = {
+const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'compose' | 'more' | 'posts'>, { title: string; emoji: string; Icon: IconCmp }> = {
   calendar: { title: 'Content calendar', emoji: '📅', Icon: IconCalendar },
   campaigns: { title: 'Campaigns', emoji: '📣', Icon: IconWaveform },
   gallery: { title: 'Your media', emoji: '🖼️', Icon: IconPhotos },
@@ -138,6 +145,9 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const [selected, setSelected] = useState<Set<string>>(new Set()); // chosen platform ids
   const [attachments, setAttachments] = useState<string[]>([]); // picked photos: 1 = single post, 2–10 = carousel
   const [publishErr, setPublishErr] = useState(''); // a failed publish, shown on the review step
+  // ---- Gallery: the user's generated media (empty until generation is wired) ----
+  const [generated] = useState<GenItem[]>([]);
+  const [galFilter, setGalFilter] = useState<'all' | 'video' | 'image'>('all');
   // ---- Live Instagram reads (account header, Gallery, Insights) ----
   const igConnected = connApps.includes('instagram');
   const [account, setAccount] = useState<IgAccount | null>(null);
@@ -164,11 +174,12 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   }, [igConnected]);
 
   // Lazy-load media + insights the first time a view that needs them is opened.
-  // The home (landing) shows both (the reach hero + the recent-posts feed), so it
-  // pulls them too — Gallery/Insights then reuse the already-loaded data.
+  // The home (landing) shows both (the reach hero + the recent-posts feed); the
+  // Posts view reuses the media, Insights reuses the insights. (Gallery is the
+  // generated-media shelf and doesn't read Instagram.)
   useEffect(() => {
     if (!igConnected) return;
-    const needsMedia = view === 'gallery' || view === 'landing';
+    const needsMedia = view === 'posts' || view === 'landing';
     const needsInsights = view === 'insights' || view === 'landing';
     if (needsMedia && media === null) {
       wingupMedia()
@@ -435,7 +446,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
           {/* Recent posts feed. */}
           <div className="wingup-sectionh">
             <span className="wingup-sectionh-t">Recent posts</span>
-            <button type="button" className="wingup-sectionh-a" onClick={() => { void tap(); setView('gallery'); }}>All →</button>
+            <button type="button" className="wingup-sectionh-a" onClick={() => { void tap(); setView('posts'); }}>All →</button>
           </div>
           {media === null ? (
             <div className="wingup-loading"><span className="route-spin" aria-hidden="true" /><p className="wingup-loading-msg">Loading your posts…</p></div>
@@ -488,10 +499,61 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     </div>
   );
 
-  // ---- Gallery: the connected account's real recent posts ----
+  // ---- Gallery: the user's generated media (videos + images made in Wingup).
+  // Empty until generation is wired; the grid + filters are ready for when it is. ----
+  const FILTERS: { id: 'all' | 'video' | 'image'; label: string }[] = [
+    { id: 'all', label: 'All' },
+    { id: 'video', label: 'Videos' },
+    { id: 'image', label: 'Images' },
+  ];
   const renderGallery = () => {
-    if (!igConnected) return renderConnectPrompt('🖼️', 'Your media', 'Connect Instagram to see your posts here.');
-    if (mediaErr) return renderConnectPrompt('🖼️', 'Your media', mediaErr);
+    const items = generated.filter((g) => galFilter === 'all' || g.kind === galFilter);
+    return (
+      <div className="wingup-scroll">
+        <div className="wingup-home">
+          <div className="wingup-filters">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={`wingup-filt${galFilter === f.id ? ' on' : ''}`}
+                onClick={() => { void tap(); setGalFilter(f.id); }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {generated.length === 0 ? (
+            <div className="wingup-gal-empty">
+              <span className="wingup-empty-ic" aria-hidden="true">🪽</span>
+              <div className="wingup-empty-title">Nothing here yet</div>
+              <div className="wingup-empty-sub">Videos and images you generate with Wingup land here — ready to post or download.</div>
+              <button className="wingup-btn" onClick={openCompose}>✨ Generate your first</button>
+            </div>
+          ) : items.length === 0 ? (
+            <p className="wingup-note">No {galFilter === 'video' ? 'videos' : 'images'} yet.</p>
+          ) : (
+            <div className="wingup-galgrid">
+              {items.map((g) => (
+                <button key={g.id} type="button" className="wingup-clip" onClick={() => void tap()}>
+                  <span className="wingup-clip-img" style={{ backgroundImage: `url(${g.thumb || g.url})` }} aria-hidden="true" />
+                  {g.kind === 'video' && <span className="wingup-clip-play" aria-hidden="true">▶</span>}
+                  <span className={`wingup-clip-badge ${g.posted ? 'posted' : 'draft'}`}>{g.posted ? 'POSTED' : 'DRAFT'}</span>
+                  {g.caption && <span className="wingup-clip-cap">{g.caption}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ---- Posts: the connected account's full Instagram post history (drilled in
+  // from the home feed's "All →"). ----
+  const renderPosts = () => {
+    if (!igConnected) return renderConnectPrompt('🖼️', 'Your posts', 'Connect Instagram to see your posts here.');
+    if (mediaErr) return renderConnectPrompt('🖼️', 'Your posts', mediaErr);
     if (media === null) return <div className="wingup-loading"><span className="route-spin" aria-hidden="true" /><p className="wingup-loading-msg">Loading your posts…</p></div>;
     if (media.length === 0) return renderConnectPrompt('🖼️', 'No posts yet', 'Posts you publish with Wingup will show up here.');
     return (
@@ -538,7 +600,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   );
 
   // ---- A "coming soon" placeholder for a workspace view ----
-  const renderPlaceholder = (id: Exclude<View, 'landing' | 'compose' | 'more'>) => {
+  const renderPlaceholder = (id: Exclude<View, 'landing' | 'compose' | 'more' | 'posts'>) => {
     const p = PLACEHOLDERS[id];
     return (
       <div className="wingup-empty">
@@ -553,6 +615,8 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const headerTitle =
     view === 'landing' || view === 'compose' ? 'Wingup'
     : view === 'more' ? 'More'
+    : view === 'gallery' ? 'Gallery'
+    : view === 'posts' ? 'Your posts'
     : PLACEHOLDERS[view].title;
 
   // The bottom tab bar shows on the top-level destinations, not inside a task
@@ -580,14 +644,13 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
       </div>
 
       {view === 'landing' && renderHome()}
+      {view === 'gallery' && renderGallery()}
       {view === 'more' && renderMore()}
       {view === 'compose' && <div className="wingup-stage">{renderCompose()}</div>}
-      {(view === 'gallery' || view === 'insights' || view === 'calendar' || view === 'campaigns' || view === 'metaads') && (
-        <div className="wingup-stage">
-          {view === 'gallery' ? renderGallery()
-            : view === 'insights' ? renderInsights()
-            : renderPlaceholder(view)}
-        </div>
+      {view === 'posts' && <div className="wingup-stage">{renderPosts()}</div>}
+      {view === 'insights' && <div className="wingup-stage">{renderInsights()}</div>}
+      {(view === 'calendar' || view === 'campaigns' || view === 'metaads') && (
+        <div className="wingup-stage">{renderPlaceholder(view)}</div>
       )}
 
       {showTabs && (
@@ -596,7 +659,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
             <span className="wingup-tb-ic" aria-hidden="true">⌂</span><span className="wingup-tb-lab">Home</span>
           </button>
           <button type="button" className={`wingup-tb${view === 'gallery' ? ' on' : ''}`} onClick={() => { void tap(); setView('gallery'); }} aria-current={view === 'gallery'}>
-            <span className="wingup-tb-ic" aria-hidden="true">🪽</span><span className="wingup-tb-lab">Library</span>
+            <span className="wingup-tb-ic" aria-hidden="true">🪽</span><span className="wingup-tb-lab">Gallery</span>
           </button>
           <button type="button" className="wingup-fab" onClick={openCompose} aria-label="Create">
             <IconPlus size={26} />

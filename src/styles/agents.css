@@ -1682,3 +1682,24 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
   box-shadow: 0 8px 24px rgba(56, 189, 248, 0.6); margin-top: -26px; -webkit-tap-highlight-color: transparent; }
 .wingup-fab:active { transform: scale(0.96); }
 .wingup-fab:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 3px; }
+
+/* ---- Gallery: generated-media shelf (filters + vertical card grid) ---- */
+.wingup-filters { display: flex; gap: 8px; margin: 2px 0 14px; flex-wrap: wrap; }
+.wingup-filt { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 999px;
+  padding: 8px 14px; font: inherit; font-size: var(--fs-footnote); font-weight: 700; color: #9aa6b2; cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+.wingup-filt.on { background: rgba(56, 189, 248, 0.16); border-color: rgba(56, 189, 248, 0.4); color: #7dd3fc; }
+.wingup-gal-empty { text-align: center; padding: 44px 18px 24px; }
+.wingup-gal-empty .wingup-btn { margin-top: 18px; display: inline-block; width: auto; padding-left: 26px; padding-right: 26px; }
+.wingup-galgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.wingup-clip { position: relative; aspect-ratio: 9 / 16; border-radius: 16px; overflow: hidden; border: 0; cursor: pointer; padding: 0;
+  background: #141821; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45); -webkit-tap-highlight-color: transparent; }
+.wingup-clip:active { transform: scale(0.99); }
+.wingup-clip-img { position: absolute; inset: 0; background: #1b2334 center / cover no-repeat; }
+.wingup-clip::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent 45%); }
+.wingup-clip-play { position: absolute; top: 9px; right: 9px; z-index: 2; width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5); display: grid; place-items: center; font-size: 10px; color: #fff; }
+.wingup-clip-badge { position: absolute; top: 9px; left: 9px; z-index: 2; font-size: 9.5px; font-weight: 800; padding: 3px 8px; border-radius: 999px; }
+.wingup-clip-badge.posted { background: rgba(74, 222, 128, 0.9); color: #04210f; }
+.wingup-clip-badge.draft { background: rgba(255, 255, 255, 0.85); color: #11151c; }
+.wingup-clip-cap { position: absolute; left: 10px; right: 10px; bottom: 9px; z-index: 2; color: #fff; font-size: var(--fs-caption); font-weight: 600;
+  text-align: left; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
