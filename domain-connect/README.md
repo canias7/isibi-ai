@@ -9,9 +9,10 @@ template and writes the records after a one-time "Authorize" click — no copy-p
 > upstream with the **Amazon SES** records (3 Easy-DKIM CNAMEs). We've since moved to the
 > **self-hosted** sender, so it's now **version 2** with the self-hosted records below. We keep
 > the same `email` slot (already merged + synced by providers) rather than start a new one — a
-> version bump re-syncs hosts automatically. (We also dropped `syncPubKeyDomain`: the in-app
-> flow is the interactive *synchronous* one, where the user authorizes in their browser, so
-> request signing isn't needed.)
+> version bump re-syncs hosts automatically. (We keep `syncPubKeyDomain: gofarther.dev`, same
+> as v1. Our in-app flow is the interactive *synchronous* one, so request signing isn't strictly
+> needed — but the maintainer requires the field for provider onboarding, and v1 already shipped
+> with it, so we retain it. Keep the `_dcsync.gofarther.dev` TXT public key published.)
 
 The records it applies (per domain):
 - **DKIM** — `TXT s1._domainkey  v=DKIM1; k=rsa; p=%dkimp%` (the key is passed in as the `%dkimp%` variable)
