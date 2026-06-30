@@ -1729,8 +1729,19 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .wingup-proj-card:active { transform: scale(0.99); }
 .wingup-proj-type { font-weight: 800; font-size: var(--fs-body); }
 
-/* The ＋ category picker — a vertical list of words (not cards). */
-.wingup-picker { display: flex; flex-direction: column; padding: 8px 0 calc(28px + env(safe-area-inset-bottom)); max-width: 560px; margin: 0 auto; width: 100%; }
-.wingup-picker-row { background: none; border: 0; cursor: pointer; font: inherit; color: var(--wg-ink);
-  font-size: var(--fs-title); font-weight: 700; text-align: left; padding: 15px 22px; -webkit-tap-highlight-color: transparent; }
-.wingup-picker-row:active { color: #7dd3fc; }
+/* The ＋ category picker — a centered vertical reel. Flick to spin; the centre
+   item is the selection (big + white), neighbours fade above and below. */
+.wingup-pickhost { position: relative; flex: 1; min-height: 0; }
+.wingup-reel { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden;
+  scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  display: flex; flex-direction: column; align-items: center;
+  -webkit-mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
+  mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent); }
+.wingup-reel::-webkit-scrollbar { display: none; }
+.wingup-reel-it { scroll-snap-align: center; background: none; border: 0; cursor: pointer; font: inherit;
+  font-weight: 800; white-space: nowrap; color: #eef2f7; padding: 9px 16px; line-height: 1.05;
+  transition: font-size 0.2s ease, opacity 0.2s ease, color 0.2s ease; -webkit-tap-highlight-color: transparent; }
+.wingup-reel-it.d0 { font-size: 32px; color: #fff; opacity: 1; }
+.wingup-reel-it.d1 { font-size: 24px; opacity: 0.6; }
+.wingup-reel-it.d2 { font-size: 21px; opacity: 0.34; }
+.wingup-reel-it.d3 { font-size: 18px; opacity: 0.18; }

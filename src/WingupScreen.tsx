@@ -143,6 +143,62 @@ function reachMetric(insights: IgInsight[] | null): IgInsight | undefined {
   return insights.find((i) => /reach/i.test(`${i.name ?? ''} ${i.title ?? ''}`)) ?? insights[0];
 }
 
+// Studio's category picker — a centered vertical reel. Flick to spin; the item
+// in the centre is the selection. Tap the centre to start that project; tap a
+// neighbour to bring it to the centre.
+function StudioPicker({ categories, onPick }: { categories: string[]; onPick: (c: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+
+  // Mark the item nearest the strip's vertical centre as active.
+  const recompute = () => {
+    const el = ref.current;
+    if (!el) return;
+    const mid = el.scrollTop + el.clientHeight / 2;
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < el.children.length; i += 1) {
+      const c = el.children[i] as HTMLElement;
+      const cm = c.offsetTop + c.offsetHeight / 2;
+      const d = Math.abs(cm - mid);
+      if (d < bestDist) { bestDist = d; best = i; }
+    }
+    setActive((p) => (p === best ? p : best));
+  };
+
+  // Pad top/bottom by half the viewport so the first/last item can reach centre.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const pad = Math.max(0, el.clientHeight / 2 - 30);
+    el.style.paddingTop = `${pad}px`;
+    el.style.paddingBottom = `${pad}px`;
+    recompute();
+  }, []);
+
+  const go = (i: number) => {
+    void tap();
+    const el = ref.current;
+    const c = el?.children[i] as HTMLElement | undefined;
+    if (!el || !c) return;
+    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollTo({ top: c.offsetTop - (el.clientHeight - c.offsetHeight) / 2, behavior: reduce ? 'auto' : 'smooth' });
+  };
+
+  return (
+    <div className="wingup-reel" ref={ref} onScroll={recompute}>
+      {categories.map((c, i) => {
+        const d = Math.min(3, Math.abs(i - active));
+        return (
+          <button key={c} type="button" className={`wingup-reel-it d${d}`} onClick={() => (i === active ? onPick(c) : go(i))}>
+            {c}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function WingupScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [view, setView] = useState<View>('landing');
   // ---- Compose flow: compose → generate → review → post ----
@@ -341,14 +397,8 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const renderStudio = () => {
     if (pickerOpen) {
       return (
-        <div className="wingup-scroll">
-          <div className="wingup-picker">
-            {STUDIO_CATEGORIES.map((c) => (
-              <button key={c} type="button" className="wingup-picker-row" onClick={() => pickProjectType(c)}>
-                {c}
-              </button>
-            ))}
-          </div>
+        <div className="wingup-pickhost">
+          <StudioPicker categories={STUDIO_CATEGORIES} onPick={pickProjectType} />
         </div>
       );
     }
