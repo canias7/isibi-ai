@@ -56,6 +56,10 @@ export interface IgMedia {
   thumbnail_url?: string;
   permalink?: string;
   timestamp?: string;
+  // Engagement counts — present only when the backend requests them on the media
+  // fields. The home feed renders them when available and falls back gracefully.
+  like_count?: number;
+  comments_count?: number;
 }
 export async function wingupMedia(): Promise<{ data: IgMedia[]; paging?: unknown }> {
   const { media } = await invoke<{ media: { data?: IgMedia[]; paging?: unknown } }>({ action: 'media' });
