@@ -1718,7 +1718,8 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 /* ---- Studio: center-focus carousels (page scrolls ↓, each row swipes →).
    The centred card grows and is the "video" slot; sides are smaller "image"
    slots. Tiles are placeholder gradients until the real preview clips land. ---- */
-.wingup-studio { padding: 18px 0 8px; display: flex; flex-direction: column; gap: 18px; }
+.wingup-studio { padding: 16px 0 8px; display: flex; flex-direction: column; gap: 10px; }
+.wingup-srow-head { font-size: var(--fs-body); font-weight: 800; letter-spacing: -0.01em; margin: 8px 20px 0; }
 .wingup-srow { display: flex; gap: 14px; align-items: center; overflow-x: auto; overflow-y: hidden;
   scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;
   /* side padding lets the first/last card reach the centre */

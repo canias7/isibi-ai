@@ -32,30 +32,24 @@ import {
 type View = 'landing' | 'studio' | 'generate' | 'post' | 'more' | 'posts' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
 type IconCmp = typeof IconCompose;
 
-// Studio's cinematic card rows — placeholder grades until the real preview
-// videos land (each tile becomes a looping clip). Rows scroll →, page scrolls ↓.
-const STUDIO_ROWS: string[][] = [
-  [
-    'radial-gradient(ellipse at 30% 25%,rgba(56,189,248,.85),transparent 60%),linear-gradient(150deg,#0b1a2b,#05080f)',
-    'radial-gradient(ellipse at 30% 25%,rgba(37,99,235,.85),transparent 60%),linear-gradient(150deg,#0c1430,#05060a)',
-    'radial-gradient(ellipse at 30% 25%,rgba(14,165,233,.85),transparent 60%),linear-gradient(150deg,#08161f,#05060a)',
-    'radial-gradient(ellipse at 30% 25%,rgba(45,212,191,.75),transparent 60%),linear-gradient(150deg,#06181a,#05060a)',
-    'radial-gradient(ellipse at 30% 25%,rgba(99,102,241,.8),transparent 60%),linear-gradient(150deg,#0e1030,#05060a)',
-  ],
-  [
-    'radial-gradient(ellipse at 30% 25%,rgba(251,146,60,.85),transparent 60%),linear-gradient(150deg,#1c1108,#05060a)',
-    'radial-gradient(ellipse at 30% 25%,rgba(244,63,94,.8),transparent 60%),linear-gradient(150deg,#1d0c12,#05060a)',
-    'radial-gradient(ellipse at 30% 25%,rgba(234,179,8,.8),transparent 60%),linear-gradient(150deg,#1a1505,#05060a)',
-    'radial-gradient(ellipse at 30% 25%,rgba(249,115,22,.8),transparent 60%),linear-gradient(150deg,#190d05,#05060a)',
-    'radial-gradient(ellipse at 30% 25%,rgba(217,70,239,.8),transparent 60%),linear-gradient(150deg,#160c20,#05060a)',
-  ],
-  [
-    'radial-gradient(ellipse at 30% 25%,rgba(217,70,239,.85),transparent 60%),linear-gradient(150deg,#160c20,#05060a)',
-    'radial-gradient(ellipse at 30% 25%,rgba(99,102,241,.85),transparent 60%),linear-gradient(150deg,#0e1030,#05060a)',
-    'radial-gradient(ellipse at 30% 25%,rgba(20,184,166,.8),transparent 60%),linear-gradient(150deg,#06181a,#05060a)',
-    'radial-gradient(ellipse at 30% 25%,rgba(56,189,248,.8),transparent 60%),linear-gradient(150deg,#0b1a2b,#05080f)',
-    'radial-gradient(ellipse at 30% 25%,rgba(251,146,60,.75),transparent 60%),linear-gradient(150deg,#1c1108,#05060a)',
-  ],
+// Studio's rows — each a purpose (Marketing, AI Avatar, …) holding mode cards.
+// Tiles are placeholder gradients until the real preview clips + start/end frames
+// land (the centre card becomes a looping video, the sides become images).
+const grad = (r: number, g: number, b: number) =>
+  `radial-gradient(ellipse at 30% 25%,rgba(${r},${g},${b},.82),transparent 60%),linear-gradient(150deg,#0c1320,#05060a)`;
+const row = (label: string, tones: number[][]) => ({ label, grades: tones.map((t) => grad(t[0], t[1], t[2])) });
+const STUDIO_ROWS: { label: string; grades: string[] }[] = [
+  row('Marketing', [[56, 189, 248], [37, 99, 235], [14, 165, 233], [2, 132, 199]]),
+  row('AI Avatar', [[217, 70, 239], [168, 85, 247], [139, 92, 246], [99, 102, 241]]),
+  row('Cartoon', [[251, 146, 60], [250, 204, 21], [244, 63, 94], [34, 197, 94]]),
+  row('3D', [[45, 212, 191], [20, 184, 166], [56, 189, 248], [148, 163, 184]]),
+  row('Music video', [[236, 72, 153], [217, 70, 239], [99, 102, 241], [59, 130, 246]]),
+  row('Transitions', [[56, 189, 248], [129, 140, 248], [167, 139, 250], [217, 70, 239]]),
+  row('Weather report', [[56, 189, 248], [125, 211, 252], [14, 165, 233], [96, 165, 250]]),
+  row('Quiz / trivia', [[250, 204, 21], [251, 146, 60], [249, 115, 22], [245, 158, 11]]),
+  row('Fitness', [[244, 63, 94], [249, 115, 22], [251, 146, 60], [239, 68, 68]]),
+  row('Documentary', [[161, 138, 116], [120, 113, 108], [56, 189, 248], [202, 138, 4]]),
+  row('Commercial', [[251, 191, 36], [45, 212, 191], [56, 189, 248], [244, 63, 94]]),
 ];
 
 // A piece of media the user has generated with Wingup — the Gallery's contents.
@@ -166,7 +160,7 @@ function reachMetric(insights: IgInsight[] | null): IgInsight | undefined {
 // cards are smaller "image" slots. Swiping recentres; tapping the centre opens
 // the generator, tapping a side brings it to the centre. (Tiles are placeholder
 // gradients until the real preview clips land.)
-function StudioRow({ grades, onPick }: { grades: string[]; onPick: () => void }) {
+function StudioRow({ label, grades, onPick }: { label: string; grades: string[]; onPick: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
 
@@ -204,6 +198,7 @@ function StudioRow({ grades, onPick }: { grades: string[]; onPick: () => void })
 
   return (
     <div className="wingup-srow-wrap">
+      <div className="wingup-srow-head">{label}</div>
       <div className="wingup-srow" ref={ref} onScroll={onScroll}>
         {grades.map((g, i) => (
           <button
@@ -406,8 +401,8 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const renderStudio = () => (
     <div className="wingup-scroll">
       <div className="wingup-studio">
-        {STUDIO_ROWS.map((row, ri) => (
-          <StudioRow key={ri} grades={row} onPick={openGenerate} />
+        {STUDIO_ROWS.map((r, ri) => (
+          <StudioRow key={ri} label={r.label} grades={r.grades} onPick={openGenerate} />
         ))}
       </div>
     </div>
