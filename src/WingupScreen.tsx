@@ -1001,6 +1001,28 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
         <span className="orb orb3" />
       </div>
 
+      {/* Desktop-only left sidebar (≥1024px). Hidden on mobile, where the bottom
+          tab bar is used instead. Same destinations + handlers. */}
+      <aside className="wingup-side" aria-label="Wingup">
+        <div className="wingup-side-brand"><img src={WINGUP_LOGO} alt="" aria-hidden />Wingup</div>
+        <nav className="wingup-side-nav">
+          <button type="button" className={`wingup-side-link${view === 'landing' ? ' on' : ''}`} onClick={() => { void tap(); setView('landing'); }} aria-current={view === 'landing'}><IconHome size={20} />Home</button>
+          <button type="button" className={`wingup-side-link${view === 'gallery' ? ' on' : ''}`} onClick={() => { void tap(); setView('gallery'); }} aria-current={view === 'gallery'}><IconPhotos size={20} />Gallery</button>
+          <button type="button" className={`wingup-side-link${view === 'studio' ? ' on' : ''}`} onClick={openStudio} aria-current={view === 'studio'}><IconFilm size={20} />Studio</button>
+          <button type="button" className={`wingup-side-link${view === 'more' ? ' on' : ''}`} onClick={() => { void tap(); setView('more'); }} aria-current={view === 'more'}><IconUser size={20} />Profile</button>
+        </nav>
+        <button type="button" className="wingup-side-new" onClick={openPost}><IconPlus size={19} />New post</button>
+        <div className="wingup-side-sp" />
+        <div className="wingup-side-acct">
+          <span className="wingup-side-av"><img src={WINGUP_LOGO} alt="" aria-hidden /></span>
+          <span className="wingup-side-acct-meta">
+            <span className="n">{account?.username ? `@${account.username}` : 'Your account'}</span>
+            <span className="h">{igConnected ? 'Connected' : 'Not connected'}</span>
+          </span>
+        </div>
+      </aside>
+
+      <div className="wingup-main">
       <div className="wingup-top">
         <button className="wingup-back" onClick={back} aria-label={view === 'landing' ? 'Close' : 'Back'}>
           <IconArrowLeft size={20} />
@@ -1051,6 +1073,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
           </button>
         </nav>
       )}
+      </div>
     </div>
   );
 }

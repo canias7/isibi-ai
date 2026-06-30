@@ -1808,3 +1808,52 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .wingup-ab-sw.on { border-color: #ffffff; box-shadow: 0 0 0 2px #000000, 0 0 0 4px #ffffff; }
 .wingup-ab-genbar { padding: 12px 18px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--wg-bg) 32%); }
 .wingup-ab-genbar .wingup-btn { width: 100%; }
+
+/* ============ Desktop shell (≥1024px) ============
+   Mobile keeps the bottom tab bar; desktop swaps to a left sidebar and a
+   centred, width-capped content column (X-style) so views read as a real
+   desktop app instead of a stretched phone. The content wrapper is always a
+   flex column; only the breakpoint flips .wingup to a row + reveals the side. */
+.wingup-main { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+.wingup-side { display: none; }
+
+@media (min-width: 1024px) {
+  .wingup { flex-direction: row; }
+
+  .wingup-side { display: flex; flex-direction: column; flex: 0 0 244px; width: 244px;
+    padding: 20px 14px calc(16px + env(safe-area-inset-bottom)); background: #0c0c0e;
+    border-right: 1px solid rgba(255, 255, 255, 0.07); position: relative; z-index: 4; }
+  .wingup-side-brand { display: flex; align-items: center; gap: 10px; padding: 6px 8px 20px; font-weight: 800; font-size: var(--fs-headline); letter-spacing: -0.02em; }
+  .wingup-side-brand img { width: 26px; height: 26px; border-radius: 8px; }
+  .wingup-side-nav { display: flex; flex-direction: column; gap: 3px; }
+  .wingup-side-link { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border: 0; border-radius: 11px;
+    background: none; color: var(--wg-muted); font: inherit; font-weight: 600; font-size: var(--fs-body-s); cursor: pointer;
+    text-align: left; transition: background 140ms ease, color 140ms ease; -webkit-tap-highlight-color: transparent; }
+  .wingup-side-link:hover { background: rgba(255, 255, 255, 0.04); color: #cdd6e0; }
+  .wingup-side-link.on { background: rgba(255, 255, 255, 0.08); color: #fff; }
+  .wingup-side-new { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 16px 4px 0;
+    padding: 12px; border: 0; border-radius: 12px; background: linear-gradient(135deg, #f4f5f7, #fff);
+    color: #0a0a0b; font: inherit; font-weight: 800; font-size: var(--fs-body-s); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .wingup-side-new:active { transform: scale(0.98); }
+  .wingup-side-sp { flex: 1; }
+  .wingup-side-acct { display: flex; align-items: center; gap: 10px; padding: 10px 8px; }
+  .wingup-side-av { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; flex: 0 0 auto; display: grid; place-items: center; background: rgba(255, 255, 255, 0.08); }
+  .wingup-side-av img { width: 22px; height: 22px; }
+  .wingup-side-acct-meta { display: flex; flex-direction: column; min-width: 0; }
+  .wingup-side-acct-meta .n { font-weight: 700; font-size: var(--fs-caption); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wingup-side-acct-meta .h { color: var(--wg-muted); font-size: 11px; }
+
+  .wingup-tabbar { display: none; }
+  /* sidebar carries the brand — drop the duplicate mark in the top bar */
+  .wingup-main .wingup-brand-mark { display: none; }
+
+  /* Centre + cap the content of each view so it doesn't stretch edge to edge. */
+  .wingup-top,
+  .wingup-scroll,
+  .wingup-stage,
+  .wingup-abuild .wingup-ab-scroll,
+  .wingup-ab-genbar {
+    padding-left: max(32px, calc((100% - 820px) / 2));
+    padding-right: max(32px, calc((100% - 820px) / 2));
+  }
+}
