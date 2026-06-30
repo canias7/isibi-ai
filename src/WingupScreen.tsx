@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCheck, IconCompose, IconCalendar,
   IconWaveform, IconPhotos, IconChart, IconBolt, IconPlus,
@@ -307,6 +307,17 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
 
   const trapRef = useRef<HTMLDivElement>(null);
 
+  // Bottom-bar indicator dot: measure the active tab's centre so the dot slides
+  // to it (px-precise regardless of bar padding). `armed` gates the transition
+  // so the dot doesn't slide in from the edge on first paint.
+  const navRef = useRef<HTMLElement>(null);
+  const [dotX, setDotX] = useState(0);
+  const [dotArmed, setDotArmed] = useState(false);
+  const measureDot = useCallback(() => {
+    const active = navRef.current?.querySelector<HTMLElement>('.wingup-tb.on');
+    if (active) setDotX(active.offsetLeft + active.offsetWidth / 2);
+  }, []);
+
   // The user's connected social platforms, in CONNECTORS order, with name + logo.
   const socials = useMemo(
     () => CONNECTORS.filter((c) => SOCIAL_IDS.includes(c.id) && connApps.includes(c.id)),
@@ -321,6 +332,19 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     wingupAccount().then((a) => { if (live) setAccount(a); }).catch(() => {});
     return () => { live = false; };
   }, [igConnected]);
+
+  // Reposition the indicator dot on every tab change; arm its slide after the
+  // first placement; keep it aligned on resize/rotation.
+  useLayoutEffect(measureDot, [measureDot, view]);
+  useEffect(() => {
+    if (dotArmed) return;
+    const id = requestAnimationFrame(() => setDotArmed(true));
+    return () => cancelAnimationFrame(id);
+  }, [dotArmed]);
+  useEffect(() => {
+    window.addEventListener('resize', measureDot);
+    return () => window.removeEventListener('resize', measureDot);
+  }, [measureDot]);
 
   // Lazy-load media + insights the first time a view that needs them is opened.
   // The home (landing) shows both (the reach hero + the recent-posts feed); the
@@ -1008,7 +1032,8 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
       )}
 
       {showTabs && (
-        <nav className="wingup-tabbar" aria-label="Wingup">
+        <nav ref={navRef} className="wingup-tabbar" aria-label="Wingup">
+          <span className={`wingup-tb-dot${dotArmed ? ' is-armed' : ''}`} style={{ left: dotX }} aria-hidden="true" />
           <button type="button" className={`wingup-tb${view === 'landing' ? ' on' : ''}`} onClick={() => { void tap(); setView('landing'); }} aria-current={view === 'landing'}>
             <span className="wingup-tb-ic"><IconHome size={23} /></span><span className="wingup-tb-lab">Home</span>
           </button>
