@@ -1714,3 +1714,20 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
   background: #141821; border: 2px solid transparent; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); -webkit-tap-highlight-color: transparent; }
 .wingup-postpick-item.on { border-color: #38bdf8; }
 .wingup-postpick-img { display: block; width: 100%; height: 100%; background: #1b2334 center / cover no-repeat; }
+
+/* ---- Studio: cinematic mode browser (free rows that scroll →, page scrolls ↓).
+   Text-free for now — each tile becomes a looping preview video once they land. ---- */
+.wingup-studio { padding: 16px 0 8px; display: flex; flex-direction: column; gap: 22px; }
+.wingup-srail-wrap { position: relative; }
+.wingup-srail-wrap::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 40px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--wg-bg)); }
+.wingup-srail { display: flex; gap: 11px; padding: 0 18px; overflow-x: auto; overflow-y: hidden;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none; scroll-snap-type: x proximity; }
+.wingup-srail::-webkit-scrollbar { display: none; }
+.wingup-stile { position: relative; flex: 0 0 124px; height: 158px; border-radius: 16px; overflow: hidden; padding: 0; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.06); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55); scroll-snap-align: start; -webkit-tap-highlight-color: transparent; }
+.wingup-stile:active { transform: scale(0.98); }
+.wingup-stile::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 70% 16%, rgba(255, 255, 255, 0.16), transparent 45%); mix-blend-mode: screen; }
+.wingup-stile::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent 60%); }
+.wingup-stile-play { position: absolute; top: 8px; right: 8px; z-index: 3; width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.6); display: grid; place-items: center; color: #fff; font-size: 9px; }
