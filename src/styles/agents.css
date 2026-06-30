@@ -1066,20 +1066,20 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
    under .wingup and overrides the dark surface, the black ambient and the .ag-*
    look. Palette tokens are local so the whole screen reads from one place. */
 .wingup {
-  --wg-bg: #FFFBF4;        /* cream page */
-  --wg-ink: #2A2118;       /* primary text */
-  --wg-muted: #A2937E;     /* secondary text */
-  --wg-amber: #F59E0B;
-  --wg-amber2: #FB923C;
-  --wg-coral: #FB7185;
-  --wg-card: #ffffff;      /* chatbox / workspace cards */
-  --wg-chip: #FFF3E0;      /* chip fill */
-  --wg-chip-ink: #C77A20;  /* chip text */
-  --wg-grad: linear-gradient(135deg, var(--wg-amber), var(--wg-coral));
-  --wg-send-grad: linear-gradient(135deg, var(--wg-amber), var(--wg-amber2));
+  --wg-bg: #0a0c12;        /* deep blue-black page */
+  --wg-ink: #eef2f7;       /* primary text (light) */
+  --wg-muted: #8b97a6;     /* secondary text (cool grey) */
+  --wg-amber: #38bdf8;     /* primary accent — light blue (sky) */
+  --wg-amber2: #7dd3fc;    /* lighter blue */
+  --wg-coral: #60a5fa;     /* blue */
+  --wg-card: #141821;      /* chatbox / cards / popovers (dark glass) */
+  --wg-chip: rgba(56, 189, 248, 0.14);  /* chip fill (blue tint) */
+  --wg-chip-ink: #7dd3fc;  /* chip text (light blue) */
+  --wg-grad: linear-gradient(135deg, #7dd3fc, #38bdf8);
+  --wg-send-grad: linear-gradient(135deg, #38bdf8, #0ea5e9);
   background: var(--wg-bg);
   color: var(--wg-ink);
-  color-scheme: light;
+  color-scheme: dark;
 }
 /* Drop the dark shell's amber-on-black wash + the faint white dot grid. */
 .wingup::before { display: none; }
@@ -1087,10 +1087,10 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 /* Warm, blurred orbs — Wingup's light version of the app's .live-bg ambient.
    Fixed and behind everything (z-index:0), so the scroll content floats over. */
 .wingup .live-bg { background: var(--wg-bg); }
-.wingup .live-bg .orb { filter: blur(64px); opacity: 0.55; animation: none; background: none; }
-.wingup .live-bg .orb1 { width: 300px; height: 300px; inset: auto auto auto auto; top: -90px; left: -70px; background: #FFD9A8; }
-.wingup .live-bg .orb2 { width: 260px; height: 260px; inset: auto -100px auto auto; top: 90px; background: #FFC6C6; }
-.wingup .live-bg .orb3 { width: 300px; height: 300px; inset: auto auto 160px -90px; background: #FFE6B0; }
+.wingup .live-bg .orb { filter: blur(72px); opacity: 0.42; animation: none; background: none; }
+.wingup .live-bg .orb1 { width: 320px; height: 320px; inset: auto auto auto auto; top: -100px; left: -80px; background: #38bdf8; }
+.wingup .live-bg .orb2 { width: 280px; height: 280px; inset: auto -110px auto auto; top: 90px; background: #2563eb; }
+.wingup .live-bg .orb3 { width: 320px; height: 320px; inset: auto auto 150px -90px; background: #0ea5e9; }
 
 /* Top bar: back/close (left) + centred Wingup wordmark with the wing. */
 .wingup-top {
@@ -1573,3 +1573,40 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .wingup-stat { background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(0, 0, 0, 0.06); border-radius: 18px; padding: 18px 16px; box-shadow: 0 8px 22px rgba(170, 110, 40, 0.10); }
 .wingup-stat-v { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; color: var(--wg-ink); }
 .wingup-stat-l { font-size: var(--fs-footnote); color: var(--wg-muted); margin-top: 2px; }
+
+/* ---- Wingup dark theme: recolor the surfaces that hardcode light/warm values
+   (everything else flows from the --wg-* variables above). Black background with
+   light-blue accents, mirroring Sendra's dark/ember treatment. ---- */
+.wingup-back { background: rgba(255, 255, 255, 0.07); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45); }
+.wingup-model-trig { background: rgba(255, 255, 255, 0.06); border-color: rgba(56, 189, 248, 0.28); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45); }
+.wingup-model-pop { border-color: rgba(255, 255, 255, 0.10); box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55); }
+.wingup-shot { background: #141821; box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5); }
+.wingup-shot-play { color: #0ea5e9; }
+.wingup-dot { background: rgba(255, 255, 255, 0.18); }
+.wingup-chatbox { background: rgba(18, 22, 30, 0.85); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5); }
+.wingup-chat-input { color: #eef2f7; }
+.wingup-chat-input::placeholder { color: #8b97a6; }
+.wingup-attach { color: #bae6fd; }
+.wingup-attach-count { color: #bae6fd; }
+.wingup-send { box-shadow: 0 8px 18px rgba(56, 189, 248, 0.4); }
+.wingup-attach-menu { background: var(--wg-card); border-color: rgba(255, 255, 255, 0.08); box-shadow: 0 20px 54px rgba(0, 0, 0, 0.55); }
+.wingup-attach-row:active { background: rgba(255, 255, 255, 0.06); }
+.wingup-attach-t { color: var(--wg-ink); }
+.wingup-attachment-x { background: var(--wg-card); border-color: rgba(255, 255, 255, 0.10); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); }
+.wingup-lib-backdrop { background: rgba(0, 0, 0, 0.55); }
+.wingup-lib-sheet { border-top-color: rgba(56, 189, 248, 0.20); box-shadow: 0 -18px 54px rgba(0, 0, 0, 0.55); }
+.wingup-lib-x { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); }
+.wingup-lib-item { background: #141821; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45); }
+.wingup-card { border-color: rgba(255, 255, 255, 0.06); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.wingup-field { border-color: rgba(56, 189, 248, 0.20); box-shadow: none; }
+.wingup-field::placeholder { color: #6f7b88; }
+.wingup-btn { box-shadow: 0 10px 22px rgba(56, 189, 248, 0.30); }
+.wingup-btn.ghost { border-color: rgba(56, 189, 248, 0.32); }
+.wingup-target { border-color: rgba(56, 189, 248, 0.24); }
+.wingup-target.on { background: rgba(56, 189, 248, 0.16); }
+.wingup-err { color: #fca5a5; background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.30); }
+.wingup-loading .route-spin { border-color: rgba(56, 189, 248, 0.25); border-top-color: #38bdf8; }
+.wingup-sent-ic { box-shadow: 0 10px 26px rgba(56, 189, 248, 0.34); }
+.wingup-empty-ic { box-shadow: 0 12px 30px rgba(56, 189, 248, 0.32); }
+.wingup-gallery-item { background: #141821; }
+.wingup-stat { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.08); box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4); }
