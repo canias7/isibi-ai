@@ -35,7 +35,7 @@ type IconCmp = typeof IconCompose;
 // Studio is project-based: empty shows just a ＋; with projects it shows their
 // cards. Tapping ＋ opens a vertical word list of these categories to start one.
 const STUDIO_CATEGORIES = [
-  '3D', 'AI Avatar', 'Cartoon', 'Commercial', 'Documentary', 'Fitness',
+  '3D', 'Cartoon', 'Commercial', 'Documentary', 'Fitness',
   'Marketing', 'Music video', 'Quiz / trivia', 'Transitions', 'Weather report',
 ];
 interface Project { id: string; type: string }
