@@ -787,7 +787,13 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
           <img className="wingup-brand-mark" src={WINGUP_LOGO} alt="" aria-hidden />
           <span className="wingup-brand-name">{headerTitle}</span>
         </div>
-        <span className="wingup-top-spacer" aria-hidden="true" />
+        {view === 'studio' ? (
+          <button className="wingup-back" onClick={openGenerate} aria-label="New generation">
+            <IconPlus size={20} />
+          </button>
+        ) : (
+          <span className="wingup-top-spacer" aria-hidden="true" />
+        )}
       </div>
 
       {view === 'landing' && renderHome()}
