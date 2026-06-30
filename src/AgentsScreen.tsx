@@ -1519,11 +1519,15 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
 
   return (
     <div className={`memg ag${builderMode ? ' ag-builder' : ''}`} ref={trapRef} tabIndex={-1}>
+      {/* Content column. On desktop the drawer below becomes a persistent
+          sidebar and this is the main area beside it; on mobile it's the whole
+          screen and the drawer is an overlay. */}
+      <div className="ag-main">
       <div className="memg-top">
         {deepView ? (
           <button className="memg-back" onClick={back} aria-label="Back"><IconArrowLeft size={22} /></button>
         ) : (
-          <button className="memg-back" onClick={() => { tap(); setDrawerOpen(true); }} aria-label="Open menu">
+          <button className="memg-back ag-burger" onClick={() => { tap(); setDrawerOpen(true); }} aria-label="Open menu">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
           </button>
         )}
@@ -2855,8 +2859,8 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
         </div>
       )}
 
-      {drawerOpen && (
-        <div className="ag-drawer-wrap" role="dialog" aria-modal="true" aria-label="Sendra menu">
+      </div>
+      <div className={`ag-drawer-wrap${drawerOpen ? ' open' : ''}`} role="dialog" aria-label="Sendra menu">
           <div className="ag-drawer-scrim" onClick={() => { tap(); setDrawerOpen(false); }} />
           <nav className="ag-drawer">
             <div className="ag-drawer-head">
@@ -2880,7 +2884,6 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
             <button className="ag-drawer-exit" onClick={() => { tap(); onClose(); }}><IconArrowLeft size={16} /> Close Sendra</button>
           </nav>
         </div>
-      )}
     </div>
   );
 }
