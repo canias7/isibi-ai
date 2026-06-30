@@ -8,7 +8,7 @@ import { tap } from './haptics';
 import { CONNECTORS } from './connectorData';
 import { WINGUP_LOGO } from './wingupLogo';
 import {
-  wingupAccount, wingupMedia, wingupInsights, wingupPublish, wingupPublishCarousel,
+  wingupAccount, wingupMedia, wingupInsights, wingupPublish,
   isPostableImage, type IgAccount, type IgMedia, type IgInsight,
 } from './wingup';
 
@@ -24,11 +24,12 @@ import {
 // src/wingup.ts → the `wingup` Edge Function → Composio) — but it has no entry
 // point right now; the landing is blank.
 
-// The screen's views. 'landing' is the home dashboard; 'compose' is the post
-// flow; 'gallery' is the generated-media shelf; 'posts' is the full Instagram
-// post history (drilled in from the home feed); 'more' is the secondary menu;
+// The screen's views. 'landing' is the home dashboard; 'studio' is where you
+// generate media; 'post' is the publish-to-socials flow (the ＋ button);
+// 'gallery' is the generated-media shelf; 'posts' is the full Instagram post
+// history (from the home feed); 'more' is the secondary menu (incl. Insights);
 // the rest are read/placeholder views.
-type View = 'landing' | 'compose' | 'more' | 'posts' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
+type View = 'landing' | 'studio' | 'post' | 'more' | 'posts' | 'calendar' | 'campaigns' | 'gallery' | 'insights' | 'metaads';
 type IconCmp = typeof IconCompose;
 
 // A piece of media the user has generated with Wingup — the Gallery's contents.
@@ -37,7 +38,7 @@ type GenKind = 'video' | 'image';
 interface GenItem { id: string; kind: GenKind; url: string; thumb?: string; caption?: string; posted?: boolean }
 
 // The placeholder views, by id, for the "coming soon" empty states.
-const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'compose' | 'more' | 'posts'>, { title: string; emoji: string; Icon: IconCmp }> = {
+const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'studio' | 'post' | 'more' | 'posts'>, { title: string; emoji: string; Icon: IconCmp }> = {
   calendar: { title: 'Content calendar', emoji: '📅', Icon: IconCalendar },
   campaigns: { title: 'Campaigns', emoji: '📣', Icon: IconWaveform },
   gallery: { title: 'Your media', emoji: '🖼️', Icon: IconPhotos },
@@ -143,11 +144,12 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const [caption, setCaption] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set()); // chosen platform ids
-  const [attachments, setAttachments] = useState<string[]>([]); // picked photos: 1 = single post, 2–10 = carousel
   const [publishErr, setPublishErr] = useState(''); // a failed publish, shown on the review step
-  // ---- Gallery: the user's generated media (empty until generation is wired) ----
-  const [generated] = useState<GenItem[]>([]);
+  // ---- Gallery: the user's generated media. Studio appends here on "Save"; empty
+  // until then (and not yet persisted — real storage lands with generation). ----
+  const [generated, setGenerated] = useState<GenItem[]>([]);
   const [galFilter, setGalFilter] = useState<'all' | 'video' | 'image'>('all');
+  const [postSrc, setPostSrc] = useState(''); // the gallery item chosen to post (＋ flow)
   // ---- Live Instagram reads (account header, Gallery, Insights) ----
   const igConnected = connApps.includes('instagram');
   const [account, setAccount] = useState<IgAccount | null>(null);
@@ -204,15 +206,11 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     setStep('result');
   };
 
-  // Back steps one level: review → compose, compose → landing, a placeholder →
-  // landing, and the landing → close the overlay (back to the agent picker).
+  // Back steps one level: a result step → its start, a flow → landing, a
+  // placeholder → landing, and the landing → close the overlay.
   const back = () => {
     void tap();
-    if (view === 'compose') {
-      if (step === 'result') { setStep('compose'); return; }
-      setView('landing');
-      return;
-    }
+    if (view === 'studio' && step === 'result') { setStep('compose'); return; }
     if (view !== 'landing') { setView('landing'); return; }
     onClose();
   };
@@ -227,18 +225,37 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     });
   };
 
-  // The image we'd actually post: the first attached/library photo if any,
-  // otherwise the generated preview. (The stubbed generator returns an SVG,
-  // which Instagram can't ingest — isPostableImage gates on that.)
-  const postImage = attachments[0] || imageUrl;
-  const isCarousel = attachments.length >= 2; // 2–10 photos post as a carousel
+  // Save the generated result into the Gallery. Session-only for now (real
+  // storage lands with generation) — enough to feel the generate → Gallery loop.
+  const saveToGallery = () => {
+    void tap();
+    const item: GenItem = {
+      id: `gen-${generated.length + 1}-${imageUrl.slice(-8)}`,
+      kind: 'image',
+      url: imageUrl,
+      caption: caption.split('\n')[0]?.slice(0, 40),
+      posted: false,
+    };
+    setGenerated((g) => [item, ...g]);
+    setPrompt(''); setTone(''); setCaption(''); setImageUrl('');
+    setStep('compose');
+    setView('gallery');
+  };
+
+  // Pick a gallery item to post (＋ flow), prefilling its caption + Instagram.
+  const choosePostItem = (g: GenItem) => {
+    void tap();
+    setPostSrc(g.url);
+    setCaption(g.caption || '');
+    setSelected(new Set(socials.some((s) => s.id === 'instagram') ? ['instagram'] : []));
+  };
 
   // Publish for real. Instagram is wired end-to-end (src/wingup.ts → the `wingup`
   // function → Composio); any other selected platform isn't connected here yet.
   const runPublish = async () => {
-    if (!selected.size) return;
-    if (!isPostableImage(postImage)) {
-      setPublishErr('Add a photo to post — AI image generation is coming soon.');
+    if (!selected.size || !postSrc) return;
+    if (!isPostableImage(postSrc)) {
+      setPublishErr('That item isn’t real media yet — generated previews become postable once generation is wired.');
       return;
     }
     if (!selected.has('instagram')) {
@@ -249,43 +266,97 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     setPublishErr('');
     setStep('posting');
     try {
-      if (isCarousel) await wingupPublishCarousel({ caption, images: attachments });
-      else await wingupPublish({ caption, image: postImage });
+      await wingupPublish({ caption, image: postSrc });
+      setGenerated((g) => g.map((it) => (it.url === postSrc ? { ...it, posted: true } : it)));
       setStep('done');
     } catch (e) {
       setPublishErr(e instanceof Error ? e.message : 'Posting failed. Please try again.');
-      setStep('result');
+      setStep('compose');
     }
   };
 
-  // Reset everything and return to a fresh landing.
+  // Reset both flows and return to a fresh landing.
   const startAnother = () => {
     void tap();
     setPrompt(''); setTone(''); setCaption(''); setImageUrl(''); setSelected(new Set());
-    setAttachments([]); setPublishErr('');
+    setPostSrc(''); setPublishErr('');
     setStep('compose');
     setView('landing');
   };
 
-  // The ＋ Create button (bottom-nav FAB): start a fresh compose flow.
-  const openCompose = () => {
+  // The Studio tab — start a fresh generation.
+  const openStudio = () => {
     void tap();
-    setPrompt(''); setTone(''); setCaption(''); setImageUrl(''); setSelected(new Set());
-    setAttachments([]); setPublishErr('');
+    setPrompt(''); setTone(''); setCaption(''); setImageUrl('');
     setStep('compose');
-    setView('compose');
+    setView('studio');
+  };
+
+  // The ＋ button — start a fresh post (publish to socials).
+  const openPost = () => {
+    void tap();
+    setPostSrc(''); setCaption(''); setSelected(new Set()); setPublishErr('');
+    setStep('compose');
+    setView('post');
   };
 
   // Human-readable list of where we posted, for the success copy ("X, LinkedIn").
   const postedNames = CONNECTORS.filter((c) => selected.has(c.id)).map((c) => c.name).join(', ');
 
-  // ---- The compose → generate → review → publish flow ----
-  const renderCompose = () => {
-    if (step === 'generating' || step === 'posting') {
+  // ---- Studio: prompt → generate → save to Gallery ----
+  const renderStudio = () => {
+    if (step === 'generating') {
       return (
         <div className="wingup-loading">
           <span className="route-spin" aria-hidden="true" />
-          <p className="wingup-loading-msg">{step === 'posting' ? 'Posting your update…' : 'Generating your post…'}</p>
+          <p className="wingup-loading-msg">Generating…</p>
+        </div>
+      );
+    }
+    if (step === 'result') {
+      return (
+        <div className="wingup-form">
+          <div className="wingup-preview"><img className="wingup-img" src={imageUrl} alt="Generated preview" /></div>
+          <p className="wingup-note">Preview — real video/image generation is coming soon. Save it to your Gallery, then post it from there with ＋.</p>
+          <label className="wingup-lbl" htmlFor="wingup-caption">Caption / idea</label>
+          <textarea id="wingup-caption" className="wingup-field wingup-body" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Describe it…" />
+          <button className="wingup-btn ghost" onClick={() => void runGenerate()}>↻ Regenerate</button>
+          <button className="wingup-btn" onClick={saveToGallery}>🪽 Save to Gallery</button>
+        </div>
+      );
+    }
+    // compose
+    return (
+      <div className="wingup-form">
+        <label className="wingup-lbl" htmlFor="wingup-prompt">What do you want to make?</label>
+        <textarea
+          id="wingup-prompt"
+          className="wingup-field wingup-body"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="e.g. A cinematic 360° spin of our new sneaker, soft studio light, slow motion."
+        />
+        <label className="wingup-lbl" htmlFor="wingup-tone">Style / brand voice <span className="wingup-opt">(optional)</span></label>
+        <input
+          id="wingup-tone"
+          className="wingup-field"
+          value={tone}
+          onChange={(e) => setTone(e.target.value)}
+          placeholder="e.g. bright, premium, playful"
+        />
+        <button className="wingup-btn" disabled={!prompt.trim()} onClick={() => void runGenerate()}>✨ Generate</button>
+        <p className="wingup-foot">Generate a video or image, save it to your Gallery, then post it to your socials with ＋.</p>
+      </div>
+    );
+  };
+
+  // ---- Post (＋): pick a gallery item → caption → platforms → publish ----
+  const renderPost = () => {
+    if (step === 'posting') {
+      return (
+        <div className="wingup-loading">
+          <span className="route-spin" aria-hidden="true" />
+          <p className="wingup-loading-msg">Posting your update…</p>
         </div>
       );
     }
@@ -295,93 +366,59 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
           <span className="wingup-sent-ic"><IconCheck size={26} /></span>
           <div className="wingup-sent-title">Posted{postedNames ? ` to ${postedNames}` : ''} ✓</div>
           <div className="wingup-sent-sub">Your post is on its way to your followers.</div>
-          <button className="wingup-btn" onClick={startAnother}>Start another</button>
+          <button className="wingup-btn" onClick={startAnother}>Done</button>
         </div>
       );
     }
-    if (step === 'result') {
-      // ---- Review: image preview, editable caption, platforms, publish ----
+    if (generated.length === 0) {
       return (
-        <div className="wingup-form">
-          <div className="wingup-preview">
-            {isCarousel ? (
-              <div className="wingup-preview-strip">
-                {attachments.map((src, i) => (
-                  <img className="wingup-img" key={`${src}-${i}`} src={src} alt={`Slide ${i + 1}`} />
-                ))}
-              </div>
-            ) : (
-              <img className="wingup-img" src={postImage} alt="Post preview" />
-            )}
-          </div>
-          {isCarousel && <p className="wingup-note">Carousel · {attachments.length} photos</p>}
-          {!isPostableImage(postImage) && (
-            <p className="wingup-note">Preview only — attach a photo (the + in the chatbox) to publish. AI image generation is coming soon.</p>
-          )}
-
-          <label className="wingup-lbl" htmlFor="wingup-caption">Caption</label>
-          <textarea
-            id="wingup-caption"
-            className="wingup-field wingup-body"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            placeholder="Your caption…"
-          />
-
-          <button className="wingup-btn ghost" onClick={() => void runGenerate()}>Regenerate</button>
-
-          {/* Target platforms: chips for the user's connected social accounts. */}
-          <div className="wingup-targets">
-            <span className="wingup-lbl">
-              Post to{account?.username ? <span className="wingup-as"> · as @{account.username}</span> : null}
-            </span>
-            {socials.length === 0 ? (
-              <p className="wingup-note">Connect a social account in Connectors to post.</p>
-            ) : (
-              <div className="wingup-targets-chips">
-                {socials.map((c) => (
-                  <button
-                    key={c.id}
-                    className={`wingup-target${selected.has(c.id) ? ' on' : ''}`}
-                    aria-pressed={selected.has(c.id)}
-                    onClick={() => togglePlatform(c.id)}
-                  >
-                    <img className="wingup-target-logo" src={c.logo} alt="" aria-hidden />
-                    {c.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {publishErr && <p className="wingup-err" role="alert">{publishErr}</p>}
-          <button className="wingup-btn" disabled={!selected.size} onClick={() => void runPublish()}>Post now</button>
+        <div className="wingup-empty">
+          <span className="wingup-empty-ic" aria-hidden="true">🪽</span>
+          <div className="wingup-empty-title">Nothing to post yet</div>
+          <div className="wingup-empty-sub">Generate a video or image in Studio first — then come back here to post it.</div>
+          <button className="wingup-btn" onClick={openStudio}>✨ Open Studio</button>
         </div>
       );
     }
-    // ---- Compose: prompt + optional tone + Generate ----
     return (
       <div className="wingup-form">
-        <label className="wingup-lbl" htmlFor="wingup-prompt">What should we post about?</label>
-        <textarea
-          id="wingup-prompt"
-          className="wingup-field wingup-body"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="e.g. We just launched our summer collection — bright, breezy, limited run."
-        />
+        <span className="wingup-lbl">Choose what to post</span>
+        <div className="wingup-postpick">
+          {generated.map((g) => (
+            <button key={g.id} type="button" className={`wingup-postpick-item${postSrc === g.url ? ' on' : ''}`} onClick={() => choosePostItem(g)}>
+              <span className="wingup-postpick-img" style={{ backgroundImage: `url(${g.thumb || g.url})` }} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
 
-        <label className="wingup-lbl" htmlFor="wingup-tone">Tone / brand voice <span className="wingup-opt">(optional)</span></label>
-        <input
-          id="wingup-tone"
-          className="wingup-field"
-          value={tone}
-          onChange={(e) => setTone(e.target.value)}
-          placeholder="e.g. playful, confident, a little cheeky"
-        />
+        <label className="wingup-lbl" htmlFor="wingup-caption">Caption</label>
+        <textarea id="wingup-caption" className="wingup-field wingup-body" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Write a caption…" />
 
-        <button className="wingup-btn" disabled={!prompt.trim()} onClick={() => void runGenerate()}>✨ Generate</button>
-        <p className="wingup-foot">Wingup drafts the copy and a matching image, then posts to your connected social accounts.</p>
+        <div className="wingup-targets">
+          <span className="wingup-lbl">
+            Post to{account?.username ? <span className="wingup-as"> · as @{account.username}</span> : null}
+          </span>
+          {socials.length === 0 ? (
+            <p className="wingup-note">Connect a social account in Connectors to post.</p>
+          ) : (
+            <div className="wingup-targets-chips">
+              {socials.map((c) => (
+                <button
+                  key={c.id}
+                  className={`wingup-target${selected.has(c.id) ? ' on' : ''}`}
+                  aria-pressed={selected.has(c.id)}
+                  onClick={() => togglePlatform(c.id)}
+                >
+                  <img className="wingup-target-logo" src={c.logo} alt="" aria-hidden />
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {publishErr && <p className="wingup-err" role="alert">{publishErr}</p>}
+        <button className="wingup-btn" disabled={!selected.size || !postSrc} onClick={() => void runPublish()}>Post now</button>
       </div>
     );
   };
@@ -477,8 +514,10 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     );
   };
 
-  // ---- The "More" tab: secondary destinations (still placeholders for now). ----
-  const MORE_ITEMS: { id: Exclude<View, 'landing' | 'compose' | 'more'>; title: string; sub: string; emoji: string }[] = [
+  // ---- The "More" tab: secondary destinations. Insights (analytics) lives here
+  // now that the 4th tab is Studio; the rest are still placeholders. ----
+  const MORE_ITEMS: { id: Exclude<View, 'landing' | 'studio' | 'post' | 'more' | 'posts' | 'gallery'>; title: string; sub: string; emoji: string }[] = [
+    { id: 'insights', title: 'Insights', sub: 'Reach, followers & performance', emoji: '📊' },
     { id: 'calendar', title: 'Calendar', sub: 'Plan & schedule posts', emoji: '📅' },
     { id: 'campaigns', title: 'Campaigns', sub: 'Themed content pushes', emoji: '📣' },
     { id: 'metaads', title: 'Meta Ads', sub: 'Facebook & Instagram ads', emoji: '📢' },
@@ -528,7 +567,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
               <span className="wingup-empty-ic" aria-hidden="true">🪽</span>
               <div className="wingup-empty-title">Nothing here yet</div>
               <div className="wingup-empty-sub">Videos and images you generate with Wingup land here — ready to post or download.</div>
-              <button className="wingup-btn" onClick={openCompose}>✨ Generate your first</button>
+              <button className="wingup-btn" onClick={openStudio}>✨ Generate your first</button>
             </div>
           ) : items.length === 0 ? (
             <p className="wingup-note">No {galFilter === 'video' ? 'videos' : 'images'} yet.</p>
@@ -600,7 +639,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   );
 
   // ---- A "coming soon" placeholder for a workspace view ----
-  const renderPlaceholder = (id: Exclude<View, 'landing' | 'compose' | 'more' | 'posts'>) => {
+  const renderPlaceholder = (id: Exclude<View, 'landing' | 'studio' | 'post' | 'more' | 'posts'>) => {
     const p = PLACEHOLDERS[id];
     return (
       <div className="wingup-empty">
@@ -613,15 +652,17 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
 
   // The header title tracks the active view (the home keeps the bare wordmark).
   const headerTitle =
-    view === 'landing' || view === 'compose' ? 'Wingup'
+    view === 'landing' ? 'Wingup'
+    : view === 'studio' ? 'Studio'
+    : view === 'post' ? 'Post'
     : view === 'more' ? 'More'
     : view === 'gallery' ? 'Gallery'
     : view === 'posts' ? 'Your posts'
     : PLACEHOLDERS[view].title;
 
   // The bottom tab bar shows on the top-level destinations, not inside a task
-  // (compose) or a placeholder drilled in from More.
-  const showTabs = view === 'landing' || view === 'gallery' || view === 'insights' || view === 'more';
+  // (studio / post) or a view drilled in from More / the home feed.
+  const showTabs = view === 'landing' || view === 'gallery' || view === 'studio' || view === 'more';
 
   return (
     <div className="memg wingup" ref={trapRef} tabIndex={-1}>
@@ -646,7 +687,8 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
       {view === 'landing' && renderHome()}
       {view === 'gallery' && renderGallery()}
       {view === 'more' && renderMore()}
-      {view === 'compose' && <div className="wingup-stage">{renderCompose()}</div>}
+      {view === 'studio' && <div className="wingup-stage">{renderStudio()}</div>}
+      {view === 'post' && <div className="wingup-stage">{renderPost()}</div>}
       {view === 'posts' && <div className="wingup-stage">{renderPosts()}</div>}
       {view === 'insights' && <div className="wingup-stage">{renderInsights()}</div>}
       {(view === 'calendar' || view === 'campaigns' || view === 'metaads') && (
@@ -661,11 +703,11 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
           <button type="button" className={`wingup-tb${view === 'gallery' ? ' on' : ''}`} onClick={() => { void tap(); setView('gallery'); }} aria-current={view === 'gallery'}>
             <span className="wingup-tb-ic" aria-hidden="true">🪽</span><span className="wingup-tb-lab">Gallery</span>
           </button>
-          <button type="button" className="wingup-fab" onClick={openCompose} aria-label="Create">
+          <button type="button" className="wingup-fab" onClick={openPost} aria-label="Post to socials">
             <IconPlus size={26} />
           </button>
-          <button type="button" className={`wingup-tb${view === 'insights' ? ' on' : ''}`} onClick={() => { void tap(); setView('insights'); }} aria-current={view === 'insights'}>
-            <span className="wingup-tb-ic" aria-hidden="true">📊</span><span className="wingup-tb-lab">Insights</span>
+          <button type="button" className={`wingup-tb${view === 'studio' ? ' on' : ''}`} onClick={openStudio} aria-current={view === 'studio'}>
+            <span className="wingup-tb-ic" aria-hidden="true">🎬</span><span className="wingup-tb-lab">Studio</span>
           </button>
           <button type="button" className={`wingup-tb${view === 'more' ? ' on' : ''}`} onClick={() => { void tap(); setView('more'); }} aria-current={view === 'more'}>
             <span className="wingup-tb-ic" aria-hidden="true">☰</span><span className="wingup-tb-lab">More</span>
