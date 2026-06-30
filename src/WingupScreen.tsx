@@ -779,7 +779,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     : view === 'studio' ? 'Studio'
     : view === 'generate' ? 'Generate'
     : view === 'post' ? 'Post'
-    : view === 'more' ? 'More'
+    : view === 'more' ? 'Profile'
     : view === 'gallery' ? 'Gallery'
     : view === 'posts' ? 'Your posts'
     : PLACEHOLDERS[view].title;
@@ -841,7 +841,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
             <span className="wingup-tb-ic" aria-hidden="true">🎬</span><span className="wingup-tb-lab">Studio</span>
           </button>
           <button type="button" className={`wingup-tb${view === 'more' ? ' on' : ''}`} onClick={() => { void tap(); setView('more'); }} aria-current={view === 'more'}>
-            <span className="wingup-tb-ic" aria-hidden="true">☰</span><span className="wingup-tb-lab">More</span>
+            <span className="wingup-tb-ic" aria-hidden="true">👤</span><span className="wingup-tb-lab">Profile</span>
           </button>
         </nav>
       )}
