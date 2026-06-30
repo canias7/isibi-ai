@@ -76,6 +76,17 @@ const PLACEHOLDERS: Record<Exclude<View, 'landing' | 'compose'>, { title: string
 // with the user's connApps so chips only show accounts they've actually linked.
 const SOCIAL_IDS = ['twitter', 'instagram', 'facebook', 'reddit', 'youtube', 'linkedin'];
 
+// Video-generation models the user can pick from (top-bar model picker). `id` is
+// what we'll pass to the generation backend (mapped to the fal model there);
+// `label` is what's shown. Edit freely as models come and go.
+const WG_MODELS: { id: string; label: string; sub: string }[] = [
+  { id: 'seedance', label: 'Seedance 2', sub: 'ByteDance · cinematic' },
+  { id: 'kling', label: 'Kling 2.5', sub: 'Best motion' },
+  { id: 'veo3', label: 'Veo 3', sub: 'Google · with audio' },
+  { id: 'hailuo', label: 'Hailuo 02', sub: 'MiniMax' },
+  { id: 'luma', label: 'Luma Ray 2', sub: 'Fast' },
+];
+
 type Step = 'compose' | 'generating' | 'result' | 'posting' | 'done';
 type Generated = { caption: string; imageUrl: string };
 
@@ -126,6 +137,8 @@ async function generateContent(prompt: string, tone: string): Promise<Generated>
 
 export default function WingupScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
   const [view, setView] = useState<View>('landing');
+  const [vidModel, setVidModel] = useState<string>(WG_MODELS[0].id); // selected video-generation model
+  const [modelOpen, setModelOpen] = useState(false); // model-picker dropdown open
   // ---- Compose flow: compose → generate → review → post ----
   const [step, setStep] = useState<Step>('compose');
   const [prompt, setPrompt] = useState('');
@@ -781,7 +794,30 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
           <img className="wingup-brand-mark" src={WINGUP_LOGO} alt="" aria-hidden />
           <span className="wingup-brand-name">{headerTitle}</span>
         </div>
-        <span className="wingup-top-spacer" aria-hidden="true" />
+        {(view === 'landing' || view === 'compose') ? (
+          <div className="wingup-model">
+            <button className="wingup-model-trig" onClick={() => { void tap(); setModelOpen((o) => !o); }} aria-haspopup="listbox" aria-expanded={modelOpen}>
+              <span className="wingup-model-name">{(WG_MODELS.find((m) => m.id === vidModel) || WG_MODELS[0]).label}</span>
+              <span className="wingup-model-chev">{modelOpen ? '▴' : '▾'}</span>
+            </button>
+            {modelOpen && (
+              <>
+                <button className="wingup-model-back" aria-label="Close" onClick={() => setModelOpen(false)} />
+                <div className="wingup-model-pop" role="listbox">
+                  <div className="wingup-model-head">Video model</div>
+                  {WG_MODELS.map((m) => (
+                    <button type="button" role="option" aria-selected={m.id === vidModel} key={m.id} className={`wingup-model-opt${m.id === vidModel ? ' on' : ''}`} onClick={() => { void tap(); setVidModel(m.id); setModelOpen(false); }}>
+                      <span className="wingup-model-opt-meta"><span className="wingup-model-opt-name">{m.label}</span><span className="wingup-model-opt-sub">{m.sub}</span></span>
+                      {m.id === vidModel && <IconCheck size={15} />}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <span className="wingup-top-spacer" aria-hidden="true" />
+        )}
       </div>
 
       {view === 'landing' && renderLanding()}
