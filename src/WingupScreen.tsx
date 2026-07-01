@@ -697,8 +697,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
 
     return (
       <div className="wingup-scroll">
-        <div className="wingup-home wingup-home-dash">
-          <div className="wingup-home-main">
+        <div className="wingup-home">
           {account?.username && (
             <div className="wingup-conn"><span className="wingup-conn-dot" aria-hidden="true" />Connected · <span className="wingup-conn-h">@{account.username}</span></div>
           )}
@@ -755,16 +754,6 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
               ))}
             </div>
           )}
-          </div>
-          {/* Desktop-only right rail (hidden < 1024px). */}
-          <aside className="wingup-home-rail" aria-label="Quick actions">
-            <div className="wingup-rail-card">
-              <h3 className="wingup-rail-h">Quick actions</h3>
-              <button type="button" className="wingup-rail-row" onClick={openStudio}><span className="wingup-rail-ic"><IconFilm size={18} /></span><span className="wingup-rail-meta"><span className="t">Generate</span><span className="d">New video or image</span></span></button>
-              <button type="button" className="wingup-rail-row" onClick={openPost}><span className="wingup-rail-ic"><IconPlus size={18} /></span><span className="wingup-rail-meta"><span className="t">Post now</span><span className="d">Publish to socials</span></span></button>
-              <button type="button" className="wingup-rail-row" onClick={openAvatarBuilder}><span className="wingup-rail-ic"><IconUser size={18} /></span><span className="wingup-rail-meta"><span className="t">New avatar</span><span className="d">Create a spokesperson</span></span></button>
-            </div>
-          </aside>
         </div>
       </div>
     );
