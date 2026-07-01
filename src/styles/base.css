@@ -269,9 +269,27 @@ input, textarea { caret-color: var(--brand); }
 .home-continue:active { color: var(--text); }
 .home-continue:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: var(--r-control); }
 
-/* ---- "Select an agent" home ---------------------------------------------- */
+/* ---- Agent hub home: black screen, one word ------------------------------ */
 /* The identity lockup wrapper (orb above the heading). */
 .home-hero { display: flex; flex-direction: column; align-items: center; }
+/* The word IS the interface: white "Marketing" on pure black. Quietly dimmed
+   at rest; comes fully alight (with a soft halo) on hover/press. */
+.mkt-word {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text);
+  font-size: clamp(2.8235rem, 10vw, 4.4706rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  padding: 12px 20px;
+  opacity: 0.92;
+  transition: opacity 0.35s ease, text-shadow 0.35s ease, transform var(--dur-press) ease;
+}
+.mkt-word:hover { opacity: 1; text-shadow: 0 0 60px rgba(255, 255, 255, 0.35); }
+.mkt-word:active { transform: scale(0.98); }
+.mkt-word:focus-visible { outline: 2px solid var(--brand); outline-offset: 6px; border-radius: var(--r-control); }
 /* The agent picker holds the tappable agent cards (just Sendra for now). */
 .agent-pick { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 360px; }
 .agent-card {
