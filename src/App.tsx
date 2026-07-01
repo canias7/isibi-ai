@@ -18,6 +18,7 @@ import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { SENDRA_LOGO } from './sendraLogo';
 import { WINGUP_LOGO } from './wingupLogo';
+import { MARKETING_LOGO } from './marketingLogo';
 import { FORCE_UPDATE_EVENT, type ForceUpdateMode } from './ota';
 
 // Heavy, on-demand screens are code-split: their JS downloads only when first
@@ -98,8 +99,10 @@ export default function App() {
   const uid = session?.user.id ?? null;
 
   const [view, setView] = useState<View>('home');
-  const [agentsOpen, setAgentsOpen] = useState(false); // Sendra (Agents) screen
-  const [wingupOpen, setWingupOpen] = useState(false); // Wingup (social media) screen
+  // The Marketing agent: one overlay, two areas inside it — Email & SMS
+  // (Sendra) and Social (Wingup) — flipped via the floating dock.
+  const [mktOpen, setMktOpen] = useState(false);
+  const [mktTab, setMktTab] = useState<'email' | 'social'>('email');
   const [noteMsg, setNoteMsg] = useState(''); // transient Settings note (e.g. why a toggle didn't stick)
 
   // Face ID / biometric lock (opt-in; native-only; fails open).
@@ -172,8 +175,7 @@ export default function App() {
   // element stays for one exit beat with a `.closing`/`.gf-out` class (motion.ts).
   const confirmUi = useDismiss(confirmDelete);
   const signOutUi = useDismiss(confirmSignOut);
-  const agentsUi = useDismiss(agentsOpen);
-  const wingupUi = useDismiss(wingupOpen);
+  const mktUi = useDismiss(mktOpen);
   // Legal reader: latch the doc so the sheet doesn't blank out during its exit beat.
   const legalUi = useDismiss(!!legalDoc);
   const lastLegal = useRef(legalDoc);
@@ -489,18 +491,11 @@ export default function App() {
               <h1 className="home-mark">Select an agent</h1>
             </div>
             <div className="agent-pick">
-              <button className="agent-card" onClick={() => { void tap(); void loadConnectors(); setAgentsOpen(true); }}>
-                <img className="agent-card-logo" src={SENDRA_LOGO} alt="" aria-hidden />
+              <button className="agent-card" onClick={() => { void tap(); void loadConnectors(); setMktOpen(true); }}>
+                <img className="agent-card-logo" src={MARKETING_LOGO} alt="" aria-hidden />
                 <span className="agent-card-text">
-                  <span className="agent-card-name">Sendra</span>
-                  <span className="agent-card-sub">Email &amp; SMS agent</span>
-                </span>
-              </button>
-              <button className="agent-card" onClick={() => { void tap(); void loadConnectors(); setWingupOpen(true); }}>
-                <img className="agent-card-logo" src={WINGUP_LOGO} alt="" aria-hidden />
-                <span className="agent-card-text">
-                  <span className="agent-card-name">Wingup</span>
-                  <span className="agent-card-sub">Social media agent</span>
+                  <span className="agent-card-name">Marketing</span>
+                  <span className="agent-card-sub">Email, SMS &amp; social media</span>
                 </span>
               </button>
             </div>
@@ -520,20 +515,32 @@ export default function App() {
 
       {/* Full-screen overlays: the display:contents wrapper carries .gf-out for
           the exit beat — no box of its own, so layout is untouched. */}
-      {agentsUi.mounted && (
+      {mktUi.mounted && (
         <Suspense fallback={<RouteFallback />}>
-          <div style={{ display: 'contents' }} className={agentsUi.closing ? 'gf-out' : undefined}>
-            <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setAgentsOpen(false); }} />}>
-            <AgentsScreen connApps={connApps} onClose={() => setAgentsOpen(false)} />
-            </ErrorBoundary>
-          </div>
-        </Suspense>
-      )}
-      {wingupUi.mounted && (
-        <Suspense fallback={<RouteFallback />}>
-          <div style={{ display: 'contents' }} className={wingupUi.closing ? 'gf-out' : undefined}>
-            <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setWingupOpen(false); }} />}>
-            <WingupScreen connApps={connApps} onClose={() => setWingupOpen(false)} />
+          <div style={{ display: 'contents' }} className={mktUi.closing ? 'gf-out' : undefined}>
+            <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setMktOpen(false); }} />}>
+            {mktTab === 'email'
+              ? <AgentsScreen connApps={connApps} onClose={() => setMktOpen(false)} />
+              : <WingupScreen connApps={connApps} onClose={() => setMktOpen(false)} />}
+            {/* Floating area switcher: the one Marketing page's two facets. */}
+            <div className="mkt-dock" role="tablist" aria-label="Marketing areas">
+              <button
+                role="tab"
+                aria-selected={mktTab === 'email'}
+                className={mktTab === 'email' ? 'on' : undefined}
+                onClick={() => { void tap(); setMktTab('email'); }}
+              >
+                <img src={SENDRA_LOGO} alt="" aria-hidden /> Email &amp; SMS
+              </button>
+              <button
+                role="tab"
+                aria-selected={mktTab === 'social'}
+                className={mktTab === 'social' ? 'on' : undefined}
+                onClick={() => { void tap(); setMktTab('social'); }}
+              >
+                <img src={WINGUP_LOGO} alt="" aria-hidden /> Social
+              </button>
+            </div>
             </ErrorBoundary>
           </div>
         </Suspense>
