@@ -134,6 +134,21 @@ function creationIdOf(data: any): string | null {
   return id != null ? String(id) : null;
 }
 
+// The connected user's own YouTube channel id. YouTube's Composio tools take an
+// explicit id (there's no "mine" shortcut), so derive it from the user's own
+// playlists — every playlist's snippet.channelId is the owner (them). Fall back
+// to their subscriptions (snippet.channelId is the subscriber, i.e. them).
+async function resolveYtChannelId(uid: string): Promise<string | null> {
+  const firstItem = (d: any) => d?.response_data?.items?.[0] ?? d?.items?.[0];
+  let r = await exec("YOUTUBE_LIST_USER_PLAYLISTS", uid, { part: "snippet", maxResults: 1, pageToken: "" });
+  let id = firstItem(r.data)?.snippet?.channelId;
+  if (!id) {
+    r = await exec("YOUTUBE_LIST_USER_SUBSCRIPTIONS", uid, { part: "snippet", maxResults: 1, pageToken: "" });
+    id = firstItem(r.data)?.snippet?.channelId;
+  }
+  return id ? String(id) : null;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
@@ -266,16 +281,18 @@ Deno.serve(async (req: Request) => {
         return json(req, { ok: true, result: r.data });
       }
 
-      // ---- YouTube (test wiring — verify the Composio tools return real data) ----
+      // ---- YouTube ----
       case "yt_channel": {
-        const r = await exec("YOUTUBE_GET_CHANNEL_STATISTICS", uid, { mine: true });
-        console.log("[yt_channel]", JSON.stringify({ successful: r.successful, error: r.error, data: r.data }));
+        const channelId = await resolveYtChannelId(uid);
+        if (!channelId) return json(req, { error: "YouTube channel not connected" }, 400);
+        const r = await exec("YOUTUBE_GET_CHANNEL_STATISTICS", uid, { id: channelId, part: "snippet,statistics,contentDetails" });
         if (!r.successful) return json(req, { error: r.error || "couldn't load channel", raw: r }, 502);
         return json(req, { channel: r.data });
       }
       case "yt_videos": {
-        const r = await exec("YOUTUBE_LIST_CHANNEL_VIDEOS", uid, { mine: true });
-        console.log("[yt_videos]", JSON.stringify({ successful: r.successful, error: r.error, data: r.data }));
+        const channelId = await resolveYtChannelId(uid);
+        if (!channelId) return json(req, { error: "YouTube channel not connected" }, 400);
+        const r = await exec("YOUTUBE_LIST_CHANNEL_VIDEOS", uid, { channelId, part: "snippet", maxResults: 10 });
         if (!r.successful) return json(req, { error: r.error || "couldn't load videos", raw: r }, 502);
         return json(req, { videos: r.data });
       }
