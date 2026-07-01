@@ -135,6 +135,27 @@ export async function wingupMarkSeen(recipientId: string): Promise<void> {
   await invoke({ action: 'mark_seen', recipient_id: recipientId });
 }
 
+// ---- YouTube (test wiring) ----
+// Fire the two read tools and hand back the raw envelope so the caller can log
+// exactly what Composio returned. These don't throw — a failed tool resolves to
+// its error string so a smoke test can report per-tool status in one pass.
+export async function wingupYtChannel(): Promise<{ ok: boolean; channel?: unknown; error?: string }> {
+  try {
+    const { channel } = await invoke<{ channel: unknown }>({ action: 'yt_channel' });
+    return { ok: true, channel };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'yt_channel failed' };
+  }
+}
+export async function wingupYtVideos(): Promise<{ ok: boolean; videos?: unknown; error?: string }> {
+  try {
+    const { videos } = await invoke<{ videos: unknown }>({ action: 'yt_videos' });
+    return { ok: true, videos };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'yt_videos failed' };
+  }
+}
+
 // True when an image can actually be posted to Instagram: a real raster image,
 // either hosted (http/https) or a non-SVG data: URL. The stubbed generator emits
 // an SVG data URI, which Instagram can't ingest — callers use this to gate "Post".
