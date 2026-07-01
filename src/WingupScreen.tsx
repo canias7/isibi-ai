@@ -9,8 +9,8 @@ import { tap } from './haptics';
 import { CONNECTORS } from './connectorData';
 import { WINGUP_LOGO } from './wingupLogo';
 import {
-  wingupAccount, wingupMedia, wingupInsights, wingupPublish,
-  isPostableImage, type IgAccount, type IgMedia, type IgInsight,
+  wingupAccount, wingupMedia, wingupInsights, wingupPublish, wingupYtVideos,
+  isPostableImage, type IgAccount, type IgMedia, type IgInsight, type YtVideo,
 } from './wingup';
 
 // Wingup — the social media agent. The landing is intentionally blank for now
@@ -305,6 +305,11 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const [insights, setInsights] = useState<IgInsight[] | null>(null);
   const [insightsErr, setInsightsErr] = useState('');
 
+  // ---- Live YouTube reads (recent uploads on the home) ----
+  const ytConnected = connApps.includes('youtube');
+  const [ytVideos, setYtVideos] = useState<YtVideo[] | null>(null);
+  const [ytVideosErr, setYtVideosErr] = useState('');
+
   const trapRef = useRef<HTMLDivElement>(null);
 
   // Bottom-bar indicator dot: measure the active tab's centre so the dot slides
@@ -366,6 +371,16 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
         .catch((e) => setInsightsErr(e instanceof Error ? e.message : 'Couldn’t load insights.'));
     }
   }, [view, igConnected, media, insights]);
+
+  // Lazy-load recent YouTube uploads for the home (and Posts) when connected.
+  useEffect(() => {
+    if (!ytConnected) return;
+    if (!(view === 'landing' || view === 'posts')) return;
+    if (ytVideos !== null) return;
+    wingupYtVideos()
+      .then((r) => setYtVideos(r.data))
+      .catch((e) => setYtVideosErr(e instanceof Error ? e.message : 'Couldn’t load your YouTube videos.'));
+  }, [view, ytConnected, ytVideos]);
 
   // Run the (stubbed) generator and advance to the result step.
   const runGenerate = async () => {
@@ -671,14 +686,14 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
 
   // ---- The home dashboard (B3a): reach hero + chips + recent-posts feed. ----
   const renderHome = () => {
-    if (!igConnected) {
+    if (!igConnected && !ytConnected) {
       return (
         <div className="wingup-scroll">
           <div className="wingup-home">
             <div className="wingup-home-connect">
               <span className="wingup-empty-ic" aria-hidden="true">🪽</span>
-              <div className="wingup-empty-title">Connect Instagram</div>
-              <div className="wingup-empty-sub">Link your account in Connectors to see your reach, recent posts, and post straight from Wingup.</div>
+              <div className="wingup-empty-title">Connect an account</div>
+              <div className="wingup-empty-sub">Link Instagram or YouTube in Connectors to see your reach, recent posts, and post straight from Wingup.</div>
             </div>
           </div>
         </div>
@@ -699,6 +714,7 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     return (
       <div className="wingup-scroll">
         <div className="wingup-home">
+          {igConnected && (<>
           {account?.username && (
             <div className="wingup-conn"><span className="wingup-conn-dot" aria-hidden="true" />Connected · <span className="wingup-conn-h">@{account.username}</span></div>
           )}
@@ -738,23 +754,47 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
           ) : feed.length === 0 ? (
             <p className="wingup-note">No posts yet — tap ＋ to make your first one.</p>
           ) : (
-            <div className="wingup-feed">
-              {feed.map((m) => (
-                <a className="wingup-feed-row" key={m.id} href={m.permalink} target="_blank" rel="noreferrer">
-                  <span className="wingup-feed-th" style={{ backgroundImage: (m.thumbnail_url || m.media_url) ? `url(${m.thumbnail_url || m.media_url})` : undefined }} aria-hidden="true" />
-                  <span className="wingup-feed-meta">
-                    <span className="wingup-feed-cap">{m.caption ? String(m.caption) : mediaTypeLabel(m.media_type)}</span>
-                    <span className="wingup-feed-st">
-                      {m.like_count != null && <span><b>{m.like_count.toLocaleString()}</b> likes</span>}
-                      {m.comments_count != null && <span><b>{m.comments_count.toLocaleString()}</b> comments</span>}
-                      {m.like_count == null && m.comments_count == null && <span>{mediaTypeLabel(m.media_type)}</span>}
-                      {relTime(m.timestamp) && <span>· {relTime(m.timestamp)}</span>}
-                    </span>
-                  </span>
+            <div className="wingup-grid3">
+              {feed.slice(0, 3).map((m) => (
+                <a className="wingup-tile" key={m.id} href={m.permalink} target="_blank" rel="noreferrer"
+                  style={{ backgroundImage: (m.thumbnail_url || m.media_url) ? `url(${m.thumbnail_url || m.media_url})` : undefined }}
+                  title={m.caption ? String(m.caption) : mediaTypeLabel(m.media_type)}>
+                  <span className="wingup-tile-cap">{m.caption ? String(m.caption) : mediaTypeLabel(m.media_type)}</span>
                 </a>
+              ))}
+              {Array.from({ length: Math.max(0, 3 - Math.min(feed.length, 3)) }).map((_, i) => (
+                <span className="wingup-tile empty" key={`ige${i}`} aria-hidden="true" />
               ))}
             </div>
           )}
+          </>)}
+
+          {/* Recent YouTube uploads. */}
+          {ytConnected && (<>
+            <div className="wingup-sectionh">
+              <span className="wingup-sectionh-t">YouTube videos</span>
+            </div>
+            {ytVideos === null ? (
+              <div className="wingup-loading"><span className="route-spin" aria-hidden="true" /><p className="wingup-loading-msg">Loading your videos…</p></div>
+            ) : ytVideosErr ? (
+              <p className="wingup-note">{ytVideosErr}</p>
+            ) : ytVideos.length === 0 ? (
+              <p className="wingup-note">No videos on your channel yet.</p>
+            ) : (
+              <div className="wingup-grid3">
+                {ytVideos.slice(0, 3).map((v) => (
+                  <a className="wingup-tile yt" key={v.id} href={`https://www.youtube.com/watch?v=${v.id}`} target="_blank" rel="noreferrer"
+                    style={{ backgroundImage: v.thumbnail ? `url(${v.thumbnail})` : undefined }} title={v.title}>
+                    <span className="wingup-tile-play" aria-hidden="true">▶</span>
+                    <span className="wingup-tile-cap">{v.title}</span>
+                  </a>
+                ))}
+                {Array.from({ length: Math.max(0, 3 - Math.min(ytVideos.length, 3)) }).map((_, i) => (
+                  <span className="wingup-tile empty" key={`yte${i}`} aria-hidden="true" />
+                ))}
+              </div>
+            )}
+          </>)}
         </div>
       </div>
     );
