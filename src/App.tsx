@@ -18,7 +18,6 @@ import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { SENDRA_LOGO } from './sendraLogo';
 import { WINGUP_LOGO } from './wingupLogo';
-import { MARKETING_LOGO } from './marketingLogo';
 import { FORCE_UPDATE_EVENT, type ForceUpdateMode } from './ota';
 
 // Heavy, on-demand screens are code-split: their JS downloads only when first
@@ -480,25 +479,13 @@ export default function App() {
         />
       ) : (
         <>
-          <div className="live-bg" aria-hidden="true">
-            <span className="orb orb1" />
-            <span className="orb orb2" />
-            <span className="orb orb3" />
-            <span className="orb orb4" />
-          </div>
+          {/* Pure-black hub: the .live-bg keeps its black backdrop but carries
+              no orbs here — the word IS the interface. */}
+          <div className="live-bg" aria-hidden="true" />
           <div className="home agents-home">
-            <div className="home-hero">
-              <h1 className="home-mark">Select an agent</h1>
-            </div>
-            <div className="agent-pick">
-              <button className="agent-card" onClick={() => { void tap(); void loadConnectors(); setMktOpen(true); }}>
-                <img className="agent-card-logo" src={MARKETING_LOGO} alt="" aria-hidden />
-                <span className="agent-card-text">
-                  <span className="agent-card-name">Marketing</span>
-                  <span className="agent-card-sub">Email, SMS &amp; social media</span>
-                </span>
-              </button>
-            </div>
+            <button className="mkt-word" onClick={() => { void tap(); void loadConnectors(); setMktOpen(true); }}>
+              Marketing
+            </button>
             {brokenApps.length > 0 && !brokenDismissed && (
               <div className="conn-warn" role="status">
                 <button className="conn-warn-main" onClick={() => go('connectors')}>
