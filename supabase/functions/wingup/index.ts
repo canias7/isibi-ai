@@ -266,6 +266,20 @@ Deno.serve(async (req: Request) => {
         return json(req, { ok: true, result: r.data });
       }
 
+      // ---- YouTube (test wiring — verify the Composio tools return real data) ----
+      case "yt_channel": {
+        const r = await exec("YOUTUBE_GET_CHANNEL_STATISTICS", uid, { mine: true });
+        console.log("[yt_channel]", JSON.stringify({ successful: r.successful, error: r.error, data: r.data }));
+        if (!r.successful) return json(req, { error: r.error || "couldn't load channel", raw: r }, 502);
+        return json(req, { channel: r.data });
+      }
+      case "yt_videos": {
+        const r = await exec("YOUTUBE_LIST_CHANNEL_VIDEOS", uid, { mine: true });
+        console.log("[yt_videos]", JSON.stringify({ successful: r.successful, error: r.error, data: r.data }));
+        if (!r.successful) return json(req, { error: r.error || "couldn't load videos", raw: r }, 502);
+        return json(req, { videos: r.data });
+      }
+
       default:
         return json(req, { error: `unknown action: ${action}` }, 400);
     }
