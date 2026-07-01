@@ -10,7 +10,6 @@ import { CONNECTORS } from './connectorData';
 import { WINGUP_LOGO } from './wingupLogo';
 import {
   wingupAccount, wingupMedia, wingupInsights, wingupPublish,
-  wingupYtChannel, wingupYtVideos,
   isPostableImage, type IgAccount, type IgMedia, type IgInsight,
 } from './wingup';
 
@@ -334,15 +333,6 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     return () => { live = false; };
   }, [igConnected]);
 
-  // Smoke-test the YouTube tools once when the agent opens with YouTube connected.
-  // No UI — fire the two reads and log the result so the edge-function logs (and
-  // the browser console) show whether Composio returns real data. Temporary.
-  const ytConnected = connApps.includes('youtube');
-  useEffect(() => {
-    if (!ytConnected) return;
-    void wingupYtChannel().then((r) => console.log('[wingup] yt_channel', r));
-    void wingupYtVideos().then((r) => console.log('[wingup] yt_videos', r));
-  }, [ytConnected]);
 
   // Reposition the indicator dot on every tab change; arm its slide after the
   // first placement; keep it aligned on resize/rotation.
