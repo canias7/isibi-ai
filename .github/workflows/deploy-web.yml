@@ -1,0 +1,38 @@
+name: Deploy web (Cloudflare)
+
+# Builds the web app and deploys it to Cloudflare Workers as a static SPA
+# (see wrangler.jsonc — assets-only deploy of ./dist). Replaces the old
+# Vercel hosting. Needs two repo secrets:
+#   CLOUDFLARE_API_TOKEN  — API token with "Workers Scripts: Edit" permission
+#   CLOUDFLARE_ACCOUNT_ID — the Cloudflare account id
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          # Electron devDeps aren't used for the web build — skip the ~106 MB
+          # binary download so the deploy stays fast.
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+
+      - name: Build web bundle
+        run: npm run build
+
+      - name: Deploy to Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler@4 deploy
