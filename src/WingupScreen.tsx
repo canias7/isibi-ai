@@ -311,8 +311,10 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const [ytVideos, setYtVideos] = useState<YtVideo[] | null>(null);
   const [ytVideosErr, setYtVideosErr] = useState('');
 
-  // Which platform's stat card sits on top of the home deck (chosen via the dots).
+  // Which platform's stat card sits on top of the home deck (chosen via the dots
+  // or a horizontal swipe on the card). `deckStart` tracks the swipe origin.
   const [activeCard, setActiveCard] = useState<'instagram' | 'youtube'>('instagram');
+  const deckStart = useRef<{ x: number; y: number } | null>(null);
 
   const trapRef = useRef<HTMLDivElement>(null);
 
@@ -729,6 +731,13 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     if (ytConnected) platforms.push('youtube');
     const active = platforms.includes(activeCard) ? activeCard : (platforms[0] ?? 'instagram');
     const deckCls = (p: 'instagram' | 'youtube') => `wingup-deck-card${active === p ? ' front' : ' back'}`;
+    // Horizontal swipe on the deck moves to the neighbouring platform card.
+    const swipeDeck = (dx: number) => {
+      if (platforms.length < 2) return;
+      const i = platforms.indexOf(active);
+      const ni = dx < 0 ? Math.min(i + 1, platforms.length - 1) : Math.max(i - 1, 0);
+      if (platforms[ni] !== active) { void tap(); setActiveCard(platforms[ni]); }
+    };
 
     return (
       <div className="wingup-scroll">
@@ -740,8 +749,17 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
             <div className="wingup-conn"><span className="wingup-conn-dot yt" aria-hidden="true" />YouTube · <span className="wingup-conn-h">{ytChannel.handle}</span></div>
           )}
 
-          {/* Stat-card deck — one slot; the inactive platform's card peeks behind. */}
-          <div className="wingup-deck">
+          {/* Stat-card deck — one slot; the inactive platform's card peeks behind.
+              Swipe horizontally (or use the dots) to switch. */}
+          <div className="wingup-deck"
+            onPointerDown={(e) => { deckStart.current = { x: e.clientX, y: e.clientY }; }}
+            onPointerUp={(e) => {
+              const s = deckStart.current; deckStart.current = null;
+              if (!s) return;
+              const dx = e.clientX - s.x;
+              if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(e.clientY - s.y)) swipeDeck(dx);
+            }}
+            onPointerCancel={() => { deckStart.current = null; }}>
             {igConnected && (
               <div className={deckCls('instagram')} aria-hidden={active !== 'instagram'}>
                 <div className="wingup-hero-stat">
