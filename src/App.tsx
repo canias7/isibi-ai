@@ -18,6 +18,7 @@ import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { SENDRA_LOGO } from './sendraLogo';
 import { WINGUP_LOGO } from './wingupLogo';
+import { ASSETS, FILMS, Wall, attachParallax } from './loginScene';
 import { FORCE_UPDATE_EVENT, type ForceUpdateMode } from './ota';
 
 // Heavy, on-demand screens are code-split: their JS downloads only when first
@@ -51,6 +52,42 @@ function RouteFallback() {
 }
 
 type View = 'home' | 'connectors' | 'settings';
+
+// The hub's living background (desktop only): the login page's atmosphere —
+// drifting wall of work + flying showcase cards — wrapped around the screen
+// edges, leaving the centre clear for the Marketing word.
+function HubScene() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    return attachParallax(el);
+  }, []);
+  return (
+    <div className="hub-scene" ref={ref} aria-hidden="true">
+      <Wall />
+      {FILMS.map((f, i) => (
+        <div className={`lp-fly hub-f${i + 1}`} data-depth={f.depth} key={f.cls}>
+          <div className="lp-orbit">
+            <div className="lp-card">
+              <video src={f.src} muted playsInline loop autoPlay preload="metadata" />
+              <span className="lp-wm">gofarther.dev</span>
+              <div className="lp-cap"><div className="lp-lbl">✦ PROMPT</div><p>{f.prompt}</p></div>
+            </div>
+          </div>
+        </div>
+      ))}
+      <div className="lp-fly hub-f6" data-depth={0.9}>
+        <div className="lp-orbit">
+          <div className="lp-card lp-email">
+            <img className="lp-scroller" src={`${ASSETS}/email-nova.jpg`} alt="" loading="lazy" />
+            <span className="lp-wm">gofarther.dev</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Flip to `true` to show the email/password login screen. When `false`, the app
 // skips the login UI and uses a silent anonymous "guest" session, so identity
@@ -102,6 +139,9 @@ export default function App() {
   // (Sendra) and Social (Wingup) — flipped via the floating dock.
   const [mktOpen, setMktOpen] = useState(false);
   const [mktTab, setMktTab] = useState<'email' | 'social'>('email');
+  // Desktop-only hub scene gate: checked once at mount so phones never mount
+  // (or download) the showcase videos.
+  const [wideViewport] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches);
   const [noteMsg, setNoteMsg] = useState(''); // transient Settings note (e.g. why a toggle didn't stick)
 
   // Face ID / biometric lock (opt-in; native-only; fails open).
@@ -480,8 +520,11 @@ export default function App() {
       ) : (
         <>
           {/* Pure-black hub: the .live-bg keeps its black backdrop but carries
-              no orbs here — the word IS the interface. */}
+              no orbs here — the word IS the interface. On desktop the login
+              page's living scene wraps the edges (mounted only on wide
+              viewports so phones never load the videos). */}
           <div className="live-bg" aria-hidden="true" />
+          {wideViewport && <HubScene />}
           <div className="home agents-home">
             <button className="mkt-word" onClick={() => { void tap(); void loadConnectors(); setMktOpen(true); }}>
               Marketing

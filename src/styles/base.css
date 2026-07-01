@@ -290,9 +290,32 @@ input, textarea { caret-color: var(--brand); }
 .mkt-word:hover { opacity: 1; text-shadow: 0 0 60px rgba(255, 255, 255, 0.35); }
 .mkt-word:active { transform: scale(0.98); }
 .mkt-word:focus-visible { outline: 2px solid var(--brand); outline-offset: 6px; border-radius: var(--r-control); }
-/* Desktop: the single word carries the whole screen — let it be monumental. */
+/* Desktop: the single word carries the whole screen — let it be monumental.
+   The login page's living scene (.hub-scene, built from the shared lp-*
+   pieces in auth.css) wraps the edges; the centre stays a clear dark void
+   so the word owns it. */
 @media (min-width: 900px) {
-  .mkt-word { font-size: 6.5rem; letter-spacing: -0.04em; }
+  .mkt-word { font-size: 6.5rem; letter-spacing: -0.04em; position: relative; z-index: 2; }
+
+  .hub-scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  /* clear the middle: a dark radial pool the cards never enter */
+  .hub-scene::after {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none; z-index: 5;
+    background: radial-gradient(600px 400px at 50% 52%, rgba(0, 0, 0, 0.92), rgba(0, 0, 0, 0.45) 55%, transparent 76%);
+  }
+  /* the home layer floats above the scene but lets hovers reach the cards
+     through its empty areas */
+  .agents-home { pointer-events: none; }
+  .agents-home > * { pointer-events: auto; }
+
+  /* card placements: ring the edges, keep the centre clear */
+  .hub-f1 { top: 6%; left: 3%; width: 280px; z-index: 2; --fx: -240px; --fy: -160px; --fr: -14deg; --rot: -5deg; --ox: 15px; --oy: 12px; --od: 18s; --sd: 9s; --swing: 1.8deg; animation-delay: 0.1s; }
+  .hub-f2 { top: 40%; left: -30px; width: 250px; z-index: 2; --fx: -260px; --fy: 40px; --fr: -16deg; --rot: 6deg; --ox: 13px; --oy: 15px; --od: 21s; --sd: 10s; --swing: -2deg; animation-delay: 0.25s; }
+  .hub-f3 { bottom: 6%; left: 8%; width: 300px; z-index: 2; --fx: -200px; --fy: 220px; --fr: -10deg; --rot: -3deg; --ox: 16px; --oy: 11px; --od: 16s; --sd: 8s; --swing: 1.5deg; animation-delay: 0.4s; }
+  .hub-f4 { top: 6%; right: 4%; width: 300px; z-index: 2; --fx: 240px; --fy: -170px; --fr: 14deg; --rot: 4deg; --ox: 17px; --oy: 12px; --od: 19s; --sd: 8.5s; --swing: -1.6deg; animation-delay: 0.55s; }
+  .hub-f5 { top: 42%; right: -26px; width: 260px; z-index: 2; --fx: 260px; --fy: 60px; --fr: 16deg; --rot: -6deg; --ox: 14px; --oy: 16px; --od: 22s; --sd: 10.5s; --swing: 2deg; animation-delay: 0.7s; }
+  .hub-f6 { bottom: 5%; right: 7%; width: 195px; z-index: 2; --fx: 220px; --fy: 220px; --fr: 12deg; --rot: 3.5deg; --ox: 12px; --oy: 14px; --od: 20s; --sd: 9.5s; --swing: -1.8deg; animation-delay: 0.85s; }
 }
 /* The agent picker holds the tappable agent cards (just Sendra for now). */
 .agent-pick { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 360px; }
