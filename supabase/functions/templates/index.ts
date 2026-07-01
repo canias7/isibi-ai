@@ -43,11 +43,12 @@ async function verifyUser(token: string | null): Promise<string | null> {
 }
 
 // deno-lint-ignore no-explicit-any
-async function callClaude(system: string, messages: { role: string; content: string }[], maxTokens: number, tools?: any[], timeoutMs = 55000): Promise<string | null> {
+async function callClaude(system: string, messages: { role: string; content: string }[], maxTokens: number, tools?: any[], timeoutMs = 55000, think = false): Promise<string | null> {
   // deno-lint-ignore no-explicit-any
-  // Disable adaptive thinking (Sonnet 5 defaults it on): this is structured HTML + delimited
-  // copy, not a reasoning task — thinking would bill as output and eat the max_tokens budget.
-  const reqBody: Record<string, any> = { model: MODEL, max_tokens: maxTokens, thinking: { type: "disabled" }, system, messages };
+  // Adaptive thinking (Sonnet 5): ON for the rich HTML design path (better layout/copy,
+  // and its token budget has headroom), OFF for the short plain-copy path where thinking
+  // would bill as output and crowd out the tiny max_tokens budget.
+  const reqBody: Record<string, any> = { model: MODEL, max_tokens: maxTokens, thinking: think ? { type: "adaptive" } : { type: "disabled" }, system, messages };
   if (tools && tools.length) reqBody.tools = tools;
   const tag = tools && tools.length ? "withtools" : "plain";
   // Retry transient Anthropic errors (overload / rate-limit / 5xx / network blip) with a
@@ -326,10 +327,11 @@ async function generate(prompt: string, mode: string, images: string[]): Promise
       "Keep it under ~180 words with real line breaks between short paragraphs, and end with a simple sign-off. " +
       "Do NOT add an unsubscribe line (the system appends one)." +
       " Respond in EXACTLY this delimited format and nothing else - no JSON, no code fences:\n===SUBJECT===\n<the subject>\n===BODY===\n<the email text>");
-  const max = mode === "design" ? 16000 : 1500;
+  const design = mode === "design";
+  const max = design ? 24000 : 1500; // design: extra headroom so adaptive thinking can't truncate the email
   const msgs = [{ role: "user", content: prompt.slice(0, 2000) }];
-  let raw = await callClaude(system, msgs, max, undefined, 120000);
-  if (!raw) raw = await callClaude(system, msgs, max, undefined, 120000); // one retry on a transient failure (same budget, not shorter)
+  let raw = await callClaude(system, msgs, max, undefined, 120000, design);
+  if (!raw) raw = await callClaude(system, msgs, max, undefined, 120000, design); // one retry on a transient failure (same budget, not shorter)
   const subject = block(raw, "SUBJECT"), body = block(raw, "BODY");
   if (subject && body) return { subject: subject.slice(0, 200), body: body.slice(0, 50000) };
   return null;
@@ -369,8 +371,8 @@ async function chatDesign(messages: { role: string; content: string }[], current
     " Respond in EXACTLY this delimited format and nothing else - no JSON, no code fences. ALWAYS include the REPLY section with one short friendly line. Include the SUBJECT and BODY sections whenever you create or change the email (which is almost always); omit BOTH (reply only) for a pure greeting/thanks/question:\n===REPLY===\n<one short line>\n===SUBJECT===\n<the subject>\n===BODY===\n<the full email HTML>";
   const conv = messages.slice(-12).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 2000) }));
   if (!conv.length || conv[0].role !== "user") return null;
-  let raw = await callClaude(system, conv, 16000, undefined, 120000);
-  if (!raw) raw = await callClaude(system, conv, 16000, undefined, 120000); // one retry on a transient failure (same budget, not shorter)
+  let raw = await callClaude(system, conv, 24000, undefined, 120000, true); // design path: adaptive thinking on, extra budget for headroom
+  if (!raw) raw = await callClaude(system, conv, 24000, undefined, 120000, true); // one retry on a transient failure (same budget, not shorter)
   const reply = block(raw, "REPLY").slice(0, 600);
   const body = block(raw, "BODY").slice(0, 50000);
   const subject = block(raw, "SUBJECT").slice(0, 200);
