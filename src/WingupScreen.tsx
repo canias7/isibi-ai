@@ -9,8 +9,8 @@ import { tap } from './haptics';
 import { CONNECTORS } from './connectorData';
 import { WINGUP_LOGO } from './wingupLogo';
 import {
-  wingupAccount, wingupMedia, wingupInsights, wingupPublish, wingupYtVideos,
-  isPostableImage, type IgAccount, type IgMedia, type IgInsight, type YtVideo,
+  wingupAccount, wingupMedia, wingupInsights, wingupPublish, wingupYtVideos, wingupYtChannel,
+  isPostableImage, type IgAccount, type IgMedia, type IgInsight, type YtVideo, type YtChannel,
 } from './wingup';
 
 // Wingup — the social media agent. The landing is intentionally blank for now
@@ -305,8 +305,9 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const [insights, setInsights] = useState<IgInsight[] | null>(null);
   const [insightsErr, setInsightsErr] = useState('');
 
-  // ---- Live YouTube reads (recent uploads on the home) ----
+  // ---- Live YouTube reads (channel stats card + recent uploads) ----
   const ytConnected = connApps.includes('youtube');
+  const [ytChannel, setYtChannel] = useState<YtChannel | null>(null);
   const [ytVideos, setYtVideos] = useState<YtVideo[] | null>(null);
   const [ytVideosErr, setYtVideosErr] = useState('');
 
@@ -372,14 +373,22 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     }
   }, [view, igConnected, media, insights]);
 
-  // Lazy-load recent YouTube uploads for the home (and Posts) when connected.
+  // Lazy-load the YouTube channel card + recent uploads for the home (and Posts)
+  // when connected. The channel fetch is guarded by a ref so a channel-less
+  // account doesn't re-request every render.
+  const ytChannelFetched = useRef(false);
   useEffect(() => {
     if (!ytConnected) return;
     if (!(view === 'landing' || view === 'posts')) return;
-    if (ytVideos !== null) return;
-    wingupYtVideos()
-      .then((r) => setYtVideos(r.data))
-      .catch((e) => setYtVideosErr(e instanceof Error ? e.message : 'Couldn’t load your YouTube videos.'));
+    if (ytVideos === null) {
+      wingupYtVideos()
+        .then((r) => setYtVideos(r.data))
+        .catch((e) => setYtVideosErr(e instanceof Error ? e.message : 'Couldn’t load your YouTube videos.'));
+    }
+    if (!ytChannelFetched.current) {
+      ytChannelFetched.current = true;
+      wingupYtChannel().then((r) => setYtChannel(r.channel)).catch(() => {});
+    }
   }, [view, ytConnected, ytVideos]);
 
   // Run the (stubbed) generator and advance to the result step.
@@ -769,8 +778,21 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
           )}
           </>)}
 
-          {/* Recent YouTube uploads. */}
+          {/* YouTube — its own stats card, separate from the Instagram one. */}
           {ytConnected && (<>
+            <div className="wingup-hero-stat yt">
+              <div className="wingup-hero-k"><span className="wingup-yt-dot" aria-hidden="true" />YouTube</div>
+              <div className="wingup-hero-big">{ytChannel === null ? '…' : num(ytChannel.subscribers)}</div>
+              <div className="wingup-hero-sub">
+                subscribers{ytChannel?.handle ? ` · ${ytChannel.handle}` : (ytChannel?.title ? ` · ${ytChannel.title}` : '')}
+              </div>
+              <div className="wingup-chips3">
+                <div className="wingup-chip3"><div className="v">{num(ytChannel?.views)}</div><div className="l">Views</div></div>
+                <div className="wingup-chip3"><div className="v">{num(ytChannel?.videos)}</div><div className="l">Videos</div></div>
+                <div className="wingup-chip3"><div className="v">{ytChannel?.since ?? '—'}</div><div className="l">Since</div></div>
+              </div>
+            </div>
+
             <div className="wingup-sectionh">
               <span className="wingup-sectionh-t">YouTube videos</span>
             </div>
