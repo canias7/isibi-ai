@@ -290,6 +290,10 @@ input, textarea { caret-color: var(--brand); }
 .mkt-word:hover { opacity: 1; text-shadow: 0 0 60px rgba(255, 255, 255, 0.35); }
 .mkt-word:active { transform: scale(0.98); }
 .mkt-word:focus-visible { outline: 2px solid var(--brand); outline-offset: 6px; border-radius: var(--r-control); }
+/* Desktop: the single word carries the whole screen — let it be monumental. */
+@media (min-width: 900px) {
+  .mkt-word { font-size: 6.5rem; letter-spacing: -0.04em; }
+}
 /* The agent picker holds the tappable agent cards (just Sendra for now). */
 .agent-pick { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 360px; }
 .agent-card {
