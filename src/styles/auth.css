@@ -85,9 +85,196 @@
 .auth-row { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
 .auth-row .auth-toggle { padding: 6px 2px; }
 
+/* On phones the brand panel doesn't exist and the side wrapper is invisible —
+   the card lays out exactly as it always did. */
+.lp-panel { display: none; }
+.auth-side { display: contents; }
+
+/* ---- Desktop (website): cinematic split-screen ---- */
+@media (min-width: 900px) {
+  .auth { flex-direction: row; align-items: stretch; justify-content: flex-start; gap: 0; padding: 0; }
+  .auth .live-bg { display: none; } /* the desktop panel brings its own atmosphere */
+
+  .auth-side { display: flex; flex: 1; align-items: center; justify-content: center; background: #050505; position: relative; z-index: 1; }
+  .auth-card {
+    max-width: 400px;
+    background: #101010;
+    border: 1px solid #ffffff14;
+    border-radius: 20px;
+    padding: 44px 40px;
+    box-shadow: 0 24px 80px #000000a0;
+    opacity: 0;
+    animation: lp-card-in 1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.5s forwards;
+  }
+  .auth-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232, 169, 58, 0.16); }
+
+  /* ---- left brand panel ---- */
+  .lp-panel {
+    display: block; flex: 1.35; position: relative; overflow: hidden;
+    background:
+      radial-gradient(1000px 700px at 20% 90%, rgba(232, 169, 58, 0.09), transparent 60%),
+      radial-gradient(800px 560px at 85% 6%, rgba(70, 110, 220, 0.06), transparent 60%),
+      #080706;
+    border-right: 1px solid #ffffff10;
+  }
+  .lp-amber { color: var(--accent); }
+  .lp-wordmark {
+    font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em;
+    position: absolute; top: 40px; left: 56px; z-index: 10;
+  }
+  .lp-scrim {
+    position: absolute; z-index: 1; top: 0; left: 0; width: 64%; height: 46%; pointer-events: none;
+    background: radial-gradient(ellipse at 22% 24%, rgba(8, 7, 6, 0.95), rgba(8, 7, 6, 0.55) 55%, transparent 78%);
+  }
+  .lp-copy { position: absolute; z-index: 10; left: 56px; top: 108px; pointer-events: none; }
+  .lp-tagline {
+    font-size: 2.15rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.12; max-width: 560px;
+    text-shadow: 0 2px 30px rgba(0, 0, 0, 0.85); margin: 0;
+  }
+  .lp-tagline em { font-style: normal; color: var(--accent); }
+  .lp-footnote { position: absolute; bottom: 34px; left: 56px; color: #6b6558; font-size: 0.78rem; z-index: 10; }
+
+  /* one slim rotating release line */
+  .lp-drops {
+    margin-top: 22px; display: inline-flex; align-items: center; gap: 12px;
+    padding: 8px 16px 8px 9px; border-radius: 999px;
+    background: rgba(15, 14, 11, 0.66); border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    opacity: 0; animation: lp-fade-up 1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.6s forwards;
+  }
+  .lp-new {
+    font-size: 0.58rem; font-weight: 800; letter-spacing: 0.14em; color: #141005;
+    background: var(--accent); border-radius: 999px; padding: 4px 8px; flex: none;
+  }
+  .lp-roll { position: relative; height: 18px; min-width: 250px; overflow: hidden; display: block; }
+  .lp-roll span {
+    position: absolute; left: 0; top: 0; line-height: 18px; white-space: nowrap;
+    font-size: 0.82rem; color: #cfc9bd; opacity: 0;
+    animation: lp-roll 12s ease-in-out infinite;
+  }
+  .lp-roll span b { color: #f5f1e8; font-weight: 750; }
+  .lp-roll span em { font-style: normal; color: var(--accent); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; }
+  .lp-roll span:nth-child(2) { animation-delay: 4s; }
+  .lp-roll span:nth-child(3) { animation-delay: 8s; }
+
+  /* the wall of work: dense drifting canvas of generations */
+  .lp-wall {
+    position: absolute; top: -12%; left: -10%; width: 130%; height: 130%;
+    z-index: 0; pointer-events: none;
+    display: flex; flex-wrap: wrap; gap: 34px 40px; align-content: flex-start;
+    padding: 30px;
+    animation: lp-wall-pan 70s ease-in-out infinite alternate;
+    opacity: 0.34;
+    filter: saturate(0.85);
+    -webkit-mask-image: radial-gradient(130% 100% at 45% 50%, #000 35%, transparent 88%);
+            mask-image: radial-gradient(130% 100% at 45% 50%, #000 35%, transparent 88%);
+  }
+  .lp-cluster { display: flex; flex-direction: column; gap: 6px; }
+  .lp-clabel { font-size: 0.6rem; letter-spacing: 0.06em; color: #8d8779; display: flex; align-items: center; gap: 5px; }
+  .lp-clabel b { color: #b9b2a2; font-weight: 700; }
+  .lp-cdot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: lp-cdot-pulse 2.4s ease-in-out infinite; }
+  .lp-crow { display: flex; gap: 6px; }
+  .lp-tile {
+    display: block; width: 74px; height: 42px; border-radius: 4px; border: 1px solid #ffffff10;
+    background-image: url('https://lkpfeqrelvziltfwpuxi.supabase.co/storage/v1/object/public/email-assets/login/wall-sprite.jpg');
+    background-size: 1000% 500%; /* 10 x 5 tile sprite */
+  }
+  .lp-tile.big { width: 112px; height: 63px; }
+  .lp-tile.fresh { animation: lp-fresh-in 6s ease-in-out infinite; }
+
+  /* flying cards: .lp-fly (position + entrance + parallax) > .lp-orbit (drift) > .lp-card (tilt + hover) */
+  .lp-fly { position: absolute; z-index: 2; opacity: 0; animation: lp-fly-in 1.3s cubic-bezier(0.16, 0.8, 0.24, 1) forwards; }
+  .lp-fly:hover { z-index: 20; }
+  .lp-orbit { animation: lp-orbit var(--od, 18s) ease-in-out infinite; }
+  .lp-card {
+    position: relative; border-radius: 14px; overflow: hidden;
+    transform: rotate(var(--rot, 0deg));
+    border: 1px solid #ffffff1c;
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.5);
+    background: #0b0d14;
+    transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.45s ease, border-color 0.45s ease;
+    animation: lp-sway var(--sd, 9s) ease-in-out infinite;
+  }
+  .lp-card video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+  .lp-card:hover {
+    transform: rotate(0deg) scale(1.06);
+    border-color: rgba(232, 169, 58, 0.6);
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.75), 0 0 44px rgba(232, 169, 58, 0.15);
+    animation-play-state: paused;
+  }
+  .lp-cap {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 12px 10px;
+    background: linear-gradient(to top, rgba(5, 7, 12, 0.92), rgba(5, 7, 12, 0.5) 65%, transparent);
+    transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+    pointer-events: none;
+  }
+  .lp-card:hover .lp-cap { transform: translateY(0); }
+  .lp-lbl { font-size: 0.58rem; font-weight: 800; letter-spacing: 0.12em; color: var(--accent); margin-bottom: 4px; }
+  .lp-cap p { font-size: 0.72rem; line-height: 1.45; color: #dcd8cf; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; }
+  .lp-wm {
+    position: absolute; bottom: 7px; right: 10px;
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.72); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+    pointer-events: none;
+  }
+
+  /* per-card placement & motion personality */
+  .lp-f1 { top: 6%; right: 4%; width: 300px; z-index: 3; --fx: 220px; --fy: -160px; --fr: 14deg; --rot: 5deg; --ox: 16px; --oy: 12px; --od: 17s; --sd: 8s; --swing: 1.6deg; animation-delay: 0.15s; }
+  .lp-f2 { top: 30%; left: -34px; width: 250px; z-index: 2; --fx: -240px; --fy: 60px; --fr: -16deg; --rot: -6deg; --ox: 13px; --oy: 15px; --od: 21s; --sd: 10s; --swing: -2deg; animation-delay: 0.3s; }
+  .lp-f3 { top: 43%; right: 12%; width: 330px; z-index: 4; --fx: 260px; --fy: 120px; --fr: 10deg; --rot: 2.5deg; --ox: 18px; --oy: 10px; --od: 15s; --sd: 7.5s; --swing: -1.4deg; animation-delay: 0.45s; }
+  .lp-f4 { bottom: 7%; left: 10%; width: 260px; z-index: 2; --fx: -180px; --fy: 200px; --fr: -12deg; --rot: -4deg; --ox: 14px; --oy: 13px; --od: 19s; --sd: 9s; --swing: 2.2deg; animation-delay: 0.6s; }
+  .lp-f5 { bottom: 3%; right: -20px; width: 280px; z-index: 3; --fx: 240px; --fy: 190px; --fr: 18deg; --rot: 7deg; --ox: 15px; --oy: 16px; --od: 23s; --sd: 11s; --swing: -1.8deg; animation-delay: 0.75s; }
+  .lp-f6 { top: 36%; left: 29%; width: 195px; z-index: 2; --fx: -40px; --fy: -240px; --fr: -10deg; --rot: -3.5deg; --ox: 12px; --oy: 14px; --od: 20s; --sd: 9.5s; --swing: 1.8deg; animation-delay: 0.9s; }
+
+  /* email card: tall, content slowly scrolls through */
+  .lp-card.lp-email { height: 292px; }
+  .lp-card.lp-email .lp-scroller { display: block; width: 100%; animation: lp-mail-scroll 26s ease-in-out infinite; }
+  .lp-card.lp-email:hover .lp-scroller { animation-play-state: paused; }
+}
+
+@keyframes lp-card-in { from { opacity: 0; transform: translateY(22px) scale(0.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes lp-fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes lp-roll {
+  0% { opacity: 0; transform: translateY(14px); }
+  3%, 30% { opacity: 1; transform: translateY(0); }
+  34%, 100% { opacity: 0; transform: translateY(-14px); }
+}
+@keyframes lp-wall-pan { from { transform: translate(0, 0) scale(1); } to { transform: translate(-4%, -5%) scale(1.06); } }
+@keyframes lp-cdot-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+@keyframes lp-fresh-in {
+  0%, 76%, 100% { box-shadow: none; opacity: 1; }
+  80% { opacity: 0.2; }
+  86% { opacity: 1; box-shadow: 0 0 0 1.5px rgba(232, 169, 58, 0.85), 0 0 18px rgba(232, 169, 58, 0.35); }
+  94% { box-shadow: none; }
+}
+@keyframes lp-fly-in {
+  from { opacity: 0; transform: translate(var(--fx), var(--fy)) scale(0.7) rotate(var(--fr)); }
+  to { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+}
+@keyframes lp-orbit {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(var(--ox), calc(var(--oy) * -1)); }
+  50% { transform: translate(calc(var(--ox) * -0.6), var(--oy)); }
+  75% { transform: translate(calc(var(--ox) * 0.4), calc(var(--oy) * 0.5)); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes lp-sway {
+  0%, 100% { transform: rotate(var(--rot, 0deg)); }
+  50% { transform: rotate(calc(var(--rot, 0deg) + var(--swing, 2deg))); }
+}
+@keyframes lp-mail-scroll {
+  0%, 8% { transform: translateY(0); }
+  46%, 58% { transform: translateY(calc(-100% + 292px)); }
+  92%, 100% { transform: translateY(0); }
+}
+
 /* Respect users who turn animations off. */
 @media (prefers-reduced-motion: reduce) {
   .auth-btn { transition: none; }
+  .lp-panel *, .lp-panel *::before, .lp-panel *::after { animation: none !important; transition: none !important; }
+  .lp-fly, .lp-drops { opacity: 1; }
+  .lp-roll span:first-child { opacity: 1; }
+  .auth-card { animation: none; opacity: 1; }
 }
 
 
